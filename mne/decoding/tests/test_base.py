@@ -5,16 +5,17 @@
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal, assert_allclose)
+                           assert_equal, assert_allclose, assert_array_less)
 import pytest
 
-from mne import create_info
+from mne import create_info, EpochsArray
 from mne.fixes import is_regressor, is_classifier
 from mne.utils import requires_sklearn, check_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore, BaseEstimator)
 from mne.decoding.search_light import SlidingEstimator
-from mne.decoding import Scaler, TransformerMixin, Vectorizer
+from mne.decoding import (Scaler, TransformerMixin, Vectorizer,
+                          GeneralizingEstimator)
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -263,6 +264,49 @@ def test_get_coef_multiclass(n_features, n_targets):
 
     # Check can pass fitting parameters
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
+
+
+@requires_sklearn
+@pytest.mark.parametrize('n_classes, n_channels, n_times', [
+    (4, 10, 2),
+    (4, 3, 2),
+    (3, 2, 1),
+    (3, 1, 2),
+])
+def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
+    """Test a full example with pattern extraction."""
+    from sklearn.pipeline import make_pipeline
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import StratifiedKFold
+    data = np.zeros((10 * n_classes, n_channels, n_times))
+    # Make only the first channel informative
+    for ii in range(n_classes):
+        data[ii * 10:(ii + 1) * 10, 0] = ii
+    events = np.zeros((len(data), 3), int)
+    events[:, 0] = np.arange(len(events))
+    events[:, 2] = data[:, 0, 0]
+    info = create_info(n_channels, 1000., 'eeg')
+    epochs = EpochsArray(data, info, events, tmin=0)
+    clf = make_pipeline(
+        Scaler(epochs.info), Vectorizer(),
+        LinearModel(LogisticRegression(random_state=0, multi_class='ovr')),
+    )
+    scorer = 'roc_auc_ovr_weighted'
+    time_gen = GeneralizingEstimator(clf, scorer, verbose=True)
+    X = epochs.get_data()
+    y = epochs.events[:, 2]
+    n_splits = 3
+    cv = StratifiedKFold(n_splits=n_splits)
+    scores = cross_val_multiscore(time_gen, X, y, cv=cv, verbose=True)
+    want = (n_splits,)
+    if n_times > 1:
+        want += (n_times, n_times)
+    assert scores.shape == want
+    assert_array_less(0.8, scores)
+    clf.fit(X, y)
+    patterns = get_coef(clf, 'patterns_', inverse_transform=True)
+    assert patterns.shape == (n_classes, n_channels, n_times)
+    assert_allclose(patterns[:, 1:], 0., atol=1e-7)  # no other channels useful
 
 
 @requires_sklearn

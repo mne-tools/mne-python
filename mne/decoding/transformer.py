@@ -144,7 +144,9 @@ class Scaler(TransformerMixin, BaseEstimator):
             The modified instance.
         """
         _validate_type(epochs_data, np.ndarray, 'epochs_data')
-        assert epochs_data.ndim == 3
+        if epochs_data.ndim == 2:
+            epochs_data = epochs_data[..., np.newaxis]
+        assert epochs_data.ndim == 3, epochs_data.shape
         _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
 
@@ -153,7 +155,7 @@ class Scaler(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels[, n_times])
             The data.
 
         Returns
@@ -167,7 +169,11 @@ class Scaler(TransformerMixin, BaseEstimator):
         memory usage may be large with big data.
         """
         _validate_type(epochs_data, np.ndarray, 'epochs_data')
-        assert epochs_data.ndim == 3
+        if epochs_data.ndim == 2:  # can happen with SlidingEstimator
+            if self.info is not None:
+                assert len(self.info['ch_names']) == epochs_data.shape[1]
+            epochs_data = epochs_data[..., np.newaxis]
+        assert epochs_data.ndim == 3, epochs_data.shape
         return _sklearn_reshape_apply(self._scaler.transform, True,
                                       epochs_data)
 
@@ -215,7 +221,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        assert epochs_data.ndim == 3
+        assert epochs_data.ndim == 3, epochs_data.shape
         return _sklearn_reshape_apply(self._scaler.inverse_transform, True,
                                       epochs_data)
 
