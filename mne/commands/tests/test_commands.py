@@ -23,7 +23,8 @@ from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
                        requires_mayavi, requires_vtk, requires_freesurfer,
-                       traits_test, ArgvSetter, modified_env, _stamp_to_dt)
+                       requires_nibabel, traits_test, ArgvSetter, modified_env,
+                       _stamp_to_dt)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -209,10 +210,12 @@ def test_surf2bem():
 @pytest.mark.timeout(600)  # took ~400 sec on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
+@requires_nibabel()
 @requires_freesurfer
 @testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
+    import nibabel
     check_usage(mne_watershed_bem)
     # Copy necessary files to tempdir
     tempdir = str(tmpdir)
@@ -230,14 +233,24 @@ def test_watershed_bem(tmpdir):
             mne_watershed_bem.run()
     os.chmod(new_fname, old_mode)
     out_fnames = list()
-    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
-        out_fnames.append(op.join(subject_path_new, 'bem', 'inner_skull.surf'))
+    for surf in ('outer_skin', 'outer_skull', 'inner_skull'):
+        out_fnames.append(op.join(subject_path_new, 'bem', '%s.surf' % surf))
     assert not any(op.isfile(out_fname) for out_fname in out_fnames)
     with ArgvSetter(args):
         mne_watershed_bem.run()
+
+    header = nibabel.load(new_fname).header
     for out_fname in out_fnames:
-        _, tris = read_surface(out_fname)
+        rr, tris, vol_info = read_surface(out_fname, read_metadata=True)
+        # compare the volumn info to the mgz header
+        assert_allclose(vol_info['xras'], header['Mdc'][0])
+        assert_allclose(vol_info['yras'], header['Mdc'][1])
+        assert_allclose(vol_info['zras'], header['Mdc'][2])
+        assert_allclose(vol_info['cras'], header['Pxyz_c'])
+
         assert len(tris) == 20480
+        assert_equal(0, tris.min())
+        assert_equal(rr.shape[0], tris.max() + 1)
 
 
 @pytest.mark.timeout(300)  # took 200 sec locally
