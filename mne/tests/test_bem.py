@@ -21,7 +21,7 @@ from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, catch_logging,
-                       requires_freesurfer)
+                       requires_freesurfer, requires_nibabel)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface, make_flash_bem)
@@ -368,6 +368,7 @@ def test_fit_sphere_to_headshape():
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
+@requires_nibabel()
 @requires_freesurfer('mri_convert')
 @testing.requires_testing_data
 def test_make_flash_bem(tmpdir):
