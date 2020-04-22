@@ -21,7 +21,7 @@ from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
 from mne.utils import (run_tests_if_main, object_diff, requires_h5py,
-                       catch_logging)
+                       catch_logging, sqrtm_sym)
 
 
 data_path = testing.data_path(download=False)
@@ -695,6 +695,31 @@ def test_lcmv_ctf_comp():
     set_current_comp(info_comp, 1)
     with pytest.raises(RuntimeError, match='Compensation grade .* not match'):
         make_lcmv(info_comp, fwd, data_cov)
+
+
+@pytest.mark.xfail(reason='Not equivalent yet, bug', raises=AssertionError)
+@testing.requires_testing_data
+@pytest.mark.parametrize('pick_ori', ('max-power', 'vector'))
+def test_unit_gain_relationships(pick_ori):
+    """Test unit gain and unit gain noise relationships."""
+    raw = mne.io.read_raw_fif(fname_raw, preload=True)
+    events = mne.find_events(raw)
+    raw.pick_types()
+    assert len(raw.ch_names) == 305
+    epochs = mne.Epochs(raw, events, None, preload=True)
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        noise_cov = mne.compute_covariance(epochs, tmax=0)
+        data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+    forward = mne.read_forward_solution(fname_fwd)
+    W_ung = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
+                      noise_cov=noise_cov, pick_ori=pick_ori,
+                      weight_norm='unit-noise-gain', rank=None)['weights']
+    W_ug = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
+                     noise_cov=noise_cov, pick_ori=pick_ori,
+                     weight_norm=None, rank=None)['weights']
+    assert W_ung.shape == (forward['nsource'], len(epochs.ch_names))
+    W_ung_2 = W_ug / np.linalg.norm(W_ug, axis=1, keepdims=True)
+    assert_allclose(W_ung_2, W_ung)
 
 
 @testing.requires_testing_data
