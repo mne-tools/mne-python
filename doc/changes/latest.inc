@@ -80,6 +80,8 @@ Bug
 
 - Make :func:`mne.set_config` accept path-like input values by `Richard Höchenberger`_
 
+- Fix bug with :func:`mne.beamformer.make_dics` where complex conjugates were not applied properly by `Britta Westner`_ and `Eric Larson`_
+
 API
 ~~~
 
