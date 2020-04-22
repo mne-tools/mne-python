@@ -587,6 +587,21 @@ def test_source_space_from_label(tmpdir):
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
+@testing.requires_testing_data
+def test_source_space_exclusive():
+    """Test that we produce exclusive labels."""
+    # these two are neighbors and are quite large, so let's use them to
+    # ensure no overlaps
+    volume_label = ['Left-Cerebral-White-Matter', 'Left-Cerebral-Cortex']
+    src = setup_volume_source_space(
+        'sample', subjects_dir=subjects_dir, volume_label=volume_label,
+        mri='aseg.mgz', add_interpolator=False)
+    assert src[0]['nuse'] == 2034  # was 2832
+    assert src[1]['nuse'] == 1520  # was 2623
+    overlap = np.in1d(src[0]['vertno'], src[1]['vertno']).mean()
+    assert overlap == 0.
+
+
 @pytest.mark.timeout(60)  # ~24 sec on Travis
 @pytest.mark.slowtest
 @testing.requires_testing_data
