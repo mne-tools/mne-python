@@ -405,39 +405,4 @@ def test_make_flash_bem(tmpdir):
     plt.close('all')
 
 
-@requires_freesurfer('mri_watershed')
-@requires_nibabel()
-@testing.requires_testing_data
-def test_make_watershed_bem(tmpdir):
-    """Test computing bem using FreeSurfer watershed algorithm."""
-    import nibabel
-    tmp = str(tmpdir)
-    bemdir = op.join(subjects_dir, 'sample', 'bem')
-    mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
-    header = nibabel.load(mri_fname).header
-
-    for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-        copy(op.join(bemdir, surf + '.surf'), tmp)
-    copy(op.join(bemdir, 'outer_skin_from_testing.surf'), tmp)
-
-    try:
-        make_watershed_bem('sample', subjects_dir=subjects_dir, overwrite=True)
-        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            coords, faces, vol_info = read_surface(op.join(
-                bemdir, surf + '.surf'), read_metadata=True)
-            # compare the volumn info to the nibabel header
-            assert_allclose(vol_info['xras'], header['Mdc'][0])
-            assert_allclose(vol_info['yras'], header['Mdc'][1])
-            assert_allclose(vol_info['zras'], header['Mdc'][2])
-            assert_allclose(vol_info['cras'], header['Pxyz_c'])
-
-            assert_equal(0, faces.min())
-            assert_equal(coords.shape[0], faces.max() + 1)
-    finally:
-        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            remove(op.join(bemdir, surf + '.surf'))  # delete symlinks
-            copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
-        copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
-
-
 run_tests_if_main()
