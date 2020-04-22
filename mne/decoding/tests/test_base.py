@@ -10,7 +10,7 @@ import pytest
 
 from mne import create_info, EpochsArray
 from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_sklearn, check_version
+from mne.utils import requires_sklearn, check_version, requires_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore, BaseEstimator)
 from mne.decoding.search_light import SlidingEstimator
