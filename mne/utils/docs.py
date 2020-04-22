@@ -799,7 +799,7 @@ on_missing : str
     Either 'raise', or 'warn' to raise an error/warning when
     channels have missing coordinates,
     or 'ignore' to set channels to np.nan and set montage.
-    
+
     .. versionadded:: 0.20.1
 """
 
