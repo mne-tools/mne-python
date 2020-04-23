@@ -25,12 +25,12 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _import_nibabel, _get_mri_info_data,
                            _get_atlas_values, _check_volume_labels,
                            read_freesurfer_lut)
-from .transforms import _ensure_trans, apply_trans
+from .transforms import _get_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed, deprecated,
-                    _check_pandas_index_arguments, _convert_times,
+                    _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _check_path_like)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
@@ -567,8 +567,7 @@ class _BaseSourceEstimate(TimeMixin):
 
         Returns
         -------
-        label_tc : array, shape (n_labels, n_times)
-            Extracted time course for each label.
+        %(eltc_returns)s
 
         See Also
         --------
@@ -1640,13 +1639,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             or index.
         """
         _check_option('hemi', hemi, ('lh', 'rh', None))
-        if hemi == 'lh':
-            use = self.__class__(
-                self.lh_data, [self.vertices[0], []], self.tmin, self.tstep)
-            meth = use.get_peak
-        elif hemi == 'rh':
-            use = self.__class__(
-                self.rh_data, [[], self.vertices[1]], self.tmin, self.tstep)
+        if hemi is not None:
+            use = self._hemilabel_stc(hemi)
             meth = use.get_peak
         else:
             meth = super().get_peak
@@ -1836,8 +1830,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Returns
         -------
-        label_tc : array, shape (n_labels, n_times)
-            Extracted time course for each label.
+        %(eltc_returns)s
 
         See Also
         --------
@@ -1850,6 +1843,53 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         return extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
             allow_empty=allow_empty, verbose=verbose)
+
+    @fill_doc
+    def in_label(self, label, mri, src, trans=None):
+        """Get a source estimate object restricted to a label.
+
+        SourceEstimate contains the time course of
+        activation of all sources inside the label.
+
+        Parameters
+        ----------
+        label : str | int
+            The label to use. Can be the name of a label if using a standard
+            FreeSurfer atlas, or an integer value to extract from the ``mri``.
+        mri : str
+            Path to the atlas to use.
+        src : instance of SourceSpaces
+            The volumetric source space. It must be a single, whole-brain
+            volume.
+        %(trans_not_none)s
+
+        Returns
+        -------
+        stc : VolSourceEstimate | VolVectorSourceEstimate
+            The source estimate restricted to the given label.
+
+        Notes
+        -----
+        .. versionadded:: 0.21.0
+        """
+        if len(self.vertices) != 1:
+            raise RuntimeError('This method can only be used with whole-brain '
+                               'volume source spaces')
+        _validate_type(label, (str, 'int-like'), 'label')
+        if isinstance(label, str):
+            volume_label = [label]
+        else:
+            volume_label = {'Volume ID %s' % (label): _ensure_int(label)}
+        label = _volume_labels(src, (mri, volume_label), trans,
+                               mri_resolution=False)
+        assert len(label) == 1
+        label = label[0]
+        vertices = label.vertices
+        keep = np.in1d(self.vertices[0], label.vertices)
+        values, vertices = self.data[keep], [self.vertices[0][keep]]
+        label_stc = self.__class__(values, vertices=vertices, tmin=self.tmin,
+                                   tstep=self.tstep, subject=self.subject)
+        return label_stc
 
     def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
                        format='nifti1'):
@@ -2869,7 +2909,8 @@ def _volume_labels(src, labels, trans, mri_resolution):
         src_values = _get_atlas_values(vol_info, src[0]['rr'][vertno])
         rr = src[0]['rr']
         if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
-            rr = apply_trans(_ensure_trans(trans, 'head', 'mri'), rr)
+            trans, _ = _get_trans(trans, 'head', 'mri', allow_none=False)
+            rr = apply_trans(trans, rr)
         del src
         src_values = _get_atlas_values(vol_info, rr[vertno])
         vertices = [vertno[src_values == val] for val in labels.values()]
@@ -2984,14 +3025,13 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(eltc_trans)s
+    %(trans_not_none)s
     %(eltc_mri_resolution)s
     %(verbose)s
 
     Returns
     -------
-    label_tc : array | list (or generator) of array, shape (n_labels, n_times)
-        Extracted time course for each label and source estimate.
+    %(eltc_returns)s
 
     Notes
     -----

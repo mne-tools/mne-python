@@ -646,17 +646,16 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
-@pytest.mark.parametrize('pass_volume_label, mri_resolution, vector, cf', [
-    (False, False, False, 'head'),  # head frame
-    (False, False, False, 'mri'),  # fastest, default for testing
-    (False, False, True, 'mri'),  # vector
-    (False, True, False, 'mri'),  # mri_resolution
-    (list, True, False, 'mri'),  # volume label as list
-    (dict, True, False, 'mri'),  # volume label as dict
+@pytest.mark.parametrize('label_type, mri_res, vector, test_label, cf', [
+    (str, False, False, False, 'head'),  # head frame
+    (str, False, False, str, 'mri'),  # fastest, default for testing
+    (str, False, True, int, 'mri'),  # vector
+    (str, True, False, False, 'mri'),  # mri_resolution
+    (list, True, False, False, 'mri'),  # volume label as list
+    (dict, True, False, False, 'mri'),  # volume label as dict
 ])
 def test_extract_label_time_course_volume(
-        src_volume_labels, pass_volume_label, mri_resolution, vector, cf,
-        evoked):
+        src_volume_labels, label_type, mri_res, vector, test_label, cf):
     """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
     src_labels, volume_labels, lut = src_volume_labels
     n_tot = 46
@@ -690,7 +689,7 @@ def test_extract_label_time_course_volume(
     stcs = [klass(data.astype(float), vertices, 0, 1)]
     with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
         extract_label_time_course(stcs, fname_fs_t1, src, trans=trans,
-                                  mri_resolution=mri_resolution)
+                                  mri_resolution=mri_res)
     assert len(src_labels) == 46  # includes unknown
     assert_array_equal(
         src[0]['vertno'],  # src includes some in "unknown" space
@@ -705,30 +704,28 @@ def test_extract_label_time_course_volume(
         np.where(np.in1d(src[0]['vertno'], [8011, 8032, 8557]))[0],
         [2672, 2688, 2995])
     # triage "labels" argument
-    if pass_volume_label is False:
+    if label_type is str:
         labels = fname_aseg
-    elif pass_volume_label is list:
+    elif label_type is list:
         labels = (fname_aseg, volume_labels)
     else:
-        assert pass_volume_label is dict
+        assert label_type is dict
         labels = (fname_aseg, {k: lut[k] for k in volume_labels})
 
     # actually do the testing
-    if cf == 'head' and not mri_resolution:  # no trans is an error
-        with pytest.raises(ValueError, match='trans must be a Transform'):
+    if cf == 'head' and not mri_res:  # no trans is an error
+        with pytest.raises(TypeError, match='trans must be .* Transform'):
             extract_label_time_course(stcs, labels, src,
-                                      mri_resolution=mri_resolution)
+                                      mri_resolution=mri_res)
     for mode in ('mean', 'max'):
         with catch_logging() as log:
             label_tc = extract_label_time_course(
-                stcs, labels, src, mode=mode,
-                allow_empty='ignore', trans=trans,
-                mri_resolution=mri_resolution,
-                verbose=True)
+                stcs, labels, src, mode=mode, allow_empty='ignore',
+                trans=trans, mri_resolution=mri_res, verbose=True)
         log = log.getvalue()
         assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
         n_want = len(src_labels)
-        if not mri_resolution:
+        if not mri_res:
             # assert that the missing ones get logged
             missing = ['Left-vessel', 'Right-vessel', '5th-Ventricle',
                        'non-WM-hypointensities']
@@ -749,7 +746,7 @@ def test_extract_label_time_course_volume(
         # setup_volume_source_space. mri_resolution=True does some
         # interpolation so we should not expect equivalence, False does
         # nearest so we should.
-        if mri_resolution:
+        if mri_res:
             rtol = 0.2 if mode == 'mean' else 0.8  # max much more sensitive
         else:
             rtol = 0.
@@ -761,13 +758,29 @@ def test_extract_label_time_course_volume(
                 continue  # unknown is crappy
             if s['nuse'] == 0:
                 want = 0.
-                if mri_resolution:
+                if mri_res:
                     # this one is totally due to interpolation, so no easy
                     # test here
                     continue
             else:
                 want = func(these)
             assert_allclose(label_tc[si], want, atol=1e-6, rtol=rtol)
+            # compare with in_label, only on every fourth for speed
+            if test_label is not False and si % 4 == 0:
+                label = s['seg_name']
+                if test_label is int:
+                    label = lut[label]
+                in_label = stcs[0].in_label(
+                    label, fname_aseg, src, trans).data
+                assert in_label.shape == (s['nuse'],) + end_shape
+                if vector:
+                    assert_array_equal(in_label[:, :2], 0.)
+                    in_label = in_label[:, 2]
+                if want == 0:
+                    assert in_label.shape[0] == 0
+                else:
+                    in_label = func(in_label)
+                    assert_allclose(in_label, want, atol=1e-6, rtol=rtol)
 
 
 @testing.requires_testing_data

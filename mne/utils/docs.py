@@ -588,15 +588,22 @@ exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
+_trans_base = """\
+If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+    during coregistration. Can also be ``'fsaverage'`` to use the built-in
+    fsaverage transformation."""
+docdict['trans_not_none'] = """
+trans : str | dict | instance of Transform
+    %s
+""" % (_trans_base,)
 docdict['trans'] = """
 trans : str | dict | instance of Transform | None
-    If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
-    during coregistration. Can also be ``'fsaverage'`` to use the built-in
-    fsaverage transformation. If trans is None, an identity matrix is assumed.
+    %s
+    If trans is None, an identity matrix is assumed.
 
     .. versionchanged:: 0.19
        Support for 'fsaverage' argument.
-"""
+""" % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | None
     The path to the freesurfer subjects reconstructions.
@@ -871,14 +878,17 @@ time_label : str | callable | None
     is more than one time point.
 """
 
+
 # STC label time course
 docdict['eltc_labels'] = """
 labels : Label | BiHemiLabel | list | tuple | str
     If using a surface or mixed source space, this should be the
     :class:`~mne.Label`'s for which to extract the time course.
-    If working with whole-brain volume source estimates, this can also be:
+    If working with whole-brain volume source estimates, this must be one of:
 
-    - a string path to a MGZ atlas for the subject (e.g., their 'aseg.mgz')
+    - a string path to a FreeSurfer atlas for the subject (e.g., their
+      'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+      atlas
     - a two-element list or tuple, the first element being a path to an atlas,
       and the second being a list or dict of ``volume_labels`` to extract
       (see :func:`mne.setup_volume_source_space` for details).
@@ -887,8 +897,8 @@ labels : Label | BiHemiLabel | list | tuple | str
        Support for volume source estimates.
 """
 docdict['eltc_src'] = """
-src : list
-    Source spaces for left and right hemisphere.
+src : instance of SourceSpaces
+    The source spaces for the source time courses.
 """
 docdict['eltc_mode'] = """
 mode : str
@@ -905,14 +915,13 @@ allow_empty : bool | str
     .. versionchanged:: 0.21.0
        Support for "ignore".
 """
-docdict['eltc_trans'] = """
-trans : str | instance of Transform
-    If str, the path to the head<->MRI transform ``*-trans.fif`` file
-    during coregistration. Only needed when using a volume atlas and
+docdict
+docdict['eltc_trans'] = """%s
+    Only needed when using a volume atlas and
     ``src`` is in head coordinates (i.e., comes from a forward or inverse).
 
     .. versionadded:: 0.21.0
-"""
+""" % (docdict['trans_not_none'],)
 docdict['eltc_mri_resolution'] = """
 mri_resolution : bool
     If True (default), the volume source space will be upsampled to the
@@ -923,6 +932,10 @@ mri_resolution : bool
 
     .. versionadded:: 0.21.0
 """
+docdict['eltc_returns'] = """
+label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
+    Extracted time course for each label and source estimate.
+"""  # noqa: E501
 docdict['eltc_mode_notes'] = """
 Valid values for ``mode`` are:
 

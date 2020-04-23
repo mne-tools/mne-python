@@ -1710,7 +1710,6 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                              'discrete source space, mri must be None if '
                              'pos is a dict')
 
-    clean_atlas = False
     if volume_label is not None:
         volume_label = _check_volume_labels(volume_label, mri)
     assert volume_label is None or isinstance(volume_label, dict)

@@ -126,7 +126,7 @@ xy = np.array([stc.times[tidx], label_tc[lidx, tidx]])
 xytext = xy + [0.01, 1]
 ax.annotate(
     label_names[lidx], xy, xytext, arrowprops=dict(arrowstyle='->'), color='r')
-ax.set(xlim=stc.times[[0, -1]], xlabel='Time (s)', ylabel='Actiavtion')
+ax.set(xlim=stc.times[[0, -1]], xlabel='Time (s)', ylabel='Activation')
 for key in ('right', 'top'):
     ax.spines[key].set_visible(False)
 fig.tight_layout()
