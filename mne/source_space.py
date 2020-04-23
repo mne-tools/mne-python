@@ -34,7 +34,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from .utils import (get_subjects_dir, check_fname, logger, verbose,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, has_nibabel, _check_sphere,
-                    _validate_type, _check_option, _is_numeric,
+                    _validate_type, _check_option, _is_numeric, _pl,
                     _suggest)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -1553,7 +1553,7 @@ def _check_mri(mri, subject, subjects_dir):
     return mri
 
 
-@verbose
+#@verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
@@ -1682,6 +1682,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                              'discrete source space, mri must be None if '
                              'pos is a dict')
 
+    clean_atlas = False
     if volume_label is not None:
         if mri is None:
             raise RuntimeError('"mri" must be provided if "volume_label" is '
@@ -1692,13 +1693,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         # Check that volume label is found in .mgz file
         _validate_type(atlas_ids, (dict, None), 'atlas_ids')
         if atlas_ids is None:
+            clean_atlas = True
             extra = (
                 'in file %s. Double check freesurfer lookup table.' % (mri,))
             atlas_ids, _ = read_freesurfer_lut()
-            # This step isn't strictly necessary but will make the suggestions
-            # cleaner
-            atlas_ids = {
-                k: atlas_ids[k] for k in get_volume_labels_from_aseg(mri)}
         else:
             extra = 'in atlas_ids'
 
@@ -1768,6 +1766,13 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('')
         logger.info('Reading %s...' % mri)
         vol_info = _get_mri_info_data(mri, data=volume_label is not None)
+        if clean_atlas:
+            # This step isn't strictly necessary but will make the suggestions
+            # cleaner
+            keep = np.in1d(
+                list(atlas_ids.values()), np.unique(vol_info['data']))
+            atlas_ids = {
+                k: atlas_ids[k] for ki, k in enumerate(atlas_ids) if keep[ki]}
 
     exclude /= 1000.0  # convert exclude from m to mm
     logger.info('')
@@ -1810,17 +1815,9 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             logger.info('Setting up the sphere...')
             surf = dict(R=sphere[3], r0=sphere[:3])
         # Make the grid of sources in MRI space
-        if volume_label is not None:
-            sp = []
-            for li, label in enumerate(volume_label):
-                vol_sp = _make_volume_source_space(
-                    surf, pos, exclude, mindist, mri, label, first=li == 0,
-                    atlas_ids=atlas_ids, vol_info=vol_info)
-                sp.append(vol_sp)
-            logger.info('')
-        else:
-            sp = [_make_volume_source_space(surf, pos, exclude, mindist, mri,
-                                            vol_info=vol_info)]
+        sp = _make_volume_source_space(
+            surf, pos, exclude, mindist, mri, volume_label,
+            atlas_ids=atlas_ids, vol_info=vol_info)
     del sphere
     if volume_label is None:
         volume_label = ['the whole brain']
@@ -1830,8 +1827,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     assert isinstance(sp, list)
 
     if mri is not None:
-        for si, s in enumerate(sp):
-            _add_interpolator(s, add_interpolator, volume_label[si])
+        _add_interpolator(sp, add_interpolator, volume_label)
     elif sp[0]['type'] == 'vol':
         # If there is no interpolator, it's actually a discrete source space
         sp[0]['type'] = 'discrete'
@@ -1953,8 +1949,8 @@ def _get_atlas_values(vol_info, rr):
 
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
-                              volume_label=None, do_neighbors=True, n_jobs=1,
-                              first=True, atlas_ids=None, vol_info={}):
+                              volume_labels=None, do_neighbors=True, n_jobs=1,
+                              atlas_ids=None, vol_info={}):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
     if 'rr' in surf:
@@ -1969,24 +1965,22 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
         maxdist = surf['R']
 
     # Define the sphere which fits the surface
-    if first:
-        logger.info('Surface CM = (%6.1f %6.1f %6.1f) mm'
-                    % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
-        logger.info('Surface fits inside a sphere with radius %6.1f mm'
-                    % (1000 * maxdist))
-        logger.info('Surface extent:')
-        for c, mi, ma in zip('xyz', mins, maxs):
-            logger.info('    %s = %6.1f ... %6.1f mm'
-                        % (c, 1000 * mi, 1000 * ma))
+    logger.info('Surface CM = (%6.1f %6.1f %6.1f) mm'
+                % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
+    logger.info('Surface fits inside a sphere with radius %6.1f mm'
+                % (1000 * maxdist))
+    logger.info('Surface extent:')
+    for c, mi, ma in zip('xyz', mins, maxs):
+        logger.info('    %s = %6.1f ... %6.1f mm'
+                    % (c, 1000 * mi, 1000 * ma))
     maxn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
                      np.floor(np.abs(m) / grid) - 1 for m in maxs], int)
     minn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
                      np.floor(np.abs(m) / grid) - 1 for m in mins], int)
-    if first:
-        logger.info('Grid extent:')
-        for c, mi, ma in zip('xyz', minn, maxn):
-            logger.info('    %s = %6.1f ... %6.1f mm'
-                        % (c, 1000 * mi * grid, 1000 * ma * grid))
+    logger.info('Grid extent:')
+    for c, mi, ma in zip('xyz', minn, maxn):
+        logger.info('    %s = %6.1f ... %6.1f mm'
+                    % (c, 1000 * mi * grid, 1000 * ma * grid))
 
     # Now make the initial grid
     ns = tuple(maxn - minn + 1)
@@ -2006,38 +2000,16 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     sp['nn'][:, 2] = 1.0
     assert sp['rr'].shape[0] == npts
 
-    if first:
-        logger.info('%d sources before omitting any.', sp['nuse'])
+    logger.info('%d sources before omitting any.', sp['nuse'])
 
     # Exclude infeasible points
     dists = np.linalg.norm(sp['rr'] - cm, axis=1)
     bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
     sp['inuse'][bads] = False
     sp['nuse'] -= len(bads)
-    if first:
-        logger.info('%d sources after omitting infeasible sources not within '
-                    '%0.1f - %0.1f mm.',
-                    sp['nuse'], 1000 * exclude, 1000 * maxdist)
-
-    # Restrict sources to volume of interest
-    if volume_label is not None:
-        if not do_neighbors:
-            raise RuntimeError('volume_label cannot be None unless '
-                               'do_neighbors is True')
-        logger.info('')
-        logger.info('Selecting voxels from %s' % volume_label)
-        vol_id = atlas_ids[volume_label]
-        bads = _get_atlas_values(vol_info, sp['rr']) != vol_id
-        # Update source info
-        sp['inuse'][bads] = False
-        sp['nuse'] = sp['inuse'].sum()
-        sp['seg_name'] = volume_label
-        sp['mri_file'] = mri
-
-        # Update log
-        logger.info('%d sources remaining after excluding sources too far '
-                    'from VOI voxels', sp['nuse'])
-
+    logger.info('%d sources after omitting infeasible sources not within '
+                '%0.1f - %0.1f mm.',
+                sp['nuse'], 1000 * exclude, 1000 * maxdist)
     if 'rr' in surf:
         _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
     else:  # sphere
@@ -2053,8 +2025,34 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                 'the surface and less than %6.1f mm inside.'
                 % (sp['nuse'], mindist))
 
+    # Restrict sources to volume of interest
+    if volume_labels is None:
+        sps = [sp]
+    else:
+        if not do_neighbors:
+            raise RuntimeError('volume_label cannot be None unless '
+                               'do_neighbors is True')
+        sps = list()
+        orig_sp = sp
+        for volume_label in volume_labels:
+            sp = deepcopy(orig_sp)
+            id_ = atlas_ids[volume_label]
+            good = _get_atlas_values(vol_info, sp['rr'][sp['vertno']]) == id_
+            n_good = good.sum()
+            logger.info('    Selected %d voxel%s from %s'
+                        % (n_good, _pl(n_good), volume_label))
+            # Update source info
+            sp['inuse'][sp['vertno'][~good]] = False
+            sp['vertno'] = sp['vertno'][good]
+            sp['nuse'] = sp['inuse'].sum()
+            sp['seg_name'] = volume_label
+            sp['mri_file'] = mri
+            sps.append(sp)
+        assert len(sps) == len(volume_labels)
+    del sp, volume_labels
     if not do_neighbors:
-        return sp
+        return sps
+
     k = np.arange(npts)
     neigh = np.empty((26, npts), int)
     neigh.fill(-1)
@@ -2130,36 +2128,39 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
 
     # Omit unused vertices from the neighborhoods
     logger.info('Adjusting the neighborhood info.')
-    # remove non source-space points
-    neigh[:, np.logical_not(sp['inuse'])] = -1
-    # remove these points from neigh
-    old_shape = neigh.shape
-    neigh = neigh.ravel()
-    checks = np.where(neigh >= 0)[0]
-    removes = np.logical_not(np.in1d(checks, sp['vertno']))
-    neigh[checks[removes]] = -1
-    neigh.shape = old_shape
-    neigh = neigh.T
-    # Thought we would need this, but C code keeps -1 vertices, so we will:
-    # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
-    sp['neighbor_vert'] = neigh
-
-    # Set up the volume data (needed for creating the interpolation matrix)
     r0 = minn * grid
     voxel_size = grid * np.ones(3)
     ras = np.eye(3)
-    sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
-    sp['vol_dims'] = maxn - minn + 1
-    for key in ('mri_width', 'mri_height', 'mri_depth', 'mri_volume_name',
-                'vox_mri_t', 'mri_ras_t'):
-        if key in vol_info:
-            sp[key] = vol_info[key]
-    if first:
-        _print_coord_trans(sp['src_mri_t'], 'Source space : ')
-        for key in ('vox_mri_t', 'mri_ras_t'):
-            if key in sp:
-                _print_coord_trans(sp[key], 'MRI volume : ')
-    return sp
+    src_mri_t = _make_voxel_ras_trans(r0, ras, voxel_size)
+    neigh_orig = neigh
+    for sp in sps:
+        # remove non source-space points
+        neigh = neigh_orig.copy()
+        neigh[:, np.logical_not(sp['inuse'])] = -1
+        # remove these points from neigh
+        old_shape = neigh.shape
+        neigh = neigh.ravel()
+        checks = np.where(neigh >= 0)[0]
+        removes = np.logical_not(np.in1d(checks, sp['vertno']))
+        neigh[checks[removes]] = -1
+        neigh.shape = old_shape
+        neigh = neigh.T
+        # Thought we would need this, but C code keeps -1 vertices, so we will:
+        # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
+        sp['neighbor_vert'] = neigh
+
+        # Set up the volume data (needed for creating the interpolation matrix)
+        sp['src_mri_t'] = src_mri_t
+        sp['vol_dims'] = maxn - minn + 1
+        for key in ('mri_width', 'mri_height', 'mri_depth', 'mri_volume_name',
+                    'vox_mri_t', 'mri_ras_t'):
+            if key in vol_info:
+                sp[key] = vol_info[key]
+    _print_coord_trans(sps[0]['src_mri_t'], 'Source space : ')
+    for key in ('vox_mri_t', 'mri_ras_t'):
+        if key in sps[0]:
+            _print_coord_trans(sps[0][key], 'MRI volume : ')
+    return sps
 
 
 def _vol_vertex(width, height, jj, kk, pp):
@@ -2203,34 +2204,38 @@ def _get_mgz_header(fname):
     return header
 
 
-def _add_interpolator(s, add_interpolator, volume_label='the whole brain'):
+def _add_interpolator(sp, add_interpolator,
+                      volume_labels=('the whole brain',)):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
+    s = sp[0]
     mri_width = s['mri_width']
     mri_height = s['mri_height']
     mri_depth = s['mri_depth']
     nvox = mri_width * mri_height * mri_depth
     if not add_interpolator:
-        s['interpolator'] = sparse.csr_matrix((nvox, s['np']))
+        for s in sp:
+            s['interpolator'] = sparse.csr_matrix((nvox, s['np']))
         return
 
     #
     # Convert MRI voxels from destination (MRI volume) to source (volume
     # source space subset) coordinates
     #
+    vol_dims = s['vol_dims']
     combo_trans = combine_transforms(s['vox_mri_t'],
                                      invert_transform(s['src_mri_t']),
                                      'mri_voxel', 'mri_voxel')
+    del s
     combo_trans['trans'] = combo_trans['trans'].astype(np.float32)
 
-    logger.info('Setting up interpolation for %s...' % (volume_label,))
-
+    logger.info('Setting up volume interpolation ...')
     # Loop over slices to save (lots of) memory
     # Note that it is the slowest incrementing index
     # This is equivalent to using mgrid and reshaping, but faster
-    data = []
-    indices = []
-    indptr = np.zeros(nvox + 1, np.int32)
+    datas = [list() for _ in range(len(sp))]
+    indicess = [list() for _ in range(len(sp))]
+    indptrs = [np.zeros(nvox + 1, np.int32) for _ in range(len(sp))]
     for p in range(mri_depth):
         js = np.arange(mri_width, dtype=np.float32)
         js = np.tile(js[np.newaxis, :],
@@ -2248,23 +2253,25 @@ def _add_interpolator(s, add_interpolator, volume_label='the whole brain'):
         # really a subset of the entire volume!)
         r0 = apply_trans(combo_trans['trans'], r0)
         rn = np.floor(r0).astype(int)
-        maxs = (s['vol_dims'] - 1)[np.newaxis, :]
+        maxs = (vol_dims - 1)[np.newaxis, :]
         good = np.where(np.logical_and(np.all(rn >= 0, axis=1),
                                        np.all(rn < maxs, axis=1)))[0]
-        rn = rn[good]
-        r0 = r0[good]
+        good.flags['WRITEABLE'] = False
+        rns = rn[good]
+        r0s = r0[good]
+        del rn, r0
 
         # now we take each MRI voxel *in this space*, and figure out how
         # to make its value the weighted sum of voxels in the volume source
         # space. This is a 3D weighting scheme based (presumably) on the
         # fact that we know we're interpolating from one volumetric grid
         # into another.
-        jj = rn[:, 0]
-        kk = rn[:, 1]
-        pp = rn[:, 2]
+        jj = rns[:, 0]
+        kk = rns[:, 1]
+        pp = rns[:, 2]
         vss = np.empty((len(jj), 8), np.int32)
-        width = s['vol_dims'][0]
-        height = s['vol_dims'][1]
+        width = vol_dims[0]
+        height = vol_dims[1]
         jjp1 = jj + 1
         kkp1 = kk + 1
         ppp1 = pp + 1
@@ -2276,43 +2283,48 @@ def _add_interpolator(s, add_interpolator, volume_label='the whole brain'):
         vss[:, 5] = _vol_vertex(width, height, jjp1, kk, ppp1)
         vss[:, 6] = _vol_vertex(width, height, jjp1, kkp1, ppp1)
         vss[:, 7] = _vol_vertex(width, height, jj, kkp1, ppp1)
+        vss.flags['WRITEABLE'] = False
         del jj, kk, pp, jjp1, kkp1, ppp1
-        uses = np.any(s['inuse'][vss], axis=1)
-        if uses.size == 0:
-            continue
-        vss = vss[uses].ravel()  # vertex (col) numbers in csr matrix
-        indices.append(vss)
-        indptr[good[uses] + p * mri_height * mri_width + 1] = 8
-        del vss
+        for si, s in enumerate(sp):
+            uses = np.any(s['inuse'][vss], axis=1)
+            if uses.size == 0:
+                continue
+            # vertex (col) numbers in csr matrix
+            indicess[si].append(vss[uses].ravel())
+            indptrs[si][good[uses] + p * mri_height * mri_width + 1] = 8
 
-        # figure out weights for each vertex
-        r0 = r0[uses]
-        rn = rn[uses]
-        del uses, good
-        xf = r0[:, 0] - rn[:, 0].astype(np.float32)
-        yf = r0[:, 1] - rn[:, 1].astype(np.float32)
-        zf = r0[:, 2] - rn[:, 2].astype(np.float32)
-        omxf = 1.0 - xf
-        omyf = 1.0 - yf
-        omzf = 1.0 - zf
-        # each entry in the concatenation corresponds to a row of vss
-        data.append(np.array([omxf * omyf * omzf,
-                              xf * omyf * omzf,
-                              xf * yf * omzf,
-                              omxf * yf * omzf,
-                              omxf * omyf * zf,
-                              xf * omyf * zf,
-                              xf * yf * zf,
-                              omxf * yf * zf], order='F').T.ravel())
-        del xf, yf, zf, omxf, omyf, omzf
+            # figure out weights for each vertex
+            r0 = r0s[uses]
+            rn = rns[uses]
+            del uses
+            xf = r0[:, 0] - rn[:, 0].astype(np.float32)
+            yf = r0[:, 1] - rn[:, 1].astype(np.float32)
+            zf = r0[:, 2] - rn[:, 2].astype(np.float32)
+            omxf = 1.0 - xf
+            omyf = 1.0 - yf
+            omzf = 1.0 - zf
+            # each entry in the concatenation corresponds to a row of vss
+            datas[si].append(
+                np.array([omxf * omyf * omzf,
+                          xf * omyf * omzf,
+                          xf * yf * omzf,
+                          omxf * yf * omzf,
+                          omxf * omyf * zf,
+                          xf * omyf * zf,
+                          xf * yf * zf,
+                          omxf * yf * zf], order='F').T.ravel())
+            del r0, rn, xf, yf, zf, omxf, omyf, omzf
 
-        # Compose the sparse matrix
-    indptr = np.cumsum(indptr, out=indptr)
-    indices = np.concatenate(indices)
-    data = np.concatenate(data)
-    s['interpolator'] = sparse.csr_matrix((data, indices, indptr),
-                                          shape=(nvox, s['np']))
-    logger.info(' %d/%d nonzero values [done]' % (len(data), nvox))
+    # Compose the sparse matrices
+    for si, s in enumerate(sp):
+        indptr = np.cumsum(indptrs[si], out=indptrs[si])
+        indices = np.concatenate(indicess[si])
+        data = np.concatenate(datas[si])
+        s['interpolator'] = sparse.csr_matrix((data, indices, indptr),
+                                              shape=(nvox, s['np']))
+        logger.info('    %d/%d nonzero values for %s'
+                    % (len(data), nvox, volume_labels[si]))
+    logger.info('[done]')
 
 
 def _pts_in_hull(pts, hull, tolerance=1e-12):

@@ -26,8 +26,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
 from mne.datasets import testing
 from mne.fixes import fft, _get_img_fdata
 from mne.source_estimate import grade_to_tris, _get_vol_mask
-from mne.source_space import (_get_src_nn, get_volume_labels_from_aseg,
-                              read_freesurfer_lut)
+from mne.source_space import _get_src_nn
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
@@ -49,8 +48,6 @@ fname_cov = op.join(
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_bem = op.join(
-    data_path, 'subjects', 'sample', 'bem', 'sample-1280-bem.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_fs_t1 = op.join(data_path, 'subjects', 'fsaverage', 'mri', 'T1.mgz')
 fname_aseg = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
@@ -646,22 +643,7 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
-@pytest.fixture(scope='module')
-@pytest.mark.parametrize(params=[testing._pytest_param()])
-def src_volume_labels():
-    """Create a 7mm source space with labels."""
-    volume_labels = get_volume_labels_from_aseg(fname_aseg)
-    src = setup_volume_source_space(
-        'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
-        add_interpolator=False, bem=fname_bem)
-    lut, _ = read_freesurfer_lut()
-    assert len(volume_labels) == 46
-    assert volume_labels[0] == 'Unknown'
-    assert lut['Unknown'] == 0  # it will be excluded during label gen
-    return src, volume_labels
-
-
-@pytest.mark.slowtest  # ~3 sec to generate the vol above ...
+# XXX need two modes: nearest and interp (probably)
 @pytest.mark.parametrize('vector', (False, True))
 def test_extract_label_time_course_volume(vector, src_volume_labels):
     """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
