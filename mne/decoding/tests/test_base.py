@@ -188,6 +188,7 @@ class _Noop(BaseEstimator, TransformerMixin):
     inverse_transform = transform
 
 
+@requires_sklearn
 @pytest.mark.parametrize('inverse', (True, False))
 @pytest.mark.parametrize('Scale, kwargs', [
     (Scaler, dict(info=None, scalings='mean')),
