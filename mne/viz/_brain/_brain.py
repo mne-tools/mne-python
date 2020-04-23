@@ -1382,7 +1382,7 @@ class _Brain(object):
         return hemi
 
     def _check_hemis(self, hemi):
-        """Check for safe dual or single-hemi input, returns list"""
+        """Check for safe dual or single-hemi input, returns list."""
         if hemi is None:
             if self._hemi not in ['lh', 'rh']:
                 hemi = ['lh', 'rh']
