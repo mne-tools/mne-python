@@ -679,12 +679,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                 not all(isinstance(x, str) for x in var):
             raise TypeError('%s must be list or tuple of str, got %s'
                             % (kind, type(var)))
-    if not all(x in ('helmet', 'sensors', 'ref') for x in meg):
-        raise ValueError('meg must only contain "helmet", "sensors" or "ref", '
-                         'got %s' % (meg,))
-    if not all(x in ('original', 'projected') for x in eeg):
-        raise ValueError('eeg must only contain "original" and '
-                         '"projected", got %s' % (eeg,))
+    for xi, x in enumerate(meg):
+        _check_option('meg[%d]' % xi, x, ('helmet', 'sensors', 'ref'))
+    for xi, x in enumerate(eeg):
+        _check_option('eeg[%d]' % xi, x, ('original', 'projected'))
     for xi, x in enumerate(fnirs):
         _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs'))
 
