@@ -25,8 +25,10 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  convert_forward_solution, pick_types_forward)
 from mne.datasets import testing
 from mne.fixes import fft, _get_img_fdata
+from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
+from mne.transforms import apply_trans, invert_transform
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
@@ -55,8 +57,9 @@ fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                        'fsaverage-ico-5-src.fif')
-fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-oct-4-src.fif')
+bem_path = op.join(data_path, 'subjects', 'sample', 'bem')
+fname_src_3 = op.join(bem_path, 'sample-oct-4-src.fif')
+fname_src_vol = op.join(bem_path, 'sample-volume-7mm-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
 fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
@@ -643,13 +646,26 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
-# XXX need two modes: nearest and interp (probably)
+@pytest.mark.parametrize('cf', ('head', 'mri'))
 @pytest.mark.parametrize('vector', (False, True))
-def test_extract_label_time_course_volume(vector, src_volume_labels):
+@pytest.mark.parametrize('mri_resolution', (True, False))
+def test_extract_label_time_course_volume(
+        src_volume_labels, cf, vector, mri_resolution):
     """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
     src_labels, volume_labels = src_volume_labels
     inv = read_inverse_operator(fname_inv_vol)
-    src = inv['src']
+    trans = inv['mri_head_t']
+    if cf == 'head':
+        src = inv['src']
+        assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        rr = apply_trans(invert_transform(inv['mri_head_t']), src[0]['rr'])
+    else:
+        assert cf == 'mri'
+        src = read_source_spaces(fname_src_vol)
+        assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        rr = src[0]['rr']
+    for s in src_labels:
+        assert_allclose(s['rr'], rr, atol=1e-7)
     assert len(src) == 1 and src.kind == 'volume'
     klass = VolVectorSourceEstimate
     if not vector:
@@ -663,22 +679,40 @@ def test_extract_label_time_course_volume(vector, src_volume_labels):
         end_shape = (3,) + end_shape
         data = np.pad(data[:, np.newaxis], ((0, 0), (2, 0)), 'constant')
     data = np.repeat(data[..., np.newaxis], n_times, -1)
-    stcs = [klass(data, vertices, 0, 1)]
+    stcs = [klass(data.astype(float), vertices, 0, 1)]
     with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
-        extract_label_time_course(stcs, fname_fs_t1, src)
+        extract_label_time_course(stcs, fname_fs_t1, src, trans=trans,
+                                  mri_resolution=mri_resolution)
     assert len(src_labels) == 46  # includes unknown
     assert_array_equal(
         src[0]['vertno'],  # src includes some in "unknown" space
         np.sort(np.concatenate([s['vertno'] for s in src_labels])))
+    # spot check
+    assert src_labels[-1]['seg_name'] == 'CC_Anterior'
+    assert src[0]['nuse'] == 4157
+    assert len(src[0]['vertno']) == 4157
+    assert sum(s['nuse'] for s in src_labels) == 4157
+    assert_array_equal(src_labels[-1]['vertno'], [8011, 8032, 8557])
+    assert_array_equal(
+        np.where(np.in1d(src[0]['vertno'], [8011, 8032, 8557]))[0],
+        [2672, 2688, 2995])
+    # actually do teh testing
     src_labels = src_labels[1:]
+    if cf == 'head' and not mri_resolution:  # no trans is an error
+        with pytest.raises(ValueError, match='trans must be a Transform'):
+            extract_label_time_course(stcs, fname_aseg, src,
+                                      mri_resolution=mri_resolution)
     for mode in ('mean', 'max'):
         with catch_logging() as log:
             label_tc = extract_label_time_course(
                 stcs, fname_aseg, src, mode=mode,
-                allow_empty='ignore', verbose=True)
+                allow_empty='ignore', trans=trans,
+                mri_resolution=mri_resolution,
+                verbose=True)
         log = log.getvalue()
         assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
-        assert '\n31/45 atlas regions had at least' in log
+        n_want = 45 if mri_resolution else 41
+        assert '\n%d/45 atlas regions had at least' % (n_want,) in log
         assert len(label_tc) == 1
         label_tc = label_tc[0]
         assert label_tc.shape == (45,) + end_shape
@@ -687,16 +721,26 @@ def test_extract_label_time_course_volume(vector, src_volume_labels):
             label_tc = label_tc[:, 2]
         assert label_tc.shape == (45, n_times)
         # let's test some actual values by trusting the masks provided by
-        # setup_volume_source_space
+        # setup_volume_source_space. mri_resolution=True does some
+        # interpolation so we should not expect equivalence, False does
+        # nearest so we should.
+        if mri_resolution:
+            rtol = 0.2 if mode == 'mean' else 0.8  # max much more sensitive
+        else:
+            rtol = 0.
         for si, s in enumerate(src_labels):
             func = dict(mean=np.mean, max=np.max)[mode]
             these = vertex_values[np.in1d(src[0]['vertno'], s['vertno'])]
             assert len(these) == s['nuse']
             if s['nuse'] == 0:
-                assert_array_equal(label_tc[si], 0.)
+                want = 0.
+                if mri_resolution:
+                    # this one is totally due to interpolation, so no easy
+                    # test here
+                    continue
             else:
                 want = func(these)
-                assert_allclose(label_tc[si], want)
+            assert_allclose(label_tc[si], want, atol=1e-6, rtol=rtol)
 
 
 @testing.requires_testing_data

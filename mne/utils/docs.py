@@ -879,7 +879,7 @@ labels : Label | BiHemiLabel | list of Label or BiHemiLabel | str
     also be a string path to a MGZ atlas for the subject (e.g., their
     'aseg.mgz').
 
-    .. versionchanged 0.21.0::
+    .. versionchanged:: 0.21.0
        Support for volume source estimates.
 """
 docdict['eltc_src'] = """
@@ -900,6 +900,24 @@ allow_empty : bool | str
 
     .. versionchanged:: 0.21.0
        Support for "ignore".
+"""
+docdict['eltc_trans'] = """
+trans : str | instance of Transform
+    If str, the path to the head<->MRI transform ``*-trans.fif`` file
+    during coregistration. Only needed when using a volume atlas and
+    ``src`` is in head coordinates (i.e., comes from a forward or inverse).
+
+    .. versionadded:: 0.21.0
+"""
+docdict['eltc_mri_resolution'] = """
+mri_resolution : bool
+    If True (default), the volume source space will be upsampled to the
+    original MRI resolution via trilinear interpolation before the atlas values
+    are extracted. This ensnures that each atlas label will contain source
+    activations. When False, only the original source space points are used,
+    and some atlas labels thus may not contain any source space vertices.
+
+    .. versionadded:: 0.21.0
 """
 docdict['eltc_mode_notes'] = """
 Valid values for ``mode`` are:

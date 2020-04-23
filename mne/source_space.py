@@ -1553,7 +1553,7 @@ def _check_mri(mri, subject, subjects_dir):
     return mri
 
 
-#@verbose
+@verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,

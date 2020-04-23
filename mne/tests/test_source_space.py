@@ -619,13 +619,15 @@ def test_source_space_exclusive_complete(src_volume_labels):
     src, volume_labels = src_volume_labels
     ii = volume_labels.index('Left-Cerebral-White-Matter')
     jj = volume_labels.index('Left-Cerebral-Cortex')
-    assert src[ii]['nuse'] == 786  # 2034 with pos=5, was 2832
-    assert src[jj]['nuse'] == 618  # 1520 with pos=5, was 2623
+    assert src[ii]['nuse'] == 755  # 2034 with pos=5, was 2832
+    assert src[jj]['nuse'] == 616  # 1520 with pos=5, was 2623
     src_full = read_source_spaces(fname_vol)
     # This implicitly checks for overlap because np.sort would preserve
     # duplicates, and it checks for completeness because the sets should match
     assert_array_equal(src_full[0]['vertno'],
                        np.sort(np.concatenate([s['vertno'] for s in src])))
+    for si, s in enumerate(src):
+        assert_allclose(src_full[0]['rr'], s['rr'], atol=1e-6)
 
 
 @pytest.mark.timeout(60)  # ~24 sec on Travis

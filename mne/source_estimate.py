@@ -18,11 +18,13 @@ from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
 from .fixes import einsum
+from .io.constants import FIFF
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
                            _import_nibabel, _get_mri_info_data,
                            _get_atlas_values)
+from .transforms import _ensure_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
@@ -1811,6 +1813,43 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             initial_time=initial_time, initial_pos=initial_pos,
             verbose=verbose)
 
+    # Override here to provide the volume-specific options
+    @verbose
+    def extract_label_time_course(self, labels, src, mode='auto',
+                                  allow_empty=False, trans=None,
+                                  mri_resolution=True, verbose=None):
+        """Extract label time courses for lists of labels.
+
+        This function will extract one time course for each label. The way the
+        time courses are extracted depends on the mode parameter.
+
+        Parameters
+        ----------
+        %(eltc_labels)s
+        %(eltc_src)s
+        %(eltc_mode)s
+        %(eltc_allow_empty)s
+        %(eltc_trans)s
+        %(eltc_mri_resolution)s
+        %(verbose_meth)s
+
+        Returns
+        -------
+        label_tc : array, shape (n_labels, n_times)
+            Extracted time course for each label.
+
+        See Also
+        --------
+        extract_label_time_course : Extract time courses for multiple STCs.
+
+        Notes
+        -----
+        %(eltc_mode_notes)s
+        """
+        return extract_label_time_course(
+            self, labels, src, mode=mode, return_generator=False,
+            allow_empty=allow_empty, verbose=verbose)
+
     def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
                        format='nifti1'):
         """Save a volume source estimate in a NIfTI file.
@@ -2674,7 +2713,7 @@ def _temporary_vertices(src, vertices):
             s['vertno'] = v
 
 
-def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
+def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     """Prepare indices and flips for extract_label_time_course."""
     # if src is a mixed src space, the first 2 src spaces are surf type and
     # the other ones are vol type. For mixed source space n_labels will be the
@@ -2697,6 +2736,14 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
                              % (n_missing, len(v), hemi))
     bad_labels = list()
     for li, label in enumerate(labels):
+        if use_sparse:
+            assert isinstance(label, dict)
+            label_vertidx.append(label['csr'])
+            if label['csr'].shape[0] == 0:  # this shouldn't really happen...
+                bad_labels.append(label['name'])
+            label_flip.append(None)
+            continue
+        # standard case
         _validate_type(label, (Label, BiHemiLabel), 'labels[%d]' % (li,))
 
         if label.hemi == 'both':
@@ -2751,7 +2798,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
     return label_vertidx, label_flip
 
 
-def _volume_labels(src, labels):
+def _volume_labels(src, labels, trans, mri_resolution):
     # This will create Label objects that should do the right thing for our
     # given volumetric source space when used with extract_label_time_course
     from .label import Label
@@ -2779,22 +2826,46 @@ def _volume_labels(src, labels):
         raise RuntimeError(
             'atlas vox_mri_t does not match that used to create the source '
             'space')
-    vertno = src[0]['vertno']
-    src_values = _get_atlas_values(vol_info, src[0]['rr'][vertno])
-    valid = np.isfinite(src_values)
-    if not (src_values[valid] == np.round(src_values[valid])).all():
-        raise RuntimeError('MRI is not ')
-    vertices = [vertno[src_values == val] for val in atlas_values]
-    labels = [Label(v, hemi='lh', name=val)
-              for v, val in zip(vertices, atlas_values)]
-    nnz = sum(len(v) != 0 for v in vertices)
+    src_shape = tuple(src[0]['mri_' + k] for k in ('width', 'height', 'depth'))
+    atlas_shape = vol_info['data'].shape
+    if atlas_shape != src_shape:
+        raise RuntimeError('atlas shape %s does not match source space MRI '
+                           'shape %s' % (atlas_shape, src_shape))
+    if mri_resolution:
+        # Upsample then just index
+        labels = list()
+        nnz = 0
+        interp = src[0]['interpolator']
+        # should be guaranteed by size checks above and our src interp code
+        assert interp.shape[0] == np.prod(src_shape)
+        assert interp.shape == (vol_info['data'].size, len(src[0]['rr']))
+        interp = interp[:, src[0]['vertno']]
+        for v in atlas_values:
+            mask = vol_info['data'].ravel(order='F') == v
+            csr = interp[mask]
+            labels.append(dict(csr=csr))
+            nnz += csr.shape[0] > 0
+    else:
+        # Use nearest values
+        vertno = src[0]['vertno']
+        src_values = _get_atlas_values(vol_info, src[0]['rr'][vertno])
+        rr = src[0]['rr']
+        if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+            rr = apply_trans(_ensure_trans(trans, 'head', 'mri'), rr)
+        del src
+        src_values = _get_atlas_values(vol_info, rr[vertno])
+        vertices = [vertno[src_values == val] for val in atlas_values]
+        labels = [Label(v, hemi='lh', name=val)
+                  for v, val in zip(vertices, atlas_values)]
+        nnz = sum(len(v) != 0 for v in vertices)
     logger.info('%d/%d atlas regions had at least one vertex '
                 'in the source space' % (nnz, len(atlas_values)))
     return labels
 
 
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
-                                   allow_empty=False, verbose=None):
+                                   allow_empty=False, trans=None,
+                                   mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
     _validate_type(src, SourceSpaces)
     _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
@@ -2803,8 +2874,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     if kind in ('surface', 'mixed'):
         if not isinstance(labels, list):
             labels = [labels]
+        use_sparse = False
     else:
-        labels = _volume_labels(src, labels)
+        labels = _volume_labels(src, labels, trans, mri_resolution)
+        use_sparse = bool(mri_resolution)
     n_mode = len(labels)  # how many processed with the given mode
     n_mean = len(src[2:]) if kind == 'mixed' else 0
     n_labels = n_mode + n_mean
@@ -2824,7 +2897,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             vertno = copy.deepcopy(stc.vertices)  # avoid keeping a ref
             nvert = np.array([len(v) for v in vertno])
             label_vertidx, src_flip = _prepare_label_extraction(
-                stc, labels, src, mode, allow_empty)
+                stc, labels, src, mode, allow_empty, use_sparse)
             func = _label_funcs[mode]
         # make sure the stc is compatible with the source space
         if len(vertno) != len(stc.vertices):
@@ -2848,7 +2921,16 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                             dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                label_tc[i] = func(flip, stc.data[vertidx])
+                if isinstance(vertidx, sparse.csr_matrix):
+                    assert mri_resolution
+                    assert vertidx.shape[1] == stc.data.shape[0]
+                    this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
+                    this_data = vertidx * this_data
+                    this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                    label_tc[i] = func(flip, this_data)
+                else:
+                    this_data = stc.data[vertidx]
+                label_tc[i] = func(flip, this_data)
 
         # extract label time series for the vol src space (only mean supported)
         offset = nvert[:-n_mean].sum()  # effectively :2 or :0
@@ -2865,6 +2947,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 @verbose
 def extract_label_time_course(stcs, labels, src, mode='auto',
                               allow_empty=False, return_generator=False,
+                              trans=None, mri_resolution=True,
                               verbose=None):
     """Extract label time course for lists of labels and source estimates.
 
@@ -2882,6 +2965,8 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
+    %(eltc_trans)s
+    %(eltc_mri_resolution)s
     %(verbose)s
 
     Returns
@@ -2907,8 +2992,9 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     else:
         return_several = True
 
-    label_tc = _gen_extract_label_time_course(stcs, labels, src, mode=mode,
-                                              allow_empty=allow_empty)
+    label_tc = _gen_extract_label_time_course(
+        stcs, labels, src, mode=mode, allow_empty=allow_empty,
+        trans=trans, mri_resolution=mri_resolution)
 
     if not return_generator:
         # do the extraction and return a list

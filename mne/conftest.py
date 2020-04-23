@@ -368,7 +368,8 @@ def src_volume_labels():
     atlas_ids = mne.read_freesurfer_lut()[0]
     src = mne.setup_volume_source_space(
         'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
-        add_interpolator=False, bem=fname_bem, atlas_ids=atlas_ids)
+        add_interpolator=False, bem=fname_bem, atlas_ids=atlas_ids,
+        subjects_dir=subjects_dir)
     lut, _ = mne.read_freesurfer_lut()
     assert len(volume_labels) == 46
     assert volume_labels[0] == 'Unknown'
