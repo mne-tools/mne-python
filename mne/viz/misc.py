@@ -822,6 +822,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         Axes, there must be only one filter property plotted.
         Defaults to `None`.
 
+        .. versionadded:: 0.21.0
+
     Returns
     -------
     fig : matplotlib.figure.Figure
