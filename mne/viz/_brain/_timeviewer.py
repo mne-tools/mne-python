@@ -936,7 +936,9 @@ class _TimeViewer(object):
         elif self._mouse_no_mvt:
             hemi = mesh._hemi
             pos = vtk_picker.GetPickPosition()
-            cell = mesh.faces[cell_id][1:]
+            vtk_cell = mesh.GetCell(cell_id)
+            cell = [vtk_cell.GetPointId(point_id) for point_id
+                    in range(vtk_cell.GetNumberOfPoints())]
             vertices = mesh.points[cell]
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
