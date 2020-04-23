@@ -769,7 +769,8 @@ _DEFAULT_ALIM = (-80, 10)
 
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 flim=None, fscale='log', alim=_DEFAULT_ALIM, show=True,
-                compensate=False):
+                compensate=False, plot=('time', 'magnitude', 'delay'),
+                axes=None):
     """Plot properties of a filter.
 
     Parameters
@@ -809,6 +810,15 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
           by squaring it.
 
         .. versionadded:: 0.18
+    plot : list | tuple | str
+        A list of the requested plots from `time`, `magnitude` and `delay`.
+        Default is to plot all three filter properties
+        ('time', 'magnitude', 'delay').
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of requested plot types. If instance of
+        Axes, there must be only one filter property plotted.
+        Defaults to `None`.
 
     Returns
     -------
@@ -827,13 +837,20 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     from scipy.signal import (
         freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt)
     import matplotlib.pyplot as plt
+
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
+    if isinstance(plot, str):
+        plot = [plot]
+    for xi, x in enumerate(plot):
+        _check_option('plot[%d]' % xi, x, ('magnitude', 'delay', 'time'))
+
     flim = _get_flim(flim, fscale, freq, sfreq)
     if fscale == 'log':
         omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
     else:
         omega = np.linspace(flim[0], flim[1], 1000)
+    xticks, xticklabels = _filter_ticks(flim, fscale)
     omega /= sfreq / (2 * np.pi)
     if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
         if 'sos' in h:
@@ -890,9 +907,24 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         title = 'FIR filter' if title is None else title
         if compensate:
             title += ' (delay-compensated)'
-    # eventually axes could be a parameter
-    fig, (ax_time, ax_freq, ax_delay) = plt.subplots(3)
+
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(len(plot), 1)
+    if isinstance(axes, plt.Axes):
+        axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = list(axes)
+    if fig is None:
+        fig = axes[0].get_figure()
+    if len(axes) != len(plot):
+        raise ValueError('Length of axes (%d) must be the same as number of '
+                         'requested filter properties (%d)'
+                         % (len(axes), len(plot)))
+
     t = np.arange(len(h))
+    dlim = np.abs(t).max() / 2.
+    dlim = [-dlim, dlim]
     if compensate:
         n_shift = (len(h) - 1) // 2
         t -= n_shift
@@ -901,34 +933,48 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     t = t / sfreq
     gd = gd / sfreq
     f = omega * sfreq / (2 * np.pi)
-    ax_time.plot(t, h, color=color)
-    ax_time.set(xlim=t[[0, -1]], xlabel='Time (s)',
-                ylabel='Amplitude', title=title)
-    mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
     sl = slice(0 if fscale == 'linear' else 1, None, None)
+    mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
+
+    if 'time' in plot:
+        ax_time_idx = np.where([p == 'time' for p in plot])[0][0]
+        axes[ax_time_idx].plot(t, h, color=color)
+        axes[ax_time_idx].set(xlim=t[[0, -1]], xlabel='Time (s)',
+                              ylabel='Amplitude', title=title)
     # Magnitude
-    ax_freq.plot(f[sl], mag[sl], color=color, linewidth=2, zorder=4)
-    if freq is not None and gain is not None:
-        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale, show=False)
-    ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
-    # Delay
-    ax_delay.plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
-    # shade nulled regions
-    for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
-        ax_delay.axvspan(f[start], f[stop - 1], facecolor='k', alpha=0.05,
-                         zorder=5)
-    ax_delay.set(xlim=flim, ylabel='Group delay (s)', xlabel='Frequency (Hz)',
-                 xscale=fscale)
-    xticks, xticklabels = _filter_ticks(flim, fscale)
-    dlim = np.abs(t).max() / 2.
-    dlim = [-dlim, dlim]
-    for ax, ylim, ylabel in ((ax_freq, alim, 'Amplitude (dB)'),
-                             (ax_delay, dlim, 'Delay (s)')):
+    if 'magnitude' in plot:
+        ax_mag_idx = np.where([p == 'magnitude' for p in plot])[0][0]
+        axes[ax_mag_idx].plot(f[sl], mag[sl], color=color,
+                              linewidth=2, zorder=4)
+        if freq is not None and gain is not None:
+            plot_ideal_filter(freq, gain, axes[ax_mag_idx],
+                              fscale=fscale, show=False)
+        axes[ax_mag_idx].set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
         if xticks is not None:
-            ax.set(xticks=xticks)
-            ax.set(xticklabels=xticklabels)
-        ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
-    adjust_axes([ax_time, ax_freq, ax_delay])
+            axes[ax_mag_idx].set(xticks=xticks)
+            axes[ax_mag_idx].set(xticklabels=xticklabels)
+        axes[ax_mag_idx].set(xlim=flim, ylim=alim, xlabel='Frequency (Hz)',
+                             ylabel='Amplitude (dB)')
+    # Delay
+    if 'delay' in plot:
+        ax_delay_idx = np.where([p == 'delay' for p in plot])[0][0]
+        axes[ax_delay_idx].plot(f[sl], gd[sl], color=color,
+                                linewidth=2, zorder=4)
+        # shade nulled regions
+        for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
+            axes[ax_delay_idx].axvspan(f[start], f[stop - 1],
+                                       facecolor='k', alpha=0.05,
+                                       zorder=5)
+        axes[ax_delay_idx].set(xlim=flim, ylabel='Group delay (s)',
+                               xlabel='Frequency (Hz)',
+                               xscale=fscale)
+        if xticks is not None:
+            axes[ax_delay_idx].set(xticks=xticks)
+            axes[ax_delay_idx].set(xticklabels=xticklabels)
+        axes[ax_delay_idx].set(xlim=flim, ylim=dlim, xlabel='Frequency (Hz)',
+                               ylabel='Delay (s)')
+
+    adjust_axes(axes)
     tight_layout()
     plt_show(show)
     return fig
