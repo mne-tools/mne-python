@@ -18,8 +18,9 @@ import numpy as np
 from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
-from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
-                     fill_doc, _check_option)
+from ..transforms import _frame_to_str
+from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
+                     _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
@@ -234,6 +235,74 @@ class ContainsMixin(object):
         """
         return _get_channel_types(self.info, picks=picks, unique=unique,
                                   only_data_chs=only_data_chs)
+
+    def get_ch_positions(self, picks=None):
+        """Get a dictionary of channel positions for each channel.
+
+        Parameters
+        ----------
+        picks : str | list | slice | None
+            None gets good data indices.
+        Returns
+        -------
+        ch_positions : dict
+            A dictionary with keys as the ch_names and values as
+             corresponding list of xyz coordinates.
+        """
+        # get the channel positions
+        picks = _picks_to_idx(self.info, picks)
+        chs = self.info['chs']
+        ch_names = self.info['ch_names']
+        pos = np.array([chs[k]['loc'][:3] for k in picks])
+        n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
+        if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
+            raise ValueError('Could not extract channel positions for '
+                             '{} channels'.format(n_zero))
+        return dict(zip(ch_names, pos))
+
+    def get_montage(self):
+        """Get a DigMontage from instance.
+
+        Returns
+        -------
+        %(montage)s
+        """
+        from ..channels.montage import make_dig_montage
+        if self.info['dig'] is None:
+            return None
+
+        # get channel positions
+        ch_pos = self.get_ch_positions()
+
+        # get coordinate frame
+        coord_frame_int = self.info['dig'][0]['coord_frame']
+        coord_frame = _frame_to_str[coord_frame_int]
+
+        # extract landmark coords
+        landmark_coords = _extract_landmarks(self.info['dig'])
+
+        # create montage and return it
+        montage = make_dig_montage(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            **landmark_coords
+        )
+        return montage
+
+
+def _extract_landmarks(dig):
+    """Extract NAS, LPA, and RPA from raw.info['dig']."""
+    coords = dict()
+    landmarks = {d['ident']: d for d in dig
+                 if d['kind'] == FIFF.FIFFV_POINT_CARDINAL}
+    if landmarks:
+        if FIFF.FIFFV_POINT_NASION in landmarks:
+            coords['nasion'] = landmarks[FIFF.FIFFV_POINT_NASION]['r'].tolist()
+        if FIFF.FIFFV_POINT_LPA in landmarks:
+            coords['lpa'] = landmarks[FIFF.FIFFV_POINT_LPA]['r'].tolist()
+        if FIFF.FIFFV_POINT_RPA in landmarks:
+            coords['rpa'] = landmarks[FIFF.FIFFV_POINT_RPA]['r'].tolist()
+    return coords
 
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py

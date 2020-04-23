@@ -1304,6 +1304,34 @@ def test_set_montage_with_missing_coordinates():
     )
 
 
+def test_get_channel_coordinates():
+    """Test get montage and its coordinates."""
+    N_CHANNELS = 3
+
+    raw = _make_toy_raw(N_CHANNELS)
+    raw.set_channel_types({ch: 'ecog' for ch in raw.ch_names})
+    ch_names = raw.ch_names
+    n_channels = len(ch_names)
+    ch_coords = np.arange(n_channels * 3).reshape(n_channels, 3)
+    montage = make_dig_montage(
+        ch_pos=dict(zip(ch_names, ch_coords,)),
+        nasion=[0, 1, 0], lpa=[1, 0, 0], rpa=[-1, 0, 0],
+        coord_frame='head'
+    )
+    raw.set_montage(montage)
+
+    # get coordinates
+    test_ch_coords = list(raw.get_ch_positions().values())
+    assert_array_equal(ch_coords, test_ch_coords)
+
+    # get montage back and it should be the same
+    test_montage = raw.get_montage()
+    assert_array_equal(_get_dig_montage_pos(montage),
+                       _get_dig_montage_pos(test_montage))
+    # can reset montage with one obtained via `get_montage()`
+    raw.set_montage(test_montage)
+
+
 def test_read_dig_hpts():
     """Test reading .hpts file (from MNE legacy)."""
     fname = op.join(
