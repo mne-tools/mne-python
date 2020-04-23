@@ -34,8 +34,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from .utils import (get_subjects_dir, check_fname, logger, verbose,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, has_nibabel, _check_sphere,
-                    _validate_type, _check_option, _is_numeric, _pl,
-                    _suggest)
+                    _validate_type, _check_option, _is_numeric, _pl, _suggest)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -1553,13 +1552,41 @@ def _check_mri(mri, subject, subjects_dir):
     return mri
 
 
+def _check_volume_labels(volume_label, mri, name='volume_label'):
+    _validate_type(mri, 'path-like', 'mri when %s is not None' % (name,))
+    if isinstance(volume_label, str):
+        volume_label = [volume_label]
+    _validate_type(volume_label, (list, tuple, dict), name)  # should be
+    if not isinstance(volume_label, dict):
+        # Turn it into a dict
+        if not mri.endswith('aseg.mgz'):
+            raise RuntimeError(
+                'Must use a *aseg.mgz file unless %s is a dict, got %s'
+                % (name, op.basename(mri)))
+        lut, _ = read_freesurfer_lut()
+        use_volume_label = dict()
+        for label in volume_label:
+            if label not in lut:
+                raise ValueError(
+                    'Volume %r not found in file %s. Double check '
+                    'FreeSurfer lookup table.%s'
+                    % (label, mri, _suggest(label, lut)))
+            use_volume_label[label] = lut[label]
+        volume_label = use_volume_label
+    for label, id_ in volume_label.items():
+        _validate_type(label, str, 'volume_label keys')
+        _validate_type(id_, 'int-like', 'volume_labels[%r]' % (label,))
+    volume_label = {k: _ensure_int(v) for k, v in volume_label.items()}
+    return volume_label
+
+
 @verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
                               add_interpolator=True, sphere_units='m',
-                              atlas_ids=None, verbose=None):
+                              verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
@@ -1605,8 +1632,16 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
     %(subjects_dir)s
-    volume_label : str | list | None
-        Region of interest corresponding with freesurfer lookup table.
+    volume_label : str | dict | list | None
+        Region(s) of interest to use. None (default) will create a single
+        whole-brain source space. Otherwise, a separate source space will be
+        created for each entry in the list or dict (str will be turned into
+        a single-element list). If list of str, standard Freesurfer labels
+        are assumed. If dict, should be a mapping of region names to atlas
+        id numbers, allowing the use of other atlases.
+
+        .. versionchanged:: 0.21.0
+           Support for dict added.
     add_interpolator : bool
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
@@ -1614,9 +1649,6 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         Defaults to ``"m"``.
 
         .. versionadded:: 0.20
-    atlas_ids : dict | None
-        The mapping from volume atlas names to values in the MRI.
-        Can be None to use the standard Freesurfer mappings.
     %(verbose)s
 
     Returns
@@ -1658,6 +1690,8 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     ``aseg.mgz``).
     """
     subjects_dir = get_subjects_dir(subjects_dir)
+    _validate_type(
+        volume_label, (str, list, tuple, dict, None), 'volume_label')
 
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
@@ -1669,12 +1703,6 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         elif _is_numeric(pos):
             mri = 'T1.mgz'
 
-    if volume_label is not None and atlas_ids is None and \
-            (mri is None or not mri.endswith('aseg.mgz')):
-        raise RuntimeError(
-            'Must use an aseg.mgz file with volume_label (when atlas_ids is '
-            'None), consider passing mri="aseg.mgz".')
-
     if mri is not None:
         mri = _check_mri(mri, subject, subjects_dir)
         if isinstance(pos, dict):
@@ -1684,31 +1712,8 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     clean_atlas = False
     if volume_label is not None:
-        if mri is None:
-            raise RuntimeError('"mri" must be provided if "volume_label" is '
-                               'not None')
-        if not isinstance(volume_label, (list, tuple)):
-            volume_label = [volume_label]
-
-        # Check that volume label is found in .mgz file
-        _validate_type(atlas_ids, (dict, None), 'atlas_ids')
-        if atlas_ids is None:
-            clean_atlas = True
-            extra = (
-                'in file %s. Double check freesurfer lookup table.' % (mri,))
-            atlas_ids, _ = read_freesurfer_lut()
-        else:
-            extra = 'in atlas_ids'
-
-        for label in volume_label:
-            if label not in atlas_ids:
-                raise ValueError(
-                    'Volume %r not found %s%s'
-                    % (label, extra, _suggest(label, atlas_ids)))
-            elif not _is_numeric(atlas_ids[label]):
-                raise TypeError(
-                    'atlas_ids[%r] must be numeric, got %s (type %s)'
-                    % (label, atlas_ids[label], type(atlas_ids[label])))
+        volume_label = _check_volume_labels(volume_label, mri)
+    assert volume_label is None or isinstance(volume_label, dict)
 
     need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
     sphere = _check_sphere(sphere, sphere_units=sphere_units)
@@ -1766,13 +1771,6 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('')
         logger.info('Reading %s...' % mri)
         vol_info = _get_mri_info_data(mri, data=volume_label is not None)
-        if clean_atlas:
-            # This step isn't strictly necessary but will make the suggestions
-            # cleaner
-            keep = np.in1d(
-                list(atlas_ids.values()), np.unique(vol_info['data']))
-            atlas_ids = {
-                k: atlas_ids[k] for ki, k in enumerate(atlas_ids) if keep[ki]}
 
     exclude /= 1000.0  # convert exclude from m to mm
     logger.info('')
@@ -1817,21 +1815,21 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         # Make the grid of sources in MRI space
         sp = _make_volume_source_space(
             surf, pos, exclude, mindist, mri, volume_label,
-            atlas_ids=atlas_ids, vol_info=vol_info)
+            vol_info=vol_info)
     del sphere
-    if volume_label is None:
-        volume_label = ['the whole brain']
-    assert len(volume_label) == len(sp)
+    assert isinstance(sp, list)
+    assert len(sp) == 1 if volume_label is None else len(volume_label)
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
-    assert isinstance(sp, list)
-
     if mri is not None:
-        _add_interpolator(sp, add_interpolator, volume_label)
+        _add_interpolator(sp, add_interpolator)
     elif sp[0]['type'] == 'vol':
         # If there is no interpolator, it's actually a discrete source space
         sp[0]['type'] = 'discrete'
 
+    # do some cleaning
+    if volume_label is None and 'seg_name' in sp[0]:
+        del sp[0]['seg_name']
     for s in sp:
         if 'vol_dims' in s:
             del s['vol_dims']
@@ -1950,7 +1948,7 @@ def _get_atlas_values(vol_info, rr):
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                               volume_labels=None, do_neighbors=True, n_jobs=1,
-                              atlas_ids=None, vol_info={}):
+                              vol_info={}):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
     if 'rr' in surf:
@@ -2027,6 +2025,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
 
     # Restrict sources to volume of interest
     if volume_labels is None:
+        sp['seg_name'] = 'the whole brain'
         sps = [sp]
     else:
         if not do_neighbors:
@@ -2034,9 +2033,8 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                                'do_neighbors is True')
         sps = list()
         orig_sp = sp
-        for volume_label in volume_labels:
+        for volume_label, id_ in volume_labels.items():
             sp = deepcopy(orig_sp)
-            id_ = atlas_ids[volume_label]
             good = _get_atlas_values(vol_info, sp['rr'][sp['vertno']]) == id_
             n_good = good.sum()
             logger.info('    Selected %d voxel%s from %s'
@@ -2204,8 +2202,7 @@ def _get_mgz_header(fname):
     return header
 
 
-def _add_interpolator(sp, add_interpolator,
-                      volume_labels=('the whole brain',)):
+def _add_interpolator(sp, add_interpolator):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
     s = sp[0]
@@ -2323,7 +2320,7 @@ def _add_interpolator(sp, add_interpolator,
         s['interpolator'] = sparse.csr_matrix((data, indices, indptr),
                                               shape=(nvox, s['np']))
         logger.info('    %d/%d nonzero values for %s'
-                    % (len(data), nvox, volume_labels[si]))
+                    % (len(data), nvox, s['seg_name']))
     logger.info('[done]')
 
 

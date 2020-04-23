@@ -23,14 +23,15 @@ from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
                            _import_nibabel, _get_mri_info_data,
-                           _get_atlas_values)
+                           _get_atlas_values, _check_volume_labels,
+                           read_freesurfer_lut)
 from .transforms import _ensure_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed, deprecated,
                     _check_pandas_index_arguments, _convert_times,
-                    _build_data_frame, _check_time_format)
+                    _build_data_frame, _check_time_format, _check_path_like)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -2803,18 +2804,35 @@ def _volume_labels(src, labels, trans, mri_resolution):
     # given volumetric source space when used with extract_label_time_course
     from .label import Label
     assert src.kind == 'volume'
-    nib = _import_nibabel('use volume atlas labels')
-    _validate_type(labels, (str, nib.MGHImage),
-                   'labels when using a volume source space')
-    logger.info('Reading atlas %s' % (labels,))
-    vol_info = _get_mri_info_data(labels, data=True)
+    extra = ' when using a volume source space'
+    _import_nibabel('use volume atlas labels')
+    _validate_type(labels, ('path-like', list, tuple), 'labels' + extra)
+    if _check_path_like(labels):
+        mri = labels
+        infer_labels = True
+    else:
+        if len(labels) != 2:
+            raise ValueError('labels, if list or tuple, must have length 2, '
+                             'got %s' % (len(labels),))
+        mri, labels = labels
+        infer_labels = False
+        _validate_type(mri, 'path-like', 'labels[0]' + extra)
+    logger.info('Reading atlas %s' % (mri,))
+    vol_info = _get_mri_info_data(str(mri), data=True)
     atlas_values = np.unique(vol_info['data'])
     atlas_values = atlas_values[np.isfinite(atlas_values)]
-    atlas_values = atlas_values[atlas_values != 0]
     if not (atlas_values == np.round(atlas_values)).all():
         raise RuntimeError('Non-integer values present in atlas, cannot '
                            'labelize')
     atlas_values = np.round(atlas_values).astype(np.int64)
+    if infer_labels:
+        labels = {
+            k: v for k, v in read_freesurfer_lut()[0].items()
+            if v in atlas_values}
+    labels = _check_volume_labels(labels, mri, name='labels[1]')
+    assert isinstance(labels, dict)
+    del atlas_values
+
     vox_mri_t = vol_info['vox_mri_t']
     want = src[0].get('vox_mri_t', None)
     if want is None:
@@ -2833,17 +2851,17 @@ def _volume_labels(src, labels, trans, mri_resolution):
                            'shape %s' % (atlas_shape, src_shape))
     if mri_resolution:
         # Upsample then just index
-        labels = list()
+        out_labels = list()
         nnz = 0
         interp = src[0]['interpolator']
         # should be guaranteed by size checks above and our src interp code
         assert interp.shape[0] == np.prod(src_shape)
         assert interp.shape == (vol_info['data'].size, len(src[0]['rr']))
         interp = interp[:, src[0]['vertno']]
-        for v in atlas_values:
+        for v in labels.values():
             mask = vol_info['data'].ravel(order='F') == v
             csr = interp[mask]
-            labels.append(dict(csr=csr))
+            out_labels.append(dict(csr=csr))
             nnz += csr.shape[0] > 0
     else:
         # Use nearest values
@@ -2854,13 +2872,13 @@ def _volume_labels(src, labels, trans, mri_resolution):
             rr = apply_trans(_ensure_trans(trans, 'head', 'mri'), rr)
         del src
         src_values = _get_atlas_values(vol_info, rr[vertno])
-        vertices = [vertno[src_values == val] for val in atlas_values]
-        labels = [Label(v, hemi='lh', name=val)
-                  for v, val in zip(vertices, atlas_values)]
+        vertices = [vertno[src_values == val] for val in labels.values()]
+        out_labels = [Label(v, hemi='lh', name=val)
+                      for v, val in zip(vertices, labels.keys())]
         nnz = sum(len(v) != 0 for v in vertices)
     logger.info('%d/%d atlas regions had at least one vertex '
-                'in the source space' % (nnz, len(atlas_values)))
-    return labels
+                'in the source space' % (nnz, len(out_labels)))
+    return out_labels
 
 
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
@@ -2926,7 +2944,8 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     assert vertidx.shape[1] == stc.data.shape[0]
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
                     this_data = vertidx * this_data
-                    this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                    this_data.shape = \
+                        (this_data.shape[0],) + stc.data.shape[1:]
                     label_tc[i] = func(flip, this_data)
                 else:
                     this_data = stc.data[vertidx]

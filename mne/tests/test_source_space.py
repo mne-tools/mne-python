@@ -566,8 +566,8 @@ def test_read_freesurfer_lut(fname):
 
 @testing.requires_testing_data
 @requires_nibabel()
-@pytest.mark.parametrize('pass_atlas_ids', (True, False))
-def test_source_space_from_label(tmpdir, pass_atlas_ids):
+@pytest.mark.parametrize('pass_ids', (True, False))
+def test_source_space_from_label(tmpdir, pass_ids):
     """Test generating a source space from volume label."""
     aseg_short = 'aseg.mgz'
     atlas_ids, _ = read_freesurfer_lut()
@@ -581,27 +581,28 @@ def test_source_space_from_label(tmpdir, pass_atlas_ids):
             subjects_dir=subjects_dir)
 
     # Test T1.mgz provided
-    with pytest.raises(RuntimeError, match='consider passing mri="aseg.mgz"'):
+    with pytest.raises(RuntimeError, match=r'Must use a \*aseg.mgz file'):
         setup_volume_source_space(
             'sample', mri='T1.mgz', volume_label=volume_label,
             subjects_dir=subjects_dir)
 
     # Test invalid volume label
-    if pass_atlas_ids:
-        match = "'Hello World!' not found in atlas_ids"
-    else:
-        atlas_ids = None
-        match = "'Hello World!' not found in file"
     mri = aseg_short
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match="'Left-Cerebral' not found.*Did you"):
         setup_volume_source_space(
-            'sample', volume_label='Hello World!', mri=mri,
-            atlas_ids=atlas_ids, subjects_dir=subjects_dir)
+            'sample', volume_label='Left-Cerebral', mri=mri,
+            subjects_dir=subjects_dir)
+
+    # These should be equivalent
+    if pass_ids:
+        use_volume_label = {volume_label: atlas_ids[volume_label]}
+    else:
+        use_volume_label = volume_label
 
     # ensure it works even when not provided (detect that it should be aseg)
     src = setup_volume_source_space(
-        'sample', volume_label=volume_label, add_interpolator=False,
-        atlas_ids=atlas_ids, subjects_dir=subjects_dir)
+        'sample', volume_label=use_volume_label, add_interpolator=False,
+        subjects_dir=subjects_dir)
     assert_equal(volume_label, src[0]['seg_name'])
     assert src[0]['nuse'] == 404  # for our given pos and label
 
@@ -616,7 +617,7 @@ def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""
     # these two are neighbors and are quite large, so let's use them to
     # ensure no overlaps
-    src, volume_labels = src_volume_labels
+    src, volume_labels, _ = src_volume_labels
     ii = volume_labels.index('Left-Cerebral-White-Matter')
     jj = volume_labels.index('Left-Cerebral-Cortex')
     assert src[ii]['nuse'] == 755  # 2034 with pos=5, was 2832

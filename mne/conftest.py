@@ -364,14 +364,12 @@ def all_src_types_inv_evoked(_all_src_types_inv_evoked):
 def src_volume_labels():
     """Create a 7mm source space with labels."""
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
-    # providing the IDs makes things a tiny bit faster
-    atlas_ids = mne.read_freesurfer_lut()[0]
     src = mne.setup_volume_source_space(
         'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
-        add_interpolator=False, bem=fname_bem, atlas_ids=atlas_ids,
+        add_interpolator=False, bem=fname_bem,
         subjects_dir=subjects_dir)
     lut, _ = mne.read_freesurfer_lut()
     assert len(volume_labels) == 46
     assert volume_labels[0] == 'Unknown'
     assert lut['Unknown'] == 0  # it will be excluded during label gen
-    return src, tuple(volume_labels)
+    return src, tuple(volume_labels), lut

@@ -646,13 +646,21 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
-@pytest.mark.parametrize('cf', ('head', 'mri'))
-@pytest.mark.parametrize('vector', (False, True))
-@pytest.mark.parametrize('mri_resolution', (True, False))
+@pytest.mark.parametrize('pass_volume_label, mri_resolution, vector, cf', [
+    (False, False, False, 'head'),  # head frame
+    (False, False, False, 'mri'),  # fastest, default for testing
+    (False, False, True, 'mri'),  # vector
+    (False, True, False, 'mri'),  # mri_resolution
+    (list, True, False, 'mri'),  # volume label as list
+    (dict, True, False, 'mri'),  # volume label as dict
+])
 def test_extract_label_time_course_volume(
-        src_volume_labels, cf, vector, mri_resolution):
+        src_volume_labels, pass_volume_label, mri_resolution, vector, cf,
+        evoked):
     """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
-    src_labels, volume_labels = src_volume_labels
+    src_labels, volume_labels, lut = src_volume_labels
+    n_tot = 46
+    assert n_tot == len(src_labels)
     inv = read_inverse_operator(fname_inv_vol)
     trans = inv['mri_head_t']
     if cf == 'head':
@@ -696,30 +704,47 @@ def test_extract_label_time_course_volume(
     assert_array_equal(
         np.where(np.in1d(src[0]['vertno'], [8011, 8032, 8557]))[0],
         [2672, 2688, 2995])
-    # actually do teh testing
-    src_labels = src_labels[1:]
+    # triage "labels" argument
+    if pass_volume_label is False:
+        labels = fname_aseg
+    elif pass_volume_label is list:
+        labels = (fname_aseg, volume_labels)
+    else:
+        assert pass_volume_label is dict
+        labels = (fname_aseg, {k: lut[k] for k in volume_labels})
+
+    # actually do the testing
     if cf == 'head' and not mri_resolution:  # no trans is an error
         with pytest.raises(ValueError, match='trans must be a Transform'):
-            extract_label_time_course(stcs, fname_aseg, src,
+            extract_label_time_course(stcs, labels, src,
                                       mri_resolution=mri_resolution)
     for mode in ('mean', 'max'):
         with catch_logging() as log:
             label_tc = extract_label_time_course(
-                stcs, fname_aseg, src, mode=mode,
+                stcs, labels, src, mode=mode,
                 allow_empty='ignore', trans=trans,
                 mri_resolution=mri_resolution,
                 verbose=True)
         log = log.getvalue()
         assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
-        n_want = 45 if mri_resolution else 41
-        assert '\n%d/45 atlas regions had at least' % (n_want,) in log
+        n_want = len(src_labels)
+        if not mri_resolution:
+            # assert that the missing ones get logged
+            missing = ['Left-vessel', 'Right-vessel', '5th-Ventricle',
+                       'non-WM-hypointensities']
+            assert 'does not contain' in log
+            assert repr(missing) in log
+            n_want -= len(missing)
+        else:
+            assert 'does not contain' not in log
+        assert '\n%d/%d atlas regions had at least' % (n_want, n_tot) in log
         assert len(label_tc) == 1
         label_tc = label_tc[0]
-        assert label_tc.shape == (45,) + end_shape
+        assert label_tc.shape == (n_tot,) + end_shape
         if vector:
             assert_array_equal(label_tc[:, :2], 0.)
             label_tc = label_tc[:, 2]
-        assert label_tc.shape == (45, n_times)
+        assert label_tc.shape == (n_tot, n_times)
         # let's test some actual values by trusting the masks provided by
         # setup_volume_source_space. mri_resolution=True does some
         # interpolation so we should not expect equivalence, False does
@@ -732,6 +757,8 @@ def test_extract_label_time_course_volume(
             func = dict(mean=np.mean, max=np.max)[mode]
             these = vertex_values[np.in1d(src[0]['vertno'], s['vertno'])]
             assert len(these) == s['nuse']
+            if si == 0 and s['seg_name'] == 'Unknown':
+                continue  # unknown is crappy
             if s['nuse'] == 0:
                 want = 0.
                 if mri_resolution:

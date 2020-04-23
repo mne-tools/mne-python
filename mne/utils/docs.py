@@ -873,11 +873,15 @@ time_label : str | callable | None
 
 # STC label time course
 docdict['eltc_labels'] = """
-labels : Label | BiHemiLabel | list of Label or BiHemiLabel | str
-    The labels for which to extract the time course.
-    If a whole-brain volume source estimates are used, this can
-    also be a string path to a MGZ atlas for the subject (e.g., their
-    'aseg.mgz').
+labels : Label | BiHemiLabel | list | tuple | str
+    If using a surface or mixed source space, this should be the
+    :class:`~mne.Label`'s for which to extract the time course.
+    If working with whole-brain volume source estimates, this can also be:
+
+    - a string path to a MGZ atlas for the subject (e.g., their 'aseg.mgz')
+    - a two-element list or tuple, the first element being a path to an atlas,
+      and the second being a list or dict of ``volume_labels`` to extract
+      (see :func:`mne.setup_volume_source_space` for details).
 
     .. versionchanged:: 0.21.0
        Support for volume source estimates.
