@@ -254,10 +254,6 @@ class ContainsMixin(object):
         chs = self.info['chs']
         ch_names = self.info['ch_names']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
-        n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
-        if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
-            raise ValueError('Could not extract channel positions for '
-                             '{} channels'.format(n_zero))
         return dict(zip(ch_names, pos))
 
     def get_montage(self):
