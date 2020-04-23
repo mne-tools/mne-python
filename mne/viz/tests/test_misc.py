@@ -94,7 +94,12 @@ def test_plot_filter():
     _, axes = plt.subplots(1)
     fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude'), axes=axes)
     assert len(fig.axes) == 1
+    _, axes = plt.subplots(2)
+    fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude', 'delay'),
+                      axes=axes)
+    assert len(fig.axes) == 2
     plt.close('all')
+    _, axes = plt.subplots(1)
     with pytest.raises(ValueError, match='Length of axes'):
         plot_filter(h, sfreq, freq, gain,
                     plot=('magnitude', 'delay'), axes=axes)
