@@ -814,6 +814,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         A list of the requested plots from `time`, `magnitude` and `delay`.
         Default is to plot all three filter properties
         ('time', 'magnitude', 'delay').
+
+        .. versionadded:: 0.21.0
     axes : instance of Axes | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of requested plot types. If instance of
