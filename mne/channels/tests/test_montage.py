@@ -1167,6 +1167,44 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     )
 
 
+def test_set_montage_with_missing_coordinates():
+    """Test set montage with missing coordinates."""
+    N_CHANNELS, NaN = 3, np.nan
+
+    raw = _make_toy_raw(N_CHANNELS)
+    raw.set_channel_types({ch: 'ecog' for ch in raw.ch_names})
+    # don't include all the channels
+    ch_names = raw.ch_names[1:]
+    n_channels = len(ch_names)
+    ch_coords = np.arange(n_channels * 3).reshape(n_channels, 3)
+    montage_in_mri = make_dig_montage(
+        ch_pos=dict(zip(ch_names, ch_coords,)),
+        coord_frame='unknown',
+        nasion=[0, 1, 0], lpa=[1, 0, 0], rpa=[-1, 0, 0],
+    )
+
+    with pytest.raises(ValueError, match='DigMontage is '
+                                         'only a subset of info'):
+        raw.set_montage(montage_in_mri)
+
+    with pytest.raises(ValueError, match='Invalid value'):
+        raw.set_montage(montage_in_mri, on_missing=True)
+
+    with pytest.warns(RuntimeWarning, match='DigMontage is '
+                                            'only a subset of info'):
+        raw.set_montage(montage_in_mri, on_missing='warn')
+
+    raw.set_montage(montage_in_mri, on_missing='ignore')
+    assert_allclose(
+        actual=np.array([ch['loc'] for ch in raw.info['chs']]),
+        desired=[
+            [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+            [0., 1., -2., 0., 0., 0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [-3., 4., -5., 0., 0., 0., NaN, NaN, NaN, NaN, NaN, NaN],
+        ]
+    )
+
+
 def test_read_dig_hpts():
     """Test reading .hpts file (from MNE legacy)."""
     fname = op.join(
