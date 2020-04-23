@@ -964,9 +964,11 @@ class UpdateChannelsMixin(object):
                                          for inst in [self] + add_list])
             # We should never use these since data are preloaded, let's just
             # set it to something large and likely to break (2 ** 31 - 1)
-            extra_idx = [2147483647] * len(add_list)
+            extra_idx = [2147483647] * sum(info['nchan'] for info in infos[1:])
+            assert all(len(r) == infos[0]['nchan'] for r in self._read_picks)
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
+            assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
 
 
