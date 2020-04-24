@@ -1,11 +1,16 @@
 language: generic
-dist: xenial
+dist: bionic
 cache:
   pip: true
 addons:
   apt:
     packages:
       - libxkbcommon-x11-0
+      - libosmesa6
+      - libglx-mesa0
+      - libopengl0
+      - libglx0
+      - libdbus-1-3
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
@@ -28,7 +33,7 @@ matrix:
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
           language: python
-          python: "3.7"
+          python: "3.8"
 
         # Old dependencies
         - os: linux
@@ -50,7 +55,8 @@ before_install:
     - if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         pip uninstall -yq numpy;
         pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy;
-        pip install vtk;
+        pip install -f https://vtk.org/download/ "vtk>=9.0.0rc3";
+        pip install https://github.com/larsoner/mayavi/zipball/vtk9;
         pip install $PIP_DEPENDENCIES;
         pip install --upgrade -r requirements.txt;
       else

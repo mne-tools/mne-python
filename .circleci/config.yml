@@ -4,7 +4,7 @@ version: 2
 jobs:
     build_docs:
       docker:
-        - image: circleci/python:3.7-stretch
+        - image: circleci/python:3.8.1-buster
       steps:
         - checkout
         - run:
@@ -56,6 +56,11 @@ jobs:
               - pip-cache
 
         - run:
+            name: Install 3D rendering libraries
+            command: |
+              sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3
+
+        - run:
             name: Spin up Xvfb
             command: |
               /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
@@ -79,9 +84,11 @@ jobs:
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip numpy vtk setuptools
+              python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
+              python -m pip install --user --upgrade --progress-bar off "vtk>=9.0.0rc3" -f https://vtk.org/download/
+              python -m pip install --user --upgrade --progress-bar off https://github.com/larsoner/mayavi/zipball/vtk9
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
-              python -m pip install --user --upgrade --pre sphinx
+              python -m pip install --user --upgrade --progress-bar off --pre sphinx
               python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
               python -m pip install --user --upgrade seaborn
               python -m pip install --user -e .
@@ -122,7 +129,6 @@ jobs:
                 echo "Doing a partial build";
                 if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
                 git fetch upstream
-                git branch -a
                 FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
                   FNAMES="tutorials/source-modeling/plot_mne_dspm_source_localization.py tutorials/machine-learning/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/machine-learning/plot_sensors_decoding.py tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py tutorials/evoked/plot_20_visualize_evoked.py "${FNAMES};
