@@ -136,7 +136,7 @@ jobs:
       set -e
       python -m pip install --upgrade pip setuptools
       python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" numpy scipy scikit-learn matplotlib h5py pandas Pillow
-      python -m pip install --upgrade nilearn "pyqt5<5.14" pyqt5-sip nibabel pytest pytest-cov pytest-faulthandler pytest-mock pytest-sugar pytest-timeout joblib psutil https://github.com/numpy/numpydoc/archive/master.zip neo xlrd codecov
+      python -m pip install --upgrade nilearn "pyqt5<5.14" pyqt5-sip nibabel pytest pytest-cov pytest-xdist pytest-mock pytest-sugar pytest-timeout joblib psutil https://github.com/numpy/numpydoc/archive/master.zip neo xlrd codecov
       python -m pip install codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'
@@ -165,7 +165,7 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne mne
+  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
