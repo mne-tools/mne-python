@@ -770,6 +770,7 @@ class _Brain(object):
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
+        from ..backends._pyvista import _set_colormap_range
         hemis = self._check_hemis(hemi)
 
         # Figure out where the data is coming from
@@ -843,7 +844,7 @@ class _Brain(object):
 
             ctable = cmap.astype(np.float) / 255.
 
-            self._renderer.mesh(
+            actor, mesh = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
                 y=self.geo[hemi].coords[:, 1],
                 z=self.geo[hemi].coords[:, 2],
@@ -855,6 +856,8 @@ class _Brain(object):
                 scalars=ids,
                 interpolate_before_map=False,
             )
+            _set_colormap_range(actor, cmap.astype(np.uint8),
+                                None)
 
     def remove_labels(self, labels=None):
         """Remove one or more previously added labels from the image.
