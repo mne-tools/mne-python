@@ -14,7 +14,6 @@ python-picard
 statsmodels
 pytest!=4.6.0,<5.4
 pytest-cov
-pytest-faulthandler
 pytest-mock
 pytest-sugar
 pytest-timeout

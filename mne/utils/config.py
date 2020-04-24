@@ -503,11 +503,14 @@ def sys_info(fid=None, show_paths=False):
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
     libs = _get_numpy_libs()
+    has_3d = False
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'cupy', 'pandas', 'dipy',
                      'mayavi', 'pyvista', 'vtk', 'PyQt5'):
         if mod_name == '':
             out += '\n'
+            continue
+        if mod_name == 'PyQt5' and not has_3d:
             continue
         out += ('%s:' % mod_name).ljust(ljust)
         try:
@@ -523,6 +526,8 @@ def sys_info(fid=None, show_paths=False):
                 extra = ' {%s}%s' % (libs, extra)
             elif mod_name == 'matplotlib':
                 extra = ' {backend=%s}%s' % (mod.get_backend(), extra)
+            elif mod_name in ('mayavi', 'vtk'):
+                has_3d = True
             if mod_name == 'vtk':
                 version = mod.VTK_VERSION
             elif mod_name == 'PyQt5':
