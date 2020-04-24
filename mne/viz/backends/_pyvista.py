@@ -192,6 +192,7 @@ class _Renderer(_BaseRenderer):
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
             rgba = False
+            interpolate_before_map = kwargs.get("interpolate_before_map", True)
             if color is not None and len(color) == n_vertices:
                 if color.shape[1] == 3:
                     scalars = np.c_[color, np.ones(n_vertices)]
@@ -215,7 +216,8 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=smooth_shading
+                smooth_shading=smooth_shading,
+                interpolate_before_map=interpolate_before_map
             )
             return actor, mesh
 

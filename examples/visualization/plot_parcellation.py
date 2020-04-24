@@ -57,7 +57,7 @@ brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
 brain.add_annotation('HCPMMP1_combined')
 
 ###############################################################################
-# We can add another custom parcellation
+# We can add another custom parcellation.
 
 brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
               cortex='low_contrast', background='white', size=(800, 600))

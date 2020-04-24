@@ -853,6 +853,7 @@ class _Brain(object):
                 vmin=np.min(ids),
                 vmax=np.max(ids),
                 scalars=ids,
+                interpolate_before_map=False,
             )
 
     def remove_labels(self, labels=None):
