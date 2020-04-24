@@ -59,8 +59,9 @@ subject = 'sample'
 # assumes that you have the ``bem`` folder of your subject's FreeSurfer
 # reconstruction, containing the necessary files.
 
+slices = [60, 128, 196]  # just a few for speed
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
-                 brain_surfaces='white', orientation='coronal')
+                 brain_surfaces='white', orientation='coronal', slices=slices)
 
 ###############################################################################
 # Visualizing the coregistration
@@ -106,13 +107,14 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
 # :func:`mne.setup_source_space`, while **volumetric** source space is computed
 # using :func:`mne.setup_volume_source_space`.
 #
-# We will now compute a surface-based source space with an ``'oct6'``
+# We will now compute a surface-based source space with an ``'oct5'``
 # resolution. See :ref:`setting_up_source_space` for details on source space
-# definition and spacing parameter.
+# definition and spacing parameter. This is too coarse a spacing for most
+# applications, we just use it here for speed.
 
-src = mne.setup_source_space(subject, spacing='oct6', add_dist='patch',
-                             subjects_dir=subjects_dir)
-print(src)
+src_small = mne.setup_source_space(subject, spacing='oct5', add_dist='patch',
+                                   subjects_dir=subjects_dir)
+print(src_small)
 
 ###############################################################################
 # The surface based source space ``src`` contains two parts, one for the left
@@ -120,7 +122,8 @@ print(src)
 # locations). Sources can be visualized on top of the BEM surfaces in purple.
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
-                 brain_surfaces='white', src=src, orientation='coronal')
+                 brain_surfaces='white', src=src_small, orientation='coronal',
+                 slices=slices)
 
 ###############################################################################
 # To compute a volume based source space defined with a grid of candidate
@@ -131,11 +134,13 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 
 sphere = (0.0, 0.0, 0.04, 0.09)
 vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
-                                        sphere=sphere, sphere_units='m')
+                                        sphere=sphere, sphere_units='m',
+                                        pos=7., add_interpolator=False)
 print(vol_src)
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
-                 brain_surfaces='white', src=vol_src, orientation='coronal')
+                 brain_surfaces='white', src=vol_src, orientation='coronal',
+                 slices=slices)
 
 ###############################################################################
 # To compute a volume based source space defined with a grid of candidate
@@ -144,11 +149,13 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 
 surface = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
 vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
-                                        surface=surface)
+                                        surface=surface, pos=7.,
+                                        add_interpolator=False)
 print(vol_src)
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
-                 brain_surfaces='white', src=vol_src, orientation='coronal')
+                 brain_surfaces='white', src=vol_src, orientation='coronal',
+                 slices=slices)
 
 ###############################################################################
 # .. note:: Some sources may appear to be outside the BEM inner skull contour.
@@ -163,7 +170,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
                              surfaces='white', coord_frame='head',
-                             src=src)
+                             src=src_small)
 mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
                     distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
 
@@ -198,7 +205,7 @@ bem = mne.make_bem_solution(model)
 # See :func:`mne.make_forward_solution` for details on the meaning of each
 # parameter.
 
-fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
+fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src_small, bem=bem,
                                 meg=True, eeg=False, mindist=5.0, n_jobs=2)
 print(fwd)
 
@@ -214,8 +221,7 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 # the source space ``fwd['src']`` with cortical orientation constraint
 # we can use the following:
 
-fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
-                                         use_cps=True)
+fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
 leadfield = fwd_fixed['sol']['data']
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 
