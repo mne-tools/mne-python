@@ -841,11 +841,19 @@ class _Brain(object):
                 rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
-            mesh = self._hemi_meshes.get(hemi, None)
-            if mesh is not None:
-                mesh.point_arrays[annot] = ids
-                mesh.set_active_scalars(annot)
-                cmap = np.round(cmap).astype(np.uint8)
+            ctable = cmap.astype(np.float) / 255.
+
+            self._renderer.mesh(
+                x=self.geo[hemi].coords[:, 0],
+                y=self.geo[hemi].coords[:, 1],
+                z=self.geo[hemi].coords[:, 2],
+                triangles=self.geo[hemi].faces,
+                color=None,
+                colormap=ctable,
+                vmin=np.min(ids),
+                vmax=np.max(ids),
+                scalars=ids,
+            )
 
     def remove_labels(self, labels=None):
         """Remove one or more previously added labels from the image.
