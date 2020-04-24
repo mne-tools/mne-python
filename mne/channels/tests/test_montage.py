@@ -1320,16 +1320,22 @@ def test_get_channel_coordinates():
     )
     raw.set_montage(montage)
 
-    # get coordinates
+    # get coordinates of the set montage
     test_ch_coords = list(raw.get_ch_positions().values())
     assert_array_equal(ch_coords, test_ch_coords)
 
     # get montage back and it should be the same
     test_montage = raw.get_montage()
+    raw.set_montage(test_montage)
     assert_array_equal(_get_dig_montage_pos(montage),
                        _get_dig_montage_pos(test_montage))
+    # make sure instance copies are the same
+    # assert not object_diff(raw, raw_copy)
+    # raw = read_raw_fif(fif_fname)
+    #
+    # raw = read_raw_brainvision(vhdr_path)
+    # raw_copy = raw.copy()
     # can reset montage with one obtained via `get_montage()`
-    raw.set_montage(test_montage)
 
 
 def test_read_dig_hpts():

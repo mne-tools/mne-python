@@ -182,7 +182,7 @@ _cardinal_ident_mapping = {
 }
 
 
-def _foo_get_data_from_dig(dig):
+def _get_data_as_dict_from_dig(dig):
     # XXXX:
     # This does something really similar to _read_dig_montage_fif but:
     #   - does not check coord_frame

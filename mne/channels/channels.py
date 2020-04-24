@@ -29,6 +29,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
 from ..io.write import DATE_NONE
+from ..io._digitization import _get_data_as_dict_from_dig, _get_fid_coords
 
 
 def _get_meg_system(info):
@@ -239,15 +240,22 @@ class ContainsMixin(object):
     def get_ch_positions(self, picks=None):
         """Get a dictionary of channel positions for each channel.
 
+        Channel positions are in meters in the specified coordinate frame
+        of the montage. For more information on coordinate frames see:
+
+        https://mne.tools/dev/auto_tutorials/source-modeling/plot_source_alignment.html#coordinate-frame-definitions
+
         Parameters
         ----------
         picks : str | list | slice | None
             None gets good data indices.
+
         Returns
         -------
         ch_positions : dict
             A dictionary with keys as the ch_names and values as
-             corresponding list of xyz coordinates.
+             corresponding list of xyz coordinates in the montage
+             coordinate frame (e.g. head).
         """
         # get the channel positions
         picks = _picks_to_idx(self.info, picks)
@@ -267,38 +275,25 @@ class ContainsMixin(object):
         if self.info['dig'] is None:
             return None
 
-        # get channel positions
-        ch_pos = self.get_ch_positions()
-
-        # get coordinate frame
-        coord_frame_int = self.info['dig'][0]['coord_frame']
+        # extract landmark coords and coordinate frame
+        landmark_coords, coord_frame_int = _get_fid_coords(self.info['dig'])
         coord_frame = _frame_to_str[coord_frame_int]
 
-        # extract landmark coords
-        landmark_coords = _extract_landmarks(self.info['dig'])
-
         # create montage and return it
+        montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])
+        ch_names = self.info['ch_names']
+        ch_locs = montage_bunch.dig_ch_pos_location
+        ch_pos = dict(zip(ch_names, ch_locs))
         montage = make_dig_montage(
             ch_pos=ch_pos,
             coord_frame=coord_frame,
-            **landmark_coords
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
         )
         return montage
-
-
-def _extract_landmarks(dig):
-    """Extract NAS, LPA, and RPA from raw.info['dig']."""
-    coords = dict()
-    landmarks = {d['ident']: d for d in dig
-                 if d['kind'] == FIFF.FIFFV_POINT_CARDINAL}
-    if landmarks:
-        if FIFF.FIFFV_POINT_NASION in landmarks:
-            coords['nasion'] = landmarks[FIFF.FIFFV_POINT_NASION]['r'].tolist()
-        if FIFF.FIFFV_POINT_LPA in landmarks:
-            coords['lpa'] = landmarks[FIFF.FIFFV_POINT_LPA]['r'].tolist()
-        if FIFF.FIFFV_POINT_RPA in landmarks:
-            coords['rpa'] = landmarks[FIFF.FIFFV_POINT_RPA]['r'].tolist()
-    return coords
 
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
