@@ -29,9 +29,12 @@ References
 #
 # License: BSD (3-clause)
 
-from surfer import Brain
-
 import mne
+if mne.viz.get_3d_backend() == "mayavi":
+    from surfer import Brain
+else:  # PyVista
+    from mne.viz._brain import _Brain as Brain
+
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=subjects_dir,
@@ -57,7 +60,7 @@ brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
 brain.add_annotation('HCPMMP1_combined')
 
 ###############################################################################
-# We can add another custom parcellation.
+# We can add another custom parcellation
 
 brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
               cortex='low_contrast', background='white', size=(800, 600))
