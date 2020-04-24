@@ -1842,7 +1842,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         return extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
-            allow_empty=allow_empty, verbose=verbose)
+            allow_empty=allow_empty, trans=trans,
+            mri_resolution=mri_resolution, verbose=verbose)
 
     @fill_doc
     def in_label(self, label, mri, src, trans=None):

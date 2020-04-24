@@ -646,16 +646,16 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
-@pytest.mark.parametrize('label_type, mri_res, vector, test_label, cf', [
-    (str, False, False, False, 'head'),  # head frame
-    (str, False, False, str, 'mri'),  # fastest, default for testing
-    (str, False, True, int, 'mri'),  # vector
-    (str, True, False, False, 'mri'),  # mri_resolution
-    (list, True, False, False, 'mri'),  # volume label as list
-    (dict, True, False, False, 'mri'),  # volume label as dict
+@pytest.mark.parametrize('label_type, mri_res, vector, test_label, cf, call', [
+    (str, False, False, False, 'head', 'meth'),  # head frame
+    (str, False, False, str, 'mri', 'func'),  # fastest, default for testing
+    (str, False, True, int, 'mri', 'func'),  # vector
+    (str, True, False, False, 'mri', 'func'),  # mri_resolution
+    (list, True, False, False, 'mri', 'func'),  # volume label as list
+    (dict, True, False, False, 'mri', 'func'),  # volume label as dict
 ])
 def test_extract_label_time_course_volume(
-        src_volume_labels, label_type, mri_res, vector, test_label, cf):
+        src_volume_labels, label_type, mri_res, vector, test_label, cf, call):
     """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
     src_labels, volume_labels, lut = src_volume_labels
     n_tot = 46
@@ -687,9 +687,16 @@ def test_extract_label_time_course_volume(
         data = np.pad(data[:, np.newaxis], ((0, 0), (2, 0)), 'constant')
     data = np.repeat(data[..., np.newaxis], n_times, -1)
     stcs = [klass(data.astype(float), vertices, 0, 1)]
+
+    def eltc(*args, **kwargs):
+        if call == 'func':
+            return extract_label_time_course(stcs, *args, **kwargs)
+        else:
+            assert call == 'meth'
+            return [stcs[0].extract_label_time_course(*args, **kwargs)]
+
     with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
-        extract_label_time_course(stcs, fname_fs_t1, src, trans=trans,
-                                  mri_resolution=mri_res)
+        eltc(fname_fs_t1, src, trans=trans, mri_resolution=mri_res)
     assert len(src_labels) == 46  # includes unknown
     assert_array_equal(
         src[0]['vertno'],  # src includes some in "unknown" space
@@ -715,13 +722,11 @@ def test_extract_label_time_course_volume(
     # actually do the testing
     if cf == 'head' and not mri_res:  # no trans is an error
         with pytest.raises(TypeError, match='trans must be .* Transform'):
-            extract_label_time_course(stcs, labels, src,
-                                      mri_resolution=mri_res)
+            eltc(labels, src, mri_resolution=mri_res)
     for mode in ('mean', 'max'):
         with catch_logging() as log:
-            label_tc = extract_label_time_course(
-                stcs, labels, src, mode=mode, allow_empty='ignore',
-                trans=trans, mri_resolution=mri_res, verbose=True)
+            label_tc = eltc(labels, src, mode=mode, allow_empty='ignore',
+                            trans=trans, mri_resolution=mri_res, verbose=True)
         log = log.getvalue()
         assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
         n_want = len(src_labels)
@@ -1003,10 +1008,10 @@ def test_get_peak():
                                 subject='sample')
 
     # Versions with only one time point
-    stc_surf_1 = SourceEstimate(data[:, :1], vertices=vertices, tmin=0,
-                                tstep=1, subject='sample')
-    stc_vol_1 = VolSourceEstimate(data[:, :1], vertices=vertices[:1], tmin=0,
-                                  tstep=1, subject='sample')
+    stc_surf_1 = SourceEstimate(
+        data[:, :1], vertices, tmin=-0.1, tstep=0.1, subject='sample')
+    stc_vol_1 = VolSourceEstimate(
+        data[:, :1], vertices[:1], tmin=-0.1, tstep=1, subject='sample')
 
     for ii, stc in enumerate([stc_surf, stc_vol, stc_surf_1, stc_vol_1]):
         pytest.raises(ValueError, stc.get_peak, tmin=-100)
