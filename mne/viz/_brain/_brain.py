@@ -14,7 +14,7 @@ import numpy as np
 from scipy import sparse
 
 from .colormap import calculate_lut
-from .surface import Surface
+from .surface import Surface, mesh_edges
 from .view import lh_views_dict, rh_views_dict, View
 
 from .._3d import _process_clim, _handle_time
@@ -813,7 +813,7 @@ class _Brain(object):
         for hemi, (labels, cmap) in zip(hemis, annots):
 
             # Maybe zero-out the non-border vertices
-            # self._to_borders(labels, hemi, borders)
+            self._to_borders(labels, hemi, borders)
 
             # Handle null labels properly
             cmap[:, 3] = 255
@@ -1402,6 +1402,27 @@ class _Brain(object):
         else:
             hemi = [hemi]
         return hemi
+
+    def _to_borders(self, label, hemi, borders, restrict_idx=None):
+        """Convert a label/parc to borders."""
+        if not isinstance(borders, (bool, int)) or borders < 0:
+            raise ValueError('borders must be a bool or positive integer')
+        if borders:
+            n_vertices = label.size
+            edges = mesh_edges(self.geo[hemi].faces)
+            border_edges = label[edges.row] != label[edges.col]
+            show = np.zeros(n_vertices, dtype=np.int)
+            keep_idx = np.unique(edges.row[border_edges])
+            if isinstance(borders, int):
+                for _ in range(borders):
+                    keep_idx = np.in1d(self.geo[hemi].faces.ravel(), keep_idx)
+                    keep_idx.shape = self.geo[hemi].faces.shape
+                    keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
+                    keep_idx = np.unique(keep_idx)
+                if restrict_idx is not None:
+                    keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
+            show[keep_idx] = 1
+            label *= show
 
     def scale_data_colormap(self, fmin, fmid, fmax, transparent,
                             center=None, alpha=1.0, data=None, verbose=None):

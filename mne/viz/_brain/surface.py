@@ -9,6 +9,7 @@
 from os import path as path
 
 import numpy as np
+from scipy import sparse
 from ...utils import _check_option, get_subjects_dir
 from ...surface import complete_surface_info, read_surface, read_curvature
 
@@ -159,3 +160,30 @@ class Surface(object):
         color = 0.5 - (color - 0.5) / 3
         color = color[:, np.newaxis] * [1, 1, 1]
         self.grey_curv = color
+
+
+def mesh_edges(faces):
+    """Return a sparse matrix with edges as an adjacency matrix.
+
+    Parameters
+    ----------
+    faces : array of shape [n_triangles x 3]
+        The mesh faces
+
+    Returns
+    -------
+    edges : sparse matrix
+        The adjacency matrix
+    """
+    npoints = np.max(faces) + 1
+    nfaces = len(faces)
+    a, b, c = faces.T
+    edges = sparse.coo_matrix((np.ones(nfaces), (a, b)),
+                              shape=(npoints, npoints))
+    edges = edges + sparse.coo_matrix((np.ones(nfaces), (b, c)),
+                                      shape=(npoints, npoints))
+    edges = edges + sparse.coo_matrix((np.ones(nfaces), (c, a)),
+                                      shape=(npoints, npoints))
+    edges = edges + edges.T
+    edges = edges.tocoo()
+    return edges
