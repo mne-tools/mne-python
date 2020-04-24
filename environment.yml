@@ -21,6 +21,7 @@ dependencies:
 - pytest-cov
 - pytest-mock
 - pytest-timeout
+- pytest-xdist
 - joblib
 - psutil
 - flake8
