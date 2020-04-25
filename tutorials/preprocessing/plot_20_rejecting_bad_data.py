@@ -69,7 +69,7 @@ fig.canvas.key_press_event('a')
 # functions or class constructors, including:
 #
 # - creation of epoched data from continuous data (:class:`mne.Epochs`)
-# - many methods of independent components analysis class
+# - many methods of the independent components analysis class
 #   (:class:`mne.preprocessing.ICA`)
 # - functions for finding heartbeat and blink artifacts
 #   (:func:`~mne.preprocessing.find_ecg_events`,
