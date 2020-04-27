@@ -121,6 +121,7 @@ def test_f_twoway_rm():
 @pytest.mark.parametrize('kind, kwargs', [
     ('1samp', {}),
     ('ind', {}),  # equal_var=True is the default
+    ('ind', dict(equal_var=True)),
     ('ind', dict(equal_var=False)),
 ])
 @pytest.mark.parametrize('sigma', (0., 1e-3,))
@@ -142,7 +143,7 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
 
     X = rng.randn(3, 4, 5)
     if kind == 'ind':
-        X = [X, rng.randn(3, 4, 5)]
+        X = [X, rng.randn(30, 4, 5)]  # should differ based on equal_var
         got = ours(*X)
         want = theirs(*X)
     else:
