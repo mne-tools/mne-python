@@ -14,11 +14,12 @@ import numpy as np
 from scipy import sparse
 
 from .colormap import calculate_lut
-from .surface import Surface, mesh_edges
+from .surface import Surface
 from .view import lh_views_dict, rh_views_dict, View
 
 from .._3d import _process_clim, _handle_time
 
+from ...surface import mesh_edges
 from ...morph import _hemi_morph
 from ...label import read_label, _read_annot
 from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
@@ -1414,6 +1415,7 @@ class _Brain(object):
         if borders:
             n_vertices = label.size
             edges = mesh_edges(self.geo[hemi].faces)
+            edges = edges.tocoo()
             border_edges = label[edges.row] != label[edges.col]
             show = np.zeros(n_vertices, dtype=np.int)
             keep_idx = np.unique(edges.row[border_edges])
