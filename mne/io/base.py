@@ -1516,6 +1516,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             self.info['bads'] = []
 
+    @fill_doc
     def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous.
 
@@ -1529,14 +1530,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         raws : list, or Raw instance
             List of Raw instances to concatenate to the current instance
             (in order), or a single raw instance to concatenate.
-        preload : bool, str, or None (default None)
-            Preload data into memory for data manipulation and faster indexing.
-            If True, the data will be preloaded into memory (fast, requires
-            large amount of memory). If preload is a string, preload is the
-            file name of a memory-mapped file which is used to store the data
-            on the hard drive (slower, requires less memory). If preload is
-            None, preload=True or False is inferred using the preload status
-            of the raw files passed in.
+        %(preload_concatenate)s
         """
         if not isinstance(raws, list):
             raws = [raws]
@@ -2125,10 +2119,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     ----------
     raws : list
         List of Raw instances to concatenate (in order).
-    preload : bool, or None
-        If None, preload status is inferred using the preload status of the
-        raw files passed in. True or False sets the resulting raw file to
-        have or not have data preloaded.
+    %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to None.
     %(verbose)s

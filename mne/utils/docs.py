@@ -37,6 +37,16 @@ preload : bool or str (default False)
     large amount of memory). If preload is a string, preload is the
     file name of a memory-mapped file which is used to store the data
     on the hard drive (slower, requires less memory)."""
+docdict['preload_concatenate'] = """
+preload : bool, str, or None (default None)
+    Preload data into memory for data manipulation and faster indexing.
+    If True, the data will be preloaded into memory (fast, requires
+    large amount of memory). If preload is a string, preload is the
+    file name of a memory-mapped file which is used to store the data
+    on the hard drive (slower, requires less memory). If preload is
+    None, preload=True or False is inferred using the preload status
+    of the instances passed in.
+"""
 
 # Cropping
 docdict['include_tmax'] = """
