@@ -30,11 +30,7 @@ References
 # License: BSD (3-clause)
 
 import mne
-if mne.viz.get_3d_backend() == "mayavi":
-    from surfer import Brain
-else:  # PyVista
-    from mne.viz._brain import _Brain as Brain
-
+Brain = mne.viz.get_brain_class()
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=subjects_dir,
