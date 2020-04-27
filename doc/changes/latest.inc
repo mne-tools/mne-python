@@ -37,6 +37,8 @@ Changelog
 
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
+- Add :meth:`mne.channels.DigMontage.rename_channels` to allow renaming montage channels by `Eric Larson`_
+
 - Add support to in :meth:`mne.io.Raw.plot` for passing ``clipping`` as a float to clip to a proportion of the dedicated channel range by `Eric Larson`_
 
 - Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_

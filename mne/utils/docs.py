@@ -802,6 +802,15 @@ on_missing : str
 
     .. versionadded:: 0.20.1
 """
+docdict['rename_channels_mapping'] = """
+mapping : dict | callable
+    A dictionary mapping the old channel to a new channel name
+    e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+    that takes and returns a string.
+
+    .. versionchanged:: 0.10.0
+       Support for a callable function.
+"""
 
 # Brain plotting
 docdict["clim"] = """
