@@ -248,7 +248,13 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
 
 
 def get_brain_class():
-    """Return the proper Brain class based on the current 3d backend."""
+    """Return the proper Brain class based on the current 3d backend.
+
+    Returns
+    -------
+    brain : object
+        The Brain class corresponding to the current 3d backend.
+    """
     if get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
