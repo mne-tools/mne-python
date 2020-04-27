@@ -33,7 +33,7 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname,
-                     fill_doc)
+                     fill_doc, logger, deprecated)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -109,7 +109,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
@@ -144,7 +144,7 @@ class DigMontage(object):
 
     See Also
     --------
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -342,7 +342,7 @@ def read_dig_dat(fname):
 
     See Also
     --------
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -407,7 +407,7 @@ def read_dig_fif(fname):
     DigMontage
     read_dig_dat
     read_dig_egi
-    read_dig_captrack
+    read_dig_captrak
     read_dig_polhemus_isotrak
     read_dig_hpts
     make_dig_montage
@@ -445,7 +445,7 @@ def read_dig_hpts(fname, unit='mm'):
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -536,7 +536,7 @@ def read_dig_egi(fname):
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_fif
     read_dig_hpts
@@ -559,7 +559,7 @@ def read_dig_egi(fname):
     return make_dig_montage(**data)
 
 
-def read_dig_captrack(fname):
+def read_dig_captrak(fname):
     """Read electrode locations from CapTrak Brain Products system.
 
     Parameters
@@ -589,6 +589,36 @@ def read_dig_captrack(fname):
     return make_dig_montage(**data)
 
 
+@deprecated('read_dig_captrack is deprecated and will be removed in 0.22; '
+            'please use read_dig_captrak instead '
+            '(note the spelling correction: captraCK -> captraK).')
+def read_dig_captrack(fname):
+    """Read electrode locations from CapTrak Brain Products system.
+
+    Parameters
+    ----------
+    fname : path-like
+        BrainVision CapTrak coordinates file from which to read EEG electrode
+        locations. This is typically in XML format with the .bvct extension.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    return read_dig_captrak(fname)
+
+
 def _get_montage_in_head(montage):
     coords = set([d['coord_frame'] for d in montage.dig])
     if len(coords) == 1 and coords.pop() == FIFF.FIFFV_COORD_HEAD:
@@ -598,7 +628,7 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True):
+def _set_montage(info, montage, match_case=True, on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -613,6 +643,7 @@ def _set_montage(info, montage, match_case=True):
         The measurement info to update.
     %(montage)s
     %(match_case)s
+    %(on_missing_montage)s
 
     Notes
     -----
@@ -626,6 +657,10 @@ def _set_montage(info, montage, match_case=True):
         montage = make_standard_montage(montage)
 
     if isinstance(montage, DigMontage):
+        _check_option('on_missing', on_missing, ['raise',
+                                                 'ignore',
+                                                 'warn'])
+
         mnt_head = _get_montage_in_head(montage)
 
         def _backcompat_value(pos, ref_pos):
@@ -666,14 +701,30 @@ def _set_montage(info, montage, match_case=True):
             if n_dup:
                 raise ValueError('Cannot use match_case=False as %s channel '
                                  'name(s) require case sensitivity' % n_dup)
+
+        # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
         if len(not_in_montage):  # DigMontage is subset of info
-            raise ValueError('DigMontage is a only a subset of info. '
-                             'There are %s channel position%s not present in '
-                             'the DigMontage. The required channels are: %s'
-                             % (len(not_in_montage), _pl(not_in_montage),
-                                not_in_montage))
+            missing_coord_msg = 'DigMontage is only a subset of info. ' \
+                                'There are %s channel position%s ' \
+                                'not present in the DigMontage. ' \
+                                'The required channels are: %s' \
+                                % (len(not_in_montage), _pl(not_in_montage),
+                                   not_in_montage)
+            if on_missing == 'raise':
+                raise ValueError(missing_coord_msg)
+            elif on_missing == 'warn':
+                warn(missing_coord_msg)
+            elif on_missing == 'ignore':
+                logger.info(missing_coord_msg)
+
+            # set ch coordinates and names from digmontage or nan coords
+            _ch_pos_use = dict(ch_pos_use)  # make a copy
+            for name in info_names:
+                if name not in ch_pos_use:
+                    _ch_pos_use[name] = [np.nan, np.nan, np.nan]
+            ch_pos_use = _ch_pos_use
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
@@ -793,7 +844,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     DigMontage
     make_dig_montage
     read_polhemus_fastscan
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -1098,7 +1149,7 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrack`, :func:`read_dig_dat`, :func:`read_dig_egi`,
+    :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
     :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
     :func:`read_dig_hpts` or made with :func:`make_dig_montage`.
 

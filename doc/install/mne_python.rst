@@ -196,26 +196,28 @@ type the following command in a terminal::
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::
 
-    Platform:      Linux-4.18.0-13-generic-x86_64-with-debian-buster-sid
-    Python:        3.6.8 |Anaconda, Inc.| (default, Dec 30 2018, 01:22:34)  [GCC 7.3.0]
-    Executable:    /home/travis/miniconda/bin/python
-    CPU:           x86_64: 48 cores
-    Memory:        62.7 GB
+    Platform:      Linux-5.0.0-1031-gcp-x86_64-with-glibc2.2.5
+    Python:        3.8.1 (default, Dec 20 2019, 10:06:11)  [GCC 7.4.0]
+    Executable:    /home/travis/virtualenv/python3.8.1/bin/python
+    CPU:           x86_64: 2 cores
+    Memory:        7.8 GB
 
-    mne:           0.17.0
-    numpy:         1.15.4 {blas=mkl_rt, lapack=mkl_rt}
-    scipy:         1.2.0
-    matplotlib:    3.0.2 {backend=Qt5Agg}
+    mne:           0.21.dev0
+    numpy:         1.19.0.dev0+8dfaa4a {blas=openblas, lapack=openblas}
+    scipy:         1.5.0.dev0+f614064
+    matplotlib:    3.2.1 {backend=Qt5Agg}
 
-    sklearn:       0.20.2
-    numba:         0.45.0
-    nibabel:       2.3.3
+    sklearn:       0.22.2.post1
+    numba:         0.49.0
+    nibabel:       3.1.0
     cupy:          Not found
-    pandas:        0.24.0
-    dipy:          0.15.0
-    mayavi:        4.7.1 {qt_api=pyqt5, PyQt5=5.10.1}
-    pyvista:       0.21.3
-    vtk:           8.2.0
+    pandas:        1.0.3
+    dipy:          1.1.1
+    mayavi:        4.7.2.dev0
+    pyvista:       0.24.1
+    vtk:           9.0.0
+    PyQt5:         5.14.1
+
 
 .. collapse:: |hand-stop-o| If you get an error...
     :class: danger

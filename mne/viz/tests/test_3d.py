@@ -302,11 +302,11 @@ def test_plot_alignment(tmpdir, renderer):
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
     # wrong eeg value:
-    with pytest.raises(ValueError, match='eeg must only contain'):
+    with pytest.raises(ValueError, match='Invalid value for the .eeg'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir, eeg='foo')
     # wrong meg value:
-    with pytest.raises(ValueError, match='meg must only contain'):
+    with pytest.raises(ValueError, match='Invalid value for the .meg'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir, meg='bar')
     # multiple brain surfaces:
@@ -338,6 +338,25 @@ def test_plot_alignment(tmpdir, renderer):
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
     log = log.getvalue()
+    assert '26 fnirs pairs' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='channels')
+    log = log.getvalue()
+    assert '26 fnirs locations' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='pairs')
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs=['channels', 'pairs'])
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
     assert '26 fnirs locations' in log
 
     renderer.backend._close_all()

@@ -315,7 +315,7 @@ Projections:
    get_builtin_montages
    make_dig_montage
    read_dig_polhemus_isotrak
-   read_dig_captrack
+   read_dig_captrak
    read_dig_dat
    read_dig_egi
    read_dig_fif

@@ -594,8 +594,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         the subjects bem and bem/flash folders are searched. Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
-    fnirs : bool
-        If True (default), show fNIRS electrodes.
+    fnirs : str | list | bool | None
+        Can be "channels" or "pairs" to show the fNIRS channel locations or
+        line between source-detector pairs, or a combination like
+        ``('pairs', 'channels')``. True translates to ``('pairs',)``.
 
         .. versionadded:: 0.20
     show_axes : bool
@@ -664,18 +666,25 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if isinstance(eeg, str):
         eeg = [eeg]
 
+    if fnirs is True:
+        fnirs = ['pairs']
+    elif fnirs is False:
+        fnirs = list()
+    elif isinstance(fnirs, str):
+        fnirs = [fnirs]
+
     _check_option('interaction', interaction, ['trackball', 'terrain'])
-    for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
+    for kind, var in zip(('eeg', 'meg', 'fnirs'), (eeg, meg, fnirs)):
         if not isinstance(var, (list, tuple)) or \
                 not all(isinstance(x, str) for x in var):
             raise TypeError('%s must be list or tuple of str, got %s'
                             % (kind, type(var)))
-    if not all(x in ('helmet', 'sensors', 'ref') for x in meg):
-        raise ValueError('meg must only contain "helmet", "sensors" or "ref", '
-                         'got %s' % (meg,))
-    if not all(x in ('original', 'projected') for x in eeg):
-        raise ValueError('eeg must only contain "original" and '
-                         '"projected", got %s' % (eeg,))
+    for xi, x in enumerate(meg):
+        _check_option('meg[%d]' % xi, x, ('helmet', 'sensors', 'ref'))
+    for xi, x in enumerate(eeg):
+        _check_option('eeg[%d]' % xi, x, ('original', 'projected'))
+    for xi, x in enumerate(fnirs):
+        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
@@ -719,8 +728,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=fnirs)
-    del ecog, seeg, fnirs
+    fnirs_picks = pick_types(info, meg=False, eeg=False,
+                             ref_meg=False, fnirs=True)
+    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('channels' in fnirs))
+    del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
@@ -1134,6 +1145,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               fwd_nn[:, ori, 1],
                               fwd_nn[:, ori, 2],
                               color=color, mode='arrow', scale=1.5e-3)
+    if 'pairs' in fnirs and len(fnirs_picks) > 0:
+        fnirs_loc = np.array([info['chs'][k]['loc'][3:9] for k in fnirs_picks])
+        logger.info('Plotting %d fnirs pairs' % (fnirs_loc.shape[0]))
+        renderer.tube(origin=fnirs_loc[:, :3],
+                      destination=fnirs_loc[:, 3:])
+
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
