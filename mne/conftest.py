@@ -94,6 +94,22 @@ def pytest_configure(config):
             config.addinivalue_line('filterwarnings', warning_line)
 
 
+# Have to be careful with autouse=True, but this is just an int comparison
+# so it shouldn't really add appreciable overhead
+@pytest.fixture(autouse=True)
+def check_verbose(request):
+    """Set to the default logging level to ensure it's tested properly."""
+    starting_level = mne.utils.logger.level
+    yield
+    # ensures that no tests break the global state
+    try:
+        assert mne.utils.logger.level == starting_level
+    except AssertionError:
+        pytest.fail('.'.join([request.module.__name__,
+                              request.function.__name__]) +
+                    ' modifies logger.level')
+
+
 @pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
