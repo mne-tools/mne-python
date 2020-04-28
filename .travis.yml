@@ -29,9 +29,9 @@ matrix:
         - os: osx
           env: CONDA_ENV="environment.yml"
 
-        # PIP + non-default stim channel
+        # PIP + non-default stim channel + log level info
         - os: linux
-          env: MNE_STIM_CHANNEL=STI101
+          env: MNE_STIM_CHANNEL=STI101 MNE_LOGGING_LEVEL=info
           language: python
           python: "3.8"
 
