@@ -490,7 +490,7 @@ class Info(dict, MontageMixin):
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
-            Handedness (1=right, 2=left).
+            Handedness (1=right, 2=left, 3=ambidextrous).
 
     * ``device_info`` dict:
 
