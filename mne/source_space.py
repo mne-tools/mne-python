@@ -2597,7 +2597,8 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
+def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
+                                atlas_ids=None):
     """Return a list of names and colors of segmented volumes.
 
     Parameters
@@ -2607,6 +2608,11 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
         pipeline.
     return_colors : bool
         If True returns also the labels colors.
+    atlas_ids : dict | None
+        A lookup table providing a mapping from region names (str) to ID values
+        (int). Can be None to use the standard Freesurfer LUT.
+
+        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -2624,18 +2630,23 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     .. versionchanged:: 0.21.0
        The label names are now sorted in the same order as their corresponding
        values in the MRI file.
+
     .. versionadded:: 0.9.0
     """
     import nibabel as nib
     atlas = nib.load(mgz_fname)
     want = np.unique(_get_img_fdata(atlas))
-    ids, colors = read_freesurfer_lut()
+    if atlas_ids is None:
+        atlas_ids, colors = read_freesurfer_lut()
+    elif return_colors:
+        raise ValueError('return_colors must be False if atlas_ids are '
+                         'provided')
     # restrict to the ones in the MRI, sorted by label name
-    keep = np.in1d(list(ids.values()), want)
-    keys = sorted((key for ki, key in enumerate(colors.keys()) if keep[ki]),
-                  key=lambda x: ids[x])
-    colors = [colors[k] for k in keys]
+    keep = np.in1d(list(atlas_ids.values()), want)
+    keys = sorted((key for ki, key in enumerate(atlas_ids.keys()) if keep[ki]),
+                  key=lambda x: atlas_ids[x])
     if return_colors:
+        colors = [colors[k] for k in keys]
         out = keys, colors
     else:
         out = keys

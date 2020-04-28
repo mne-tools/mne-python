@@ -549,9 +549,9 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
 ])
 def test_read_freesurfer_lut(fname):
     """Test reading volume label names."""
-    lut, colors = read_freesurfer_lut(fname)
-    assert list(lut).count('Brain-Stem') == 1
-    assert len(colors) == len(lut) == 1266
+    atlas_ids, colors = read_freesurfer_lut(fname)
+    assert list(atlas_ids).count('Brain-Stem') == 1
+    assert len(colors) == len(atlas_ids) == 1266
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names, label_colors = get_volume_labels_from_aseg(
         aseg_fname, return_colors=True)
@@ -562,6 +562,12 @@ def test_read_freesurfer_lut(fname):
         assert isinstance(c, np.ndarray)
         assert c.shape == (4,)
     assert len(label_names) == len(label_colors) == 46
+    with pytest.raises(ValueError, match='must be False'):
+        get_volume_labels_from_aseg(
+            aseg_fname, return_colors=True, atlas_ids=atlas_ids)
+    label_names_2 = get_volume_labels_from_aseg(
+        aseg_fname, atlas_ids=atlas_ids)
+    assert label_names == label_names_2
 
 
 @testing.requires_testing_data
