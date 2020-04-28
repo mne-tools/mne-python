@@ -2780,9 +2780,12 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     for li, label in enumerate(labels):
         if use_sparse:
             assert isinstance(label, dict)
-            label_vertidx.append(label['csr'])
-            if label['csr'].shape[0] == 0:  # this shouldn't really happen...
+            # This can happen if some labels aren't present in the space
+            if label['csr'].shape[0] == 0:
                 bad_labels.append(label['name'])
+                label_vertidx.append(None)
+            else:
+                label_vertidx.append(label['csr'])
             label_flip.append(None)
             continue
         # standard case
@@ -2899,10 +2902,10 @@ def _volume_labels(src, labels, trans, mri_resolution):
         assert interp.shape[0] == np.prod(src_shape)
         assert interp.shape == (vol_info['data'].size, len(src[0]['rr']))
         interp = interp[:, src[0]['vertno']]
-        for v in labels.values():
+        for k, v in labels.items():
             mask = vol_info['data'].ravel(order='F') == v
             csr = interp[mask]
-            out_labels.append(dict(csr=csr))
+            out_labels.append(dict(csr=csr, name=k))
             nnz += csr.shape[0] > 0
     else:
         # Use nearest values
@@ -2988,7 +2991,6 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     this_data = vertidx * this_data
                     this_data.shape = \
                         (this_data.shape[0],) + stc.data.shape[1:]
-                    label_tc[i] = func(flip, this_data)
                 else:
                     this_data = stc.data[vertidx]
                 label_tc[i] = func(flip, this_data)

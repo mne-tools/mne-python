@@ -711,6 +711,14 @@ def test_extract_label_time_course_volume(
         np.where(np.in1d(src[0]['vertno'], [8011, 8032, 8557]))[0],
         [2672, 2688, 2995])
     # triage "labels" argument
+    if mri_res:
+        # All should be there
+        missing = []
+    else:
+        # Nearest misses these
+        missing = ['Left-vessel', 'Right-vessel', '5th-Ventricle',
+                   'non-WM-hypointensities']
+    n_want = len(src_labels)
     if label_type is str:
         labels = fname_aseg
     elif label_type is list:
@@ -718,6 +726,14 @@ def test_extract_label_time_course_volume(
     else:
         assert label_type is dict
         labels = (fname_aseg, {k: lut[k] for k in volume_labels})
+        assert mri_res
+        assert len(missing) == 0
+        # we're going to add one that won't exist
+        missing = ['intentionally_bad']
+        labels[1][missing[0]] = 10000
+        n_want += 1
+        n_tot += 1
+    n_want -= len(missing)
 
     # actually do the testing
     if cf == 'head' and not mri_res:  # no trans is an error
@@ -729,14 +745,10 @@ def test_extract_label_time_course_volume(
                             trans=trans, mri_resolution=mri_res, verbose=True)
         log = log.getvalue()
         assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
-        n_want = len(src_labels)
-        if not mri_res:
+        if len(missing):
             # assert that the missing ones get logged
-            missing = ['Left-vessel', 'Right-vessel', '5th-Ventricle',
-                       'non-WM-hypointensities']
             assert 'does not contain' in log
             assert repr(missing) in log
-            n_want -= len(missing)
         else:
             assert 'does not contain' not in log
         assert '\n%d/%d atlas regions had at least' % (n_want, n_tot) in log
