@@ -124,6 +124,15 @@ def get_3d_backend():
     backend_used : str
         The 3d backend currently in use.
     """
+    try:
+        backend = _get_3d_backend()
+    except RuntimeError:
+        return None
+    return backend
+
+
+def _get_3d_backend():
+    """Load and return the current 3d backend."""
     global MNE_3D_BACKEND
     if MNE_3D_BACKEND is None:
         MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
