@@ -7,6 +7,17 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
+.. _changes_0_20_3:
+
+Version 0.20.3
+--------------
+
+Bug
+~~~
+
+- Fix more errors with tests for Fedora packaging by `Eric Larson`_
+
+
 .. _changes_0_20_2:
 
 Version 0.20.2
