@@ -264,6 +264,7 @@ class _Brain(object):
             self._renderer.show()
 
     def cortex_colormap(self, cortex, alpha):
+        """Return the colormap corresponding to the cortex."""
         colormap_map = dict(classic=(dict(colormap="Greys",
                                           vmin=-1, vmax=2,
                                           opacity=alpha), False),
