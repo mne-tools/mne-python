@@ -1885,29 +1885,6 @@ def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
             TimeViewer(brain, show_traces=show_traces)
 
 
-def _get_ps_kwargs(initial_time, diverging, mid, transparent):
-    """Triage arguments based on PySurfer version."""
-    import surfer
-    surfer_version = LooseVersion(surfer.__version__)
-    require = '0.8'
-    if surfer_version < LooseVersion(require):
-        raise ImportError("This function requires PySurfer %s (you are "
-                          "running version %s). You can update PySurfer "
-                          "using:\n\n    $ pip install -U pysurfer" %
-                          (require, surfer.__version__))
-
-    ad_kwargs = dict(verbose=False)
-    sd_kwargs = dict(transparent=transparent, verbose=False)
-    if initial_time is not None:
-        ad_kwargs['initial_time'] = initial_time
-    if surfer_version >= LooseVersion('0.9'):
-        ad_kwargs.update(mid=mid, transparent=transparent)
-        ad_kwargs['center'] = 0. if diverging else None
-        sd_kwargs['center'] = 0. if diverging else None
-
-    return ad_kwargs, sd_kwargs
-
-
 def _glass_brain_crosshairs(params, x, y, z):
     for ax, a, b in ((params['ax_y'], x, z),
                      (params['ax_x'], y, z),
@@ -2435,6 +2412,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     # Import here to avoid circular imports
     if get_3d_backend() == "mayavi":
         from surfer import Brain
+        from surfer import __version__ as surfer_version
     else:  # PyVista
         from ._brain import _Brain as Brain
     from ..source_estimate import VectorSourceEstimate
@@ -2477,9 +2455,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                          for hemi in hemis if hemi in brain.geo])
         scale_factor = 0.025 * width / scale_pts[-1]
 
-    ad_kwargs, sd_kwargs = _get_ps_kwargs(
-        initial_time, False, scale_pts[1], transparent)
-    del initial_time, transparent
+    sd_kwargs = dict(transparent=transparent, verbose=False)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         data = getattr(stc, hemi + '_data')
@@ -2494,14 +2470,18 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 "colorbar": colorbar,
                 "vector_alpha": vector_alpha,
                 "scale_factor": scale_factor,
+                "verbose": False,
             }
-            kwargs.update(ad_kwargs)
-            kwargs.pop('mid', None)
+            if initial_time is not None:
+                kwargs['initial_time'] = initial_time
             if get_3d_backend() == "mayavi":
+                if surfer_version >= LooseVersion('0.9'):
+                    kwargs["transparent"] = transparent
                 kwargs["min"] = scale_pts[0]
                 kwargs["mid"] = scale_pts[1]
                 kwargs["max"] = scale_pts[2]
             else:
+                kwargs["transparent"] = transparent
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
