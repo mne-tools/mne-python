@@ -33,26 +33,6 @@ def _get_renderer(*args, **kwargs):
     return backend._Renderer(*args, **kwargs)
 
 
-def have_3d_backend():
-    """Return the status of 3d backend capabilities.
-
-    This function does not reload the 3d backend.
-
-    Returns
-    -------
-    status: bool
-        Return True is a valid 3d backend is found and False otherwise.
-    """
-    for name in VALID_3D_BACKENDS:
-        try:
-            importlib.import_module(name=name)
-        except ImportError:
-            pass
-        else:
-            return True
-    return False
-
-
 @verbose
 def set_3d_backend(backend_name, verbose=None):
     """Set the backend for MNE.
