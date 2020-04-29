@@ -149,7 +149,7 @@ class _Brain(object):
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
-                 cortex=None, alpha=1.0, size=800, background="black",
+                 cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm',
@@ -205,6 +205,8 @@ class _Brain(object):
         self.geo, self._overlays = {}, {}
         self.set_time_interpolation('nearest')
 
+        geo_kwargs, geo_reverse = self.cortex_colormap(cortex, alpha)
+
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
 
@@ -239,7 +241,12 @@ class _Brain(object):
                         y=self.geo[h].coords[:, 1],
                         z=self.geo[h].coords[:, 2],
                         triangles=self.geo[h].faces,
-                        color=self.geo[h].grey_curv,
+                        color=None,
+                        scalars=self.geo[h].bin_curv,
+                        vmin=geo_kwargs["vmin"],
+                        vmax=geo_kwargs["vmax"],
+                        colormap=geo_kwargs["colormap"],
+                        reverse_lut=geo_reverse,
                         opacity=alpha,
                     )
                     if isinstance(mesh_data, tuple):
@@ -255,6 +262,21 @@ class _Brain(object):
 
         if show:
             self._renderer.show()
+
+    def cortex_colormap(self, cortex, alpha):
+        colormap_map = dict(classic=(dict(colormap="Greys",
+                                          vmin=-1, vmax=2,
+                                          opacity=alpha), False),
+                            high_contrast=(dict(colormap="Greys",
+                                                vmin=-.1, vmax=1.3,
+                                                opacity=alpha), False),
+                            low_contrast=(dict(colormap="Greys",
+                                               vmin=-5, vmax=5,
+                                               opacity=alpha), False),
+                            bone=(dict(colormap="bone",
+                                       vmin=-.2, vmax=2,
+                                       opacity=alpha), True))
+        return colormap_map[cortex]
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
