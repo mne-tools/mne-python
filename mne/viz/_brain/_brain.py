@@ -109,7 +109,7 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | 3D function:              | surfer.Brain | mne.viz._brain._Brain |
        +===========================+==============+=======================+
-       | add_annotation            | ✓            |                       |
+       | add_annotation            | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | add_data                  | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
@@ -133,7 +133,7 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | remove_foci               | ✓            |                       |
        +---------------------------+--------------+-----------------------+
-       | remove_labels             | ✓            | -                     |
+       | remove_labels             | ✓            |                       |
        +---------------------------+--------------+-----------------------+
        | save_image                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
@@ -503,10 +503,7 @@ class _Brain(object):
                 actor, mesh = mesh_data
                 # add metadata to the mesh for picking
                 mesh._hemi = hemi
-                mapper = actor.GetMapper()
-                mapper.SetResolveCoincidentTopologyToPolygonOffset()
-                mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
-                    -1., -1.)
+                self.resolve_coincident_topology(actor)
             else:
                 actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)
@@ -794,7 +791,6 @@ class _Brain(object):
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
-        from ..backends._pyvista import _set_colormap_range
         hemis = self._check_hemis(hemi)
 
         # Figure out where the data is coming from
@@ -868,7 +864,7 @@ class _Brain(object):
 
             ctable = cmap.astype(np.float) / 255.
 
-            actor, mesh = self._renderer.mesh(
+            mesh_data = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
                 y=self.geo[hemi].coords[:, 1],
                 z=self.geo[hemi].coords[:, 2],
@@ -880,20 +876,21 @@ class _Brain(object):
                 scalars=ids,
                 interpolate_before_map=False,
             )
-            _set_colormap_range(actor, cmap.astype(np.uint8),
-                                None)
+            if isinstance(mesh_data, tuple):
+                from ..backends._pyvista import _set_colormap_range
+                actor, mesh = mesh_data
+                # add metadata to the mesh for picking
+                mesh._hemi = hemi
+                _set_colormap_range(actor, cmap.astype(np.uint8),
+                                    None)
+                self.resolve_coincident_topology(actor)
 
-    def remove_labels(self, labels=None):
-        """Remove one or more previously added labels from the image.
-
-        Parameters
-        ----------
-        labels : None | str | list of str
-            Labels to remove. Can be a string naming a single label, or None to
-            remove all labels. Possible names can be found in the Brain.labels
-            attribute.
-        """
-        pass
+    def resolve_coincident_topology(self, actor):
+        """Resolve z-fighting of overlapping surfaces."""
+        mapper = actor.GetMapper()
+        mapper.SetResolveCoincidentTopologyToPolygonOffset()
+        mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
+            -1., -1.)
 
     def close(self):
         """Close all figures and cleanup data structure."""
