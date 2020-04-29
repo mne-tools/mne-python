@@ -238,7 +238,7 @@ picks : list | slice | None
 # Filtering
 docdict['l_freq'] = """
 l_freq : float | None
-    For FIR filters, the lower pass-band edge; for IIR filters, the upper
+    For FIR filters, the lower pass-band edge; for IIR filters, the lower
     cutoff frequency. If None the data are only low-passed.
 """
 docdict['h_freq'] = """
