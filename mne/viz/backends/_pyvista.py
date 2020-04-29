@@ -25,7 +25,7 @@ from ...utils import copy_base_doc_to_subclass_doc
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
-    from pyvista import (Plotter, BackgroundPlotter, PolyData,
+    from pyvista import (BackgroundPlotter, PolyData,
                          Line, close_all, UnstructuredGrid)
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
@@ -65,13 +65,6 @@ class _Figure(object):
     def build(self):
         if self.plotter_class is None:
             self.plotter_class = BackgroundPlotter
-        if self.notebook:
-            self.plotter_class = Plotter
-
-        if self.plotter_class == Plotter:
-            self.store.pop('show', None)
-            self.store.pop('title', None)
-            self.store.pop('auto_update', None)
 
         if self.plotter is None:
             plotter = self.plotter_class(**self.store)
@@ -127,7 +120,7 @@ class _Renderer(_BaseRenderer):
 
     Attributes
     ----------
-    plotter: Plotter
+    plotter: BackgroundPlotter
         Main PyVista access point.
     name: str
         Name of the window.
@@ -135,7 +128,6 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1)):
-        from .renderer import MNE_3D_BACKEND_TESTING
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=None)
         self.font_family = "arial"
@@ -158,8 +150,6 @@ class _Renderer(_BaseRenderer):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TESTING:
-                self.figure.plotter_class = Plotter
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
