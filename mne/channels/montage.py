@@ -675,7 +675,6 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
     """
     _validate_type(montage, types=(DigMontage, type(None), str),
                    item_name='montage')
-
     if isinstance(montage, str):  # load builtin montage
         _check_option('montage', montage, _BUILT_IN_MONTAGES)
         montage = make_standard_montage(montage)
@@ -726,6 +725,8 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
+        print(ch_pos_use.keys())
+        print(not_in_montage)
         if len(not_in_montage):  # DigMontage is subset of info
             missing_coord_msg = (
                 'DigMontage is only a subset of info. There are '

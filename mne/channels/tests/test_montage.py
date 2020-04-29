@@ -1321,7 +1321,9 @@ def test_get_channel_coordinates():
     raw.set_montage(montage)
 
     # get coordinates of the set montage
-    test_ch_coords = list(raw.get_ch_positions().values())
+    ch_positions, coord_frame = raw.get_ch_positions()
+    test_ch_coords = list(ch_positions.values())
+    assert coord_frame == 'head'
     assert_array_equal(ch_coords, test_ch_coords)
 
     # get montage back and it should be the same
@@ -1329,10 +1331,46 @@ def test_get_channel_coordinates():
     raw.set_montage(test_montage)
     assert_array_equal(_get_dig_montage_pos(montage),
                        _get_dig_montage_pos(test_montage))
+
     # make sure instance copies are the same
     # assert not object_diff(raw, raw_copy)
-    # raw = read_raw_fif(fif_fname)
-    #
+    raw = read_raw_fif(fif_fname)
+    # ch_names = raw.ch_names
+    # elec_locs = np.random.random((len(ch_names), 3)).tolist()
+    # ch_pos = dict(zip(ch_names, elec_locs))
+    # print(len(ch_pos))
+    # montage = make_dig_montage(ch_pos=ch_pos,
+    #                            nasion=[0, 1, 0],
+    #                            lpa=[1, 0, 0],
+    #                            rpa=[-1, 0, 0],
+    #                            coord_frame='meg')
+    montage = make_standard_montage('mgh60')
+    # montage.ch_names = [  # modify the names in place
+    #     name.replace('EEG', 'EEG ') for name in montage.ch_names
+    # ]
+    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
+    print(montage)
+    print(dir(montage))
+    print(montage.dig)
+    print(len(montage.ch_names))
+    raw.set_montage(montage)
+
+    print(raw.info['dig'])
+    # for d in raw.info['dig']:
+    #     if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+    #         print("cardinal")
+    #     elif d['kind'] == FIFF.FIFFV_POINT_HPI:
+    #         print('hpi')
+    #     elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
+    #         print('extra')
+    #     else:
+    #         # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
+    #         print('Other')
+    # get montage back and it should be the same
+    test_montage = raw.get_montage()
+    assert_array_equal(_get_dig_montage_pos(montage),
+                       _get_dig_montage_pos(test_montage))
+    raw.set_montage(test_montage)
     # raw = read_raw_brainvision(vhdr_path)
     # raw_copy = raw.copy()
     # can reset montage with one obtained via `get_montage()`

@@ -241,9 +241,7 @@ class ContainsMixin(object):
         """Get a dictionary of channel positions for each channel.
 
         Channel positions are in meters in the specified coordinate frame
-        of the montage. For more information on coordinate frames see:
-
-        https://mne.tools/dev/auto_tutorials/source-modeling/plot_source_alignment.html#coordinate-frame-definitions
+        of the montage.
 
         Parameters
         ----------
@@ -255,14 +253,21 @@ class ContainsMixin(object):
         ch_positions : dict
             A dictionary with keys as the ch_names and values as
              corresponding list of xyz coordinates in the montage
-             coordinate frame (e.g. head).
+             coordinate frame.
+        coord_frame : str
+            The coordinate frame of the montage's xyz coordinates.
         """
         # get the channel positions
         picks = _picks_to_idx(self.info, picks)
         chs = self.info['chs']
         ch_names = self.info['ch_names']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
-        return dict(zip(ch_names, pos))
+
+        # extract landmark coords and coordinate frame
+        _, coord_frame_int = _get_fid_coords(self.info['dig'])
+        coord_frame = _frame_to_str[coord_frame_int]
+
+        return dict(zip(ch_names, pos)), coord_frame
 
     def get_montage(self):
         """Get a DigMontage from instance.
@@ -284,6 +289,7 @@ class ContainsMixin(object):
         ch_names = self.info['ch_names']
         ch_locs = montage_bunch.dig_ch_pos_location
         ch_pos = dict(zip(ch_names, ch_locs))
+        print("Trying to get montage: ", len(ch_names), len(ch_pos))
         montage = make_dig_montage(
             ch_pos=ch_pos,
             coord_frame=coord_frame,
