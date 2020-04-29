@@ -36,9 +36,9 @@ Version 0.20.1
 
 Bug
 ~~~
-￼
+
 - Fix bug with :func:`mne.setup_volume_source_space` when ``volume_label`` was supplied where voxels slightly (in a worst case, about 37% times ``pos`` in distance) outside the voxel-grid-based bounds of regions were errantly included, by `Eric Larson`_
-￼
+
 - Fix bug with :func:`mne.preprocessing.nirs.scalp_coupling_index` where filter transition was incorrectly assigned by `Robert Luke`_
 
 - Fix support for signals in mV for :func:`mne.io.read_raw_brainvision` by `Clemens Brunner`_
@@ -48,17 +48,17 @@ Bug
 - Fix bug with :func:`mne.make_forward_dipole` where :func:`mne.write_forward_solution` could not be used by `Eric Larson`_
 
 - Fix bug with :func:`mne.read_epochs` when loading data in complex format with ``preload=False`` by `Eric Larson`_
-￼
+
 - Fix bug with :func:`mne.io.Raw.plot` where toggling all projectors did not actually take effect by `Eric Larson`_
-￼
+
 - Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
 
 - Fix bug with :meth:`mne.io.Raw.plot` when ``scalings='auto'`` where bad data would prevent channel plotting by `Eric Larson`_
 
 - Fix bug with :func:`mne.io.read_raw_edf` where recording ID was not read properly for non-ASCII characters by `Lx37`_
-￼
+
 - Fix :ref:`gen_mne_setup_forward_model` to have it actually compute the BEM solution in addition to creating the BEM model by `Eric Larson`_
-￼
+
 - Fix bug with :func:`mne.beamformer.make_lcmv` where leadfield rank reduction was only partiall applied by `Britta Westner`_
 
 - Fix bug when using :meth:`mne.Epochs.crop` to exclude the baseline period would break :func:`mne.Epochs.save` / :func:`mne.read_epochs` round-trip by `Eric Larson`_
