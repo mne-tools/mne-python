@@ -1611,8 +1611,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     ch_names = names
     if not show_names:
         names = None
-    # apply projections before picking
-    if proj and not evoked.proj:
+    # apply projections before picking. NOTE: the `if proj is True`
+    # anti-pattern is needed here to exclude proj='interactive'
+    if proj is True and not evoked.proj:
         data = evoked.apply_proj().data
     else:
         data = evoked.data
