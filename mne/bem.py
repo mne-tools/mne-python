@@ -1786,8 +1786,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     """
     from .viz.misc import plot_bem
 
-    is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
-
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
@@ -1824,9 +1822,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     flash5_dir = op.join(mri_dir, 'flash5')
     shutil.rmtree(flash5_dir, ignore_errors=True)
     os.makedirs(flash5_dir)
-    if not is_test:  # CIs don't have freesurfer, skipped when testing.
-        cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
-        run_subprocess_env(cmd)
+    cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
+    run_subprocess_env(cmd)
     # Step 5b and c : Convert the mgz volumes into COR
     convert_T1 = False
     T1_dir = op.join(mri_dir, 'T1')
@@ -1858,10 +1855,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
-    if not is_test:  # CIs don't have freesurfer, skipped when testing.
-        logger.info("\n---- Creating the BEM surfaces ----")
-        cmd = ['mri_make_bem_surfaces', subject]
-        run_subprocess_env(cmd)
+    logger.info("\n---- Creating the BEM surfaces ----")
+    cmd = ['mri_make_bem_surfaces', subject]
+    run_subprocess_env(cmd)
     del tempdir  # ran our last subprocess; clean up directory
 
     logger.info("\n---- Converting the tri files into surf files ----")
