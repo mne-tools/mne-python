@@ -89,6 +89,9 @@ jobs:
     OPENBLAS_NUM_THREADS: '1'
   steps:
   - bash: |
+      sudo apt install libxkbcommon-x11-0 xvfb tcsh
+    displayName: 'Install Ubuntu dependencies'
+  - bash: |
       source tools/get_minimal_commands.sh
       echo "##vso[task.setvariable variable=MNE_ROOT]${MNE_ROOT}"
       echo "##vso[task.setvariable variable=PATH]${PATH}"
@@ -108,9 +111,6 @@ jobs:
       architecture: 'x64'
       addToPath: true
     displayName: 'Get Python'
-  - bash: |
-      sudo apt install libxkbcommon-x11-0 xvfb
-    displayName: 'Install PyQt5 dependencies'
   - bash: |
       /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
     displayName: 'Spin up Xvfb'
