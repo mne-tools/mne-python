@@ -25,7 +25,9 @@ Changelog
 
 - Add :meth:`mne.MixedSourceEstimate.surface` and :meth:`mne.MixedSourceEstimate.volume` methods to allow surface and volume extraction by `Eric Larson`_
 
-- Add support to :func:`mne.extract_label_time_course` for vector-valued :class:`VectorSourceEstimate` and :class:`mne.MixedVectorSourceEstimate` by `Eric Larson`_
+- Add support to :func:`mne.extract_label_time_course` for vector-valued and volumetric source estimates by `Eric Larson`_
+
+- Add method :meth:`mne.VolSourceEstimate.in_label` by `Eric Larson`_
 
 - Allow resampling raw data with :func:`mne.io.Raw.resample` without preloading data, by `Eric Larson`_
 
@@ -34,6 +36,8 @@ Changelog
 - :func:`mne.viz.plot_dipole_locations` and :meth:`mne.Dipole.plot_locations` gained a ``title`` argument to specify a custom figure title in ``orthoview`` mode by `Richard Höchenberger`_
 
 - Added temporal derivative distribution repair :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` by `Robert Luke`_
+
+- Add :func:`mne.read_freesurfer_lut` to make it easier to work with volume atlases by `Eric Larson`_
 
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
@@ -95,6 +99,8 @@ Bug
 - Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
 
 - Fix bug with :func:`mne.io.read_raw_edf` where recording ID was not read properly for non-ASCII characters by `Lx37`_
+
+- Fix bug with :func:`mne.get_volume_labels_from_aseg` where the returned labels were alphabetical instead of reflecting their volumetric ID-based order by `Eric Larson`_
 
 - Make :func:`mne.set_config` accept path-like input values by `Richard Höchenberger`_
 
