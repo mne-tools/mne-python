@@ -138,7 +138,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)
-    if renderer_interactive.get_3d_backend() == 'mayavi':
+    if renderer_interactive._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(surf, mayavi.modules.surface.Surface)
 
@@ -156,7 +156,7 @@ def test_plot_evoked_field(renderer):
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
         fig = evoked.plot_field(maps, time=0.1)
-        if renderer.get_3d_backend() == 'mayavi':
+        if renderer._get_3d_backend() == 'mayavi':
             import mayavi  # noqa: F401 analysis:ignore
             assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -280,7 +280,7 @@ def test_plot_alignment(tmpdir, renderer):
                          coord_frame='mri', subjects_dir=subjects_dir,
                          surfaces=['brain'], bem=sphere, show_axes=True)
     renderer.backend._close_all()
-    if renderer.get_3d_backend() == 'mayavi':
+    if renderer._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -778,7 +778,7 @@ def test_link_brains(renderer_interactive):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         with pytest.raises(NotImplementedError, match='backend is pyvista'):
             link_brains(brain)
     else:

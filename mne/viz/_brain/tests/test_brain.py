@@ -185,7 +185,7 @@ def test_brain_add_text(renderer):
 @testing.requires_testing_data
 def test_brain_save_movie(tmpdir, renderer):
     """Test saving a movie of a _Brain instance."""
-    if renderer.get_3d_backend() == "mayavi":
+    if renderer._get_3d_backend() == "mayavi":
         pytest.skip()
     brain_data = _create_testing_brain(hemi='lh')
     filename = str(path.join(tmpdir, "brain_test.mov"))
@@ -198,7 +198,7 @@ def test_brain_save_movie(tmpdir, renderer):
 @testing.requires_testing_data
 def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi='both')
 
@@ -223,7 +223,7 @@ def test_brain_timeviewer(renderer_interactive):
 @pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
 def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi=hemi)
     time_viewer = _TimeViewer(brain_data, show_traces=True)
@@ -278,7 +278,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
 @testing.requires_testing_data
 def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi='split')
     _TimeViewer(brain_data)
