@@ -237,7 +237,8 @@ mne.viz.tight_layout()
 # decoding model weights reflect the channels that contribute most toward
 # reconstructing the stimulus signal, but are not directly interpretable in a
 # neurophysiological sense. Here we also look at the coefficients obtained
-# via an inversion procedure [2]_, which have a more straightforward
+# via an inversion procedure :footcite:`HaufeEtAl2014`, which have a more
+# straightforward
 # interpretation as their value (and sign) directly relates to the stimulus
 # signal's strength (and effect direction).
 
@@ -263,4 +264,5 @@ plt.show()
 ###############################################################################
 # References
 # ----------
+#
 # .. footbibliography::
