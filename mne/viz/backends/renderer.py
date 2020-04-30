@@ -29,7 +29,7 @@ def _reload_backend(backend_name):
 
 
 def _get_renderer(*args, **kwargs):
-    set_3d_backend(get_3d_backend(), verbose=False)
+    set_3d_backend(_get_3d_backend(), verbose=False)
     return backend._Renderer(*args, **kwargs)
 
 
@@ -121,8 +121,9 @@ def get_3d_backend():
 
     Returns
     -------
-    backend_used : str
-        The 3d backend currently in use.
+    backend_used : str | None
+        The 3d backend currently in use. If no backend is found,
+        returns ``None``.
     """
     try:
         backend = _get_3d_backend()
@@ -165,7 +166,7 @@ def use_3d_backend(backend_name):
     backend_name : str
         The 3d backend to use in the context.
     """
-    old_backend = get_3d_backend()
+    old_backend = _get_3d_backend()
     set_3d_backend(backend_name)
     try:
         yield

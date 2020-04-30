@@ -1617,10 +1617,10 @@ def link_brains(brains):
     brains : list, tuple or np.ndarray
         The collection of brains to plot.
     """
-    from .backends.renderer import get_3d_backend
-    if get_3d_backend() != 'pyvista':
+    from .backends.renderer import _get_3d_backend
+    if _get_3d_backend() != 'pyvista':
         raise NotImplementedError("Expected 3d backend is pyvista but"
-                                  " {} was given.".format(get_3d_backend()))
+                                  " {} was given.".format(_get_3d_backend()))
     from ._brain import _Brain, _TimeViewer, _LinkViewer
     if not isinstance(brains, Iterable):
         brains = [brains]
@@ -1747,7 +1747,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
-    from .backends.renderer import get_3d_backend, set_3d_backend
+    from .backends.renderer import _get_3d_backend, set_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1758,7 +1758,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
-            set_3d_backend(get_3d_backend())
+            set_3d_backend(_get_3d_backend())
         except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
                 warn('No 3D backend found. Resorting to matplotlib 3d.')
@@ -1776,7 +1776,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
 
-    if get_3d_backend() == "mayavi":
+    if _get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
         from ._brain import _Brain as Brain
@@ -1790,7 +1790,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # conversion. But this will need to be another refactoring that will
     # hopefully restore this line:
     #
-    # if get_3d_backend() == 'mayavi':
+    # if _get_3d_backend() == 'mayavi':
     _separate_map(mapdata)
     colormap = mapdata['colormap']
     diverging = 'pos_lims' in mapdata['clim']
@@ -1812,7 +1812,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         "figure": figure, "subjects_dir": subjects_dir,
         "views": views
     }
-    if get_3d_backend() == "pyvista":
+    if _get_3d_backend() == "pyvista":
         kwargs["show"] = not time_viewer
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
@@ -1834,7 +1834,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 "transparent": transparent, "center": center,
                 "verbose": False
             }
-            if get_3d_backend() == "mayavi":
+            if _get_3d_backend() == "mayavi":
                 kwargs["min"] = scale_pts[0]
                 kwargs["mid"] = scale_pts[1]
                 kwargs["max"] = scale_pts[2]
@@ -1851,8 +1851,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
 
 def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
-    from .backends.renderer import get_3d_backend
-    using_mayavi = get_3d_backend() == "mayavi"
+    from .backends.renderer import _get_3d_backend
+    using_mayavi = _get_3d_backend() == "mayavi"
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
     _check_option('show_traces', show_traces,
                   (True, False, 'auto', 'separate'))
@@ -1868,7 +1868,7 @@ def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
             os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false'
         )
 
-    if get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
+    if _get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
         raise NotImplementedError("Point picking is not available"
                                   " for the mayavi 3d backend.")
     if using_mayavi:
@@ -2431,9 +2431,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     If the current magnitude overlay is not desired, set ``overlay_alpha=0``
     and ``smoothing_steps=1``.
     """
-    from .backends.renderer import get_3d_backend
+    from .backends.renderer import _get_3d_backend
     # Import here to avoid circular imports
-    if get_3d_backend() == "mayavi":
+    if _get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
         from ._brain import _Brain as Brain
@@ -2497,7 +2497,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
             }
             kwargs.update(ad_kwargs)
             kwargs.pop('mid', None)
-            if get_3d_backend() == "mayavi":
+            if _get_3d_backend() == "mayavi":
                 kwargs["min"] = scale_pts[0]
                 kwargs["mid"] = scale_pts[1]
                 kwargs["max"] = scale_pts[2]
@@ -2510,7 +2510,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
-    if get_3d_backend() == "mayavi":
+    if _get_3d_backend() == "mayavi":
         for hemi in hemis:
             for b in brain._brain_list:
                 for layer in b['brain'].data.values():
