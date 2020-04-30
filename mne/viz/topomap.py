@@ -1601,7 +1601,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     interactive = isinstance(times, str) and times == 'interactive'
     axes_given = axes is not None
     if interactive and axes_given:
-        raise ValueError("User provided axes not allowed when "
+        raise ValueError("User-provided axes not allowed when "
                          "times='interactive'.")
     # determine which times to plot
     if isinstance(axes, plt.Axes):
