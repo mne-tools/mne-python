@@ -697,9 +697,8 @@ def test_lcmv_ctf_comp():
         make_lcmv(info_comp, fwd, data_cov)
 
 
-@pytest.mark.xfail(reason='Not equivalent yet, bug', raises=AssertionError)
 @testing.requires_testing_data
-@pytest.mark.parametrize('pick_ori', ('max-power', 'vector'))
+@pytest.mark.parametrize('pick_ori', ('max-power', 'normal'))
 def test_unit_gain_relationships(pick_ori):
     """Test unit gain and unit gain noise relationships."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
@@ -711,12 +710,14 @@ def test_unit_gain_relationships(pick_ori):
         noise_cov = mne.compute_covariance(epochs, tmax=0)
         data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
     forward = mne.read_forward_solution(fname_fwd)
+    convert_forward_solution(forward, surf_ori=True, copy=False)
     W_ung = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
                       noise_cov=noise_cov, pick_ori=pick_ori,
                       weight_norm='unit-noise-gain', rank=None)['weights']
     W_ug = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
                      noise_cov=noise_cov, pick_ori=pick_ori,
                      weight_norm=None, rank=None)['weights']
+    # XXX maybe eventually we can add back vector?
     n_orient = 3 if pick_ori == 'vector' else 1
     assert W_ung.shape == (forward['nsource'] * n_orient, len(epochs.ch_names))
     W_ung_2 = W_ug / np.linalg.norm(W_ug, axis=1, keepdims=True)

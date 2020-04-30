@@ -113,69 +113,6 @@ def _reduce_leadfield_rank(G):
     return G
 
 
-def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
-    """Compute the normalized weights in max-power orientation.
-
-    Uses Eq. 4.47 from [1]_. Operates in place on Wk.
-
-    Parameters
-    ----------
-    Wk : ndarray, shape (n_sources, 3, n_channels)
-        The set of un-normalized filters at a single source point.
-    Gk : ndarray, shape (n_sources, n_channels, 3)
-        The leadfield at a single source point.
-    Cm_inv_sq : nsarray, snape (n_channels, n_channels)
-        The squared inverse covariance matrix.
-    reduce_rank : bool
-        Whether to reduce the rank of the filter by one.
-    nn : ndarray, shape (n_sources, 3)
-        The source normal.
-    sk : ndarray, shape (n_sources, 3)
-        The source prior.
-
-    References
-    ----------
-    .. [1] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
-    """
-    # np.dot Gk with Cm_inv_sq on left and right
-    norm_inv = np.matmul(Gk.transpose(0, 2, 1),
-                         np.matmul(Cm_inv_sq[np.newaxis], Gk))
-
-    # invert this using an eigenvalue decomposition
-    norm = _pos_semidef_inv(norm_inv, reduce_rank)
-
-    # Reapply source covariance after inversion
-    norm *= sk[:, :, np.newaxis]
-    norm *= sk[:, np.newaxis, :]
-    power = np.matmul(norm, np.matmul(Wk, Gk))  # np.dot for each source
-
-    # Determine orientation of max power
-    assert power.dtype in (np.float64, np.complex128)  # LCMV, DICS
-    eig_vals, eig_vecs = np.linalg.eig(power)
-    if not np.iscomplexobj(power) and np.iscomplexobj(eig_vecs):
-        raise ValueError('The eigenspectrum of the leadfield is '
-                         'complex. Consider reducing the rank of the '
-                         'leadfield by using reduce_rank=True.')
-    idx_max = np.argmax(eig_vals, axis=1)
-    max_power_ori = eig_vecs[np.arange(eig_vecs.shape[0]), :, idx_max]
-
-    # set the (otherwise arbitrary) sign to match the normal
-    sign = np.sign(np.sum(max_power_ori * nn, axis=1, keepdims=True))
-    sign[sign == 0] = 1
-    max_power_ori *= sign
-
-    # Compute the filter in the orientation of max power
-    Wk_max = np.matmul(max_power_ori[:, np.newaxis], Wk)[:, 0]
-    Gk_max = np.matmul(Gk, max_power_ori[:, :, np.newaxis])
-    denom = np.matmul(Gk_max.transpose(0, 2, 1),
-                      np.matmul(Cm_inv_sq[np.newaxis], Gk_max))[:, 0]
-    np.sqrt(denom, out=denom)
-    Wk_max /= denom
-    # All three entries get the same value from this operation
-    Wk[:] = Wk_max[:, np.newaxis]
-
-
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         reduce_rank, rank, inversion, nn, orient_std):
     """Compute a spatial beamformer filter (LCMV or DICS).
@@ -218,7 +155,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
     assert Cm.shape == (G.shape[0],) * 2
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
-    Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
     assert orient_std.shape == (G.shape[1],)
     n_sources = G.shape[1] // n_orient
@@ -231,6 +167,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     Gk = np.reshape(G.T, (n_sources, n_orient, n_channels)).transpose(0, 2, 1)
     assert Gk.shape == (n_sources, n_channels, n_orient)
     sk = np.reshape(orient_std, (n_sources, n_orient))
+    del G, orient_std
     pinv_kwargs = dict()
     if check_version('numpy', '1.17'):
         pinv_kwargs['hermitian'] = True
@@ -253,88 +190,112 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 'Singular matrix detected when estimating spatial filters. '
                 'Consider reducing the rank of the forward operator by using '
                 'reduce_rank=True.')
+        del Gk_s
 
     # rank reduction of the lead field
     if reduce_rank:
         Gk = _reduce_leadfield_rank(Gk)
 
-    # Compute numerator of beamformer formula, G.T @ Cm_inv
+    #
+    # 1. Compute filter
+    #
+
+    # Compute numerator of beamformer formula:
+    # Wk = G.T @ Cm_inv
     Wk = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
+    # Compute power at the source:
+    # Ck = Wk @ Gk
+    Ck = np.matmul(Wk, Gk)
 
-    if (inversion == 'matrix' and pick_ori == 'max-power' and
-            weight_norm in ['unit-noise-gain', 'nai']):
-        # In this case, take a shortcut to compute the filter
-        _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk)
-    else:
-        # Compute power at the source
-        Ck = np.matmul(Wk, Gk)  # np.dot for each source
-
-        # Normalize the spatial filters
-        if n_orient > 1:
-            # Free source orientation
-            if inversion == 'single':
-                # Invert for each dipole separately using plain division
-                diags = np.diagonal(Ck, axis1=1, axis2=2)
-                assert not reduce_rank   # guaranteed above
-                with np.errstate(divide='ignore'):
-                    diags = 1. / diags
-                # set the diagonal of each 3x3
-                norm = np.zeros((n_sources, n_orient, n_orient), Ck.dtype)
-                for k in range(n_sources):
-                    norm[k].flat[::4] = diags[k]
-            elif inversion == 'matrix':
-                assert Ck.shape[1:] == (3, 3)
-                # Invert for all dipoles simultaneously using matrix
-                # inversion.
-                norm = _pos_semidef_inv(Ck, reduce_rank)
-            # Reapply source covariance after inversion
-            norm *= sk[:, :, np.newaxis]
-            norm *= sk[:, np.newaxis, :]
-        else:  # n_orient == 1
-            assert Ck.shape[1:] == (1, 1)
-            # Fixed source orientation
+    #
+    # 2. Normalize the spatial filters
+    #
+    if n_orient > 1:
+        # Free source orientation
+        if inversion == 'single':
+            # Invert for each dipole separately using plain division
+            diags = np.diagonal(Ck, axis1=1, axis2=2)
+            assert not reduce_rank   # guaranteed above
             with np.errstate(divide='ignore'):
-                norm = 1. / Ck
-            norm[~np.isfinite(norm)] = 1.
-        assert norm.shape == (n_sources, n_orient, n_orient)
-        assert Wk.shape == (n_sources, n_orient, n_channels)
-        Wk[:] = np.matmul(norm, Wk)  # np.dot for each source
+                diags = 1. / diags
+            # set the diagonal of each 3x3
+            norm = np.zeros((n_sources, n_orient, n_orient), Ck.dtype)
+            for k in range(n_sources):
+                norm[k].flat[::4] = diags[k]
+        else:
+            assert inversion == 'matrix'
+            assert Ck.shape[1:] == (3, 3)
+            # Invert for all dipoles simultaneously using matrix
+            # inversion.
+            if pick_ori == 'max-power' and \
+                    weight_norm in ['unit-noise-gain', 'nai']:
+                # G.T @ Cm_inv @ Cm_inv @ G == Wk @ Wk.H
+                norm_inv = np.matmul(Wk, np.swapaxes(Wk, -2, -1).conj())
+            else:
+                # Wk @ Gk
+                norm_inv = Ck
+            norm = _pos_semidef_inv(norm_inv, reduce_rank)
+        # Reapply source covariance after inversion
+        norm *= sk[:, :, np.newaxis]
+        norm *= sk[:, np.newaxis, :]
+    else:  # n_orient == 1
+        assert Ck.shape[1:] == (1, 1)
+        # Fixed source orientation
+        with np.errstate(divide='ignore'):
+            norm = 1. / Ck
+        norm[~np.isfinite(norm)] = 1.
+    assert norm.shape == (n_sources, n_orient, n_orient)
+    assert Wk.shape == (n_sources, n_orient, n_channels)
+    Wk_norm = np.matmul(norm, Wk)  # np.dot for each source
+    del Wk
 
-        if pick_ori == 'max-power':
-            # Compute the power
-            if inversion == 'single' and weight_norm is not None:
-                # First make the filters unit gain, then apply them to the
-                # cov matrix to compute power.
-                Wk_norm = Wk / np.linalg.norm(Wk, axis=2, keepdims=True)
-                power = np.matmul(np.matmul(Wk_norm, Cm),
-                                  Wk_norm.conjugate().transpose(0, 2, 1))
-            elif weight_norm is None:
-                # Compute power by applying the spatial filters to
-                # the cov matrix.
-                power = np.matmul(np.matmul(Wk, Cm),
-                                  Wk.conjugate().transpose(0, 2, 1))
-            assert power.shape == (n_sources, 3, 3)
-            _, u_ = np.linalg.eigh(power.real)
-            max_power_ori = u_[:, :, -1]
-            assert max_power_ori.shape == (n_sources, 3)
+    #
+    # 3. Compute max power orientation
+    #
+    if pick_ori == 'max-power':
+        # XXX the below relies on "norm" and "Wk_norm", so it cannot be moved
+        # before filter comp
 
-            # set the (otherwise arbitrary) sign to match the normal
-            signs = np.sign(np.sum(max_power_ori * nn, axis=1))
-            signs[signs == 0] = 1.
-            max_power_ori *= signs[:, np.newaxis]
-            # all three entries get the same value from this operation
-            Wk[:] = np.sum(max_power_ori[:, :, np.newaxis] * Wk, axis=1,
-                           keepdims=True)
-    W = Wk.reshape(n_sources * n_orient, n_channels)
-    del Gk, Wk, sk
+        # Compute the power
+        if inversion == 'single' and weight_norm is not None:
+            # First make the filters unit gain, then apply them to the
+            # cov matrix to compute power.
+            Wk_norm_2 = Wk_norm / np.linalg.norm(
+                Wk_norm, axis=2, keepdims=True)
+            power = np.matmul(np.matmul(Wk_norm_2, Cm),
+                              Wk_norm_2.conjugate().transpose(0, 2, 1))
+        elif weight_norm is None:
+            # Compute power by applying the spatial filters to
+            # the cov matrix.
+            power = np.matmul(np.matmul(Wk_norm, Cm),
+                              Wk_norm.conjugate().transpose(0, 2, 1))
+        else:
+            power = np.matmul(norm, Ck)
+        assert power.shape == (n_sources, 3, 3)
+        _, u_ = np.linalg.eigh(power.real)
+        del power
+        max_power_ori = u_[:, :, -1]
+        assert max_power_ori.shape == (n_sources, 3)
 
-    if pick_ori == 'normal':
-        W = W[2::3]
-    elif pick_ori == 'max-power':
-        W = W[0::3]
+        # set the (otherwise arbitrary) sign to match the normal
+        signs = np.sign(np.sum(max_power_ori * nn, axis=1))
+        signs[signs == 0] = 1.
+        max_power_ori *= signs[:, np.newaxis]
 
-    # Re-scale the filter weights according to the selected weight
-    # normalization scheme
+    #
+    # 4. Do the picking
+    #
+    if pick_ori == 'max-power':
+        W = np.matmul(max_power_ori[:, np.newaxis], Wk_norm)[:, 0]
+    else:
+        W = Wk_norm.reshape(n_sources * n_orient, n_channels)
+        if pick_ori == 'normal':
+            W = W[2::3]
+    del Gk, Wk_norm, sk
+
+    #
+    # 5. Re-scale filter weights according to the selected weight_norm
+    #
     if weight_norm in ['unit-noise-gain', 'nai']:
         if pick_ori in [None, 'vector'] and n_orient > 1:
             # Rescale each set of 3 filters
