@@ -93,7 +93,6 @@ class _Renderer(_BaseRenderer):
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, **kwargs):
-        reverse_lut = kwargs.pop("reverse_lut", False)
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
@@ -130,9 +129,6 @@ class _Renderer(_BaseRenderer):
                     raise TypeError('Expected type for colormap values are'
                                     ' np.float or np.uint8: '
                                     '{} was given'.format(colormap.dtype))
-            if reverse_lut:
-                surface.module_manager.scalar_lut_manager.reverse_lut = \
-                    reverse_lut
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface

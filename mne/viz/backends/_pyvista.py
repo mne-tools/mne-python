@@ -193,7 +193,6 @@ class _Renderer(_BaseRenderer):
             mesh = PolyData(vertices, triangles)
             rgba = False
             interpolate_before_map = kwargs.get("interpolate_before_map", True)
-            flip_scalars = kwargs.get("reverse_lut", False)
             if color is not None and len(color) == n_vertices:
                 if color.shape[1] == 3:
                     scalars = np.c_[color, np.ones(n_vertices)]
@@ -219,7 +218,6 @@ class _Renderer(_BaseRenderer):
                 rng=[vmin, vmax], show_scalar_bar=False,
                 smooth_shading=smooth_shading,
                 interpolate_before_map=interpolate_before_map,
-                flip_scalars=flip_scalars,
             )
             return actor, mesh
 
