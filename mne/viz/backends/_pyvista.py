@@ -139,6 +139,7 @@ class _Renderer(_BaseRenderer):
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=None)
         self.font_family = "arial"
+        self.tube_n_sides = 20
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -160,6 +161,8 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
                 self.figure.plotter_class = Plotter
+                self.figure.smooth_shading = False
+                self.tube_n_sides = 3
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
@@ -167,13 +170,16 @@ class _Renderer(_BaseRenderer):
                 self.plotter.default_camera_tool_bar.close()
             if hasattr(self.plotter, "saved_cameras_tool_bar"):
                 self.plotter.saved_cameras_tool_bar.close()
-            _enable_aa(self.figure, self.plotter)
+            if not MNE_3D_BACKEND_TESTING:
+                _enable_aa(self.figure, self.plotter)
 
     def subplot(self, x, y):
+        from .renderer import MNE_3D_BACKEND_TESTING
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
-            _enable_aa(self.figure, self.plotter)
+            if not MNE_3D_BACKEND_TESTING:
+                _enable_aa(self.figure, self.plotter)
 
     def scene(self):
         return self.figure
@@ -236,7 +242,7 @@ class _Renderer(_BaseRenderer):
             contour = mesh.contour(isosurfaces=contours, rng=(vmin, vmax))
             line_width = width
             if kind == 'tube':
-                contour = contour.tube(radius=width)
+                contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
                 line_width = 1.0
             self.plotter.add_mesh(mesh=contour,
                                   show_scalar_bar=False,
@@ -305,7 +311,7 @@ class _Renderer(_BaseRenderer):
                     color = None
                 else:
                     scalars = None
-                tube = line.tube(radius)
+                tube = line.tube(radius, n_sides=self.tube_n_sides)
                 self.plotter.add_mesh(mesh=tube,
                                       scalars=scalars,
                                       flip_scalars=reverse_lut,
