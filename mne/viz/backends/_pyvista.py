@@ -183,7 +183,7 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             smooth_shading = self.figure.smooth_shading
@@ -192,7 +192,6 @@ class _Renderer(_BaseRenderer):
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
             rgba = False
-            interpolate_before_map = kwargs.get("interpolate_before_map", True)
             if color is not None and len(color) == n_vertices:
                 if color.shape[1] == 3:
                     scalars = np.c_[color, np.ones(n_vertices)]

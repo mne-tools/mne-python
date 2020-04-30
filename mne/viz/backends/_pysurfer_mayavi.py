@@ -92,7 +92,7 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
