@@ -88,6 +88,7 @@ jobs:
               python -m pip install --user --upgrade --progress-bar off "vtk>=9.0.0rc3" -f https://vtk.org/download/
               python -m pip install --user --upgrade --progress-bar off https://github.com/larsoner/mayavi/zipball/vtk9
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
+              python -m pip uninstall --user -yq pysurfer mayavi
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
               python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
               python -m pip install --user --upgrade seaborn
