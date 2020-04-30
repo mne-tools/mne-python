@@ -39,7 +39,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> from mne.preprocessing import peak_finder
     >>> t = np.arange(0, 3, 0.01)
     >>> x = np.sin(np.pi*t) - np.sin(0.5*np.pi*t)
-    >>> peak_locs, peak_mags = peak_finder(x)
+    >>> peak_locs, peak_mags = peak_finder(x) # doctest: +SKIP
     >>> peak_locs # doctest: +SKIP
     array([36, 260]) # doctest: +SKIP
     >>> peak_mags # doctest: +SKIP

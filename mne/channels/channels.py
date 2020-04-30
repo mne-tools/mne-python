@@ -462,15 +462,13 @@ class SetChannelsMixin(MontageMixin):
             warn(msg.format(", ".join(sorted(names)), *this_change))
         return self
 
+    @fill_doc
     def rename_channels(self, mapping):
         """Rename channels.
 
         Parameters
         ----------
-        mapping : dict | callable
-            A dictionary mapping the old channel to a new channel name
-            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-            that takes and returns a string (new in version 0.10.0).
+        %(rename_channels_mapping)s
 
         Returns
         -------
@@ -1027,6 +1025,7 @@ class InterpolationMixin(object):
         return self
 
 
+@fill_doc
 def rename_channels(info, mapping):
     """Rename channels.
 
@@ -1035,12 +1034,10 @@ def rename_channels(info, mapping):
     Parameters
     ----------
     info : dict
-        Measurement info.
-    mapping : dict | callable
-        A dictionary mapping the old channel to a new channel name
-        e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-        that takes and returns a string (new in version 0.10.0).
+        Measurement info to modify.
+    %(rename_channels_mapping)s
     """
+    _validate_type(info, Info, 'info')
     info._check_consistency()
     bads = list(info['bads'])  # make our own local copies
     ch_names = list(info['ch_names'])

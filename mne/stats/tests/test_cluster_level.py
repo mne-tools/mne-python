@@ -14,7 +14,7 @@ import pytest
 
 from mne.fixes import has_numba
 from mne.parallel import _force_serial
-from mne.stats import cluster_level
+from mne.stats import cluster_level, ttest_ind_no_p
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
@@ -435,6 +435,45 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
                     X1d_3, n_permutations=50, connectivity=connectivity,
                     threshold=1e-3, stat_fun=lambda *x: f_oneway(*x)[:-1],
                     buffer_size=None)
+
+
+@pytest.mark.parametrize('threshold', [
+    0.1,
+    pytest.param(dict(start=0., step=0.5), id='TFCE'),
+])
+@pytest.mark.parametrize('kind', ('1samp', 'ind'))
+def test_permutation_cluster_signs(threshold, kind):
+    """Test cluster signs."""
+    # difference between two conditions for 3 subjects x 2 vertices x 2 times
+    X = np.array([[[-10, 5], [-2, -7]],
+                  [[-4, 5], [-8, -0]],
+                  [[-6, 3], [-4, -2]]], float)
+    want_signs = np.sign(np.mean(X, axis=0))
+    n_permutations = 1
+    if kind == '1samp':
+        func = permutation_cluster_1samp_test
+        stat_fun = ttest_1samp_no_p
+        use_X = X
+    else:
+        assert kind == 'ind'
+        func = permutation_cluster_test
+        stat_fun = ttest_ind_no_p
+        use_X = [X, np.random.RandomState(0).randn(*X.shape) * 0.1]
+    tobs, clu, clu_pvalues, _ = func(
+        use_X, n_permutations=n_permutations, threshold=threshold, tail=0,
+        stat_fun=stat_fun)
+    clu_signs = np.zeros(X.shape[1:])
+    used = np.zeros(X.shape[1:])
+    assert len(clu) == len(clu_pvalues)
+    for c, p in zip(clu, clu_pvalues):
+        assert not used[c].any()
+        assert len(np.unique(np.sign(tobs[c]))) == 1
+        clu_signs[c] = np.sign(tobs[c])[0]
+        used[c] = True
+    assert used.all()
+    assert clu_signs.all()
+    assert_array_equal(np.sign(tobs), want_signs)
+    assert_array_equal(clu_signs, want_signs)
 
 
 @requires_sklearn

@@ -894,6 +894,7 @@ options):
    :toctree: generated/
 
    ttest_1samp_no_p
+   ttest_ind_no_p
    f_oneway
    f_mway_rm
    f_threshold_mway_rm

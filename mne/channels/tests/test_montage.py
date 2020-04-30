@@ -16,7 +16,7 @@ from string import ascii_lowercase
 from numpy.testing import (assert_array_equal,
                            assert_allclose, assert_equal)
 
-from mne import __file__ as _mne_file, create_info, read_evokeds
+from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
 from mne.utils._testing import _dig_sort_key
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
@@ -901,21 +901,58 @@ def test_read_dig_captrak(tmpdir):
                             [-0.005103, 0.05395, 0.144622], rtol=1e-04)
 
 
-def test_set_montage_mgh():
+# https://gist.github.com/larsoner/2264fb5895070d29a8c9aa7c0dc0e8a6
+_MGH60 = [
+    'Fz', 'F2', 'AF4', 'Fpz', 'Fp1', 'AF8', 'FT9', 'F7', 'FC5', 'FC6', 'FT7',
+    'F1', 'AF7', 'FT8', 'F6', 'F5', 'FC1', 'FC2', 'FT10', 'T9', 'Cz', 'F4',
+    'T7', 'C2', 'C4', 'C1', 'C3', 'F8', 'F3', 'C5', 'Fp2', 'AF3',
+    'CP2', 'P2', 'O2', 'Iz', 'Oz', 'PO4', 'O1', 'P8', 'PO8', 'P6', 'PO7', 'PO3', 'C6', 'TP9', 'TP8', 'CP4', 'P4',  # noqa
+    'CP3', 'CP1', 'TP7', 'P3', 'Pz', 'P1', 'P7', 'P5', 'TP10', 'T8', 'T10',
+]
+
+
+@pytest.mark.parametrize('rename', ('raw', 'montage', 'custom'))
+def test_set_montage_mgh(rename):
     """Test setting 'mgh60' montage to old fif."""
     raw = read_raw_fif(fif_fname)
-    raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
+    eeg_picks = pick_types(raw.info, meg=False, eeg=True, exclude=())
+    assert list(eeg_picks) == [ii for ii, name in enumerate(raw.ch_names)
+                               if name.startswith('EEG')]
+    orig_pos = np.array([raw.info['chs'][pick]['loc'][:3]
+                         for pick in eeg_picks])
+    atol = 1e-6
+    if rename == 'raw':
+        raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
+        raw.set_montage('mgh60')  # test loading with string argument
+    elif rename == 'montage':
+        mon = make_standard_montage('mgh60')
+        mon.rename_channels(lambda x: x.replace('EEG', 'EEG '))
+        assert [raw.ch_names[pick] for pick in eeg_picks] == mon.ch_names
+        raw.set_montage(mon)
+    else:
+        atol = 3e-3  # XXX old defs here apparently (maybe not realistic)?
+        assert rename == 'custom'
+        assert len(_MGH60) == 60
+        mon = make_standard_montage('standard_1020')
 
-    orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
-                         if ch['ch_name'].startswith('EEG')])
+        def renamer(x):
+            try:
+                return 'EEG %03d' % (_MGH60.index(x) + 1,)
+            except ValueError:
+                return x
 
-    raw.set_montage('mgh60')  # test loading with string argument
+        mon.rename_channels(renamer)
+        raw.set_montage(mon)
+
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert ((orig_pos != new_pos).all())
 
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0.000775, 0.006881, 0.047398], atol=1e-3)
+    # spot check
+    assert_allclose(new_pos[:2], [[0.000273, 0.084920, 0.105838],
+                                  [0.028822, 0.083529, 0.099164]], atol=atol)
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig

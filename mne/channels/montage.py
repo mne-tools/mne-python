@@ -28,6 +28,7 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const)
+from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -187,6 +188,23 @@ class DigMontage(object):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
                             sphere=sphere)
+
+    def rename_channels(self, mapping):
+        """Rename the channels.
+
+        Parameters
+        ----------
+        %(rename_channels_mapping)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance. Operates in-place.
+        """
+        from .channels import rename_channels
+        temp_info = create_info(list(self._get_ch_pos()), 1000., 'eeg')
+        rename_channels(temp_info, mapping)
+        self.ch_names = temp_info['ch_names']
 
     def save(self, fname):
         """Save digitization points to FIF.

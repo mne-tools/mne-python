@@ -555,6 +555,7 @@ def _check_option(parameter, value, allowed_values, extra=''):
     extra = ' ' + extra if extra else extra
     msg = ("Invalid value for the '{parameter}' parameter{extra}. "
            '{options}, but got {value!r} instead.')
+    allowed_values = list(allowed_values)  # e.g., if a dict was given
     if len(allowed_values) == 1:
         options = 'The only allowed value is %r' % allowed_values[0]
     else:

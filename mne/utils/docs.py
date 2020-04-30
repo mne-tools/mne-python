@@ -37,6 +37,16 @@ preload : bool or str (default False)
     large amount of memory). If preload is a string, preload is the
     file name of a memory-mapped file which is used to store the data
     on the hard drive (slower, requires less memory)."""
+docdict['preload_concatenate'] = """
+preload : bool, str, or None (default None)
+    Preload data into memory for data manipulation and faster indexing.
+    If True, the data will be preloaded into memory (fast, requires
+    large amount of memory). If preload is a string, preload is the
+    file name of a memory-mapped file which is used to store the data
+    on the hard drive (slower, requires less memory). If preload is
+    None, preload=True or False is inferred using the preload status
+    of the instances passed in.
+"""
 
 # Cropping
 docdict['include_tmax'] = """
@@ -228,7 +238,7 @@ picks : list | slice | None
 # Filtering
 docdict['l_freq'] = """
 l_freq : float | None
-    For FIR filters, the lower pass-band edge; for IIR filters, the upper
+    For FIR filters, the lower pass-band edge; for IIR filters, the lower
     cutoff frequency. If None the data are only low-passed.
 """
 docdict['h_freq'] = """
@@ -801,6 +811,15 @@ on_missing : str
     or 'ignore' to set channels to np.nan and set montage.
 
     .. versionadded:: 0.20.1
+"""
+docdict['rename_channels_mapping'] = """
+mapping : dict | callable
+    A dictionary mapping the old channel to a new channel name
+    e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+    that takes and returns a string.
+
+    .. versionchanged:: 0.10.0
+       Support for a callable function.
 """
 
 # Brain plotting
