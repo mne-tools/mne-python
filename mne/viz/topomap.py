@@ -1603,17 +1603,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     if interactive and axes_given:
         raise ValueError("User-provided axes not allowed when "
                          "times='interactive'.")
-    # determine which times to plot
-    if isinstance(axes, plt.Axes):
-        axes = [axes]
-    n_peaks = None if axes is None else len(axes)
-    times = _process_times(evoked, times, n_peaks)
-    n_times = len(times)
-    space = 1 / (2. * evoked.info['sfreq'])
-    if (max(times) > max(evoked.times) + space or
-            min(times) < min(evoked.times) - space):
-        raise ValueError(f'Times should be between {evoked.times[0]:0.3} and '
-                         f'{evoked.times[-1]:0.3}.')
     # units, scalings
     key = 'grad' if ch_type.startswith('planar') else ch_type
     scaling = _handle_default('scalings', scalings)[key]
@@ -1627,10 +1616,20 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         data = evoked.apply_proj().data
     else:
         data = evoked.data
-    # because we are only plotting we can safely remove compensation matrices
-    # regardless of compensation status.
+    # remove compensation matrices (safe: only plotting & already made copy)
     evoked.info['comps'] = []
     evoked = evoked._pick_drop_channels(picks)
+    # determine which times to plot
+    if isinstance(axes, plt.Axes):
+        axes = [axes]
+    n_peaks = len(axes) - int(colorbar) if axes_given else None
+    times = _process_times(evoked, times, n_peaks)
+    n_times = len(times)
+    space = 1 / (2. * evoked.info['sfreq'])
+    if (max(times) > max(evoked.times) + space or
+            min(times) < min(evoked.times) - space):
+        raise ValueError(f'Times should be between {evoked.times[0]:0.3} and '
+                         f'{evoked.times[-1]:0.3}.')
     # create axes
     want_axes = n_times + int(colorbar)
     if interactive:
