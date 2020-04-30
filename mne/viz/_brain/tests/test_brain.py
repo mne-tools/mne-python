@@ -71,9 +71,11 @@ def test_brain_init(renderer):
     with pytest.raises(KeyError):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
-    brain = _Brain(subject_id, hemi, surf, size=(300, 300),
-                   subjects_dir=subjects_dir, title='test')
-    brain.show_view(view=dict(azimuth=180., elevation=90.))
+    for cortex in ['classic', 'low_contrast', 'high_contrast', 'bone']:
+        brain = _Brain(subject_id, hemi, surf, size=(300, 300),
+                       subjects_dir=subjects_dir, title='test',
+                       cortex=cortex)
+        brain.show_view(view=dict(azimuth=180., elevation=90.))
     brain.close()
 
 
@@ -129,6 +131,20 @@ def test_brain_add_data(renderer):
                         smoothing_steps=1, initial_time=0., colorbar=False,
                         time=None)
     brain_data.close()
+
+
+@testing.requires_testing_data
+def test_brain_add_annotation(renderer):
+    """Test adding data in _Brain instance."""
+    annots = ['aparc', 'PALS_B12_Lobes']
+    borders = [True, 2]
+    alphas = [1, 0.5]
+    brain = _Brain(subject_id='fsaverage', hemi='lh', size=500,
+                   surf='inflated', subjects_dir=subjects_dir)
+
+    for a, b, p in zip(annots, borders, alphas):
+        brain.add_annotation(a, b, p)
+    brain.close()
 
 
 @testing.requires_testing_data
