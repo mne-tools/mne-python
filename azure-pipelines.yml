@@ -100,6 +100,7 @@ jobs:
   - bash: |
       echo $PATH
       mne_surf2bem --version
+      fsl_rigid_register --version
     displayName: 'Test minimal commands'
   - task: UsePythonVersion@0
     inputs:
