@@ -56,7 +56,6 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     """Reshape epochs and apply function."""
     if not isinstance(X, np.ndarray):
         raise ValueError("data should be an np.ndarray, got %s." % type(X))
-    # X = np.atleast_3d(X)
     orig_shape = X.shape
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
