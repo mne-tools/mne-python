@@ -1009,36 +1009,58 @@ def test_to_data_frame_index(index):
         assert all(np.in1d(non_index, df.columns))
 
 
-def test_get_peak():
+@pytest.mark.parametrize('kind', ('surface', 'mixed', 'volume'))
+@pytest.mark.parametrize('vector', (False, True))
+@pytest.mark.parametrize('n_times', (5, 1))
+def test_get_peak(kind, vector, n_times):
     """Test peak getter."""
-    n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = rng.randn(n_vert, n_times)
-    stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
-                              subject='sample')
-    stc_vol = VolSourceEstimate(data, vertices=vertices[:1], tmin=0, tstep=1,
-                                subject='sample')
+    n_vert = 10
+    vertices = [np.arange(n_vert)]
+    if kind == 'surface':
+        klass = VectorSourceEstimate
+        vertices += [np.empty(0, int)]
+    elif kind == 'mixed':
+        klass = MixedVectorSourceEstimate
+        vertices += [np.empty(0, int), np.empty(0, int)]
+    else:
+        assert kind == 'volume'
+        klass = VolVectorSourceEstimate
+    data = np.zeros((n_vert, n_times))
+    data[1, -1] = 1
+    if vector:
+        data = np.repeat(data[:, np.newaxis], 3, 1)
+    else:
+        klass = klass._scalar_class
+    stc = klass(data, vertices, 0, 1)
 
-    # Versions with only one time point
-    stc_surf_1 = SourceEstimate(
-        data[:, :1], vertices, tmin=-0.1, tstep=0.1, subject='sample')
-    stc_vol_1 = VolSourceEstimate(
-        data[:, :1], vertices[:1], tmin=-0.1, tstep=1, subject='sample')
+    with pytest.raises(ValueError, match='out of bounds'):
+        stc.get_peak(tmin=-100)
+    with pytest.raises(ValueError, match='out of bounds'):
+        stc.get_peak(tmax=90)
+    with pytest.raises(ValueError,
+                       match='smaller or equal' if n_times > 1 else 'out of'):
+        stc.get_peak(tmin=0.002, tmax=0.001)
 
-    for ii, stc in enumerate([stc_surf, stc_vol, stc_surf_1, stc_vol_1]):
-        pytest.raises(ValueError, stc.get_peak, tmin=-100)
-        pytest.raises(ValueError, stc.get_peak, tmax=90)
-        pytest.raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
-
-        vert_idx, time_idx = stc.get_peak()
-        vertno = np.concatenate(stc.vertices)
-        assert (vert_idx in vertno)
-        assert (time_idx in stc.times)
-
-        data_idx, time_idx = stc.get_peak(vert_as_index=True,
-                                          time_as_index=True)
-        assert_equal(data_idx, np.argmax(np.abs(stc.data[:, time_idx])))
-        assert_equal(time_idx, np.argmax(np.abs(stc.data[data_idx, :])))
+    vert_idx, time_idx = stc.get_peak()
+    vertno = np.concatenate(stc.vertices)
+    assert vert_idx in vertno
+    assert time_idx in stc.times
+    data_idx, time_idx = stc.get_peak(vert_as_index=True, time_as_index=True)
+    if vector:
+        use_data = stc.magnitude().data
+    else:
+        use_data = stc.data
+    assert data_idx == 1
+    assert time_idx == n_times - 1
+    assert data_idx == np.argmax(np.abs(use_data[:, time_idx]))
+    assert time_idx == np.argmax(np.abs(use_data[data_idx, :]))
+    if kind == 'surface':
+        data_idx_2, time_idx_2 = stc.get_peak(
+            vert_as_index=True, time_as_index=True, hemi='lh')
+        assert data_idx_2 == data_idx
+        assert time_idx_2 == time_idx
+        with pytest.raises(RuntimeError, match='no vertices'):
+            stc.get_peak(hemi='rh')
 
 
 @requires_h5py
