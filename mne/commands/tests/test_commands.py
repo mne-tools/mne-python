@@ -212,7 +212,7 @@ def test_surf2bem():
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_nibabel()
-@requires_freesurfer
+@requires_freesurfer('mri_watershed')
 @testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""

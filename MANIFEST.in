@@ -38,6 +38,8 @@ recursive-exclude examples/MNE-sample-data *
 recursive-exclude examples/MNE-testing-data *
 recursive-exclude examples/MNE-spm-face *
 recursive-exclude examples/MNE-somato-data *
+recursive-exclude tools *
+exclude tools
 exclude Makefile
 exclude .coveragerc
 exclude *.yml
