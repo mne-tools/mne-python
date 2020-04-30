@@ -1729,7 +1729,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             axes[ax_idx].set_title(time_format % (time * scaling_time))
 
     if interactive:
-        axes.append(plt.subplot(gs[1, :]))
+        axes.append(plt.subplot(gs[1, :-1]))
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
                         times[0], valfmt='%1.2fs')
         slider.vline.remove()  # remove initial point indicator
