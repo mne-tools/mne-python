@@ -1749,7 +1749,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     if colorbar:
         if interactive:
             cax = plt.subplot(gs[0, -1])
-            _resize_cbar(cax, gs.ncols, size)
+            _resize_cbar(cax, ncols, size)
         elif nrows is None or ncols is None:
             # axes were given by the user, so don't resize the colorbar
             cax = axes[-1]
