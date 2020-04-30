@@ -33,8 +33,11 @@ s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+bem_path = op.join(test_path, 'subjects', 'sample', 'bem')
+fname_bem = op.join(bem_path, 'sample-1280-bem.fif')
+fname_aseg = op.join(test_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 subjects_dir = op.join(test_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
+fname_src = op.join(bem_path, 'sample-oct-4-src.fif')
 subjects_dir = op.join(test_path, 'subjects')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
@@ -95,6 +98,22 @@ def pytest_configure(config):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith('#'):
             config.addinivalue_line('filterwarnings', warning_line)
+
+
+# Have to be careful with autouse=True, but this is just an int comparison
+# so it shouldn't really add appreciable overhead
+@pytest.fixture(autouse=True)
+def check_verbose(request):
+    """Set to the default logging level to ensure it's tested properly."""
+    starting_level = mne.utils.logger.level
+    yield
+    # ensures that no tests break the global state
+    try:
+        assert mne.utils.logger.level == starting_level
+    except AssertionError:
+        pytest.fail('.'.join([request.module.__name__,
+                              request.function.__name__]) +
+                    ' modifies logger.level')
 
 
 @pytest.fixture(scope='session')
@@ -353,3 +372,20 @@ def all_src_types_inv_evoked(_all_src_types_inv_evoked):
     invs = {key: val.copy() for key, val in invs.items()}
     evoked = evoked.copy()
     return invs, evoked
+
+
+@pytest.fixture(scope='session')
+@pytest.mark.slowtest
+@pytest.mark.parametrize(params=[testing._pytest_param()])
+def src_volume_labels():
+    """Create a 7mm source space with labels."""
+    volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
+    src = mne.setup_volume_source_space(
+        'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
+        add_interpolator=False, bem=fname_bem,
+        subjects_dir=subjects_dir)
+    lut, _ = mne.read_freesurfer_lut()
+    assert len(volume_labels) == 46
+    assert volume_labels[0] == 'Unknown'
+    assert lut['Unknown'] == 0  # it will be excluded during label gen
+    return src, tuple(volume_labels), lut

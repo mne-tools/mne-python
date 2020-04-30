@@ -617,8 +617,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     a 10-sample moving window with no padding during filtering, for example,
     one can just do:
 
-    >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)
-    >>> iir_params = construct_iir_filter(iir_params, return_copy=False)
+    >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)  # doctest:+SKIP
+    >>> iir_params = construct_iir_filter(iir_params, return_copy=False)  # doctest:+SKIP
     >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))  # doctest:+SKIP
     (array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]), [1, 0], 0)
 
