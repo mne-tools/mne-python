@@ -22,8 +22,6 @@ joblib
 psutil
 dipy
 https://github.com/numpy/numpydoc/archive/master.zip
-mayavi
-PySurfer[save_movie]
 nilearn
 neo
 xlrd
