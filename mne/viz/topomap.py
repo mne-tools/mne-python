@@ -1598,8 +1598,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
     # check interactive
-    interactive = isinstance(times, str) and times == 'interactive'
     axes_given = axes is not None
+    interactive = isinstance(times, str) and times == 'interactive'
     if interactive and axes_given:
         raise ValueError("User-provided axes not allowed when "
                          "times='interactive'.")
