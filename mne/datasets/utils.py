@@ -570,7 +570,7 @@ def _download_all_example_data(verbose=True):
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor)
-    sample.data_path()
+    sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
@@ -602,7 +602,7 @@ def _download_all_example_data(verbose=True):
     fetch_fsaverage(None)
     sys.argv += ['--accept-hcpmmp-license']
     try:
-        fetch_hcp_mmp_parcellation()
+        fetch_hcp_mmp_parcellation(subjects_dir=sample_path + '/subjects')
     finally:
         sys.argv.pop(-1)
     limo.load_data(subject=1, update_path=True)
