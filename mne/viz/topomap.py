@@ -1514,16 +1514,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     show : bool
         Show figure if True.
     show_names : bool | callable
-        If True, show channel names on top of the map. If a callable is
+        If ``True``, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', ''). If `mask` is not None, only
-        significant sensors will be shown.
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, names
+        of significant sensors only will be shown.
     title : str | None
         Title. If None (default), no title is displayed.
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
-        Indices set to `True` will be considered. Defaults to None.
+        Indices set to ``True`` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
         Default (None) equals::
