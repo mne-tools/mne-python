@@ -121,11 +121,7 @@ def get_3d_backend():
         The 3d backend currently in use. If no backend is found,
         returns ``None``.
     """
-    try:
-        backend = _get_3d_backend()
-    except RuntimeError:
-        return None
-    return backend
+    return MNE_3D_BACKEND
 
 
 def _get_3d_backend():
