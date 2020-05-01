@@ -7,7 +7,8 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
-from mne.utils import run_tests_if_main, _pos_semidef_inv, requires_version
+from mne.utils import (run_tests_if_main, _pos_semidef_inv, requires_version,
+                       _reg_pinv)
 
 
 @requires_version('numpy', '1.17')  # hermitian kwarg
@@ -19,7 +20,8 @@ from mne.utils import run_tests_if_main, _pos_semidef_inv, requires_version
     (True, False),  # should auto-remove the reduced component
     (True, True),  # force removal of one component (though redundant here)
 ])
-def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
+@pytest.mark.parametrize('func', (_pos_semidef_inv, _reg_pinv))
+def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, func):
     """Test positive semidefinite inverse."""
     # make n-dimensional matrix
     n_extra = 2  # how many we add along the other dims
@@ -58,7 +60,12 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
     assert_array_equal(rank, want_rank)
     # assert equiv with NumPy
     mat_pinv = np.linalg.pinv(mat, hermitian=True)
-    mat_symv = _pos_semidef_inv(mat, reduce_rank=reduce_rank)
+    if func is _pos_semidef_inv:
+        mat_symv = func(mat, reduce_rank=reduce_rank)
+    else:
+        if ndim != 2:
+            return  # eventually maybe it will be supported
+        mat_symv, _, _ = func(mat, rank=None)
     assert_allclose(mat_pinv, mat_symv, **kwargs)
     want = np.dot(proj, np.eye(n))
     if deficient:

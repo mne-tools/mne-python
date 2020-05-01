@@ -154,9 +154,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
     assert Cm.shape == (G.shape[0],) * 2
-    np.testing.assert_allclose(Cm, Cm.T.conj())
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
-    np.testing.assert_allclose(Cm_inv, Cm_inv.T.conj())
 
     assert orient_std.shape == (G.shape[1],)
     n_sources = G.shape[1] // n_orient

@@ -141,11 +141,9 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
 
     # Decompose the matrix
-    s, U = np.linalg.eigh(x)
+    s, _ = np.linalg.eigh(x)
     order = np.argsort(s)[::-1]
     s = s[order]
-    U = U[:, order]
-    V = U.T
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -157,7 +155,6 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     s, U = np.linalg.eigh(x_reg)
     s = s[::-1]
     U = U[:, ::-1]
-    V = U.T
 
     # Estimate the rank after regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -188,7 +185,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
 
     # Compute the pseudo inverse
-    x_inv = np.dot(U * s_inv, V)
+    x_inv = np.dot(U * s_inv, U.T.conj())
 
     if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before
