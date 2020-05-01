@@ -1779,7 +1779,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
 
     plt_show(show, block=False)
     if axes_given:
-        plt.draw()
+        fig.canvas.draw()
     return fig
 
 
