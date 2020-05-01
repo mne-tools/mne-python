@@ -22,7 +22,6 @@ from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import fill_doc
 
@@ -88,8 +87,8 @@ def _compute_row_norms(data):
     return norms
 
 
-def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
-    """Compute a regularized pseudoinverse of a square matrix.
+def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
+    """Compute a regularized pseudoinverse of a square Hermitian matrix.
 
     Regularization is performed by adding a constant value to each diagonal
     element of the matrix before inversion. This is known as "diagonal
@@ -142,9 +141,11 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
 
     # Decompose the matrix
-    if svd_lwork is None:
-        svd_lwork = _svd_lwork(x.shape, x.dtype)
-    U, s, V = _repeated_svd(x, lwork=svd_lwork)
+    s, U = np.linalg.eigh(x)
+    order = np.argsort(s)[::-1]
+    s = s[order]
+    U = U[:, order]
+    V = U.T
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -152,8 +153,11 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
 
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s)
-    U, s, V = _repeated_svd(x + loading_factor * np.eye(len(x)),
-                            lwork=svd_lwork)
+    x_reg = x + loading_factor * np.eye(len(x))
+    s, U = np.linalg.eigh(x_reg)
+    s = s[::-1]
+    U = U[:, ::-1]
+    V = U.T
 
     # Estimate the rank after regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -184,14 +188,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
         s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
 
     # Compute the pseudo inverse
-    U *= s_inv
-    if U.dtype == np.float64:
-        gemm = dgemm
-    else:
-        assert U.dtype == np.complex128
-        gemm = zgemm
-
-    x_inv = gemm(1., U, V).conj().T
+    x_inv = np.dot(U * s_inv, V)
 
     if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before

@@ -247,7 +247,7 @@ def test_reg_pinv():
         _reg_pinv(a, reg=0.)
 
     # Test inversion with explicit rank
-    a_inv_np = np.linalg.pinv(a)
+    a_inv_np = np.linalg.pinv(a, hermitian=True)
     a_inv_mne, loading_factor, rank = _reg_pinv(a, rank=2)
     assert loading_factor == 0
     assert rank == 2
@@ -266,7 +266,7 @@ def test_reg_pinv():
     # The estimated rank should be that of the non-regularized matrix
     assert estimated_rank == 2
     # Test result against the NumPy version
-    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3))
+    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3), hermitian=True)
     assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test setting rcond

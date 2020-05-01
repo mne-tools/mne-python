@@ -807,7 +807,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, depth, lower, upper', [
     # the 0 reg is not so stable, can produce a wide range of scores
-    (0.00, 'unit-noise-gain', True, None, 44, 90),
+    (0.00, 'unit-noise-gain', True, None, 34, 90),
     (0.05, 'unit-noise-gain', True, None, 97, 98),
     (0.05, 'nai', True, None, 96, 98),
     (0.05, 'nai', True, 0.8, 96, 98),
@@ -840,9 +840,9 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, 'vector', 'nai', True, None, 36, 39),
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 57, 59),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 45, 47),
         (0.05, 'max-power', 'unit-noise-gain', True, None, 20, 24),
-        (0., 'max-power', 'unit-noise-gain', True, None, 44, 46),
+        (0.00, 'max-power', 'unit-noise-gain', True, None, 40, 46),
         # XXX the bounds on this were 15 / 17, had to lower during refactor
         (0.05, 'max-power', 'unit-noise-gain', False, None, 15, 17),
         (0.05, 'max-power', 'nai', True, None, 20, 24),
