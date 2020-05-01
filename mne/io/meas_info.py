@@ -158,7 +158,7 @@ class MontageMixin(object):
         ----------
         %(montage)s
         %(match_case)s
-        transform_head: bool
+        transform_head : bool
             Apply the MNE head transformation to montage
             (default is True), or not.
         %(on_missing_montage)s
