@@ -21,7 +21,7 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
                        _dt_to_julian, _julian_to_dt, grand_average,
-                       _ReuseCycle)
+                       _ReuseCycle, requires_version)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -236,6 +236,7 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
+@requires_version('numpy', '1.17')  # hermitian kwarg
 def test_reg_pinv():
     """Test regularization and inversion of covariance matrix."""
     # create rank-deficient array

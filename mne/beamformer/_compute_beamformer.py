@@ -203,12 +203,40 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # Compute numerator of beamformer formula:
     # Wk = G.T @ Cm_inv
     Wk = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
-    # Compute power at the source:
+
+    #
+    # 2. Compute max power orientation
+    #
+    if pick_ori == 'max-power':
+        # Compute the power
+        if inversion == 'matrix':
+            # Compute power by applying the spatial filters to the cov matrix
+            mult = Wk
+        else:
+            assert inversion == 'single'
+            # First make the filters unit gain, then apply them to the
+            # cov matrix to compute power.
+            mult = Wk / np.linalg.norm(Wk, axis=2, keepdims=True)
+        power = np.matmul(np.matmul(mult, Cm), mult.conj().transpose(0, 2, 1))
+        assert power.shape == (n_sources, 3, 3)
+        _, u_ = np.linalg.eigh(power.real)
+        del power
+        max_power_ori = u_[:, :, -1]
+        assert max_power_ori.shape == (n_sources, 3)
+
+        # set the (otherwise arbitrary) sign to match the normal
+        signs = np.sign(np.sum(max_power_ori * nn, axis=1))
+        signs[signs == 0] = 1.
+        max_power_ori *= signs[:, np.newaxis]
+
+    #
+    # 3. Compute power at the source:
+    #
     # Ck = Wk @ Gk
     Ck = np.matmul(Wk, Gk)
 
     #
-    # 2. Normalize the spatial filters
+    # 4. Normalize the spatial filters
     #
     if n_orient > 1:
         # Free source orientation
@@ -225,10 +253,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         else:
             assert inversion == 'matrix'
             assert Ck.shape[1:] == (3, 3)
-            # Invert for all dipoles simultaneously using matrix
-            # inversion.
-            if pick_ori == 'max-power' and \
-                    weight_norm in ['unit-noise-gain', 'nai']:
+            # Invert for all dipoles simultaneously using matrix inversion.
+            if pick_ori == 'max-power' and weight_norm is not None:
                 # G.T @ Cm_inv @ Cm_inv @ G == Wk @ Wk.H
                 norm_inv = np.matmul(Wk, np.swapaxes(Wk, -2, -1).conj())
             else:
@@ -246,60 +272,26 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         norm[~np.isfinite(norm)] = 1.
     assert norm.shape == (n_sources, n_orient, n_orient)
     assert Wk.shape == (n_sources, n_orient, n_channels)
-    Wk_norm = np.matmul(norm, Wk)  # np.dot for each source
-    del Wk
+    W = np.matmul(norm, Wk)  # np.dot for each source
 
     #
-    # 3. Compute max power orientation
-    #
-    if pick_ori == 'max-power':
-        # XXX the below relies on "norm" and "Wk_norm", so it cannot be moved
-        # before filter comp
-
-        # Compute the power
-        if weight_norm is None:
-            # Compute power by applying the spatial filters to
-            # the cov matrix.
-            power = np.matmul(np.matmul(Wk_norm, Cm),
-                              Wk_norm.conjugate().transpose(0, 2, 1))
-        elif inversion == 'single':
-            # First make the filters unit gain, then apply them to the
-            # cov matrix to compute power.
-            Wk_norm_2 = Wk_norm / np.linalg.norm(
-                Wk_norm, axis=2, keepdims=True)
-            power = np.matmul(np.matmul(Wk_norm_2, Cm),
-                              Wk_norm_2.conjugate().transpose(0, 2, 1))
-        else:
-            power = np.matmul(norm, Ck)
-        assert power.shape == (n_sources, 3, 3)
-        _, u_ = np.linalg.eigh(power.real)
-        del power
-        max_power_ori = u_[:, :, -1]
-        assert max_power_ori.shape == (n_sources, 3)
-
-        # set the (otherwise arbitrary) sign to match the normal
-        signs = np.sign(np.sum(max_power_ori * nn, axis=1))
-        signs[signs == 0] = 1.
-        max_power_ori *= signs[:, np.newaxis]
-
-    #
-    # 4. Do the picking
+    # 5. Do the picking
     #
     if pick_ori == 'max-power':
-        W = np.matmul(max_power_ori[:, np.newaxis], Wk_norm)[:, 0]
+        W = np.matmul(max_power_ori[:, np.newaxis], W)[:, 0]
+    elif pick_ori == 'normal':
+        W = W[:, 2]
     else:
-        W = Wk_norm.reshape(n_sources * n_orient, n_channels)
-        if pick_ori == 'normal':
-            W = W[2::3]
-    del Gk, Wk_norm, sk
+        W = W.reshape(n_sources * n_orient, n_channels)
+    del Gk, Wk, sk
 
     #
-    # 5. Re-scale filter weights according to the selected weight_norm
+    # 6. Re-scale filter weights according to the selected weight_norm
     #
-    if weight_norm in ['unit-noise-gain', 'nai']:
+    if weight_norm is not None:
         if pick_ori in [None, 'vector'] and n_orient > 1:
             # Rescale each set of 3 filters
-            W = W.reshape(-1, 3, W.shape[1])
+            W = W.reshape(-1, 3, W.shape[-1])
             noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
         else:
             # Rescale each filter separately

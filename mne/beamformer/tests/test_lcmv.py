@@ -258,7 +258,7 @@ def test_make_lcmv(tmpdir, reg, proj):
         tmax = stc.times[np.argmax(max_stc)]
 
         lower = 0.08 if proj else 0.04
-        assert lower < tmax < 0.12, tmax
+        assert lower < tmax < 0.15, tmax
         assert 0.8 < np.max(max_stc) < 3., np.max(max_stc)
 
         stc_max_power.data[:, :] = np.abs(stc_max_power.data)
@@ -699,6 +699,7 @@ def test_lcmv_ctf_comp():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('pick_ori', [
+    # XXX should undo this xfail
     pytest.param('max-power', marks=pytest.mark.xfail(reason='WIP')),
     'normal'
 ])
@@ -724,8 +725,8 @@ def test_unit_gain_relationships(pick_ori):
     n_orient = 3 if pick_ori == 'vector' else 1
     assert W_ung.shape == (forward['nsource'] * n_orient, len(epochs.ch_names))
     W_ung_2 = W_ug / np.linalg.norm(W_ug, axis=1, keepdims=True)
-    assert 1e-3 < np.mean(np.abs(W_ung)) < 1e-1  # ensure our atol is okay
-    assert_allclose(W_ung_2, W_ung, atol=1e-10)
+    assert 1e-2 < np.mean(np.abs(W_ung)) < 1  # ensure our atol is okay
+    assert_allclose(W_ung_2, W_ung, atol=1e-9)
 
 
 @testing.requires_testing_data
@@ -841,13 +842,13 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
         (0.00, 'vector', 'unit-noise-gain', True, None, 45, 47),
-        (0.05, 'max-power', 'unit-noise-gain', True, None, 20, 24),
+        (0.05, 'max-power', 'unit-noise-gain', True, None, 26, 29),
         (0.00, 'max-power', 'unit-noise-gain', True, None, 40, 46),
         # XXX the bounds on this were 15 / 17, had to lower during refactor
-        (0.05, 'max-power', 'unit-noise-gain', False, None, 15, 17),
-        (0.05, 'max-power', 'nai', True, None, 20, 24),
-        (0.05, 'max-power', None, True, None, 7, 9),
-        (0.05, 'max-power', None, True, 0.8, 16, 19),
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 23, 25),
+        (0.05, 'max-power', 'nai', True, None, 26, 29),
+        (0.05, 'max-power', None, True, None, 12, 16),
+        (0.05, 'max-power', None, True, 0.8, 24, 26),
         (0.05, None, None, True, 0.8, 40, 42),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
