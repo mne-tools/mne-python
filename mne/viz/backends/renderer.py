@@ -137,6 +137,7 @@ def _get_3d_backend():
                     continue
                 else:
                     MNE_3D_BACKEND = name
+                    break
             else:
                 raise RuntimeError('Could not load any valid 3D backend: %s'
                                    % (VALID_3D_BACKENDS))
