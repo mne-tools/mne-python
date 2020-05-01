@@ -155,18 +155,9 @@ def test_3d_backend(renderer):
     rend.show()
 
 
-@skips_if_not_pyvista
 def test_get_3d_backend(backend_mocker):
-    """Test get_3d_backend."""
-    # Test the private function first.
+    """Test get_3d_backend private function call for side-effects."""
     # Test twice to ensure the first call had no side-effect
     mne.viz.backends.renderer.MNE_3D_BACKEND = None
     assert mne.viz._get_3d_backend() is None
     assert mne.viz._get_3d_backend() is None
-
-    # Now test the public function.
-    mne.viz.backends.renderer.MNE_3D_BACKEND = None
-    assert mne.viz.get_3d_backend() is None
-
-    mne.viz.set_3d_backend('pyvista')
-    assert mne.viz.get_3d_backend() == 'pyvista'
