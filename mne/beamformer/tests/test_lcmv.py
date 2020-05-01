@@ -807,8 +807,6 @@ def test_lcmv_reg_proj(proj, weight_norm):
 
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, depth, lower, upper', [
-    # the 0 reg is not so stable, can produce a wide range of scores
-    (0.00, 'unit-noise-gain', True, None, 34, 90),
     (0.05, 'unit-noise-gain', True, None, 97, 98),
     (0.05, 'nai', True, None, 96, 98),
     (0.05, 'nai', True, 0.8, 96, 98),
@@ -816,6 +814,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     (0.05, None, True, 0.8, 90, 93),  # depth improves weight_norm=None
     (0.05, 'unit-noise-gain', False, None, 83, 86),
     (0.05, 'unit-noise-gain', False, 0.8, 83, 86),  # depth same for wn != None
+    (0.00, 'unit-noise-gain', True, None, 85, 87),
 ])
 def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
                                  depth, lower, upper):
@@ -841,18 +840,19 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, 'vector', 'nai', True, None, 36, 39),
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
-        # (0.00, 'vector', None, True, None, 44, 48),
-        # (0.00, 'vector', 'nai', True, None, 44, 48),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 48),
         (0.05, 'max-power', 'unit-noise-gain', True, None, 26, 29),
-        # (0.00, 'max-power', None, True, None, 40, 45),
-        # (0.00, 'max-power', 'nai', True, None, 40, 45),
-        (0.00, 'max-power', 'unit-noise-gain', True, None, 40, 45),
         (0.05, 'max-power', 'unit-noise-gain', False, None, 23, 25),
         (0.05, 'max-power', 'nai', True, None, 26, 29),
         (0.05, 'max-power', None, True, None, 12, 16),
         (0.05, 'max-power', None, True, 0.8, 24, 26),
         (0.05, None, None, True, 0.8, 40, 42),
+        # no reg
+        (0.00, 'vector', None, True, None, 24, 26),
+        (0.00, 'vector', 'nai', True, None, 24, 26),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 59),
+        (0.00, 'max-power', None, True, None, 20, 24),
+        (0.00, 'max-power', 'nai', True, None, 17, 20),
+        (0.00, 'max-power', 'unit-noise-gain', True, None, 40, 47),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
                                 use_cov, depth, lower, upper):

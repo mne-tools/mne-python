@@ -132,6 +132,8 @@ def eigh(a, overwrite_a=False, check_finite=True):
 def sqrtm_sym(A, rcond=1e-7, inv=False):
     """Compute the square root of a symmetric matrix (or its inverse).
 
+    This requires real, positive-semidefinite matrices.
+
     Parameters
     ----------
     A : ndarray, shape (..., n, n)
@@ -158,16 +160,22 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
     return a, s
 
 
-def _pos_semidef_inv(x, reduce_rank):
-    """Invert positive semidefinite matrices with optional rank reduction."""
+def _sym_inv(x, reduce_rank):
+    """Invert hermitian matrices with optional rank reduction."""
     s, u = np.linalg.eigh(x)
+    # This is puts them in ascending (absolute) order, which can happen
+    # when matrices are not positive semidefinite
+    order = np.argsort(np.abs(s), axis=-1)[..., ::-1]
+    s = np.take_along_axis(s, order, axis=-1)
+    u = np.take_along_axis(u, order[..., np.newaxis, :], axis=-1)
+
     # mimic default np.linalg.pinv behavior
-    cutoff = 1e-15 * s[..., -1:]
+    cutoff = 1e-15 * s[..., :1]
     s[s <= cutoff] = np.inf
     if reduce_rank:
         # These are ordered smallest to largest, so we set the first one
         # to inf -- then the 1. / s below will turn this to zero, as needed.
-        s[..., 0] = np.inf
+        s[..., -1] = np.inf
     s = 1. / s
     # For positive semidefinite matrices, the transpose is equal to the
     # conjugate.

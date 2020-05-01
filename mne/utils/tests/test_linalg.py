@@ -7,7 +7,7 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
-from mne.utils import (run_tests_if_main, _pos_semidef_inv, requires_version,
+from mne.utils import (run_tests_if_main, _sym_inv, requires_version,
                        _reg_pinv)
 
 
@@ -20,9 +20,9 @@ from mne.utils import (run_tests_if_main, _pos_semidef_inv, requires_version,
     (True, False),  # should auto-remove the reduced component
     (True, True),  # force removal of one component (though redundant here)
 ])
-@pytest.mark.parametrize('func', (_pos_semidef_inv, _reg_pinv))
+@pytest.mark.parametrize('func', (_sym_inv, _reg_pinv))
 def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, func):
-    """Test positive semidefinite inverse."""
+    """Test positive semidefinite matrix inverses."""
     # make n-dimensional matrix
     n_extra = 2  # how many we add along the other dims
     rng = np.random.RandomState(73)
@@ -60,7 +60,7 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, func):
     assert_array_equal(rank, want_rank)
     # assert equiv with NumPy
     mat_pinv = np.linalg.pinv(mat, hermitian=True)
-    if func is _pos_semidef_inv:
+    if func is _sym_inv:
         mat_symv = func(mat, reduce_rank=reduce_rank)
     else:
         if ndim != 2:
