@@ -157,6 +157,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # Whiten the data covariance
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+    # Restore to positive semi-definite, as
+    # (negative eigenvalues are errant / due to massive scaling differences)
+    s, u = np.linalg.eigh(Cm)
+    Cm = np.dot(u * np.abs(s), u.T.conj())
     rank_int = sum(rank.values())
     del rank
 

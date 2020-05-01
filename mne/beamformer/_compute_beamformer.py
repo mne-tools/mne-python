@@ -17,7 +17,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_inv)
+                     _pl, _check_src_normal, check_version, _sym_inv, warn)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -158,6 +158,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # semidefinite when loading is added, otherwise it can have
     # negative eigenvalues (?)
     # So make sure _reg_pinv handles them properly by using abs
+    s, _ = np.linalg.eigh(Cm)
+    if not (s >= -s.max() * 1e-7).all():
+        # This shouldn't ever happen, but just in case
+        warn('data covariance does not appear to be positive semidefinite, '
+             'results will likely be incorrect')
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
 
     assert orient_std.shape == (G.shape[1],)

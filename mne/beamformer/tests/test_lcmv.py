@@ -814,7 +814,8 @@ def test_lcmv_reg_proj(proj, weight_norm):
     (0.05, None, True, 0.8, 90, 93),  # depth improves weight_norm=None
     (0.05, 'unit-noise-gain', False, None, 83, 86),
     (0.05, 'unit-noise-gain', False, 0.8, 83, 86),  # depth same for wn != None
-    (0.00, 'unit-noise-gain', True, None, 85, 87),
+    # no reg
+    (0.00, 'unit-noise-gain', True, None, 93, 96),
 ])
 def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
                                  depth, lower, upper):
@@ -847,12 +848,12 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, 'max-power', None, True, 0.8, 24, 26),
         (0.05, None, None, True, 0.8, 40, 42),
         # no reg
-        (0.00, 'vector', None, True, None, 24, 26),
-        (0.00, 'vector', 'nai', True, None, 24, 26),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 59),
-        (0.00, 'max-power', None, True, None, 20, 24),
-        (0.00, 'max-power', 'nai', True, None, 17, 20),
-        (0.00, 'max-power', 'unit-noise-gain', True, None, 40, 47),
+        (0.00, 'vector', None, True, None, 28, 31),
+        (0.00, 'vector', 'nai', True, None, 67, 69),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 67, 70),
+        (0.00, 'max-power', None, True, None, 18, 21),
+        (0.00, 'max-power', 'nai', True, None, 49, 52),
+        (0.00, 'max-power', 'unit-noise-gain', True, None, 49, 52),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
                                 use_cov, depth, lower, upper):
