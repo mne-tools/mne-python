@@ -377,7 +377,8 @@ def test_plot_raw_psd():
     raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()
-    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
+    with pytest.raises(ValueError, match='2 axes must be supplied, got 1'):
+        raw.plot_psd(ax=ax, average=True)
     plt.close('all')
     ax = plt.subplots(2)[1]
     raw.plot_psd(tmax=None, ax=ax, average=True)
@@ -418,6 +419,7 @@ def test_plot_raw_psd():
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
+    plt.close('all')
 
     # test fmax value checking
     with pytest.raises(ValueError, match='not exceed one half the sampling'):
@@ -438,6 +440,15 @@ def test_plot_raw_psd():
                           verbose='error')
     fig = raw.plot_psd()
     assert len(fig.axes) == 10
+    plt.close('all')
+
+    # gh-7631
+    data = 1e-3 * np.random.rand(2, 100)
+    info = create_info(['CH1', 'CH2'], 100)
+    raw = RawArray(data, info)
+    picks = pick_types(raw.info, misc=True)
+    raw.plot_psd(picks=picks, spatial_colors=False)
+    plt.close('all')
 
 
 def test_plot_sensors():

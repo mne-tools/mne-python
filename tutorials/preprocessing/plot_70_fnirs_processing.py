@@ -14,7 +14,7 @@ deoxyhaemoglobin (HbR) concentration.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
-# sphinx_gallery_thumbnail_number = 14
+# sphinx_gallery_thumbnail_number = 1
 
 import os
 import numpy as np
@@ -30,11 +30,32 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 
 
 ###############################################################################
+# View location of sensors over brain surface
+# -------------------------------------------
+#
+# Here we validate that the location of sources-detector pairs and channels
+# are in the expected locations. Source-detector pairs are shown as lines
+# between the optodes, channels (the mid point of source-detector pairs) are
+# shown as dots.
+
+subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+                             subject='fsaverage',
+                             trans='fsaverage', surfaces=['brain'],
+                             fnirs=['channels', 'pairs'],
+                             subjects_dir=subjects_dir, fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+
+
+###############################################################################
 # Selecting channels appropriate for detecting neural responses
 # -------------------------------------------------------------
 #
 # First we remove channels that are too close together (short channels) to
 # detect a neural response (less than 1 cm distance between optodes).
+# These short channels can be seen in the figure above.
 # To achieve this we pick all the channels that are not considered to be short.
 
 picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)

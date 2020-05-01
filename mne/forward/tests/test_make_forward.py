@@ -14,7 +14,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
                  setup_volume_source_space, read_source_spaces, create_info,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
-                 read_evokeds, read_cov, read_dipole, SourceSpaces)
+                 read_evokeds, read_cov, read_dipole)
 from mne.utils import (requires_mne, requires_nibabel,
                        run_tests_if_main, run_subprocess)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
@@ -234,13 +234,14 @@ def test_make_forward_solution():
 
 
 @testing.requires_testing_data
-def test_make_forward_solution_discrete():
+def test_make_forward_solution_discrete(tmpdir):
     """Test making and converting a forward solution with discrete src."""
     # smoke test for depth weighting and discrete source spaces
-    src = read_source_spaces(fname_src)[0]
-    src = SourceSpaces([src] + setup_volume_source_space(
-        pos=dict(rr=src['rr'][src['vertno'][:3]].copy(),
-                 nn=src['nn'][src['vertno'][:3]].copy())))
+    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
+                             add_dist=False)
+    src = src + setup_volume_source_space(
+        pos=dict(rr=src[0]['rr'][src[0]['vertno'][:3]].copy(),
+                 nn=src[0]['nn'][src[0]['vertno'][:3]].copy()))
     sphere = make_sphere_model()
     fwd = make_forward_solution(fname_raw, fname_trans, src, sphere,
                                 meg=True, eeg=False)
@@ -297,12 +298,12 @@ def test_make_forward_solution_sphere(tmpdir):
 def test_forward_mixed_source_space(tmpdir):
     """Test making the forward solution for a mixed source space."""
     # get the surface source space
+    rng = np.random.RandomState(0)
     surf = read_source_spaces(fname_src)
 
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
-    vol_labels = [label_names[int(np.random.rand() * len(label_names))]
-                  for _ in range(2)]
+    vol_labels = rng.choice(label_names, 2)
     vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[0],
                                      add_interpolator=False)

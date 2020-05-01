@@ -3,8 +3,6 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict
-
 from ..fixes import _get_args
 from ..utils import _check_fname, logger
 
@@ -40,7 +38,7 @@ def what(fname):
     from ..proj import read_proj
     from .meas_info import read_fiducials
     _check_fname(fname, overwrite='read', must_exist=True)
-    checks = OrderedDict()
+    checks = dict()
     checks['raw'] = read_raw_fif
     checks['ica'] = read_ica
     checks['epochs'] = read_epochs

@@ -17,7 +17,7 @@ from itertools import cycle
 import os
 import os.path as op
 import warnings
-import collections
+from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
@@ -594,8 +594,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         the subjects bem and bem/flash folders are searched. Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
-    fnirs : bool
-        If True (default), show fNIRS electrodes.
+    fnirs : str | list | bool | None
+        Can be "channels" or "pairs" to show the fNIRS channel locations or
+        line between source-detector pairs, or a combination like
+        ``('pairs', 'channels')``. True translates to ``('pairs',)``.
 
         .. versionadded:: 0.20
     show_axes : bool
@@ -664,18 +666,25 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if isinstance(eeg, str):
         eeg = [eeg]
 
+    if fnirs is True:
+        fnirs = ['pairs']
+    elif fnirs is False:
+        fnirs = list()
+    elif isinstance(fnirs, str):
+        fnirs = [fnirs]
+
     _check_option('interaction', interaction, ['trackball', 'terrain'])
-    for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
+    for kind, var in zip(('eeg', 'meg', 'fnirs'), (eeg, meg, fnirs)):
         if not isinstance(var, (list, tuple)) or \
                 not all(isinstance(x, str) for x in var):
             raise TypeError('%s must be list or tuple of str, got %s'
                             % (kind, type(var)))
-    if not all(x in ('helmet', 'sensors', 'ref') for x in meg):
-        raise ValueError('meg must only contain "helmet", "sensors" or "ref", '
-                         'got %s' % (meg,))
-    if not all(x in ('original', 'projected') for x in eeg):
-        raise ValueError('eeg must only contain "original" and '
-                         '"projected", got %s' % (eeg,))
+    for xi, x in enumerate(meg):
+        _check_option('meg[%d]' % xi, x, ('helmet', 'sensors', 'ref'))
+    for xi, x in enumerate(eeg):
+        _check_option('eeg[%d]' % xi, x, ('original', 'projected'))
+    for xi, x in enumerate(fnirs):
+        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
@@ -719,8 +728,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=fnirs)
-    del ecog, seeg, fnirs
+    fnirs_picks = pick_types(info, meg=False, eeg=False,
+                             ref_meg=False, fnirs=True)
+    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('channels' in fnirs))
+    del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
@@ -1134,6 +1145,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               fwd_nn[:, ori, 1],
                               fwd_nn[:, ori, 2],
                               color=color, mode='arrow', scale=1.5e-3)
+    if 'pairs' in fnirs and len(fnirs_picks) > 0:
+        fnirs_loc = np.array([info['chs'][k]['loc'][3:9] for k in fnirs_picks])
+        logger.info('Plotting %d fnirs pairs' % (fnirs_loc.shape[0]))
+        renderer.tube(origin=fnirs_loc[:, :3],
+                      destination=fnirs_loc[:, 3:])
+
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
@@ -1600,12 +1617,12 @@ def link_brains(brains):
     brains : list, tuple or np.ndarray
         The collection of brains to plot.
     """
-    from .backends.renderer import get_3d_backend
-    if get_3d_backend() != 'pyvista':
+    from .backends.renderer import _get_3d_backend
+    if _get_3d_backend() != 'pyvista':
         raise NotImplementedError("Expected 3d backend is pyvista but"
-                                  " {} was given.".format(get_3d_backend()))
+                                  " {} was given.".format(_get_3d_backend()))
     from ._brain import _Brain, _TimeViewer, _LinkViewer
-    if not isinstance(brains, collections.Iterable):
+    if not isinstance(brains, Iterable):
         brains = [brains]
     if len(brains) == 0:
         raise ValueError("The collection of brains is empty.")
@@ -1730,7 +1747,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
-    from .backends.renderer import get_3d_backend, set_3d_backend
+    from .backends.renderer import _get_3d_backend, set_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1741,7 +1758,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
-            set_3d_backend(get_3d_backend())
+            set_3d_backend(_get_3d_backend())
         except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
                 warn('No 3D backend found. Resorting to matplotlib 3d.')
@@ -1759,7 +1776,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
 
-    if get_3d_backend() == "mayavi":
+    if _get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
         from ._brain import _Brain as Brain
@@ -1773,7 +1790,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # conversion. But this will need to be another refactoring that will
     # hopefully restore this line:
     #
-    # if get_3d_backend() == 'mayavi':
+    # if _get_3d_backend() == 'mayavi':
     _separate_map(mapdata)
     colormap = mapdata['colormap']
     diverging = 'pos_lims' in mapdata['clim']
@@ -1795,7 +1812,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         "figure": figure, "subjects_dir": subjects_dir,
         "views": views
     }
-    if get_3d_backend() == "pyvista":
+    if _get_3d_backend() == "pyvista":
         kwargs["show"] = not time_viewer
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
@@ -1817,7 +1834,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 "transparent": transparent, "center": center,
                 "verbose": False
             }
-            if get_3d_backend() == "mayavi":
+            if _get_3d_backend() == "mayavi":
                 kwargs["min"] = scale_pts[0]
                 kwargs["mid"] = scale_pts[1]
                 kwargs["max"] = scale_pts[2]
@@ -1834,8 +1851,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
 
 def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
-    from .backends.renderer import get_3d_backend
-    using_mayavi = get_3d_backend() == "mayavi"
+    from .backends.renderer import _get_3d_backend
+    using_mayavi = _get_3d_backend() == "mayavi"
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
     _check_option('show_traces', show_traces,
                   (True, False, 'auto', 'separate'))
@@ -1851,7 +1868,7 @@ def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
             os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false'
         )
 
-    if get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
+    if _get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
         raise NotImplementedError("Point picking is not available"
                                   " for the mayavi 3d backend.")
     if using_mayavi:
@@ -1866,29 +1883,6 @@ def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
         else:  # PyVista
             from ._brain import _TimeViewer as TimeViewer
             TimeViewer(brain, show_traces=show_traces)
-
-
-def _get_ps_kwargs(initial_time, diverging, mid, transparent):
-    """Triage arguments based on PySurfer version."""
-    import surfer
-    surfer_version = LooseVersion(surfer.__version__)
-    require = '0.8'
-    if surfer_version < LooseVersion(require):
-        raise ImportError("This function requires PySurfer %s (you are "
-                          "running version %s). You can update PySurfer "
-                          "using:\n\n    $ pip install -U pysurfer" %
-                          (require, surfer.__version__))
-
-    ad_kwargs = dict(verbose=False)
-    sd_kwargs = dict(transparent=transparent, verbose=False)
-    if initial_time is not None:
-        ad_kwargs['initial_time'] = initial_time
-    if surfer_version >= LooseVersion('0.9'):
-        ad_kwargs.update(mid=mid, transparent=transparent)
-        ad_kwargs['center'] = 0. if diverging else None
-        sd_kwargs['center'] = 0. if diverging else None
-
-    return ad_kwargs, sd_kwargs
 
 
 def _glass_brain_crosshairs(params, x, y, z):
@@ -2020,13 +2014,14 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
         kind, src_subject = 'src subject', src._subject
+    del src
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
     subject = _check_subject(src_subject, subject, True, kind=kind)
     stc_ijk = np.array(
-        np.unravel_index(stc.vertices, img.shape[:3], order='F')).T
-    assert stc_ijk.shape == (len(stc.vertices), 3)
-    del src, kind
+        np.unravel_index(stc.vertices[0], img.shape[:3], order='F')).T
+    assert stc_ijk.shape == (len(stc.vertices[0]), 3)
+    del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
     dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
@@ -2040,7 +2035,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
         dist, loc_idx = dist[0], loc_idx[0]
         logger.debug('    Using vertex %d at a distance of %d voxels'
-                     % (stc.vertices[loc_idx], dist))
+                     % (stc.vertices[0][loc_idx], dist))
         return loc_idx
 
     ax_name = dict(x='X (saggital)', y='Y (coronal)', z='Z (axial)')
@@ -2207,7 +2202,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     logger.info('Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, '
                 '[%d, %d, %d] vox, %d vertex'
                 % ((stc.times[time_idx],) + tuple(cut_coords) + tuple(ijk) +
-                   (stc.vertices[loc_idx],)))
+                   (stc.vertices[0][loc_idx],)))
     del ijk
 
     # Plot initial figure
@@ -2413,10 +2408,11 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     If the current magnitude overlay is not desired, set ``overlay_alpha=0``
     and ``smoothing_steps=1``.
     """
-    from .backends.renderer import get_3d_backend
+    from .backends.renderer import _get_3d_backend
     # Import here to avoid circular imports
-    if get_3d_backend() == "mayavi":
+    if _get_3d_backend() == "mayavi":
         from surfer import Brain
+        from surfer import __version__ as surfer_version
     else:  # PyVista
         from ._brain import _Brain as Brain
     from ..source_estimate import VectorSourceEstimate
@@ -2459,9 +2455,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                          for hemi in hemis if hemi in brain.geo])
         scale_factor = 0.025 * width / scale_pts[-1]
 
-    ad_kwargs, sd_kwargs = _get_ps_kwargs(
-        initial_time, False, scale_pts[1], transparent)
-    del initial_time, transparent
+    sd_kwargs = dict(transparent=transparent, verbose=False)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         data = getattr(stc, hemi + '_data')
@@ -2476,14 +2470,18 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 "colorbar": colorbar,
                 "vector_alpha": vector_alpha,
                 "scale_factor": scale_factor,
+                "verbose": False,
             }
-            kwargs.update(ad_kwargs)
-            kwargs.pop('mid', None)
-            if get_3d_backend() == "mayavi":
+            if initial_time is not None:
+                kwargs['initial_time'] = initial_time
+            if _get_3d_backend() == "mayavi":
+                if surfer_version >= LooseVersion('0.9'):
+                    kwargs["transparent"] = transparent
                 kwargs["min"] = scale_pts[0]
                 kwargs["mid"] = scale_pts[1]
                 kwargs["max"] = scale_pts[2]
             else:
+                kwargs["transparent"] = transparent
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
@@ -2492,7 +2490,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
-    if get_3d_backend() == "mayavi":
+    if _get_3d_backend() == "mayavi":
         for hemi in hemis:
             for b in brain._brain_list:
                 for layer in b['brain'].data.values():

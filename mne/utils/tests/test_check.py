@@ -18,12 +18,14 @@ from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
-                       check_version, _check_path_like, _validate_type)
+                       check_version, _check_path_like, _validate_type,
+                       _suggest)
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_event = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
 fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_mgz = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
@@ -181,3 +183,15 @@ def test_validate_type():
     _validate_type(1, 'int-like')
     with pytest.raises(TypeError, match='int-like'):
         _validate_type(False, 'int-like')
+
+
+@testing.requires_testing_data
+def test_suggest():
+    """Test suggestions."""
+    names = mne.get_volume_labels_from_aseg(fname_mgz)
+    sug = _suggest('', names)
+    assert sug == ''  # nothing
+    sug = _suggest('Left-cerebellum', names)
+    assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
+    sug = _suggest('Cerebellum-Cortex', names)
+    assert sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501

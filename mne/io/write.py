@@ -13,7 +13,6 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .constants import FIFF
-from ..fixes import _fn35
 from ..utils import logger, _file_like
 from ..utils.numerics import _cal_to_julian
 
@@ -304,7 +303,7 @@ def start_file(fname, id_=None):
         fid = fname
         fid.seek(0)
     else:
-        fname = _fn35(fname)
+        fname = str(fname)
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much

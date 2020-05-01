@@ -190,7 +190,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     else:
         assert U.dtype == np.complex128
         gemm = zgemm
-    x_inv = gemm(1., U, V).T
+
+    x_inv = gemm(1., U, V).conj().T
 
     if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before

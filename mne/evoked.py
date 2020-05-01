@@ -15,6 +15,7 @@ from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
+from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
@@ -333,8 +334,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     axes=None, extrapolate='box', sphere=None,
-                     border=0, nrows=1, ncols='auto'):
+                     axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
+                     border=_BORDER_DEFAULT, nrows=1, ncols='auto'):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,

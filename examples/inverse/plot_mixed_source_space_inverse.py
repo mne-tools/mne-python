@@ -38,10 +38,11 @@ fname_fwd = data_dir + '/sample_audvis-meg-oct-6-mixed-fwd.fif'
 fname_cov = data_dir + '/sample_audvis-shrunk-cov.fif'
 
 ###############################################################################
-# Set up our source space.
-
+# Set up our source space
+# -----------------------
 # List substructures we are interested in. We select only the
-# sub structures we want to include in the source space
+# sub structures we want to include in the source space:
+
 labels_vol = ['Left-Amygdala',
               'Left-Thalamus-Proper',
               'Left-Cerebellum-Cortex',
@@ -50,11 +51,13 @@ labels_vol = ['Left-Amygdala',
               'Right-Thalamus-Proper',
               'Right-Cerebellum-Cortex']
 
+###############################################################################
 # Get a surface-based source space, here with few source points for speed
 # in this demonstration, in general you should use oct6 spacing!
 src = mne.setup_source_space(subject, spacing='oct5',
                              add_dist=False, subjects_dir=subjects_dir)
 
+###############################################################################
 # Now we create a mixed src space by adding the volume regions specified in the
 # list labels_vol. First, read the aseg file and the source space bounds
 # using the inner skull surface (here using 10mm spacing to save time,
@@ -80,14 +83,16 @@ print('the src space contains %d spaces and %d points' % (len(src), n))
 #
 #    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
 #
-# We can also export source positions to nift file and visualize it again:
+# We can also export source positions to nifti file and visualize it again:
 
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
-src.export_volume(nii_fname, mri_resolution=True)
+src.export_volume(nii_fname, mri_resolution=True, overwrite=True)
 
 plotting.plot_img(nii_fname, cmap='nipy_spectral')
 
+###############################################################################
 # Compute the fwd matrix
+# ----------------------
 fwd = mne.make_forward_solution(
     fname_evoked, fname_trans, src, fname_bem,
     mindist=5.0,  # ignore sources<=5mm from innerskull
@@ -106,29 +111,45 @@ evoked = mne.read_evokeds(fname_evoked, condition=condition,
                           baseline=(None, 0))
 noise_cov = mne.read_cov(fname_cov)
 
-# Compute inverse solution and for each epoch
+###############################################################################
+# Compute inverse solution
+# ------------------------
 snr = 3.0            # use smaller SNR for raw data
 inv_method = 'dSPM'  # sLORETA, MNE, dSPM
 parc = 'aparc'       # the parcellation to use, e.g., 'aparc' 'aparc.a2009s'
 
 lambda2 = 1.0 / snr ** 2
 
-# Compute inverse operator
 inverse_operator = make_inverse_operator(evoked.info, fwd, noise_cov,
                                          depth=None, fixed=False)
 
 stc = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                     pick_ori=None)
+src = inverse_operator['src']
+
+###############################################################################
+# Plot the surface
+# ----------------
+initial_time = 0.1
+brain = stc.surface().plot(initial_time=initial_time,
+                           subjects_dir=subjects_dir)
+###############################################################################
+# Plot the volume
+# ----------------
+
+# sphinx_gallery_thumbnail_number = 4
+fig = stc.volume().plot(initial_time=initial_time, src=src,
+                        subjects_dir=subjects_dir)
+
+###############################################################################
+# Process labels
+# --------------
+# Average the source estimates within each label of the cortical parcellation
+# and each sub structure contained in the src space
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
 labels_parc = mne.read_labels_from_annot(
     subject, parc=parc, subjects_dir=subjects_dir)
-
-###############################################################################
-# Average the source estimates within each label of the cortical parcellation
-# and each sub structure contained in the src space
-
-src = inverse_operator['src']
 
 label_ts = mne.extract_label_time_course(
     [stc], labels_parc, src, mode='mean', allow_empty=True)
