@@ -1203,6 +1203,14 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
         [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
     )
 
+    # test that unknown montage is still unknown
+    raw = _make_toy_raw(N_CHANNELS)
+    montage_in_unknown = _make_toy_dig_montage(
+        N_CHANNELS, coord_frame='unknown'
+    )
+    raw.set_montage(montage_in_unknown, transform_head=False)
+    assert _check_get_coord_frame(raw.info['dig']) == 'unknown'
+
 
 def test_set_montage_with_missing_coordinates():
     """Test set montage with missing coordinates."""
