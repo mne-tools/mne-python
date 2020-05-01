@@ -1583,6 +1583,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     _validate_type(evoked, Evoked, 'evoked')
     evoked = evoked.copy()  # make a copy, since we'll be picking
     ch_type = _get_ch_type(evoked, ch_type)
+    # deprecation
+    if colorbar is None:
+        colorbar = True
+        warn('colorbar=None is deprecated and will be removed in version 0.22;'
+             ' use colorbar=True (or False) instead.', DeprecationWarning)
     # time units / formatting
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     scaling_time = 1. if time_unit == 's' else 1e3
