@@ -208,11 +208,11 @@ def test_surf2bem():
     check_usage(mne_surf2bem)
 
 
-@pytest.mark.timeout(600)  # took ~400 sec on a local test
+@pytest.mark.timeout(900)  # took ~400 sec on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_nibabel()
-@requires_freesurfer
+@requires_freesurfer('mri_watershed')
 @testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
