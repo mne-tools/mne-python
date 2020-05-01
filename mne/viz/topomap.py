@@ -1523,7 +1523,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         Title. If None (default), no title is displayed.
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to None.
+        Indices set to ``True`` will be considered. Defaults to ``None``.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
         Default (None) equals::

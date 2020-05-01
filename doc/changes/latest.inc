@@ -62,9 +62,9 @@ Bug
 
 - Fix bug with :func:`mne.minimum_norm.compute_source_psd_epochs` and :func:`mne.minimum_norm.source_band_induced_power` raised errors when ``method='eLORETA'`` by `Eric Larson`_
 
-- Fix to enable interactive plotting with no colorbar with :func:`mne.viz.plot_evoked_topomap`, by `Daniel McCloy`_.
+- Fix to enable interactive plotting with no colorbar with :func:`mne.viz.plot_evoked_topomap` by `Daniel McCloy`_
 
-- Fix plotting with :func:`mne.viz.plot_evoked_topomap` to pre-existing axes, by `Daniel McCloy`_.
+- Fix plotting with :func:`mne.viz.plot_evoked_topomap` to pre-existing axes by `Daniel McCloy`_
 
 - The default plotting mode for :func:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` has been changed to ``clipping=3.`` to facilitate data analysis with large deflections, by `Eric Larson`_
 
