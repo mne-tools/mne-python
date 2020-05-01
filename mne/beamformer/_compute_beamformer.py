@@ -257,18 +257,18 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # before filter comp
 
         # Compute the power
-        if inversion == 'single' and weight_norm is not None:
+        if weight_norm is None:
+            # Compute power by applying the spatial filters to
+            # the cov matrix.
+            power = np.matmul(np.matmul(Wk_norm, Cm),
+                              Wk_norm.conjugate().transpose(0, 2, 1))
+        elif inversion == 'single':
             # First make the filters unit gain, then apply them to the
             # cov matrix to compute power.
             Wk_norm_2 = Wk_norm / np.linalg.norm(
                 Wk_norm, axis=2, keepdims=True)
             power = np.matmul(np.matmul(Wk_norm_2, Cm),
                               Wk_norm_2.conjugate().transpose(0, 2, 1))
-        elif weight_norm is None:
-            # Compute power by applying the spatial filters to
-            # the cov matrix.
-            power = np.matmul(np.matmul(Wk_norm, Cm),
-                              Wk_norm.conjugate().transpose(0, 2, 1))
         else:
             power = np.matmul(norm, Ck)
         assert power.shape == (n_sources, 3, 3)
