@@ -646,7 +646,8 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True, on_missing='raise'):
+def _set_montage(info, montage, match_case=True,
+                 transform_head=True, on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -661,6 +662,9 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         The measurement info to update.
     %(montage)s
     %(match_case)s
+    transform_head: bool
+            Apply the MNE head transformation to montage
+            (default is True), or not.
     %(on_missing_montage)s
 
     Notes
@@ -678,8 +682,10 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         _check_option('on_missing', on_missing, ['raise',
                                                  'ignore',
                                                  'warn'])
-
-        mnt_head = _get_montage_in_head(montage)
+        if transform_head:
+            mnt_head = _get_montage_in_head(montage)
+        else:
+            mnt_head = montage
 
         def _backcompat_value(pos, ref_pos):
             if any(np.isnan(pos)):

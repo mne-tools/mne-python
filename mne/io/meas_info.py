@@ -150,7 +150,7 @@ class MontageMixin(object):
     """Mixin for Montage setting."""
 
     @verbose
-    def set_montage(self, montage, match_case=True,
+    def set_montage(self, montage, match_case=True, transform_head=True,
                     on_missing='raise', verbose=None):
         """Set EEG sensor configuration and head digitization.
 
@@ -158,6 +158,9 @@ class MontageMixin(object):
         ----------
         %(montage)s
         %(match_case)s
+        transform_head: bool
+            Apply the MNE head transformation to montage
+            (default is True), or not.
         %(on_missing_montage)s
         %(verbose_meth)s
 
@@ -175,7 +178,7 @@ class MontageMixin(object):
 
         from ..channels.montage import _set_montage
         info = self if isinstance(self, Info) else self.info
-        _set_montage(info, montage, match_case, on_missing)
+        _set_montage(info, montage, match_case, transform_head, on_missing)
         return self
 
 
