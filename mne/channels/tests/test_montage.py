@@ -1211,10 +1211,12 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     raw.set_montage(montage_in_unknown, transform_head=False)
     assert _check_get_coord_frame(raw.info['dig']) == 'unknown'
 
+    # default should transform to head
     with pytest.warns(RuntimeWarning, match='Fiducial point '
                                             'nasion not found'):
         raw.set_montage(montage_in_unknown)
         assert _check_get_coord_frame(raw.info['dig']) == 'head'
+
 
 def test_set_montage_with_missing_coordinates():
     """Test set montage with missing coordinates."""
