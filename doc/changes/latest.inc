@@ -55,6 +55,8 @@ Changelog
 
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
 
+- Add ``transform_head`` option to :meth:`mne.io.Raw.set_montage` to allow transformation of montage to 'head' coordinates to be turned off by `Adam Li`_
+
 Bug
 ~~~
 
