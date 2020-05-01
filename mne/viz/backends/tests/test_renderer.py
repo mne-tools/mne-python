@@ -10,6 +10,7 @@ import os
 import pytest
 import numpy as np
 
+import mne
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
                                            skips_if_not_pyvista)
 
@@ -152,3 +153,17 @@ def test_3d_backend(renderer):
                     focalpoint=center)
     rend.reset_camera()
     rend.show()
+
+
+def test_get_3d_backend():
+    """Test get_3d_backend."""
+    orig_backend = mne.viz.backends.renderer.MNE_3D_BACKEND
+
+    mne.viz.backends.renderer.MNE_3D_BACKEND = None
+
+    # Test twice to ensure the first call had no side-effect
+    assert mne.viz.get_3d_backend() is None
+    assert mne.viz.get_3d_backend() is None
+
+    # Restore.
+    mne.viz.backends.renderer.MNE_3D_BACKEND = orig_backend
