@@ -154,6 +154,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
     assert Cm.shape == (G.shape[0],) * 2
+    # Because of whitening, Cm is only guaranteed to be positive
+    # semidefinite when loading is added, otherwise it can have
+    # negative eigenvalues (?)
+    # So make sure _reg_pinv handles them properly by using abs
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
 
     assert orient_std.shape == (G.shape[1],)
@@ -260,6 +264,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             else:
                 # Wk @ Gk
                 norm_inv = Ck
+            # u, s = np.linalg.eigh(norm_inv)
+            # assert (s >= s[..., -1:] * 1e-10).all()
             norm = _pos_semidef_inv(norm_inv, reduce_rank)
         # Reapply source covariance after inversion
         norm *= sk[:, :, np.newaxis]

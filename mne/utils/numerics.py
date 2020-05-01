@@ -88,7 +88,7 @@ def _compute_row_norms(data):
 
 
 def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
-    """Compute a regularized pseudoinverse of a square Hermitian matrix.
+    """Compute a regularized pseudoinverse of a square matrix.
 
     Regularization is performed by adding a constant value to each diagonal
     element of the matrix before inversion. This is known as "diagonal
@@ -140,25 +140,27 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     if not np.allclose(x, x.conj().T):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
 
-    # Decompose the matrix
-    s, _ = np.linalg.eigh(x)
-    order = np.argsort(s)[::-1]
+    # Decompose the matrix, not necessarily positive semidefinite
+    s, U = np.linalg.eigh(x)
+    order = np.argsort(np.abs(s))[::-1]
     s = s[order]
+    U = U[:, order]
 
     # Estimate the rank before regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
-    rank_before = _estimate_rank_from_s(s, tol)
+    tol = 'auto' if rcond == 'auto' else rcond * np.abs(s[0])
+    rank_before = _estimate_rank_from_s(np.abs(s), tol)
 
     # Decompose the matrix again after regularization
-    loading_factor = reg * np.mean(s)
-    x_reg = x + loading_factor * np.eye(len(x))
-    s, U = np.linalg.eigh(x_reg)
-    s = s[::-1]
-    U = U[:, ::-1]
+    loading_factor = reg * np.mean(np.abs(s))
+    if reg:
+        s, U = np.linalg.eigh(x + loading_factor * np.eye(len(x)))
+        order = np.argsort(np.abs(s))[::-1]
+        s = s[order]
+        U = U[:, order]
 
     # Estimate the rank after regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
-    rank_after = _estimate_rank_from_s(s, tol)
+    tol = 'auto' if rcond == 'auto' else rcond * np.abs(s[0])
+    rank_after = _estimate_rank_from_s(np.abs(s), tol)
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
