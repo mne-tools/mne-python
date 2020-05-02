@@ -19,6 +19,8 @@ Changelog
 
 - Add support for signals in mV for :func:`mne.io.read_raw_brainvision` by `Clemens Brunner`_
 
+- Fixed bug with events_from_annotations when ``info['meas_date'] is None`` and ``first_samp > 0`` by `Alex Gramfort`_
+
 - :meth:`mne.Epochs.plot_psd_topomap` and :func:`mne.viz.plot_epochs_psd_topomap` now allow joint colorbar limits across subplots, by `Daniel McCloy`_.
 
 - Add :class:`mne.MixedVectorSourceEstimate` for vector source estimates for mixed source spaces, by `Eric Larson`_
