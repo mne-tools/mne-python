@@ -1225,6 +1225,18 @@ def test_add_channels():
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
     assert_object_equal(raw_arr.info['dev_head_t'], orig_head_t)
+    # Make sure all variants work
+    for simult in (False, True):  # simultaneous adding or not
+        raw_new = raw_meg.copy()
+        if simult:
+            raw_new.add_channels([raw_eeg, raw_stim])
+        else:
+            raw_new.add_channels([raw_eeg])
+            raw_new.add_channels([raw_stim])
+        for other in (raw_meg, raw_stim, raw_eeg):
+            assert_allclose(
+                raw_new.copy().pick_channels(other.ch_names).get_data(),
+                other.get_data())
 
     # Now test errors
     raw_badsf = raw_eeg.copy()

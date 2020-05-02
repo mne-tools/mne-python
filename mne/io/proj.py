@@ -18,6 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
 from ..utils import logger, verbose, warn, fill_doc
 
 
@@ -51,7 +52,8 @@ class Projection(dict):
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, vlim=(None, None), sphere=None, border=0):
+                     axes=None, vlim=(None, None), sphere=None,
+                     border=_BORDER_DEFAULT):
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -249,8 +251,9 @@ class ProjMixin(object):
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
-                           vlim=(None, None), sphere=None, extrapolate='box',
-                           border=0):
+                           vlim=(None, None), sphere=None,
+                           extrapolate=_EXTRAPOLATE_DEFAULT,
+                           border=_BORDER_DEFAULT):
         """Plot SSP vector.
 
         Parameters

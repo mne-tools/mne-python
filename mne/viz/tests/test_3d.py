@@ -138,7 +138,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)
-    if renderer_interactive.get_3d_backend() == 'mayavi':
+    if renderer_interactive._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(surf, mayavi.modules.surface.Surface)
 
@@ -156,7 +156,7 @@ def test_plot_evoked_field(renderer):
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
         fig = evoked.plot_field(maps, time=0.1)
-        if renderer.get_3d_backend() == 'mayavi':
+        if renderer._get_3d_backend() == 'mayavi':
             import mayavi  # noqa: F401 analysis:ignore
             assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -280,7 +280,7 @@ def test_plot_alignment(tmpdir, renderer):
                          coord_frame='mri', subjects_dir=subjects_dir,
                          surfaces=['brain'], bem=sphere, show_axes=True)
     renderer.backend._close_all()
-    if renderer.get_3d_backend() == 'mayavi':
+    if renderer._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -302,11 +302,11 @@ def test_plot_alignment(tmpdir, renderer):
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
     # wrong eeg value:
-    with pytest.raises(ValueError, match='eeg must only contain'):
+    with pytest.raises(ValueError, match='Invalid value for the .eeg'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir, eeg='foo')
     # wrong meg value:
-    with pytest.raises(ValueError, match='meg must only contain'):
+    with pytest.raises(ValueError, match='Invalid value for the .meg'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir, meg='bar')
     # multiple brain surfaces:
@@ -338,6 +338,25 @@ def test_plot_alignment(tmpdir, renderer):
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
     log = log.getvalue()
+    assert '26 fnirs pairs' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='channels')
+    log = log.getvalue()
+    assert '26 fnirs locations' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='pairs')
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs=['channels', 'pairs'])
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
     assert '26 fnirs locations' in log
 
     renderer.backend._close_all()
@@ -732,9 +751,9 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    stc.plot_surface(views='lat', hemi='split', src=src,
-                     subject='fsaverage', subjects_dir=subjects_dir,
-                     colorbar=False)
+    stc.surface().plot(views='lat', hemi='split',
+                       subject='fsaverage', subjects_dir=subjects_dir,
+                       colorbar=False)
 
 
 @testing.requires_testing_data
@@ -759,7 +778,7 @@ def test_link_brains(renderer_interactive):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         with pytest.raises(NotImplementedError, match='backend is pyvista'):
             link_brains(brain)
     else:

@@ -178,15 +178,19 @@ def test_movement_compensation(tmpdir):
 
     # some degenerate cases
     raw_erm = read_crop(erm_fname)
-    pytest.raises(ValueError, maxwell_filter, raw_erm, coord_frame='meg',
-                  head_pos=head_pos)  # can't do ERM file
-    pytest.raises(ValueError, maxwell_filter, raw,
-                  head_pos=head_pos[:, :9])  # bad shape
-    pytest.raises(TypeError, maxwell_filter, raw, head_pos='foo')  # bad type
-    pytest.raises(ValueError, maxwell_filter, raw, head_pos=head_pos[::-1])
+    with pytest.raises(ValueError, match='positions can only be used'):
+        maxwell_filter(raw_erm, coord_frame='meg',
+                       head_pos=head_pos)
+    with pytest.raises(ValueError, match=r'of shape \(N, 10\)'):
+        maxwell_filter(raw, head_pos=head_pos[:, :9])
+    with pytest.raises(TypeError, match='instance of ndarray'):
+        maxwell_filter(raw, head_pos='foo')
+    with pytest.raises(ValueError, match='ascending'):
+        maxwell_filter(raw, head_pos=head_pos[::-1])
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 0] = raw._first_time - 1e-2
-    pytest.raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
+    with pytest.raises(ValueError, match='greater than'):
+        maxwell_filter(raw, head_pos=head_pos_bad)
 
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 4] = 1.  # off by more than 1 m
@@ -272,9 +276,11 @@ def test_other_systems():
     # CTF
     raw_ctf = read_crop(fname_ctf_raw)
     assert raw_ctf.compensation_grade == 3
-    pytest.raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
+    with pytest.raises(RuntimeError, match='compensated'):
+        maxwell_filter(raw_ctf)
     raw_ctf.apply_gradient_compensation(0)
-    pytest.raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
+    with pytest.raises(ValueError, match='digitization points'):
+        maxwell_filter(raw_ctf)
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
     _assert_n_free(raw_sss, 68)
     _assert_shielding(raw_sss, raw_ctf, 1.8)
@@ -379,9 +385,12 @@ def test_basic():
     raw = read_crop(raw_fname, (0., 1.))
     raw_err = read_crop(raw_fname).apply_proj()
     raw_erm = read_crop(erm_fname)
-    pytest.raises(RuntimeError, maxwell_filter, raw_err)
-    pytest.raises(TypeError, maxwell_filter, 1.)  # not a raw
-    pytest.raises(ValueError, maxwell_filter, raw, int_order=20)  # too many
+    with pytest.raises(RuntimeError, match='cannot be applied'):
+        maxwell_filter(raw_err)
+    with pytest.raises(TypeError, match='instance of BaseRaw'):
+        maxwell_filter(1.)
+    with pytest.raises(ValueError, match='Number of requested bases'):
+        maxwell_filter(raw, int_order=20)  # too many
 
     n_int_bases = int_order ** 2 + 2 * int_order
     n_ext_bases = ext_order ** 2 + 2 * ext_order
@@ -404,7 +413,8 @@ def test_basic():
     assert len(py_ctc) == 0
     py_st = raw_sss.info['proc_history'][0]['max_info']['max_st']
     assert len(py_st) == 0
-    pytest.raises(RuntimeError, maxwell_filter, raw_sss)
+    with pytest.raises(RuntimeError, match='cannot reapply'):
+        maxwell_filter(raw_sss)
 
     # Test SSS computation at non-standard head origin
     with use_coil_def(elekta_def_fname):
@@ -435,10 +445,14 @@ def test_basic():
     assert _get_n_moments(int_order) == _get_rank_sss(raw_sss)
 
     # Degenerate cases
-    pytest.raises(ValueError, maxwell_filter, raw, coord_frame='foo')
-    pytest.raises(ValueError, maxwell_filter, raw, origin='foo')
-    pytest.raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
-    pytest.raises(ValueError, maxwell_filter, raw, mag_scale='foo')
+    with pytest.raises(ValueError, match='Invalid value'):
+        maxwell_filter(raw, coord_frame='foo')
+    with pytest.raises(ValueError, match='numerical array'):
+        maxwell_filter(raw, origin='foo')
+    with pytest.raises(ValueError, match='3-element array'):
+        maxwell_filter(raw, origin=[0] * 4)
+    with pytest.raises(ValueError, match='must be a float'):
+        maxwell_filter(raw, mag_scale='foo')
     raw_missing = raw.copy().load_data()
     raw_missing.info['bads'] = ['MEG0111']
     raw_missing.pick_types(meg=True)  # will be missing the bad
@@ -513,7 +527,7 @@ def test_spatiotemporal():
     raw = read_crop(raw_fname)
 
     # Test that window is less than length of data
-    with pytest.raises(ValueError, match='duration'):
+    with pytest.raises(ValueError, match='must be'):
         maxwell_filter(raw, st_duration=1000.)
 
     # We could check both 4 and 10 seconds because Elekta handles them
@@ -547,8 +561,8 @@ def test_spatiotemporal():
         assert py_st['subspcorr'] == 0.98
 
     # Degenerate cases
-    pytest.raises(ValueError, maxwell_filter, raw, st_duration=10.,
-                  st_correlation=0.)
+    with pytest.raises(ValueError, match='Need 0 < st_correlation'):
+        maxwell_filter(raw, st_duration=10., st_correlation=0.)
 
 
 @pytest.mark.slowtest
@@ -728,7 +742,6 @@ def test_cross_talk(tmpdir):
                        mf_ctc['decoupler'].toarray())
     assert object_diff(py_ctc, mf_ctc) == ''
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
-    pytest.raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
     _assert_n_free(raw_sss, 68)
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)

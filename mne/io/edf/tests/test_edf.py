@@ -20,7 +20,7 @@ import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_pandas, _TempDir
+from mne.utils import run_tests_if_main, requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
@@ -118,30 +118,39 @@ def test_edf_others(fname, stim_channel):
         verbose='error')
 
 
-def test_edf_data():
+def test_edf_data_broken(tmpdir):
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
                            exclude=['Ergo-Left', 'H10'], verbose='error')
-    raw_py = read_raw_edf(edf_path, preload=True)
-
+    raw_py = read_raw_edf(edf_path)
+    data = raw_py.get_data()
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
 
     # Test with number of records not in header (-1).
-    tempdir = _TempDir()
-    broken_fname = op.join(tempdir, 'broken.edf')
+    broken_fname = op.join(tmpdir, 'broken.edf')
     with open(edf_path, 'rb') as fid_in:
         fid_in.seek(0, 2)
         n_bytes = fid_in.tell()
         fid_in.seek(0, 0)
-        rbytes = fid_in.read(int(n_bytes * 0.4))
+        rbytes = fid_in.read()
     with open(broken_fname, 'wb') as fid_out:
         fid_out.write(rbytes[:236])
         fid_out.write(b'-1      ')
-        fid_out.write(rbytes[244:])
+        fid_out.write(rbytes[244:244 + int(n_bytes * 0.4)])
     with pytest.warns(RuntimeWarning,
                       match='records .* not match the file size'):
         raw = read_raw_edf(broken_fname, preload=True)
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
+
+    # Test with \x00's in the data
+    with open(broken_fname, 'wb') as fid_out:
+        fid_out.write(rbytes[:184])
+        assert rbytes[184:192] == b'36096   '
+        fid_out.write(rbytes[184:192].replace(b' ', b'\x00'))
+        fid_out.write(rbytes[192:])
+    raw_py = read_raw_edf(broken_fname)
+    data_new = raw_py.get_data()
+    assert_allclose(data, data_new)
 
 
 def test_duplicate_channel_labels_edf():

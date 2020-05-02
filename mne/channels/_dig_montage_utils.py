@@ -101,10 +101,8 @@ def _parse_brainvision_dig_montage(fname, scale):
         else:
             dig_ch_pos[name] = coordinates
 
-    return Bunch(
+    return dict(
         # BVCT stuff
         nasion=fids['nasion'], lpa=fids['lpa'], rpa=fids['rpa'],
-        dig_ch_pos=dig_ch_pos, coord_frame='unknown',
-        # not BVCT stuff
-        hsp=None, hpi=None, elp=None, point_names=None,
+        ch_pos=dig_ch_pos, coord_frame='unknown'
     )

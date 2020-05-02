@@ -50,7 +50,9 @@ class TstVTKPicker(object):
 
     def GetPickPosition(self):
         """Return the picked position."""
-        cell = self.mesh.faces[self.cell_id][1:]
+        vtk_cell = self.mesh.GetCell(self.cell_id)
+        cell = [vtk_cell.GetPointId(point_id) for point_id
+                in range(vtk_cell.GetNumberOfPoints())]
         self.point_id = cell[0]
         return self.mesh.points[self.point_id]
 
@@ -69,9 +71,11 @@ def test_brain_init(renderer):
     with pytest.raises(KeyError):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
-    brain = _Brain(subject_id, hemi, surf, size=(300, 300),
-                   subjects_dir=subjects_dir, title='test')
-    brain.show_view(view=dict(azimuth=180., elevation=90.))
+    for cortex in ['classic', 'low_contrast', 'high_contrast', 'bone']:
+        brain = _Brain(subject_id, hemi, surf, size=(300, 300),
+                       subjects_dir=subjects_dir, title='test',
+                       cortex=cortex)
+        brain.show_view(view=dict(azimuth=180., elevation=90.))
     brain.close()
 
 
@@ -130,6 +134,20 @@ def test_brain_add_data(renderer):
 
 
 @testing.requires_testing_data
+def test_brain_add_annotation(renderer):
+    """Test adding data in _Brain instance."""
+    annots = ['aparc', 'PALS_B12_Lobes']
+    borders = [True, 2]
+    alphas = [1, 0.5]
+    brain = _Brain(subject_id='fsaverage', hemi='lh', size=500,
+                   surf='inflated', subjects_dir=subjects_dir)
+
+    for a, b, p in zip(annots, borders, alphas):
+        brain.add_annotation(a, b, p)
+    brain.close()
+
+
+@testing.requires_testing_data
 def test_brain_add_label(renderer):
     """Test adding data in _Brain instance."""
     from mne.label import read_label
@@ -167,7 +185,7 @@ def test_brain_add_text(renderer):
 @testing.requires_testing_data
 def test_brain_save_movie(tmpdir, renderer):
     """Test saving a movie of a _Brain instance."""
-    if renderer.get_3d_backend() == "mayavi":
+    if renderer._get_3d_backend() == "mayavi":
         pytest.skip()
     brain_data = _create_testing_brain(hemi='lh')
     filename = str(path.join(tmpdir, "brain_test.mov"))
@@ -180,7 +198,7 @@ def test_brain_save_movie(tmpdir, renderer):
 @testing.requires_testing_data
 def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi='both')
 
@@ -205,7 +223,7 @@ def test_brain_timeviewer(renderer_interactive):
 @pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
 def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi=hemi)
     time_viewer = _TimeViewer(brain_data, show_traces=True)
@@ -260,7 +278,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
 @testing.requires_testing_data
 def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi='split')
     _TimeViewer(brain_data)

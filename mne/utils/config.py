@@ -117,7 +117,6 @@ known_config_types = (
     'MNE_STIM_CHANNEL',
     'MNE_USE_CUDA',
     'MNE_USE_NUMBA',
-    'MNE_SKIP_FS_FLASH_CALL',
     'SUBJECTS_DIR',
 )
 
@@ -460,21 +459,27 @@ def sys_info(fid=None, show_paths=False):
 
         >>> import mne
         >>> mne.sys_info() # doctest: +SKIP
-        Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
-        Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
-        Executable:    /usr/bin/python
+        Platform:      Linux-5.0.0-1031-gcp-x86_64-with-glibc2.2.5
+        Python:        3.8.1 (default, Dec 20 2019, 10:06:11)  [GCC 7.4.0]
+        Executable:    /home/travis/virtualenv/python3.8.1/bin/python
+        CPU:           x86_64: 2 cores
+        Memory:        7.8 GB
 
-        mne:           0.12.dev0
-        numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
-        scipy:         0.18.0.dev0+3deede3
-        matplotlib:    1.5.1+1107.g1fa2697
+        mne:           0.21.dev0
+        numpy:         1.19.0.dev0+8dfaa4a {blas=openblas, lapack=openblas}
+        scipy:         1.5.0.dev0+f614064
+        matplotlib:    3.2.1 {backend=Qt5Agg}
 
-        sklearn:       0.18.dev0
-        nibabel:       2.1.0dev
-        mayavi:        4.3.1
-        cupy:          4.1.0
-        pandas:        0.17.1+25.g547750a
-        dipy:          0.14.0
+        sklearn:       0.22.2.post1
+        numba:         0.49.0
+        nibabel:       3.1.0
+        cupy:          Not found
+        pandas:        1.0.3
+        dipy:          1.1.1
+        mayavi:        4.7.2.dev0
+        pyvista:       0.24.1
+        vtk:           9.0.0
+        PyQt5:         5.14.1
     """  # noqa: E501
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
@@ -497,11 +502,14 @@ def sys_info(fid=None, show_paths=False):
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
     libs = _get_numpy_libs()
+    has_3d = False
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'cupy', 'pandas', 'dipy',
-                     'mayavi', 'pyvista', 'vtk'):
+                     'mayavi', 'pyvista', 'vtk', 'PyQt5'):
         if mod_name == '':
             out += '\n'
+            continue
+        if mod_name == 'PyQt5' and not has_3d:
             continue
         out += ('%s:' % mod_name).ljust(ljust)
         try:
@@ -517,18 +525,12 @@ def sys_info(fid=None, show_paths=False):
                 extra = ' {%s}%s' % (libs, extra)
             elif mod_name == 'matplotlib':
                 extra = ' {backend=%s}%s' % (mod.get_backend(), extra)
-            elif mod_name == 'mayavi':
-                try:
-                    from pyface.qt import qt_api
-                except Exception:
-                    qt_api = 'unknown'
-                if qt_api == 'pyqt5':
-                    qt_version = _check_pyqt5_version()
-                    if qt_version != 'unknown':
-                        qt_api += ', PyQt5=%s' % (qt_version,)
-                extra = ' {qt_api=%s}%s' % (qt_api, extra)
+            elif mod_name in ('mayavi', 'vtk'):
+                has_3d = True
             if mod_name == 'vtk':
                 version = mod.VTK_VERSION
+            elif mod_name == 'PyQt5':
+                version = _check_pyqt5_version()
             else:
                 version = mod.__version__
             out += '%s%s\n' % (version, extra)

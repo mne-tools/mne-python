@@ -384,7 +384,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         elif tail == 1:
             stop = np.max(use_x)
         else:  # tail == 0
-            stop = np.max(np.abs(use_x))
+            stop = max(np.max(use_x), -np.min(use_x))
         del use_x
         thresholds = np.arange(threshold['start'], stop,
                                threshold['step'], float)
@@ -436,7 +436,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                                                 ndimage)
                 clusters += out[0]
                 sums = np.concatenate((sums, out[1]))
-        if tfce is True:
+        if tfce:
             # the score of each point is the sum of the h^H * e^E for each
             # supporting section "rectangle" h x e.
             if ti == 0:
@@ -455,7 +455,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 else:
                     len_c = len(c)
                 scores[c] += h * (len_c ** e_power)
-    if tfce is True:
+    if tfce:
         # each point gets treated independently
         clusters = np.arange(x.size)
         if connectivity is None or connectivity is False:
@@ -892,9 +892,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                          partitions=partitions, t_power=t_power,
                          show_info=True)
     clusters, cluster_stats = out
+
+    # The stat should have the same shape as the samples
+    t_obs.shape = sample_shape
+
     # For TFCE, return the "adjusted" statistic instead of raw scores
     if isinstance(threshold, dict):
-        t_obs = cluster_stats.copy()
+        t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
 
     logger.info('Found %d clusters' % len(clusters))
 
@@ -907,9 +911,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         # ndimage outputs slices or boolean masks by default
         if out_type == 'indices':
             clusters = _cluster_mask_to_indices(clusters)
-
-    # The stat should have the same shape as the samples
-    t_obs.shape = sample_shape
 
     # convert our seed to orders
     # check to see if we can do an exact test
@@ -1042,12 +1043,13 @@ def permutation_cluster_test(
         buffer_size=1000, verbose=None):
     """Cluster-level statistical permutation test.
 
-    For a list of nd-arrays of data, e.g. 2d for time series or 3d for
-    time-frequency power values, calculate some statistics corrected for
-    multiple comparisons using permutations and cluster level correction.
-    Each element of the list X contains the data for one group of
-    observations. Randomized data are generated with random partitions
-    of the data. See :footcite:`MarisOostenveld2007` for details.
+    For a list of :class:`NumPy arrays <numpy.ndarray>` of data,
+    calculate some statistics corrected for multiple comparisons using
+    permutations and cluster-level correction. Each element of the list ``X``
+    should contain the data for one group of observations (e.g., 2D arrays for
+    time series, 3D arrays for time-frequency power values). Permutations are
+    generated with random partitions of the data. See
+    :footcite:`MarisOostenveld2007` for details.
 
     Parameters
     ----------
@@ -1058,7 +1060,11 @@ def permutation_cluster_test(
         the size of a single observation. For example if ``X = [X1, X2]``
         with ``X1.shape = (20, 50, 4)`` and ``X2.shape = (17, 50, 4)``, then
         ``X`` has 2 groups with respectively 20 and 17 observations in each,
-        and each data point is of shape ``(50, 4)``.
+        and each data point is of shape ``(50, 4)``. Note: that the
+        *last dimension* of each element of ``X`` should correspond to the
+        dimension represented in the ``connectivity`` parameter
+        (e.g., spectral data should be provided as
+        ``(observations, frequencies, channels/vertices)``).
     %(clust_thresh_f)s
     %(clust_nperm_int)s
     %(clust_tail)s

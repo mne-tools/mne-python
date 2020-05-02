@@ -5,15 +5,17 @@
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose, assert_array_less)
 import pytest
 
+from mne import create_info, EpochsArray
 from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_sklearn, check_version
+from mne.utils import requires_sklearn, check_version, requires_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
-                               cross_val_multiscore)
+                               cross_val_multiscore, BaseEstimator)
 from mne.decoding.search_light import SlidingEstimator
-from mne.decoding import Scaler
+from mne.decoding import (Scaler, TransformerMixin, Vectorizer,
+                          GeneralizingEstimator)
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -62,7 +64,7 @@ def test_get_coef():
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn import svm
-    from sklearn.linear_model import Ridge, LinearRegression
+    from sklearn.linear_model import Ridge
     from sklearn.model_selection import GridSearchCV
 
     lm_classification = LinearModel()
@@ -174,36 +176,139 @@ def test_get_coef():
     patterns_inv = get_coef(clf, 'patterns_', True)
     assert (patterns[0] != patterns_inv[0])
 
-    # Check with search_light and combination of preprocessing ending with sl:
-    slider = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
-    X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
-    clfs = (make_pipeline(Scaler(None, scalings='mean'), slider), slider)
-    for clf in clfs:
-        clf.fit(X, y)
-        for inverse in (True, False):
-            patterns = get_coef(clf, 'patterns_', inverse)
-            filters = get_coef(clf, 'filters_', inverse)
-            assert_array_equal(filters.shape, patterns.shape,
-                               X.shape[1:])
-            # the two time samples get inverted patterns
-            assert_equal(patterns[0, 0], -patterns[0, 1])
-    for t in [0, 1]:
-        assert_array_equal(get_coef(clf.estimators_[t], 'filters_', False),
-                           filters[:, t])
 
+class _Noop(BaseEstimator, TransformerMixin):
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return X.copy()
+
+    inverse_transform = transform
+
+
+@requires_sklearn
+@pytest.mark.parametrize('inverse', (True, False))
+@pytest.mark.parametrize('Scale, kwargs', [
+    (Scaler, dict(info=None, scalings='mean')),
+    (_Noop, dict()),
+])
+def test_get_coef_inverse_transform(inverse, Scale, kwargs):
+    """Test get_coef with and without inverse_transform."""
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
+    lm_regression = LinearModel(Ridge())
+    X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
+    # Check with search_light and combination of preprocessing ending with sl:
+    # slider = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
+    # XXX : line above should work but does not as only last step is
+    # used in get_coef ...
+    slider = SlidingEstimator(make_pipeline(lm_regression))
+    X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
+    clf = make_pipeline(Scale(**kwargs), slider)
+    clf.fit(X, y)
+    patterns = get_coef(clf, 'patterns_', inverse)
+    filters = get_coef(clf, 'filters_', inverse)
+    assert_array_equal(filters.shape, patterns.shape, X.shape[1:])
+    # the two time samples get inverted patterns
+    assert_equal(patterns[0, 0], -patterns[0, 1])
+    for t in [0, 1]:
+        filters_t = get_coef(
+            clf.named_steps['slidingestimator'].estimators_[t],
+            'filters_', False)
+        if Scale is _Noop:
+            assert_array_equal(filters_t, filters[:, t])
+
+
+@requires_sklearn
+@pytest.mark.parametrize('n_features', [1, 5])
+@pytest.mark.parametrize('n_targets', [1, 3])
+def test_get_coef_multiclass(n_features, n_targets):
+    """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
-    for n_features in [1, 5]:
-        for n_targets in [1, 3]:
-            X, Y, A = _make_data(n_samples=3000, n_features=5, n_targets=3)
-            lm = LinearModel(LinearRegression()).fit(X, Y)
-            assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
-            assert_array_equal(lm.filters_.shape, [3, 5])
-            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
-            lm = LinearModel(Ridge(alpha=1)).fit(X, Y)
-            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+    from sklearn.linear_model import LinearRegression, Ridge
+    from sklearn.pipeline import make_pipeline
+    X, Y, A = _make_data(
+        n_samples=30000, n_features=n_features, n_targets=n_targets)
+    lm = LinearModel(LinearRegression()).fit(X, Y)
+    assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
+    if n_targets == 1:
+        want_shape = (n_features,)
+    else:
+        want_shape = (n_targets, n_features)
+    assert_array_equal(lm.filters_.shape, want_shape)
+    if n_features > 1 and n_targets > 1:
+        assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+    lm = LinearModel(Ridge(alpha=0))
+    clf = make_pipeline(lm)
+    clf.fit(X, Y)
+    if n_features > 1 and n_targets > 1:
+        assert_allclose(A, lm.patterns_.T, atol=2e-2)
+    coef = get_coef(clf, 'patterns_', inverse_transform=True)
+    assert_allclose(lm.patterns_, coef, atol=1e-5)
+
+    # With epochs, scaler, and vectorizer (typical use case)
+    X_epo = X.reshape(X.shape + (1,))
+    info = create_info(n_features, 1000., 'eeg')
+    lm = LinearModel(Ridge(alpha=1))
+    clf = make_pipeline(
+        Scaler(info, scalings=dict(eeg=1.)),  # XXX adding this step breaks
+        Vectorizer(),
+        lm,
+    )
+    clf.fit(X_epo, Y)
+    if n_features > 1 and n_targets > 1:
+        assert_allclose(A, lm.patterns_.T, atol=2e-2)
+    coef = get_coef(clf, 'patterns_', inverse_transform=True)
+    lm_patterns_ = lm.patterns_[..., np.newaxis]
+    assert_allclose(lm_patterns_, coef, atol=1e-5)
 
     # Check can pass fitting parameters
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
+
+
+@requires_version('sklearn', '0.22')  # roc_auc_ovr_weighted
+@pytest.mark.parametrize('n_classes, n_channels, n_times', [
+    (4, 10, 2),
+    (4, 3, 2),
+    (3, 2, 1),
+    (3, 1, 2),
+])
+def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
+    """Test a full example with pattern extraction."""
+    from sklearn.pipeline import make_pipeline
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import StratifiedKFold
+    data = np.zeros((10 * n_classes, n_channels, n_times))
+    # Make only the first channel informative
+    for ii in range(n_classes):
+        data[ii * 10:(ii + 1) * 10, 0] = ii
+    events = np.zeros((len(data), 3), int)
+    events[:, 0] = np.arange(len(events))
+    events[:, 2] = data[:, 0, 0]
+    info = create_info(n_channels, 1000., 'eeg')
+    epochs = EpochsArray(data, info, events, tmin=0)
+    clf = make_pipeline(
+        Scaler(epochs.info), Vectorizer(),
+        LinearModel(LogisticRegression(random_state=0, multi_class='ovr')),
+    )
+    scorer = 'roc_auc_ovr_weighted'
+    time_gen = GeneralizingEstimator(clf, scorer, verbose=True)
+    X = epochs.get_data()
+    y = epochs.events[:, 2]
+    n_splits = 3
+    cv = StratifiedKFold(n_splits=n_splits)
+    scores = cross_val_multiscore(time_gen, X, y, cv=cv, verbose=True)
+    want = (n_splits,)
+    if n_times > 1:
+        want += (n_times, n_times)
+    assert scores.shape == want
+    assert_array_less(0.8, scores)
+    clf.fit(X, y)
+    patterns = get_coef(clf, 'patterns_', inverse_transform=True)
+    assert patterns.shape == (n_classes, n_channels, n_times)
+    assert_allclose(patterns[:, 1:], 0., atol=1e-7)  # no other channels useful
 
 
 @requires_sklearn

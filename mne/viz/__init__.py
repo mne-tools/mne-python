@@ -22,10 +22,11 @@ from .evoked import (plot_evoked, plot_evoked_image, plot_evoked_white,
 from .circle import plot_connectivity_circle, circular_layout
 from .epochs import (plot_drop_log, plot_epochs, plot_epochs_psd,
                      plot_epochs_image)
-from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo
+from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
                   _plot_sources_raw, _plot_sources_epochs, plot_ica_properties)
 from .montage import plot_montage
 from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
-                                set_3d_view, set_3d_title, create_3d_figure)
+                                set_3d_view, set_3d_title, create_3d_figure,
+                                get_brain_class)
 from . import backends

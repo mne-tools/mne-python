@@ -114,6 +114,8 @@ of by MNE. Subgoals consist of:
   code to use cloud computing (optionally, based on config) rather than local
   resources.
 
+See also :gh:`6086`.
+
 
 Tutorial / example overhaul
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

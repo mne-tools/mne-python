@@ -16,7 +16,7 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_rank, _check_option, _check_depth, _check_combine,
                     _check_path_like, _check_src_normal, _check_stc_units,
                     _check_pyqt5_version, _check_sphere, _check_time_format,
-                    _check_freesurfer_home)
+                    _check_freesurfer_home, _suggest)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -59,6 +59,7 @@ from .numerics import (hashfunc, _compute_row_norms,
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas, ShiftTimeMixin)
 from .linalg import (_svd_lwork, _repeated_svd, sqrtm_sym,
-                     dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh)
+                     dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh,
+                     _pos_semidef_inv)
 from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
                         _convert_times, _build_data_frame)
