@@ -652,7 +652,7 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(events7, np.empty((0, 3), dtype=int))
 
 
-def test_events_from_annot_onset_alingment():
+def test_events_from_annot_onset_alignment():
     """Test events and annotations onset are the same."""
     raw = _raw_annot(meas_date=1, orig_time=1.5)
     #       sec  0        1        2        3

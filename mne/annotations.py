@@ -1008,7 +1008,9 @@ def events_from_annotations(raw, event_id="auto",
 
     if chunk_duration is None:
         inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
-                                 origin=annotations.orig_time) + raw.first_samp
+                                 origin=annotations.orig_time)
+        if raw.info['meas_date'] is not None:
+            inds += raw.first_samp
 
         values = [event_id_[kk] for kk in annotations.description[event_sel]]
         inds = inds[event_sel]
