@@ -1026,7 +1026,8 @@ def events_from_annotations(raw, event_id="auto",
                 _inds = raw.time_as_index(_onsets,
                                           use_rounding=use_rounding,
                                           origin=annotations.orig_time)
-                _inds += raw.first_samp
+                if raw.info['meas_date'] is not None:
+                    _inds += raw.first_samp
                 inds = np.append(inds, _inds)
                 _values = np.full(shape=len(_inds),
                                   fill_value=event_id_[annot['description']],

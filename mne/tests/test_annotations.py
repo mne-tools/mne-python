@@ -652,7 +652,8 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(events7, np.empty((0, 3), dtype=int))
 
 
-def test_events_from_annot_onset_alignment():
+@pytest.mark.parametrize('meas_date_none', (True, False))
+def test_events_from_annot_onset_alignment(meas_date_none):
     """Test events and annotations onset are the same."""
     raw = _raw_annot(meas_date=1, orig_time=1.5)
     #       sec  0        1        2        3
@@ -663,6 +664,9 @@ def test_events_from_annot_onset_alignment():
     #            .                 0        0
 
     assert raw.annotations.orig_time == _handle_meas_date(1)
+    if meas_date_none:
+        raw.info['meas_date'] = None
+        raw.annotations._orig_time = None
     assert raw.annotations.onset[0] == 1
     assert raw.first_samp == 10
     event_latencies, event_id = events_from_annotations(raw)
