@@ -41,11 +41,18 @@ epochs = mne.Epochs(raw, events=events, event_id=event_id,
               preload=True,reject={'eeg':rej_thresh},
               verbose=False)
 
-epochs.plot(picks = ['eeg', 'eog'], n_epochs=10, scalings=scalings)
+epochs_eyes = epochs[12,16,18,19,23,27,33,38,42,49,
+					67,84,90,100,104,111,115,123,126,
+					145,147,154,160,165,173,186,195,200]
+epochs_eyes.plot(picks = ['eeg', 'eog'], n_epochs=25, scalings=scalings)
 
 epochs = mne.preprocessing.regress_eog(epochs)
+epochs_eyes = epochs[12,16,18,19,23,27,33,38,42,49,
+					67,84,90,100,104,111,115,123,126,
+					145,147,154,160,165,173,186,195,200]
 
-epochs.plot(picks = ['eeg', 'eog'], n_epochs=10, scalings=scalings)
+epochs_eyes.plot(picks = ['eeg', 'eog'], n_epochs=25, scalings=scalings)
+
 
 
 
