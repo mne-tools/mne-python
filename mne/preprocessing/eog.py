@@ -248,4 +248,3 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
                         picks=picks, baseline=baseline, preload=preload,
                         reject_by_annotation=reject_by_annotation)
     return eog_epochs
-    
