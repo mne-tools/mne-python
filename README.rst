@@ -48,9 +48,9 @@ To install the latest stable version of MNE-Python, you can use pip_ in a termin
 
     pip install -U mne
 
-**Note** that MNE-Python 0.17 was the last release to support Python 2.
-MNE-Python 0.18 only works under Python 3, and MNE-Python 0.19 requires
-Python 3.5 or higher.
+- MNE-Python 0.17 was the last release to support Python 2.7
+- MNE-Python 0.18 requires Python 3.5 or higher
+- MNE-Python 0.21 requires Python 3.6 or higher
 
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the `installation guide`_.
@@ -80,7 +80,7 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 3.5
+- Python >= 3.6
 - NumPy >= 1.13.3
 - SciPy >= 1.0.0
 

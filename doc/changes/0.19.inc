@@ -27,7 +27,7 @@ Changelog
 
 - Add :func:`mne.channels.read_dig_polhemus_isotrak` and :func:`mne.channels.read_polhemus_fastscan` to read Polhemus data by `Joan Massich`_
 
-- Add :func:`mne.channels.read_dig_captrack` to read BrainVision CapTrak (BVCT) digitization coordinate files by `Stefan Appelhoff`_ and `Joan Massich`_
+- Add ``mne.channels.read_dig_captrack`` to read BrainVision CapTrak (BVCT) digitization coordinate files by `Stefan Appelhoff`_ and `Joan Massich`_
 
 - Add :func:`mne.channels.make_dig_montage` to create :class:`mne.channels.DigMontage` objects out of np.arrays by `Joan Massich`_
 
@@ -103,7 +103,7 @@ Changelog
 Bug
 ~~~
 
-- Fix setting montage eeg ref position for captrack by `Joan Massich`_
+- Fix setting montage eeg ref position for captrak by `Joan Massich`_
 
 - Fix saving raw read from BDF file using ``tmin`` and ``tmax`` using ``preload=False`` by `Alex Gramfort`_
 

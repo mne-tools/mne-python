@@ -65,6 +65,55 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     return np.mean(X, axis=0) / np.sqrt(var / X.shape[0])
 
 
+def ttest_ind_no_p(a, b, equal_var=True, sigma=1e-3):
+    """Independent samples t-test with hat adjustment and no p calculation.
+
+    This is a modified version of :func:`scipy.stats.ttest_ind`. It operates
+    along the first axis.
+
+    Parameters
+    ----------
+    a : array-like
+        The first array.
+    b : array-like
+        The second array.
+    equal_var : bool
+        Assume equal variance. See :func:`scipy.stats.ttest_ind`.
+    sigma : float
+        The regularization. See :func:`ttest_1samp_no_p`.
+
+    Returns
+    -------
+    t : array
+        T values.
+    """
+    v1 = np.var(a, axis=0, ddof=1)
+    v2 = np.var(b, axis=0, ddof=1)
+    n1 = a.shape[0]
+    n2 = b.shape[0]
+    if equal_var:
+        df = n1 + n2 - 2.0
+        var = ((n1 - 1) * v1 + (n2 - 1) * v2) / df
+        var = var * (1.0 / n1 + 1.0 / n2)
+    else:
+        vn1 = v1 / n1
+        vn2 = v2 / n2
+        with np.errstate(divide='ignore', invalid='ignore'):
+            df = (vn1 + vn2)**2 / (vn1**2 / (n1 - 1) + vn2**2 / (n2 - 1))
+
+        # If df is undefined, variances are zero (assumes n1 > 0 & n2 > 0).
+        # Hence it doesn't matter what df is as long as it's not NaN.
+        df = np.where(np.isnan(df), 1, df)
+        var = vn1 + vn2
+    if sigma > 0:
+        var += sigma * np.max(var)
+    denom = np.sqrt(var)
+    d = np.mean(a, 0) - np.mean(b, 0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        t = np.divide(d, denom)
+    return t
+
+
 def f_oneway(*args):
     """Perform a 1-way ANOVA.
 

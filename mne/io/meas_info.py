@@ -150,13 +150,15 @@ class MontageMixin(object):
     """Mixin for Montage setting."""
 
     @verbose
-    def set_montage(self, montage, match_case=True, verbose=None):
+    def set_montage(self, montage, match_case=True,
+                    on_missing='raise', verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         %(montage)s
         %(match_case)s
+        %(on_missing_montage)s
         %(verbose_meth)s
 
         Returns
@@ -173,7 +175,7 @@ class MontageMixin(object):
 
         from ..channels.montage import _set_montage
         info = self if isinstance(self, Info) else self.info
-        _set_montage(info, montage, match_case)
+        _set_montage(info, montage, match_case, on_missing)
         return self
 
 
@@ -488,7 +490,7 @@ class Info(dict, MontageMixin):
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
-            Handedness (1=right, 2=left).
+            Handedness (1=right, 2=left, 3=ambidextrous).
 
     * ``device_info`` dict:
 

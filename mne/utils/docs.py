@@ -37,6 +37,16 @@ preload : bool or str (default False)
     large amount of memory). If preload is a string, preload is the
     file name of a memory-mapped file which is used to store the data
     on the hard drive (slower, requires less memory)."""
+docdict['preload_concatenate'] = """
+preload : bool, str, or None (default None)
+    Preload data into memory for data manipulation and faster indexing.
+    If True, the data will be preloaded into memory (fast, requires
+    large amount of memory). If preload is a string, preload is the
+    file name of a memory-mapped file which is used to store the data
+    on the hard drive (slower, requires less memory). If preload is
+    None, preload=True or False is inferred using the preload status
+    of the instances passed in.
+"""
 
 # Cropping
 docdict['include_tmax'] = """
@@ -75,21 +85,30 @@ docdict['topomap_extrapolate'] = """
 extrapolate : str
     Options:
 
-    - 'box' (default)
+    - ``'box'``
         Extrapolate to four points placed to form a square encompassing all
         data points, where each side of the square is three times the range
         of the data in the respective dimension.
-    - 'local'
+    - ``'local'`` (default)
         Extrapolate only to nearby points (approximately to points closer than
-        median inter-electrode distance).
-    - 'head'
-        Extrapolate to the edges of the head circle (does not work well
-        with sensors outside the head circle).
+        median inter-electrode distance). This will also set the
+        mask to be polygonal based on the convex hull of the sensors.
+    - ``'head'``
+        Extrapolate out to the edges of the clipping circle. This will be on
+        the head circle when the sensors are contained within the head circle,
+        but it can extend beyond the head when sensors are plotted outside
+        the head circle.
+
+    .. versionchanged:: 0.21
+
+       - The default was changed to ``'local'``
+       - ``'local'`` was changed to use a convex hull mask
+       - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
 docdict['topomap_border'] = """
 border : float | 'mean'
-    Value to extrapolate to on the topomap borders. If ``'mean'`` then each
-    extrapolated point has the average value of its neighbours.
+    Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+    then each extrapolated point has the average value of its neighbours.
 
     .. versionadded:: 0.20
 """
@@ -117,6 +136,81 @@ sphere : float | array-like | str | None
 
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
+docdict['topomap_ch_type'] = """
+ch_type : str
+    The channel type being plotted. Determines the ``'auto'``
+    extrapolation mode.
+
+    .. versionadded:: 0.21
+"""
+
+# PSD topomaps
+docdict["psd_topo_vlim_joint"] = """
+vlim : tuple of length 2 | 'joint'
+    Colormap limits to use. If a :class:`tuple` of floats, specifies the
+    lower and upper bounds of the colormap (in that order); providing
+    ``None`` for either entry will set the corresponding boundary at the
+    min/max of the data (separately for each topomap). Elements of the
+    :class:`tuple` may also be callable functions which take in a
+    :class:`NumPy array <numpy.ndarray>` and return a scalar.
+    If ``vlim='joint'``, will compute the colormap limits jointly across
+    all topomaps of the same channel type, using the min/max of the data.
+    Defaults to ``(None, None)``.
+
+    .. versionadded:: 0.21
+"""
+docdict['psd_topo_agg_fun'] = """
+agg_fun : callable
+    The function used to aggregate over frequencies. Defaults to
+    :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+"""
+docdict['psd_topo_dB'] = """
+dB : bool
+    If ``True``, transform data to decibels (with ``10 * np.log10(data)``)
+    following the application of ``agg_fun``. Ignored if ``normalize=True``.
+"""
+docdict['psd_topo_cmap'] = """
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If :class:`tuple`, the first value indicates the colormap
+    to use and the second value is a boolean defining interactivity. In
+    interactive mode the colors are adjustable by clicking and dragging the
+    colorbar with left and right mouse button. Left mouse button moves the
+    scale up and down and right mouse button adjusts the range. Hitting
+    space bar resets the range. Up and down arrows can be used to change
+    the colormap. If ``None``, ``'Reds'`` is used for data that is either
+    all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+    ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+"""
+docdict['psd_topo_cbar_fmt'] = """
+cbar_fmt : str
+    Format string for the colorbar tick labels. If ``'auto'``, is equivalent
+    to '%0.3f' if ``dB=False`` and '%0.1f' if ``dB=True``. Defaults to
+    ``'auto'``.
+"""
+docdict['psd_topo_normalize'] = """
+normalize : bool
+    If True, each band will be divided by the total power. Defaults to
+    False.
+"""
+docdict['psd_topo_bands'] = """
+bands : list of tuple | None
+    The frequencies or frequency ranges to plot. Length-2 tuples specify
+    a single frequency and a subplot title (e.g.,
+    ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
+    upper band edges and a subplot title. If ``None`` (the default),
+    expands to::
+
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    In bands where a single frequency is provided, the topomap will reflect
+    the single frequency bin that is closest to the provided value.
+"""
+docdict['psd_topo_axes'] = """
+axes : list of Axes | None
+    List of axes to plot consecutive topographies to. If ``None`` the axes
+    will be created automatically. Defaults to ``None``.
+"""
 
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
@@ -144,7 +238,7 @@ picks : list | slice | None
 # Filtering
 docdict['l_freq'] = """
 l_freq : float | None
-    For FIR filters, the lower pass-band edge; for IIR filters, the upper
+    For FIR filters, the lower pass-band edge; for IIR filters, the lower
     cutoff frequency. If None the data are only low-passed.
 """
 docdict['h_freq'] = """
@@ -504,15 +598,22 @@ exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
+_trans_base = """\
+If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+    during coregistration. Can also be ``'fsaverage'`` to use the built-in
+    fsaverage transformation."""
+docdict['trans_not_none'] = """
+trans : str | dict | instance of Transform
+    %s
+""" % (_trans_base,)
 docdict['trans'] = """
 trans : str | dict | instance of Transform | None
-    If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
-    during coregistration. Can also be ``'fsaverage'`` to use the built-in
-    fsaverage transformation. If trans is None, an identity matrix is assumed.
+    %s
+    If trans is None, an identity matrix is assumed.
 
     .. versionchanged:: 0.19
        Support for 'fsaverage' argument.
-"""
+""" % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | None
     The path to the freesurfer subjects reconstructions.
@@ -710,6 +811,23 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict['on_missing_montage'] = """
+on_missing : str
+    Either 'raise', or 'warn' to raise an error/warning when
+    channels have missing coordinates,
+    or 'ignore' to set channels to np.nan and set montage.
+
+    .. versionadded:: 0.20.1
+"""
+docdict['rename_channels_mapping'] = """
+mapping : dict | callable
+    A dictionary mapping the old channel to a new channel name
+    e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+    that takes and returns a string.
+
+    .. versionchanged:: 0.10.0
+       Support for a callable function.
+"""
 
 # Brain plotting
 docdict["clim"] = """
@@ -775,28 +893,68 @@ docdict["time_label"] = """
 time_label : str | callable | None
     Format of the time label (a format string, a function that maps
     floating point time values to strings, or None for no label). The
-    default is ``'auto'``, which will use ``time=%%0.2f ms`` if there
+    default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
 
+
 # STC label time course
 docdict['eltc_labels'] = """
-labels : Label | BiHemiLabel | list of Label or BiHemiLabel
-    The labels for which to extract the time course.
+labels : Label | BiHemiLabel | list | tuple | str
+    If using a surface or mixed source space, this should be the
+    :class:`~mne.Label`'s for which to extract the time course.
+    If working with whole-brain volume source estimates, this must be one of:
+
+    - a string path to a FreeSurfer atlas for the subject (e.g., their
+      'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+      atlas
+    - a two-element list or tuple, the first element being a path to an atlas,
+      and the second being a list or dict of ``volume_labels`` to extract
+      (see :func:`mne.setup_volume_source_space` for details).
+
+    .. versionchanged:: 0.21.0
+       Support for volume source estimates.
 """
 docdict['eltc_src'] = """
-src : list
-    Source spaces for left and right hemisphere.
+src : instance of SourceSpaces
+    The source spaces for the source time courses.
 """
 docdict['eltc_mode'] = """
 mode : str
     Extraction mode, see Notes.
 """
 docdict['eltc_allow_empty'] = """
-allow_empty : bool
-    Instead of emitting an error, return all-zero time courses for labels
-    that do not have any vertices in the source estimate. Default is ``False``.
+allow_empty : bool | str
+    ``False`` (default) will emit an error if there are labels that have no
+    vertices in the source estimate. ``True`` and ``'ignore'`` will return
+    all-zero time courses for labels that do not have any vertices in the
+    source estimate, and True will emit a warning while and "ignore" will
+    just log a message.
+
+    .. versionchanged:: 0.21.0
+       Support for "ignore".
 """
+docdict
+docdict['eltc_trans'] = """%s
+    Only needed when using a volume atlas and
+    ``src`` is in head coordinates (i.e., comes from a forward or inverse).
+
+    .. versionadded:: 0.21.0
+""" % (docdict['trans_not_none'],)
+docdict['eltc_mri_resolution'] = """
+mri_resolution : bool
+    If True (default), the volume source space will be upsampled to the
+    original MRI resolution via trilinear interpolation before the atlas values
+    are extracted. This ensnures that each atlas label will contain source
+    activations. When False, only the original source space points are used,
+    and some atlas labels thus may not contain any source space vertices.
+
+    .. versionadded:: 0.21.0
+"""
+docdict['eltc_returns'] = """
+label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
+    Extracted time course for each label and source estimate.
+"""  # noqa: E501
 docdict['eltc_mode_notes'] = """
 Valid values for ``mode`` are:
 
@@ -804,7 +962,10 @@ Valid values for ``mode`` are:
     Maximum value across vertices at each time point within each label.
 - ``'mean'``
     Average across vertices at each time point within each label. Ignores
-    orientation of sources.
+    orientation of sources for standard source estimates, which varies
+    across the cortical surface, which can lead to cancellation.
+    Vector source estimates are always in XYZ / RAS orientation, and are thus
+    already geometrically aligned.
 - ``'mean_flip'``
     Finds the dominant direction of source space normal vector orientations
     within each label, applies a sign-flip to time series at vertices whose
@@ -819,6 +980,32 @@ Valid values for ``mode`` are:
     ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
     sign-flip ensures that extracting time courses from the same label in
     similar STCs does not result in 180° direction/phase changes.
+- ``'auto'`` (default)
+    Uses ``'mean_flip'`` when a standard source estimate is applied, and
+    ``'mean'`` when a vector source estimate is supplied.
+
+    .. versionadded:: 0.21
+       Support for ``'auto'``, vector, and volume source estimates.
+
+The only modes that work for vector and volume source estimates are ``'mean'``,
+``'max'``, and ``'auto'``.
+"""
+docdict['get_peak_parameters'] = """
+tmin : float | None
+    The minimum point in time to be considered for peak getting.
+tmax : float | None
+    The maximum point in time to be considered for peak getting.
+mode : {'pos', 'neg', 'abs'}
+    How to deal with the sign of the data. If 'pos' only positive
+    values will be considered. If 'neg' only negative values will
+    be considered. If 'abs' absolute values will be considered.
+    Defaults to 'abs'.
+vert_as_index : bool
+    Whether to return the vertex index (True) instead of of its ID
+    (False, default).
+time_as_index : bool
+    Whether to return the time index (True) instead of the latency
+    (False, default).
 """
 
 # Clustering

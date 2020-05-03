@@ -20,6 +20,7 @@ you to get a better sense of the true underlying source geometry.
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD (3-clause)
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, apply_inverse

@@ -251,100 +251,104 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
 
 
 @verbose
-def regress_eog(data, eeg_chans=eeg_chans, eog_chans=eog_chans):
+def regress_eog(epochs, verbose=None):
 
-  """Regress eye channel data from eeg data
+    """Regress eye channel data from eeg data
 
-    Gratton, Coles, Donchin (1983) EMCP - Eye movement correction procedure.
+      Gratton, Coles, Donchin (1983) EMCP - Eye movement correction procedure.
 
-    Parameters
-    ----------
-    data :
-     either
-     : instance of Epoch
-        The epoched data, in which condition average is subtracted first
-     or
-     : instance of Raw
-        The raw data  
+      Parameters
+      ----------
+      data :
+       either
+       : instance of Epoch
+          The epoched data, in which condition average is subtracted first
+       or
+       : instance of Raw
+          The raw data  
+      
+      eeg_chans : pick_types array of channels
+
+      eog_chans : pick_types array of eye channels, preferably bipolar horizontal and vertical
+
+      
+      Returns
+      -------
+      regress_eog_epochs : instance of Epochs with eeg correct and eog retained
+      or
+      regress_eog_raw : instance of Raw with eeg correct and eog retained
+          
+
+      Raw Version Notes
+      -----
+      https://cbrnr.github.io/2017/10/20/removing-eog-regression/
+
+      Epoch Version Notes
+      -----
+      Correct EEG data for EOG artifacts with regression
+      -compute the ERP in each condition
+      -subtract ERP from each trial
+      -subtract baseline (mean over all epoch)
+      -predict eye channel remainder from eeg remainder
+      -use coefficients to subtract eog from eeg
+
+    """
+
+    event_names = ['A_error','B_error','C_error','D_error','E_error','F_error','G_error']
+    i = 0
+    for key, value in sorted(epochs.event_id.items(), key=lambda x: (x[1], x[0])):
+      print(i)
+
+      event_names[i] = key
+      i += 1
+
+    #select the correct channels and data
+    eeg_chans = pick_types(epochs.info, eeg=True, eog=False)
+    eog_chans = pick_types(epochs.info, eeg=False, eog=True)
+    original_data = epochs._data
+
+    #subtract the average over trials from each trial
+    rem = {}
+    for event in event_names:
+      data = epochs[event]._data
+      avg = np.mean(epochs[event]._data,axis=0)
+      rem[event] = data-avg
+
+    #concatenate trials together of different types
+    ## then put them all back together in X (regression on all at once)
+    allrem = np.concatenate([rem[event] for event in event_names])
+
+    #separate eog and eeg
+    X = allrem[:,eeg_chans,:]
+    Y = allrem[:,eog_chans,:]
+
+    #subtract mean over time from every trial/channel
+    X = (X.T - np.mean(X,2).T).T
+    Y = (Y.T - np.mean(Y,2).T).T
+
+    #move electrodes first
+    X = np.moveaxis(X,0,1)
+    Y = np.moveaxis(Y,0,1)
+
+    #make 2d and compute regression
+    X = np.reshape(X,(X.shape[0],np.prod(X.shape[1:])))
+    Y = np.reshape(Y,(Y.shape[0],np.prod(Y.shape[1:])))
+    b = np.linalg.solve(np.dot(Y,Y.T), np.dot(Y,X.T))
+
+    #get original data and electrodes first for matrix math
+    raw_eeg = np.moveaxis(original_data[:,eeg_chans,:],0,1)
+    raw_eog = np.moveaxis(original_data[:,eog_chans,:],0,1)
+
+    #subtract weighted eye channels from eeg channels
+    eeg_corrected = (raw_eeg.T - np.dot(raw_eog.T,b)).T
+
+    #move back to match epochs
+    eeg_corrected = np.moveaxis(eeg_corrected,0,1)
+
+    #copy original epochs and replace with corrected data
+    epochs_new = epochs.copy()
+    epochs_new._data[:,eeg_chans,:] = eeg_corrected
+
+    return epochs_new    
+
     
-    eeg_chans : pick_types array of channels
-
-    eog_chans : pick_types array of eye channels, preferably bipolar horizontal and vertical
-
-    
-    Returns
-    -------
-    regress_eog_epochs : instance of Epochs with eeg correct and eog retained
-    or
-    regress_eog_raw : instance of Raw with eeg correct and eog retained
-        
-
-    Raw Version Notes
-    -----
-    https://cbrnr.github.io/2017/10/20/removing-eog-regression/
-
-    Epoch Version Notes
-    -----
-    Correct EEG data for EOG artifacts with regression
-    -compute the ERP in each condition
-    -subtract ERP from each trial
-    -subtract baseline (mean over all epoch)
-    -predict eye channel remainder from eeg remainder
-    -use coefficients to subtract eog from eeg
-
-  """
-
-  event_names = ['A_error','B_error']
-  i = 0
-  for key, value in sorted(epochs.event_id.items(), key=lambda x: (x[1], x[0])):
-    event_names[i] = key
-    i += 1
-
-  #select the correct channels and data
-  eeg_chans = pick_types(epochs.info, eeg=True, eog=False)
-  eog_chans = pick_types(epochs.info, eeg=False, eog=True)
-  original_data = epochs._data
-
-  #subtract the average over trials from each trial
-  rem = {}
-  for event in event_names:
-    data = epochs[event]._data
-    avg = np.mean(epochs[event]._data,axis=0)
-    rem[event] = data-avg
-
-  #concatenate trials together of different types
-  ## then put them all back together in X (regression on all at once)
-  allrem = np.concatenate([rem[event] for event in event_names])
-
-  #separate eog and eeg
-  X = allrem[:,eeg_chans,:]
-  Y = allrem[:,eog_chans,:]
-
-  #subtract mean over time from every trial/channel
-  X = (X.T - np.mean(X,2).T).T
-  Y = (Y.T - np.mean(Y,2).T).T
-
-  #move electrodes first
-  X = np.moveaxis(X,0,1)
-  Y = np.moveaxis(Y,0,1)
-
-  #make 2d and compute regression
-  X = np.reshape(X,(X.shape[0],np.prod(X.shape[1:])))
-  Y = np.reshape(Y,(Y.shape[0],np.prod(Y.shape[1:])))
-  b = np.linalg.solve(np.dot(Y,Y.T), np.dot(Y,X.T))
-
-  #get original data and electrodes first for matrix math
-  raw_eeg = np.moveaxis(original_data[:,eeg_chans,:],0,1)
-  raw_eog = np.moveaxis(original_data[:,eog_chans,:],0,1)
-
-  #subtract weighted eye channels from eeg channels
-  eeg_corrected = (raw_eeg.T - np.dot(raw_eog.T,b)).T
-
-  #move back to match epochs
-  eeg_corrected = np.moveaxis(eeg_corrected,0,1)
-
-  #copy original epochs and replace with corrected data
-  epochs_new = epochs.copy()
-  epochs_new._data[:,eeg_chans,:] = eeg_corrected
-
-  return data    

@@ -462,15 +462,13 @@ class SetChannelsMixin(MontageMixin):
             warn(msg.format(", ".join(sorted(names)), *this_change))
         return self
 
+    @fill_doc
     def rename_channels(self, mapping):
         """Rename channels.
 
         Parameters
         ----------
-        mapping : dict | callable
-            A dictionary mapping the old channel to a new channel name
-            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-            that takes and returns a string (new in version 0.10.0).
+        %(rename_channels_mapping)s
 
         Returns
         -------
@@ -964,9 +962,11 @@ class UpdateChannelsMixin(object):
                                          for inst in [self] + add_list])
             # We should never use these since data are preloaded, let's just
             # set it to something large and likely to break (2 ** 31 - 1)
-            extra_idx = [2147483647] * len(add_list)
+            extra_idx = [2147483647] * sum(info['nchan'] for info in infos[1:])
+            assert all(len(r) == infos[0]['nchan'] for r in self._read_picks)
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
+            assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
 
 
@@ -1025,6 +1025,7 @@ class InterpolationMixin(object):
         return self
 
 
+@fill_doc
 def rename_channels(info, mapping):
     """Rename channels.
 
@@ -1033,12 +1034,10 @@ def rename_channels(info, mapping):
     Parameters
     ----------
     info : dict
-        Measurement info.
-    mapping : dict | callable
-        A dictionary mapping the old channel to a new channel name
-        e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-        that takes and returns a string (new in version 0.10.0).
+        Measurement info to modify.
+    %(rename_channels_mapping)s
     """
+    _validate_type(info, Info, 'info')
     info._check_consistency()
     bads = list(info['bads'])  # make our own local copies
     ch_names = list(info['ch_names'])

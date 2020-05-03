@@ -315,7 +315,7 @@ class _COLA(object):
     @property
     def _in_offset(self):
         """Compute from current processing window start and buffer len."""
-        return self.starts[self._idx] + self._in_buffers[0].shape[1]
+        return self.starts[self._idx] + self._in_buffers[0].shape[-1]
 
     @verbose
     def feed(self, *datas, **kwargs):
@@ -327,7 +327,7 @@ class _COLA(object):
             raise ValueError('Got %d array(s), needed %d'
                              % (len(datas), len(self._in_buffers)))
         for di, data in enumerate(datas):
-            if not isinstance(data, np.ndarray) or data.ndim != 2:
+            if not isinstance(data, np.ndarray) or data.ndim < 1:
                 raise TypeError('data entry %d must be an 2D ndarray, got %s'
                                 % (di, type(data),))
             if self._in_buffers[di] is None:
@@ -335,15 +335,17 @@ class _COLA(object):
                 # dynamic allocation of the in buffer. We could save some
                 # memory allocation by only ever processing max_len at once,
                 # but this would increase code complexity.
-                self._in_buffers[di] = np.empty((data.shape[0], 0), data.dtype)
-            if data.ndim != 2 or self._in_buffers[di].dtype != data.dtype:
-                raise TypeError('data must be 2D %s with shape[0]==%d, '
-                                'got %s shape %s'
+                self._in_buffers[di] = np.empty(
+                    data.shape[:-1] + (0,), data.dtype)
+            if data.shape[:-1] != self._in_buffers[di].shape[:-1] or \
+                    self._in_buffers[di].dtype != data.dtype:
+                raise TypeError('data must dtype %s and shape[:-1]==%s, '
+                                'got dtype %s shape[:-1]=%s'
                                 % (self._in_buffers[di].dtype,
-                                   self._in_buffers[di].shape[0],
-                                   data.dtype, data.shape))
+                                   self._in_buffers[di].shape[:-1],
+                                   data.dtype, data.shape[:-1]))
             logger.debug('    + Appending %d->%d'
-                         % (self._in_offset, self._in_offset + data.shape[1]))
+                         % (self._in_offset, self._in_offset + data.shape[-1]))
             self._in_buffers[di] = np.concatenate(
                 [self._in_buffers[di], data], -1)
             if self._in_offset > self.stops[-1]:
@@ -368,18 +370,19 @@ class _COLA(object):
                                     -self._step):
                     this_window[:offset] += self._window[-offset:]
             logger.debug('    * Processing %d->%d' % (start, stop))
-            this_proc = [in_[:, :this_len].copy() for in_ in self._in_buffers]
-            if not all(proc.shape[1] == this_len == this_window.size
+            this_proc = [in_[..., :this_len].copy()
+                         for in_ in self._in_buffers]
+            if not all(proc.shape[-1] == this_len == this_window.size
                        for proc in this_proc):
                 raise RuntimeError('internal indexing error')
             outs = self._process(*this_proc, **kwargs)
             if self._out_buffers is None:
                 max_len = np.max(self.stops - self.starts)
-                self._out_buffers = [np.zeros((len(o), max_len),
+                self._out_buffers = [np.zeros(o.shape[:-1] + (max_len,),
                                               o.dtype) for o in outs]
             for oi, out in enumerate(outs):
                 out *= this_window
-                self._out_buffers[oi][:, :stop - start] += out
+                self._out_buffers[oi][..., :stop - start] += out
             self._idx += 1
             if self._idx < len(self.starts):
                 next_start = self.starts[self._idx]
@@ -387,13 +390,13 @@ class _COLA(object):
                 next_start = self.stops[-1]
             delta = next_start - self.starts[self._idx - 1]
             for di in range(len(self._in_buffers)):
-                self._in_buffers[di] = self._in_buffers[di][:, delta:]
+                self._in_buffers[di] = self._in_buffers[di][..., delta:]
             logger.debug('    - Shifting input/output buffers by %d samples'
                          % (delta,))
-            self._store(*[o[:, :delta] for o in self._out_buffers])
+            self._store(*[o[..., :delta] for o in self._out_buffers])
             for ob in self._out_buffers:
-                ob[:, :-delta] = ob[:, delta:]
-                ob[:, -delta:] = 0.
+                ob[..., :-delta] = ob[..., delta:]
+                ob[..., -delta:] = 0.
 
 
 def _check_cola(win, nperseg, step, window_name, tol=1e-10):
@@ -417,20 +420,24 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
 class _Storer(object):
     """Store data in chunks."""
 
-    def __init__(self, *outs, **kwargs):
+    def __init__(self, *outs, picks=None):
         for oi, out in enumerate(outs):
-            if not isinstance(out, np.ndarray) or out.ndim != 2:
-                raise TypeError('outs[oi] must be 2D ndarray, got %s' % (out,))
+            if not isinstance(out, np.ndarray) or out.ndim < 1:
+                raise TypeError('outs[oi] must be >= 1D ndarray, got %s'
+                                % (out,))
         self.outs = outs
         self.idx = 0
-        picks = kwargs.pop('picks', None)
-        self.picks = slice(None) if picks is None else picks
+        self.picks = picks
 
     def __call__(self, *outs):
         if (len(outs) != len(self.outs) or
-                not all(out.ndim == 2 for o in outs for out in outs) or
-                not all(out.shape[1] == outs[0].shape[1] for out in outs)):
+                not all(out.shape[-1] == outs[0].shape[-1] for out in outs)):
             raise ValueError('Bad outs')
+        idx = (Ellipsis,)
+        if self.picks is not None:
+            idx += (self.picks,)
+        stop = self.idx + outs[0].shape[-1]
+        idx += (slice(self.idx, stop),)
         for o1, o2 in zip(self.outs, outs):
-            o1[self.picks, self.idx:self.idx + o2.shape[1]] = o2
-        self.idx += outs[0].shape[1]
+            o1[idx] = o2
+        self.idx = stop

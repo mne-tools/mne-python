@@ -29,9 +29,8 @@ References
 #
 # License: BSD (3-clause)
 
-from surfer import Brain
-
 import mne
+Brain = mne.viz.get_brain_class()
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=subjects_dir,

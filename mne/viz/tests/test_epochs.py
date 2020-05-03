@@ -308,17 +308,32 @@ def test_plot_psd_epochs():
     epochs.plot_psd(average=True, spatial_colors=False)
     epochs.plot_psd(average=False, spatial_colors=True)
     epochs.plot_psd(average=False, spatial_colors=False)
-    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
-                  bands=[(0, 0.01, 'foo')])  # no freqs in range
-    epochs.plot_psd_topomap()
-
-    # with a flat channel
+    # test plot_psd_topomap errors
+    with pytest.raises(RuntimeError, match='No frequencies in band'):
+        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+    # test vmin, vmax deprecation
+    with pytest.warns(DeprecationWarning, match='you didn\'t specify "vlim"'):
+        epochs.plot_psd_topomap(vmax=5)
+    with pytest.warns(DeprecationWarning, match='provided values for "vlim"'):
+        epochs.plot_psd_topomap(vmax=5, vlim=(None, 7))
+    plt.close('all')
+    # test defaults
+    fig = epochs.plot_psd_topomap()
+    assert len(fig.axes) == 10  # default: 5 bands (δ, θ, α, β, γ) + colorbars
+    # test joint vlim
+    fig = epochs.plot_psd_topomap(vlim='joint')
+    vmin_0 = fig.axes[0].images[0].norm.vmin
+    vmax_0 = fig.axes[0].images[0].norm.vmax
+    assert all(vmin_0 == ax.images[0].norm.vmin for ax in fig.axes[1:5])
+    assert all(vmax_0 == ax.images[0].norm.vmax for ax in fig.axes[1:5])
+    # test support for single-bin bands
+    fig = epochs.plot_psd_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
+    # test with a flat channel
     err_str = 'for channel %s' % epochs.ch_names[2]
     epochs.get_data()[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
             epochs.plot_psd(dB=dB)
-
     plt.close('all')
 
 

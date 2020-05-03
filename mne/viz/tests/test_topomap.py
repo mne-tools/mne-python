@@ -207,7 +207,7 @@ def test_plot_topomap_basic(monkeypatch):
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert np.abs(img_data[10, 54]) < 0.3
+    assert np.abs(img_data[10, 55]) < 0.3
 
     # border='mean'
     ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
@@ -271,8 +271,10 @@ def test_plot_topomap_basic(monkeypatch):
     plt_topomap(times, ch_type='grad', mask=mask, show_names=True,
                 mask_params={'marker': 'x'})
     plt.close('all')
-    pytest.raises(ValueError, plt_topomap, times, ch_type='eeg', average=-1e3)
-    pytest.raises(ValueError, plt_topomap, times, ch_type='eeg', average='x')
+    with pytest.raises(ValueError, match='number of seconds; got -'):
+        plt_topomap(times, ch_type='eeg', average=-1e3)
+    with pytest.raises(TypeError, match='number of seconds; got type'):
+        plt_topomap(times, ch_type='eeg', average='x')
 
     p = plt_topomap(times, ch_type='grad', image_interp='bilinear',
                     show_names=lambda x: x.replace('MEG', ''))
