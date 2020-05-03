@@ -1,0 +1,119 @@
+Brain Vision Data Exchange Header File Version 1.0
+; Data created by the Vision Recorder
+
+[Common Infos]
+Codepage=UTF-8
+DataFile=002_P3_PassiveWet.eeg
+MarkerFile=002_P3_PassiveWet.vmrk
+DataFormat=BINARY
+; Data orientation: MULTIPLEXED=ch1,pt1, ch2,pt1 ...
+DataOrientation=MULTIPLEXED
+NumberOfChannels=18
+; Sampling interval in microseconds
+SamplingInterval=2000
+
+[Binary Infos]
+BinaryFormat=IEEE_FLOAT_32
+
+[Channel Infos]
+; Each entry: Ch<Channel number>=<Name>,<Reference channel name>,
+; <Resolution in "Unit">,<Unit>, Future extensions..
+; Fields are delimited by commas, some fields might be omitted (empty).
+; Commas in channel names are coded as "\1".
+Ch1=Oz,,0.0488281,µV
+Ch2=P7,,0.0488281,µV
+Ch3=T7,,0.0488281,µV
+Ch4=P3,,0.0488281,µV
+Ch5=C3,,0.0488281,µV
+Ch6=F3,,0.0488281,µV
+Ch7=Pz,,0.0488281,µV
+Ch8=Cz,,0.0488281,µV
+Ch9=Fz,,0.0488281,µV
+Ch10=P4,,0.0488281,µV
+Ch11=C4,,0.0488281,µV
+Ch12=F4,,0.0488281,µV
+Ch13=P8,,0.0488281,µV
+Ch14=T8,,0.0488281,µV
+Ch15=Fp2,,0.0488281,µV
+Ch16=M2,,0.0488281,µV
+Ch17=HEOG,,1,mV
+Ch18=VEOG,,1,mV
+
+[Comment]
+
+BrainVision Recorder Professional   -   V. 1.20.0701
+
+
+A m p l i f i e r  S e t u p
+============================
+Number of channels: 18
+Sampling Rate [Hz]: 500
+Sampling Interval [µS]: 2000
+
+Channels
+--------
+#     Name      Phys. Chn.    Resolution / Unit   Low Cutoff [s]   High Cutoff [Hz]   Notch [Hz]    Gradient         Offset
+1     Oz          1          0.0488281 µV             DC                0              Off
+2     P7          2          0.0488281 µV             DC                0              Off
+3     T7          3          0.0488281 µV             DC                0              Off
+4     P3          4          0.0488281 µV             DC                0              Off
+5     C3          5          0.0488281 µV             DC                0              Off
+6     F3          6          0.0488281 µV             DC                0              Off
+7     Pz          7          0.0488281 µV             DC                0              Off
+8     Cz          8          0.0488281 µV             DC                0              Off
+9     Fz          9          0.0488281 µV             DC                0              Off
+10    P4          10         0.0488281 µV             DC                0              Off
+11    C4          11         0.0488281 µV             DC                0              Off
+12    F4          12         0.0488281 µV             DC                0              Off
+13    P8          13         0.0488281 µV             DC                0              Off
+14    T8          14         0.0488281 µV             DC                0              Off
+15    Fp2         15         0.0488281 µV             DC                0              Off
+16    M2          16         0.0488281 µV             DC                0              Off
+17    HEOG        17                 1 mV             DC                0              Off         0.1[mV/mV]       0[mV] = 0[mV]
+18    VEOG        18                 1 mV             DC                0              Off         0.1[mV/mV]       0[mV] = 0[mV]
+
+Invert AUX Channel Polarity = No
+
+S o f t w a r e  F i l t e r s
+==============================
+#     Low Cutoff [s]   High Cutoff [Hz]   Notch [Hz]
+1      1.59155          30                 60
+2      1.59155          30                 60
+3      1.59155          30                 60
+4      1.59155          30                 60
+5      1.59155          30                 60
+6      1.59155          30                 60
+7      1.59155          30                 60
+8      1.59155          30                 60
+9      1.59155          30                 60
+10     1.59155          30                 60
+11     1.59155          30                 60
+12     1.59155          30                 60
+13     1.59155          30                 60
+14     1.59155          30                 60
+15     1.59155          30                 60
+16     1.59155          30                 60
+17     1.59155          30                 60
+18     1.59155          30                 60
+
+
+Data / Ref / Gnd Electrodes Selected Impedance Measurement Range: 0 - 100 kOhm
+Impedance [kOhm] at 13:02:47 :
+Oz:       Out of Range!
+P7:       Out of Range!
+T7:       Out of Range!
+P3:       Out of Range!
+C3:       Out of Range!
+F3:       Out of Range!
+Pz:       Out of Range!
+Cz:       Out of Range!
+Fz:       Out of Range!
+P4:           6
+C4:           4
+F4:           2
+P8:           5
+T8:           5
+Fp2:      Out of Range!
+M2:       Out of Range!
+Ref:          2
+Gnd:      Out of Range!

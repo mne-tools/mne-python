@@ -297,8 +297,6 @@ def regress_eog(epochs, verbose=None):
     event_names = ['A_error','B_error','C_error','D_error','E_error','F_error','G_error']
     i = 0
     for key, value in sorted(epochs.event_id.items(), key=lambda x: (x[1], x[0])):
-      print(i)
-
       event_names[i] = key
       i += 1
 
@@ -351,4 +349,3 @@ def regress_eog(epochs, verbose=None):
 
     return epochs_new    
 
-    
