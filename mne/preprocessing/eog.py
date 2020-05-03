@@ -18,6 +18,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     filter_length='10s', ch_name=None, tstart=0,
                     reject_by_annotation=False, thresh=None, verbose=None):
     """Locate EOG artifacts.
+
     Parameters
     ----------
     raw : instance of Raw
@@ -39,10 +40,12 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     thresh : float
         Threshold to trigger EOG event.
     %(verbose)s
+
     Returns
     -------
     eog_events : array
         Events.
+
     See Also
     --------
     create_eog_epochs
@@ -162,6 +165,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
                       baseline=None, preload=True, reject_by_annotation=True,
                       thresh=None, verbose=None):
     """Conveniently generate epochs around EOG artifact events.
+
     Parameters
     ----------
     raw : instance of Raw
@@ -184,11 +188,13 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
         If reject is None then no rejection is done. Example::
+
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
                           eeg=40e-6, # V (EEG channels)
                           eog=250e-6 # V (EOG channels)
                           )
+
     flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
@@ -209,18 +215,22 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         whose description begins with ``'bad'`` are not used for finding
         artifacts and epochs overlapping with them are rejected. If False, no
         rejection based on annotations is performed.
+
         .. versionadded:: 0.14.0
     thresh : float
         Threshold to trigger EOG event.
     %(verbose)s
+
     Returns
     -------
     eog_epochs : instance of Epochs
         Data epoched around EOG events.
+
     See Also
     --------
     find_eog_events
     compute_proj_eog
+
     Notes
     -----
     Filtering is only applied to the EOG channel while finding events.
