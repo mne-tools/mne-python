@@ -451,7 +451,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Notes
         -----
         This method returns a copy and does not modify the data it
-        operates on. It also returns an EvokedArraw instance.
+        operates on. It also returns an EvokedArray instance.
 
         .. versionadded:: 0.9.0
         """
