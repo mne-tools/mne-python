@@ -39,20 +39,19 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, verbose=True).load_data()
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
+print(raw_intensity.info['dig'][0:5])
+print(raw_intensity.info['chs'][0]['loc'])
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+fig = mne.viz.plot_alignment(raw_intensity.info, 
+							 show_axes=True,
                              subject='fsaverage',
-                             trans=None, surfaces=['brain'],
+                             trans=raw_intensity.info['trans'], 
+                             surfaces=['head-dense', 'brain'],
                              fnirs=['channels', 'pairs'],
-                             subjects_dir=subjects_dir, fig=fig)
-mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
-
-fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
-                             subject='fsaverage',
-                             trans=None, surfaces=['head'],
-                             fnirs=['channels', 'pairs'],
-                             subjects_dir=subjects_dir, fig=fig)
+                             mri_fiducials=True,
+                             dig=True,
+                             subjects_dir=subjects_dir, 
+                             fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
 
