@@ -6,17 +6,18 @@ from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
 import os.path as op
-
+import pandas as pd
 import numpy as np
+
+import mne 
 
 from ..base import BaseRaw
 from ..constants import FIFF
-from ..meas_info import create_info, _format_dig_points
+from ..meas_info import create_info, _format_dig_points, read_fiducials
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
 from ...utils import logger, verbose, fill_doc
 from ...channels.montage import make_dig_montage
-from ...datasets import fetch_fsaverage
 
 @fill_doc
 def read_raw_boxy(fname, preload=False, verbose=None):
@@ -67,7 +68,6 @@ class RawBOXY(BaseRaw):
                                    (key, len(files[key]),))
             files[key] = files[key][0]
 
-        print(files)
         # Read header file
         # Parse required header fields
         ###this keeps track of the line we're on###
@@ -83,6 +83,7 @@ class RawBOXY(BaseRaw):
                 line_num += 1
                 if '#DATA ENDS' in i_line:
                     end_line = line_num - 1
+                    last_sample = end_line
                     break
                 if 'Detector Channels' in i_line:
                     detect_num = int(i_line.rsplit(' ')[0])
@@ -127,7 +128,7 @@ class RawBOXY(BaseRaw):
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
 
-        ###check if we are given a .tol or .elp file###
+        ###check if we are given .elp file###
         all_labels = []
         all_coords = []
         fiducial_coords = []
@@ -234,10 +235,10 @@ class RawBOXY(BaseRaw):
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame
         ###get our fiducials and transform matrix from fsaverage###
-        subjects_dir = op.dirname(fetch_fsaverage())
+        subjects_dir = op.dirname(mne.datasets.fetch_fsaverage())
         fid_path = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-fiducials.fif')
         fiducials = read_fiducials(fid_path)
-        trans = coregister_fiducials(info, fiducials[0], tol=0.02)
+        trans = mne.coreg.coregister_fiducials(info, fiducials[0], tol=0.02)
             
         ###remake montage using the transformed coordinates###
         all_coords_trans = apply_trans(trans,all_coords)
@@ -254,6 +255,7 @@ class RawBOXY(BaseRaw):
         for i_chan in range(len(all_coords_trans)):
             montage_trans.dig[i_chan+3]['r'] = all_coords_trans[i_chan]
             montage_trans.ch_names[i_chan] = all_labels[i_chan]
+        req_ind = montage_trans.ch_names
 
         # Create mne structure
         ###create info structure###
@@ -277,6 +279,10 @@ class RawBOXY(BaseRaw):
             info['chs'][i_chan]['loc'] = test = np.concatenate((temp_chn, temp_src, 
                                                                 temp_det, temp_other),axis=0)
         info['chs'][-1]['loc'] = np.zeros((12,))        
+        raw_extras = {'source_num': source_num,
+                     'detect_num': detect_num, 
+                     'start_line': start_line,
+                     'files': files}
 
         super(RawBOXY, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
@@ -285,15 +291,11 @@ class RawBOXY(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
         """
-        print(self)
-        with open(boxy_file,'r') as data:
-            for i_line in data:
-                line_num += 1
-                if '#DATA BEGINS' in i_line:
-                    start_line = line_num
-                    break
+        source_num = self._raw_extras[fi]['source_num']
+        detect_num = self._raw_extras[fi]['detect_num']
+        start_line = self._raw_extras[fi]['start_line']
 
-        raw_data = pd.read_csv(boxy_file, skiprows=start_line, sep='\t')
+        raw_data = pd.read_csv(self._raw_extras[fi]['files']['001'], skiprows=start_line, sep='\t')
         ###detectors, sources, and data types###
         detectors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 
                      'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -301,7 +303,8 @@ class RawBOXY(BaseRaw):
         data_types = ['AC','DC','Ph']
         sources = np.arange(1,source_num+1,1)
 
-        ###since we can save boxy files in two different styles###
+
+            ###since we can save boxy files in two different styles###
         ###this will check to see which style the data is saved###
         ###seems to also work with older boxy files###
         if 'exmux' in raw_data.columns:
@@ -386,6 +389,7 @@ class RawBOXY(BaseRaw):
      
         ###now combine our data types into a single array with the data###
         data = np.append(raw_ac, np.append(raw_dc, raw_ph, axis=0),axis=0)
+
 
         # Read triggers from event file
         ###add our markers to the data array based on filetype###

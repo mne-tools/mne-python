@@ -28,7 +28,6 @@ boxy_data_folder = mne.datasets.boxy_example.data_path()
 boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
 raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, verbose=True).load_data()
 
-
 # ###############################################################################
 # # View location of sensors over brain surface
 # # -------------------------------------------
@@ -38,15 +37,15 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, verbose=True).load_data()
 # # between the optodes, channels (the mid point of source-detector pairs) are
 # # shown as dots.
 
-# subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
-# fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-# fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
-#                              subject='fsaverage',
-#                              trans='fsaverage', surfaces=['brain'],
-#                              fnirs=['channels', 'pairs'],
-#                              subjects_dir=subjects_dir, fig=fig)
-# mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+                             subject='fsaverage',
+                             trans='fsaverage', surfaces=['brain'],
+                             fnirs=['channels', 'pairs'],
+                             subjects_dir=subjects_dir, fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
 
 # ###############################################################################
@@ -58,12 +57,13 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, verbose=True).load_data()
 # # These short channels can be seen in the figure above.
 # # To achieve this we pick all the channels that are not considered to be short.
 
-# picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
-# dists = mne.preprocessing.nirs.source_detector_distances(
-#     raw_intensity.info, picks=picks)
-# raw_intensity.pick(picks[dists > 0.01])
-# raw_intensity.plot(n_channels=len(raw_intensity.ch_names),
-#                    duration=500, show_scrollbars=False)
+picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
+dists = mne.preprocessing.nirs.source_detector_distances(
+    raw_intensity.info, picks=picks)
+print(dists)
+raw_intensity.pick(picks[dists > 0.01])
+raw_intensity.plot(n_channels=10,
+                   duration=500, show_scrollbars=False)
 
 
 # ###############################################################################
