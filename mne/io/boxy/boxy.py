@@ -291,7 +291,7 @@ class RawBOXY(BaseRaw):
         first_samps = start_line
         print('New first_samps: ', first_samps)
         diff = end_line-start_line
-        last_samps = start_line + int(diff/16)-1
+        last_samps = start_line + int(diff/source_num)-1
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps-first_samps)
 
