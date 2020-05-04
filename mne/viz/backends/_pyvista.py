@@ -158,6 +158,9 @@ class _Renderer(_BaseRenderer):
             if hasattr(self.plotter, "saved_cameras_tool_bar"):
                 self.plotter.saved_cameras_tool_bar.close()
             _enable_aa(self.figure, self.plotter)
+        if isinstance(size, int):
+            size = (size, size)
+        self.plotter.interactor.setMinimumSize(size[0], size[1])
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
