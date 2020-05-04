@@ -153,7 +153,7 @@ class RawBOXY(BaseRaw):
                     all_coords.append([float(X),float(Y),float(Z)])
                     get_coords = 0
         for i_index in range(3):
-            fiducial_coords[i_index] = np.asarray([float(x) for x in fiducial_coords[i_index]])
+            fiducial_coords[i_index] = np.asarray([float(x) for x in fiducial_coords[i_index]]) 
 
         ###get coordinates for sources###
         source_coords = []
@@ -237,29 +237,29 @@ class RawBOXY(BaseRaw):
         fid_path = op.join('mne', 'data', 'fsaverage', 'fsaverage-fiducials.fif')
         fiducials = read_fiducials(fid_path)
         trans = coregister_fiducials(info, fiducials[0], tol=0.02)
-            
-        ###remake montage using the transformed coordinates###
-        all_coords_trans = apply_trans(trans,all_coords)
-        all_chan_dict_trans = dict(zip(all_labels,all_coords_trans))
-        fiducial_coords_trans = apply_trans(trans,fiducial_coords)
+        info.update(trans=trans)
+
+        # ###remake montage using the transformed coordinates###
+        # all_coords_trans = apply_trans(trans,all_coords)
+        # all_chan_dict_trans = dict(zip(all_labels,all_coords_trans))
+        # fiducial_coords_trans = apply_trans(trans,fiducial_coords)
         
-        ###make our montage###
-        montage_trans = make_dig_montage(ch_pos=all_chan_dict_trans,coord_frame='head',
-                                                nasion = fiducial_coords_trans[0],
-                                                lpa = fiducial_coords_trans[1], 
-                                                rpa = fiducial_coords_trans[2])
+        # ###make our montage###
+        # montage_trans = make_dig_montage(ch_pos=all_chan_dict,coord_frame='head',
+        #                                         nasion = fiducial_coords[0],
+        #                                         lpa = fiducial_coords[1], 
+        #                                         rpa = fiducial_coords[2])
         
-        ###let's fix montage order ###
-        for i_chan in range(len(all_coords_trans)):
-            montage_trans.dig[i_chan+3]['r'] = all_coords_trans[i_chan]
-            montage_trans.ch_names[i_chan] = all_labels[i_chan]
-        req_ind = montage_trans.ch_names
+        # ###let's fix montage order ###
+        # for i_chan in range(len(all_coords)):
+        #     montage_trans.dig[i_chan+3]['r'] = all_coords[i_chan]
+        #     montage_trans.ch_names[i_chan] = all_labels[i_chan]
 
         # Create mne structure
         ###create info structure###
-        info = create_info(boxy_labels,srate,ch_types='fnirs_raw')
-        ###add data type and channel wavelength to info###
-        info.update(dig=montage_trans.dig, trans=trans)
+        # info = create_info(boxy_labels,srate,ch_types='fnirs_raw')
+        # ###add data type and channel wavelength to info###
+        # info.update(dig=montage_trans.dig, trans=trans)
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.
@@ -270,9 +270,9 @@ class RawBOXY(BaseRaw):
 
         ###place our coordinates and wavelengths for each channel###
         for i_chan in range(len(boxy_labels)-1):
-            temp_chn = apply_trans(trans,boxy_coords[i_chan][0:3])
-            temp_src = apply_trans(trans,boxy_coords[i_chan][3:6])
-            temp_det = apply_trans(trans,boxy_coords[i_chan][6:9])
+            temp_chn = boxy_coords[i_chan][0:3]
+            temp_src = boxy_coords[i_chan][3:6]
+            temp_det = boxy_coords[i_chan][6:9]
             temp_other = np.asarray(boxy_coords[i_chan][9:],dtype=np.float64)
             info['chs'][i_chan]['loc'] = test = np.concatenate((temp_chn, temp_src, 
                                                                 temp_det, temp_other),axis=0)
