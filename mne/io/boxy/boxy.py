@@ -237,8 +237,7 @@ class RawBOXY(BaseRaw):
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame
         ###get our fiducials and transform matrix from fsaverage###
-        subjects_dir = op.dirname(mne.datasets.fetch_fsaverage())
-        fid_path = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-fiducials.fif')
+        fid_path = op.join('mne', 'data', 'fsaverage', 'fsaverage-fiducials.fif')
         fiducials = read_fiducials(fid_path)
         trans = mne.coreg.coregister_fiducials(info, fiducials[0], tol=0.02)
             
@@ -390,8 +389,7 @@ class RawBOXY(BaseRaw):
                             raw_ph[index_loc,:] = raw_data[channel].to_numpy()
      
         ###now combine our data types into a single array with the data###
-        data = np.append(raw_ac, np.append(raw_dc, raw_ph, axis=0),axis=0)
-
+        data_ = np.append(raw_ac, np.append(raw_dc, raw_ph, axis=0),axis=0)
 
         # Read triggers from event file
         ###add our markers to the data array based on filetype###
@@ -399,8 +397,11 @@ class RawBOXY(BaseRaw):
             if type(digaux) is list and digaux != []:
                 markers = digaux[np.arange(0,len(digaux),source_num)]
             else:
-                markers = np.zeros(np.size(data,axis=1))
+                markers = np.zeros(np.size(data_,axis=1))
         elif filetype == 'parsed':
             markers = digaux  
-        data = np.vstack((data, markers))
+        
+        # place our data into the data object in place
+        data[:] = np.vstack((data_, markers))[:, start:stop]
+        
         return data
