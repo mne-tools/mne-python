@@ -3,7 +3,7 @@
 # License: BSD 3 clause
 
 from copy import deepcopy
-from os import remove, makedirs
+from os import makedirs
 import os.path as op
 import re
 from shutil import copy
@@ -11,7 +11,6 @@ from shutil import copy
 import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
-import matplotlib.pyplot as plt
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
@@ -20,11 +19,10 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, catch_logging,
-                       requires_freesurfer, requires_nibabel)
+from mne.utils import (run_tests_if_main, catch_logging)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface, make_flash_bem)
+                     _check_surface_size, _bem_find_surface)
 from mne.surface import read_surface
 from mne.io import read_info
 
@@ -135,8 +133,8 @@ def test_make_bem_model(tmpdir, kwargs, fname):
     if len(kwargs.get('conductivity', (0, 0, 0))) == 1:
         assert 'distance' not in log
     else:
-        assert re.search(r'urfaces is approximately *3\.6 mm', log) is not None
-    assert re.search(r'inner skull CM is *0\.69 *-10\.00 *44\.26 mm',
+        assert re.search(r'urfaces is approximately *3\.4 mm', log) is not None
+    assert re.search(r'inner skull CM is *0\.65 *-9\.62 *43\.85 mm',
                      log) is not None
     model_c = read_bem_surfaces(fname)
     _compare_bem_surfaces(model, model_c)
@@ -366,43 +364,6 @@ def test_fit_sphere_to_headshape():
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)
     pytest.raises(ValueError, fit_sphere_to_headshape, info, units='m')
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
-
-
-@requires_nibabel()
-@requires_freesurfer('mri_convert')
-@testing.requires_testing_data
-def test_make_flash_bem(tmpdir):
-    """Test computing bem from flash images."""
-    tmp = str(tmpdir)
-    bemdir = op.join(subjects_dir, 'sample', 'bem')
-    flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')
-
-    for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-        copy(op.join(bemdir, surf + '.surf'), tmp)
-        copy(op.join(bemdir, surf + '.tri'), tmp)
-    copy(op.join(bemdir, 'inner_skull_tmp.tri'), tmp)
-    copy(op.join(bemdir, 'outer_skin_from_testing.surf'), tmp)
-
-    # This function deletes the tri files at the end.
-    try:
-        make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
-                       flash_path=flash_path)
-        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            coords, faces = read_surface(op.join(bemdir, surf + '.surf'))
-            surf = 'outer_skin_from_testing' if surf == 'outer_skin' else surf
-            coords_c, faces_c = read_surface(op.join(tmp, surf + '.surf'))
-            assert_equal(0, faces.min())
-            assert_equal(coords.shape[0], faces.max() + 1)
-            assert_allclose(coords, coords_c)
-            assert_allclose(faces, faces_c)
-    finally:
-        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            remove(op.join(bemdir, surf + '.surf'))  # delete symlinks
-            copy(op.join(tmp, surf + '.tri'), bemdir)  # return deleted tri
-            copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
-        copy(op.join(tmp, 'inner_skull_tmp.tri'), bemdir)
-        copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
-    plt.close('all')
 
 
 run_tests_if_main()

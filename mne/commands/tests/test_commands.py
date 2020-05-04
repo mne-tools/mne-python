@@ -20,7 +20,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_show_info, mne_what, mne_setup_source_space,
                           mne_setup_forward_model, mne_anonymize,
                           mne_prepare_bem_model, mne_sys_info)
-from mne.datasets import testing, sample
+from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
                        requires_mayavi, requires_vtk, requires_freesurfer,
@@ -208,11 +208,11 @@ def test_surf2bem():
     check_usage(mne_surf2bem)
 
 
-@pytest.mark.timeout(600)  # took ~400 sec on a local test
+@pytest.mark.timeout(900)  # took ~400 sec on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_nibabel()
-@requires_freesurfer
+@requires_freesurfer('mri_watershed')
 @testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
@@ -255,16 +255,14 @@ def test_watershed_bem(tmpdir):
         assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
-@pytest.mark.timeout(300)  # took 200 sec locally
+@pytest.mark.timeout(120)  # took ~70 sec locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_flash_bem(tmpdir):
     """Test mne flash_bem."""
     check_usage(mne_flash_bem, force_help=True)
-    # Using the sample dataset
-    subjects_dir = op.join(sample.data_path(download=False), 'subjects')
     # Copy necessary files to tempdir
     tempdir = str(tmpdir)
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
@@ -283,17 +281,24 @@ def test_flash_bem(tmpdir):
         shutil.copyfile(in_fname, op.join(flash_path, op.basename(in_fname)))
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
-    out_fnames = list()
-    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
-        out_fnames.append(op.join(subject_path_new, 'bem', 'outer_skin.surf'))
-    assert not any(op.isfile(out_fname) for out_fname in out_fnames)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
     with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
-    # do they exist and are expected size
-    for out_fname in out_fnames:
-        _, tris = read_surface(out_fname)
-        assert len(tris) == 5120
+
+    kwargs = dict(rtol=1e-5, atol=1e-5)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        rr, tris = read_surface(op.join(subject_path_new, 'bem',
+                                        '%s.surf' % s))
+        assert_equal(len(tris), 5120)
+        assert_equal(tris.min(), 0)
+        assert_equal(rr.shape[0], tris.max() + 1)
+        # compare to the testing flash surfaces
+        rr_c, tris_c = read_surface(op.join(subjects_dir, 'sample', 'bem',
+                                            '%s.surf' % s))
+        assert_allclose(rr, rr_c, **kwargs)
+        assert_allclose(tris, tris_c, **kwargs)
 
 
 @testing.requires_testing_data

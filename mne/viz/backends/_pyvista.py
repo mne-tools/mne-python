@@ -189,7 +189,7 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             smooth_shading = self.figure.smooth_shading
@@ -221,7 +221,8 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=smooth_shading
+                smooth_shading=smooth_shading,
+                interpolate_before_map=interpolate_before_map,
             )
             return actor, mesh
 

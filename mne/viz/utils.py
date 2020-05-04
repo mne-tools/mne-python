@@ -452,7 +452,7 @@ def _get_help_text(params):
 def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                      size=1.3):
     import matplotlib.pyplot as plt
-    from matplotlib import gridspec
+    from matplotlib.gridspec import GridSpec
 
     if n_cells == 1:
         nrows = ncols = 1
@@ -479,14 +479,16 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
     height_ratios = None
     g_kwargs = {}
     figure_nobar(figsize=(width * 1.5, height * 1.5))
-    gs = gridspec.GridSpec(
-        nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+    gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
 
     axes = []
-    naxes = n_cells
     if colorbar:
-        naxes += nrows - 1
-    for ax_idx in range(naxes):
+        # exclude last axis of each row except top row, which is for colorbar
+        exclude = set(range(2 * ncols - 1, nrows * ncols, ncols))
+        ax_idxs = sorted(set(range(nrows * ncols)) - exclude)[:n_cells + 1]
+    else:
+        ax_idxs = range(n_cells)
+    for ax_idx in ax_idxs:
         axes.append(plt.subplot(gs[ax_idx]))
 
     fig = axes[0].get_figure()

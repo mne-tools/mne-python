@@ -280,7 +280,8 @@ epochs['Tapping/Right'].average(picks='hbr').plot_topomap(
 ###############################################################################
 # And we can plot the comparison at a single time point for two conditions.
 
-fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5))
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
+                         gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
 vmin, vmax, ts = -8, 8, 9.0
 
 evoked_left = epochs['Tapping/Left'].average()
@@ -301,10 +302,10 @@ evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
 
 evoked_diff = mne.combine_evoked([evoked_left, -evoked_right], weights='equal')
 
-evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2],
-                         vmin=vmin, vmax=vmax,
+evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2:],
+                         vmin=vmin, vmax=vmax, colorbar=True,
                          **topomap_args)
-evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2],
+evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2:],
                          vmin=vmin, vmax=vmax, colorbar=True,
                          **topomap_args)
 
@@ -312,6 +313,7 @@ for column, condition in enumerate(
         ['Tapping Left', 'Tapping Right', 'Left-Right']):
     for row, chroma in enumerate(['HbO', 'HbR']):
         axes[row, column].set_title('{}: {}'.format(chroma, condition))
+fig.tight_layout()
 
 ###############################################################################
 # Lastly, we can also look at the individual waveforms to see what is
