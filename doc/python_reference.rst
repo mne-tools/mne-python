@@ -118,6 +118,7 @@ File I/O
    read_events
    read_evokeds
    read_evoked_fieldtrip
+   read_freesurfer_lut
    read_forward_solution
    read_label
    read_morph_map
@@ -277,6 +278,7 @@ Visualization
    set_3d_view
    set_3d_title
    create_3d_figure
+   get_brain_class
 
 
 Preprocessing
@@ -893,6 +895,7 @@ options):
    :toctree: generated/
 
    ttest_1samp_no_p
+   ttest_ind_no_p
    f_oneway
    f_mway_rm
    f_threshold_mway_rm

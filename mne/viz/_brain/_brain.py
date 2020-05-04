@@ -19,8 +19,9 @@ from .view import lh_views_dict, rh_views_dict, View
 
 from .._3d import _process_clim, _handle_time
 
+from ...surface import mesh_edges
 from ...morph import _hemi_morph
-from ...label import read_label
+from ...label import read_label, _read_annot
 from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
 
 
@@ -108,6 +109,8 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | 3D function:              | surfer.Brain | mne.viz._brain._Brain |
        +===========================+==============+=======================+
+       | add_annotation            | ✓            | ✓                     |
+       +---------------------------+--------------+-----------------------+
        | add_data                  | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | add_foci                  | ✓            | ✓                     |
@@ -130,7 +133,7 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | remove_foci               | ✓            |                       |
        +---------------------------+--------------+-----------------------+
-       | remove_labels             | ✓            | -                     |
+       | remove_labels             | ✓            |                       |
        +---------------------------+--------------+-----------------------+
        | save_image                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
@@ -146,7 +149,7 @@ class _Brain(object):
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
-                 cortex=None, alpha=1.0, size=800, background="black",
+                 cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm',
@@ -164,6 +167,13 @@ class _Brain(object):
         else:
             raise KeyError('hemi has to be either "lh", "rh", "split", '
                            'or "both"')
+
+        if figure is not None and not isinstance(figure, int):
+            backend._check_3d_figure(figure)
+        if title is None:
+            self._title = subject_id
+        else:
+            self._title = title
 
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
@@ -184,11 +194,12 @@ class _Brain(object):
         self._foreground = foreground
         self._hemi = hemi
         self._units = units
-        self._title = title
         self._subject_id = subject_id
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
+        self._hemi_actors = {}
+        self._hemi_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -197,18 +208,14 @@ class _Brain(object):
         self._time_label_added = False
         # array of data used by TimeViewer
         self._data = {}
-        self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
+        self.geo, self._overlays = {}, {}
         self.set_time_interpolation('nearest')
+
+        geo_kwargs = self.cortex_colormap(cortex)
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
 
-        if figure is not None and not isinstance(figure, int):
-            backend._check_3d_figure(figure)
-        if title is None:
-            self._title = subject_id
-        else:
-            self._title = title
         self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
@@ -234,21 +241,39 @@ class _Brain(object):
                         y=self.geo[h].coords[:, 1],
                         z=self.geo[h].coords[:, 2],
                         triangles=self.geo[h].faces,
-                        color=self.geo[h].grey_curv,
+                        color=None,
+                        scalars=self.geo[h].bin_curv,
+                        vmin=geo_kwargs["vmin"],
+                        vmax=geo_kwargs["vmax"],
+                        colormap=geo_kwargs["colormap"],
                         opacity=alpha,
                     )
                     if isinstance(mesh_data, tuple):
-                        _, mesh = mesh_data
+                        actor, mesh = mesh_data
                         # add metadata to the mesh for picking
                         mesh._hemi = h
                     else:
-                        _, mesh = mesh_data, None
+                        actor, mesh = mesh_data, None
                     self._hemi_meshes[h] = mesh
+                    self._hemi_actors[h] = actor
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
         if show:
             self._renderer.show()
+
+    def cortex_colormap(self, cortex):
+        """Return the colormap corresponding to the cortex."""
+        colormap_map = dict(classic=dict(colormap="Greys",
+                                         vmin=-1, vmax=2),
+                            high_contrast=dict(colormap="Greys",
+                                               vmin=-.1, vmax=1.3),
+                            low_contrast=dict(colormap="Greys",
+                                              vmin=-5, vmax=5),
+                            bone=dict(colormap="bone_r",
+                                      vmin=-.2, vmax=2),
+                            )
+        return colormap_map[cortex]
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
@@ -474,10 +499,7 @@ class _Brain(object):
                 actor, mesh = mesh_data
                 # add metadata to the mesh for picking
                 mesh._hemi = hemi
-                mapper = actor.GetMapper()
-                mapper.SetResolveCoincidentTopologyToPolygonOffset()
-                mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
-                    -1., -1.)
+                self.resolve_coincident_topology(actor)
             else:
                 actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)
@@ -733,17 +755,138 @@ class _Brain(object):
         self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
                               size=font_size, justification=justification)
 
-    def remove_labels(self, labels=None):
-        """Remove one or more previously added labels from the image.
+    def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
+                       remove_existing=True, color=None, **kwargs):
+        """Add an annotation file.
 
         Parameters
         ----------
-        labels : None | str | list of str
-            Labels to remove. Can be a string naming a single label, or None to
-            remove all labels. Possible names can be found in the Brain.labels
-            attribute.
+        annot : str | tuple
+            Either path to annotation file or annotation name. Alternatively,
+            the annotation can be specified as a ``(labels, ctab)`` tuple per
+            hemisphere, i.e. ``annot=(labels, ctab)`` for a single hemisphere
+            or ``annot=((lh_labels, lh_ctab), (rh_labels, rh_ctab))`` for both
+            hemispheres. ``labels`` and ``ctab`` should be arrays as returned
+            by :func:`nibabel.freesurfer.io.read_annot`.
+        borders : bool | int
+            Show only label borders. If int, specify the number of steps
+            (away from the true border) along the cortical mesh to include
+            as part of the border definition.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+        hemi : str | None
+            If None, it is assumed to belong to the hemipshere being
+            shown. If two hemispheres are being shown, data must exist
+            for both hemispheres.
+        remove_existing : bool
+            If True (default), remove old annotations.
+        color : matplotlib-style color code
+            If used, show all annotations in the same (specified) color.
+            Probably useful only when showing annotation borders.
+        **kwargs : additional keyword arguments
+            These are passed to the underlying
+            ``mayavi.mlab.pipeline.surface`` call.
         """
-        pass
+        hemis = self._check_hemis(hemi)
+
+        # Figure out where the data is coming from
+        if isinstance(annot, str):
+            if os.path.isfile(annot):
+                filepath = annot
+                path = os.path.split(filepath)[0]
+                file_hemi, annot = os.path.basename(filepath).split('.')[:2]
+                if len(hemis) > 1:
+                    if annot[:2] == 'lh.':
+                        filepaths = [filepath, op.join(path, 'rh' + annot[2:])]
+                    elif annot[:2] == 'rh.':
+                        filepaths = [op.join(path, 'lh' + annot[2:], filepath)]
+                    else:
+                        raise RuntimeError('To add both hemispheres '
+                                           'simultaneously, filename must '
+                                           'begin with "lh." or "rh."')
+                else:
+                    filepaths = [filepath]
+            else:
+                filepaths = []
+                for hemi in hemis:
+                    filepath = op.join(self._subjects_dir,
+                                       self._subject_id,
+                                       'label',
+                                       ".".join([hemi, annot, 'annot']))
+                    print(filepath)
+                    if not os.path.exists(filepath):
+                        raise ValueError('Annotation file %s does not exist'
+                                         % filepath)
+                    filepaths += [filepath]
+            annots = []
+            for hemi, filepath in zip(hemis, filepaths):
+                # Read in the data
+                labels, cmap, _ = _read_annot(filepath)
+                annots.append((labels, cmap))
+        else:
+            annots = [annot] if len(hemis) == 1 else annot
+            annot = 'annotation'
+
+        for hemi, (labels, cmap) in zip(hemis, annots):
+
+            # Maybe zero-out the non-border vertices
+            self._to_borders(labels, hemi, borders)
+
+            # Handle null labels properly
+            cmap[:, 3] = 255
+            # bgcolor = self._brain_color
+            bgcolor = [144, 144, 144, 255]
+            bgcolor[-1] = 0
+            cmap[cmap[:, 4] < 0, 4] += 2 ** 24  # wrap to positive
+            cmap[cmap[:, 4] <= 0, :4] = bgcolor
+            if np.any(labels == 0) and not np.any(cmap[:, -1] <= 0):
+                cmap = np.vstack((cmap, np.concatenate([bgcolor, [0]])))
+
+            # Set label ids sensibly
+            order = np.argsort(cmap[:, -1])
+            cmap = cmap[order]
+            ids = np.searchsorted(cmap[:, -1], labels)
+            cmap = cmap[:, :4]
+
+            #  Set the alpha level
+            alpha_vec = cmap[:, 3]
+            alpha_vec[alpha_vec > 0] = alpha * 255
+
+            # Override the cmap when a single color is used
+            if color is not None:
+                from matplotlib.colors import colorConverter
+                rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
+                cmap[:, :3] = rgb.astype(cmap.dtype)
+
+            ctable = cmap.astype(np.float) / 255.
+
+            mesh_data = self._renderer.mesh(
+                x=self.geo[hemi].coords[:, 0],
+                y=self.geo[hemi].coords[:, 1],
+                z=self.geo[hemi].coords[:, 2],
+                triangles=self.geo[hemi].faces,
+                color=None,
+                colormap=ctable,
+                vmin=np.min(ids),
+                vmax=np.max(ids),
+                scalars=ids,
+                interpolate_before_map=False,
+            )
+            if isinstance(mesh_data, tuple):
+                from ..backends._pyvista import _set_colormap_range
+                actor, mesh = mesh_data
+                # add metadata to the mesh for picking
+                mesh._hemi = hemi
+                _set_colormap_range(actor, cmap.astype(np.uint8),
+                                    None)
+                self.resolve_coincident_topology(actor)
+
+    def resolve_coincident_topology(self, actor):
+        """Resolve z-fighting of overlapping surfaces."""
+        mapper = actor.GetMapper()
+        mapper.SetResolveCoincidentTopologyToPolygonOffset()
+        mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
+            -1., -1.)
 
     def close(self):
         """Close all figures and cleanup data structure."""
@@ -1266,6 +1409,42 @@ class _Brain(object):
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))
         return hemi
+
+    def _check_hemis(self, hemi):
+        """Check for safe dual or single-hemi input, returns list."""
+        if hemi is None:
+            if self._hemi not in ['lh', 'rh']:
+                hemi = ['lh', 'rh']
+            else:
+                hemi = [self._hemi]
+        elif hemi not in ['lh', 'rh']:
+            extra = ' or None' if self._hemi in ['lh', 'rh'] else ''
+            raise ValueError('hemi must be either "lh" or "rh"' + extra)
+        else:
+            hemi = [hemi]
+        return hemi
+
+    def _to_borders(self, label, hemi, borders, restrict_idx=None):
+        """Convert a label/parc to borders."""
+        if not isinstance(borders, (bool, int)) or borders < 0:
+            raise ValueError('borders must be a bool or positive integer')
+        if borders:
+            n_vertices = label.size
+            edges = mesh_edges(self.geo[hemi].faces)
+            edges = edges.tocoo()
+            border_edges = label[edges.row] != label[edges.col]
+            show = np.zeros(n_vertices, dtype=np.int)
+            keep_idx = np.unique(edges.row[border_edges])
+            if isinstance(borders, int):
+                for _ in range(borders):
+                    keep_idx = np.in1d(self.geo[hemi].faces.ravel(), keep_idx)
+                    keep_idx.shape = self.geo[hemi].faces.shape
+                    keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
+                    keep_idx = np.unique(keep_idx)
+                if restrict_idx is not None:
+                    keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
+            show[keep_idx] = 1
+            label *= show
 
     def scale_data_colormap(self, fmin, fmid, fmax, transparent,
                             center=None, alpha=1.0, data=None, verbose=None):

@@ -15,6 +15,10 @@ First, we get the paths for the evoked data and the time courses (stcs).
 """
 
 import os
+import os.path as op
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
@@ -106,6 +110,26 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir)
 # visualization, a glass brain does not show us one slice but what we would
 # see if the brain was transparent like glass.
 stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
+
+###############################################################################
+# You can also extract label time courses using volumetric atlases. Here we'll
+# use the built-in ``aparc.a2009s+aseg.mgz``:
+
+fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aparc.a2009s+aseg.mgz')
+label_names = mne.get_volume_labels_from_aseg(fname_aseg)
+label_tc = stc.extract_label_time_course(
+    fname_aseg, src=src, trans=inv['mri_head_t'])
+lidx, tidx = np.unravel_index(np.argmax(label_tc), label_tc.shape)
+fig, ax = plt.subplots(1)
+ax.plot(stc.times, label_tc.T, 'k', lw=1., alpha=0.5)
+xy = np.array([stc.times[tidx], label_tc[lidx, tidx]])
+xytext = xy + [0.01, 1]
+ax.annotate(
+    label_names[lidx], xy, xytext, arrowprops=dict(arrowstyle='->'), color='r')
+ax.set(xlim=stc.times[[0, -1]], xlabel='Time (s)', ylabel='Activation')
+for key in ('right', 'top'):
+    ax.spines[key].set_visible(False)
+fig.tight_layout()
 
 ###############################################################################
 # Vector Source Estimates

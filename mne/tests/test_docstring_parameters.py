@@ -246,7 +246,6 @@ prepare_inverse_operator
 read_bad_channels
 read_fiducials
 read_tag
-requires_sample_data
 rescale
 setup_proj
 source_estimate_quantification

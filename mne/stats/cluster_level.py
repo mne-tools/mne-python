@@ -384,7 +384,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         elif tail == 1:
             stop = np.max(use_x)
         else:  # tail == 0
-            stop = np.max(np.abs(use_x))
+            stop = max(np.max(use_x), -np.min(use_x))
         del use_x
         thresholds = np.arange(threshold['start'], stop,
                                threshold['step'], float)
@@ -436,7 +436,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                                                 ndimage)
                 clusters += out[0]
                 sums = np.concatenate((sums, out[1]))
-        if tfce is True:
+        if tfce:
             # the score of each point is the sum of the h^H * e^E for each
             # supporting section "rectangle" h x e.
             if ti == 0:
@@ -455,7 +455,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 else:
                     len_c = len(c)
                 scores[c] += h * (len_c ** e_power)
-    if tfce is True:
+    if tfce:
         # each point gets treated independently
         clusters = np.arange(x.size)
         if connectivity is None or connectivity is False:
@@ -892,9 +892,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                          partitions=partitions, t_power=t_power,
                          show_info=True)
     clusters, cluster_stats = out
+
+    # The stat should have the same shape as the samples
+    t_obs.shape = sample_shape
+
     # For TFCE, return the "adjusted" statistic instead of raw scores
     if isinstance(threshold, dict):
-        t_obs = cluster_stats.copy()
+        t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
 
     logger.info('Found %d clusters' % len(clusters))
 
@@ -907,9 +911,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         # ndimage outputs slices or boolean masks by default
         if out_type == 'indices':
             clusters = _cluster_mask_to_indices(clusters)
-
-    # The stat should have the same shape as the samples
-    t_obs.shape = sample_shape
 
     # convert our seed to orders
     # check to see if we can do an exact test

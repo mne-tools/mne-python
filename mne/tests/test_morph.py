@@ -559,7 +559,7 @@ def test_volume_labels_morph(tmpdir):
     evoked.info.normalize_proj()
     n_ch = len(evoked.ch_names)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
+    label_names = sorted(get_volume_labels_from_aseg(aseg_fname))
     src = setup_volume_source_space(
         'sample', subjects_dir=subjects_dir, volume_label=label_names[:2],
         mri=aseg_fname)
