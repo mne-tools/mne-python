@@ -527,7 +527,7 @@ def has_dataset(name):
 
     Returns
     -------
-      : bool
+    has : bool
         True if the dataset is present.
     """
     name = 'spm' if name == 'spm_face' else name
