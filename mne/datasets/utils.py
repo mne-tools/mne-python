@@ -226,6 +226,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
         'fnirs_motor': 'MNE_DATASETS_FNIRS_MOTOR_PATH',
+        'boxy_example': 'MNE_DATASETS_BOXY_EXAMPLE_PATH',
         'opm': 'MNE_DATASETS_OPM_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
         'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
@@ -263,6 +264,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
         fnirs_motor='https://osf.io/dj3eh/download?version=1',
+        boxy_example='https://osf.io/hksme/download?version=1',
         opm='https://osf.io/p6ae7/download?version=2',
         visual_92_categories=[
             'https://osf.io/8ejrs/download?version=1',
@@ -281,6 +283,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         mtrf='mTRF_1.5.zip',
         multimodal='MNE-multimodal-data.tar.gz',
         fnirs_motor='MNE-fNIRS-motor-data.tgz',
+        boxy_example='MNE-BOXY-example-data.tgz',
         opm='MNE-OPM-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
@@ -325,6 +328,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='1ef691944239411b869b3ed2f40a69fe',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
+        boxy_example='b3793334548b7ba04c1b767c66117414',
         opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
                               '203410a98afc9df9ae8ba9f933370e20'],
@@ -523,7 +527,7 @@ def has_dataset(name):
 
     Returns
     -------
-    has : bool
+      : bool
         True if the dataset is present.
     """
     name = 'spm' if name == 'spm_face' else name
@@ -542,6 +546,7 @@ def has_dataset(name):
             'spm': 'MNE-spm-face',
             'multimodal': 'MNE-multimodal-data',
             'fnirs_motor': 'MNE-fNIRS-motor-data',
+            'boxy_example': 'MNE-BOXY-example-data',
             'opm': 'MNE-OPM-data',
             'testing': 'MNE-testing-data',
             'visual_92_categories': 'MNE-visual_92_categories-data',
@@ -569,7 +574,7 @@ def _download_all_example_data(verbose=True):
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor)
+                   fnirs_motor, boxy_example)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -578,6 +583,7 @@ def _download_all_example_data(verbose=True):
     hf_sef.data_path()
     multimodal.data_path()
     fnirs_motor.data_path()
+    boxy_example.data_path()
     opm.data_path()
     mtrf.data_path()
     fieldtrip_cmc.data_path()
