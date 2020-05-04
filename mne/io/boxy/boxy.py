@@ -361,7 +361,7 @@ class RawBOXY(BaseRaw):
                         ###save our data based on data type###
                         if data_types.index(i_data) == 0:
                             raw_ac[index_loc,:] = raw_data[channel][time_points].to_numpy()
-                        elif data_ty pes.index(i_data) == 1:
+                        elif data_types.index(i_data) == 1:
                             raw_dc[index_loc,:] = raw_data[channel][time_points].to_numpy()
                         elif data_types.index(i_data) == 2:
                             raw_ph[index_loc,:] = raw_data[channel][time_points].to_numpy()
