@@ -9,8 +9,6 @@ import os.path as op
 import pandas as pd
 import numpy as np
 
-import mne 
-
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points, read_fiducials
@@ -18,6 +16,7 @@ from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
 from ...utils import logger, verbose, fill_doc
 from ...channels.montage import make_dig_montage
+from ...coreg import coregister_fiducials
 
 
 @fill_doc
@@ -239,7 +238,7 @@ class RawBOXY(BaseRaw):
         ###get our fiducials and transform matrix from fsaverage###
         fid_path = op.join('mne', 'data', 'fsaverage', 'fsaverage-fiducials.fif')
         fiducials = read_fiducials(fid_path)
-        trans = mne.coreg.coregister_fiducials(info, fiducials[0], tol=0.02)
+        trans = coregister_fiducials(info, fiducials[0], tol=0.02)
             
         ###remake montage using the transformed coordinates###
         all_coords_trans = apply_trans(trans,all_coords)
@@ -260,7 +259,7 @@ class RawBOXY(BaseRaw):
 
         # Create mne structure
         ###create info structure###
-        info = mne.create_info(boxy_labels,srate,ch_types='fnirs_raw')
+        info = create_info(boxy_labels,srate,ch_types='fnirs_raw')
         ###add data type and channel wavelength to info###
         info.update(dig=montage_trans.dig, trans=trans)
 
