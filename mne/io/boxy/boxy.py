@@ -291,10 +291,10 @@ class RawBOXY(BaseRaw):
         first_samps = start_line
         print('New first_samps: ', first_samps)
         diff = end_line-start_line
-        last_samps = start_line + int(diff/source_num)-1
+        #input file has rows for each source, output variable rearranges as columns and does not
+        last_samps = start_line + int(diff/source_num)-1 
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps-first_samps)
-
 
         super(RawBOXY, self).__init__(
             info, preload, filenames=[fname], first_samps=[first_samps], 
