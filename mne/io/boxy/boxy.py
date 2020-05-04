@@ -19,6 +19,7 @@ from ...transforms import apply_trans, _get_trans
 from ...utils import logger, verbose, fill_doc
 from ...channels.montage import make_dig_montage
 
+
 @fill_doc
 def read_raw_boxy(fname, preload=False, verbose=None):
     """Reader for a BOXY optical imaging recording.
