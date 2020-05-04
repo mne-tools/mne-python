@@ -86,7 +86,6 @@ class RawBOXY(BaseRaw):
                 line_num += 1
                 if '#DATA ENDS' in i_line:
                     end_line = line_num - 1
-                    last_sample = end_line
                     break
                 if 'Detector Channels' in i_line:
                     detect_num = int(i_line.rsplit(' ')[0])
@@ -286,8 +285,20 @@ class RawBOXY(BaseRaw):
                      'start_line': start_line,
                      'files': files}
 
+        print('Start Line: ', start_line)
+        print('End Line: ', end_line)
+        print('Original Difference: ', end_line-start_line)
+        first_samps = start_line
+        print('New first_samps: ', first_samps)
+        diff = end_line-start_line
+        last_samps = start_line + int(diff/16)-1
+        print('New last_samps: ', last_samps)
+        print('New Difference: ', last_samps-first_samps)
+
+
         super(RawBOXY, self).__init__(
-            info, preload, filenames=[fname], last_samps=[last_sample],
+            info, preload, filenames=[fname], first_samps=[first_samps], 
+            last_samps=[last_samps],
             raw_extras=[raw_extras], verbose=verbose)
  
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -402,7 +413,10 @@ class RawBOXY(BaseRaw):
         elif filetype == 'parsed':
             markers = digaux  
         
+        print('Blank Data shape: ', data.shape)
+        temp = np.vstack((data_, markers))
+        print('Input Data shape: ',temp.shape)
         # place our data into the data object in place
-        data[:] = np.vstack((data_, markers))[:, start:stop]
+        data[:] = np.vstack((data_, markers))
         
         return data

@@ -39,13 +39,13 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, verbose=True).load_data()
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
-fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
-                             subject='fsaverage',
-                             trans='fsaverage', surfaces=['brain'],
-                             fnirs=['channels', 'pairs'],
-                             subjects_dir=subjects_dir, fig=fig)
-mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+# fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+# fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+#                              subject='fsaverage',
+#                              trans='fsaverage', surfaces=['brain'],
+#                              fnirs=['channels', 'pairs'],
+#                              subjects_dir=subjects_dir, fig=fig)
+# mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
 
 # ###############################################################################
@@ -60,10 +60,11 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
 dists = mne.preprocessing.nirs.source_detector_distances(
     raw_intensity.info, picks=picks)
-print(dists)
 raw_intensity.pick(picks[dists > 0.01])
-raw_intensity.plot(n_channels=10,
-                   duration=500, show_scrollbars=False)
+print(raw_intensity.info)
+scalings = dict(eeg=20e-100)
+raw_intensity.plot(n_channels=1,
+                   duration=100, scalings=scalings, show_scrollbars=False)
 
 
 # ###############################################################################
