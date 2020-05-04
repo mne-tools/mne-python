@@ -61,10 +61,10 @@ picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
 dists = mne.preprocessing.nirs.source_detector_distances(
     raw_intensity.info, picks=picks)
 raw_intensity.pick(picks[dists > 0.01])
-print(raw_intensity.info)
-scalings = dict(eeg=20e-100)
-raw_intensity.plot(n_channels=1,
-                   duration=100, scalings=scalings, show_scrollbars=False)
+print(mne.io.pick.channel_type(raw_intensity.info, 0))
+scalings = dict(fnirs_raw=1e2)
+raw_intensity.plot(n_channels=10,
+                   duration=1000, scalings=scalings, show_scrollbars=True)
 
 
 # ###############################################################################
