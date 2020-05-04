@@ -9,8 +9,6 @@ import os.path as op
 import pandas as pd
 import numpy as np
 
-import mne 
-
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points, read_fiducials
@@ -18,7 +16,6 @@ from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
 from ...utils import logger, verbose, fill_doc
 from ...channels.montage import make_dig_montage
-# from ...coreg import coregister_fiducials
 
 
 @fill_doc
@@ -58,7 +55,7 @@ class RawBOXY(BaseRaw):
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
-        from ...coreg import get_mni_fiducials  # avoid circular import prob
+        from ...coreg import get_mni_fiducials, coregister_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
 
         # Check if required files exist and store names for later use
@@ -239,7 +236,7 @@ class RawBOXY(BaseRaw):
         ###get our fiducials and transform matrix from fsaverage###
         fid_path = op.join('mne', 'data', 'fsaverage', 'fsaverage-fiducials.fif')
         fiducials = read_fiducials(fid_path)
-        trans = mne.coreg.coregister_fiducials(info, fiducials[0], tol=0.02)
+        trans = coregister_fiducials(info, fiducials[0], tol=0.02)
             
         ###remake montage using the transformed coordinates###
         all_coords_trans = apply_trans(trans,all_coords)
