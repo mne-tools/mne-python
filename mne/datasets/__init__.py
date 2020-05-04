@@ -15,6 +15,7 @@ from . import sample
 from . import somato
 from . import multimodal
 from . import fnirs_motor
+from . import boxy_example
 from . import opm
 from . import spm_face
 from . import testing
