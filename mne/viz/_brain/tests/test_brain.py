@@ -60,7 +60,7 @@ class TstVTKPicker(object):
 @testing.requires_testing_data
 def test_brain_init(renderer):
     """Test initialization of the _Brain instance."""
-    hemi = 'both'
+    hemi = 'lh'
 
     with pytest.raises(ValueError, match='"size" parameter must be'):
         _Brain(subject_id=subject_id, hemi=hemi, surf=surf, size=[1, 2, 3])

@@ -168,6 +168,13 @@ class _Brain(object):
             raise KeyError('hemi has to be either "lh", "rh", "split", '
                            'or "both"')
 
+        if figure is not None and not isinstance(figure, int):
+            backend._check_3d_figure(figure)
+        if title is None:
+            self._title = subject_id
+        else:
+            self._title = title
+
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
         if isinstance(foreground, str):
@@ -187,7 +194,6 @@ class _Brain(object):
         self._foreground = foreground
         self._hemi = hemi
         self._units = units
-        self._title = title
         self._subject_id = subject_id
         self._subjects_dir = subjects_dir
         self._views = views
@@ -210,12 +216,6 @@ class _Brain(object):
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
 
-        if figure is not None and not isinstance(figure, int):
-            backend._check_3d_figure(figure)
-        if title is None:
-            self._title = subject_id
-        else:
-            self._title = title
         self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
