@@ -5,6 +5,7 @@
 from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
+import os.path as op
 
 import numpy as np
 
@@ -14,7 +15,8 @@ from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
 from ...utils import logger, verbose, fill_doc
-
+from ...channels.montage import make_dig_montage
+from ...datasets import fetch_fsaverage
 
 @fill_doc
 def read_raw_boxy(fname, preload=False, verbose=None):
@@ -55,6 +57,17 @@ class RawBOXY(BaseRaw):
         from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
 
+        # Check if required files exist and store names for later use
+        files = dict()
+        keys = ('mtg', 'elp', 'tol', '001')
+        for key in keys:
+            files[key] = glob.glob('%s/*%s' % (fname, key))
+            if len(files[key]) != 1:
+                raise RuntimeError('Expect one %s file, got %d' %
+                                   (key, len(files[key]),))
+            files[key] = files[key][0]
+
+        print(files)
         # Read header file
         # Parse required header fields
         ###this keeps track of the line we're on###
@@ -63,7 +76,9 @@ class RawBOXY(BaseRaw):
         ###load and read data to get some meta information###
         ###there is alot of information at the beginning of a file###
         ###but this only grabs some of it###
-        with open(boxy_file,'r') as data:
+
+
+        with open(files['001'],'r') as data:
             for i_line in data:
                 line_num += 1
                 if '#DATA ENDS' in i_line:
@@ -93,7 +108,7 @@ class RawBOXY(BaseRaw):
         chan_modulation = []
 
         ###load and read each line of the .mtg file###
-        with open(mtg_file,'r') as data:
+        with open(files['mtg'],'r') as data:
             for i_ignore in range(2):
                 next(data)
             for i_line in data:
@@ -116,39 +131,30 @@ class RawBOXY(BaseRaw):
         all_labels = []
         all_coords = []
         fiducial_coords = []
-        if coord_file[-3:].lower() == 'elp'.lower():
-            get_label = 0
-            get_coords = 0
-            ###load and read .elp file###
-            with open(coord_file,'r') as data:
-                for i_line in data:
-                    ###first let's get our fiducial coordinates###
-                    if '%F' in i_line:
-                        fiducial_coords.append(i_line.split()[1:])
-                    ###check where sensor info starts###
-                    if '//Sensor name' in i_line:
-                        get_label = 1
-                    elif get_label == 1:
-                        ###grab the part after '%N' for the label###
-                        label = i_line.split()[1]
-                        all_labels.append(label)
-                        get_label = 0
-                        get_coords = 1
-                    elif get_coords == 1:
-                        X, Y, Z = i_line.split()
-                        all_coords.append([float(X),float(Y),float(Z)])
-                        get_coords = 0
-            for i_index in range(3):
-                fiducial_coords[i_index] = np.asarray([float(x) for x in fiducial_coords[i_index]])
-        elif coord_file[-3:] == 'tol':
-            ###load and read .tol file###
-            with open(coord_file,'r') as data:
-                for i_line in data:
-                    label, X, Y, Z = i_line.split()
+        get_label = 0
+        get_coords = 0
+        ###load and read .elp file###
+        with open(files['elp'],'r') as data:
+            for i_line in data:
+                ###first let's get our fiducial coordinates###
+                if '%F' in i_line:
+                    fiducial_coords.append(i_line.split()[1:])
+                ###check where sensor info starts###
+                if '//Sensor name' in i_line:
+                    get_label = 1
+                elif get_label == 1:
+                    ###grab the part after '%N' for the label###
+                    label = i_line.split()[1]
                     all_labels.append(label)
-                    ###convert coordinates from mm to m##
-                    all_coords.append([(float(X)*0.001),(float(Y)*0.001),(float(Z)*0.001)])
-            
+                    get_label = 0
+                    get_coords = 1
+                elif get_coords == 1:
+                    X, Y, Z = i_line.split()
+                    all_coords.append([float(X),float(Y),float(Z)])
+                    get_coords = 0
+        for i_index in range(3):
+            fiducial_coords[i_index] = np.asarray([float(x) for x in fiducial_coords[i_index]])
+
         ###get coordinates for sources###
         source_coords = []
         for i_chan in source_label:
@@ -207,7 +213,7 @@ class RawBOXY(BaseRaw):
 
  
         ###make our montage###
-        montage_orig = mne.channels.make_dig_montage(ch_pos=all_chan_dict,coord_frame='head',
+        montage_orig = make_dig_montage(ch_pos=all_chan_dict,coord_frame='head',
                                                 nasion = fiducial_coords[0],
                                                 lpa = fiducial_coords[1], 
                                                 rpa = fiducial_coords[2])
@@ -221,7 +227,7 @@ class RawBOXY(BaseRaw):
         ###add an extra channel for our triggers for later###
         boxy_labels.append('Markers')
 
-        info = mne.create_info(boxy_labels,srate,ch_types='fnirs_raw')
+        info = create_info(boxy_labels,srate,ch_types='fnirs_raw')
         info.update(dig=montage_orig.dig)
 
         # Set up digitization
@@ -239,7 +245,7 @@ class RawBOXY(BaseRaw):
         fiducial_coords_trans = apply_trans(trans,fiducial_coords)
         
         ###make our montage###
-        montage_trans = mne.channels.make_dig_montage(ch_pos=all_chan_dict_trans,coord_frame='head',
+        montage_trans = make_dig_montage(ch_pos=all_chan_dict_trans,coord_frame='head',
                                                 nasion = fiducial_coords_trans[0],
                                                 lpa = fiducial_coords_trans[1], 
                                                 rpa = fiducial_coords_trans[2])
@@ -279,6 +285,7 @@ class RawBOXY(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
         """
+        print(self)
         with open(boxy_file,'r') as data:
             for i_line in data:
                 line_num += 1
