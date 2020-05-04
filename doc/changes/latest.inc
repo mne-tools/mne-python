@@ -51,6 +51,8 @@ Changelog
 
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
+- Add ``mri`` argument to :func:`mne.viz.plot_bem` by `Eric Larson`_
+
 - Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
 
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
@@ -85,6 +87,8 @@ Bug
 - Fix bug with :class:`mne.Report` where the BEM section could not be toggled by `Eric Larson`_
 
 - Fix bug when using :meth:`mne.Epochs.crop` to exclude the baseline period would break :func:`mne.Epochs.save` / :func:`mne.read_epochs` round-trip by `Eric Larson`_
+
+- Fix bug with :func:`mne.viz.plot_bem` when MRIs are not in standard FreeSurfer orientation by `Eric Larson`_
 
 - Fix :ref:`gen_mne_setup_forward_model` to have it actually compute the BEM solution in addition to creating the BEM model by `Eric Larson`_
 
