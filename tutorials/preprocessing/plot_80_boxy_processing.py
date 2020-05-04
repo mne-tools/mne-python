@@ -42,7 +42,15 @@ subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
                              subject='fsaverage',
-                             trans='fsaverage', surfaces=['brain'],
+                             trans=None, surfaces=['brain'],
+                             fnirs=['channels', 'pairs'],
+                             subjects_dir=subjects_dir, fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+                             subject='fsaverage',
+                             trans=None, surfaces=['head'],
                              fnirs=['channels', 'pairs'],
                              subjects_dir=subjects_dir, fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
@@ -57,14 +65,13 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # These short channels can be seen in the figure above.
 # # To achieve this we pick all the channels that are not considered to be short.
 
-picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
-dists = mne.preprocessing.nirs.source_detector_distances(
-    raw_intensity.info, picks=picks)
-raw_intensity.pick(picks[dists > 0.01])
-print(mne.io.pick.channel_type(raw_intensity.info, 0))
-scalings = dict(fnirs_raw=1e2)
-raw_intensity.plot(n_channels=10,
-                   duration=1000, scalings=scalings, show_scrollbars=True)
+# picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
+# dists = mne.preprocessing.nirs.source_detector_distances(
+#     raw_intensity.info, picks=picks)
+# raw_intensity.pick(picks[dists < 0.06])
+# scalings = dict(fnirs_raw=1e2)
+# raw_intensity.plot(n_channels=10,
+#                    duration=1000, scalings=scalings, show_scrollbars=True)
 
 
 # ###############################################################################
