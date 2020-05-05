@@ -60,10 +60,10 @@ class TstVTKPicker(object):
 def test_brain(renderer):
     """Test initialization of the _Brain instance."""
     from mne.label import read_label
-
-    # init
     hemi = 'lh'
     surf = 'inflated'
+    cortex = 'low_contrast'
+    title = 'test'
     size = (300, 300)
 
     with pytest.raises(ValueError, match='"size" parameter must be'):
@@ -75,10 +75,9 @@ def test_brain(renderer):
     with pytest.raises(KeyError):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
-    # cortex
     brain = _Brain(subject_id, hemi=hemi, surf=surf, size=size,
-                   subjects_dir=subjects_dir, title='test',
-                   cortex='low_contrast')
+                   subjects_dir=subjects_dir, title=title,
+                   cortex=cortex)
     # add_data
     stc = read_source_estimate(fname_stc)
     fmin = stc.data.min()
