@@ -451,7 +451,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Notes
         -----
         This method returns a copy and does not modify the data it
-        operates on. It also returns an EvokedArraw instance.
+        operates on. It also returns an EvokedArray instance.
 
         .. versionadded:: 0.9.0
         """
@@ -729,7 +729,7 @@ class EvokedArray(Evoked):
     @verbose
     def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
                  verbose=None):  # noqa: D102
-        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+        dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
         if data.ndim != 2:

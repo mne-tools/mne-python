@@ -117,7 +117,6 @@ known_config_types = (
     'MNE_STIM_CHANNEL',
     'MNE_USE_CUDA',
     'MNE_USE_NUMBA',
-    'MNE_SKIP_FS_FLASH_CALL',
     'SUBJECTS_DIR',
 )
 

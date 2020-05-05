@@ -541,6 +541,8 @@ class _BaseSourceEstimate(TimeMixin):
             The latency in seconds.
         """
         stc = self.magnitude() if self._data_ndim == 3 else self
+        if self._n_vertices == 0:
+            raise RuntimeError('Cannot find peaks with no vertices')
         vert_idx, time_idx, _ = _get_peak(
             stc.data, self.times, tmin, tmax, mode)
         if not vert_as_index:
@@ -611,6 +613,10 @@ class _BaseSourceEstimate(TimeMixin):
     def sfreq(self):
         """Sample rate of the data."""
         return 1. / self.tstep
+
+    @property
+    def _n_vertices(self):
+        return sum(len(v) for v in self.vertices)
 
     def _remove_kernel_sens_data_(self):
         """Remove kernel and sensor space data and compute self._data."""
@@ -1426,6 +1432,47 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         return self.__class__(self._data[data_idx], vertices,
                               self.tmin, self.tstep, subject_orig)
 
+    @fill_doc
+    def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
+                 vert_as_index=False, time_as_index=False):
+        """Get location and latency of peak amplitude.
+
+        Parameters
+        ----------
+        hemi : {'lh', 'rh', None}
+            The hemi to be considered. If None, the entire source space is
+            considered.
+        %(get_peak_parameters)s
+
+        Returns
+        -------
+        pos : int
+            The vertex exhibiting the maximum response, either ID or index.
+        latency : float | int
+            The time point of the maximum response, either latency in seconds
+            or index.
+        """
+        _check_option('hemi', hemi, ('lh', 'rh', None))
+        vertex_offset = 0
+        if hemi is not None:
+            if hemi == 'lh':
+                data = self.lh_data
+                vertices = [self.lh_vertno, []]
+            else:
+                vertex_offset = len(self.vertices[0])
+                data = self.rh_data
+                vertices = [[], self.rh_vertno]
+            meth = self.__class__(
+                data, vertices, self.tmin, self.tstep).get_peak
+        else:
+            meth = super().get_peak
+        out = meth(tmin=tmin, tmax=tmax, mode=mode,
+                   vert_as_index=vert_as_index,
+                   time_as_index=time_as_index)
+        if vertex_offset and vert_as_index:
+            out = (out[0] + vertex_offset, out[1])
+        return out
+
 
 @fill_doc
 class SourceEstimate(_BaseSurfaceSourceEstimate):
@@ -1617,36 +1664,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         snr_stc = self.copy()
         snr_stc._data[:] = 10 * np.log10((self.data * self.data) * scaling)
         return snr_stc
-
-    @fill_doc
-    def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
-                 vert_as_index=False, time_as_index=False):
-        """Get location and latency of peak amplitude.
-
-        Parameters
-        ----------
-        hemi : {'lh', 'rh', None}
-            The hemi to be considered. If None, the entire source space is
-            considered.
-        %(get_peak_parameters)s
-
-        Returns
-        -------
-        pos : int
-            The vertex exhibiting the maximum response, either ID or index.
-        latency : float | int
-            The time point of the maximum response, either latency in seconds
-            or index.
-        """
-        _check_option('hemi', hemi, ('lh', 'rh', None))
-        if hemi is not None:
-            use = self._hemilabel_stc(hemi)
-            meth = use.get_peak
-        else:
-            meth = super().get_peak
-        return meth(tmin=tmin, tmax=tmax, mode=mode,
-                    vert_as_index=vert_as_index,
-                    time_as_index=time_as_index)
 
     @fill_doc
     def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,

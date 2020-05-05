@@ -10,18 +10,15 @@ jobs:
         - run:
             name: Set BASH_ENV
             command: |
+              set -e
               echo "set -e" >> $BASH_ENV
-              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              export MNE_ROOT=${PWD}/minimal_cmds
-              echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              source tools/get_minimal_commands.sh
+              echo "source ${PWD}/tools/get_minimal_commands.sh" >> $BASH_ENV
               echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
               echo "export _MNE_BRAIN_TRACES_AUTO=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
-              curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
-              echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
-              echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
         - run:
@@ -181,7 +178,7 @@ jobs:
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                      python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation())" --accept-hcpmmp-license;
+                      python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects'))" --accept-hcpmmp-license;
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
@@ -339,7 +336,7 @@ jobs:
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip" memory_profiler
+               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip" memory_profiler https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
                python -m pip install --user -e .
         - run:
             name: make linkcheck
