@@ -151,15 +151,9 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     hp_ts = pos[:, 0].copy()
     hp_ts -= raw.first_samp / sfreq
     dt = np.diff(hp_ts)
-    seg_good = np.append(dt, 1. / sfreq)
     hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
 
     annot = Annotations([], [], [], orig_time=None)  # rel to data start
-
-    # Mark down times that are bad according to annotations
-    onsets, ends = _annotations_starts_stops(raw, 'bad')
-    for onset, end in zip(onsets, ends):
-        seg_good[onset:end] = 0
 
     # Annotate based on rotational velocity
     t_tot = raw.times[-1]
@@ -197,20 +191,25 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     disp = []
     if mean_distance_limit is not None:
         assert mean_distance_limit > 0
+
+        # compute average dev to head transform
+        avg_dev_head_t = compute_average_dev_head_t(raw, pos)
+
         # Get static head pos from file, used to convert quat to cartesian
         chpi_pos = sorted([d for d in raw.info['hpi_results'][-1]
                           ['dig_points']], key=lambda x: x['ident'])
         chpi_pos = np.array([d['r'] for d in chpi_pos])
-        # CTF: chpi_pos[0]-> LPA, chpi_pos[1]-> NASION, chpi_pos[2]-> RPA
+
         # Get head pos changes during recording
         chpi_pos_mov = np.array([apply_trans(_quat_to_affine(quat), chpi_pos)
                                 for quat in pos[:, 1:7]])
 
         # get average position
-        chpi_pos_avg = np.average(chpi_pos_mov, axis=0, weights=seg_good)
+        chpi_pos_avg = apply_trans(avg_dev_head_t, chpi_pos)
 
         # get movement displacement from mean pos
-        hpi_disp = chpi_pos_mov - np.tile(chpi_pos_avg, (len(seg_good), 1, 1))
+        hpi_disp = chpi_pos_mov - np.tile(chpi_pos_avg, (pos.shape[0], 1, 1))
+
         # get positions above threshold distance
         disp = np.sqrt((hpi_disp ** 2).sum(axis=2))
         bad_mask = np.any(disp > mean_distance_limit, axis=1)
