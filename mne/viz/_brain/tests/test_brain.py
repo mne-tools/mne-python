@@ -76,19 +76,13 @@ def test_brain(renderer):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
     # cortex
-    for cortex in ['classic', 'low_contrast', 'high_contrast', 'bone']:
-        brain = _Brain(subject_id, hemi=hemi, surf=surf, size=size,
-                       subjects_dir=subjects_dir, title='test',
-                       cortex=cortex)
-        brain.close()
-
+    brain = _Brain(subject_id, hemi=hemi, surf=surf, size=size,
+                   subjects_dir=subjects_dir, title='test',
+                   cortex='low_contrast')
     # add_data
     stc = read_source_estimate(fname_stc)
     fmin = stc.data.min()
     fmax = stc.data.max()
-
-    brain = _Brain(subject_id, hemi=hemi, surf=surf, size=size,
-                   subjects_dir=subjects_dir)
     for h in brain._hemis:
         if h == 'lh':
             hi = 0
