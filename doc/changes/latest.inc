@@ -31,6 +31,10 @@ Changelog
 
 - Add method :meth:`mne.VolSourceEstimate.in_label` by `Eric Larson`_
 
+- Add support for mixed source spaces to :func:`mne.compute_source_morph` by `Eric Larson`_
+
+- Add support for providing the destination surface source space in the ``src_to`` argument of :func:`mne.compute_source_morph` by `Eric Larson`_
+
 - Add ``tol_kind`` option to :func:`mne.compute_rank` by `Eric Larson`_
 
 - Allow resampling raw data with :func:`mne.io.Raw.resample` without preloading data, by `Eric Larson`_
