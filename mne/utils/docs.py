@@ -522,6 +522,29 @@ rank : None | dict | 'info' | 'full'
     of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+docdict['rank_tol'] = """
+tol : float | 'auto'
+    Tolerance for singular values to consider non-zero in
+    calculating the rank. The singular values are calculated
+    in this method such that independent data are expected to
+    have singular value around one. Can be 'auto' to use the
+    same thresholding as :func:`scipy.linalg.orth`.
+"""
+docdict['rank_tol_kind'] = """
+tol_kind : str
+    Can be: "absolute" or "relative". After applying the chosen scale factors
+    / normalization to the data, the singular values are computed, and
+    the rank is then given by:
+
+    - ``'absolute'``
+        The number of singular values ``s`` greater than ``tol``.
+    - ``'relative'``
+        The number of singular values ``s`` greater than ``tol * s.max()``.
+
+    This value is ignored when ``tol`` is a string, as it's always relative.
+
+    .. versionadded:: 0.21.0
+"""
 
 # Inverses
 docdict['depth'] = """
