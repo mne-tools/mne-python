@@ -41,6 +41,8 @@ Changelog
 
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
+- Added ability of :func:`mne.io.read_raw_nirx` to open data by passing path to header file `Robert Luke`_
+
 - Add :meth:`mne.channels.DigMontage.rename_channels` to allow renaming montage channels by `Eric Larson`_
 
 - Add support to in :meth:`mne.io.Raw.plot` for passing ``clipping`` as a float to clip to a proportion of the dedicated channel range by `Eric Larson`_

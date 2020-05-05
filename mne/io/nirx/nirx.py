@@ -5,6 +5,7 @@
 from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
+import os.path as op
 
 import numpy as np
 
@@ -23,7 +24,7 @@ def read_raw_nirx(fname, preload=False, verbose=None):
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder.
+        Path to the NIRX data folder or header file.
     %(preload)s
     %(verbose)s
 
@@ -50,7 +51,7 @@ class RawNIRX(BaseRaw):
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder.
+        Path to the NIRX data folder or header file.
     %(preload)s
     %(verbose)s
 
@@ -64,6 +65,9 @@ class RawNIRX(BaseRaw):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
+
+        if fname.endswith('.hdr'):
+            fname = op.dirname(op.abspath(fname))
 
         # Check if required files exist and store names for later use
         files = dict()
