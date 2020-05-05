@@ -244,7 +244,7 @@ def test_surface_vector_source_morph(tmpdir):
 
     # degenerate
     stc_vol = read_source_estimate(fname_vol, 'sample')
-    with pytest.raises(ValueError, match='stc_from was type'):
+    with pytest.raises(TypeError, match='stc_from must be an instance'):
         source_morph_surf.apply(stc_vol)
 
 
@@ -403,7 +403,7 @@ def test_volume_source_morph(tmpdir):
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
     stc_surf = read_source_estimate(fname_stc, 'sample')
-    with pytest.raises(ValueError, match='stc_from was type'):
+    with pytest.raises(TypeError, match='stc_from must be an instance'):
         source_morph_vol.apply(stc_surf)
 
     # src_to

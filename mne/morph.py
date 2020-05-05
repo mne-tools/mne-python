@@ -12,9 +12,12 @@ from scipy import sparse
 
 from .fixes import _get_img_fdata
 from .parallel import parallel_func
-from .source_estimate import (VolSourceEstimate, SourceEstimate,
+from .source_estimate import (VolSourceEstimate,
                               VolVectorSourceEstimate, VectorSourceEstimate,
+                              MixedVectorSourceEstimate,
+                              _BaseMixedSourceEstimate,
                               _BaseSurfaceSourceEstimate,
+                              _BaseVolSourceEstimate,
                               _BaseSourceEstimate, _get_ico_tris)
 from .source_space import SourceSpaces, _ensure_src
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
@@ -666,11 +669,11 @@ def _get_src_data(src, mri_resolution=True):
         src_kind = src_t.kind
         src_subject = src_t._subject
     del src
-    _check_option('src kind', src_kind, ('surface', 'volume'))  # XXX mixed
+    _check_option('src kind', src_kind, ('surface', 'volume', 'mixed'))
 
     # extract all relevant data for volume operations
     src_data = dict()
-    if src_kind in ('volume',):  # 'mixed'):
+    if src_kind in ('volume', 'mixed'):
         use_src = src_t[-1]
         shape = use_src['shape']
         start = 0 if src_kind == 'volume' else 2
@@ -696,7 +699,7 @@ def _get_src_data(src, mri_resolution=True):
                          'inuse': inuses,
                          'to_vox_map': None,
                          })
-    if src_kind in ('surface',):  # 'mixed'):
+    if src_kind in ('surface', 'mixed'):
         src_data.update(vertices_from=[s['vertno'].copy() for s in src_t[:2]])
 
     # delete copy
@@ -1230,55 +1233,50 @@ def _apply_morph_data(morph, stc_from):
     if stc_from.subject is not None and stc_from.subject != morph.subject_from:
         raise ValueError('stc.subject (%s) != morph.subject_from (%s)'
                          % (stc_from.subject, morph.subject_from))
-    _check_option('morph.kind', morph.kind, ('surface', 'volume'))  # XXX mixed
+    _check_option('morph.kind', morph.kind, ('surface', 'volume', 'mixed'))
+    n_verts_to = [len(v) for v in morph.vertices_to]
+    data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
+    n_times = data_from.shape[1]  # oris treated as times
+    data = np.empty((sum(n_verts_to), n_times), stc_from.data.dtype)
     if morph.kind == 'volume':
-        # XXX needs to support vector, too
-        if isinstance(stc_from, VolSourceEstimate):
-            klass = VolSourceEstimate
-        elif isinstance(stc_from, VolVectorSourceEstimate):
-            klass = VolVectorSourceEstimate
+        n_surf_verts = 0
+        vol_verts = np.concatenate(morph.vertices_to)
+    else:
+        n_surf_verts = sum(n_verts_to[:2])
+        if morph.kind == 'mixed':
+            vol_verts = np.concatenate(morph.vertices_to[2:])
         else:
-            raise ValueError('stc_from was type %s but must be a volume '
-                             'source estimate' % (type(stc_from),))
+            vol_verts = np.empty(0, int)
+    want_instance = dict(
+        volume=_BaseVolSourceEstimate,
+        mixed=_BaseMixedSourceEstimate,
+        surface=_BaseSurfaceSourceEstimate)[morph.kind]
+    _validate_type(stc_from, want_instance, 'stc_from',
+                   '%s source estimate' % (morph.kind,))
+    klass = dict(
+        volume=VolVectorSourceEstimate,
+        mixed=MixedVectorSourceEstimate,
+        surface=VectorSourceEstimate)[morph.kind]
+    if morph.kind in ('volume', 'mixed'):
         vertices_from = [
             np.where(inuse_)[0] for inuse_ in morph.src_data['inuse']]
         for ii, (v1, v2) in enumerate(zip(vertices_from, stc_from.vertices)):
             _check_vertices_match(v1, v2, 'volume[%d]' % (ii,))
-        n_times = np.prod(stc_from.data.shape[1:])
-        data = np.empty((len(morph.vertices_to[0]), n_times))
-        data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
         # Loop over time points to save memory
         for k in range(n_times):
             this_stc = VolSourceEstimate(
                 data_from[:, k:k + 1], stc_from.vertices, tmin=0., tstep=1.)
             this_img_to = morph._morph_one_vol(this_stc)
-            data[:, k] = this_img_to[morph.vertices_to[0]]
-        data.shape = (len(morph.vertices_to[0]),) + stc_from.data.shape[1:]
-    else:
-        assert morph.kind == 'surface'
-        if not isinstance(stc_from, (SourceEstimate, VectorSourceEstimate)):
-            raise ValueError('stc_from was type %s but must be a surface '
-                             'source estimate' % (type(stc_from),))
-        morph_mat = morph.morph_mat
+            data[n_surf_verts:, k] = this_img_to[vol_verts]
+    if morph.kind in ('surface', 'mixed'):
         for hemi, v1, v2 in zip(('left', 'right'),
                                 morph.src_data['vertices_from'],
                                 stc_from.vertices):
             _check_vertices_match(v1, v2, '%s hemisphere' % (hemi,))
-
-        # select correct data - since vertices_to can have empty hemispheres,
-        # the correct data needs to be selected in order to apply the morph_mat
-        # correctly
-        data = stc_from.data
-        # apply morph and return new morphed instance of (Vector)SourceEstimate
-        if isinstance(stc_from, VectorSourceEstimate):
-            # Morph the locations of the dipoles, but not their orientation
-            n_verts, _, n_samples = stc_from.data.shape
-            data = morph_mat * data.reshape(n_verts, 3 * n_samples)
-            data = data.reshape(morph_mat.shape[0], 3, n_samples)
-            klass = VectorSourceEstimate
-        else:
-            data = morph_mat * data
-            klass = SourceEstimate
+        data[:n_surf_verts] = morph.morph_mat * data_from
+    data.shape = (data.shape[0],) + stc_from.data.shape[1:]
+    if data.ndim == 2:
+        klass = klass._scalar_class
     stc_to = klass(data, morph.vertices_to, stc_from.tmin, stc_from.tstep,
                    morph.subject_to)
     return stc_to
