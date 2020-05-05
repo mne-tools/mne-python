@@ -801,7 +801,8 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         inuse = morph.src_data['inuse']
         src_subject = morph.subject_from
     assert isinstance(inuse, list)
-    _check_subject_src(stc.subject, src_subject, 'stc.subject')
+    if stc.subject is not None:
+        _check_subject_src(stc.subject, src_subject, 'stc.subject')
 
     n_times = stc.data.shape[1]
     shape = morph.src_data['src_shape'][::-1] + (n_times,)  # SAR->RAST
