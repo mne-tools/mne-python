@@ -1257,13 +1257,13 @@ def _get_zooms_orig(morph):
 
 def _check_vertices_match(v1, v2, name):
     if not np.array_equal(v1, v2):
-        msg = ('vertices do not match between morph (%s) '
-               'and stc (%s) for %s:\n%s\n%s\nPerhaps src_to=fwd["src"] '
-               'needs to be passed when calling compute_source_morph. '
-               % (len(v1), len(v2), name, v1, v2))
+        ext = ''
         if np.in1d(v2, v1).all():
-            msg += ' Vertices were likely excluded during forward computation.'
-        raise ValueError(msg)
+            ext = ' Vertices were likely excluded during forward computation.'
+        raise ValueError(
+            'vertices do not match between morph (%s) and stc (%s) for %s:\n%s'
+            '\n%s\nPerhaps src_to=fwd["src"] needs to be passed when calling '
+            'compute_source_morph.%s' % (len(v1), len(v2), name, v1, v2, ext))
 
 
 def _apply_morph_data(morph, stc_from):
