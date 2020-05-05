@@ -39,13 +39,11 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, verbose=True).load_data()
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
-print(raw_intensity.info['dig'][0:5])
-print(raw_intensity.info['chs'][0]['loc'])
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, 
 							 show_axes=True,
                              subject='fsaverage',
-                             trans=raw_intensity.info['trans'], 
+                             trans='fsaverage', 
                              surfaces=['head-dense', 'brain'],
                              fnirs=['channels', 'pairs'],
                              mri_fiducials=True,
