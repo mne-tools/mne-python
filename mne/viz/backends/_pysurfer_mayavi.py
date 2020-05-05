@@ -76,6 +76,7 @@ class _Renderer(_BaseRenderer):
             self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
+        self.fig._window_size = size
         _toggle_mlab_render(self.fig, show)
 
     def subplot(self, x, y):
@@ -464,7 +465,7 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
     if MNE_3D_BACKEND_TESTING:
         ndim = 3 if mode == 'rgb' else 4
         if figure.scene is None:
-            figure_size = (600, 600)
+            figure_size = figure._window_size
         else:
             figure_size = figure.scene._renwin.size
         return np.zeros(tuple(figure_size) + (ndim,), np.uint8)
