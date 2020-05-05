@@ -203,18 +203,15 @@ class RawBOXY(BaseRaw):
         
         # add extra column for triggers
         boxy_labels.append('Markers')
+        # convert to floats
+        boxy_coords = np.array(boxy_coords, float)
+        all_coords = np.array(all_coords, float)
 
+        ###make our montage###
         ###montage only wants channel coords, so need to grab those, convert to###
         ###array, then make a dict with labels###
-        for i_chan in range(len(boxy_coords)):
-            boxy_coords[i_chan] = np.asarray(boxy_coords[i_chan],dtype=np.float64) 
-            
-        for i_chan in range(len(all_coords)):
-            all_coords[i_chan] = np.asarray(all_coords[i_chan],dtype=np.float64) 
-
         all_chan_dict = dict(zip(all_labels,all_coords))
 
-         ###make our montage###
         my_dig_montage = make_dig_montage(ch_pos=all_chan_dict,
                                         coord_frame='unknown',
                                         nasion = fiducial_coords[0],
@@ -236,19 +233,15 @@ class RawBOXY(BaseRaw):
         ###place our coordinates and wavelengths for each channel###
         # # These are all in actual 3d individual coordinates, so let's transform them to
         # # the Neuromag head coordinate frame
-        trans = get_ras_to_neuromag_trans(fiducial_coords[0], 
+        native_head_t = get_ras_to_neuromag_trans(fiducial_coords[0], 
                                     fiducial_coords[1], 
                                     fiducial_coords[2])
         
         for i_chan in range(len(boxy_labels)-1):
-            temp_chn = apply_trans(trans,boxy_coords[i_chan][0:3])
-            temp_src = apply_trans(trans,boxy_coords[i_chan][3:6])
-            temp_det = apply_trans(trans,boxy_coords[i_chan][6:9])
-            temp_other = np.asarray(boxy_coords[i_chan][9:],dtype=np.float64)
-            info['chs'][i_chan]['loc'] = test = np.concatenate((temp_chn, temp_src, 
-                                                                temp_det, temp_other),axis=0)
-        
-        info['chs'][-1]['loc'] = np.zeros((12,))        
+            temp_ch_src_det = apply_trans(native_head_t, boxy_coords[i_chan][:9].reshape(3, 3)).ravel()
+            temp_other = np.asarray(boxy_coords[i_chan][9:], dtype=np.float64) # add wavelength and placeholders
+            info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det, temp_other), axis=0)
+        info['chs'][-1]['loc'] = np.zeros((12,))   #remove last line?     
         
         raw_extras = {'source_num': source_num,
                      'detect_num': detect_num, 
@@ -262,7 +255,7 @@ class RawBOXY(BaseRaw):
         print('New first_samps: ', first_samps)
         diff = end_line-start_line
         #input file has rows for each source, output variable rearranges as columns and does not
-        last_samps = start_line + int(diff/source_num)-1 
+        last_samps = start_line + diff // source_num -1 
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps-first_samps)
 
