@@ -200,6 +200,9 @@ class RawBOXY(BaseRaw):
                                        + '_D' + 
                                        str(unique_detect_labels.index(detect_label[i_coord])+1) 
                                        + ' ' + chan_wavelength[i_coord] + ' ' + i_type)
+        
+        # add extra column for triggers
+        boxy_labels.append('Markers')
 
         ###montage only wants channel coords, so need to grab those, convert to###
         ###array, then make a dict with labels###
@@ -211,62 +214,32 @@ class RawBOXY(BaseRaw):
 
         all_chan_dict = dict(zip(all_labels,all_coords))
 
- 
-        ###make our montage###
-        montage_orig = make_dig_montage(ch_pos=all_chan_dict,coord_frame='head',
-                                                nasion = fiducial_coords[0],
-                                                lpa = fiducial_coords[1], 
-                                                rpa = fiducial_coords[2])
+         ###make our montage###
+        my_dig_montage = make_dig_montage(ch_pos=all_chan_dict,
+                                        coord_frame='unknown',
+                                        nasion = fiducial_coords[0],
+                                        lpa = fiducial_coords[1], 
+                                        rpa = fiducial_coords[2])
         
-        # ###for some reason make_dig_montage put our channels in a different order than what we input###
-        # ###let's fix that. should be fine to just change coords and ch_names###
-        # for i_chan in range(len(all_coords)):
-        #     montage_orig.dig[i_chan+3]['r'] = all_coords[i_chan]
-        #     montage_orig.ch_names[i_chan] = all_labels[i_chan]
-        
-        ###add an extra channel for our triggers for later###
-        boxy_labels.append('Markers')
-
-        info = create_info(boxy_labels,srate,ch_types='fnirs_raw')
-        info.update(dig=montage_orig.dig)
-
-        # Set up digitization
-        # These are all in actual 3d individual coordinates, so let's transform them to
-        # the Neuromag head coordinate frame
-        trans = get_ras_to_neuromag_trans(fiducial_coords[0], 
-                                        fiducial_coords[1], 
-                                        fiducial_coords[2])
-            
-        ###remake montage using the transformed coordinates###
-        all_coords_trans = apply_trans(trans,all_coords)
-        all_chan_dict_trans = dict(zip(all_labels,all_coords_trans))
-        fiducial_coords_trans = apply_trans(trans,fiducial_coords)
-        
-        ###make our montage###
-        montage_trans = make_dig_montage(ch_pos=all_chan_dict_trans,coord_frame='head',
-                                                nasion = fiducial_coords_trans[0],
-                                                lpa = fiducial_coords_trans[1], 
-                                                rpa = fiducial_coords_trans[2])
-        
-        # ###let's fix montage order ###
-        # for i_chan in range(len(all_coords_trans)):
-        #     montage_trans.dig[i_chan+3]['r'] = all_coords_trans[i_chan]
-        #     montage_trans.ch_names[i_chan] = all_labels[i_chan]
-
-        # Create mne structure
         ###create info structure###
-        info = create_info(boxy_labels,srate,ch_types='fnirs_raw')
-        ###add data type and channel wavelength to info###
-        info.update(dig=montage_trans.dig, trans=trans)
+        info = create_info(boxy_labels, srate, ch_types='fnirs_raw')
+        ###add dig info###
+        ## this also applies a transform to the data into neuromag space based on fiducials
+        info.set_montage(my_dig_montage)
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.
         # The source location is stored in the second 3 entries of loc.
         # The detector location is stored in the third 3 entries of loc.
-        # NIRx NIRSite uses MNI coordinates.
         # Also encode the light frequency in the structure.
-
+       
         ###place our coordinates and wavelengths for each channel###
+        # # These are all in actual 3d individual coordinates, so let's transform them to
+        # # the Neuromag head coordinate frame
+        trans = get_ras_to_neuromag_trans(fiducial_coords[0], 
+                                    fiducial_coords[1], 
+                                    fiducial_coords[2])
+        
         for i_chan in range(len(boxy_labels)-1):
             temp_chn = apply_trans(trans,boxy_coords[i_chan][0:3])
             temp_src = apply_trans(trans,boxy_coords[i_chan][3:6])
@@ -274,7 +247,9 @@ class RawBOXY(BaseRaw):
             temp_other = np.asarray(boxy_coords[i_chan][9:],dtype=np.float64)
             info['chs'][i_chan]['loc'] = test = np.concatenate((temp_chn, temp_src, 
                                                                 temp_det, temp_other),axis=0)
+        
         info['chs'][-1]['loc'] = np.zeros((12,))        
+        
         raw_extras = {'source_num': source_num,
                      'detect_num': detect_num, 
                      'start_line': start_line,

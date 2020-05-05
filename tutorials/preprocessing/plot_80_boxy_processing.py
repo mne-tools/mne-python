@@ -62,13 +62,13 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # These short channels can be seen in the figure above.
 # # To achieve this we pick all the channels that are not considered to be short.
 
-# picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
-# dists = mne.preprocessing.nirs.source_detector_distances(
-#     raw_intensity.info, picks=picks)
-# raw_intensity.pick(picks[dists < 0.06])
-# scalings = dict(fnirs_raw=1e2)
-# raw_intensity.plot(n_channels=10,
-#                    duration=1000, scalings=scalings, show_scrollbars=True)
+picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
+dists = mne.preprocessing.nirs.source_detector_distances(
+    raw_intensity.info, picks=picks)
+raw_intensity.pick(picks[dists < 0.06])
+scalings = dict(fnirs_raw=1e2)
+raw_intensity.plot(n_channels=10,
+                   duration=1000, scalings=scalings, show_scrollbars=True)
 
 
 # ###############################################################################
