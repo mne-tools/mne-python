@@ -425,7 +425,11 @@ def test_volume_source_morph(tmpdir):
     stc_vol_bad = VolSourceEstimate(
         stc_vol.data[:-1], [stc_vol.vertices[0][:-1]],
         stc_vol.tmin, stc_vol.tstep)
-    with pytest.raises(ValueError, match='vertices do not match between morp'):
+    match = (
+        'vertices do not match between morph \\(4157\\) and stc \\(4156\\).*'
+        '\n.*\n.*\n.*Vertices were likely excluded during forward computatio.*'
+    )
+    with pytest.raises(ValueError, match=match):
         source_morph_vol.apply(stc_vol_bad)
 
 
