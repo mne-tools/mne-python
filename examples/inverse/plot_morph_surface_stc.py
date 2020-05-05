@@ -93,7 +93,7 @@ print([len(v) for v in stc.vertices])
 #
 # Initialize SourceMorph for SourceEstimate
 
-src_to = mne.read_source_space(fname_fsaverage_src)
+src_to = mne.read_source_spaces(fname_fsaverage_src)
 print(src_to[0]['vertno'])  # special, np.arange(10242)
 morph = mne.compute_source_morph(stc, subject_from='sample',
                                  subject_to='fsaverage', src_to=src_to,
