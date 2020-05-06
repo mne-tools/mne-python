@@ -1046,12 +1046,20 @@ def test_split_saving(tmpdir):
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
     epochs_data = epochs.get_data()
+    assert len(epochs) == 9
     fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(fname, split_size='1MB', overwrite=True)
-    assert op.isfile(fname)
-    assert op.isfile(fname[:-4] + '-1.fif')
-    assert op.isfile(fname[:-4] + '-2.fif')
-    assert not op.isfile(fname[:-4] + '-3.fif')
+    size = _get_split_size('1MB')
+    assert size == 1048576 == 1024 * 1024
+    written_fnames = [fname] + [
+        fname[:-4] + '-%d.fif' % ii for ii in range(1, 4)]
+    for this_fname in written_fnames:
+        assert op.isfile(this_fname)
+        with open(this_fname, 'r') as fid:
+            fid.seek(0, 2)
+            file_size = fid.tell()
+        assert size * 0.5 < file_size <= size
+    assert not op.isfile(fname[:-4] + '-4.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
