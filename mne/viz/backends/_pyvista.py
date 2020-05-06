@@ -164,9 +164,6 @@ class _Renderer(_BaseRenderer):
                 self.plotter.saved_cameras_tool_bar.close()
             if not MNE_3D_BACKEND_TESTING:
                 _enable_aa(self.figure, self.plotter)
-        if isinstance(size, int):
-            size = (size, size)
-        self.plotter.interactor.setMinimumSize(size[0], size[1])
 
     def subplot(self, x, y):
         from .renderer import MNE_3D_BACKEND_TESTING
