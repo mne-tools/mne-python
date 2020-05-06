@@ -7,9 +7,8 @@
     <div class="col-xs-12 nopad">
       <img src="_static/mne_logo.svg" style="max-width: 360px; width: 100%" alt="MNE">
       <p>
-      Open-source Python software for exploring, visualizing, and
-      analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
-      and more.
+      Open-source Python package for exploring, visualizing, and
+      analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG, NIRS, and more.
       </p>
     </div>
     <div class="col-xs-12 nopad">

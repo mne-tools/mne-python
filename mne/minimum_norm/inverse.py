@@ -913,7 +913,9 @@ def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
                       np.dot(inv['eigen_fields']['data'].T,  # U
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
-    var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
+    res_w = data_w - data_est_w
+    var_exp = 1 - ((res_w * res_w.conj()).sum().real /
+                   (data_w * data_w.conj()).sum().real)
     logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
 
     if return_residual:

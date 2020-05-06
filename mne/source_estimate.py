@@ -1549,6 +1549,11 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         rh_data = self.data[-len(self.rh_vertno):]
 
         if ftype == 'stc':
+            if np.iscomplexobj(self.data):
+                raise ValueError("Cannot save complex-valued STC data in "
+                                 "FIFF format; please set ftype='h5' to save "
+                                 "in HDF5 format instead, or cast the data to "
+                                 "real numbers before saving.")
             logger.info('Writing STC to disk...')
             _write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
                        vertices=self.lh_vertno, data=lh_data)

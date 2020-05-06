@@ -359,6 +359,10 @@ def test_io_stc(tmpdir):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    # test warning for complex data
+    stc2.data = stc2.data.astype(np.complex128)
+    with pytest.raises(ValueError, match='Cannot save complex-valued STC'):
+        stc2.save(tmpdir.join('complex.stc'))
 
 
 @requires_h5py

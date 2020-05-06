@@ -1799,7 +1799,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Notes
         -----
         This method returns a copy and does not modify the data it
-        operates on. It also returns an EpochsArraw instance.
+        operates on. It also returns an EpochsArray instance.
 
         .. versionadded:: 0.20.0
         """
