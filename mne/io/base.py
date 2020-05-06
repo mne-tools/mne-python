@@ -27,7 +27,7 @@ from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, _get_split_size)
+                    write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
@@ -1823,7 +1823,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                          'measurement information, you must use a larger '
                          'value for split size: %s plus enough bytes for '
                          'the chosen buffer_size' % pos_prev)
-    next_file_buffer = 2 ** 20  # extra cushion for last few post-data tags
 
     # Check to see if this has acquisition skips and, if so, if we can
     # write out empty buffers instead of zeroes
@@ -1872,7 +1871,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
         pos = fid.tell()
         this_buff_size_bytes = pos - pos_prev
-        overage = pos - split_size + next_file_buffer
+        overage = pos - split_size + _NEXT_FILE_BUFFER
         if overage > 0:
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
@@ -1882,12 +1881,12 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                 'by %s bytes after writing info (%s) and leaving enough space '
                 'for end tags (%s): decrease "buffer_size_sec" or increase '
                 '"split_size".' % (this_buff_size_bytes, split_size, overage,
-                                   pos_prev, next_file_buffer))
+                                   pos_prev, _NEXT_FILE_BUFFER))
 
         # Split files if necessary, leave some space for next file info
         # make sure we check to make sure we actually *need* another buffer
         # with the "and" check
-        if pos >= split_size - this_buff_size_bytes - next_file_buffer and \
+        if pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER and \
                 first + buffer_size < stop:
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
