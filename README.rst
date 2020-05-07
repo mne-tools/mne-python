@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |PyPi|_ |conda-forge|_ |Zenodo|_
+|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
 
 |MNE|_
 
@@ -16,8 +16,8 @@
 .. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
-.. |PyPi| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
-.. _PyPi: https://pypi.org/project/mne/
+.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
+.. _PyPI: https://pypi.org/project/mne/
 
 .. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
 .. _conda-forge: https://anaconda.org/conda-forge/mne
