@@ -6,7 +6,6 @@ from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
 import os.path as op
-import pandas as pd
 import numpy as np
 
 from ..base import BaseRaw
@@ -72,15 +71,11 @@ class RawBOXY(BaseRaw):
         # Parse required header fields
         ###this keeps track of the line we're on###
         ###mostly to know the start and stop of data (probably an easier way)###
-        line_num = 0
         ###load and read data to get some meta information###
         ###there is alot of information at the beginning of a file###
         ###but this only grabs some of it###
-
-
         with open(files['001'],'r') as data:
-            for i_line in data:
-                line_num += 1
+            for line_num,i_line in enumerate(data,1):
                 if '#DATA ENDS' in i_line:
                     end_line = line_num - 1
                     break
@@ -98,7 +93,7 @@ class RawBOXY(BaseRaw):
                     srate = float(i_line.rsplit(' ')[0])
                 elif '#DATA BEGINS' in i_line:
                     start_line = line_num
-
+             
         # Extract source-detectors
         ###set up some variables###
         chan_num = []
@@ -169,7 +164,6 @@ class RawBOXY(BaseRaw):
                 chan_index = all_labels.index(i_chan)
                 detect_coords.append(all_coords[chan_index])
                 
-
         # Generate meaningful channel names
         ###need to rename labels to make other functions happy###
         ###get our unique labels for sources and detectors###
@@ -246,7 +240,8 @@ class RawBOXY(BaseRaw):
         raw_extras = {'source_num': source_num,
                      'detect_num': detect_num, 
                      'start_line': start_line,
-                     'files': files}
+                     'end_line': end_line,
+                     'files': files,}
 
         print('Start Line: ', start_line)
         print('End Line: ', end_line)
@@ -270,8 +265,16 @@ class RawBOXY(BaseRaw):
         source_num = self._raw_extras[fi]['source_num']
         detect_num = self._raw_extras[fi]['detect_num']
         start_line = self._raw_extras[fi]['start_line']
+        end_line = self._raw_extras[fi]['end_line']
+        boxy_file = self._raw_extras[fi]['files']['001']
+        
+        ###load our data###
+        boxy_data = []
+        with open(boxy_file,'r') as data_file:
+            for line_num,i_line in enumerate(data_file,1):
+                if line_num > start_line and line_num <= end_line:
+                    boxy_data.append(i_line.rsplit(' '))
 
-        raw_data = pd.read_csv(self._raw_extras[fi]['files']['001'], skiprows=start_line, sep='\t')
         ###detectors, sources, and data types###
         detectors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 
                      'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -279,107 +282,96 @@ class RawBOXY(BaseRaw):
         data_types = ['AC','DC','Ph']
         sources = np.arange(1,source_num+1,1)
 
-
-            ###since we can save boxy files in two different styles###
-        ###this will check to see which style the data is saved###
-        ###seems to also work with older boxy files###
-        if 'exmux' in raw_data.columns:
-            filetype = 'non-parsed'
+        ###get column names from the first row of our boxy data###
+        col_names = np.asarray(re.findall('\w+\-\w+|\w+\-\d+|\w+',boxy_data[0][0]))
+        del boxy_data[0]
+        
+        ###sometimes there is an empty line before our data starts###
+        ###this should remove them###
+        while re.findall('[-+]?\d*\.?\d+',boxy_data[0][0]) == []:
+            del boxy_data[0]
             
-            ###drop the last line as this is just '#DATA ENDS'###
-            raw_data = raw_data.drop([len(raw_data)-1])
+        ###grba the individual data points for each column###
+        boxy_data = [re.findall('[-+]?\d*\.?\d+',i_row[0]) for i_row in boxy_data]
             
-            ###store some extra info###
-            record = raw_data['record'].to_numpy()
-            exmux = raw_data['exmux'].to_numpy()
-            
-            ###make some empty variables to store our data###
-            raw_ac = np.zeros((detect_num*source_num,int(len(raw_data)/source_num)))
-            raw_dc = np.zeros((detect_num*source_num,int(len(raw_data)/source_num)))
-            raw_ph = np.zeros((detect_num*source_num,int(len(raw_data)/source_num)))
-        else:
-            filetype = 'parsed'
-            
-            ###drop the last line as this is just '#DATA ENDS'###
-            ###also drop the first line since this is empty###
-            raw_data = raw_data.drop([0,len(raw_data)-1])
-            
-            ###make some empty variables to store our data###
-            raw_ac = np.zeros(((detect_num*source_num),len(raw_data)))
-            raw_dc = np.zeros(((detect_num*source_num),len(raw_data)))
-            raw_ph = np.zeros(((detect_num*source_num),len(raw_data)))
-
-        ###store some extra data, might not need these though###
-        time = raw_data['time'].to_numpy() if 'time' in raw_data.columns else []
-        time = raw_data['time'].to_numpy() if 'time' in raw_data.columns else []
-        group = raw_data['group'].to_numpy() if 'group' in raw_data.columns else []
-        step = raw_data['step'].to_numpy() if 'step' in raw_data.columns else []
-        mark = raw_data['mark'].to_numpy() if 'mark' in raw_data.columns else []
-        flag = raw_data['flag'].to_numpy() if 'flag' in raw_data.columns else []
-        aux1 = raw_data['aux-1'].to_numpy() if 'aux-1' in raw_data.columns else []
-        digaux = raw_data['digaux'].to_numpy() if 'digaux' in raw_data.columns else []
-        bias = np.zeros((detect_num,len(raw_data)))
-
-       ###loop through detectors###
+        ###make variable to store our data as an array rather than list of strings###
+        boxy_length = len(boxy_data[0])
+        boxy_array = np.full((len(boxy_data),boxy_length),np.nan)
+        for ii, i_data in enumerate(boxy_data):
+            ###need to make sure our rows are the same length###
+            ###this is done by padding the shorter ones###
+            padding = boxy_length - len(i_data)
+            boxy_array[ii] = np.pad(np.asarray(i_data, dtype=float), (0,padding), mode='empty')
+           
+        ###grab data from the other columns that don't pertain to AC, DC, or Ph###
+        meta_data = dict()
+        keys = ['time','record','group','exmux','step','mark','flag','aux1','digaux']
         for i_detect in detectors[0:detect_num]:
-            
-            ###older boxy files don't seem to keep track of detector bias###
-            ###probably due to specific boxy settings actually###
-            if 'bias-A' in raw_data.columns:
-                bias[detectors.index(i_detect),:] = raw_data['bias-' + i_detect].to_numpy()
-                
-            ###loop through data types###
-            for i_data in data_types:
+            keys.append('bias-' + i_detect)
+        
+        ###data that isn't in our boxy file will be an empty list###
+        for key in keys:
+            meta_data[key] = (boxy_array[:,np.where(col_names == key)[0][0]] if
+            key in col_names else [])
+         
+        ###determine what kind of boxy file we have###
+        filetype = 'non-parsed' if type(meta_data['exmux']) is not list else 'parsed'
+        
+        ###make some empty variables to store our data###
+        if filetype == 'non-parsed':
+            data_ = np.zeros(((((detect_num*source_num)*3)+1),
+                                int(len(boxy_data)/source_num))) 
+        elif filetype == 'parsed':
+            data_ = np.zeros(((((detect_num*source_num)*3)+1),
+                                int(len(boxy_data)))) 
+        
+        ###loop through data types###
+        for i_data in data_types:
+         
+            ###loop through detectors###
+            for i_detect in detectors[0:detect_num]:
+        
                 ###loop through sources###
-                for i_source in sources:                    
-                    ###where to store our data###
-                    index_loc = detectors.index(i_detect)*source_num + (i_source-1)                    
+                for i_source in sources: 
+                    
+                    ###determine where to store our data###
+                    index_loc = (detectors.index(i_detect)*source_num + 
+                    (i_source-1) + (data_types.index(i_data)*(source_num*detect_num)))  
+                    
                     ###need to treat our filetypes differently###
                     if filetype == 'non-parsed':
                         
-                        ###filetype saves timepoints in groups###
+                        ###non-parsed saves timepoints in groups###
                         ###this should account for that###
-                        time_points = np.arange(i_source-1,int(record[-1])*source_num,source_num)
+                        time_points = np.arange(i_source-1,int(meta_data['record'][-1])*source_num,source_num)
                         
-                        ###determine which channel to look for###
-                        channel = i_detect + '-' + i_data
-                        
-                        ###save our data based on data type###
-                        if data_types.index(i_data) == 0:
-                            raw_ac[index_loc,:] = raw_data[channel][time_points].to_numpy()
-                        elif data_types.index(i_data) == 1:
-                            raw_dc[index_loc,:] = raw_data[channel][time_points].to_numpy()
-                        elif data_types.index(i_data) == 2:
-                            raw_ph[index_loc,:] = raw_data[channel][time_points].to_numpy()
-                    elif filetype == 'parsed':                    
-                        ###determine which channel to look for###
-                        channel = i_detect + '-' + i_data + str(i_source)
+                        ###determine which channel to look for in boxy_array###
+                        channel = np.where(col_names == i_detect + '-' + i_data)[0][0]
                         
                         ###save our data based on data type###
-                        if data_types.index(i_data) == 0:
-                            raw_ac[index_loc,:] = raw_data[channel].to_numpy()
-                        elif data_types.index(i_data) == 1:
-                            raw_dc[index_loc,:] = raw_data[channel].to_numpy()
-                        elif data_types.index(i_data) == 2:
-                            raw_ph[index_loc,:] = raw_data[channel].to_numpy()
-     
-        ###now combine our data types into a single array with the data###
-        data_ = np.append(raw_ac, np.append(raw_dc, raw_ph, axis=0),axis=0)
+                        data_[index_loc,:] = boxy_array[time_points,channel]
+                        
+                    elif filetype == 'parsed':   
+                        
+                        ###determine which channel to look for in boxy_array###
+                        channel = np.where(col_names == i_detect + '-' + 
+                                           i_data + str(i_source))[0][0]
+                        
+                        ###save our data based on data type###
+                        data_[index_loc,:] = boxy_array[:,channel]
 
         # Read triggers from event file
         ###add our markers to the data array based on filetype###
-        if filetype == 'non-parsed':
-            if type(digaux) is list and digaux != []:
-                markers = digaux[np.arange(0,len(digaux),source_num)]
-            else:
-                markers = np.zeros(np.size(data_,axis=1))
-        elif filetype == 'parsed':
-            markers = digaux  
+        if type(meta_data['digaux']) is not list:
+            if filetype == 'non-parsed':
+                markers = meta_data['digaux'][np.arange(0,len(meta_data['digaux']),source_num)]
+            elif filetype == 'parsed':
+                markers = meta_data['digaux']
+            data_[-1,:] = markers
         
         print('Blank Data shape: ', data.shape)
-        temp = np.vstack((data_, markers))
-        print('Input Data shape: ',temp.shape)
+        print('Input Data shape: ', data_.shape)
         # place our data into the data object in place
-        data[:] = np.vstack((data_, markers))
+        data[:] = data_
         
         return data
