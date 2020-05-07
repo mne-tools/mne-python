@@ -192,3 +192,4 @@ raw.plot_projs_topomap(colorbar=True)
 # .. LINKS
 #
 # .. _spectral density: https://en.wikipedia.org/wiki/Spectral_density
+
