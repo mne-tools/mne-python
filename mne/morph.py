@@ -270,8 +270,6 @@ class SourceMorph(object):
     .. note:: This class should not be instantiated directly.
               Use :func:`mne.compute_source_morph` instead.
 
-    .. versionadded:: 0.17
-
     Parameters
     ----------
     subject_from : str | None
@@ -318,6 +316,10 @@ class SourceMorph(object):
     src_data : dict
         Additional source data necessary to perform morphing.
     %(verbose)s
+
+    Notes
+    -----
+    .. versionadded:: 0.17
 
     References
     ----------

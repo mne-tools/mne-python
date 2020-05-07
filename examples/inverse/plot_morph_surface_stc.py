@@ -150,3 +150,7 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 
 stc_fsaverage = mne.compute_source_morph(stc,
                                          subjects_dir=subjects_dir).apply(stc)
+
+###############################################################################
+# For more examples, check out :ref:`examples using SourceMorph.apply
+# <sphx_glr_backreferences_mne.SourceMorph.apply>`.
