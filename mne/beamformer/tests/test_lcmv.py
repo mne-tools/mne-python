@@ -704,20 +704,30 @@ def test_lcmv_ctf_comp():
     'normal'
 ])
 def test_unit_gain_relationships(pick_ori):
-    """Test unit gain and unit gain noise relationships."""
+    """Test unit-gain and unit-noise-gain relationships."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
-    raw.pick_types()
-    assert len(raw.ch_names) == 305
+    raw.pick_types(meg='mag')
+    # assert len(raw.ch_names) == 305
     epochs = mne.Epochs(raw, events, None, preload=True)
-    with pytest.warns(RuntimeWarning, match='Too few samples'):
-        noise_cov = mne.compute_covariance(epochs, tmax=0)
-        data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+    # with pytest.warns(RuntimeWarning, match='Too few samples'):
+    #    noise_cov = mne.compute_covariance(epochs, tmax=0)
+    noise_cov = None
+    data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
     forward = mne.read_forward_solution(fname_fwd)
-    convert_forward_solution(forward, surf_ori=True, copy=False)
+
+    # convert_forward_solution(forward, surf_ori=True, copy=False)
     W_ung = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
                       noise_cov=noise_cov, pick_ori=pick_ori,
-                      weight_norm='unit-noise-gain', rank=None)['weights']
+                      weight_norm='unit-noise-gain', rank=None)
+    # manipulate forward to have same orientation picking as above
+    fwd_sol = np.reshape(forward['sol']['data'].T,
+                         (forward['nsource'], 3, forward['nchan']))
+    fwd_sol *= W_ung['max_power_ori'][:, :, np.newaxis]
+    forward['sol']['data'][:] = np.reshape(fwd_sol,
+                                           (forward['sol']['data'].shape))
+    W_ung = W_ung['weights']
+
     W_ug = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
                      noise_cov=noise_cov, pick_ori=pick_ori,
                      weight_norm=None, rank=None)['weights']
@@ -726,7 +736,8 @@ def test_unit_gain_relationships(pick_ori):
     assert W_ung.shape == (forward['nsource'] * n_orient, len(epochs.ch_names))
     W_ung_2 = W_ug / np.linalg.norm(W_ug, axis=1, keepdims=True)
     assert 1e-2 < np.mean(np.abs(W_ung)) < 1  # ensure our atol is okay
-    assert_allclose(W_ung_2, W_ung, atol=1e-9)
+    assert_allclose(W_ug, W_ung, atol=1e-10)
+    # assert_allclose(W_ung_2, W_ung, atol=1e-9)
 
 
 @testing.requires_testing_data
