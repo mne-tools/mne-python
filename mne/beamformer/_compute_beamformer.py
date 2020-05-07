@@ -290,8 +290,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         W = np.matmul(max_power_ori[:, np.newaxis], W)[:, 0]
     elif pick_ori == 'normal':
         W = W[:, 2]
+        max_power_ori = None
     else:
         W = W.reshape(n_sources * n_orient, n_channels)
+        max_power_ori = None
+
     del Gk, Wk, sk
 
     #
@@ -332,7 +335,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         W = W.reshape(-1, W.shape[-1])
 
     logger.info('Filter computation complete')
-    return W
+    return W, max_power_ori
 
 
 def _compute_power(Cm, W, n_orient):
