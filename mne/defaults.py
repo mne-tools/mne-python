@@ -57,6 +57,8 @@ DEFAULTS = dict(
         ecog_scale=5e-3,
         seeg_scale=5e-3,
         fnirs_scale=5e-3,
+        source_scale=5e-3,
+        detector_scale=5e-3,
         hpi_scale=15e-3,
 
         head_color=(0.988, 0.89, 0.74),
@@ -66,6 +68,8 @@ DEFAULTS = dict(
         ecog_color=(1., 1., 1.),
         seeg_color=(1., 1., .3),
         fnirs_color=(1., .4, .3),
+        source_color=(1., .2, .3),
+        detector_color=(.2, 0., 0.),
         lpa_color=(1., 0., 0.),
         nasion_color=(0., 1., 0.),
         rpa_color=(0., 0., 1.),
