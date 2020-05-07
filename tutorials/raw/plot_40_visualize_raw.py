@@ -188,7 +188,6 @@ raw.plot_sensors(ch_type='eeg')
 
 raw.plot_projs_topomap(colorbar=True)
 
-# XXX
 ###############################################################################
 # .. LINKS
 #
