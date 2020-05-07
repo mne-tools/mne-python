@@ -119,7 +119,7 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
 
 def annotate_movement(raw, pos, rotation_velocity_limit=None,
                       translation_velocity_limit=None,
-                      mean_distance_limit=None):
+                      mean_distance_limit=None, use_dev_head_trans='average'):
     """Detect segments with movement.
 
     Detects segments periods further from rotation_velocity_limit,
@@ -139,6 +139,12 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         Head translation velocity limit in radians per second.
     mean_distance_limit : float
         Head position limit from mean recording in meters.
+    use_dev_head_trans : 'average' (default) | 'info'
+        Identify the device to head transform used to define the
+        fixed HPI locations for computing moving distances.
+        If ``average`` the average device to head transform is
+        computed using ``compute_average_dev_head_t``.
+        If ``info``, ``raw.info['dev_head_t']`` is used.
 
     Returns
     -------
@@ -146,6 +152,10 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         Periods with head motion.
     hpi_disp : array
         Head position over time with respect to the mean head pos.
+
+    See Also
+    --------
+    compute_average_dev_head_t
     """
     sfreq = raw.info['sfreq']
     hp_ts = pos[:, 0].copy()
@@ -192,8 +202,17 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     if mean_distance_limit is not None:
         assert mean_distance_limit > 0
 
-        # compute average dev to head transform
-        avg_dev_head_t = compute_average_dev_head_t(raw, pos)
+        # compute dev to head transform for fixed points
+        use_dev_head_trans = use_dev_head_trans.lower()
+        if use_dev_head_trans not in ['average', 'info']:
+            raise ValueError('use_dev_head_trans must be either' +
+                             ' \'average\' or \'info\': got \'%s\''
+                             % (use_dev_head_trans,))
+
+        if use_dev_head_trans == 'average':
+            fixed_dev_head_t = compute_average_dev_head_t(raw, pos)
+        elif use_dev_head_trans == 'info':
+            fixed_dev_head_t = raw.info['dev_head_t']
 
         # Get static head pos from file, used to convert quat to cartesian
         chpi_pos = sorted([d for d in raw.info['hpi_results'][-1]
@@ -204,11 +223,11 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         chpi_pos_mov = np.array([apply_trans(_quat_to_affine(quat), chpi_pos)
                                 for quat in pos[:, 1:7]])
 
-        # get average position
-        chpi_pos_avg = apply_trans(avg_dev_head_t, chpi_pos)
+        # get fixed position
+        chpi_pos_fix = apply_trans(fixed_dev_head_t, chpi_pos)
 
         # get movement displacement from mean pos
-        hpi_disp = chpi_pos_mov - np.tile(chpi_pos_avg, (pos.shape[0], 1, 1))
+        hpi_disp = chpi_pos_mov - np.tile(chpi_pos_fix, (pos.shape[0], 1, 1))
 
         # get positions above threshold distance
         disp = np.sqrt((hpi_disp ** 2).sum(axis=2))
