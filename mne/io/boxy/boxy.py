@@ -7,7 +7,6 @@ import glob as glob
 import re as re
 import os.path as op
 import numpy as np
-import pdb
 
 from ..base import BaseRaw
 from ..constants import FIFF
