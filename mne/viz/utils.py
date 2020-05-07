@@ -3221,7 +3221,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     linewidth=0.5)
             if hyp_limits is not None:
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                                color=color, alpha=area_alpha)
+                                facecolor=color, alpha=area_alpha)
 
     if not average:
         picks = np.concatenate(picks_list)
