@@ -7,6 +7,7 @@ import glob as glob
 import re as re
 import os.path as op
 import numpy as np
+import pdb
 
 from ..base import BaseRaw
 from ..constants import FIFF
@@ -74,6 +75,7 @@ class RawBOXY(BaseRaw):
         ###load and read data to get some meta information###
         ###there is alot of information at the beginning of a file###
         ###but this only grabs some of it###
+        filetype = 'parsed'
         with open(files['001'],'r') as data:
             for line_num,i_line in enumerate(data,1):
                 if '#DATA ENDS' in i_line:
@@ -93,6 +95,8 @@ class RawBOXY(BaseRaw):
                     srate = float(i_line.rsplit(' ')[0])
                 elif '#DATA BEGINS' in i_line:
                     start_line = line_num
+                elif 'exmux' in i_line:
+                    filetype = 'non-parsed'
              
         # Extract source-detectors
         ###set up some variables###
@@ -241,6 +245,7 @@ class RawBOXY(BaseRaw):
                      'detect_num': detect_num, 
                      'start_line': start_line,
                      'end_line': end_line,
+                     'filetype': filetype,
                      'files': files,}
 
         print('Start Line: ', start_line)
@@ -266,6 +271,7 @@ class RawBOXY(BaseRaw):
         detect_num = self._raw_extras[fi]['detect_num']
         start_line = self._raw_extras[fi]['start_line']
         end_line = self._raw_extras[fi]['end_line']
+        filetype = self._raw_extras[fi]['filetype']
         boxy_file = self._raw_extras[fi]['files']['001']
         
         ###load our data###
@@ -313,9 +319,6 @@ class RawBOXY(BaseRaw):
         for key in keys:
             meta_data[key] = (boxy_array[:,np.where(col_names == key)[0][0]] if
             key in col_names else [])
-         
-        ###determine what kind of boxy file we have###
-        filetype = 'non-parsed' if type(meta_data['exmux']) is not list else 'parsed'
         
         ###make some empty variables to store our data###
         if filetype == 'non-parsed':

@@ -37,7 +37,7 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, verbose=True).load_data()
 # # between the optodes, channels (the mid point of source-detector pairs) are
 # # shown as dots.
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+subjects_dir = os.path.dirname(mne.datasets.fetch_fsaverage())
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, 
