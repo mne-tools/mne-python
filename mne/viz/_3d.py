@@ -1089,8 +1089,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot points
     defaults = DEFAULTS['coreg']
-    print(defaults)
-
     datas = [eeg_loc,
              hpi_loc,
              ext_loc] + list(other_loc[key] for key in other_keys)
