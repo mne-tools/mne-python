@@ -188,8 +188,8 @@ raw.plot_sensors(ch_type='eeg')
 
 raw.plot_projs_topomap(colorbar=True)
 
+# XXX
 ###############################################################################
 # .. LINKS
 #
 # .. _spectral density: https://en.wikipedia.org/wiki/Spectral_density
-
