@@ -735,6 +735,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
+
     if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1038,10 +1039,16 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     del dig
     for key, picks in other_picks.items():
         if other_bools[key] and len(picks):
-            other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                                       for pick in picks])
-            logger.info('Plotting %d %s location%s'
-                        % (len(other_loc[key]), key, _pl(other_loc[key])))
+            if key == 'fnirs':
+                # other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
+                #                for pick in picks])
+                other_loc['source'] = np.array([info['chs'][pick]['loc'][3:6]
+                                               for pick in picks])
+                other_loc['detector'] = np.array([info['chs'][pick]['loc'][6:9]
+                                               for pick in picks])
+                other_keys = sorted(other_loc.keys())
+                logger.info('Plotting %d %s location%s'
+                            % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
     renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
@@ -1082,6 +1089,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot points
     defaults = DEFAULTS['coreg']
+    print(defaults)
+
     datas = [eeg_loc,
              hpi_loc,
              ext_loc] + list(other_loc[key] for key in other_keys)
