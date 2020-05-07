@@ -16,7 +16,7 @@
 .. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
-.. |PyPi| image:: https://img.shields.io/pypi/dm/mne.svg?label=Pypi%20downloads
+.. |PyPi| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
 .. _PyPi: https://pypi.org/project/mne/
 
 .. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
