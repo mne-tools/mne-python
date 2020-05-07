@@ -166,9 +166,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
-    W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
-                            pick_ori, reduce_rank, rank_int,
-                            inversion='matrix', nn=nn, orient_std=orient_std)
+    W, max_power_ori = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
+                                           pick_ori, reduce_rank, rank_int,
+                                           inversion='matrix', nn=nn,
+                                           orient_std=orient_std)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
@@ -186,7 +187,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         ch_names=ch_names, proj=proj, is_ssp=is_ssp, vertices=vertno,
         is_free_ori=is_free_ori, nsource=forward['nsource'], src_type=src_type,
         source_nn=forward['source_nn'].copy(), subject=subject_from,
-        rank=rank_int)
+        rank=rank_int, max_power_ori=max_power_ori)
 
     return filters
 
