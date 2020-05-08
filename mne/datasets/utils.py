@@ -263,8 +263,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
-        fnirs_motor='https://osf.io/dj3eh/download?version=3',
-        boxy_example='https://osf.io/hksme/download?version=1',
+        fnirs_motor='https://osf.io/dj3eh/download?version=1',
+        boxy_example='https://osf.io/hksme/download?version=3',
         opm='https://osf.io/p6ae7/download?version=2',
         visual_92_categories=[
             'https://osf.io/8ejrs/download?version=1',

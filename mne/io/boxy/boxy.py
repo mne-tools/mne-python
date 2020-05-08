@@ -59,7 +59,8 @@ class RawBOXY(BaseRaw):
 
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('mtg', 'elp', 'tol', '001')
+        keys = ('mtg', 'elp', 'tol', 'a.001', 'b.001', 'c.001', 'd.001')
+        print(fname)
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
             if len(files[key]) != 1:
@@ -75,7 +76,7 @@ class RawBOXY(BaseRaw):
         ###there is alot of information at the beginning of a file###
         ###but this only grabs some of it###
         filetype = 'parsed'
-        with open(files['001'],'r') as data:
+        with open(files['d.001'],'r') as data:
             for line_num,i_line in enumerate(data,1):
                 if '#DATA ENDS' in i_line:
                     end_line = line_num - 1
@@ -271,7 +272,7 @@ class RawBOXY(BaseRaw):
         start_line = self._raw_extras[fi]['start_line']
         end_line = self._raw_extras[fi]['end_line']
         filetype = self._raw_extras[fi]['filetype']
-        boxy_file = self._raw_extras[fi]['files']['001']
+        boxy_file = self._raw_extras[fi]['files']['d.001']
         
         ###load our data###
         boxy_data = []
