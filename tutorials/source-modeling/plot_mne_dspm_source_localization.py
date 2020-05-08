@@ -167,16 +167,7 @@ del stc_vec
 # the source space.
 #
 # For more information about dipole orientations, see
-# :ref:`tut-dipole-orientations`.
-
-###############################################################################
-# Now let's look at each solver:
-
-surfer_kwargs['clim'].update(kind='percent', lims=[99, 99.9, 99.99])
-for mi, method in enumerate(['dSPM', 'sLORETA', 'eLORETA']):
-    stc = apply_inverse(evoked, inverse_operator, lambda2,
-                        method=method, pick_ori=None,
-                        verbose=True)
-    brain = stc.plot(figure=mi, **surfer_kwargs)
-    brain.add_text(0.1, 0.9, method, 'title', font_size=20)
-    del stc
+# :ref:`tut-dipole-orientations`. To see outputs using different methods, see
+# :ref:`tut-mne-fixed-free`. For other examples using evoked data, see
+# :ref:`examples using apply_inverse
+# <sphx_glr_backreferences_mne.minimum_norm.apply_inverse>`.
