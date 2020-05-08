@@ -57,6 +57,8 @@ Changelog
 
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
 
+- Accept filenames of raw .fif files to end on `_nirs.fif` to enable complicance with the Brain Imaging Data Structure by `Robert Luke`_
+
 Bug
 ~~~
 

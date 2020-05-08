@@ -37,8 +37,8 @@ class Raw(BaseRaw):
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
-        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
-        preloading must be used.
+        raw_tsss.fif.gz, _nirs.fif or _meg.fif. If a file-like object is
+        provided, preloading must be used.
 
         .. versionchanged:: 0.18
            Support for file-like objects.
@@ -132,7 +132,8 @@ class Raw(BaseRaw):
             if do_check_fname:
                 check_fname(fname, 'raw', (
                     'raw.fif', 'raw_sss.fif', 'raw_tsss.fif', 'raw.fif.gz',
-                    'raw_sss.fif.gz', 'raw_tsss.fif.gz', '_meg.fif'))
+                    'raw_sss.fif.gz', 'raw_tsss.fif.gz', '_meg.fif',
+                    '_nirs.fif'))
             # filename
             fname = op.realpath(fname)
             ext = os.path.splitext(fname)[1].lower()
@@ -427,8 +428,8 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
-        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
-        preloading must be used.
+        raw_tsss.fif.gz,  _nirs.fif or _meg.fif. If a file-like object is
+        provided, preloading must be used.
 
         .. versionchanged:: 0.18
            Support for file-like objects.

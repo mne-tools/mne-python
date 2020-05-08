@@ -1324,7 +1324,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         fname = op.realpath(fname)
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
-                                   'raw_tsss.fif.gz', '_meg.fif'))
+                                   'raw_tsss.fif.gz', '_meg.fif', '_nirs.fif'))
 
         split_size = _get_split_size(split_size)
         if not self.preload and fname in self._filenames:
