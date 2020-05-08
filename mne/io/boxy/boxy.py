@@ -50,24 +50,37 @@ class RawBOXY(BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-
+    
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials, coregister_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
-
+        import pdb
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('mtg', 'elp', 'tol', 'a.001', 'b.001', 'c.001', 'd.001')
+        keys = ('mtg', 'elp', 'tol', '*.[000-999]*')
         print(fname)
         for key in keys:
-            files[key] = glob.glob('%s/*%s' % (fname, key))
+            if key == '*.[000-999]*':
+                files[key] = [glob.glob('%s/*%s' % (fname, key))]
+            else:
+                files[key] = glob.glob('%s/*%s' % (fname, key))
             if len(files[key]) != 1:
                 raise RuntimeError('Expect one %s file, got %d' %
                                    (key, len(files[key]),))
             files[key] = files[key][0]
-
+            
+        ###determine how many blocks we have per montage###
+        blk_names = []
+        mtg_names = []
+        mtgs = re.findall('\w\.\d+',str(files['*.[000-999]*']))
+        [mtg_names.append(i_mtg[0]) for i_mtg in mtgs if i_mtg[0] not in mtg_names]
+        for i_mtg in mtg_names:
+            temp = []
+            [temp.append(ii_mtg[2:]) for ii_mtg in mtgs if ii_mtg[0] == i_mtg]
+            blk_names.append(temp)
+            
         # Read header file
         # Parse required header fields
         ###this keeps track of the line we're on###
@@ -75,32 +88,41 @@ class RawBOXY(BaseRaw):
         ###load and read data to get some meta information###
         ###there is alot of information at the beginning of a file###
         ###but this only grabs some of it###
-        filetype = 'parsed'
-        with open(files['d.001'],'r') as data:
-            for line_num,i_line in enumerate(data,1):
-                if '#DATA ENDS' in i_line:
-                    end_line = line_num - 1
-                    break
-                if 'Detector Channels' in i_line:
-                    detect_num = int(i_line.rsplit(' ')[0])
-                elif 'External MUX Channels' in i_line:
-                    source_num = int(i_line.rsplit(' ')[0])
-                elif 'Auxiliary Channels' in i_line:
-                    aux_num = int(i_line.rsplit(' ')[0])
-                elif 'Waveform (CCF) Frequency (Hz)' in i_line:
-                    ccf_ha = float(i_line.rsplit(' ')[0])
-                elif 'Update Rate (Hz)' in i_line:
-                    srate = float(i_line.rsplit(' ')[0])
-                elif 'Updata Rate (Hz)' in i_line:
-                    srate = float(i_line.rsplit(' ')[0])
-                elif '#DATA BEGINS' in i_line:
-                    start_line = line_num
-                elif 'exmux' in i_line:
-                    filetype = 'non-parsed'
+        detect_num = []
+        source_num = []
+        aux_num = []
+        ccf_ha = []
+        srate = []
+        start_line = []
+        end_line = []
+        filetype = ['parsed' for i_file in files['*.[000-999]*']]
+        for file_num,i_file in enumerate(files['*.[000-999]*'],0):
+            with open(i_file,'r') as data:
+                for line_num,i_line in enumerate(data,1):
+                    if '#DATA ENDS' in i_line:
+                        end_line.append(line_num - 1)
+                        break
+                    if 'Detector Channels' in i_line:
+                        detect_num.append(int(i_line.rsplit(' ')[0]))
+                    elif 'External MUX Channels' in i_line:
+                        source_num.append(int(i_line.rsplit(' ')[0]))
+                    elif 'Auxiliary Channels' in i_line:
+                        aux_num.append(int(i_line.rsplit(' ')[0]))
+                    elif 'Waveform (CCF) Frequency (Hz)' in i_line:
+                        ccf_ha.append(float(i_line.rsplit(' ')[0]))
+                    elif 'Update Rate (Hz)' in i_line:
+                        srate.append(float(i_line.rsplit(' ')[0]))
+                    elif 'Updata Rate (Hz)' in i_line:
+                        srate.append(float(i_line.rsplit(' ')[0]))
+                    elif '#DATA BEGINS' in i_line:
+                        start_line.append(line_num)
+                    elif 'exmux' in i_line:
+                        filetype[file_num] = 'non-parsed'
              
         # Extract source-detectors
         ###set up some variables###
-        chan_num = []
+        chan_num_1 = []
+        chan_num_2 = []
         source_label = []
         detect_label = []
         chan_wavelength = []
@@ -108,15 +130,17 @@ class RawBOXY(BaseRaw):
 
         ###load and read each line of the .mtg file###
         with open(files['mtg'],'r') as data:
-            for i_ignore in range(2):
-                next(data)
-            for i_line in data:
-                chan1, chan2, source, detector, wavelength, modulation = i_line.split()
-                chan_num.append(chan1)
-                source_label.append(source)
-                detect_label.append(detector)
-                chan_wavelength.append(wavelength)
-                chan_modulation.append(modulation)
+            for line_num, i_line in enumerate(data,1):
+                if line_num == 2:
+                    mtg_chan_num = [int(num) for num in i_line.split()]
+                elif line_num > 2:
+                    chan1, chan2, source, detector, wavelength, modulation = i_line.split()
+                    chan_num_1.append(chan1)
+                    chan_num_2.append(chan2)
+                    source_label.append(source)
+                    detect_label.append(detector)
+                    chan_wavelength.append(wavelength)
+                    chan_modulation.append(modulation)
 
        # Read information about probe/montage/optodes
         # A word on terminology used here:
@@ -154,28 +178,34 @@ class RawBOXY(BaseRaw):
         for i_index in range(3):
             fiducial_coords[i_index] = np.asarray([float(x) for x in fiducial_coords[i_index]])
 
-        ###get coordinates for sources###
+        ###get coordinates for sources in .mtg file from .elp file###
         source_coords = []
         for i_chan in source_label:
             if i_chan in all_labels:
                 chan_index = all_labels.index(i_chan)
                 source_coords.append(all_coords[chan_index])
                 
-        ###get coordinates for detectors###
+        ###get coordinates for detectors in .mtg file from .elp file###
         detect_coords = []
         for i_chan in detect_label:
             if i_chan in all_labels:
                 chan_index = all_labels.index(i_chan)
                 detect_coords.append(all_coords[chan_index])
                 
-        # Generate meaningful channel names
-        ###need to rename labels to make other functions happy###
-        ###get our unique labels for sources and detectors###
+        # Generate meaningful channel names for each montage
+        ###get our unique labels for sources and detectors for each montage###
         unique_source_labels = []
         unique_detect_labels = []
-        [unique_source_labels.append(label) for label in source_label if label not in unique_source_labels]
-        [unique_detect_labels.append(label) for label in detect_label if label not in unique_detect_labels]
-
+        for mtg_num, i_mtg in enumerate(mtg_chan_num,0):
+            mtg_source_labels = []
+            mtg_detect_labels = []
+            start = int(np.sum(mtg_chan_num[:mtg_num]))
+            end = int(np.sum(mtg_chan_num[:mtg_num+1]))
+            [mtg_source_labels.append(label) for label in source_label[start:end] if label not in mtg_source_labels]
+            [mtg_detect_labels.append(label) for label in detect_label[start:end] if label not in mtg_detect_labels]
+            unique_source_labels.append(mtg_source_labels)
+            unique_detect_labels.append(mtg_detect_labels)
+            
         ###now let's label each channel in our data###
         ###data is channels X timepoint where the first source_num rows correspond to###
         ###the first detector, and each row within that group is a different source###
@@ -186,18 +216,41 @@ class RawBOXY(BaseRaw):
         boxy_coords = []
         boxy_labels = []
         data_types = ['AC','DC','Ph']
-        total_chans = detect_num*source_num
-        for i_type in data_types:
-            for i_coord in range(len(source_coords[0:total_chans])):
-                boxy_coords.append(np.mean(
-                    np.vstack((source_coords[i_coord], detect_coords[i_coord])),
-                    axis=0).tolist() + source_coords[i_coord] + 
-                    detect_coords[i_coord] + [chan_wavelength[i_coord]] + [0] + [0])
-                boxy_labels.append('S' + 
-                                       str(unique_source_labels.index(source_label[i_coord])+1)
-                                       + '_D' + 
-                                       str(unique_detect_labels.index(detect_label[i_coord])+1) 
-                                       + ' ' + chan_wavelength[i_coord] + ' ' + i_type)
+        temp_boxy_coords = []
+        temp_boxy_labels = []
+        blk_num = [len(blk) for blk in blk_names]
+        for mtg_num, i_mtg in enumerate(mtg_chan_num,0):
+            temp_coords = []
+            temp_labels = []
+            start = int(np.sum(mtg_chan_num[:mtg_num]))
+            end = int(np.sum(mtg_chan_num[:mtg_num+1]))
+            start_blk = int(np.sum(blk_num[:mtg_num]))
+            total_chans = detect_num[start_blk]*source_num[start_blk]
+            for i_type in data_types:
+                for i_coord in range(start,end):
+                    temp_coords.append(np.mean(
+                        np.vstack((source_coords[i_coord], detect_coords[i_coord])),
+                        axis=0).tolist() + source_coords[i_coord] + 
+                        detect_coords[i_coord] + [chan_wavelength[i_coord]] + [0] + [0])
+                    temp_labels.append('S' + 
+                                           str(unique_source_labels[mtg_num].index(source_label[i_coord])+1)
+                                           + '_D' + 
+                                           str(unique_detect_labels[mtg_num].index(detect_label[i_coord])+1) 
+                                           + ' ' + chan_wavelength[i_coord] + ' ' + i_type)
+                    boxy_coords.append(temp_coords[-1])
+                    boxy_labels.append(temp_labels[-1] +  
+                                            mtg_names[mtg_num])
+            # ###add a channel for markers###
+            ###this makes separate lists for each montage###
+            ###maybe we don't want that###
+            ###maybe we want one big list, like with lines 240-242###
+            ###if you uncomment lines 248-252, comment out line 256 and 258###
+            # temp_coords.append(np.zeros((12,)).tolist())
+            # temp_coords = np.array(temp_coords, float)
+            # temp_labels.append('Markers')
+            # boxy_coords.append(temp_coords)
+            # boxy_labels.append(temp_labels)
+        # pdb.set_trace()
         
         # add extra column for triggers
         boxy_labels.append('Markers')
@@ -217,7 +270,7 @@ class RawBOXY(BaseRaw):
                                         rpa = fiducial_coords[2])
         
         ###create info structure###
-        info = create_info(boxy_labels, srate, ch_types='fnirs_raw')
+        info = create_info(boxy_labels, srate[0], ch_types='fnirs_raw')
         ###add dig info###
         ## this also applies a transform to the data into neuromag space based on fiducials
         info.set_montage(my_dig_montage)
@@ -240,6 +293,7 @@ class RawBOXY(BaseRaw):
             temp_other = np.asarray(boxy_coords[i_chan][9:], dtype=np.float64) # add wavelength and placeholders
             info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det, temp_other), axis=0)
         info['chs'][-1]['loc'] = np.zeros((12,))   #remove last line?     
+        # pdb.set_trace()
         
         raw_extras = {'source_num': source_num,
                      'detect_num': detect_num, 
