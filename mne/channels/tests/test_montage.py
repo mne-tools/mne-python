@@ -1162,10 +1162,6 @@ def test_set_dig_montage_parameters_deprecation():
     with pytest.deprecated_call():
         raw.set_montage(montage, raise_if_subset=True)
 
-    _msg = 'since 0.20 its value can only be True.'
-    with pytest.raises(ValueError, match=_msg):
-        raw.set_montage(montage, raise_if_subset=False)
-
     # Already deleted parameters in 0.20, just for completeness
     with pytest.raises(TypeError, match='unexpected keyword argument'):
         raw.set_montage(montage, set_dig=True)
