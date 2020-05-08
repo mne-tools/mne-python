@@ -641,17 +641,10 @@ def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
 
     # This is unlikely to be trigger but it applies in all cases
     if raise_if_subset is not DEPRECATED_PARAM:
-        if raise_if_subset:
-            warn((
-                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
-                ' and ``set_dig`` will be  removed in 0.21'
-            ), DeprecationWarning)
-        else:
-            raise ValueError(
-                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
-                ' and since 0.20 its value can only be True.'
-                ' It will be  removed in 0.21'
-            )
+        warn((
+            'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
+            ' and ``set_dig`` will be  removed in 0.21'
+        ), DeprecationWarning)
 
 
 @fill_doc
@@ -737,11 +730,14 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
         if len(not_in_montage):  # DigMontage is subset of info
-            raise ValueError('DigMontage is a only a subset of info. '
-                             'There are %s channel position%s not present in '
-                             'the DigMontage. The required channels are: %s'
-                             % (len(not_in_montage), _pl(not_in_montage),
-                                not_in_montage))
+            msg = ('DigMontage is a only a subset of info. '
+                   'There are %s channel position%s not present in '
+                   'the DigMontage. The required channels are: %s' %
+                   (len(not_in_montage), _pl(not_in_montage), not_in_montage))
+            if raise_if_subset:
+                raise ValueError(msg)
+            else:
+                warn(msg)
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
