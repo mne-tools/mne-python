@@ -667,7 +667,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         eeg = [eeg]
 
     if fnirs is True:
-        fnirs = ['pairs']
+        fnirs = ['pairs', 'sources', 'detectors']
     elif fnirs is False:
         fnirs = list()
     elif isinstance(fnirs, str):
@@ -684,7 +684,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for xi, x in enumerate(eeg):
         _check_option('eeg[%d]' % xi, x, ('original', 'projected'))
     for xi, x in enumerate(fnirs):
-        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs'))
+        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs', 'sources', 'detectors'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
@@ -730,7 +730,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     fnirs_picks = pick_types(info, meg=False, eeg=False,
                              ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('channels' in fnirs))
+    print(fnirs_picks)
+    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('pairs' in fnirs))
+    print(other_bools)
     del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
@@ -1040,11 +1042,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for key, picks in other_picks.items():
         if other_bools[key] and len(picks):
             if key == 'fnirs':
-                # other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                #                for pick in picks])
-                other_loc['source'] = np.array([info['chs'][pick]['loc'][3:6]
-                                               for pick in picks])
-                other_loc['detector'] = np.array([info['chs'][pick]['loc'][6:9]
+                if 'channels' in fnirs:
+                    other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
+                                   for pick in picks])
+                if 'sources' in fnirs:
+                    other_loc['source'] = np.array([info['chs'][pick]['loc'][3:6]
+                                                   for pick in picks])
+                if 'detectors' in fnirs:
+                    other_loc['detector'] = np.array([info['chs'][pick]['loc'][6:9]
                                                for pick in picks])
                 other_keys = sorted(other_loc.keys())
                 logger.info('Plotting %d %s location%s'
