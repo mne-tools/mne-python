@@ -738,6 +738,9 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
                 raise ValueError(msg)
             else:
                 warn(msg)
+                info_names = [n for n in info_names if n not in not_in_montage]
+                info_names_use = [n for n in info_names_use
+                                  if n not in not_in_montage]
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
