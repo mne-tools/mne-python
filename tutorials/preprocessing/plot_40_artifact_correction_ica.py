@@ -232,7 +232,7 @@ ica.fit(filt_raw)
 # acceptable peak-to-peak amplitudes for each channel type, just like we used
 # when creating epoched data in the :ref:`tut-overview` tutorial).
 #
-# Now we can examine the ICs to see what they captured. 
+# Now we can examine the ICs to see what they captured.
 # :meth:`~mne.preprocessing.ICA.plot_sources` will show the time series of the
 # ICs. Note that in our call to :meth:`~mne.preprocessing.ICA.plot_sources` we
 # can use the original, unfiltered :class:`~mne.io.Raw` object:
