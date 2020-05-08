@@ -135,12 +135,12 @@ def _get_3d_backend():
         MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
         if MNE_3D_BACKEND is None:  # try them in order
             for name in VALID_3D_BACKENDS:
-                MNE_3D_BACKEND = name
                 try:
                     _reload_backend(name)
                 except ImportError:
-                    pass
+                    continue
                 else:
+                    MNE_3D_BACKEND = name
                     break
             else:
                 raise RuntimeError('Could not load any valid 3D backend: %s'
