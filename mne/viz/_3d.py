@@ -595,9 +595,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     seeg : bool
         If True (default), show sEEG electrodes.
     fnirs : str | list | bool | None
-        Can be "channels" or "pairs" to show the fNIRS channel locations or
-        line between source-detector pairs, or a combination like
-        ``('pairs', 'channels')``. True translates to ``('pairs',)``.
+        Can be "channels", "pairs", "detectors", and/or "sources" to show the 
+        fNIRS channel locations, optode locations, or line between source-detector pairs, or a combination like
+        ``('pairs', 'channels')``. True translates to ``('pairs', 'sources', 'detectors')``.
 
         .. versionadded:: 0.20
     show_axes : bool
