@@ -12,6 +12,7 @@ from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (annotate_movement, compute_average_dev_head_t,
                                annotate_muscle_zscore)
+from mne import Annotations
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -49,6 +50,11 @@ def test_movement_annotation_head_correction():
                               [0., 0., 0., 1.]])
 
     assert_allclose(dev_head_t_ori, dev_head_t['trans'], rtol=1e-5, atol=0)
+
+    # Smoke test skipping time due to previous annotations.
+    raw.set_annotations(Annotations([raw.times[0]], 0.1, 'bad'))
+    annot_dis, disp = annotate_movement(raw, pos, mean_distance_limit=.02)
+    assert(annot_dis.duration.size == 1)
 
 
 @testing.requires_testing_data
