@@ -67,7 +67,7 @@ DEFAULTS = dict(
         eeg_color=(1., 0.596, 0.588), eegp_color=(0.839, 0.15, 0.16),
         ecog_color=(1., 1., 1.),
         seeg_color=(1., 1., .3),
-        fnirs_color=(1., 1., 1.),
+        fnirs_color=(1., .4, .3),
         source_color=(1., .2, .3),
         detector_color=(.3, .15, .15),
         lpa_color=(1., 0., 0.),

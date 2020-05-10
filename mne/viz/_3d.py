@@ -667,7 +667,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         eeg = [eeg]
 
     if fnirs is True:
-        fnirs = ['pairs', 'sources', 'detectors']
+        fnirs = ['pairs']
     elif fnirs is False:
         fnirs = list()
     elif isinstance(fnirs, str):
@@ -730,9 +730,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     fnirs_picks = pick_types(info, meg=False, eeg=False,
                              ref_meg=False, fnirs=True)
-    print(fnirs_picks)
     other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('pairs' in fnirs))
-    print(other_bools)
     del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
@@ -1048,11 +1046,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                 if 'sources' in fnirs:
                     other_loc['source'] = np.array([info['chs'][pick]['loc'][3:6]
                                                    for pick in picks])
+                    logger.info('Plotting %d %s source%s'
+                            % (len(other_loc['source']), key, _pl(other_loc['source'])))
                 if 'detectors' in fnirs:
                     other_loc['detector'] = np.array([info['chs'][pick]['loc'][6:9]
                                                for pick in picks])
+                    logger.info('Plotting %d %s detector%s'
+                            % (len(other_loc['detector']), key, _pl(other_loc['detector'])))
                 other_keys = sorted(other_loc.keys())
-                logger.info('Plotting %d %s location%s'
+                logger.info('Plotting %d %s channel%s'
                             % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
