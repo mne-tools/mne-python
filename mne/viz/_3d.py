@@ -730,7 +730,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     fnirs_picks = pick_types(info, meg=False, eeg=False,
                              ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('pairs' in fnirs))
+    other_bools = dict(ecog=ecog, seeg=seeg, 
+        fnirs=(('channels' in fnirs)| ('sources' in fnirs) | ('detectors' in fnirs)))
     del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
