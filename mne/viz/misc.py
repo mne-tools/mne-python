@@ -312,12 +312,12 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     # we don't care about directonality reversal, so convert LPI to RAS. For
     # conformed images, we get axcodes == 'RSA'
     axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    if orientation == 'coronal':
-        x, y, z = axcodes.index('R'), axcodes.index('S'), axcodes.index('A')
-    elif orientation == 'axial':
-        x, y, z = axcodes.index('A'), axcodes.index('R'), axcodes.index('S')
-    else:  # orientation == 'sagittal'
-        x, y, z = axcodes.index('A'), axcodes.index('S'), axcodes.index('R')
+    orientation_to_xyz = dict(
+        coronal=('R', 'S', 'A'),
+        axial=('A', 'R', 'S'),
+        sagittal=('A', 'S', 'R'),
+    )
+    x, y, z = [axcodes.index(c) for c in orientation_to_xyz[orientation]]
     transpose = x < y
     del orientation
 
