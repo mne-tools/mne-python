@@ -407,33 +407,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
                        slices=None, show=True, img_output=False):
-    """Plot BEM contours on anatomical slices.
-
-    Parameters
-    ----------
-    mri_fname : str
-        The name of the file containing anatomical data.
-    surf_fnames : list of str
-        The filenames for the BEM surfaces in the format
-        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
-    orientation : str
-        'coronal' or 'transverse' or 'sagittal'
-    slices : list of int
-        Slice indices.
-    show : bool
-        Call pyplot.show() at the end.
-    img_output : None | tuple
-        If tuple (width and height), images will be produced instead of a
-        single figure with many axes. This mode is designed to reduce the
-        (substantial) overhead associated with making tens to hundreds
-        of matplotlib axes, instead opting to re-use a single Axes instance.
-
-    Returns
-    -------
-    fig : instance of matplotlib.figure.Figure | list
-        The figure. Will instead be a list of png images if
-        img_output is a tuple.
-    """
+    """Plot BEM contours on anatomical slices."""
+    # XXX this should be refactored with misc._plot_mri_contours!
     import matplotlib.pyplot as plt
     import nibabel as nib
 
