@@ -59,6 +59,8 @@ Changelog
 
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
 
+- Add ``sources`` and ``detectors`` options for :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between optodes 
+
 Bug
 ~~~
 
