@@ -56,7 +56,7 @@ class RawBOXY(BaseRaw):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials, coregister_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
-        import pdb
+        # import pdb
         # Check if required files exist and store names for later use
         files = dict()
         keys = ('mtg', 'elp', 'tol', '*.[000-999]*')
@@ -79,7 +79,7 @@ class RawBOXY(BaseRaw):
         for i_mtg in mtg_names:
             temp = []
             [temp.append(ii_mtg[2:]) for ii_mtg in mtgs if ii_mtg[0] == i_mtg]
-            blk_names.append(temp)
+            blk_names.append(temp)  
             
         # Read header file
         # Parse required header fields
@@ -118,7 +118,7 @@ class RawBOXY(BaseRaw):
                         start_line.append(line_num)
                     elif 'exmux' in i_line:
                         filetype[file_num] = 'non-parsed'
-             
+                        
         # Extract source-detectors
         ###set up some variables###
         chan_num_1 = []
@@ -141,7 +141,7 @@ class RawBOXY(BaseRaw):
                     detect_label.append(detector)
                     chan_wavelength.append(wavelength)
                     chan_modulation.append(modulation)
-
+                    
        # Read information about probe/montage/optodes
         # A word on terminology used here:
         #   Sources produce light
@@ -215,45 +215,46 @@ class RawBOXY(BaseRaw):
         ###will label them based on ac, dc, and ph data###
         boxy_coords = []
         boxy_labels = []
+        mrk_coords = []
+        mrk_labels = []
         data_types = ['AC','DC','Ph']
-        temp_boxy_coords = []
-        temp_boxy_labels = []
+        mtg_start = []
+        mtg_end = []
+        mtg_src_num = []
+        mtg_det_num = []
         blk_num = [len(blk) for blk in blk_names]
         for mtg_num, i_mtg in enumerate(mtg_chan_num,0):
-            temp_coords = []
-            temp_labels = []
             start = int(np.sum(mtg_chan_num[:mtg_num]))
             end = int(np.sum(mtg_chan_num[:mtg_num+1]))
+            ###we will also organise some data for each montage###
             start_blk = int(np.sum(blk_num[:mtg_num]))
-            total_chans = detect_num[start_blk]*source_num[start_blk]
-            for i_type in data_types:
-                for i_coord in range(start,end):
-                    temp_coords.append(np.mean(
-                        np.vstack((source_coords[i_coord], detect_coords[i_coord])),
-                        axis=0).tolist() + source_coords[i_coord] + 
-                        detect_coords[i_coord] + [chan_wavelength[i_coord]] + [0] + [0])
-                    temp_labels.append('S' + 
-                                           str(unique_source_labels[mtg_num].index(source_label[i_coord])+1)
-                                           + '_D' + 
-                                           str(unique_detect_labels[mtg_num].index(detect_label[i_coord])+1) 
-                                           + ' ' + chan_wavelength[i_coord] + ' ' + i_type)
-                    boxy_coords.append(temp_coords[-1])
-                    boxy_labels.append(temp_labels[-1] +  
-                                            mtg_names[mtg_num])
-            # ###add a channel for markers###
-            ###this makes separate lists for each montage###
-            ###maybe we don't want that###
-            ###maybe we want one big list, like with lines 240-242###
-            ###if you uncomment lines 248-252, comment out line 256 and 258###
-            # temp_coords.append(np.zeros((12,)).tolist())
-            # temp_coords = np.array(temp_coords, float)
-            # temp_labels.append('Markers')
-            # boxy_coords.append(temp_coords)
-            # boxy_labels.append(temp_labels)
-        # pdb.set_trace()
+            ###get stop and stop lines for each montage###
+            mtg_start.append(start_line[start_blk])
+            mtg_end.append(end_line[start_blk])
+            ###get source and detector numbers for each montage###
+            mtg_src_num.append(source_num[start_blk])
+            mtg_det_num.append(detect_num[start_blk])
+            for i_blk in blk_names[mtg_num]:
+                for i_type in data_types:
+                    for i_coord in range(start,end):
+                        boxy_coords.append(np.mean(
+                            np.vstack((source_coords[i_coord], detect_coords[i_coord])),
+                            axis=0).tolist() + source_coords[i_coord] + 
+                            detect_coords[i_coord] + [chan_wavelength[i_coord]] + [0] + [0])
+                        boxy_labels.append('S' + 
+                                               str(unique_source_labels[mtg_num].index(source_label[i_coord])+1)
+                                               + '_D' + 
+                                               str(unique_detect_labels[mtg_num].index(detect_label[i_coord])+1) 
+                                               + ' ' + chan_wavelength[i_coord] + i_type[0] + mtg_names[mtg_num] + i_blk[1:])
         
-        # add extra column for triggers
-        boxy_labels.append('Markers')
+                # add extra column for triggers
+                mrk_labels.append('Markers' + ' ' + mtg_names[mtg_num] + i_blk[1:])
+                mrk_coords.append(np.zeros((12,)))
+                
+        ###add triggers to the end of our data###
+        boxy_labels.extend(mrk_labels)
+        boxy_coords.extend(mrk_coords)
+        
         # convert to floats
         boxy_coords = np.array(boxy_coords, float)
         all_coords = np.array(all_coords, float)
@@ -288,31 +289,37 @@ class RawBOXY(BaseRaw):
                                     fiducial_coords[1], 
                                     fiducial_coords[2])
         
-        for i_chan in range(len(boxy_labels)-1):
+        for i_chan in range(len(boxy_labels)):
             temp_ch_src_det = apply_trans(native_head_t, boxy_coords[i_chan][:9].reshape(3, 3)).ravel()
             temp_other = np.asarray(boxy_coords[i_chan][9:], dtype=np.float64) # add wavelength and placeholders
-            info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det, temp_other), axis=0)
-        info['chs'][-1]['loc'] = np.zeros((12,))   #remove last line?     
-        # pdb.set_trace()
-        
+            info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det, temp_other), axis=0) 
+                
         raw_extras = {'source_num': source_num,
                      'detect_num': detect_num, 
                      'start_line': start_line,
                      'end_line': end_line,
                      'filetype': filetype,
                      'files': files,}
-
-        print('Start Line: ', start_line)
-        print('End Line: ', end_line)
-        print('Original Difference: ', end_line-start_line)
-        first_samps = start_line
+        
+        print('Start Line: ', start_line[0])
+        print('End Line: ', end_line[0])
+        # print('Original Difference: ', end_line-start_line)
+        first_samps = start_line[0]
         print('New first_samps: ', first_samps)
-        diff = end_line-start_line
+        diff = end_line[0] - start_line[0]
+        # diff = [end_line[i_line] - start_line[i_line] for i_line in range(len(end_line))]
         #input file has rows for each source, output variable rearranges as columns and does not
-        last_samps = start_line + diff // source_num -1 
+        if filetype[0] == 'non-parsed':
+            last_samps = ((diff-2) // (source_num[0])) + start_line[0] - 1
+        elif filetype =='parsed':
+            last_samps = (start_line[0] + diff)
+        # last_samps = [((start_line[i_line] + diff[i_line]) // (source_num[i_line] -1))
+        #                for i_line in range(len(start_line))]
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps-first_samps)
-
+        # print('New Difference: ', [str(last_samps[i_line]-first_samps[i_line]) 
+        #                            for i_line in range(len(last_samps))])
+        # pdb.set_trace()
         super(RawBOXY, self).__init__(
             info, preload, filenames=[fname], first_samps=[first_samps], 
             last_samps=[last_samps],
@@ -321,114 +328,130 @@ class RawBOXY(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
         """
+        # import pdb
+        # pdb.set_trace()
         source_num = self._raw_extras[fi]['source_num']
         detect_num = self._raw_extras[fi]['detect_num']
         start_line = self._raw_extras[fi]['start_line']
         end_line = self._raw_extras[fi]['end_line']
         filetype = self._raw_extras[fi]['filetype']
-        boxy_file = self._raw_extras[fi]['files']['d.001']
+        boxy_files = self._raw_extras[fi]['files']['*.[000-999]*']
         
-        ###load our data###
-        boxy_data = []
-        with open(boxy_file,'r') as data_file:
-            for line_num,i_line in enumerate(data_file,1):
-                if line_num > start_line and line_num <= end_line:
-                    boxy_data.append(i_line.rsplit(' '))
-
         ###detectors, sources, and data types###
         detectors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 
                      'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
                      'Y', 'Z']
         data_types = ['AC','DC','Ph']
-        sources = np.arange(1,source_num+1,1)
-
-        ###get column names from the first row of our boxy data###
-        col_names = np.asarray(re.findall('\w+\-\w+|\w+\-\d+|\w+',boxy_data[0][0]))
-        del boxy_data[0]
         
-        ###sometimes there is an empty line before our data starts###
-        ###this should remove them###
-        while re.findall('[-+]?\d*\.?\d+',boxy_data[0][0]) == []:
+        ###load our data###
+        all_data = []
+        markers = []
+        for file_num, boxy_file in enumerate(boxy_files):
+            boxy_data = []
+            with open(boxy_file,'r') as data_file:
+                for line_num, i_line in enumerate(data_file,1):
+                    if line_num > start_line[file_num] and line_num <= end_line[file_num]:
+                        boxy_data.append(i_line.rsplit(' '))
+                        
+            sources = np.arange(1,source_num[file_num]+1,1)
+    
+            ###get column names from the first row of our boxy data###
+            col_names = np.asarray(re.findall('\w+\-\w+|\w+\-\d+|\w+',boxy_data[0][0]))
             del boxy_data[0]
             
-        ###grba the individual data points for each column###
-        boxy_data = [re.findall('[-+]?\d*\.?\d+',i_row[0]) for i_row in boxy_data]
+            ###sometimes there is an empty line before our data starts###
+            ###this should remove them###
+            while re.findall('[-+]?\d*\.?\d+',boxy_data[0][0]) == []:
+                del boxy_data[0]
+                
+            ###grab the individual data points for each column###
+            boxy_data = [re.findall('[-+]?\d*\.?\d+',i_row[0]) for i_row in boxy_data]
+                
+            ###make variable to store our data as an array rather than list of strings###
+            boxy_length = len(col_names)
+            boxy_array = np.full((len(boxy_data),boxy_length),np.nan)
+            for ii, i_data in enumerate(boxy_data):
+                ###need to make sure our rows are the same length###
+                ###this is done by padding the shorter ones###
+                padding = boxy_length - len(i_data)
+                boxy_array[ii] = np.pad(np.asarray(i_data, dtype=float), (0,padding), mode='empty')
+               
+            ###grab data from the other columns that don't pertain to AC, DC, or Ph###
+            meta_data = dict()
+            keys = ['time','record','group','exmux','step','mark','flag','aux1','digaux']
+            for i_detect in detectors[0:detect_num[file_num]]:
+                keys.append('bias-' + i_detect)
             
-        ###make variable to store our data as an array rather than list of strings###
-        boxy_length = len(boxy_data[0])
-        boxy_array = np.full((len(boxy_data),boxy_length),np.nan)
-        for ii, i_data in enumerate(boxy_data):
-            ###need to make sure our rows are the same length###
-            ###this is done by padding the shorter ones###
-            padding = boxy_length - len(i_data)
-            boxy_array[ii] = np.pad(np.asarray(i_data, dtype=float), (0,padding), mode='empty')
-           
-        ###grab data from the other columns that don't pertain to AC, DC, or Ph###
-        meta_data = dict()
-        keys = ['time','record','group','exmux','step','mark','flag','aux1','digaux']
-        for i_detect in detectors[0:detect_num]:
-            keys.append('bias-' + i_detect)
-        
-        ###data that isn't in our boxy file will be an empty list###
-        for key in keys:
-            meta_data[key] = (boxy_array[:,np.where(col_names == key)[0][0]] if
-            key in col_names else [])
-        
-        ###make some empty variables to store our data###
-        if filetype == 'non-parsed':
-            data_ = np.zeros(((((detect_num*source_num)*3)+1),
-                                int(len(boxy_data)/source_num))) 
-        elif filetype == 'parsed':
-            data_ = np.zeros(((((detect_num*source_num)*3)+1),
-                                int(len(boxy_data)))) 
-        
-        ###loop through data types###
-        for i_data in data_types:
-         
-            ###loop through detectors###
-            for i_detect in detectors[0:detect_num]:
-        
-                ###loop through sources###
-                for i_source in sources: 
-                    
-                    ###determine where to store our data###
-                    index_loc = (detectors.index(i_detect)*source_num + 
-                    (i_source-1) + (data_types.index(i_data)*(source_num*detect_num)))  
-                    
-                    ###need to treat our filetypes differently###
-                    if filetype == 'non-parsed':
+            ###data that isn't in our boxy file will be an empty list###
+            for key in keys:
+                meta_data[key] = (boxy_array[:,np.where(col_names == key)[0][0]] if
+                key in col_names else [])
+            
+            ###make some empty variables to store our data###
+            if filetype[file_num] == 'non-parsed':
+                data_ = np.zeros(((((detect_num[file_num]*source_num[file_num])*3)),
+                                    int(len(boxy_data)/source_num[file_num]))) 
+            elif filetype[file_num] == 'parsed':
+                data_ = np.zeros(((((detect_num[file_num]*source_num[file_num])*3)),
+                                    int(len(boxy_data)))) 
+            
+            ###loop through data types###
+            for i_data in data_types:
+             
+                ###loop through detectors###
+                for i_detect in detectors[0:detect_num[file_num]]:
+            
+                    ###loop through sources###
+                    for i_source in sources: 
                         
-                        ###non-parsed saves timepoints in groups###
-                        ###this should account for that###
-                        time_points = np.arange(i_source-1,int(meta_data['record'][-1])*source_num,source_num)
+                        ###determine where to store our data###
+                        index_loc = (detectors.index(i_detect)*source_num[file_num] + 
+                        (i_source-1) + (data_types.index(i_data)*(source_num[file_num]*detect_num[file_num])))  
                         
-                        ###determine which channel to look for in boxy_array###
-                        channel = np.where(col_names == i_detect + '-' + i_data)[0][0]
-                        
-                        ###save our data based on data type###
-                        data_[index_loc,:] = boxy_array[time_points,channel]
-                        
-                    elif filetype == 'parsed':   
-                        
-                        ###determine which channel to look for in boxy_array###
-                        channel = np.where(col_names == i_detect + '-' + 
-                                           i_data + str(i_source))[0][0]
-                        
-                        ###save our data based on data type###
-                        data_[index_loc,:] = boxy_array[:,channel]
-
-        # Read triggers from event file
-        ###add our markers to the data array based on filetype###
-        if type(meta_data['digaux']) is not list:
-            if filetype == 'non-parsed':
-                markers = meta_data['digaux'][np.arange(0,len(meta_data['digaux']),source_num)]
-            elif filetype == 'parsed':
-                markers = meta_data['digaux']
-            data_[-1,:] = markers
+                        ###need to treat our filetypes differently###
+                        if filetype[file_num] == 'non-parsed':
+                            
+                            ###non-parsed saves timepoints in groups###
+                            ###this should account for that###
+                            time_points = np.arange(i_source-1,
+                                                    int(meta_data['record'][-1])
+                                                    *source_num[file_num],
+                                                    source_num[file_num])
+                            
+                            ###determine which channel to look for in boxy_array###
+                            channel = np.where(col_names == i_detect + '-' + i_data)[0][0]
+                            
+                            ###save our data based on data type###
+                            data_[index_loc,:] = boxy_array[time_points,channel]
+                            
+                        elif filetype[file_num] == 'parsed':   
+                            
+                            ###determine which channel to look for in boxy_array###
+                            channel = np.where(col_names == i_detect + '-' + 
+                                               i_data + str(i_source))[0][0]
+                            
+                            ###save our data based on data type###
+                            data_[index_loc,:] = boxy_array[:,channel]
+                          
+            # Read triggers from event file
+            ###add our markers to the data array based on filetype###
+            if type(meta_data['digaux']) is not list:
+                if filetype[file_num] == 'non-parsed':
+                    markers.append(meta_data['digaux'][np.arange(0,len(meta_data['digaux']),source_num[file_num])])
+                elif filetype[file_num] == 'parsed':
+                    markers.append(meta_data['digaux'])
+            else:
+                markers.append(np.zeros((len(data_[0,:]),)))
+            
+            all_data.extend(data_)
+                
+        ###add markers to our data###
+        all_data.extend(markers)
+        all_data = np.asarray(all_data)
         
         print('Blank Data shape: ', data.shape)
-        print('Input Data shape: ', data_.shape)
+        print('Input Data shape: ', all_data.shape)
         # place our data into the data object in place
-        data[:] = data_
+        data[:] = all_data
         
         return data
