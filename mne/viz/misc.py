@@ -10,8 +10,10 @@
 #
 # License: Simplified BSD
 
+import base64
 import copy
 from glob import glob
+from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
@@ -293,23 +295,8 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True, show_indices=False,
-                       show_orientation=False):
-    """Plot BEM contours on anatomical slices."""
-    import matplotlib.pyplot as plt
-    from matplotlib import patheffects
+def _mri_ori(nim, orientation):
     import nibabel as nib
-    # For ease of plotting, we will do everything in voxel coordinates.
-    _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
-
-    # Load the T1 data
-    _, vox_mri_t, _, _, _, nim = _read_mri_info(
-        mri_fname, units='mm', return_img=True)
-    mri_vox_t = invert_transform(vox_mri_t)['trans']
-    del vox_mri_t
-
-    # plot axes (x, y, z) as data axes
     axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
     # we don't care about directonality reversal, so convert LPI to RAS. For
     # conformed images, we get axcodes == 'RSA'
@@ -320,10 +307,30 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         axial=('A', 'R', 'S'),
         sagittal=('A', 'S', 'R'),
     )[orientation]
-    x, y, z = [axcodes.index(c) for c in order]
-    flip_x, flip_y, flip_z = [flips[c] for c in order]
-    transpose = x < y
-    del orientation
+    xyz = [axcodes.index(c) for c in order]
+    flips = [flips[c] for c in order]
+    transpose = xyz[0] < xyz[1]
+    return xyz, flips, transpose, order
+
+
+def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
+                       slices=None, show=True, show_indices=False,
+                       show_orientation=False, img_output=None):
+    """Plot BEM contours on anatomical slices."""
+    import matplotlib.pyplot as plt
+    from matplotlib import patheffects
+    # For ease of plotting, we will do everything in voxel coordinates.
+    _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
+
+    # Load the T1 data
+    _, vox_mri_t, _, _, _, nim = _read_mri_info(
+        mri_fname, units='mm', return_img=True)
+    mri_vox_t = invert_transform(vox_mri_t)['trans']
+    del vox_mri_t
+
+    # plot axes (x, y, z) as data axes
+    (x, y, z), (flip_x, flip_y, flip_z), transpose, order = _mri_ori(
+        nim, orientation)
 
     data = _get_img_fdata(nim)
     shift_x = data.shape[x] if flip_x < 0 else 0
@@ -361,8 +368,20 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         raise TypeError("src needs to be None or SourceSpaces instance, not "
                         "%s" % repr(src))
 
-    n_col = 4
-    fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+    if img_output is None:
+        n_col = 4
+        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        n_axes = len(axs)
+    else:
+        n_col = n_axes = 1
+        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
+        axs = [ax] * len(slices)
+
+        fig_size = fig.get_size_inches()
+        w, h = img_output[0], img_output[1]
+        w2 = fig_size[0]
+        fig.set_size_inches([(w2 / float(w)) * w, (w2 / float(w)) * h])
+        plt.close(fig)
     fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
@@ -371,6 +390,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     xlabels, ylabels = ori_labels[order[0]], ori_labels[order[1]]
     path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
                                            alpha=0.75)]
+    out = list() if img_output is not None else fig
     for ai, (ax, sl, lower, upper) in enumerate(zip(
             axs, slices, bounds[:-1], bounds[1:])):
         # adjust the orientations for good view
@@ -380,6 +400,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         dat = dat[::flip_y, ::flip_x]
 
         # First plot the anatomical data
+        if img_output is not None:
+            ax.clear()
         ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
         ax.set_autoscale_on(False)
         ax.axis('off')
@@ -409,20 +431,27 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
             if ai % n_col == 0:  # left
                 ax.text(0, dat.shape[0] / 2., xlabels[0],
                         va='center', ha='left', **kwargs)
-            if ai % n_col == n_col - 1 or ai == len(axs) - 1:  # right
+            if ai % n_col == n_col - 1 or ai == n_axes - 1:  # right
                 ax.text(dat.shape[1] - 1, dat.shape[0] / 2., xlabels[1],
                         va='center', ha='right', **kwargs)
-            if ai >= len(axs) - n_col:  # bottom
+            if ai >= n_axes - n_col:  # bottom
                 ax.text(dat.shape[1] / 2., 0, ylabels[0],
                         ha='center', va='bottom', **kwargs)
-            if ai < n_col:  # top
+            if ai < n_col or n_col == 1:  # top
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
+        if img_output is not None:
+            ax.set_xticks([])
+            ax.set_yticks([])
+            output = BytesIO()
+            fig.savefig(output, bbox_inches='tight',
+                        pad_inches=0, format='png')
+            out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
-    plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+    fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
-    plt_show(show)
-    return fig
+    plt_show(show, fig=fig)
+    return out
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
@@ -502,16 +531,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
-    surfaces = []
-    for surf_name, color in (('*inner_skull', '#FF0000'),
-                             ('*outer_skull', '#FFFF00'),
-                             ('*outer_skin', '#FFAA80')):
-        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
-        if len(surf_fname) > 0:
-            surf_fname = surf_fname[0]
-            logger.info("Using surface: %s" % surf_fname)
-            surfaces.append((surf_fname, color))
-
+    surfaces = _get_bem_plotting_surfaces(bem_path, warn=False)
     if brain_surfaces is not None:
         if isinstance(brain_surfaces, str):
             brain_surfaces = (brain_surfaces,)
@@ -543,6 +563,21 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
                               show, show_indices, show_orientation)
+
+
+def _get_bem_plotting_surfaces(bem_path, warn=False):
+    surfaces = []
+    for surf_name, color in (('*inner_skull', '#FF0000'),
+                             ('*outer_skull', '#FFFF00'),
+                             ('*outer_skin', '#FFAA80')):
+        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
+        if len(surf_fname) > 0:
+            surf_fname = surf_fname[0]
+            logger.info("Using surface: %s" % surf_fname)
+            surfaces.append((surf_fname, color))
+        elif warn:
+            warn('No surface found for %s.' % surf_name)
+    return surfaces
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
