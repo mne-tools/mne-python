@@ -7,6 +7,19 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
+.. _changes_0_20_4:
+
+Version 0.20.4
+--------------
+
+Bug
+~~~
+
+- Restore ability to use ``raise_if_subset`` in 0.20 in :meth:`mne.io.Raw.set_montage` and related functions by `Clemens Brunner`_
+
+- Add ability to load NIRX data by passing path to header file by `Robert Luke`_
+
+
 .. _changes_0_20_3:
 
 Version 0.20.3
