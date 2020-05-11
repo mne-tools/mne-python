@@ -31,7 +31,7 @@ from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
-                     _check_option, _ensure_int, _validate_type)
+                     _check_option, _ensure_int, _validate_type, use_log_level)
 from ..fixes import _get_args, _safe_svd, einsum, bincount
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -404,7 +404,7 @@ def _run_maxwell_filter(
         st_when, ctc, coil_scale, this_pos_quat, meg_picks, good_mask,
         grad_picks, head_pos, info, _get_this_decomp_trans, S_recon,
         update_kwargs,
-        reconstruct='in', count_msg=True, copy=True):
+        reconstruct='in', copy=True):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
     # on which channels are being used, so easier just to include it here.
@@ -464,9 +464,8 @@ def _run_maxwell_filter(
 
     # Loop through buffer windows of data
     n_sig = int(np.floor(np.log10(max(len(starts), 0)))) + 1
-    if count_msg:
-        logger.info(
-            '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
+    logger.info(
+        '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
     for ii, (start, stop) in enumerate(zip(starts, stops)):
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
@@ -1977,7 +1976,6 @@ def find_bad_channels_maxwell(
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
     for si, (start, stop) in enumerate(zip(starts, stops)):
-        prefix = '%03d:' % (si,)
         n_iter = 0
         orig_data = raw.get_data(None, start, stop, verbose=False)
         chunk_raw = RawArray(
@@ -2002,6 +2000,9 @@ def find_bad_channels_maxwell(
         chunk_noisy = list()
         params['st_duration'] = int(round(
             chunk_raw.times[-1] * raw.info['sfreq']))
+        t = chunk_raw.times[[0, -1]] + start / raw.info['sfreq']
+        logger.info('        Interval %3d: %8.3f - %8.3f'
+                    % ((si + 1,) + tuple(t[[0, -1]])))
         for n_iter in range(1, 101):  # iteratively exclude the worst ones
             assert set(raw.info['bads']) & set(chunk_noisy) == set()
             params['good_mask'][:] = [
@@ -2010,15 +2011,13 @@ def find_bad_channels_maxwell(
                 for pick in params['meg_picks']]
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
-            _run_maxwell_filter(
-                chunk_raw, reconstruct='orig', count_msg=False, copy=False,
-                **params)
+            with use_log_level(False):
+                _run_maxwell_filter(
+                    chunk_raw, reconstruct='orig', copy=False, **params)
 
             if n_iter == 1 and len(chunk_flats):
-                logger.info('    %s Flat (%2d): %s'
-                            % (prefix, len(chunk_flats),
-                               ' '.join(chunk_flats)))
-                prefix = '    '
+                logger.info('            Flat (%2d): %s'
+                            % (len(chunk_flats), ' '.join(chunk_flats)))
             delta -= chunk_raw.get_data(these_picks)
             # p2p
             range_ = np.ptp(delta, axis=-1)
@@ -2032,8 +2031,8 @@ def find_bad_channels_maxwell(
             if max_ < limit:
                 break
             name = raw.ch_names[these_picks[idx]]
-            logger.debug('    %s Bad:       %s %0.1f' % (prefix, name, max_))
-            prefix = '    '
+            logger.debug('            Bad:       %s %0.1f'
+                         % (name, max_))
             these_picks.pop(idx)
             chunk_noisy.append(name)
         noisy_chs.update(chunk_noisy)

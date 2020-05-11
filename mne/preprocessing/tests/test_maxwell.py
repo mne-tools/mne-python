@@ -1068,7 +1068,7 @@ def test_mf_skips():
     (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443']),
     # CTF data
     (ctf_fname_continuous, [], False, False, False,
-     ['BP1-4304', 'BR1-4304', 'BR2-4304', 'BR3-4304']),
+     ['BP3-4304', 'BR1-4304', 'BR2-4304', 'BR3-4304']),
     (ctf_fname_continuous, [], False, False, True, ['MLC24-4304']),  # faked
 ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
@@ -1104,12 +1104,16 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
         dt = 1. / raw.info['sfreq']
         assert step == 1502
         raw.annotations.append(step * dt + raw._first_time, dt, 'BAD')
-    got_bads, got_flats = find_bad_channels_maxwell(
-        raw, origin=(0., 0., 0.04), regularize=None,
-        bad_condition='ignore', skip_by_annotation='BAD', verbose='debug',
-        ignore_ref=ignore_ref)
+    with catch_logging() as log:
+        got_bads, got_flats = find_bad_channels_maxwell(
+            raw, origin=(0., 0., 0.04), regularize='in',
+            bad_condition='ignore', skip_by_annotation='BAD', verbose=True,
+            ignore_ref=ignore_ref)
     assert got_bads == want_bads  # from MaxFilter
     assert got_flats == want_flats
+    log = log.getvalue()
+    assert 'Interval   1:    0.00' in log
+    assert 'Interval   2:    5.00' in log
 
 
 run_tests_if_main()
