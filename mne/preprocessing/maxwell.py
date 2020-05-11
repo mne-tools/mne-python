@@ -1964,6 +1964,8 @@ def find_bad_channels_maxwell(
     del origin, int_order, ext_order, calibration, cross_talk, coord_frame
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
     good_meg_picks = params['meg_picks'][params['good_mask']]
+    assert len(params['meg_picks']) == len(params['coil_scale'])
+    assert len(params['good_mask']) == len(params['meg_picks'])
     noisy_chs = Counter()
     flat_chs = Counter()
     flat_limits = dict(grad=0.01e-13, mag=0.01e-15)
@@ -2002,10 +2004,10 @@ def find_bad_channels_maxwell(
             chunk_raw.times[-1] * raw.info['sfreq']))
         for n_iter in range(1, 101):  # iteratively exclude the worst ones
             assert set(raw.info['bads']) & set(chunk_noisy) == set()
-            params['good_mask'][:] = np.array([
+            params['good_mask'][:] = [
                 chunk_raw.ch_names[pick] not in
                 raw.info['bads'] + chunk_noisy + chunk_flats
-                for pick in params['meg_picks']], int)
+                for pick in params['meg_picks']]
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
             _run_maxwell_filter(
@@ -2020,7 +2022,8 @@ def find_bad_channels_maxwell(
             delta -= chunk_raw.get_data(these_picks)
             # p2p
             range_ = np.ptp(delta, axis=-1)
-            range_ *= params['coil_scale'][these_picks, 0]
+            cs_picks = np.searchsorted(params['meg_picks'], these_picks)
+            range_ *= params['coil_scale'][cs_picks, 0]
             mean, std = np.mean(range_), np.std(range_)
             # z score
             z = (range_ - mean) / std
