@@ -387,6 +387,8 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
             op.dirname(__file__), 'generated', '%s.examples' % (name,)))
         if size > 0:
             lines += """
+.. _sphx_glr_backreferences_{1}:
+
 .. rubric:: Examples using ``{0}``:
 
 .. include:: {1}.examples

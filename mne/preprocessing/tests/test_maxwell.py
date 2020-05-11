@@ -1059,8 +1059,11 @@ def test_mf_skips():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('bads', [[], ['MEG 0111']])  # just to test picking
-def test_find_bad_channels_maxwell(bads):
+@pytest.mark.parametrize('bads, annot', [
+    ([], False),
+    (['MEG 0111'], True),  # just do 0111 to test picking, add annot to test it
+])
+def test_find_bad_channels_maxwell(bads, annot):
     """Test automatic bad channel detection."""
     raw = mne.io.read_raw_fif(sample_fname, allow_maxshield='yes')
     raw.fix_mag_coil_types().load_data().pick_types(exclude=())
@@ -1068,9 +1071,15 @@ def test_find_bad_channels_maxwell(bads):
     raw.info['bads'] = bads
     raw._data[1] = 0  # MaxFilter didn't have this but doesn't affect results
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
+    if annot:
+        # do a problematic one (gh-7741): exactly one "step" unit
+        step = int(round(raw.info['sfreq'] * 5.))
+        dt = 1. / raw.info['sfreq']
+        assert step == 1502
+        raw.annotations.append(step * dt + raw._first_time, dt, 'BAD')
     got_bads, got_flats = find_bad_channels_maxwell(
         raw, origin=(0., 0., 0.04), regularize=None,
-        bad_condition='ignore', verbose='debug')
+        bad_condition='ignore', skip_by_annotation='BAD', verbose='debug')
     assert got_bads == ['MEG 2443']  # from MaxFilter
     assert got_flats == [raw.ch_names[1]]
 

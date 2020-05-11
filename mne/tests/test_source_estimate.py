@@ -24,6 +24,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward)
 from mne.datasets import testing
+from mne.externals.h5io import write_hdf5
 from mne.fixes import fft, _get_img_fdata
 from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
@@ -133,8 +134,19 @@ def test_volume_stc(tmpdir):
             klass = VolVectorSourceEstimate
         fname_temp = tmpdir.join('temp-vl.' + ext)
         stc_new = stc
-        for _ in range(2):
-            stc_new.save(fname_temp)
+        n = 3 if ext == 'h5' else 2
+        for ii in range(n):
+            if ii < 2:
+                stc_new.save(fname_temp)
+            else:
+                # Pass stc.vertices[0], an ndarray, to ensure support for
+                # the way we used to write volume STCs
+                write_hdf5(
+                    str(fname_temp), dict(
+                        vertices=stc.vertices[0], data=stc.data,
+                        tmin=stc.tmin, tstep=stc.tstep,
+                        subject=stc.subject, src_type=stc._src_type),
+                    title='mnepython', overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, klass)
             assert_array_equal(vertno_read, stc_new.vertices[0])
@@ -359,6 +371,10 @@ def test_io_stc(tmpdir):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    # test warning for complex data
+    stc2.data = stc2.data.astype(np.complex128)
+    with pytest.raises(ValueError, match='Cannot save complex-valued STC'):
+        stc2.save(tmpdir.join('complex.stc'))
 
 
 @requires_h5py

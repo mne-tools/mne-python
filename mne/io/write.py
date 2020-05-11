@@ -52,6 +52,9 @@ def _get_split_size(split_size):
     return split_size
 
 
+_NEXT_FILE_BUFFER = 1048576  # 2 ** 20 extra cushion for last post-data tags
+
+
 def write_nop(fid, last=False):
     """Write a FIFF_NOP."""
     fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tobytes())

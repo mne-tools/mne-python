@@ -757,7 +757,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
 
         for hemi in ('lh', 'rh'):
             labels = read_labels_from_annot('fsaverage', 'HCPMMP1', hemi=hemi,
-                                            subjects_dir=subjects_dir)
+                                            subjects_dir=subjects_dir,
+                                            sort=False)
             label_names = [
                 '???' if label.name.startswith('???') else
                 label.name.split('_')[1] for label in labels]
@@ -782,8 +783,11 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
                 labels_out.append(these_labels)
             assert used.all()
         assert len(labels_out) == 46
-        write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
-                              hemi='both', subjects_dir=subjects_dir)
+        for hemi, side in (('lh', 'left'), ('rh', 'right')):
+            table_name = './%s.fsaverage164.label.gii' % (side,)
+            write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
+                                  hemi=hemi, subjects_dir=subjects_dir,
+                                  sort=False, table_name=table_name)
 
 
 def _manifest_check_download(manifest_path, destination, url, hash_):

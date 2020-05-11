@@ -26,6 +26,17 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 
 
 @requires_testing_data
+def test_nirx_hdr_load():
+    """Test reading NIRX files using path to header file."""
+    fname = fname_nirx_15_2_short + "/NIRS-2019-08-23_001.hdr"
+    raw = read_raw_nirx(fname, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (26, 145)
+    assert raw.info['sfreq'] == 12.5
+
+
+@requires_testing_data
 def test_nirx_15_2_short():
     """Test reading NIRX files."""
     raw = read_raw_nirx(fname_nirx_15_2_short, preload=True)
