@@ -85,7 +85,6 @@ DEFAULTS = dict(
 
 def _handle_default(k, v=None):
     """Avoid dicts as default keyword arguments.
-
     Use this function instead to resolve default dict values. Example usage::
         scalings = _handle_default('scalings', scalings)
     """
