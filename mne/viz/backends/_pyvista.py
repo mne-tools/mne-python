@@ -124,16 +124,22 @@ class _WebInteractor(object):
 
     def setup_screencast(self):
         from IPython import display
-        import PIL
+        try:
+            import Image
+        except ImportError:
+            from PIL import Image
         img = np.full((300, 300), 0).astype(np.uint8)
-        img_obj = PIL.Image.fromarray(img)
+        img_obj = Image.fromarray(img)
         display.display(img_obj, display_id=self.display_id)
 
     def screencast(self):
         from IPython import display
-        import PIL
+        try:
+            import Image
+        except ImportError:
+            from PIL import Image
         img = self.plotter.screenshot()
-        img_obj = PIL.Image.fromarray(img)
+        img_obj = Image.fromarray(img)
         display.update_display(img_obj, display_id=self.display_id)
 
     def set_camera(self, azimuth, elevation):
