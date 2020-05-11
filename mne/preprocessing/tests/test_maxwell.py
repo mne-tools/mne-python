@@ -1063,13 +1063,16 @@ def test_mf_skips():
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, bads, annot, add_ch, ignore_ref, want_bads', [
     # Neuromag data tested against MF
-    (sample_fname, [], False, False, False, ['MEG 2443']),
+    (sample_fname, [], False, False, False, [['MEG 2443']]),
     # add 0111 to test picking, add annot to test it, and prepend chs for idx
-    (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443']),
-    # CTF data
+    (sample_fname, ['MEG 0111'], True, True, False, [['MEG 2443']]),
+    # CTF data, sensitive to linalg lib because some channels very close to
+    # the limit
     (ctf_fname_continuous, [], False, False, False,
-     ['BP3-4304', 'BR1-4304', 'BR2-4304', 'BR3-4304']),
-    (ctf_fname_continuous, [], False, False, True, ['MLC24-4304']),  # faked
+     [['BG2-4304', 'BP3-4304', 'BR1-4304'],  # MKL 2020
+      ['BP1-4304', 'BR1-4304', 'BR2-4304', 'BR3-4304']],  # OpenBLAS
+     ),
+    (ctf_fname_continuous, [], False, False, True, [['MLC24-4304']]),  # faked
 ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
                                    ignore_ref):
@@ -1095,7 +1098,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
     if ignore_ref:
         # Fake a bad one, otherwise we don't find any
         assert 42 in pick_types(raw.info, ref_meg=False)
-        assert raw.ch_names[42:43] == want_bads
+        assert raw.ch_names[42:43] == want_bads[0]
         raw._data[42] += np.random.RandomState(0).randn(len(raw.times))
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
     if annot:
@@ -1106,10 +1109,10 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
         raw.annotations.append(step * dt + raw._first_time, dt, 'BAD')
     with catch_logging() as log:
         got_bads, got_flats = find_bad_channels_maxwell(
-            raw, origin=(0., 0., 0.04), regularize='in',
+            raw, origin=(0., 0., 0.04), regularize=None,
             bad_condition='ignore', skip_by_annotation='BAD', verbose=True,
             ignore_ref=ignore_ref)
-    assert got_bads == want_bads  # from MaxFilter
+    assert got_bads in want_bads  # from MaxFilter
     assert got_flats == want_flats
     log = log.getvalue()
     assert 'Interval   1:    0.00' in log
