@@ -304,7 +304,7 @@ def _mri_ori(nim, orientation):
     axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
     order = dict(
         coronal=('R', 'S', 'A'),
-        axial=('A', 'R', 'S'),
+        axial=('R', 'A', 'S'),
         sagittal=('A', 'S', 'R'),
     )[orientation]
     xyz = [axcodes.index(c) for c in order]
