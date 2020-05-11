@@ -20,7 +20,7 @@ import vtk
 
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
-from ...utils import copy_base_doc_to_subclass_doc
+from ...utils import copy_base_doc_to_subclass_doc, get_config
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -134,10 +134,13 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
-                 name="PyVista Scene", show=False, shape=(1, 1)):
+                 name="PyVista Scene", show=False, shape=(1, 1),
+                 notebook=None):
         from .renderer import MNE_3D_BACKEND_TESTING
+        if notebook is None:
+            notebook = get_config(key='MNE_3D_NOTEBOOK', default=False)
         figure = _Figure(show=show, title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=None)
+                         background_color=bgcolor, notebook=notebook)
         self.font_family = "arial"
         self.tube_n_sides = 20
         if isinstance(fig, int):

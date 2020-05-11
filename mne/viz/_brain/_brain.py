@@ -22,7 +22,8 @@ from .._3d import _process_clim, _handle_time
 from ...surface import mesh_edges
 from ...morph import _hemi_morph
 from ...label import read_label, _read_annot
-from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
+from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
+                      get_config)
 
 
 class _Brain(object):
@@ -191,6 +192,7 @@ class _Brain(object):
                              'sequence of ints.')
         fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
+        self._notebook = get_config(key='MNE_3D_NOTEBOOK', default=False)
         self._foreground = foreground
         self._hemi = hemi
         self._units = units
@@ -219,7 +221,8 @@ class _Brain(object):
         self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
-                                       fig=figure)
+                                       fig=figure,
+                                       notebook=self._notebook)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -259,7 +262,7 @@ class _Brain(object):
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
-        if show:
+        if show and not self._notebook:
             self._renderer.show()
 
     def cortex_colormap(self, cortex):
