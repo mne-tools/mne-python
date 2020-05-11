@@ -1708,15 +1708,13 @@ class Report(object):
         html.append(u'</div>')
         return '\n'.join(html)
 
-    def _render_one_bem_axis(self, mri_fname, surf_fnames, global_id,
+    def _render_one_bem_axis(self, mri_fname, surfaces, global_id,
                              orientation='coronal', decim=2, n_jobs=1):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
         nim = nib.load(mri_fname)
-        shape = nim.shape[:3]
-        (x, y, z), _, transpose, _ = _mri_ori(nim, orientation)
-        n_slices = shape[z]
-        orig_size = (shape[x], shape[y])[::(-1 if transpose else 1)]
+        (_, _, z), _, _ = _mri_ori(nim, orientation)
+        n_slices = nim.shape[z]
 
         name = orientation
         html = []
@@ -1724,8 +1722,8 @@ class Report(object):
         slides_klass = '%s-%s' % (name, global_id)
 
         sl = np.arange(0, n_slices, decim)
-        kwargs = dict(mri_fname=mri_fname, surfaces=surf_fnames, show=False,
-                      orientation=orientation, img_output=orig_size, src=None,
+        kwargs = dict(mri_fname=mri_fname, surfaces=surfaces, show=False,
+                      orientation=orientation, img_output=True, src=None,
                       show_orientation=True)
         imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
         slices = []

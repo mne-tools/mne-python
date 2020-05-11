@@ -298,8 +298,6 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 def _mri_ori(nim, orientation):
     import nibabel as nib
     axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
-    # we don't care about directonality reversal, so convert LPI to RAS. For
-    # conformed images, we get axcodes == 'RSA'
     flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
     axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
     order = dict(
@@ -309,13 +307,12 @@ def _mri_ori(nim, orientation):
     )[orientation]
     xyz = [axcodes.index(c) for c in order]
     flips = [flips[c] for c in order]
-    transpose = xyz[0] < xyz[1]
-    return xyz, flips, transpose, order
+    return xyz, flips, order
 
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True, show_indices=False,
-                       show_orientation=False, img_output=None):
+                       show_orientation=False, img_output=False):
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
@@ -329,8 +326,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     del vox_mri_t
 
     # plot axes (x, y, z) as data axes
-    (x, y, z), (flip_x, flip_y, flip_z), transpose, order = _mri_ori(
-        nim, orientation)
+    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_ori(nim, orientation)
+    transpose = x < y
 
     data = _get_img_fdata(nim)
     shift_x = data.shape[x] if flip_x < 0 else 0
@@ -368,20 +365,18 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         raise TypeError("src needs to be None or SourceSpaces instance, not "
                         "%s" % repr(src))
 
-    if img_output is None:
-        n_col = 4
-        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
-        n_axes = len(axs)
-    else:
+    if img_output:
         n_col = n_axes = 1
         fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
         axs = [ax] * len(slices)
 
-        fig_size = fig.get_size_inches()
-        w, h = img_output[0], img_output[1]
-        w2 = fig_size[0]
-        fig.set_size_inches([(w2 / float(w)) * w, (w2 / float(w)) * h])
+        w = fig.get_size_inches()[0]
+        fig.set_size_inches([w, w / data.shape[x] * data.shape[y]])
         plt.close(fig)
+    else:
+        n_col = 4
+        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        n_axes = len(axs)
     fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
@@ -390,7 +385,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     xlabels, ylabels = ori_labels[order[0]], ori_labels[order[1]]
     path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
                                            alpha=0.75)]
-    out = list() if img_output is not None else fig
+    out = list() if img_output else fig
     for ai, (ax, sl, lower, upper) in enumerate(zip(
             axs, slices, bounds[:-1], bounds[1:])):
         # adjust the orientations for good view
@@ -400,11 +395,12 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         dat = dat[::flip_y, ::flip_x]
 
         # First plot the anatomical data
-        if img_output is not None:
+        if img_output:
             ax.clear()
         ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
         ax.set_autoscale_on(False)
         ax.axis('off')
+        ax.set_aspect('equal')  # XXX eventually could deal with zooms
 
         # and then plot the contours on top
         for surf, color in surfs:
@@ -418,8 +414,9 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
         for sources in src_points:
             in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
-            ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
-                       color='#FF00FF', s=1, zorder=2)
+            ax.scatter(flip_x * sources[in_slice, x] + shift_x,
+                       flip_y * sources[in_slice, y] + shift_y,
+                       marker='.', color='#FF00FF', s=1, zorder=2)
         if show_indices:
             ax.text(dat.shape[1] // 8 + 0.5, 0.5, str(sl),
                     color='w', fontsize='x-small', va='bottom', ha='left')
@@ -440,9 +437,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
             if ai < n_col or n_col == 1:  # top
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
-        if img_output is not None:
-            ax.set_xticks([])
-            ax.set_yticks([])
+        if img_output:
             output = BytesIO()
             fig.savefig(output, bbox_inches='tight',
                         pad_inches=0, format='png')
