@@ -36,8 +36,8 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # Here we validate that the location of sources-detector pairs and channels
 # are in the expected locations. Source-detector pairs are shown as lines
 # between the optodes, channels (the mid point of source-detector pairs) are
-# shown as orange dots. Source are optionally shown as red dots and detectors
-# as black.
+# optionally shown as orange dots. Source are optionally shown as red dots and
+# detectors as black.
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
