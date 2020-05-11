@@ -202,4 +202,4 @@ recordings, etc.). Some software tasks that shall be completed:
   integration points etc.) and allow OpenMEEG to be used.
 - Help package OpenMEEG for Debian/Ubuntu
 - Help manage `the continuous integration system
-  <https://ci.inria.fr/openmeeg/>`__
+  <https://ci.inria.fr/>`__
