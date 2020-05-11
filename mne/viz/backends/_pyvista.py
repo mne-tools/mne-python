@@ -106,6 +106,41 @@ class _Projection(object):
         self.pts.SetVisibility(state)
 
 
+class WebInteractor(object):
+    def __init__(self, display_id, renderer):
+        from IPython import display
+        from ipywidgets import interactive
+        self.display_id = display_id
+        self.renderer = renderer
+        self.plotter = self.renderer.plotter
+        self.orientation_slider = interactive(self.set_camera,
+                                              azimuth=(0., 180., 10),
+                                              elevation=(0., 180., 10))
+
+        # display
+        self.setup_screencast()
+        self.screencast()
+        display.display(self.orientation_slider, display_id=self.display_id)
+
+    def setup_screencast(self):
+        from IPython import display
+        import PIL
+        img = np.full((300, 300), 0).astype(np.uint8)
+        img_obj = PIL.Image.fromarray(img)
+        display.display(img_obj, display_id=self.display_id)
+
+    def screencast(self):
+        from IPython import display
+        import PIL
+        img = self.plotter.screenshot()
+        img_obj = PIL.Image.fromarray(img)
+        display.update_display(img_obj, display_id=self.display_id)
+
+    def set_camera(self, azimuth, elevation):
+        self.renderer.set_camera(azimuth, elevation)
+        self.screencast()
+
+
 def _enable_aa(figure, plotter):
     """Enable it everywhere except Azure."""
     # XXX for some reason doing this on Azure causes access violations:
@@ -447,7 +482,7 @@ class _Renderer(_BaseRenderer):
                                         background_color=bgcolor)
 
     def show(self):
-        self.figure.display = self.plotter.show()
+        self.figure.display = WebInteractor(self.plotter._id_name, self)
         if hasattr(self.plotter, "app_window"):
             self.plotter.app_window.show()
         return self.scene()

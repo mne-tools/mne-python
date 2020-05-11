@@ -262,7 +262,7 @@ class _Brain(object):
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
-        if show and not self._notebook:
+        if show:
             self._renderer.show()
 
     def cortex_colormap(self, cortex):
@@ -537,6 +537,8 @@ class _Brain(object):
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 
+        self._update()
+
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
         """Add an ROI label to the image.
@@ -663,6 +665,8 @@ class _Brain(object):
                                     backface_culling=False)
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
+
+        self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -883,6 +887,8 @@ class _Brain(object):
                 _set_colormap_range(actor, cmap.astype(np.uint8),
                                     None)
                 self.resolve_coincident_topology(actor)
+
+        self._update()
 
     def resolve_coincident_topology(self, actor):
         """Resolve z-fighting of overlapping surfaces."""
@@ -1472,6 +1478,12 @@ class _Brain(object):
     def enable_depth_peeling(self):
         """Enable depth peeling."""
         self._renderer.enable_depth_peeling()
+
+    def _update(self):
+        from ..backends import renderer
+        if renderer.get_3d_backend() == "pyvista":
+            if self._notebook:
+                self._renderer.figure.display.screencast()
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
