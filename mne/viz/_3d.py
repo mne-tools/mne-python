@@ -1063,8 +1063,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                 % (len(other_loc['detector']),
                                    key, _pl(other_loc['detector'])))
                 other_keys = sorted(other_loc.keys())
-                logger.info('Plotting %d %s location%s'
-                            % (len(other_loc[key]), key, _pl(other_loc[key])))
+            logger.info('Plotting %d %s location%s'
+                        % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
     renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
