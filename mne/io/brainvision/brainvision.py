@@ -116,7 +116,7 @@ class RawBrainVision(BaseRaw):
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
                     line = line.strip().replace(',', '.').split()
-                    block[:n_data_ch, ii] = [float(l) for l in line]
+                    block[:n_data_ch, ii] = [float(part) for part in line]
             _mult_cal_one(data, block, idx, cals, mult)
 
 

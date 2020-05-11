@@ -147,7 +147,8 @@ def _annotation_helper(raw, events=False):
 
 
 def _proj_status(ax):
-    return [l.get_visible() for l in ax.findobj(matplotlib.lines.Line2D)][::2]
+    return [line.get_visible()
+            for line in ax.findobj(matplotlib.lines.Line2D)][::2]
 
 
 def test_scale_bar():
