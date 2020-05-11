@@ -36,7 +36,8 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # Here we validate that the location of sources-detector pairs and channels
 # are in the expected locations. Source-detector pairs are shown as lines
 # between the optodes, channels (the mid point of source-detector pairs) are
-# shown as dots.
+# shown as orange dots. Source are optionally shown as red dots and detectors
+# as black.
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
@@ -44,7 +45,8 @@ fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
                              subject='fsaverage',
                              trans='fsaverage', surfaces=['brain'],
-                             fnirs=['channels', 'pairs'],
+                             fnirs=['channels', 'pairs',
+                                    'sources', 'detectors'],
                              subjects_dir=subjects_dir, fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
