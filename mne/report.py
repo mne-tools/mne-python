@@ -1995,10 +1995,13 @@ class Report(object):
         if section == 'bem' and 'bem' not in self.sections:
             self.sections.append('bem')
             self._sectionvars['bem'] = 'bem'
+            klass = 'bem'
+        else:
+            klass = 'report_' + _clean_varnames(section)
 
         name = caption
 
-        html += u'<li class="report_%s" id="%d">\n' % (section, global_id)
+        html += u'<li class="%s" id="%d">\n' % (klass, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
                                           'axial', decim, n_jobs)
