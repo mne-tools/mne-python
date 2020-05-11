@@ -532,16 +532,19 @@ tol : float | 'auto'
 """
 docdict['rank_tol_kind'] = """
 tol_kind : str
-    Can be: "absolute" or "relative". After applying the chosen scale factors
-    / normalization to the data, the singular values are computed, and
-    the rank is then given by:
+    Can be: "absolute" (default) or "relative". Only used if ``tol`` is a
+    float, because when ``tol`` is a string the mode is implicitly relative.
+    After applying the chosen scale factors / normalization to the data,
+    the singular values are computed, and the rank is then taken as:
 
     - ``'absolute'``
         The number of singular values ``s`` greater than ``tol``.
+        This mode can fail if your data do not adhere to typical
+        data scalings.
     - ``'relative'``
         The number of singular values ``s`` greater than ``tol * s.max()``.
-
-    This value is ignored when ``tol`` is a string, as it's always relative.
+        This mode can fail if you have one or more large components in the
+        data (e.g., artifacts).
 
     .. versionadded:: 0.21.0
 """
