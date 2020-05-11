@@ -221,8 +221,7 @@ class _Brain(object):
         self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
-                                       fig=figure,
-                                       notebook=self._notebook)
+                                       fig=figure)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry

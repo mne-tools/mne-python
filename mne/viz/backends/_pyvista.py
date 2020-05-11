@@ -106,7 +106,7 @@ class _Projection(object):
         self.pts.SetVisibility(state)
 
 
-class WebInteractor(object):
+class _WebInteractor(object):
     def __init__(self, display_id, renderer):
         from IPython import display
         from ipywidgets import interactive
@@ -482,7 +482,8 @@ class _Renderer(_BaseRenderer):
                                         background_color=bgcolor)
 
     def show(self):
-        self.figure.display = WebInteractor(self.plotter._id_name, self)
+        if self.figure.notebook:
+            self.figure.display = _WebInteractor(self.plotter._id_name, self)
         if hasattr(self.plotter, "app_window"):
             self.plotter.app_window.show()
         return self.scene()
