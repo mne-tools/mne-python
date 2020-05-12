@@ -113,8 +113,8 @@ class _WebInteractor(object):
         self.renderer = renderer
         self.plotter = self.renderer.plotter
         self.fig, self.dh = self.screenshot()
-        self.sliders = self.configure_sliders()
-        layout = HBox([self.fig.canvas, self.sliders])
+        self.controllers = self.configure_controllers()
+        layout = HBox([self.fig.canvas, self.controllers])
         display.display(layout)
 
     def screenshot(self):
@@ -136,18 +136,28 @@ class _WebInteractor(object):
         self.dh.set_data(self.plotter.screenshot())
         self.fig.canvas.draw()
 
-    def configure_sliders(self):
-        from ipywidgets import interactive, VBox
+    def configure_controllers(self):
+        from ipywidgets import interactive, Label, VBox
+        shape = self.renderer.shape
+        subplot_selector = interactive(self.renderer.subplot,
+                                       x=(0, shape[0] - 1),
+                                       y=(0, shape[1] - 1))
         orientation_slider = interactive(self.set_camera,
-                                         azimuth=(0., 180., 10),
-                                         elevation=(0., 180., 10))
-        sliders = VBox([
+                                         azimuth=(0., 360., 10.),
+                                         elevation=(0., 180., 10.),
+                                         distance=(100., 1000., 50.))
+        controllers = VBox([
+            Label(value='Select the subplot'),
+            subplot_selector,
+            Label(value='Camera settings'),
             orientation_slider,
         ])
-        return sliders
+        return controllers
 
-    def set_camera(self, azimuth, elevation):
-        self.renderer.set_camera(azimuth, elevation)
+    def set_camera(self, azimuth, elevation, distance):
+        focalpoint = self.renderer.plotter.camera.GetFocalPoint()
+        self.renderer.set_camera(azimuth, elevation,
+                                 distance, focalpoint)
         self.update()
 
 
@@ -188,6 +198,7 @@ class _Renderer(_BaseRenderer):
                          background_color=bgcolor, notebook=notebook)
         self.font_family = "arial"
         self.tube_n_sides = 20
+        self.shape = shape
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -223,6 +234,8 @@ class _Renderer(_BaseRenderer):
 
     def subplot(self, x, y):
         from .renderer import MNE_3D_BACKEND_TESTING
+        x = np.max([0, np.min([x, self.shape[0] - 1])])
+        y = np.max([0, np.min([y, self.shape[1] - 1])])
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
