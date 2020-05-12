@@ -656,27 +656,21 @@ def test_parse_impedance():
     expected_impedances = {
         'Fp1': {'imp': 13.0, 'imp_unit': 'kOhm', 'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
                 'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0, 'imp_range_unit': 'kOhm'},
+        'Fp2': {'imp': 13.0, 'imp_unit': 'kOhm', 'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
+                'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0, 'imp_range_unit': 'kOhm'},
+        'C3': {'imp': 1.0, 'imp_unit': 'kOhm', 'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
+                'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0, 'imp_range_unit': 'kOhm'},
         'Ref': {'imp': 0.0, 'imp_unit': 'kOhm', 'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
                 'imp_lower_bound': 0.0, 'imp_upper_bound': 10.0, 'imp_range_unit': 'kOhm'},
         'Gnd': {'imp': 19.0, 'imp_unit': 'kOhm', 'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
                 'imp_lower_bound': 0.0, 'imp_upper_bound': 10.0, 'imp_range_unit': 'kOhm'}}
     with pytest.warns(RuntimeWarning, match='software filter'):
         raw = read_raw_brainvision(vhdr_segmentation_impedance, eog=eog)
-
-    assert expected_impedances['Fp1']['imp'] == raw.info['chs'][0]['imp']
-    assert expected_impedances['Fp1']['imp_unit'] == raw.info['chs'][0]['imp_unit']
-    assert expected_impedances['Fp1']['imp_meas_time'] == raw.info['chs'][0]['imp_meas_time']
-    assert expected_impedances['Fp1']['imp_lower_bound'] == raw.info['chs'][0]['imp_lower_bound']
-    assert expected_impedances['Fp1']['imp_upper_bound'] == raw.info['chs'][0]['imp_upper_bound']
-    assert expected_impedances['Gnd']['imp'] == raw.info['chs'][18]['imp']
-    assert expected_impedances['Gnd']['imp_unit'] == raw.info['chs'][18]['imp_unit']
-    assert expected_impedances['Gnd']['imp_meas_time'] == raw.info['chs'][18]['imp_meas_time']
-    assert expected_impedances['Gnd']['imp_lower_bound'] == raw.info['chs'][18]['imp_lower_bound']
-    assert expected_impedances['Gnd']['imp_upper_bound'] == raw.info['chs'][18]['imp_upper_bound']
+    assert_array_equal(expected_impedances, raw.impedances)
 
 
 def test_parse_segmentation():
-    expected = {'type': 'MARKERBASED', 'data_points': 1100, 'averaged': 'YES', 'averaged_segments': 80,
+    expected_segmentation = {'type': 'MARKERBASED', 'data_points': 1100, 'averaged': 'YES', 'averaged_segments': 80,
                 'artifact_rejection': {'Gradient': ['Disabled'], 'Max. Difference': ['Disabled'],
                                        'Amplitude': ['Disabled'], 'Low Activity': ['Disabled'],
                                        'Test Interval': ['Whole Segment'],
@@ -690,8 +684,7 @@ def test_parse_segmentation():
 
     with pytest.warns(RuntimeWarning, match='software filter'):
         raw = read_raw_brainvision(vhdr_segmentation_impedance, eog=eog)
-
-    assert_array_equal(expected, raw.info["segmentation"])
+    assert_array_equal(expected_segmentation, raw.segmentation)
 
 
 run_tests_if_main()

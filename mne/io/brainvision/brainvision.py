@@ -93,6 +93,11 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
+        settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
+        split_settings = settings.splitlines()
+        self.impedances = parse_impedance(split_settings)
+        self.segmentation = parse_segmentation(split_settings, cfg, cinfo)
+
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
@@ -768,27 +773,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()
-
-    impedances = parse_impedance(settings)
-
-    for channel in info['chs']:
-        channel['nchan'] = info['nchan']
-        channel_impedance = dict(
-            imp=None,
-            imp_unit=None,
-            imp_meas_time=None,
-            imp_lower_bound=None,
-            imp_upper_bound=None,
-            imp_range_unit=None
-        )
-        if channel['ch_name'] in impedances:
-            channel_impedance = impedances[channel['ch_name']]
-        channel.update(channel_impedance)
-
-    info['segmentation'] = dict()
-    if 'S e g m e n t a t i o n  /  A v e r a g i n g' in settings:
-        info['segmentation'] = parse_segmentation(settings, cfg, cinfostr)
-
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)
 
@@ -951,52 +935,54 @@ def parse_segmentation(settings, cfg, common_info):
     :returns the parsed segmentation as a dict
     :rtype dict
     """
-    idx = settings.index('S e g m e n t a t i o n  /  A v e r a g i n g')
-    segmentation_settings = settings[idx:]
-    segmentation = parse_basic_segmentation(cfg, common_info)
+    segmentation = dict()
+    if 'S e g m e n t a t i o n  /  A v e r a g i n g' in settings:
+        idx = settings.index('S e g m e n t a t i o n  /  A v e r a g i n g')
+        segmentation_settings = settings[idx:]
+        segmentation = parse_basic_segmentation(cfg, common_info)
 
-    if "Markers" in segmentation_settings:
-        idx = segmentation_settings.index("Markers")
-        markers = list()
-        for setting in segmentation_settings[idx + 2:]:
-            if re.match(r'(\t)?\w', setting):
-                markers.append(setting.strip())
-            else:
-                break
-        segmentation["artifact_rejection"] = markers
+        if "Markers" in segmentation_settings:
+            idx = segmentation_settings.index("Markers")
+            markers = list()
+            for setting in segmentation_settings[idx + 2:]:
+                if re.match(r'(\t)?\w', setting):
+                    markers.append(setting.strip())
+                else:
+                    break
+            segmentation["artifact_rejection"] = markers
 
-    if "Interval" in segmentation_settings:
-        idx = segmentation_settings.index("Interval")
-        intervals = dict()
-        for setting in segmentation_settings[idx + 2:]:
-            if re.match(r'(\t)?\w', setting):
-                interval_setting = setting.split()
-                intervals[interval_setting[0]] = {
-                    "unit": interval_setting[1].lstrip('[').rstrip(']:'),
-                    "duration": interval_setting[2]
-                }
-            else:
-                break
-        segmentation["intervals"] = intervals
+        if "Interval" in segmentation_settings:
+            idx = segmentation_settings.index("Interval")
+            intervals = dict()
+            for setting in segmentation_settings[idx + 2:]:
+                if re.match(r'(\t)?\w', setting):
+                    interval_setting = setting.split()
+                    intervals[interval_setting[0]] = {
+                        "unit": interval_setting[1].lstrip('[').rstrip(']:'),
+                        "duration": interval_setting[2]
+                    }
+                else:
+                    break
+            segmentation["intervals"] = intervals
 
-    if "Averaging" in segmentation_settings:
-        segmentation["averaging"] = get_segmentation_key_values(
-            segmentation_settings,
-            segmentation_settings.index("Averaging"),
-            " is "
-        )
+        if "Averaging" in segmentation_settings:
+            segmentation["averaging"] = get_segmentation_key_values(
+                segmentation_settings,
+                segmentation_settings.index("Averaging"),
+                " is "
+            )
 
-    if "Artifact Rejection" in segmentation_settings:
-        segmentation["artifact_rejection"] = get_segmentation_key_values(
-            segmentation_settings,
-            segmentation_settings.index("Artifact Rejection")
-        )
+        if "Artifact Rejection" in segmentation_settings:
+            segmentation["artifact_rejection"] = get_segmentation_key_values(
+                segmentation_settings,
+                segmentation_settings.index("Artifact Rejection")
+            )
 
-    if "Miscellaneous" in segmentation_settings:
-        segmentation["miscellaneous"] = get_segmentation_key_values(
-            segmentation_settings,
-            segmentation_settings.index("Miscellaneous")
-        )
+        if "Miscellaneous" in segmentation_settings:
+            segmentation["miscellaneous"] = get_segmentation_key_values(
+                segmentation_settings,
+                segmentation_settings.index("Miscellaneous")
+            )
 
     return segmentation
 
