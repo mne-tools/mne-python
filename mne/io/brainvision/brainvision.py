@@ -768,6 +768,27 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()
+
+    impedances = parse_impedance(settings)
+
+    for channel in info['chs']:
+        channel['nchan'] = info['nchan']
+        channel_impedance = dict(
+            imp=None,
+            imp_unit=None,
+            imp_meas_time=None,
+            imp_lower_bound=None,
+            imp_upper_bound=None,
+            imp_range_unit=None
+        )
+        if channel['ch_name'] in impedances:
+            channel_impedance = impedances[channel['ch_name']]
+        channel.update(channel_impedance)
+
+    info['segmentation'] = dict()
+    if 'S e g m e n t a t i o n  /  A v e r a g i n g' in settings:
+        info['segmentation'] = parse_segmentation(settings, cfg, cinfostr)
+
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)
 
@@ -843,3 +864,200 @@ def _check_bv_annot(descriptions):
     bv_markers = (set(_BV_EVENT_IO_OFFSETS.keys())
                   .union(set(_OTHER_ACCEPTED_MARKERS.keys())))
     return len(markers_basename - bv_markers) == 0
+
+
+def parse_impedance(settings):
+    """
+    Parses impedances from the header file
+
+    :param settings: header settings lines
+    :type settings: list
+    :param info: BrainVision info parsed from the original parser
+    :type info: dict
+    """
+    electrode_imp_ranges = parse_impedance_ranges(settings)
+    impedance_setting_lines = [i for i in settings if i.startswith('Impedance')]
+    impedances = dict()
+    if len(impedance_setting_lines) > 0:
+        idx = settings.index(impedance_setting_lines[0])
+        impedance_setting = impedance_setting_lines[0].split()
+        impedance_unit = impedance_setting[1].lstrip('[').rstrip(']')
+        impedance_time = impedance_setting[3]
+        for setting in settings[idx + 1:]:
+            # Parse channel impedances until a line that doesn't start with a word (channel name) is found
+            if re.match(r'\w+:', setting):
+                channel_imp_line = setting.split()
+                channel_name = channel_imp_line[0].rstrip(':')
+                imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+", channel_imp_line[1])
+                channel_impedance = dict(
+                    imp=float(imp_as_number[0] if imp_as_number else 0),
+                    imp_unit=impedance_unit,
+                    imp_meas_time=datetime.strptime(impedance_time, "%H:%M:%S")
+                )
+
+                if channel_name == 'Ref' and 'Reference' in electrode_imp_ranges:
+                    channel_impedance.update(electrode_imp_ranges['Reference'])
+                elif channel_name == 'Gnd' and 'Ground' in electrode_imp_ranges:
+                    channel_impedance.update(electrode_imp_ranges['Ground'])
+                elif 'Data' in electrode_imp_ranges:
+                    channel_impedance.update(electrode_imp_ranges['Data'])
+                impedances[channel_name] = channel_impedance
+            else:
+                break
+    return impedances
+
+
+def parse_impedance_ranges(settings):
+    """
+    Parses the selected electrode impedance ranges from the BrainVision header
+
+    :param settings: header settings lines
+    :type settings: list
+    :returns parsed electrode impedances
+    :rtype dict
+    """
+    impedance_ranges = [item for item in settings if "Selected Impedance Measurement Range" in item]
+    electrode_imp_ranges = dict()
+    if impedance_ranges:
+        if len(impedance_ranges) == 1:
+            img_range = impedance_ranges[0].split()
+            for electrode_type in ['Data', 'Reference', 'Ground']:
+                electrode_imp_ranges[electrode_type] = {
+                    "imp_lower_bound": float(img_range[-4]),
+                    "imp_upper_bound": float(img_range[-2]),
+                    "imp_range_unit": img_range[-1]
+                }
+        else:
+            for electrode_range in impedance_ranges:
+                electrode_range = electrode_range.split()
+                electrode_imp_ranges[electrode_range[0]] = {
+                    "imp_lower_bound": float(electrode_range[6]),
+                    "imp_upper_bound": float(electrode_range[8]),
+                    "imp_range_unit": electrode_range[9]
+                }
+    return electrode_imp_ranges
+
+
+def parse_segmentation(settings, cfg, common_info):
+    """
+    Parses the segmentation/averaging section of the BrainVision header
+
+    :param settings: header settings lines
+    :type settings: list
+    :param cfg: cfg of the header file returned by mne.io.brainvision.brainvision._aux_vhdr_info
+    :type cfg: ConfigParser
+    :param common_info: cinfo from the BrainVision header parser
+    :type common_info: str
+    :returns the parsed segmentation as a dict
+    :rtype dict
+    """
+    idx = settings.index('S e g m e n t a t i o n  /  A v e r a g i n g')
+    segmentation_settings = settings[idx:]
+    segmentation = parse_basic_segmentation(cfg, common_info)
+
+    if "Markers" in segmentation_settings:
+        idx = segmentation_settings.index("Markers")
+        markers = list()
+        for setting in segmentation_settings[idx + 2:]:
+            if re.match(r'(\t)?\w', setting):
+                markers.append(setting.strip())
+            else:
+                break
+        segmentation["artifact_rejection"] = markers
+
+    if "Interval" in segmentation_settings:
+        idx = segmentation_settings.index("Interval")
+        intervals = dict()
+        for setting in segmentation_settings[idx + 2:]:
+            if re.match(r'(\t)?\w', setting):
+                interval_setting = setting.split()
+                intervals[interval_setting[0]] = {
+                    "unit": interval_setting[1].lstrip('[').rstrip(']:'),
+                    "duration": interval_setting[2]
+                }
+            else:
+                break
+        segmentation["intervals"] = intervals
+
+    if "Averaging" in segmentation_settings:
+        segmentation["averaging"] = get_segmentation_key_values(
+            segmentation_settings,
+            segmentation_settings.index("Averaging"),
+            " is "
+        )
+
+    if "Artifact Rejection" in segmentation_settings:
+        segmentation["artifact_rejection"] = get_segmentation_key_values(
+            segmentation_settings,
+            segmentation_settings.index("Artifact Rejection")
+        )
+
+    if "Miscellaneous" in segmentation_settings:
+        segmentation["miscellaneous"] = get_segmentation_key_values(
+            segmentation_settings,
+            segmentation_settings.index("Miscellaneous")
+        )
+
+    return segmentation
+
+
+def parse_basic_segmentation(cfg, common_info):
+    """
+    Parses the segmentation info from the Common Infos using the ConfgiParser
+
+    :param cfg: the ConfigParser from the BrainVision header parser
+    :type cfg: ConfigParser
+    :param common_info: the BrainVision header common infos section
+    :type common_info: str
+    :return:
+    """
+    segmentation = dict()
+
+    seg_type = cfg.get(common_info, "SegmentationType")
+    if seg_type:
+        segmentation["type"] = seg_type
+    seg_data_points = cfg.getint(common_info, "SegmentDataPoints")
+    if seg_data_points:
+        segmentation["data_points"] = seg_data_points
+    seg_averaged = cfg.get(common_info, "Averaged")
+    if seg_averaged:
+        segmentation["averaged"] = seg_averaged
+    seg_averaged_segments = cfg.getint(common_info, "AveragedSegments")
+    if seg_averaged_segments:
+        segmentation["averaged_segments"] = seg_averaged_segments
+
+    return segmentation
+
+
+def get_segmentation_key_values(segmentation_settings, idx, delimiter=":"):
+    """
+    Parses the key value pairs from the Segmentation / Averaging section of the BrainVision header
+    Default delimiter is ':' where left side is considered the key, and right side is the value.
+    Values are parsed into arrays, elements can be split with a comma ','
+    Stops the parsing when the first empty setting line is found
+
+    :param segmentation_settings: the list of settings lines
+    :type segmentation_settings: list
+    :param idx: starting index
+    :type idx: int
+    :param delimiter: delimiter to split the key and value
+    :type delimiter: str
+    :returns dict of the parsed key and values
+    :rtype dict
+    """
+    key_name = None
+    values = dict()
+    for setting in segmentation_settings[idx + 2:]:
+        if re.match(r'(\t)?\w', setting):
+            setting = setting.split(delimiter)
+            key_name = setting[0].strip()
+            key_values = setting[1].strip().split(',')
+            values[key_name] = key_values if key_values[0] != '' else []
+        elif re.match(r'\t\t\w', setting) and key_name is not None:
+            key_values = setting.strip().split(',')
+            for val in key_values:
+                if val != '':
+                    values[key_name].append(val)
+        else:
+            break
+    return values
