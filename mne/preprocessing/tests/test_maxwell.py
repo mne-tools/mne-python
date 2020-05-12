@@ -1063,23 +1063,16 @@ def test_mf_skips():
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, bads, annot, add_ch, ignore_ref, want_bads', [
     # Neuromag data tested against MF
-    (sample_fname, [], False, False, False, [['MEG 2443']]),
+    (sample_fname, [], False, False, False, ['MEG 2443']),
     # add 0111 to test picking, add annot to test it, and prepend chs for idx
-    (sample_fname, ['MEG 0111'], True, True, False, [['MEG 2443']]),
+    (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443']),
     # CTF data seems to be sensitive to linalg lib (?) because some channels
-    # are very close to the limit
-    (ctf_fname_continuous, [], False, False, False,
-     [['BG2-4304', 'BP3-4304', 'BR1-4304'],  # MKL 2020
-      ['BG3-4304', 'BR1-4304', 'BR2-4304'],
-      ['BR1-4304', 'BR3-4304'],
-      ['BP3-4304', 'BR1-4304'],
-      ['BP3-4304', 'BR1-4304', 'BR3-4304'],
-      ['BP1-4304', 'BR1-4304', 'BR2-4304', 'BR3-4304']],  # OpenBLAS
-     ),
-    (ctf_fname_continuous, [], False, False, True, [['MLC24-4304']]),  # faked
+    # are very close to the limit, so we just check that one shows up
+    (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}),
+    (ctf_fname_continuous, [], False, False, True, ['MLC24-4304']),  # faked
 ])
-def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
-                                   ignore_ref):
+def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
+                                   want_bads):
     """Test automatic bad channel detection."""
     if fname.endswith('.ds'):
         raw = read_raw_ctf(fname).load_data()
@@ -1102,7 +1095,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
     if ignore_ref:
         # Fake a bad one, otherwise we don't find any
         assert 42 in pick_types(raw.info, ref_meg=False)
-        assert raw.ch_names[42:43] == want_bads[0]
+        assert raw.ch_names[42:43] == want_bads
         raw._data[42] += np.random.RandomState(0).randn(len(raw.times))
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
     if annot:
@@ -1116,7 +1109,10 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, want_bads,
             raw, origin=(0., 0., 0.04), regularize=None,
             bad_condition='ignore', skip_by_annotation='BAD', verbose=True,
             ignore_ref=ignore_ref)
-    assert got_bads in want_bads  # from MaxFilter
+    if isinstance(want_bads, list):
+        assert got_bads == want_bads  # from MaxFilter
+    else:
+        assert want_bads.intersection(set(got_bads))
     assert got_flats == want_flats
     log = log.getvalue()
     assert 'Interval   1:    0.00' in log
