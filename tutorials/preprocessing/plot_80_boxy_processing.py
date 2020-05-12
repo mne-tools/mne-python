@@ -30,14 +30,19 @@ boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
 raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
 
 ###separate data based on montages###
-mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) if 'a01' in i_label]
-mtg_b_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) if 'b01' in i_label]
+no_mrk_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names'])
+                  if 'Markers' not in i_label]
+mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
+                 if ' a' in i_label and 'Markers' not in i_label]
+mtg_b_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
+                 if ' b' in i_label and 'Markers' not in i_label]
 
 mtg_a_data = raw_intensity.copy()
 mtg_b_data = raw_intensity.copy()
 
 mtg_a_data.pick(mtg_a_indices)
 mtg_b_data.pick(mtg_b_indices)
+raw_intensity.pick(no_mrk_indices)
 
 # ###############################################################################
 # # View location of sensors over brain surface
@@ -100,11 +105,26 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # To achieve this we pick all the channels that are not considered to be short.
 
 picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
+picks_a = mne.pick_types(mtg_a_data.info, meg=False, fnirs=True)
+picks_b = mne.pick_types(mtg_b_data.info, meg=False, fnirs=True)
+
 dists = mne.preprocessing.nirs.source_detector_distances(
     raw_intensity.info, picks=picks)
-raw_intensity.pick(picks[dists < 0.06])
+dists_a = mne.preprocessing.nirs.source_detector_distances(
+    raw_intensity.info, picks=picks_a)
+dists_b = mne.preprocessing.nirs.source_detector_distances(
+    raw_intensity.info, picks=picks_b)
+
+raw_intensity.pick(picks[dists < 0.08])
+mtg_a_data.pick(picks_a[dists_a < 0.08])
+mtg_b_data.pick(picks_b[dists_b < 0.08])
+
 scalings = dict(fnirs_raw=1e2)
 raw_intensity.plot(n_channels=10,
+                   duration=1000, scalings=scalings, show_scrollbars=True)
+mtg_a_data.plot(n_channels=10,
+                   duration=1000, scalings=scalings, show_scrollbars=True)
+mtg_b_data.plot(n_channels=10,
                    duration=1000, scalings=scalings, show_scrollbars=True)
 
 
@@ -114,9 +134,16 @@ raw_intensity.plot(n_channels=10,
 # #
 # # The raw intensity values are then converted to optical density.
 
-# raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
-# raw_od.plot(n_channels=len(raw_od.ch_names),
-#             duration=500, show_scrollbars=False)
+raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
+raw_od_a = mne.preprocessing.nirs.optical_density(mtg_a_data)
+raw_od_b = mne.preprocessing.nirs.optical_density(mtg_b_data)
+
+raw_od.plot(n_channels=len(raw_od.ch_names),
+            duration=500, show_scrollbars=False)
+raw_od_a.plot(n_channels=len(raw_od_a.ch_names),
+            duration=500, show_scrollbars=False)
+raw_od_b.plot(n_channels=len(raw_od_b.ch_names),
+            duration=500, show_scrollbars=False)
 
 
 # ###############################################################################
@@ -132,10 +159,21 @@ raw_intensity.plot(n_channels=10,
 # # channels, so we will not mark any channels as bad based on the scalp
 # # coupling index.
 
-# sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
-# fig, ax = plt.subplots()
-# ax.hist(sci)
-# ax.set(xlabel='Scalp Coupling Index', ylabel='Count', xlim=[0, 1])
+sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
+sci_a = mne.preprocessing.nirs.scalp_coupling_index(raw_od_a)
+sci_b = mne.preprocessing.nirs.scalp_coupling_index(raw_od_b)
+
+fig, ax = plt.subplots()
+ax.hist(sci)
+ax.set(xlabel='Scalp Coupling Index', ylabel='Count', xlim=[0, 1])
+
+fig, ax = plt.subplots()
+ax.hist(sci_a)
+ax.set(xlabel='Scalp Coupling Index-A', ylabel='Count', xlim=[0, 1])
+
+fig, ax = plt.subplots()
+ax.hist(sci_b)
+ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
 
 
 # ###############################################################################
