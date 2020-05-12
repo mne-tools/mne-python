@@ -20,6 +20,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import compress
+import copy
 
 import mne
 
@@ -27,6 +28,15 @@ import mne
 boxy_data_folder = mne.datasets.boxy_example.data_path()
 boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
 raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'DC', verbose=True).load_data()
+
+###separate data based on montages###
+mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) if 'a01' in i_label]
+mtg_b_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) if 'b01' in i_label]
+mtg_a_data = copy.deepcopy(raw_intensity)
+mtg_b_data = copy.deepcopy(raw_intensity)
+
+mtg_a_data.pick(mtg_a_indices)
+mtg_b_data.pick(mtg_b_indices)
 
 # ###############################################################################
 # # View location of sensors over brain surface
@@ -45,7 +55,33 @@ fig = mne.viz.plot_alignment(raw_intensity.info,
                              subject='fsaverage',
                              trans='fsaverage', 
                              surfaces=['head-dense', 'brain'],
-                             fnirs=['channels', 'pairs'],
+                             fnirs=['sources','detectors', 'pairs'],
+                             mri_fiducials=True,
+                             dig=True,
+                             subjects_dir=subjects_dir, 
+                             fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(mtg_a_data.info, 
+							 show_axes=True,
+                             subject='fsaverage',
+                             trans='fsaverage', 
+                             surfaces=['head-dense', 'brain'],
+                             fnirs=['sources','detectors', 'pairs'],
+                             mri_fiducials=True,
+                             dig=True,
+                             subjects_dir=subjects_dir, 
+                             fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(mtg_b_data.info, 
+							 show_axes=True,
+                             subject='fsaverage',
+                             trans='fsaverage', 
+                             surfaces=['head-dense', 'brain'],
+                             fnirs=['sources','detectors', 'pairs'],
                              mri_fiducials=True,
                              dig=True,
                              subjects_dir=subjects_dir, 

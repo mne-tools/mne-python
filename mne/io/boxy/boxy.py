@@ -18,7 +18,7 @@ from ...channels.montage import make_dig_montage
 
 
 @fill_doc
-def read_raw_boxy(fname, datatype='all', preload=False, verbose=None):
+def read_raw_boxy(fname, datatype=None, preload=False, verbose=None):
     """Reader for a BOXY optical imaging recording.
     Parameters
     ----------
@@ -52,7 +52,7 @@ class RawBOXY(BaseRaw):
     """
     
     @verbose
-    def __init__(self, fname, datatype='all', preload=False, verbose=None):
+    def __init__(self, fname, datatype=None, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials, coregister_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
