@@ -187,7 +187,7 @@ _cardinal_ident_mapping = {
 #   - does not check coord_frame
 #   - does not do any operation that implies assumptions with the names
 def _get_data_as_dict_from_dig(dig):
-    """Obtains coordinate data from a Dig.
+    """Obtain coordinate data from a Dig.
 
     Parameters
     ----------
