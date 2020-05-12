@@ -67,9 +67,9 @@ DEFAULTS = dict(
         eeg_color=(1., 0.596, 0.588), eegp_color=(0.839, 0.15, 0.16),
         ecog_color=(1., 1., 1.),
         seeg_color=(1., 1., .3),
-        fnirs_color=(1., .4, .3),
-        source_color=(1., .2, .3),
-        detector_color=(.2, 0., 0.),
+        fnirs_color=(1., .647, 0.),
+        source_color=(1., .05, 0.),
+        detector_color=(.3, .15, .15),
         lpa_color=(1., 0., 0.),
         nasion_color=(0., 1., 0.),
         rpa_color=(0., 0., 1.),
@@ -85,8 +85,11 @@ DEFAULTS = dict(
 
 def _handle_default(k, v=None):
     """Avoid dicts as default keyword arguments.
+
     Use this function instead to resolve default dict values. Example usage::
+
         scalings = _handle_default('scalings', scalings)
+
     """
     this_mapping = deepcopy(DEFAULTS[k])
     if v is not None:

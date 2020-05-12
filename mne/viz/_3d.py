@@ -595,9 +595,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     seeg : bool
         If True (default), show sEEG electrodes.
     fnirs : str | list | bool | None
-        Can be "channels" or "pairs" to show the fNIRS channel locations or
-        line between source-detector pairs, or a combination like
-        ``('pairs', 'channels')``. True translates to ``('pairs',)``.
+        Can be "channels", "pairs", "detectors", and/or "sources" to show the
+        fNIRS channel locations, optode locations, or line between
+        source-detector pairs, or a combination like ``('pairs', 'channels')``.
+        True translates to ``('pairs',)``.
 
         .. versionadded:: 0.20
     show_axes : bool
@@ -684,7 +685,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for xi, x in enumerate(eeg):
         _check_option('eeg[%d]' % xi, x, ('original', 'projected'))
     for xi, x in enumerate(fnirs):
-        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs'))
+        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs',
+                                            'sources', 'detectors'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
@@ -730,7 +732,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     fnirs_picks = pick_types(info, meg=False, eeg=False,
                              ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('channels' in fnirs))
+    other_bools = dict(ecog=ecog, seeg=seeg,
+                       fnirs=(('channels' in fnirs) |
+                              ('sources' in fnirs) |
+                              ('detectors' in fnirs)))
     del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
@@ -1040,15 +1045,26 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for key, picks in other_picks.items():
         if other_bools[key] and len(picks):
             if key == 'fnirs':
-                # other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                #                for pick in picks])
-                other_loc['source'] = np.array([info['chs'][pick]['loc'][3:6]
+                if 'channels' in fnirs:
+                    other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
                                                for pick in picks])
-                other_loc['detector'] = np.array([info['chs'][pick]['loc'][6:9]
-                                               for pick in picks])
+                if 'sources' in fnirs:
+                    other_loc['source'] = np.array(
+                        [info['chs'][pick]['loc'][3:6]
+                         for pick in picks])
+                    logger.info('Plotting %d %s source%s'
+                                % (len(other_loc['source']),
+                                   key, _pl(other_loc['source'])))
+                if 'detectors' in fnirs:
+                    other_loc['detector'] = np.array(
+                        [info['chs'][pick]['loc'][6:9]
+                         for pick in picks])
+                    logger.info('Plotting %d %s detector%s'
+                                % (len(other_loc['detector']),
+                                   key, _pl(other_loc['detector'])))
                 other_keys = sorted(other_loc.keys())
-                logger.info('Plotting %d %s location%s'
-                            % (len(other_loc[key]), key, _pl(other_loc[key])))
+            logger.info('Plotting %d %s location%s'
+                        % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
     renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))

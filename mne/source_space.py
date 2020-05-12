@@ -1544,11 +1544,11 @@ def _check_mri(mri, subject, subjects_dir):
     if not op.isfile(mri):
         if subject is None:
             raise FileNotFoundError(
-                'mri file %r not found and no subject provided' % (mri,))
+                'MRI file %r not found and no subject provided' % (mri,))
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         mri = op.join(subjects_dir, subject, 'mri', mri)
         if not op.isfile(mri):
-            raise FileNotFoundError('mri file %r not found' % (mri,))
+            raise FileNotFoundError('MRI file %r not found' % (mri,))
     return mri
 
 

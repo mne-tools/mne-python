@@ -28,9 +28,10 @@ from ..surface import read_surface
 from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
-from ..source_space import read_source_spaces, SourceSpaces, _read_mri_info
+from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
+                            _check_mri)
 from ..transforms import invert_transform, apply_trans
-from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
+from ..utils import (logger, verbose, warn, _check_option,
                      _mask_to_onsets_offsets, _pl)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
@@ -300,36 +301,28 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     # For ease of plotting, we will do everything in voxel coordinates.
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
-    # plot axes (x, y, z) as data axes (0, 1, 2)
-    if orientation == 'coronal':
-        x, y, z = 0, 1, 2
-    elif orientation == 'axial':
-        x, y, z = 2, 0, 1
-    else:  # orientation == 'sagittal'
-        x, y, z = 2, 1, 0
-
     # Load the T1 data
-    nim = nib.load(mri_fname)
-    _, vox_mri_t, _, _, _ = _read_mri_info(mri_fname, units='mm')
+    _, vox_mri_t, _, _, _, nim = _read_mri_info(
+        mri_fname, units='mm', return_img=True)
     mri_vox_t = invert_transform(vox_mri_t)['trans']
     del vox_mri_t
-    # We make some assumptions here about our data orientation. Someday we
-    # might want to resample to standard orientation instead:
-    #
-    # vox_ras_t = np.array(  # our standard orientation
-    #     [[-1., 0, 0, 128], [0, 0, 1, -128], [0, -1, 0, 128], [0, 0, 0, 1]])
-    # nim = resample_from_to(nim, ((256, 256, 256), vox_ras_t), order=0)
-    # mri_vox_t = np.dot(np.linalg.inv(vox_ras_t), mri_ras_t['trans'])
-    #
-    # But until someone complains about obnoxious data orientations,
-    # what we have already should work fine (and be faster because no
-    # resampling is done).
-    data = _get_img_fdata(nim)
-    n_sag, n_axi, n_cor = data.shape
-    orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
-    orientation_axis = orientation_name2axis[orientation]
 
-    n_slices = data.shape[orientation_axis]
+    # plot axes (x, y, z) as data axes
+    axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
+    # we don't care about directonality reversal, so convert LPI to RAS. For
+    # conformed images, we get axcodes == 'RSA'
+    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
+    orientation_to_xyz = dict(
+        coronal=('R', 'S', 'A'),
+        axial=('A', 'R', 'S'),
+        sagittal=('A', 'S', 'R'),
+    )
+    x, y, z = [axcodes.index(c) for c in orientation_to_xyz[orientation]]
+    transpose = x < y
+    del orientation
+
+    data = _get_img_fdata(nim)
+    n_slices = data.shape[z]
     if slices is None:
         slices = np.round(
             np.linspace(0, n_slices, 12, endpoint=False)).astype(np.int)
@@ -347,7 +340,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     for file_name, color in surfaces:
         surf = dict()
         surf['rr'], surf['tris'] = read_surface(file_name)
-        # move back surface to MRI coordinate system
+        # move surface to voxel coordinate system
         surf['rr'] = apply_trans(mri_vox_t, surf['rr'])
         surfs.append((surf, color))
 
@@ -364,14 +357,12 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
+    slicer = [slice(None)] * 3
     for ax, sl, lower, upper in zip(axs, slices, bounds[:-1], bounds[1:]):
         # adjust the orientations for good view
-        if orientation == 'coronal':
-            dat = data[:, :, sl].transpose()
-        elif orientation == 'axial':
-            dat = data[:, sl, :]
-        elif orientation == 'sagittal':
-            dat = data[sl, :, :]
+        slicer[z] = sl
+        dat = data[tuple(slicer)]
+        dat = dat.T if transpose else dat
 
         # First plot the anatomical data
         ax.imshow(dat, cmap=plt.cm.gray)
@@ -403,7 +394,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
              slices=None, brain_surfaces=None, src=None, show=True,
-             show_indices=True):
+             show_indices=True, mri='T1.mgz'):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -436,6 +427,11 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         Show slice indices if True.
 
         .. versionadded:: 0.20
+    mri : str
+        The name of the MRI to use. Can be a standard FreeSurfer MRI such as
+        ``'T1.mgz'``, or a full path to a custom MRI file.
+
+        .. versionadded:: 0.21
 
     Returns
     -------
@@ -460,12 +456,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     on top of the midpoint MRI slice with the BEM boundary drawn for that
     slice.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    # Get the MRI filename
-    mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    if not op.isfile(mri_fname):
-        raise IOError('MRI file "%s" does not exist' % mri_fname)
+    mri_fname = _check_mri(mri, subject, subjects_dir)
 
     # Get the BEM surface filenames
     bem_path = op.join(subjects_dir, subject, 'bem')
