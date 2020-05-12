@@ -61,6 +61,8 @@ Changelog
 
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
 
+- Add ECoG misc EDF datast to the :ref:`tut-plot_ecog` to show snapshots of time-frequency acitivity by `Adam Li`_
+
 Bug
 ~~~
 
