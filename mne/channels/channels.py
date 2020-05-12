@@ -269,6 +269,7 @@ class ContainsMixin(object):
 
         return dict(zip(ch_names, pos)), coord_frame
 
+    @fill_doc
     def get_montage(self):
         """Get a DigMontage from instance.
 
