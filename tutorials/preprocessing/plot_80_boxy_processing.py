@@ -32,8 +32,9 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data
 ###separate data based on montages###
 mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) if 'a01' in i_label]
 mtg_b_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) if 'b01' in i_label]
-mtg_a_data = copy.deepcopy(raw_intensity)
-mtg_b_data = copy.deepcopy(raw_intensity)
+
+mtg_a_data = raw_intensity.copy()
+mtg_b_data = raw_intensity.copy()
 
 mtg_a_data.pick(mtg_a_indices)
 mtg_b_data.pick(mtg_b_indices)
