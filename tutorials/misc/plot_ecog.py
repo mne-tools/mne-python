@@ -15,6 +15,7 @@ electrocorticography (ECoG) data.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from scipy.io import loadmat
 
 import mne
@@ -22,11 +23,14 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
 
+misc_path = mne.datasets.misc.data_path()
+sample_path = mne.datasets.sample.data_path()
+
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
 # a :class:`mne.channels.DigMontage` class.
 
-mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
+mat = loadmat(misc_path + '/ecog/sample_ecog.mat')
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode positions given in meters
 
@@ -50,7 +54,7 @@ info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+subjects_dir = sample_path + '/subjects'
 fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'])
 mne.viz.set_3d_view(fig, 200, 70)
@@ -86,47 +90,45 @@ activity = np.linspace(100, 200, xy_pts.shape[0])
 # using MNE functions.
 
 # first we'll load in the sample dataset
-raw = mne.io.read_raw_edf(mne.datasets.misc.data_path() + '/ecog/sample_ecog.edf')
+raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
 
 # attach montage
-raw.set_montage(montage, on_missing='warn')
+raw.set_montage(montage, on_missing='ignore')
 
 # perform gamma band frequency
-tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(raw, freqs=np.linspace(30, 90, 60),
-                                                 n_cycles=7)
+events = [[raw.first_samp, 0, 1]]
+epochs = mne.Epochs(raw, events, tmin=0, tmax=raw.times[-1], baseline=None,
+                    preload=True)
+tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(
+    epochs, freqs=np.linspace(30, 90, 60), n_cycles=7)
 
 # Define an arbitrary "activity" pattern for viz
 activity = tfr_pwr.data.mean(axis=1)
 
 # create animation over the entire time period of 10 seconds
-# from celluloid import Camera
-import matplotlib.animation as animation
 fig, ax = plt.subplots(figsize=(10, 10))
-# camera = Camera(fig)
 ax.imshow(im)
 ax.set_axis_off()
+vmin, vmax = np.percentile(activity, [10, 90])
 
-paths = ax.scatter([], c=[], s=200, cmap='coolwarm')
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200, cmap='plasma_r',
+                   vmin=vmin, vmax=vmax)
+
 
 # initialization function
 def init():
-    # creating an empty plot/frame
-    paths.set_data([], [])
+    """Create an empty frame."""
     return paths,
+
 
 # animation function
 def animate(i):
-    paths = ax.scatter(*xy_pts.T, c=activity[:, i], s=200, cmap='coolwarm')
-
-    # appending new points to x, y axes points list
-    # line.set_data(xdata, ydata)
+    """Animate the plot."""
+    paths.set_array(activity[:, i])
     return paths,
 
+
 # call the animator
-anim = animation.FuncAnimation(fig, animate,
-                               init_func=init,
-                               frames=500, interval=20, blit=True)
-
-
-animation = camera.animate()
+anim = animation.FuncAnimation(
+    fig, animate, init_func=init, frames=500, interval=20, blit=True)
 plt.show()
