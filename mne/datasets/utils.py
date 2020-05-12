@@ -238,7 +238,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.85', misc='0.5')
+    releases = dict(testing='0.85', misc='0.6')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -254,9 +254,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_resting='https://osf.io/m7bd3/download?version=3'),
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/foo.tgz',
-        # misc='https://codeload.github.com/mne-tools/mne-misc-data/'
-        #      'tar.gz/%s' % releases['misc'],
-        misc='https://github.com/adam2392/mne-misc-data/tarball/seeg',
+        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
+             'tar.gz/%s' % releases['misc'],
         sample='https://osf.io/86qa2/download?version=5',
         somato='https://osf.io/tp4sg/download?version=6',
         spm='https://osf.io/je4s8/download?version=2',
@@ -278,8 +277,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     archive_names = dict(
         fieldtrip_cmc='SubjectCMC.zip',
         kiloword='MNE-kiloword-data.tar.gz',
-        # misc='mne-misc-data-%s.tar.gz' % releases['misc'],
-        misc='mne-misc-data.tar.gz',
+        misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         mtrf='mTRF_1.5.zip',
         multimodal='MNE-multimodal-data.tar.gz',
         fnirs_motor='MNE-fNIRS-motor-data.tgz',
@@ -295,8 +293,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
     folder_origs = dict(  # not listed means None (no need to move)
-        # misc='mne-misc-data-%s' % releases['misc'],
-        misc='adam2392-mne-misc-data-75968e3',
+        misc='mne-misc-data-%s' % releases['misc'],
         testing='mne-testing-data-%s' % releases['testing'],
     )
     # finally, where we want them to extract to (only needed if the folder name
@@ -321,7 +318,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='a82a6888d4266d3c6d5aacc8f305b5b8',
+        misc='e00808c3b05123059e2cf49ff276e919',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='ea825966c0a1e9b2f84e3826c5500161',
         spm='9f43f67150e3b694b523a21eb929ea75',
