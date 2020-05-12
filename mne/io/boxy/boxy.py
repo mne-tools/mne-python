@@ -18,7 +18,7 @@ from ...channels.montage import make_dig_montage
 
 
 @fill_doc
-def read_raw_boxy(fname, preload=False, verbose=None):
+def read_raw_boxy(fname, datatype='all', preload=False, verbose=None):
     """Reader for a BOXY optical imaging recording.
     Parameters
     ----------
@@ -34,7 +34,7 @@ def read_raw_boxy(fname, preload=False, verbose=None):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawBOXY(fname, preload, verbose)
+    return RawBOXY(fname, datatype, preload, verbose)
 
 
 @fill_doc
@@ -52,11 +52,11 @@ class RawBOXY(BaseRaw):
     """
     
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, datatype='all', preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials, coregister_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
-        # import pdb
+
         # Check if required files exist and store names for later use
         files = dict()
         keys = ('mtg', 'elp', 'tol', '*.[000-999]*')
@@ -70,6 +70,12 @@ class RawBOXY(BaseRaw):
                 raise RuntimeError('Expect one %s file, got %d' %
                                    (key, len(files[key]),))
             files[key] = files[key][0]
+            
+        ###determine which data type to return###
+        if datatype in ['AC','DC','Ph']:
+            data_types = [datatype]
+        else:
+            raise RuntimeError('Expect AC, DC, or Ph, got %s' %datatype)
             
         ###determine how many blocks we have per montage###
         blk_names = []
@@ -217,7 +223,6 @@ class RawBOXY(BaseRaw):
         boxy_labels = []
         mrk_coords = []
         mrk_labels = []
-        data_types = ['AC','DC','Ph']
         mtg_start = []
         mtg_end = []
         mtg_src_num = []
@@ -241,11 +246,12 @@ class RawBOXY(BaseRaw):
                             np.vstack((source_coords[i_coord], detect_coords[i_coord])),
                             axis=0).tolist() + source_coords[i_coord] + 
                             detect_coords[i_coord] + [chan_wavelength[i_coord]] + [0] + [0])
-                        boxy_labels.append('S' + 
-                                               str(unique_source_labels[mtg_num].index(source_label[i_coord])+1)
-                                               + '_D' + 
-                                               str(unique_detect_labels[mtg_num].index(detect_label[i_coord])+1) 
-                                               + ' ' + chan_wavelength[i_coord] + i_type[0] + mtg_names[mtg_num] + i_blk[1:])
+                        boxy_labels.append('S' + str(unique_source_labels[mtg_num].index(
+                                            source_label[i_coord])+1) + '_D' + 
+                                            str(unique_detect_labels[mtg_num].index(
+                                            detect_label[i_coord])+1) + ' ' + 
+                                            chan_wavelength[i_coord] + ' ' + 
+                                            mtg_names[mtg_num] + i_blk[1:])
         
                 # add extra column for triggers
                 mrk_labels.append('Markers' + ' ' + mtg_names[mtg_num] + i_blk[1:])
@@ -299,27 +305,25 @@ class RawBOXY(BaseRaw):
                      'start_line': start_line,
                      'end_line': end_line,
                      'filetype': filetype,
-                     'files': files,}
+                     'files': files,
+                     'data_types': data_types,}
         
         print('Start Line: ', start_line[0])
         print('End Line: ', end_line[0])
-        # print('Original Difference: ', end_line-start_line)
+        print('Original Difference: ', end_line[0]-start_line[0])
         first_samps = start_line[0]
         print('New first_samps: ', first_samps)
         diff = end_line[0] - start_line[0]
-        # diff = [end_line[i_line] - start_line[i_line] for i_line in range(len(end_line))]
+
         #input file has rows for each source, output variable rearranges as columns and does not
         if filetype[0] == 'non-parsed':
             last_samps = ((diff-2) // (source_num[0])) + start_line[0] - 1
         elif filetype =='parsed':
             last_samps = (start_line[0] + diff)
-        # last_samps = [((start_line[i_line] + diff[i_line]) // (source_num[i_line] -1))
-        #                for i_line in range(len(start_line))]
+
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps-first_samps)
-        # print('New Difference: ', [str(last_samps[i_line]-first_samps[i_line]) 
-        #                            for i_line in range(len(last_samps))])
-        # pdb.set_trace()
+
         super(RawBOXY, self).__init__(
             info, preload, filenames=[fname], first_samps=[first_samps], 
             last_samps=[last_samps],
@@ -328,20 +332,19 @@ class RawBOXY(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
         """
-        # import pdb
-        # pdb.set_trace()
+
         source_num = self._raw_extras[fi]['source_num']
         detect_num = self._raw_extras[fi]['detect_num']
         start_line = self._raw_extras[fi]['start_line']
         end_line = self._raw_extras[fi]['end_line']
         filetype = self._raw_extras[fi]['filetype']
+        data_types = self._raw_extras[fi]['data_types']
         boxy_files = self._raw_extras[fi]['files']['*.[000-999]*']
         
         ###detectors, sources, and data types###
         detectors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 
                      'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
                      'Y', 'Z']
-        data_types = ['AC','DC','Ph']
         
         ###load our data###
         all_data = []
@@ -389,10 +392,10 @@ class RawBOXY(BaseRaw):
             
             ###make some empty variables to store our data###
             if filetype[file_num] == 'non-parsed':
-                data_ = np.zeros(((((detect_num[file_num]*source_num[file_num])*3)),
+                data_ = np.zeros(((((detect_num[file_num]*source_num[file_num])*len(data_types))),
                                     int(len(boxy_data)/source_num[file_num]))) 
             elif filetype[file_num] == 'parsed':
-                data_ = np.zeros(((((detect_num[file_num]*source_num[file_num])*3)),
+                data_ = np.zeros(((((detect_num[file_num]*source_num[file_num])*len(data_types))),
                                     int(len(boxy_data)))) 
             
             ###loop through data types###
@@ -406,7 +409,7 @@ class RawBOXY(BaseRaw):
                         
                         ###determine where to store our data###
                         index_loc = (detectors.index(i_detect)*source_num[file_num] + 
-                        (i_source-1) + (data_types.index(i_data)*(source_num[file_num]*detect_num[file_num])))  
+                        (i_source-1) + (data_types.index(i_data)*(source_num[file_num]*detect_num[file_num]))) 
                         
                         ###need to treat our filetypes differently###
                         if filetype[file_num] == 'non-parsed':
