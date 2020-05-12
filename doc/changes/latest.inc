@@ -53,6 +53,8 @@ Changelog
 
 - Add :func:`mne.stats.ttest_ind_no_p` to mirror :func:`mne.stats.ttest_1samp_no_p` with hat correction by `Eric Larson`_
 
+- Speed up raw data reading without preload in :func:`mne.io.read_raw_nirx` by `Eric Larson`_
+
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
 - Add ``mri`` and ``show_orientation`` arguments to :func:`mne.viz.plot_bem` by `Eric Larson`_
