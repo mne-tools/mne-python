@@ -1308,6 +1308,7 @@ def test_get_channel_coordinates():
     """Test get montage and its coordinates."""
     N_CHANNELS = 3
 
+    # create toy dataset
     raw = _make_toy_raw(N_CHANNELS)
     raw.set_channel_types({ch: 'ecog' for ch in raw.ch_names})
     ch_names = raw.ch_names
@@ -1332,48 +1333,52 @@ def test_get_channel_coordinates():
     assert_array_equal(_get_dig_montage_pos(montage),
                        _get_dig_montage_pos(test_montage))
 
-    # make sure instance copies are the same
-    # assert not object_diff(raw, raw_copy)
+    # read in testing data and assert montage roundtrip
     raw = read_raw_fif(fif_fname)
-    # ch_names = raw.ch_names
-    # elec_locs = np.random.random((len(ch_names), 3)).tolist()
-    # ch_pos = dict(zip(ch_names, elec_locs))
-    # print(len(ch_pos))
-    # montage = make_dig_montage(ch_pos=ch_pos,
-    #                            nasion=[0, 1, 0],
-    #                            lpa=[1, 0, 0],
-    #                            rpa=[-1, 0, 0],
-    #                            coord_frame='meg')
     montage = make_standard_montage('mgh60')
-    # montage.ch_names = [  # modify the names in place
-    #     name.replace('EEG', 'EEG ') for name in montage.ch_names
-    # ]
+
+    # set the montage; note renaming to make standard montage map
     raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
-    print(montage)
-    print(dir(montage))
-    print(montage.dig)
-    print(len(montage.ch_names))
     raw.set_montage(montage)
 
-    print(raw.info['dig'])
-    # for d in raw.info['dig']:
-    #     if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-    #         print("cardinal")
-    #     elif d['kind'] == FIFF.FIFFV_POINT_HPI:
-    #         print('hpi')
-    #     elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
-    #         print('extra')
-    #     else:
-    #         # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-    #         print('Other')
-    # get montage back and it should be the same
+    # get montage back and set it
+    # the channel locations should be the same
+    orig_chs = raw.info['chs']
     test_montage = raw.get_montage()
-    assert_array_equal(_get_dig_montage_pos(montage),
-                       _get_dig_montage_pos(test_montage))
-    raw.set_montage(test_montage)
-    # raw = read_raw_brainvision(vhdr_path)
-    # raw_copy = raw.copy()
-    # can reset montage with one obtained via `get_montage()`
+    raw.set_montage(test_montage, on_missing='ignore')
+    test_chs = raw.info['chs']
+    assert_array_equal([ch['loc'] for ch in orig_chs],
+                       [ch['loc'] for ch in test_chs])
+    # XXX: dig montage doesn't maintain ordering...
+    # assert_array_equal(_get_dig_montage_pos(montage),
+    #                    _get_dig_montage_pos(test_montage))
+
+    # read in BV test dataset and make sure montage
+    # fulfills roundtrip on non-standard montage
+    dig_montage = read_dig_fif(fif_dig_montage_fname)
+
+    # Make a BrainVision file like the one the user would have had
+    raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    raw_bv_2 = raw_bv.copy()
+    mapping = dict()
+    for ii, ch_name in enumerate(raw_bv.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 1,)
+    raw_bv.rename_channels(mapping)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 33,)
+    raw_bv_2.rename_channels(mapping)
+    raw_bv.add_channels([raw_bv_2])
+    for ch in raw_bv.info['chs']:
+        ch['kind'] = FIFF.FIFFV_EEG_CH
+
+    # Set the montage and roundtrip
+    raw_bv.set_montage(dig_montage)
+    orig_chs = raw_bv.info['chs']
+    test_montage = raw_bv.get_montage()
+    raw_bv.set_montage(test_montage, on_missing='ignore')
+    test_chs = raw_bv.info['chs']
+    assert_array_equal([ch['loc'] for ch in orig_chs],
+                       [ch['loc'] for ch in test_chs])
 
 
 def test_read_dig_hpts():
