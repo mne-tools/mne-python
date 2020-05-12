@@ -13,37 +13,65 @@ electrocorticography (ECoG) data.
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 import numpy as np
-import matplotlib
-matplotlib.use("macOSX")
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy.io import loadmat
-
-from sklearn.preprocessing import StandardScaler
 
 import mne
+from mne.time_frequency import tfr_morlet
 from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
 
+# paths to mne datasets - sample ECoG and FreeSurfer subject
+misc_path = mne.datasets.misc.data_path()
+sample_path = mne.datasets.sample.data_path()
+
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
 # a :class:`mne.channels.DigMontage` class.
+# First, define a helper function to read in .tsv file.
 
-mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
-ch_names = mat['ch_names'].tolist()
-elec = mat['elec']  # electrode positions given in meters
 
-from mne_bids.tsv_handler import _from_tsv
-elec_tsv = _from_tsv(mne.datasets.misc.data_path() + '/ecog/sample_ecog_electrodes.tsv')
+def _from_tsv(fname):
+    """Read a tsv file into an OrderedDict.
+
+
+    Parameters
+    ----------
+    fname : str
+        Path to the file being loaded.
+
+    Returns
+    -------
+    data_dict : collections.OrderedDict
+        Keys are the column names, and values are the column data.
+
+    """
+    data = np.loadtxt(fname, dtype=str, delimiter='\t',
+                      comments=None, encoding='utf-8')
+    column_names = data[0, :]
+    info = data[1:, :]
+    data_dict = OrderedDict()
+    dtypes = [str] * info.shape[1]
+    for i, name in enumerate(column_names):
+        data_dict[name] = info[:, i].astype(dtypes[i]).tolist()
+    return data_dict
+
+
+# read in the electrode coordinates file
+# in this tutorial, these are assumed to be in meters
+elec_tsv = _from_tsv(misc_path + '/ecog/sample_ecog_electrodes.tsv')
 ch_names = elec_tsv['name']
-ch_coords = np.vstack((elec_tsv['x'], elec_tsv['y'], elec_tsv['z'])).T.astype(float)
+ch_coords = np.vstack((elec_tsv['x'],
+                       elec_tsv['y'],
+                       elec_tsv['z'])).T.astype(float)
 ch_pos = dict(zip(ch_names, ch_coords))
+
+# create montage from channel coordinates in the 'head' coordinate frame
 montage = mne.channels.make_dig_montage(ch_pos,
                                         coord_frame='head')
-print(ch_names)
-print(ch_pos)
+
 # Now we make a montage stating that the ECoG contacts are in head
 # coordinate system (although they are in MRI). This is compensated
 # by the fact that below we do not specify a trans file so the Head<->MRI
@@ -64,7 +92,7 @@ info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
 # representation of the data (i.e. 1-30, or 30-90 Hz).
 
 # first we'll load in the sample dataset
-raw = mne.io.read_raw_edf(mne.datasets.misc.data_path() + '/ecog/sample_ecog.edf')
+raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
 
 # drop bad channels
 raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
@@ -73,24 +101,18 @@ raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
 raw.set_montage(montage, on_missing='warn')
 
 # create a 1 Epoch data structure
-epoch = mne.EpochsArray(raw.get_data(start=0, stop=10000)[np.newaxis, ...],
+epoch = mne.EpochsArray(raw.get_data()[np.newaxis, ...],
                         info=raw.info)
 
 # perform gamma band frequency averaged over entire time period
-tfr_pwr, _ = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(30, 90, 60),
-                                           n_cycles=2)
+tfr_pwr, _ = tfr_morlet(epoch, freqs=np.linspace(30, 90, 60),
+                        n_cycles=2)
 gamma_activity = tfr_pwr.data.mean(axis=(1, 2))
 
-# normalize activity over all channels
-# gamma_activity = StandardScaler().fit_transform(gamma_activity[:, np.newaxis]).squeeze()
-
 # perform low frequency activity averaged over entire time period
-tfr_pwr, _ = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(8, 12, 4),
-                                           n_cycles=2)
+tfr_pwr, _ = tfr_morlet(epoch, freqs=np.linspace(8, 12, 4),
+                        n_cycles=2)
 low_activity = tfr_pwr.data.mean(axis=(1, 2))
-
-# normalize activity over all channels
-# low_activity = StandardScaler().fit_transform(low_activity[:, np.newaxis]).squeeze()
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
@@ -98,7 +120,7 @@ low_activity = tfr_pwr.data.mean(axis=(1, 2))
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+subjects_dir = sample_path + '/subjects'
 fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'])
 mne.viz.set_3d_view(fig, 200, 70)
@@ -111,50 +133,34 @@ mne.viz.set_3d_view(fig, 200, 70)
 # of the ECoG activity on the brain using MNE functions.
 
 # We'll once again plot the surface, then take a snapshot.
-fig_gamma = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
-                           surfaces='pial')
-mne.viz.set_3d_view(fig_gamma, 200, 70)
-xy, im = snapshot_brain_montage(fig_gamma, montage)
+fig_scatter = plot_alignment(raw.info, subject='sample',
+                             subjects_dir=subjects_dir, surfaces='pial')
+mne.viz.set_3d_view(fig_scatter, 200, 70)
+xy, im = snapshot_brain_montage(fig_scatter, montage)
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 
-# show activity between low frequency and higher frequencies
-# We'll once again plot the surface, then take a snapshot.
-fig_gamma = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
-                           surfaces='pial')
-mne.viz.set_3d_view(fig_gamma, 200, 70)
-xy, im = snapshot_brain_montage(fig_gamma, montage)
-print(fig_gamma)
-
-# Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+vmin, vmax = np.percentile(gamma_activity, [10, 90])
 
 # show activity at higher frequencies
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
 ax.set_axis_off()
-sc = ax.scatter(*xy_pts.T, c=gamma_activity, s=200, cmap='viridis',
-                # norm=matplotlib.colors.LogNorm()
-                )
+sc = ax.scatter(*xy_pts.T, c=gamma_activity, s=200,
+                cmap='viridis', vmin=vmin, vmax=vmax)
 ax.set_title("Gamma frequency (30-90 Hz)")
 fig.colorbar(sc, ax=ax)
 
+vmin, vmax = np.percentile(low_activity, [10, 90])
 
 # show activity between low frequency
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
 ax.set_axis_off()
-sc = ax.scatter(*xy_pts.T, c=low_activity, s=200, cmap='viridis',
-                # norm=matplotlib.colors.LogNorm()
-                )
+sc = ax.scatter(*xy_pts.T, c=low_activity, s=200,
+                cmap='viridis', vmin=vmin, vmax=vmax)
 ax.set_title("Low frequency (0-30 Hz)")
 fig.colorbar(sc, ax=ax)
-
-# create an axes on the right side of ax. The width of cax will be 5%
-# of ax and the padding between cax and ax will be fixed at 0.05 inch.
-# divider = make_axes_locatable(ax)
-# cax = divider.append_axes("right", size="5%", pad=0.05)
-# plt.colorbar(sc, ax=cax)
 
 plt.show()
