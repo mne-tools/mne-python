@@ -59,7 +59,7 @@ class RawBOXY(BaseRaw):
 
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('mtg', 'elp', 'tol', '*.[000-999]*')
+        keys = ('mtg', 'elp', '*.[000-999]*')
         print(fname)
         for key in keys:
             if key == '*.[000-999]*':
