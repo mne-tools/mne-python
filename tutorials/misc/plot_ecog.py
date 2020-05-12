@@ -14,14 +14,13 @@ electrocorticography (ECoG) data.
 # License: BSD (3-clause)
 
 import numpy as np
-from sys import platform as sys_pf
-# if sys_pf == 'darwin':
-# import matplotlib
-# matplotlib.use("Qt5Agg")
 import matplotlib
 matplotlib.use("macOSX")
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.io import loadmat
+
+from sklearn.preprocessing import StandardScaler
 
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
@@ -47,7 +46,7 @@ print(ch_names)
 print(ch_pos)
 # Now we make a montage stating that the ECoG contacts are in head
 # coordinate system (although they are in MRI). This is compensated
-# by the fact that below we do not specicty a trans file so the Head<->MRI
+# by the fact that below we do not specify a trans file so the Head<->MRI
 # transform is the identity.
 # montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
 #                                         coord_frame='head')
@@ -58,6 +57,40 @@ print('Created %s channel positions' % len(ch_names))
 # our measurement info structure.
 
 info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
+
+###############################################################################
+# Now that we have our electrode positions in MRI coordinates, we can load in
+# our corresponding time-series data. We then compute a time-frequency
+# representation of the data (i.e. 1-30, or 30-90 Hz).
+
+# first we'll load in the sample dataset
+raw = mne.io.read_raw_edf(mne.datasets.misc.data_path() + '/ecog/sample_ecog.edf')
+
+# drop bad channels
+raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
+
+# attach montage
+raw.set_montage(montage, on_missing='warn')
+
+# create a 1 Epoch data structure
+epoch = mne.EpochsArray(raw.get_data(start=0, stop=10000)[np.newaxis, ...],
+                        info=raw.info)
+
+# perform gamma band frequency averaged over entire time period
+tfr_pwr, _ = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(30, 90, 60),
+                                           n_cycles=2)
+gamma_activity = tfr_pwr.data.mean(axis=(1, 2))
+
+# normalize activity over all channels
+# gamma_activity = StandardScaler().fit_transform(gamma_activity[:, np.newaxis]).squeeze()
+
+# perform low frequency activity averaged over entire time period
+tfr_pwr, _ = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(8, 12, 4),
+                                           n_cycles=2)
+low_activity = tfr_pwr.data.mean(axis=(1, 2))
+
+# normalize activity over all channels
+# low_activity = StandardScaler().fit_transform(low_activity[:, np.newaxis]).squeeze()
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
@@ -74,83 +107,54 @@ mne.viz.set_3d_view(fig, 200, 70)
 # Sometimes it is useful to make a scatterplot for the current figure view.
 # This is best accomplished with matplotlib. We can capture an image of the
 # current mayavi view, along with the xy position of each electrode, with the
-# `snapshot_brain_montage` function.
+# `snapshot_brain_montage` function. We can visualize say the gamma frequency
+# of the ECoG activity on the brain using MNE functions.
 
 # We'll once again plot the surface, then take a snapshot.
-fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
-                             surfaces='pial')
-mne.viz.set_3d_view(fig_scatter, 200, 70)
-xy, im = snapshot_brain_montage(fig_scatter, montage)
+fig_gamma = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
+                           surfaces='pial')
+mne.viz.set_3d_view(fig_gamma, 200, 70)
+xy, im = snapshot_brain_montage(fig_gamma, montage)
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 
-# Define an arbitrary "activity" pattern for viz
-activity = np.linspace(100, 200, xy_pts.shape[0])
-
-# # This allows us to use matplotlib to create arbitrary 2d scatterplots
-_, ax = plt.subplots(figsize=(10, 10))
-ax.imshow(im)
-ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
-ax.set_axis_off()
-# plt.show()
-
-###############################################################################
-# Sometimes it is useful to create an animation of the ECoG activity over time.
-# We can visualize say the gamma frequency of the ECoG activity on the brain
-# using MNE functions.
-
-# first we'll load in the sample dataset
-raw = mne.io.read_raw_edf(mne.datasets.misc.data_path() + '/ecog/sample_ecog.edf')
-
-# drop bad channels
-raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
-
-# attach montage
-raw.set_montage(montage, on_missing='warn')
-
-# perform gamma band frequency
-epoch = mne.EpochsArray(raw.get_data()[np.newaxis, ...], info=raw.info)
-print(epoch)
-# print(epoch.shape)
-tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(30, 90, 60),
-                                                 n_cycles=3)
-print(tfr_pwr)
-# Define an arbitrary "activity" pattern for viz
-gamma_activity = tfr_pwr.data.mean(axis=(1, 2))
-
-tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(1, 30, 60),
-                                                 n_cycles=3)
-low_activity = tfr_pwr.data.mean(axis=(1, 2))
-
-
-_, ax = plt.subplots(figsize=(10, 10))
 # show activity between low frequency and higher frequencies
 # We'll once again plot the surface, then take a snapshot.
-fig_scatter = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
-                             surfaces='pial')
-mne.viz.set_3d_view(fig_scatter, 200, 70)
-xy, im = snapshot_brain_montage(fig_scatter, montage)
+fig_gamma = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
+                           surfaces='pial')
+mne.viz.set_3d_view(fig_gamma, 200, 70)
+xy, im = snapshot_brain_montage(fig_gamma, montage)
+print(fig_gamma)
+
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 
+# show activity at higher frequencies
+fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
 ax.set_axis_off()
-ax.scatter(*xy_pts.T, c=gamma_activity, s=200, cmap='coolwarm')
-# ax.set_title("Gamma frequency (30-90 Hz)")
+sc = ax.scatter(*xy_pts.T, c=gamma_activity, s=200, cmap='viridis',
+                # norm=matplotlib.colors.LogNorm()
+                )
+ax.set_title("Gamma frequency (30-90 Hz)")
+fig.colorbar(sc, ax=ax)
 
-_, ax = plt.subplots(figsize=(10, 10))
-# show activity between low frequency and higher frequencies
-# We'll once again plot the surface, then take a snapshot.
-fig_scatter = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
-                             surfaces='pial')
-mne.viz.set_3d_view(fig_scatter, 200, 70)
-xy, im = snapshot_brain_montage(fig_scatter, montage)
-# Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+
+# show activity between low frequency
+fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
 ax.set_axis_off()
-ax.scatter(*xy_pts.T, c=low_activity, s=200, cmap='coolwarm')
-# ax.set_title("Low frequency (0-30 Hz)")
+sc = ax.scatter(*xy_pts.T, c=low_activity, s=200, cmap='viridis',
+                # norm=matplotlib.colors.LogNorm()
+                )
+ax.set_title("Low frequency (0-30 Hz)")
+fig.colorbar(sc, ax=ax)
+
+# create an axes on the right side of ax. The width of cax will be 5%
+# of ax and the padding between cax and ax will be fixed at 0.05 inch.
+# divider = make_axes_locatable(ax)
+# cax = divider.append_axes("right", size="5%", pad=0.05)
+# plt.colorbar(sc, ax=cax)
 
 plt.show()
