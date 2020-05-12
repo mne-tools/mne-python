@@ -382,3 +382,7 @@ API
 - The ``threshold`` argument in :meth:`mne.preprocessing.ICA.find_bads_ecg` defaults to ``None`` in version 0.21 but will change to ``'auto'`` in 0.22 by `Yu-Han Luo`_
 
 - The default argument ``meg=True`` in :func:`mne.pick_types` will change to ``meg=False`` in version 0.22 by `Clemens Brunner`_
+
+- Added :meth:`mne.io.Raw.get_montage`, which obtains the montage that an instance has, by `Adam Li`_
+
+- Added :meth:`mne.io.Raw.get_ch_positions`, which obtains the channel positions and coordinate frame that an instance has, by `Adam Li`_
