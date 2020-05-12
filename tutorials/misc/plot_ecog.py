@@ -98,7 +98,7 @@ raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
 raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
 
 # attach montage
-raw.set_montage(montage, on_missing='warn')
+raw.set_montage(montage, on_missing='ignore')
 
 # create a 1 Epoch data structure
 epoch = mne.EpochsArray(raw.get_data()[np.newaxis, ...],
