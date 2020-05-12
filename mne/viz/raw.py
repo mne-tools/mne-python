@@ -716,8 +716,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
                         params['n_times'] / float(info['sfreq']))
 
-    ax_vscroll.set_title('Ch.')
-
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.axvline(0, color=vertline_color, zorder=4)
     params['ax_vertline'].ch_name = ''
