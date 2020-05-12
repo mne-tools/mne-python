@@ -27,17 +27,17 @@ from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import fill_doc
 
 
-def split_list(l, n, idx=False):
+def split_list(v, n, idx=False):
     """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
-    tot = len(l)
+    tot = len(v)
     sz = tot // n
     start = stop = 0
     for i in range(n - 1):
         stop += sz
-        yield (np.arange(start, stop), l[start:stop]) if idx else l[start:stop]
+        yield (np.arange(start, stop), v[start:stop]) if idx else v[start:stop]
         start += sz
-    yield (np.arange(start, tot), l[start:]) if idx else l[start]
+    yield (np.arange(start, tot), v[start:]) if idx else v[start]
 
 
 def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):

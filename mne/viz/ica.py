@@ -637,9 +637,9 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     axes[0].set_title(title)
 
     if labels == 'ecg':
-        labels = [l for l in ica.labels_ if l.startswith('ecg/')]
+        labels = [label for label in ica.labels_ if label.startswith('ecg/')]
     elif labels == 'eog':
-        labels = [l for l in ica.labels_ if l.startswith('eog/')]
+        labels = [label for label in ica.labels_ if label.startswith('eog/')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
     elif isinstance(labels, str):
         if len(axes) > 1:
@@ -833,8 +833,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     evoked.plot(axes=axes, show=show, time_unit='s')
     for ax in fig.axes:
-        for l in ax.get_lines():
-            l.set_color('r')
+        for line in ax.get_lines():
+            line.set_color('r')
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=show, time_unit='s')
     tight_layout(fig=fig)

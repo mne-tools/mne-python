@@ -522,6 +522,32 @@ rank : None | dict | 'info' | 'full'
     of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+docdict['rank_tol'] = """
+tol : float | 'auto'
+    Tolerance for singular values to consider non-zero in
+    calculating the rank. The singular values are calculated
+    in this method such that independent data are expected to
+    have singular value around one. Can be 'auto' to use the
+    same thresholding as :func:`scipy.linalg.orth`.
+"""
+docdict['rank_tol_kind'] = """
+tol_kind : str
+    Can be: "absolute" (default) or "relative". Only used if ``tol`` is a
+    float, because when ``tol`` is a string the mode is implicitly relative.
+    After applying the chosen scale factors / normalization to the data,
+    the singular values are computed, and the rank is then taken as:
+
+    - ``'absolute'``
+        The number of singular values ``s`` greater than ``tol``.
+        This mode can fail if your data do not adhere to typical
+        data scalings.
+    - ``'relative'``
+        The number of singular values ``s`` greater than ``tol * s.max()``.
+        This mode can fail if you have one or more large components in the
+        data (e.g., artifacts).
+
+    .. versionadded:: 0.21.0
+"""
 
 # Inverses
 docdict['depth'] = """
@@ -1480,8 +1506,8 @@ def linkcode_resolve(domain, info):
         kind = 'master'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
-    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
-       kind, fn, linespec)
+    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
+        kind, fn, linespec)
 
 
 def open_docs(kind=None, version=None):
