@@ -53,13 +53,17 @@ Changelog
 
 - Add :func:`mne.stats.ttest_ind_no_p` to mirror :func:`mne.stats.ttest_1samp_no_p` with hat correction by `Eric Larson`_
 
+- Speed up raw data reading without preload in :func:`mne.io.read_raw_nirx` by `Eric Larson`_
+
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
-- Add ``mri`` argument to :func:`mne.viz.plot_bem` by `Eric Larson`_
+- Add ``mri`` and ``show_orientation`` arguments to :func:`mne.viz.plot_bem` by `Eric Larson`_
 
 - Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
 
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
+
+- Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes by `Kyle Mathewson`_
 
 Bug
 ~~~
@@ -100,7 +104,7 @@ Bug
 
 - Fix bug when using :meth:`mne.Epochs.crop` to exclude the baseline period would break :func:`mne.Epochs.save` / :func:`mne.read_epochs` round-trip by `Eric Larson`_
 
-- Fix bug with :func:`mne.viz.plot_bem` when MRIs are not in standard FreeSurfer orientation by `Eric Larson`_
+- Fix bug with :func:`mne.viz.plot_bem` and :class:`mne.Report` when plotting BEM contours when MRIs are not in standard FreeSurfer orientation by `Eric Larson`_
 
 - Fix :ref:`gen_mne_setup_forward_model` to have it actually compute the BEM solution in addition to creating the BEM model by `Eric Larson`_
 

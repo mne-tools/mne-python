@@ -10,9 +10,7 @@
 #
 # License: Simplified BSD
 
-import base64
 from distutils.version import LooseVersion
-from io import BytesIO
 from itertools import cycle
 import os
 import os.path as op
@@ -42,7 +40,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl,
                      _ensure_int, _validate_type, _check_option)
-from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
+from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
@@ -405,122 +403,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     return renderer.scene()
 
 
-def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
-                       slices=None, show=True, img_output=False):
-    """Plot BEM contours on anatomical slices.
-
-    Parameters
-    ----------
-    mri_fname : str
-        The name of the file containing anatomical data.
-    surf_fnames : list of str
-        The filenames for the BEM surfaces in the format
-        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
-    orientation : str
-        'coronal' or 'transverse' or 'sagittal'
-    slices : list of int
-        Slice indices.
-    show : bool
-        Call pyplot.show() at the end.
-    img_output : None | tuple
-        If tuple (width and height), images will be produced instead of a
-        single figure with many axes. This mode is designed to reduce the
-        (substantial) overhead associated with making tens to hundreds
-        of matplotlib axes, instead opting to re-use a single Axes instance.
-
-    Returns
-    -------
-    fig : instance of matplotlib.figure.Figure | list
-        The figure. Will instead be a list of png images if
-        img_output is a tuple.
-    """
-    import matplotlib.pyplot as plt
-    import nibabel as nib
-
-    _check_option('orientation', orientation, ['coronal', 'axial', 'sagittal'])
-
-    # Load the T1 data
-    nim = nib.load(mri_fname)
-    data = _get_img_fdata(nim)
-    try:
-        affine = nim.affine
-    except AttributeError:  # old nibabel
-        affine = nim.get_affine()
-
-    n_sag, n_axi, n_cor = data.shape
-    orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
-    orientation_axis = orientation_name2axis[orientation]
-
-    if slices is None:
-        n_slices = data.shape[orientation_axis]
-        slices = np.linspace(0, n_slices, 12, endpoint=False).astype(np.int)
-
-    # create of list of surfaces
-    surfs = list()
-
-    trans = linalg.inv(affine)
-    # XXX : next line is a hack don't ask why
-    trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
-
-    for surf_fname in surf_fnames:
-        surf = read_surface(surf_fname, return_dict=True)[-1]
-        # move back surface to MRI coordinate system
-        surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
-        surfs.append(surf)
-
-    if img_output is None:
-        fig, axs, _, _ = _prepare_trellis(len(slices), 4)
-    else:
-        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
-        axs = [ax] * len(slices)
-
-        fig_size = fig.get_size_inches()
-        w, h = img_output[0], img_output[1]
-        w2 = fig_size[0]
-        fig.set_size_inches([(w2 / float(w)) * w, (w2 / float(w)) * h])
-        plt.close(fig)
-
-    inds = dict(coronal=[0, 1, 2], axial=[2, 0, 1],
-                sagittal=[2, 1, 0])[orientation]
-    outs = []
-    for ax, sl in zip(axs, slices):
-        # adjust the orientations for good view
-        if orientation == 'coronal':
-            dat = data[:, :, sl].transpose()
-        elif orientation == 'axial':
-            dat = data[:, sl, :]
-        elif orientation == 'sagittal':
-            dat = data[sl, :, :]
-
-        # First plot the anatomical data
-        if img_output is not None:
-            ax.clear()
-        ax.imshow(dat, cmap=plt.cm.gray)
-        ax.axis('off')
-
-        # and then plot the contours on top
-        for surf in surfs:
-            with warnings.catch_warnings(record=True):  # no contours
-                warnings.simplefilter('ignore')
-                ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
-                              surf['tris'], surf['rr'][:, inds[2]],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-        if img_output is not None:
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_xlim(0, img_output[1])
-            ax.set_ylim(img_output[0], 0)
-            output = BytesIO()
-            fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png')
-            outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
-    if show:
-        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                            hspace=0.)
-    plt_show(show)
-    return fig if img_output is None else outs
-
-
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
@@ -595,9 +477,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     seeg : bool
         If True (default), show sEEG electrodes.
     fnirs : str | list | bool | None
-        Can be "channels" or "pairs" to show the fNIRS channel locations or
-        line between source-detector pairs, or a combination like
-        ``('pairs', 'channels')``. True translates to ``('pairs',)``.
+        Can be "channels", "pairs", "detectors", and/or "sources" to show the
+        fNIRS channel locations, optode locations, or line between
+        source-detector pairs, or a combination like ``('pairs', 'channels')``.
+        True translates to ``('pairs',)``.
 
         .. versionadded:: 0.20
     show_axes : bool
@@ -684,7 +567,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for xi, x in enumerate(eeg):
         _check_option('eeg[%d]' % xi, x, ('original', 'projected'))
     for xi, x in enumerate(fnirs):
-        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs'))
+        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs',
+                                            'sources', 'detectors'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
@@ -730,11 +614,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     fnirs_picks = pick_types(info, meg=False, eeg=False,
                              ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=('channels' in fnirs))
+    other_bools = dict(ecog=ecog, seeg=seeg,
+                       fnirs=(('channels' in fnirs) |
+                              ('sources' in fnirs) |
+                              ('detectors' in fnirs)))
     del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
+
     if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1038,8 +926,25 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     del dig
     for key, picks in other_picks.items():
         if other_bools[key] and len(picks):
-            other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                                       for pick in picks])
+            if key == 'fnirs':
+                if 'channels' in fnirs:
+                    other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
+                                               for pick in picks])
+                if 'sources' in fnirs:
+                    other_loc['source'] = np.array(
+                        [info['chs'][pick]['loc'][3:6]
+                         for pick in picks])
+                    logger.info('Plotting %d %s source%s'
+                                % (len(other_loc['source']),
+                                   key, _pl(other_loc['source'])))
+                if 'detectors' in fnirs:
+                    other_loc['detector'] = np.array(
+                        [info['chs'][pick]['loc'][6:9]
+                         for pick in picks])
+                    logger.info('Plotting %d %s detector%s'
+                                % (len(other_loc['detector']),
+                                   key, _pl(other_loc['detector'])))
+                other_keys = sorted(other_loc.keys())
             logger.info('Plotting %d %s location%s'
                         % (len(other_loc[key]), key, _pl(other_loc[key])))
 

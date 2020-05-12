@@ -93,8 +93,8 @@ def test_plot_ica_components():
     c_fig = plt.gcf()
     labels = [ax.get_label() for ax in c_fig.axes]
 
-    for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
-        assert (l in labels)
+    for label in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
+        assert label in labels
 
     topomap_ax = c_fig.axes[labels.index('topomap')]
     title = topomap_ax.get_title()

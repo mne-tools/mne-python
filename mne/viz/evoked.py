@@ -49,7 +49,8 @@ def _butterfly_onpick(event, params):
         return  # let the other axes handle it
     else:
         ax_idx = ax_idx[0]
-    lidx = np.where([l is event.artist for l in params['lines'][ax_idx]])[0][0]
+    lidx = np.where([
+        line is event.artist for line in params['lines'][ax_idx]])[0][0]
     ch_name = params['ch_names'][params['idxs'][ax_idx][lidx]]
     text = params['texts'][ax_idx]
     x = event.artist.get_xdata()[event.ind[0]]

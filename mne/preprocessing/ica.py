@@ -117,7 +117,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     if not check:
         raise ValueError('Invalid channel type%s passed for ICA: %s.'
                          'Only the following types are supported: %s'
-                         .format(_pl(chs), chs, types))
+                         % (_pl(chs), chs, types))
 
 
 @fill_doc
@@ -2289,14 +2289,14 @@ def _find_max_corrs(all_maps, target, threshold):
         max_corrs = [list(_find_outliers(s_corr, threshold=threshold))
                      for s_corr in abs_corrs]
 
-    am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
+    am = [l_[i] for l_, i_s in zip(abs_corrs, max_corrs)
           for i in i_s]
     median_corr_with_target = np.median(am) if len(am) > 0 else 0
 
-    polarities = [l[i] for l, i_s in zip(corr_polarities, max_corrs)
+    polarities = [l_[i] for l_, i_s in zip(corr_polarities, max_corrs)
                   for i in i_s]
 
-    maxmaps = [l[i] for l, i_s in zip(all_maps, max_corrs)
+    maxmaps = [l_[i] for l_, i_s in zip(all_maps, max_corrs)
                for i in i_s]
 
     if len(maxmaps) == 0:

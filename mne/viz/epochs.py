@@ -637,12 +637,12 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
     """Handle drawing epochs axes."""
     this = axes_handler[0]
     for ii, data_, ax in zip(epoch_idx, data, axes):
-        for l, d in zip(ax.lines, data_[good_ch_idx]):
-            l.set_data(times, d)
+        for line, d in zip(ax.lines, data_[good_ch_idx]):
+            line.set_data(times, d)
         if bad_ch_idx is not None:
             bad_lines = [ax.lines[k] for k in bad_ch_idx]
-            for l, d in zip(bad_lines, data_[bad_ch_idx]):
-                l.set_data(times, d)
+            for line, d in zip(bad_lines, data_[bad_ch_idx]):
+                line.set_data(times, d)
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(data.min(), data.max())
@@ -650,8 +650,8 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
         ax.set_xticks(list())
         if vars(ax)[this]['reject'] is True:
             #  memorizing reject
-            for l in ax.lines:
-                l.set_color((0.8, 0.8, 0.8))
+            for line in ax.lines:
+                line.set_color((0.8, 0.8, 0.8))
             ax.get_figure().canvas.draw()
         else:
             #  forgetting previous reject
@@ -659,11 +659,11 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
                 if k == this:
                     continue
                 if vars(ax).get(k, {}).get('reject', None) is True:
-                    for l in ax.lines[:len(good_ch_idx)]:
-                        l.set_color('k')
+                    for line in ax.lines[:len(good_ch_idx)]:
+                        line.set_color('k')
                     if bad_ch_idx is not None:
-                        for l in ax.lines[-len(bad_ch_idx):]:
-                            l.set_color('r')
+                        for line in ax.lines[-len(bad_ch_idx):]:
+                            line.set_color('r')
                     ax.get_figure().canvas.draw()
                     break
 
@@ -707,20 +707,20 @@ def _epochs_axes_onclick(event, params):
         idx = here['idx']
         if idx not in p['reject_idx']:
             p['reject_idx'].append(idx)
-            for l in ax.lines:
-                l.set_color(reject_color)
+            for line in ax.lines:
+                line.set_color(reject_color)
             here['reject'] = True
     elif here.get('reject', None) is True:
         idx = here['idx']
         if idx in p['reject_idx']:
             p['reject_idx'].pop(p['reject_idx'].index(idx))
             good_lines = [ax.lines[k] for k in p['good_ch_idx']]
-            for l in good_lines:
-                l.set_color('k')
+            for line in good_lines:
+                line.set_color('k')
             if p['bad_ch_idx'] is not None:
                 bad_lines = ax.lines[-len(p['bad_ch_idx']):]
-                for l in bad_lines:
-                    l.set_color('r')
+                for line in bad_lines:
+                    line.set_color('r')
             here['reject'] = False
     ax.get_figure().canvas.draw()
 
@@ -1800,7 +1800,7 @@ def _onpick(event, params):
     """Add a channel name on click."""
     if event.mouseevent.button != 2 or not params['butterfly']:
         return  # text label added with a middle mouse button
-    lidx = np.where([l is event.artist for l in params['lines']])[0][0]
+    lidx = np.where([line is event.artist for line in params['lines']])[0][0]
     text = params['text']
     text.set_x(event.mouseevent.xdata)
     text.set_y(event.mouseevent.ydata)

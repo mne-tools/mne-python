@@ -1598,10 +1598,10 @@ def read_tri(fname_in, swap=False, verbose=None):
         inds = range(1, 4)
     else:
         raise IOError('Unrecognized format of data.')
-    rr = np.array([np.array([float(v) for v in l.split()])[inds]
-                   for l in lines[1:n_nodes + 1]])
-    tris = np.array([np.array([int(v) for v in l.split()])[inds]
-                     for l in lines[n_nodes + 2:n_nodes + 2 + n_tris]])
+    rr = np.array([np.array([float(v) for v in line.split()])[inds]
+                   for line in lines[1:n_nodes + 1]])
+    tris = np.array([np.array([int(v) for v in line.split()])[inds]
+                     for line in lines[n_nodes + 2:n_nodes + 2 + n_tris]])
     if swap:
         tris[:, [2, 1]] = tris[:, [1, 2]]
     tris -= 1
