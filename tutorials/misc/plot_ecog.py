@@ -14,6 +14,12 @@ electrocorticography (ECoG) data.
 # License: BSD (3-clause)
 
 import numpy as np
+from sys import platform as sys_pf
+# if sys_pf == 'darwin':
+# import matplotlib
+# matplotlib.use("Qt5Agg")
+import matplotlib
+matplotlib.use("macOSX")
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 
@@ -30,12 +36,21 @@ mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode positions given in meters
 
+from mne_bids.tsv_handler import _from_tsv
+elec_tsv = _from_tsv(mne.datasets.misc.data_path() + '/ecog/sample_ecog_electrodes.tsv')
+ch_names = elec_tsv['name']
+ch_coords = np.vstack((elec_tsv['x'], elec_tsv['y'], elec_tsv['z'])).T.astype(float)
+ch_pos = dict(zip(ch_names, ch_coords))
+montage = mne.channels.make_dig_montage(ch_pos,
+                                        coord_frame='head')
+print(ch_names)
+print(ch_pos)
 # Now we make a montage stating that the ECoG contacts are in head
 # coordinate system (although they are in MRI). This is compensated
 # by the fact that below we do not specicty a trans file so the Head<->MRI
 # transform is the identity.
-montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
-                                        coord_frame='head')
+# montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
+#                                         coord_frame='head')
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
@@ -74,10 +89,10 @@ xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 activity = np.linspace(100, 200, xy_pts.shape[0])
 
 # # This allows us to use matplotlib to create arbitrary 2d scatterplots
-# _, ax = plt.subplots(figsize=(10, 10))
-# ax.imshow(im)
-# ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
-# ax.set_axis_off()
+_, ax = plt.subplots(figsize=(10, 10))
+ax.imshow(im)
+ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
+ax.set_axis_off()
 # plt.show()
 
 ###############################################################################
@@ -88,45 +103,54 @@ activity = np.linspace(100, 200, xy_pts.shape[0])
 # first we'll load in the sample dataset
 raw = mne.io.read_raw_edf(mne.datasets.misc.data_path() + '/ecog/sample_ecog.edf')
 
+# drop bad channels
+raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
+
 # attach montage
 raw.set_montage(montage, on_missing='warn')
 
 # perform gamma band frequency
-tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(raw, freqs=np.linspace(30, 90, 60),
-                                                 n_cycles=7)
-
+epoch = mne.EpochsArray(raw.get_data()[np.newaxis, ...], info=raw.info)
+print(epoch)
+# print(epoch.shape)
+tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(30, 90, 60),
+                                                 n_cycles=3)
+print(tfr_pwr)
 # Define an arbitrary "activity" pattern for viz
-activity = tfr_pwr.data.mean(axis=1)
+gamma_activity = tfr_pwr.data.mean(axis=(1, 2))
 
-# create animation over the entire time period of 10 seconds
-# from celluloid import Camera
-import matplotlib.animation as animation
-fig, ax = plt.subplots(figsize=(10, 10))
-# camera = Camera(fig)
+tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(epoch, freqs=np.linspace(1, 30, 60),
+                                                 n_cycles=3)
+low_activity = tfr_pwr.data.mean(axis=(1, 2))
+
+
+_, ax = plt.subplots(figsize=(10, 10))
+# show activity between low frequency and higher frequencies
+# We'll once again plot the surface, then take a snapshot.
+fig_scatter = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
+                             surfaces='pial')
+mne.viz.set_3d_view(fig_scatter, 200, 70)
+xy, im = snapshot_brain_montage(fig_scatter, montage)
+# Convert from a dictionary to array to plot
+xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+
 ax.imshow(im)
 ax.set_axis_off()
+ax.scatter(*xy_pts.T, c=gamma_activity, s=200, cmap='coolwarm')
+# ax.set_title("Gamma frequency (30-90 Hz)")
 
-paths = ax.scatter([], c=[], s=200, cmap='coolwarm')
+_, ax = plt.subplots(figsize=(10, 10))
+# show activity between low frequency and higher frequencies
+# We'll once again plot the surface, then take a snapshot.
+fig_scatter = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
+                             surfaces='pial')
+mne.viz.set_3d_view(fig_scatter, 200, 70)
+xy, im = snapshot_brain_montage(fig_scatter, montage)
+# Convert from a dictionary to array to plot
+xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+ax.imshow(im)
+ax.set_axis_off()
+ax.scatter(*xy_pts.T, c=low_activity, s=200, cmap='coolwarm')
+# ax.set_title("Low frequency (0-30 Hz)")
 
-# initialization function
-def init():
-    # creating an empty plot/frame
-    paths.set_data([], [])
-    return paths,
-
-# animation function
-def animate(i):
-    paths = ax.scatter(*xy_pts.T, c=activity[:, i], s=200, cmap='coolwarm')
-
-    # appending new points to x, y axes points list
-    # line.set_data(xdata, ydata)
-    return paths,
-
-# call the animator
-anim = animation.FuncAnimation(fig, animate,
-                               init_func=init,
-                               frames=500, interval=20, blit=True)
-
-
-animation = camera.animate()
 plt.show()
