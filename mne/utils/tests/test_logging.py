@@ -28,7 +28,8 @@ def test_how_to_deal_with_warnings():
 
 def clean_lines(lines=[]):
     """Scrub filenames for checking logging output (in test_logging)."""
-    return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+    return [line if 'Reading ' not in line else 'Reading test file'
+            for line in lines]
 
 
 def test_logging_options(tmpdir):
