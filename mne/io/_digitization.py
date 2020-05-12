@@ -183,6 +183,18 @@ _cardinal_ident_mapping = {
 
 
 def _get_data_as_dict_from_dig(dig):
+    """Obtains coordinate data from a Dig.
+
+    Parameters
+    ----------
+    dig : list of dicts
+        A container of DigPoints to be added to the info['dig'].
+
+    Returns
+    -------
+    ch_pos : dict
+        The container of all relevant channel positions inside dig.
+    """
     # XXXX:
     # This does something really similar to _read_dig_montage_fif but:
     #   - does not check coord_frame

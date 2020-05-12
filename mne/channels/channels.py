@@ -289,7 +289,6 @@ class ContainsMixin(object):
         ch_names = self.info['ch_names']
         ch_locs = montage_bunch.dig_ch_pos_location
         ch_pos = dict(zip(ch_names, ch_locs))
-        print("Trying to get montage: ", len(ch_names), len(ch_pos))
         montage = make_dig_montage(
             ch_pos=ch_pos,
             coord_frame=coord_frame,
