@@ -19,7 +19,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
 
     This is a modified version of :func:`scipy.stats.ttest_1samp` that avoids
     a (relatively) time-consuming p-value calculation, and can adjust
-    for implausibly small variance values [1]_.
+    for implausibly small variance values :footcite:`RidgwayEtAl2012`.
 
     Parameters
     ----------
@@ -40,7 +40,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
 
     Notes
     -----
-    To use the "hat" adjustment method (:footcite:`RidgwayEtAl2012`), a value
+    To use the "hat" adjustment method :footcite:`RidgwayEtAl2012`, a value
     of ``sigma=1e-3`` may be a reasonable choice.
 
     You can use the conversion from ``scipy.stats.distributions.t.ppf``::
