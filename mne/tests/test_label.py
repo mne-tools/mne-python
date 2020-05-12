@@ -370,8 +370,8 @@ def test_annot_io():
     parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
     parc1 = [label for label in parc1 if not label.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
-    for l1, l in zip(parc1, parc):
-        assert_labels_equal(l1, l)
+    for lt, rt in zip(parc1, parc):
+        assert_labels_equal(lt, rt)
 
     # test saving only one hemisphere
     parc = [label for label in labels if label.name.startswith('LOBE')]
@@ -383,7 +383,7 @@ def test_annot_io():
     parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)
-    parc_lh = [label for label in parc if l.name.endswith('lh')]
+    parc_lh = [label for label in parc if label.name.endswith('lh')]
     for lt, rt in zip(parc1, parc_lh):
         assert_labels_equal(lt, rt)
 
