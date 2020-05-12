@@ -848,7 +848,7 @@ def _radio_clicked(label, params):
     from .evoked import _rgb
 
     # First the selection dialog.
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
     channels = params['selections'][label]
@@ -872,7 +872,7 @@ def _radio_clicked(label, params):
         return
     # Then the plotting window.
     params['ax_vscroll'].set_visible(True)
-    nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
+    nchan = sum([len(params['selections'][label]) for label in labels[:idx]])
     params['vsel_patch'].set_y(nchan)
     n_channels = len(channels)
     params['n_channels'] = n_channels
@@ -1203,7 +1203,7 @@ def _find_channel_idx(ch_name, params):
     """Find all indices when using selections."""
     indices = list()
     offset = 0
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     for label in labels:
         if label == 'Custom':
             continue  # Custom selection not included as it shifts the indices.

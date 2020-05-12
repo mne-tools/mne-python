@@ -677,10 +677,11 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     if 'fig_selection' in params:
         selections = params['selections']
-        labels = [l._text for l in params['fig_selection'].radio.labels]
+        labels = [
+            label._text for label in params['fig_selection'].radio.labels]
         # Flatten the selections dict to a list.
-        cis = [item for sublist in [selections[l] for l in labels] for item
-               in sublist]
+        sels = [selections[label] for label in labels]
+        cis = [item for sublist in sels for item in sublist]
 
         for idx, ci in enumerate(cis):
             this_color = (bad_color if info['ch_names'][ci] in
@@ -1030,7 +1031,7 @@ def _set_custom_selection(params):
     chs = params['fig_selection'].lasso.selection
     if len(chs) == 0:
         return
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     inds = np.in1d(params['raw'].ch_names, chs)
     params['selections']['Custom'] = np.where(inds)[0]
 

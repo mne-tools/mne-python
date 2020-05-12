@@ -322,8 +322,8 @@ def _annotations_from_mask(times, art_mask, art_name):
     comps, num_comps = label(art_mask)
     onsets, durations, desc = [], [], []
     n_times = len(times)
-    for l in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == l)[0]
+    for lbl in range(1, num_comps + 1):
+        l_idx = np.nonzero(comps == lbl)[0]
         onsets.append(times[l_idx[0]])
         # duration is to the time after the last labeled time
         # or to the end of the times.
