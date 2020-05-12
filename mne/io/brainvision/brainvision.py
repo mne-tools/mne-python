@@ -96,7 +96,7 @@ class RawBrainVision(BaseRaw):
         settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
         split_settings = settings.splitlines()
         self.impedances = parse_impedance(split_settings)
-        self.segmentation = parse_segmentation(split_settings, cfg, cinfo)
+        self.segmentation = _parse_segmentation(split_settings, cfg, cinfo)
 
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
@@ -853,12 +853,16 @@ def _check_bv_annot(descriptions):
 def parse_impedance(settings):
     """Parse impedances from the header file.
 
-    :param settings: header settings lines
-    :type settings: list
-    :param info: BrainVision info parsed from the original parser
-    :type info: dict
+    Parameters
+    ----------
+    settings : list
+        the header settings lines
+
+    Returns
+    -------
+    dict : A dictionary of all the channels and their impedances
     """
-    ranges = parse_impedance_ranges(settings)
+    ranges = _parse_impedance_ranges(settings)
     impedance_setting_lines = [i for i in settings if
                                i.startswith('Impedance')]
     impedances = dict()
@@ -893,13 +897,17 @@ def parse_impedance(settings):
     return impedances
 
 
-def parse_impedance_ranges(settings):
+def _parse_impedance_ranges(settings):
     """Parse the selected electrode impedance ranges from the header.
 
-    :param settings: header settings lines
-    :type settings: list
-    :returns parsed electrode impedances
-    :rtype dict
+    Parameters
+    ----------
+    settings : list
+        the header settings lines
+
+    Returns
+    -------
+    dict : A dictionary of impedance ranges for each type of electrode
     """
     impedance_ranges = [item for item in settings if
                         "Selected Impedance Measurement Range" in item]
@@ -924,23 +932,28 @@ def parse_impedance_ranges(settings):
     return electrode_imp_ranges
 
 
-def parse_segmentation(settings, cfg, common_info):
+def _parse_segmentation(settings, cfg, common_info):
     """Parse the segmentation/averaging section of the header.
 
-    :param settings: header settings lines
-    :type settings: list
-    :param cfg: cfg of the header file returned by _aux_vhdr_info
-    :type cfg: ConfigParser
-    :param common_info: cinfo from the BrainVision header parser
-    :type common_info: str
-    :returns the parsed segmentation as a dict
-    :rtype dict
+    Parameters
+    ----------
+    settings : list
+        the header settings lines
+    cfg : ConfigParser
+        cfg of the header file returned by _aux_vhdr_info
+    common_info : str
+        cinfostr from the BrainVision header parser
+
+    Returns
+    -------
+    dict : The parsed segmentation sections with their
+        key-value pairs as a dict
     """
     segmentation = dict()
     if 'S e g m e n t a t i o n  /  A v e r a g i n g' in settings:
         idx = settings.index('S e g m e n t a t i o n  /  A v e r a g i n g')
         segmentation_settings = settings[idx:]
-        segmentation = parse_basic_segmentation(cfg, common_info)
+        segmentation = _parse_basic_segmentation(cfg, common_info)
 
         if "Markers" in segmentation_settings:
             idx = segmentation_settings.index("Markers")
@@ -967,20 +980,20 @@ def parse_segmentation(settings, cfg, common_info):
             segmentation["intervals"] = intervals
 
         if "Averaging" in segmentation_settings:
-            segmentation["averaging"] = get_segmentation_key_values(
+            segmentation["averaging"] = _get_segmentation_key_values(
                 segmentation_settings,
                 segmentation_settings.index("Averaging"),
                 " is "
             )
 
         if "Artifact Rejection" in segmentation_settings:
-            segmentation["artifact_rejection"] = get_segmentation_key_values(
+            segmentation["artifact_rejection"] = _get_segmentation_key_values(
                 segmentation_settings,
                 segmentation_settings.index("Artifact Rejection")
             )
 
         if "Miscellaneous" in segmentation_settings:
-            segmentation["miscellaneous"] = get_segmentation_key_values(
+            segmentation["miscellaneous"] = _get_segmentation_key_values(
                 segmentation_settings,
                 segmentation_settings.index("Miscellaneous")
             )
@@ -988,14 +1001,22 @@ def parse_segmentation(settings, cfg, common_info):
     return segmentation
 
 
-def parse_basic_segmentation(cfg, common_info):
+def _parse_basic_segmentation(cfg, common_info):
     """Parse the segmentation info from the Common Infos section.
 
-    :param cfg: the ConfigParser from the BrainVision header parser
-    :type cfg: ConfigParser
-    :param common_info: the BrainVision header common infos section
-    :type common_info: str
-    :return:
+    Parameters
+    ----------
+    settings : list
+        the header settings lines
+    cfg : ConfigParser
+        cfg of the header file returned by _aux_vhdr_info
+    common_info : str
+        cinfostr from the BrainVision header parser
+
+    Returns
+    -------
+    dict : The parsed segmentation key-values pairs
+        from the Common Infos section
     """
     segmentation = dict()
 
@@ -1015,7 +1036,7 @@ def parse_basic_segmentation(cfg, common_info):
     return segmentation
 
 
-def get_segmentation_key_values(segmentation_settings, idx, delimiter=":"):
+def _get_segmentation_key_values(segmentation_settings, idx, delimiter=":"):
     """Parse the key value pairs from the Segmentation / Averaging section.
 
     Default delimiter is ':' where left side is considered the key,
@@ -1024,14 +1045,18 @@ def get_segmentation_key_values(segmentation_settings, idx, delimiter=":"):
     Values are parsed into arrays, elements can be split with a comma ','
     Stops the parsing when the first empty setting line is found
 
-    :param segmentation_settings: the list of settings lines
-    :type segmentation_settings: list
-    :param idx: starting index
-    :type idx: int
-    :param delimiter: delimiter to split the key and value
-    :type delimiter: str
-    :returns dict of the parsed key and values
-    :rtype dict
+    Parameters
+    ----------
+    segmentation_settings : list
+        the header settings lines
+    idx : int
+        starting index in the settings
+    delimiter : str
+        delimiter to split the key and value
+
+    Returns
+    -------
+    dict : The parsed key and values
     """
     key_name = None
     values = dict()
