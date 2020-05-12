@@ -182,6 +182,10 @@ _cardinal_ident_mapping = {
 }
 
 
+# XXXX:
+# This does something really similar to _read_dig_montage_fif but:
+#   - does not check coord_frame
+#   - does not do any operation that implies assumptions with the names
 def _get_data_as_dict_from_dig(dig):
     """Obtains coordinate data from a Dig.
 
@@ -195,11 +199,6 @@ def _get_data_as_dict_from_dig(dig):
     ch_pos : dict
         The container of all relevant channel positions inside dig.
     """
-    # XXXX:
-    # This does something really similar to _read_dig_montage_fif but:
-    #   - does not check coord_frame
-    #   - does not do any operation that implies assumptions with the names
-
     # Split up the dig points by category
     hsp, hpi, elp = list(), list(), list()
     fids, dig_ch_pos_location = dict(), list()
