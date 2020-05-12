@@ -63,7 +63,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     return np.mean(X, axis=0) / np.sqrt(var / X.shape[0])
 
 
-def ttest_ind_no_p(a, b, equal_var=True, sigma=1e-3):
+def ttest_ind_no_p(a, b, equal_var=True, sigma=0.):
     """Independent samples t-test without p calculation.
 
     This is a modified version of :func:`scipy.stats.ttest_ind`. It operates
