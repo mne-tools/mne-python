@@ -107,44 +107,48 @@ class _Projection(object):
 
 
 class _WebInteractor(object):
-    def __init__(self, display_id, renderer):
+    def __init__(self, renderer):
         from IPython import display
-        from ipywidgets import interactive
-        self.display_id = display_id
+        from ipywidgets import HBox
         self.renderer = renderer
         self.plotter = self.renderer.plotter
-        self.orientation_slider = interactive(self.set_camera,
-                                              azimuth=(0., 180., 10),
-                                              elevation=(0., 180., 10))
+        self.fig, self.dh = self.screenshot()
+        self.sliders = self.configure_sliders()
+        layout = HBox([self.fig.canvas, self.sliders])
+        display.display(layout)
 
-        # display
-        self.setup_screencast()
-        self.screencast()
-        display.display(self.orientation_slider, display_id=self.display_id)
+    def screenshot(self):
+        import matplotlib.pyplot as plt
+        plt.ioff()
 
-    def setup_screencast(self):
-        from IPython import display
-        try:
-            import Image
-        except ImportError:
-            from PIL import Image
-        img = np.full((300, 300), 0).astype(np.uint8)
-        img_obj = Image.fromarray(img)
-        display.display(img_obj, display_id=self.display_id)
+        fig, ax = plt.subplots()
+        fig.canvas.toolbar_visible = False
+        fig.canvas.header_visible = False
+        fig.canvas.resizable = False
+        fig.canvas.callbacks.callbacks.clear()
 
-    def screencast(self):
-        from IPython import display
-        try:
-            import Image
-        except ImportError:
-            from PIL import Image
-        img = self.plotter.screenshot()
-        img_obj = Image.fromarray(img)
-        display.update_display(img_obj, display_id=self.display_id)
+        dh = ax.imshow(self.plotter.screenshot())
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+        return fig, dh
+
+    def update(self):
+        self.dh.set_data(self.plotter.screenshot())
+        self.fig.canvas.draw()
+
+    def configure_sliders(self):
+        from ipywidgets import interactive, VBox
+        orientation_slider = interactive(self.set_camera,
+                                         azimuth=(0., 180., 10),
+                                         elevation=(0., 180., 10))
+        sliders = VBox([
+            orientation_slider,
+        ])
+        return sliders
 
     def set_camera(self, azimuth, elevation):
         self.renderer.set_camera(azimuth, elevation)
-        self.screencast()
+        self.update()
 
 
 def _enable_aa(figure, plotter):
@@ -489,7 +493,7 @@ class _Renderer(_BaseRenderer):
 
     def show(self):
         if self.figure.notebook:
-            self.figure.display = _WebInteractor(self.plotter._id_name, self)
+            self.figure.display = _WebInteractor(self)
         if hasattr(self.plotter, "app_window"):
             self.plotter.app_window.show()
         return self.scene()

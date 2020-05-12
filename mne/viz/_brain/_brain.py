@@ -1482,7 +1482,7 @@ class _Brain(object):
         from ..backends import renderer
         if renderer.get_3d_backend() == "pyvista":
             if self._notebook:
-                self._renderer.figure.display.screencast()
+                self._renderer.figure.display.update()
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
