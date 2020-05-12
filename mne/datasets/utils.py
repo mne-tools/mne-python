@@ -278,7 +278,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     archive_names = dict(
         fieldtrip_cmc='SubjectCMC.zip',
         kiloword='MNE-kiloword-data.tar.gz',
-        misc='mne-misc-data-%s.tar.gz' % releases['misc'],
+        # misc='mne-misc-data-%s.tar.gz' % releases['misc'],
+        misc='https://github.com/adam2392/mne-misc-data/tarball/seeg',
         mtrf='mTRF_1.5.zip',
         multimodal='MNE-multimodal-data.tar.gz',
         fnirs_motor='MNE-fNIRS-motor-data.tgz',
@@ -294,7 +295,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
     folder_origs = dict(  # not listed means None (no need to move)
-        misc='mne-misc-data-%s' % releases['misc'],
+        # misc='mne-misc-data-%s' % releases['misc'],
+        misc='https://github.com/adam2392/mne-misc-data/tarball/seeg',
         testing='mne-testing-data-%s' % releases['testing'],
     )
     # finally, where we want them to extract to (only needed if the folder name

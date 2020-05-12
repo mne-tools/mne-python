@@ -73,32 +73,60 @@ xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 # Define an arbitrary "activity" pattern for viz
 activity = np.linspace(100, 200, xy_pts.shape[0])
 
-# This allows us to use matplotlib to create arbitrary 2d scatterplots
-_, ax = plt.subplots(figsize=(10, 10))
-ax.imshow(im)
-ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
-ax.set_axis_off()
-plt.show()
+# # This allows us to use matplotlib to create arbitrary 2d scatterplots
+# _, ax = plt.subplots(figsize=(10, 10))
+# ax.imshow(im)
+# ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
+# ax.set_axis_off()
+# plt.show()
 
 ###############################################################################
 # Sometimes it is useful to create an animation of the ECoG activity over time.
-# Wee can visualize 
+# We can visualize say the gamma frequency of the ECoG activity on the brain
+# using MNE functions.
 
-# We'll once again plot the surface, then take a snapshot.
-fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
-                             surfaces='pial')
-mne.viz.set_3d_view(fig_scatter, 200, 70)
-xy, im = snapshot_brain_montage(fig_scatter, montage)
+# first we'll load in the sample dataset
+raw = mne.io.read_raw_edf(mne.datasets.misc.data_path() + '/ecog/sample_ecog.edf')
 
-# Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+# attach montage
+raw.set_montage(montage, on_missing='warn')
+
+# perform gamma band frequency
+tfr_pwr, tfr_itc = mne.time_frequency.tfr_morlet(raw, freqs=np.linspace(30, 90, 60),
+                                                 n_cycles=7)
 
 # Define an arbitrary "activity" pattern for viz
-activity = np.linspace(100, 200, xy_pts.shape[0])
+activity = tfr_pwr.data.mean(axis=1)
 
-# This allows us to use matplotlib to create arbitrary 2d scatterplots
-_, ax = plt.subplots(figsize=(10, 10))
+# create animation over the entire time period of 10 seconds
+# from celluloid import Camera
+import matplotlib.animation as animation
+fig, ax = plt.subplots(figsize=(10, 10))
+# camera = Camera(fig)
 ax.imshow(im)
-ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
 ax.set_axis_off()
+
+paths = ax.scatter([], c=[], s=200, cmap='coolwarm')
+
+# initialization function
+def init():
+    # creating an empty plot/frame
+    paths.set_data([], [])
+    return paths,
+
+# animation function
+def animate(i):
+    paths = ax.scatter(*xy_pts.T, c=activity[:, i], s=200, cmap='coolwarm')
+
+    # appending new points to x, y axes points list
+    # line.set_data(xdata, ydata)
+    return paths,
+
+# call the animator
+anim = animation.FuncAnimation(fig, animate,
+                               init_func=init,
+                               frames=500, interval=20, blit=True)
+
+
+animation = camera.animate()
 plt.show()
