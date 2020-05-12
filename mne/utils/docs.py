@@ -1480,8 +1480,8 @@ def linkcode_resolve(domain, info):
         kind = 'master'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
-    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
-       kind, fn, linespec)
+    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
+        kind, fn, linespec)
 
 
 def open_docs(kind=None, version=None):

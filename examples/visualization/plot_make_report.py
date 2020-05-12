@@ -5,7 +5,7 @@
 Make an MNE-Report with a Slider
 ================================
 
-In this example, MEG evoked data are plotted in an html slider.
+In this example, MEG evoked data are plotted in an HTML slider.
 """
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>

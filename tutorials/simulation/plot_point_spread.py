@@ -65,7 +65,7 @@ epochs.info['bads'] = []
 evoked = epochs.average()
 
 labels = mne.read_labels_from_annot('sample', subjects_dir=subjects_dir)
-label_names = [l.name for l in labels]
+label_names = [label.name for label in labels]
 n_labels = len(labels)
 
 ###############################################################################
