@@ -1975,14 +1975,9 @@ class Report(object):
         # Get the BEM surface filenames
         bem_path = op.join(subjects_dir, subject, 'bem')
 
-        if not op.isdir(bem_path):
-            warn('Subject bem directory "%s" does not exist' % bem_path)
-            return self._render_image_png(mri_fname, cmap='gray',
-                                          n_jobs=n_jobs)
-
-        surfaces = _get_bem_plotting_surfaces(bem_path, warn=True)
+        surfaces = _get_bem_plotting_surfaces(bem_path)
         if len(surfaces) == 0:
-            warn('No surfaces found at all, rendering empty MRI')
+            warn('No BEM surfaces found, rendering empty MRI')
             return self._render_image_png(mri_fname, cmap='gray',
                                           n_jobs=n_jobs)
 

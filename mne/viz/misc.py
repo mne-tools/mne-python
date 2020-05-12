@@ -31,7 +31,7 @@ from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
 from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
-                            _check_mri)
+                            _check_mri, _ensure_src)
 from ..transforms import invert_transform, apply_trans
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
                      _mask_to_onsets_offsets, _pl)
@@ -357,13 +357,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         surfs.append((surf, color))
 
     src_points = list()
-    if isinstance(src, SourceSpaces):
-        for src_ in src:
-            points = src_['rr'][src_['inuse'].astype(bool)] * 1e3
-            src_points.append(apply_trans(mri_vox_t, points))
-    elif src is not None:
-        raise TypeError("src needs to be None or SourceSpaces instance, not "
-                        "%s" % repr(src))
+    if src is not None:
+        _ensure_src(src, extra=' or None')
 
     if img_output:
         n_col = n_axes = 1
@@ -526,7 +521,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
-    surfaces = _get_bem_plotting_surfaces(bem_path, warn=False)
+    surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
         if isinstance(brain_surfaces, str):
             brain_surfaces = (brain_surfaces,)
@@ -560,7 +555,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                               show, show_indices, show_orientation)
 
 
-def _get_bem_plotting_surfaces(bem_path, warn=False):
+def _get_bem_plotting_surfaces(bem_path):
     surfaces = []
     for surf_name, color in (('*inner_skull', '#FF0000'),
                              ('*outer_skull', '#FFFF00'),
@@ -570,8 +565,6 @@ def _get_bem_plotting_surfaces(bem_path, warn=False):
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
             surfaces.append((surf_fname, color))
-        elif warn:
-            warn('No surface found for %s.' % surf_name)
     return surfaces
 
 
