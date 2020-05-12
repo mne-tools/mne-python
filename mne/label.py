@@ -1970,7 +1970,7 @@ def _load_vert_pos(subject, subjects_dir, surf_name, hemi, n_expected,
 @verbose
 def read_labels_from_annot(subject, parc='aparc', hemi='both',
                            surf_name='white', annot_fname=None, regexp=None,
-                           subjects_dir=None, verbose=None):
+                           subjects_dir=None, sort=True, verbose=None):
     """Read labels from a FreeSurfer annotation file.
 
     Note: Only cortical labels will be returned.
@@ -1994,6 +1994,10 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         parcellation. E.g. 'superior' will return all labels in which this
         substring is contained.
     %(subjects_dir)s
+    sort : bool
+        If true, labels will be sorted by name before being returned.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -2045,7 +2049,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         logger.info('   read %d labels from %s' % (n_read, fname))
 
     # sort the labels by label name
-    labels = sorted(labels, key=lambda l: l.name)
+    if sort:
+        labels = sorted(labels, key=lambda l: l.name)
 
     if len(labels) == 0:
         msg = 'No labels found.'
@@ -2199,21 +2204,12 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
     return stc
 
 
-def _write_annot(fname, annot, ctab, names):
-    """Write a Freesurfer annotation to a .annot file.
+_DEFAULT_TABLE_NAME = 'MNE-Python Colortable'
 
-    Parameters
-    ----------
-    fname : str
-        Path to annotation file
-    annot : numpy array, shape=(n_verts)
-        Annotation id at each vertex. Note: IDs must be computed from
-        RGBA colors, otherwise the mapping will be invalid.
-    ctab : numpy array, shape=(n_entries, 4)
-        RGBA colortable array.
-    names : list of str
-        List of region names to be stored in the annot file
-    """
+
+def _write_annot(fname, annot, ctab, names, table_name=_DEFAULT_TABLE_NAME):
+    """Write a Freesurfer annotation to a .annot file."""
+    assert len(names) == len(ctab)
     with open(fname, 'wb') as fid:
         n_verts = len(annot)
         np.array(n_verts, dtype='>i4').tofile(fid)
@@ -2233,10 +2229,8 @@ def _write_annot(fname, annot, ctab, names):
         n_entries = len(ctab)
         np.array(n_entries, dtype='>i4').tofile(fid)
 
-        # write dummy color table name
-        table_name = 'MNE-Python Colortable'
-        np.array(len(table_name), dtype='>i4').tofile(fid)
-        np.frombuffer(table_name.encode('ascii'), dtype=np.uint8).tofile(fid)
+        # write our color table name
+        _write_annot_str(fid, table_name)
 
         # number of entries to write
         np.array(n_entries, dtype='>i4').tofile(fid)
@@ -2244,15 +2238,21 @@ def _write_annot(fname, annot, ctab, names):
         # write entries
         for ii, (name, color) in enumerate(zip(names, ctab)):
             np.array(ii, dtype='>i4').tofile(fid)
-            np.array(len(name), dtype='>i4').tofile(fid)
-            np.frombuffer(name.encode('ascii'), dtype=np.uint8).tofile(fid)
+            _write_annot_str(fid, name)
             np.array(color[:4], dtype='>i4').tofile(fid)
+
+
+def _write_annot_str(fid, s):
+    s = s.encode('ascii') + b'\x00'
+    np.array(len(s), '>i4').tofile(fid)
+    fid.write(s)
 
 
 @verbose
 def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                           subjects_dir=None, annot_fname=None,
-                          colormap='hsv', hemi='both', verbose=None):
+                          colormap='hsv', hemi='both', sort=True,
+                          table_name=_DEFAULT_TABLE_NAME, verbose=None):
     r"""Create a FreeSurfer annotation from a list of labels.
 
     Parameters
@@ -2275,6 +2275,14 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     hemi : 'both' | 'lh' | 'rh'
         The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
+    sort : bool
+        If True (default), labels will be sorted by name before writing.
+
+        .. versionadded:: 0.21.0
+    table_name : str
+        The table name to use for the colortable.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Notes
@@ -2312,7 +2320,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
             ctab = np.empty((0, 4), dtype=np.int32)
             ctab_rgb = ctab[:, :3]
         else:
-            hemi_labels.sort(key=lambda label: label.name)
+            if sort:
+                hemi_labels.sort(key=lambda label: label.name)
 
             # convert colors to 0-255 RGBA tuples
             hemi_colors = [no_color if label.color is None else
@@ -2465,7 +2474,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     # write it
     for fname, annot, ctab, hemi_names in to_save:
         logger.info('   writing %d labels to %s' % (len(hemi_names), fname))
-        _write_annot(fname, annot, ctab, hemi_names)
+        _write_annot(fname, annot, ctab, hemi_names, table_name)
 
 
 @fill_doc

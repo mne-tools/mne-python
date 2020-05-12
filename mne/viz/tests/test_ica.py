@@ -10,7 +10,7 @@ from numpy.testing import assert_equal, assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, read_cov, pick_types
+from mne import read_events, Epochs, read_cov, pick_types, Annotations
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import run_tests_if_main, requires_sklearn
@@ -209,6 +209,14 @@ def test_plot_ica_sources():
     assert len(plt.get_fignums()) == 2
     ica.exclude = [1]
     ica.plot_sources(raw)
+
+    # test with annotations
+    orig_annot = raw.annotations
+    raw.set_annotations(Annotations([0.2], [0.1], 'Test'))
+    fig = ica.plot_sources(raw)
+    assert len(fig.axes[0].collections) == 1
+    assert len(fig.axes[1].collections) == 1
+    raw.set_annotations(orig_annot)
 
     raw.info['bads'] = ['MEG 0113']
     with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):

@@ -338,6 +338,8 @@ def read_source_estimate(fname, subject=None):
     elif ftype == 'h5':
         kwargs = read_hdf5(fname + '.h5', title='mnepython')
         ftype = kwargs.pop('src_type', 'surface')
+        if isinstance(kwargs['vertices'], np.ndarray):
+            kwargs['vertices'] = [kwargs['vertices']]
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -356,14 +358,15 @@ def read_source_estimate(fname, subject=None):
                            'subject name from the file "%s'
                            % (subject, kwargs['subject']))
 
-    vector = kwargs['data'].ndim == 3
     if ftype in ('volume', 'discrete'):
-        klass = VolVectorSourceEstimate if vector else VolSourceEstimate
+        klass = VolVectorSourceEstimate
     elif ftype == 'mixed':
-        klass = MixedVectorSourceEstimate if vector else MixedSourceEstimate
+        klass = MixedVectorSourceEstimate
     else:
         assert ftype == 'surface'
-        klass = VectorSourceEstimate if vector else SourceEstimate
+        klass = VectorSourceEstimate
+    if kwargs['data'].ndim < 3:
+        klass = klass._scalar_class
     return klass(**kwargs)
 
 
