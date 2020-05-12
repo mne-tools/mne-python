@@ -1066,10 +1066,14 @@ def test_mf_skips():
     (sample_fname, [], False, False, False, [['MEG 2443']]),
     # add 0111 to test picking, add annot to test it, and prepend chs for idx
     (sample_fname, ['MEG 0111'], True, True, False, [['MEG 2443']]),
-    # CTF data, sensitive to linalg lib because some channels very close to
-    # the limit
+    # CTF data seems to be sensitive to linalg lib (?) because some channels
+    # are very close to the limit
     (ctf_fname_continuous, [], False, False, False,
      [['BG2-4304', 'BP3-4304', 'BR1-4304'],  # MKL 2020
+      ['BG3-4304', 'BR1-4304', 'BR2-4304'],
+      ['BR1-4304', 'BR3-4304'],
+      ['BP3-4304', 'BR1-4304'],
+      ['BP3-4304', 'BR1-4304', 'BR3-4304'],
       ['BP1-4304', 'BR1-4304', 'BR2-4304', 'BR3-4304']],  # OpenBLAS
      ),
     (ctf_fname_continuous, [], False, False, True, [['MLC24-4304']]),  # faked
