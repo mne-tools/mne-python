@@ -851,16 +851,16 @@ def _check_bv_annot(descriptions):
 
 
 def parse_impedance(settings):
-    """
-    Parses impedances from the header file
+    """Parse impedances from the header file.
 
     :param settings: header settings lines
     :type settings: list
     :param info: BrainVision info parsed from the original parser
     :type info: dict
     """
-    electrode_imp_ranges = parse_impedance_ranges(settings)
-    impedance_setting_lines = [i for i in settings if i.startswith('Impedance')]
+    ranges = parse_impedance_ranges(settings)
+    impedance_setting_lines = [i for i in settings if
+                               i.startswith('Impedance')]
     impedances = dict()
     if len(impedance_setting_lines) > 0:
         idx = settings.index(impedance_setting_lines[0])
@@ -868,23 +868,25 @@ def parse_impedance(settings):
         impedance_unit = impedance_setting[1].lstrip('[').rstrip(']')
         impedance_time = impedance_setting[3]
         for setting in settings[idx + 1:]:
-            # Parse channel impedances until a line that doesn't start with a word (channel name) is found
+            # Parse channel impedances until a line that doesn't start
+            # with a word (channel name) delimited by ':' is found
             if re.match(r'\w+:', setting):
                 channel_imp_line = setting.split()
                 channel_name = channel_imp_line[0].rstrip(':')
-                imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+", channel_imp_line[1])
+                imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
+                                           channel_imp_line[1])
                 channel_impedance = dict(
                     imp=float(imp_as_number[0] if imp_as_number else 0),
                     imp_unit=impedance_unit,
                     imp_meas_time=datetime.strptime(impedance_time, "%H:%M:%S")
                 )
 
-                if channel_name == 'Ref' and 'Reference' in electrode_imp_ranges:
-                    channel_impedance.update(electrode_imp_ranges['Reference'])
-                elif channel_name == 'Gnd' and 'Ground' in electrode_imp_ranges:
-                    channel_impedance.update(electrode_imp_ranges['Ground'])
-                elif 'Data' in electrode_imp_ranges:
-                    channel_impedance.update(electrode_imp_ranges['Data'])
+                if channel_name == 'Ref' and 'Reference' in ranges:
+                    channel_impedance.update(ranges['Reference'])
+                elif channel_name == 'Gnd' and 'Ground' in ranges:
+                    channel_impedance.update(ranges['Ground'])
+                elif 'Data' in ranges:
+                    channel_impedance.update(ranges['Data'])
                 impedances[channel_name] = channel_impedance
             else:
                 break
@@ -892,15 +894,15 @@ def parse_impedance(settings):
 
 
 def parse_impedance_ranges(settings):
-    """
-    Parses the selected electrode impedance ranges from the BrainVision header
+    """Parse the selected electrode impedance ranges from the header.
 
     :param settings: header settings lines
     :type settings: list
     :returns parsed electrode impedances
     :rtype dict
     """
-    impedance_ranges = [item for item in settings if "Selected Impedance Measurement Range" in item]
+    impedance_ranges = [item for item in settings if
+                        "Selected Impedance Measurement Range" in item]
     electrode_imp_ranges = dict()
     if impedance_ranges:
         if len(impedance_ranges) == 1:
@@ -923,12 +925,11 @@ def parse_impedance_ranges(settings):
 
 
 def parse_segmentation(settings, cfg, common_info):
-    """
-    Parses the segmentation/averaging section of the BrainVision header
+    """Parse the segmentation/averaging section of the header.
 
     :param settings: header settings lines
     :type settings: list
-    :param cfg: cfg of the header file returned by mne.io.brainvision.brainvision._aux_vhdr_info
+    :param cfg: cfg of the header file returned by _aux_vhdr_info
     :type cfg: ConfigParser
     :param common_info: cinfo from the BrainVision header parser
     :type common_info: str
@@ -988,8 +989,7 @@ def parse_segmentation(settings, cfg, common_info):
 
 
 def parse_basic_segmentation(cfg, common_info):
-    """
-    Parses the segmentation info from the Common Infos using the ConfgiParser
+    """Parse the segmentation info from the Common Infos section.
 
     :param cfg: the ConfigParser from the BrainVision header parser
     :type cfg: ConfigParser
@@ -1016,9 +1016,11 @@ def parse_basic_segmentation(cfg, common_info):
 
 
 def get_segmentation_key_values(segmentation_settings, idx, delimiter=":"):
-    """
-    Parses the key value pairs from the Segmentation / Averaging section of the BrainVision header
-    Default delimiter is ':' where left side is considered the key, and right side is the value.
+    """Parse the key value pairs from the Segmentation / Averaging section.
+
+    Default delimiter is ':' where left side is considered the key,
+    and right side is the value.
+
     Values are parsed into arrays, elements can be split with a comma ','
     Stops the parsing when the first empty setting line is found
 
