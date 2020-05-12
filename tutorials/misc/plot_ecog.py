@@ -9,6 +9,7 @@ electrocorticography (ECoG) data.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
+# Edited: Adam Li <adam2392@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -28,7 +29,8 @@ print(__doc__)
 mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode positions given in meters
-# Now we make a montage stating that the sEEG contacts are in head
+
+# Now we make a montage stating that the ECoG contacts are in head
 # coordinate system (although they are in MRI). This is compensated
 # by the fact that below we do not specicty a trans file so the Head<->MRI
 # transform is the identity.
@@ -58,6 +60,29 @@ mne.viz.set_3d_view(fig, 200, 70)
 # This is best accomplished with matplotlib. We can capture an image of the
 # current mayavi view, along with the xy position of each electrode, with the
 # `snapshot_brain_montage` function.
+
+# We'll once again plot the surface, then take a snapshot.
+fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
+                             surfaces='pial')
+mne.viz.set_3d_view(fig_scatter, 200, 70)
+xy, im = snapshot_brain_montage(fig_scatter, montage)
+
+# Convert from a dictionary to array to plot
+xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+
+# Define an arbitrary "activity" pattern for viz
+activity = np.linspace(100, 200, xy_pts.shape[0])
+
+# This allows us to use matplotlib to create arbitrary 2d scatterplots
+_, ax = plt.subplots(figsize=(10, 10))
+ax.imshow(im)
+ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
+ax.set_axis_off()
+plt.show()
+
+###############################################################################
+# Sometimes it is useful to create an animation of the ECoG activity over time.
+# Wee can visualize 
 
 # We'll once again plot the surface, then take a snapshot.
 fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,

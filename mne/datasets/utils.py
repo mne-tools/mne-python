@@ -254,8 +254,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_resting='https://osf.io/m7bd3/download?version=3'),
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/foo.tgz',
-        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
-             'tar.gz/%s' % releases['misc'],
+        # misc='https://codeload.github.com/mne-tools/mne-misc-data/'
+        #      'tar.gz/%s' % releases['misc'],
+        misc='https://github.com/adam2392/mne-misc-data/tarball/seeg',
         sample='https://osf.io/86qa2/download?version=5',
         somato='https://osf.io/tp4sg/download?version=6',
         spm='https://osf.io/je4s8/download?version=2',
