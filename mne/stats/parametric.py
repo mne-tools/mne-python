@@ -26,7 +26,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     X : array
         Array to return t-values for.
     sigma : float
-        The variance estate will be given by "var + sigma * max(var)" or
+        The variance estimate will be given by "var + sigma * max(var)" or
         "var + sigma", depending on "method". By default this is 0 (no
         adjustment). See Notes for details.
     method : str
