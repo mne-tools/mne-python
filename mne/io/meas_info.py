@@ -191,7 +191,9 @@ class Info(dict, MontageMixin):
 
     The only entries that should be manually changed by the user are
     ``info['bads']`` and ``info['description']``. All other entries should
-    be considered read-only, or should be modified by MNE functions or methods.
+    be considered read-only, though they can be modified by various MNE-Python
+    functions or methods (which have safeguards to ensure all fields remain in
+    sync).
 
     This class should not be instantiated directly. To create a measurement
     information strucure, use :func:`mne.create_info`.
