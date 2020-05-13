@@ -11,11 +11,12 @@ electrocorticography (ECoG) data.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
-# Edited: Adam Li <adam2392@gmail.com>
+#          Adam Li <adam2392@gmail.com>
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict
+import collections
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -34,40 +35,12 @@ sample_path = mne.datasets.sample.data_path()
 # a :class:`mne.channels.DigMontage` class.
 # First, define a helper function to read in .tsv file.
 
-
-def _from_tsv(fname):
-    """Read a tsv file into an OrderedDict.
-
-
-    Parameters
-    ----------
-    fname : str
-        Path to the file being loaded.
-
-    Returns
-    -------
-    data_dict : collections.OrderedDict
-        Keys are the column names, and values are the column data.
-
-    """
-    data = np.loadtxt(fname, dtype=str, delimiter='\t',
-                      comments=None, encoding='utf-8')
-    column_names = data[0, :]
-    info = data[1:, :]
-    data_dict = OrderedDict()
-    dtypes = [str] * info.shape[1]
-    for i, name in enumerate(column_names):
-        data_dict[name] = info[:, i].astype(dtypes[i]).tolist()
-    return data_dict
-
-
 # read in the electrode coordinates file
 # in this tutorial, these are assumed to be in meters
-elec_tsv = _from_tsv(misc_path + '/ecog/sample_ecog_electrodes.tsv')
-ch_names = elec_tsv['name']
-ch_coords = np.vstack((elec_tsv['x'],
-                       elec_tsv['y'],
-                       elec_tsv['z'])).T.astype(float)
+elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
+                      sep='\t', header=0, index_col=None)
+ch_names = elec_df['name'].tolist()
+ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
 ch_pos = dict(zip(ch_names, ch_coords))
 
 # create montage from channel coordinates in the 'head' coordinate frame
