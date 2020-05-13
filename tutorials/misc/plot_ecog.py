@@ -31,10 +31,10 @@ sample_path = mne.datasets.sample.data_path()
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
 # a :class:`mne.channels.DigMontage` class.
-# First, define a helper function to read in .tsv file.
+# First, use pandas to read in the .tsv file.
 
 # read in the electrode coordinates file
-# in this tutorial, these are assumed to be in meters
+# in this tutorial, coordinates are assumed to be in meters
 elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
