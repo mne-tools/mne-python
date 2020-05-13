@@ -1139,7 +1139,6 @@ out_type : None | 'mask' | 'indices'
     Note that for large datasets, ``'indices'`` may use far less memory than
     ``'mask'``. ``None`` (the default) is equivalent to ``'mask'`` but will
     change to ``'indices'`` in version 0.22.
-
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool
