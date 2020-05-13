@@ -85,7 +85,7 @@ class RawBOXY(BaseRaw):
             temp = []
             [temp.append(ii_mtg[2:]) for ii_mtg in mtgs if ii_mtg[0] == i_mtg]
             blk_names.append(temp)
-
+            
         # Read header file
         # Parse required header fields
         # this keeps track of the line we're on
@@ -193,6 +193,8 @@ class RawBOXY(BaseRaw):
             if i_chan in all_labels:
                 chan_index = all_labels.index(i_chan)
                 source_coords.append(all_coords[chan_index])
+            else:
+                print(i_chan)
 
         # get coordinates for detectors in .mtg file from .elp file
         detect_coords = []
@@ -202,22 +204,18 @@ class RawBOXY(BaseRaw):
                 detect_coords.append(all_coords[chan_index])
 
         # Generate meaningful channel names for each montage
-        # get our unique labels for sources and detectors for each montage
+        # get our unique labels for sources and detectors for each montage            
         unique_source_labels = []
         unique_detect_labels = []
         for mtg_num, i_mtg in enumerate(mtg_chan_num, 0):
-            mtg_source_labels = []
-            mtg_detect_labels = []
             start = int(np.sum(mtg_chan_num[:mtg_num]))
             end = int(np.sum(mtg_chan_num[:mtg_num + 1]))
-            [mtg_source_labels.append(label)
+            [unique_source_labels.append(label)
                 for label in source_label[start:end]
-                if label not in mtg_source_labels]
-            [mtg_detect_labels.append(label)
+                if label not in unique_source_labels]
+            [unique_detect_labels.append(label)
                 for label in detect_label[start:end]
-                if label not in mtg_detect_labels]
-            unique_source_labels.append(mtg_source_labels)
-            unique_detect_labels.append(mtg_detect_labels)
+                if label not in unique_detect_labels]
 
         # swap order to have lower wavelength first
         for i_chan in range(0, len(chan_wavelength), 2):
@@ -264,9 +262,9 @@ class RawBOXY(BaseRaw):
                             [chan_wavelength[i_coord]] +
                             [0] + [0])
                         boxy_labels.append('S' + str(
-                            unique_source_labels[mtg_num].index(
+                            unique_source_labels.index(
                                 source_label[i_coord]) + 1) + '_D' +
-                            str(unique_detect_labels[mtg_num].index(
+                            str(unique_detect_labels.index(
                                 detect_label[i_coord]) + 1) +
                             ' ' + chan_wavelength[i_coord] + ' ' +
                             mtg_names[mtg_num] + i_blk[1:])
@@ -275,7 +273,7 @@ class RawBOXY(BaseRaw):
                 mrk_labels.append('Markers' + ' ' +
                                   mtg_names[mtg_num] + i_blk[1:])
                 mrk_coords.append(np.zeros((12,)))
-
+                
         # add triggers to the end of our data
         boxy_labels.extend(mrk_labels)
         boxy_coords.extend(mrk_coords)
@@ -332,7 +330,26 @@ class RawBOXY(BaseRaw):
                       'filetype': filetype,
                       'files': files,
                       'data_types': data_types}
-
+        
+        ###check to make sure data is the same length for each file
+        ###boxy can be set to only record so many sample points per recording
+        ###so start and stop lines may differ between files for a given 
+        ###participant/experiment, but amount of data should be the same
+        ###check start lines
+        (print('Start lines the same!') if len(set(start_line)) == 1 else 
+         print('Start lines different!'))
+        
+        ###check end lines
+        (print('End lines the same!') if len(set(end_line)) == 1 else 
+         print('End lines different!'))
+        
+        ###now make sure data lengths are the same
+        data_length = ([end_line[i_line] - start_line[i_line] for i_line, 
+                        line_num in enumerate(start_line)])
+        
+        (print('Data sizes are the same!') if len(set(data_length)) == 1 else 
+         print('Data sizes are different!'))
+        
         print('Start Line: ', start_line[0])
         print('End Line: ', end_line[0])
         print('Original Difference: ', end_line[0] - start_line[0])
@@ -344,9 +361,9 @@ class RawBOXY(BaseRaw):
         # output variable rearranges as columns and does not
         if filetype[0] == 'non-parsed':
             last_samps = ((diff - 2) // (source_num[0])) + start_line[0] - 1
-        elif filetype == 'parsed':
-            last_samps = (start_line[0] + diff)
-
+        elif filetype[0] == 'parsed':
+            last_samps = (start_line[0] + diff - 3)
+            
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps - first_samps)
 
