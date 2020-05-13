@@ -1,4 +1,6 @@
 """
+.. _tut_working_with_ecog:
+
 ======================
 Working with ECoG data
 ======================

@@ -67,7 +67,7 @@ Changelog
 
 - Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes by `Kyle Mathewson`_
 
-- Add ECoG misc EDF datast to the :ref:`tut-plot_ecog` to show snapshots of time-frequency acitivity by `Adam Li`_
+- Add ECoG misc EDF dataset to the :ref:`tut_working_with_ecog` tutorial to show snapshots of time-frequency activity by `Adam Li`_
 
 Bug
 ~~~
