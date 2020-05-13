@@ -15,7 +15,6 @@ electrocorticography (ECoG) data.
 #
 # License: BSD (3-clause)
 
-import collections
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
