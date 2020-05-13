@@ -31,6 +31,8 @@ Changelog
 
 - Add method :meth:`mne.VolSourceEstimate.in_label` by `Eric Larson`_
 
+- Add ``tol_kind`` option to :func:`mne.compute_rank` by `Eric Larson`_
+
 - Allow resampling raw data with :func:`mne.io.Raw.resample` without preloading data, by `Eric Larson`_
 
 - Allow using ``pick_ori='vector'`` with a fixed-orientation inverse to facilitate visualization with :func:`mne.viz.plot_vector_source_estimates` by `Eric Larson`_
