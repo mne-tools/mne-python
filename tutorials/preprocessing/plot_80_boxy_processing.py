@@ -20,7 +20,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import compress
-import copy
+import re as re
 
 import mne
 
@@ -33,9 +33,9 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data
 no_mrk_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names'])
                   if 'Markers' not in i_label]
 mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
-                 if ' a' in i_label and 'Markers' not in i_label]
+                 if re.search(r'S[1-5]_', i_label)]
 mtg_b_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
-                 if ' b' in i_label and 'Markers' not in i_label]
+                 if re.search(r'S([6-9]|10)_', i_label)]
 
 mtg_a_data = raw_intensity.copy()
 mtg_b_data = raw_intensity.copy()
