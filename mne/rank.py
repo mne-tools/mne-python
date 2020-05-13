@@ -19,7 +19,7 @@ from .utils import (logger, _compute_row_norms, _pl, _validate_type,
 
 @verbose
 def estimate_rank(data, tol='auto', return_singular=False, norm=True,
-                  verbose=None):
+                  tol_kind='absolute', verbose=None):
     """Estimate the rank of data.
 
     This function will normalize the rows of the data (typically
@@ -30,18 +30,14 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
     ----------
     data : array
         Data to estimate the rank of (should be 2-dimensional).
-    tol : float | 'auto'
-        Tolerance for singular values to consider non-zero in
-        calculating the rank. The singular values are calculated
-        in this method such that independent data are expected to
-        have singular value around one. Can be 'auto' to use the
-        same thresholding as ``scipy.linalg.orth``.
+    %(rank_tol)s
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
     norm : bool
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
+    %(rank_tol_kind)s
 
     Returns
     -------
@@ -56,14 +52,14 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
     s = linalg.svdvals(data)
-    rank = _estimate_rank_from_s(s, tol)
+    rank = _estimate_rank_from_s(s, tol, tol_kind)
     if return_singular is True:
         return rank, s
     else:
         return rank
 
 
-def _estimate_rank_from_s(s, tol='auto'):
+def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
     """Estimate the rank of a matrix from its singular values.
 
     Parameters
@@ -75,12 +71,15 @@ def _estimate_rank_from_s(s, tol='auto'):
         rank. Can be 'auto' to use the same thresholding as
         ``scipy.linalg.orth`` (assuming np.float64 datatype) adjusted
         by a factor of 2.
+    tol_kind : str
+        Can be "absolute" or "relative".
 
     Returns
     -------
     rank : int
         The estimated rank.
     """
+    max_s = np.amax(s)
     if isinstance(tol, str):
         if tol not in ('auto', 'float32'):
             raise ValueError('tol must be "auto" or float, got %r' % (tol,))
@@ -93,28 +92,31 @@ def _estimate_rank_from_s(s, tol='auto'):
             eps = np.finfo(np.float32).eps
         else:
             eps = np.finfo(np.float64).eps
-        max_s = np.amax(s)
         tol = len(s) * max_s * eps
         logger.info('    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g '
                     ' max singular value)' % (tol, eps, len(s), max_s))
+    else:
+        tol = float(tol)
+        if tol_kind == 'relative':
+            tol = tol * max_s
 
-    tol = float(tol)
     rank = np.sum(s > tol)
     return rank
 
 
 def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
-                       with_ref_meg=False):
+                       with_ref_meg=False, tol_kind='absolute'):
     """Aid the deprecation of raw.estimate_rank."""
     if picks is None:
         picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
     return _estimate_rank_meeg_signals(
-        raw[picks][0], pick_info(raw.info, picks), scalings, tol)
+        raw[picks][0], pick_info(raw.info, picks), scalings,
+        tol, False, tol_kind)
 
 
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
-                                return_singular=False):
+                                return_singular=False, tol_kind='absolute'):
     """Estimate rank for M/EEG data.
 
     Parameters
@@ -136,6 +138,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
+    tol_kind : str
+        Tolerance kind. See ``estimate_rank``.
 
     Returns
     -------
@@ -151,7 +155,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
                    "rank estimate might be inaccurate.")
     with _scaled_array(data, picks_list, scalings):
         out = estimate_rank(data, tol=tol, norm=False,
-                            return_singular=return_singular)
+                            return_singular=return_singular,
+                            tol_kind=tol_kind)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('    Estimated rank (%s): %d' % (ch_type, rank))
@@ -265,7 +270,7 @@ def _compute_rank_int(inst, *args, **kwargs):
 
 @verbose
 def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
-                 proj=True, verbose=None):
+                 proj=True, tol_kind='absolute', verbose=None):
     """Compute the rank of data or noise covariance.
 
     This function will normalize the rows of the data (typically
@@ -285,11 +290,11 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         The measurement info used to compute the covariance. It is
         only necessary if inst is a Covariance object (since this does
         not provide ``inst.info``).
-    tol : float | str
-        Tolerance. See ``estimate_rank``.
+    %(rank_tol)s
     proj : bool
         If True, all projs in ``inst`` and ``info`` will be applied or
         considered when ``rank=None`` or ``rank='info'``.
+    %(rank_tol_kind)s
     %(verbose)s
 
     Returns
@@ -389,7 +394,8 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                 if proj:
                     data = np.dot(proj_op, data)
                 rank[ch_type] = _estimate_rank_meeg_signals(
-                    data, pick_info(simple_info, picks), scalings, tol)
+                    data, pick_info(simple_info, picks), scalings, tol, False,
+                    tol_kind)
             else:
                 assert isinstance(inst, Covariance)
                 if inst['diag']:
