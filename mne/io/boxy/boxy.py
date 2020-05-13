@@ -18,12 +18,14 @@ from ...channels.montage import make_dig_montage
 
 
 @fill_doc
-def read_raw_boxy(fname, datatype=None, preload=False, verbose=None):
+def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
     """Reader for a BOXY optical imaging recording.
     Parameters
     ----------
     fname : str
         Path to the BOXY data folder.
+    datatype : str
+        Type of data to return (AC, DC, or Ph)
     %(preload)s
     %(verbose)s
     Returns
@@ -44,6 +46,8 @@ class RawBOXY(BaseRaw):
     ----------
     fname : str
         Path to the BOXY data folder.
+    datatype : str
+        Type of data to return (AC, DC, or Ph)
     %(preload)s
     %(verbose)s
     See Also
@@ -52,7 +56,7 @@ class RawBOXY(BaseRaw):
     """
     
     @verbose
-    def __init__(self, fname, datatype=None, preload=False, verbose=None):
+    def __init__(self, fname, datatype='AC', preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials, coregister_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
@@ -212,6 +216,11 @@ class RawBOXY(BaseRaw):
             unique_source_labels.append(mtg_source_labels)
             unique_detect_labels.append(mtg_detect_labels)
             
+        ###swap order to have lower wavelength first###
+        for i_chan in range(0,len(chan_wavelength),2):
+            chan_wavelength[i_chan], chan_wavelength[i_chan+1] = (
+                            chan_wavelength[i_chan+1],chan_wavelength[i_chan])
+            
         ###now let's label each channel in our data###
         ###data is channels X timepoint where the first source_num rows correspond to###
         ###the first detector, and each row within that group is a different source###
@@ -256,7 +265,7 @@ class RawBOXY(BaseRaw):
                 # add extra column for triggers
                 mrk_labels.append('Markers' + ' ' + mtg_names[mtg_num] + i_blk[1:])
                 mrk_coords.append(np.zeros((12,)))
-                
+                     
         ###add triggers to the end of our data###
         boxy_labels.extend(mrk_labels)
         boxy_coords.extend(mrk_coords)
@@ -332,7 +341,6 @@ class RawBOXY(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
         """
-
         source_num = self._raw_extras[fi]['source_num']
         detect_num = self._raw_extras[fi]['detect_num']
         start_line = self._raw_extras[fi]['start_line']
@@ -436,6 +444,10 @@ class RawBOXY(BaseRaw):
                             ###save our data based on data type###
                             data_[index_loc,:] = boxy_array[:,channel]
                           
+            ###swap channels to match new wavelength order###
+            for i_chan in range(0,len(data_),2):
+                data_[[i_chan,i_chan+1]] = data_[[i_chan+1,i_chan]]
+                
             # Read triggers from event file
             ###add our markers to the data array based on filetype###
             if type(meta_data['digaux']) is not list:
