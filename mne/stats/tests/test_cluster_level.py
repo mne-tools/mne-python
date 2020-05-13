@@ -232,7 +232,6 @@ def test_cluster_permutation_test(numba_conditional):
                                  stat_fun=stat_fun, out_type='mask')
 
 
-
 @pytest.mark.parametrize('stat_fun', [
     ttest_1samp_no_p,
     partial(ttest_1samp_no_p, sigma=1e-1)
