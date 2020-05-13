@@ -20,7 +20,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.time_frequency import tfr_morlet
 from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
@@ -42,16 +41,13 @@ ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
 ch_pos = dict(zip(ch_names, ch_coords))
 
-# create montage from channel coordinates in the 'head' coordinate frame
-montage = mne.channels.make_dig_montage(ch_pos,
-                                        coord_frame='head')
-
 # Now we make a montage stating that the ECoG contacts are in head
 # coordinate system (although they are in MRI). This is compensated
 # by the fact that below we do not specify a trans file so the Head<->MRI
 # transform is the identity.
-# montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
-#                                         coord_frame='head')
+
+# create montage from channel coordinates in the 'head' coordinate frame
+montage = mne.channels.make_dig_montage(ch_pos, coord_frame='head')
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
@@ -63,30 +59,22 @@ info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
 ###############################################################################
 # Now that we have our electrode positions in MRI coordinates, we can load in
 # our corresponding time-series data. We then compute a time-frequency
-# representation of the data (i.e. 1-30, or 30-90 Hz).
+# representation of the data (i.e. 30-90 Hz).
 
 # first we'll load in the sample dataset
 raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
 
 # drop bad channels
 raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
+raw.load_data()
+raw.drop_channels(raw.info['bads'])
 
 # attach montage
-raw.set_montage(montage, on_missing='ignore')
+raw.set_montage(montage)
 
-# create a 1 Epoch data structure
-epoch = mne.EpochsArray(raw.get_data()[np.newaxis, ...],
-                        info=raw.info)
-
-# perform gamma band frequency averaged over entire time period
-tfr_pwr, _ = tfr_morlet(epoch, freqs=np.linspace(30, 90, 60),
-                        n_cycles=2)
-gamma_activity = tfr_pwr.data.mean(axis=(1, 2))
-
-# perform low frequency activity averaged over entire time period
-tfr_pwr, _ = tfr_morlet(epoch, freqs=np.linspace(8, 12, 4),
-                        n_cycles=2)
-low_activity = tfr_pwr.data.mean(axis=(1, 2))
+# compute gamma and alpha band activity
+gamma_activity = np.sum(raw.copy().filter(30, 90).get_data() ** 2, axis=1)
+alpha_activity = np.sum(raw.copy().filter(8, 12).get_data() ** 2, axis=1)
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
@@ -115,26 +103,29 @@ xy, im = snapshot_brain_montage(fig_scatter, montage)
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 
-vmin, vmax = np.percentile(gamma_activity, [10, 90])
+# colormap to view spectral power
+cmap = 'viridis'
 
 # show activity at higher frequencies
+vmin, vmax = np.percentile(gamma_activity, [10, 90])
+
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
 ax.set_axis_off()
 sc = ax.scatter(*xy_pts.T, c=gamma_activity, s=200,
-                cmap='viridis', vmin=vmin, vmax=vmax)
+                cmap=cmap, vmin=vmin, vmax=vmax)
 ax.set_title("Gamma frequency (30-90 Hz)")
 fig.colorbar(sc, ax=ax)
 
-vmin, vmax = np.percentile(low_activity, [10, 90])
-
 # show activity between low frequency
+vmin, vmax = np.percentile(alpha_activity, [10, 90])
+
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
 ax.set_axis_off()
-sc = ax.scatter(*xy_pts.T, c=low_activity, s=200,
-                cmap='viridis', vmin=vmin, vmax=vmax)
-ax.set_title("Low frequency (0-30 Hz)")
+sc = ax.scatter(*xy_pts.T, c=alpha_activity, s=200,
+                cmap=cmap, vmin=vmin, vmax=vmax)
+ax.set_title("Alpha frequency (8-12 Hz)")
 fig.colorbar(sc, ax=ax)
 
 plt.show()
