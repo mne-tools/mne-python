@@ -1128,7 +1128,17 @@ out_type : 'mask' | 'indices'
     part of a cluster. If ``'indices'``, returns a list of lists, where each
     sublist contains the indices of locations that together form a cluster.
     Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``.
+    ``'mask'``. Default is ``'indices'``.
+"""
+docdict['clust_out_none'] = """
+out_type : 'mask' | 'indices'
+    Output format of clusters. If ``'mask'``, returns boolean arrays the same
+    shape as the input data, with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of lists, where each
+    sublist contains the indices of locations that together form a cluster.
+    Note that for large datasets, ``'indices'`` may use far less memory than
+    ``'mask'``. The default translates to ``'mask'`` in version 0.21 but will
+    change to ``'indices'`` in version 0.22.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool

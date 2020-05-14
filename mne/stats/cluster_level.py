@@ -1039,7 +1039,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
 def permutation_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         connectivity=None, n_jobs=1, seed=None, max_step=1, exclude=None,
-        step_down_p=0, t_power=1, out_type='mask', check_disjoint=False,
+        step_down_p=0, t_power=1, out_type=None, check_disjoint=False,
         buffer_size=1000, verbose=None):
     """Cluster-level statistical permutation test.
 
@@ -1079,8 +1079,7 @@ def permutation_cluster_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_f)s
-    %(clust_out)s
-        Default is ``'mask'``.
+    %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1101,6 +1100,11 @@ def permutation_cluster_test(
     .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, 'between')
+    if out_type is None:
+        warn('The default for "out_type" will change from "mask" to "indices" '
+             'in version 0.22. To avoid this warning, explicitly set '
+             '"out_type" to one of its string values.', DeprecationWarning)
+        out_type = 'mask'
     return _permutation_cluster_test(
         X=X, threshold=threshold, n_permutations=n_permutations, tail=tail,
         stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
@@ -1113,7 +1117,7 @@ def permutation_cluster_test(
 def permutation_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
-        exclude=None, step_down_p=0, t_power=1, out_type='mask',
+        exclude=None, step_down_p=0, t_power=1, out_type=None,
         check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level paired t-test.
 
@@ -1141,8 +1145,7 @@ def permutation_cluster_1samp_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_t)s
-    %(clust_out)s
-        Default is ``'mask'``.
+    %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1187,6 +1190,11 @@ def permutation_cluster_1samp_test(
     .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
+    if out_type is None:
+        warn('The default for "out_type" will change from "mask" to "indices" '
+             'in version 0.22. To avoid this warning, explicitly set '
+             '"out_type" to one of its string values.', DeprecationWarning)
+        out_type = 'mask'
     return _permutation_cluster_test(
         X=[X], threshold=threshold, n_permutations=n_permutations, tail=tail,
         stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
@@ -1227,7 +1235,6 @@ def spatio_temporal_cluster_1samp_test(
     %(clust_stepdown)s
     %(clust_power_t)s
     %(clust_out)s
-        Default is ``'indices'``.
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1298,7 +1305,6 @@ def spatio_temporal_cluster_test(
     %(clust_stepdown)s
     %(clust_power_f)s
     %(clust_out)s
-        Default is ``'indices'``.
     %(clust_disjoint)s
     %(clust_buffer)s
 
