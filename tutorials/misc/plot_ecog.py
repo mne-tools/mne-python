@@ -140,7 +140,7 @@ def animate(i, activity):
 # create an Epoch to use morlet wavelet transform
 events = [[raw.first_samp, 0, 1]]
 epochs = mne.Epochs(raw, events, tmin=0, tmax=raw.times[-1],
-                    preload=True)
+                    baseline=None, preload=True)
 
 # compute time series of the gamma frequency band
 tfr_pwr, _ = mne.time_frequency.tfr_morlet(
