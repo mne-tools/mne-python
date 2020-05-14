@@ -154,6 +154,10 @@ ax.imshow(im)
 ax.set_axis_off()
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
                    cmap=cmap, vmin=vmin, vmax=vmax)
+fig.colorbar(paths, ax=ax)
+ax.set_title('Gamma frequency over time (Morlet wavelet)',
+             size='large')
 anim = animation.FuncAnimation(fig, animate, init_func=init,
-                               fargs=(gamma_activity,), frames=500,
+                               fargs=(gamma_activity,),
+                               frames=gamma_activity.shape[1],
                                interval=20, blit=True)
