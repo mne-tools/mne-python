@@ -18,6 +18,7 @@ electrocorticography (ECoG) data.
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
@@ -40,6 +41,7 @@ ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
 ch_pos = dict(zip(ch_names, ch_coords))
 
+###############################################################################
 # Now we make a :class:`mne.channels.DigMontage` stating that the ECoG
 # contacts are in head coordinate system (although they are in MRI). This is
 # compensated below by the fact that we do not specify a trans file so the
@@ -64,34 +66,35 @@ raw.drop_channels(raw.info['bads'])
 raw.set_montage(montage)
 
 ###############################################################################
-# We then compute the signal power in certain frequency bands (e.g. 30-90 Hz).
-# We compute the power in gamma and alpha bands.
-gamma_power = np.sum(raw.copy().filter(30, 90).get_data() ** 2, axis=1)
-alpha_power = np.sum(raw.copy().filter(8, 12).get_data() ** 2, axis=1)
-
-###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
 #
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
+#
+# Sometimes it is useful to make a scatterplot for the current figure view.
+# This is best accomplished with matplotlib. We can capture an image of the
+# current mayavi view, along with the xy position of each electrode, with the
+# `snapshot_brain_montage` function. We can then visualize for example the
+# gamma power on the brain using MNE and matplotlib functions.
+# Here, we'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot
+# as image data, so that later in the tutorial we can plot data on top of it.
 
 subjects_dir = sample_path + '/subjects'
 fig = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'])
 mne.viz.set_3d_view(fig, 200, 70)
 
-###############################################################################
-# Sometimes it is useful to make a scatterplot for the current figure view.
-# This is best accomplished with matplotlib. We can capture an image of the
-# current mayavi view, along with the xy position of each electrode, with the
-# `snapshot_brain_montage` function. We can then visualize for example the
-# gamma power on the brain using MNE and matplotlib functions.
+xy, im = snapshot_brain_montage(fig, montage)
 
-# We'll once again plot the surface, then take a snapshot.
-fig_scatter = plot_alignment(raw.info, subject='sample',
-                             subjects_dir=subjects_dir, surfaces='pial')
-mne.viz.set_3d_view(fig_scatter, 200, 70)
-xy, im = snapshot_brain_montage(fig_scatter, montage)
+###############################################################################
+# We then compute the signal power in certain frequency bands (e.g. 30-90 Hz).
+# We compute the power in gamma and alpha bands.
+gamma_power = np.sum(raw.copy().filter(30, 90).get_data() ** 2, axis=1)
+alpha_power = np.sum(raw.copy().filter(8, 12).get_data() ** 2, axis=1)
+
+###############################################################################
+# Now let's use matplotlib to overplot frequency band power onto the electrodes
+# which can be plotted on top of the brain from `snapshot_brain_montage`.
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
@@ -99,26 +102,58 @@ xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 # colormap to view spectral power
 cmap = 'viridis'
 
-# show power at higher frequencies
-vmin, vmax = np.percentile(gamma_power, [10, 90])
+# create a 1x2 subplot showing a snapshot of the average power
+# in gamma and alpha frequency bands
+fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+_gamma_alpha_power = np.concatenate((gamma_power, alpha_power)).flatten()
+vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
+for ax, band_power, band in zip(axs,
+                                [gamma_power, alpha_power],
+                                ['Gamma', 'Alpha']):
+    ax.imshow(im)
+    ax.set_axis_off()
+    sc = ax.scatter(*xy_pts.T, c=band_power, s=200,
+                    cmap=cmap, vmin=vmin, vmax=vmax)
+    ax.set_title(f'{band} frequency', size='large')
+fig.colorbar(sc, ax=ax)
 
+###############################################################################
+# Say we want to visualize the evolution of the power in the gamma band,
+# instead of just plotting the average. We can use
+# `matplotlib.animation.FuncAnimation` to create an animation and apply this
+# to the brain figure.
+
+
+# create an initialization and animation function
+# to pass to FuncAnimation
+def init():
+    """Create an empty frame."""
+    return paths,
+
+
+def animate(i, activity):
+    """Animate the plot."""
+    paths.set_array(activity[:, i])
+    return paths,
+
+
+# create an Epoch to use morlet wavelet transform
+events = [[raw.first_samp, 0, 1]]
+epochs = mne.Epochs(raw, events, tmin=0, tmax=raw.times[-1],
+                    preload=True)
+
+# compute time series of the gamma frequency band
+tfr_pwr, _ = mne.time_frequency.tfr_morlet(
+    epochs, freqs=np.linspace(30, 90), n_cycles=7)
+gamma_activity = tfr_pwr.data.mean(axis=1)
+
+# create the figure and apply the animation of the
+# gamma frequency band activity
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
 ax.set_axis_off()
-sc = ax.scatter(*xy_pts.T, c=gamma_power, s=200,
-                cmap=cmap, vmin=vmin, vmax=vmax)
-ax.set_title("Gamma frequency (30-90 Hz)")
-fig.colorbar(sc, ax=ax)
-
-# show power between low frequency
-vmin, vmax = np.percentile(alpha_power, [10, 90])
-
-fig, ax = plt.subplots(figsize=(10, 10))
-ax.imshow(im)
-ax.set_axis_off()
-sc = ax.scatter(*xy_pts.T, c=alpha_power, s=200,
-                cmap=cmap, vmin=vmin, vmax=vmax)
-ax.set_title("Alpha frequency (8-12 Hz)")
-fig.colorbar(sc, ax=ax)
-
-plt.show()
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
+                   cmap=cmap, vmin=vmin, vmax=vmax)
+anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               fargs=(gamma_activity,), frames=500,
+                               interval=20, blit=True)
