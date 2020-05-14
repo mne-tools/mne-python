@@ -50,7 +50,8 @@ def test_permutation_t_test():
     # check equivalence with spatio_temporal_cluster_test
     for connectivity in (sparse.eye(n_tests), False):
         t_obs_clust, _, p_values_clust, _ = permutation_cluster_1samp_test(
-            X, n_permutations=999, seed=0, connectivity=connectivity)
+            X, n_permutations=999, seed=0, connectivity=connectivity,
+            out_type='mask')
         # the cluster tests drop any clusters that don't get thresholded
         keep = p_values < 1
         assert_allclose(t_obs_clust, t_obs)
