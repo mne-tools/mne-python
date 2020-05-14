@@ -515,8 +515,8 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
             # boolean masks (raveled)
             clusters = list()
             sums = list()
-            for l in range(1, n_labels + 1):
-                c = labels == l
+            for label in range(1, n_labels + 1):
+                c = labels == label
                 clusters.append(c.ravel())
                 if t_power == 1:
                     sums.append(np.sum(x[c]))
