@@ -184,14 +184,14 @@ jobs:
       pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
-  # VTK does not have wheels (scheduled Q1 2020):
-  # https://github.com/KitwareMedical/VTKPythonPackage/issues/39
-  # Missing: vtk, mayavi, PySurfer, pyvista, numexpr, python-picard, numba, dipy, statsmodels (doesn't work on pre as of 2019/12/04)
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
-      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" numpy scipy scikit-learn matplotlib h5py pandas Pillow
-      python -m pip install --upgrade nilearn "pyqt5<5.14" pyqt5-sip nibabel pytest pytest-cov pytest-xdist pytest-mock pytest-sugar pytest-timeout joblib psutil https://github.com/numpy/numpydoc/archive/master.zip neo xlrd codecov
+      python -m pip install --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
+      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
+      python -m pip install --only-binary ":all:" -f "https://vtk.org/download" "vtk>=9"
+      python -m pip install https://github.com/enthought/mayavi/zipball/master
+      python -m pip install -r requirements.txt
       python -m pip install codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'
