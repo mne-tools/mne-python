@@ -252,16 +252,16 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     if len(cl_goods) > 0:
         keepers = [np.array([], dtype=int)] * n_times
         row, col = np.unravel_index(cl_goods, (n_times, n_src))
+        lims = [0]
         if isinstance(row, int):
             row = [row]
             col = [col]
-            lims = [0]
         else:
             order = np.argsort(row)
             row = row[order]
             col = col[order]
-            lims = [0] + (np.where(np.diff(row) > 0)[0] +
-                          1).tolist() + [len(row)]
+            lims += (np.where(np.diff(row) > 0)[0] + 1).tolist()
+            lims.append(len(row))
 
         for start, end in zip(lims[:-1], lims[1:]):
             keepers[row[start]] = np.sort(col[start:end])
@@ -416,11 +416,10 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
     # set these here just in case thresholds == []
     clusters = list()
-    sums = np.empty(0)
+    sums = list()
     for ti, thresh in enumerate(thresholds):
         # these need to be reset on each run
         clusters = list()
-        sums = np.empty(0)
         if tail == 0:
             x_ins = [np.logical_and(x > thresh, include),
                      np.logical_and(x < -thresh, include)]
@@ -435,7 +434,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                                                 max_step, partitions, t_power,
                                                 ndimage)
                 clusters += out[0]
-                sums = np.concatenate((sums, out[1]))
+                sums.append(out[1])
         if tfce:
             # the score of each point is the sum of the h^H * e^E for each
             # supporting section "rectangle" h x e.
@@ -455,6 +454,8 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 else:
                     len_c = len(c)
                 scores[c] += h * (len_c ** e_power)
+    # turn sums into ndarray after running
+    sums = np.concatenate(sums) if sums else np.empty(0)
     if tfce:
         # each point gets treated independently
         clusters = np.arange(x.size)
@@ -500,7 +501,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         if x.ndim == 1:
             # slices
             clusters = ndimage.find_objects(labels, n_labels)
-            if len(clusters) == 0:
+            if not clusters:
                 sums = list()
             else:
                 index = list(range(1, n_labels + 1))
@@ -513,15 +514,15 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         else:
             # boolean masks (raveled)
             clusters = list()
-            sums = np.empty(n_labels)
-            for label in range(n_labels):
-                c = labels == label + 1
+            sums = list()
+            for l in range(1, n_labels + 1):
+                c = labels == l
                 clusters.append(c.ravel())
                 if t_power == 1:
-                    sums[label] = np.sum(x[c])
+                    sums.append(np.sum(x[c]))
                 else:
-                    sums[label] = np.sum(np.sign(x[c]) *
-                                         np.abs(x[c]) ** t_power)
+                    sums.append(np.sum(np.sign(x[c]) *
+                                       np.abs(x[c]) ** t_power))
     else:
         if x.ndim > 1:
             raise Exception("Data should be 1D when using a connectivity "
@@ -562,8 +563,6 @@ def _pval_from_histogram(T, H0, tail):
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
     """
-    _check_option('tail', tail, [-1, 0, 1])
-
     # from pct to fraction
     if tail == -1:  # up tail
         pval = np.array([np.mean(H0 <= t) for t in T])
@@ -822,6 +821,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     is elicited.
     """
     _check_option('out_type', out_type, ['mask', 'indices'])
+    _check_option('tail', tail, [-1, 0, 1])
     if not isinstance(threshold, dict):
         threshold = float(threshold)
         if (tail < 0 and threshold > 0 or tail > 0 and threshold < 0 or
