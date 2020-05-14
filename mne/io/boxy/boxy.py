@@ -5,6 +5,8 @@
 import glob as glob
 import re as re
 import numpy as np
+import scipy.io
+import os
 
 from ..base import BaseRaw
 from ..meas_info import create_info
@@ -193,8 +195,6 @@ class RawBOXY(BaseRaw):
             if i_chan in all_labels:
                 chan_index = all_labels.index(i_chan)
                 source_coords.append(all_coords[chan_index])
-            else:
-                print(i_chan)
 
         # get coordinates for detectors in .mtg file from .elp file
         detect_coords = []
@@ -360,10 +360,10 @@ class RawBOXY(BaseRaw):
         # input file has rows for each source,
         # output variable rearranges as columns and does not
         if filetype[0] == 'non-parsed':
-            last_samps = ((((diff - 2)*len(blk_names)) // (source_num[0])) + 
+            last_samps = ((((diff - 2)*len(blk_names[0])) // (source_num[0])) + 
                           start_line[0] - 1)
         elif filetype[0] == 'parsed':
-            last_samps = (start_line[0] + ((diff - 3)*len(blk_names)))
+            last_samps = (start_line[0] + ((diff - 3)*len(blk_names[0])))
             
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps - first_samps)
@@ -385,6 +385,27 @@ class RawBOXY(BaseRaw):
         montages = self._raw_extras[fi]['montages']
         blocks = self._raw_extras[fi]['blocks']
         boxy_files = self._raw_extras[fi]['files']['*.[000-999]*']
+        event_fname = os.path.join(self._filenames[fi], 'evt')
+        
+        # Check if event files are available
+        # mostly for older boxy files since we'll be using the digaux channel 
+        # for markers in further recordings
+        try:
+            event_files = dict()
+            key = ('*.[000-999]*')
+            print(event_fname)
+            event_files[key] = [glob.glob('%s/*%s' % (event_fname, key))]
+            event_files[key] = event_files[key][0]
+            event_data = []
+            
+            for file_num, i_file in enumerate(event_files[key]):
+                event_data.append(scipy.io.loadmat(
+                    event_files[key][0])['event'])
+            if event_data != []: print('Event file found!')
+            else: print('No event file found. Using digaux!')
+                
+        except:
+            pass
 
         # detectors, sources, and data types
         detectors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
@@ -506,17 +527,31 @@ class RawBOXY(BaseRaw):
                 for i_chan in range(0, len(data_), 2):
                     data_[[i_chan, i_chan + 1]] = data_[[i_chan + 1, i_chan]]
     
-                # Read triggers from event file
-                # add our markers to the data array based on filetype###
-                if type(meta_data['digaux']) is not list:
-                    if filetype[file_num] == 'non-parsed':
-                        block_markers.append(meta_data['digaux'][np.arange(0,
-                                       len(meta_data['digaux']),
-                                       source_num[file_num])])
-                    elif filetype[file_num] == 'parsed':
-                        block_markers.append(meta_data['digaux'])
-                else:
-                    block_markers.append(np.zeros((len(data_[0, :]),)))
+                # If there was an event file, place those events in our data
+                # If no, use digaux for our events
+                try:
+                    temp_markers = np.zeros((len(data_[0, :]),))
+                    for event_num, event_info in enumerate(event_data[file_num]):
+                        temp_markers[event_info[0]-1] = event_info[1]
+                    block_markers.append(temp_markers)
+                except:
+                    # add our markers to the data array based on filetype###
+                    if type(meta_data['digaux']) is not list:
+                        if filetype[file_num] == 'non-parsed':
+                            block_markers.append(meta_data['digaux'][np.arange(0,
+                                           len(meta_data['digaux']),
+                                           source_num[file_num])])
+                        elif filetype[file_num] == 'parsed':
+                            block_markers.append(meta_data['digaux'])
+                    else:
+                        block_markers.append(np.zeros((len(data_[0, :]),)))
+                    
+                #change marker for last timepoint to indicate end of block
+                #we'll be using digaux to send markers, which is a serial port
+                #so we can send values between 1-255
+                #we'll multiply our block start/end markers by 1000 to ensure 
+                #we aren't within the 1-255 range
+                block_markers[i_blk][-1] = int(blk_name) * 1000
                     
                 all_blocks.append(data_)
     

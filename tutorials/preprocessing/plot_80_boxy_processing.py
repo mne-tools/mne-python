@@ -27,7 +27,7 @@ import mne
 
 boxy_data_folder = mne.datasets.boxy_example.data_path()
 boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
-raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
+raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
 
 ###separate data based on montages###
 no_mrk_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names'])
@@ -120,12 +120,12 @@ mtg_a_data.pick(picks_a[dists_a < 0.08])
 mtg_b_data.pick(picks_b[dists_b < 0.08])
 
 scalings = dict(fnirs_raw=1e2)
-raw_intensity.plot(n_channels=10,
-                   duration=1000, scalings=scalings, show_scrollbars=True)
-mtg_a_data.plot(n_channels=10,
-                   duration=1000, scalings=scalings, show_scrollbars=True)
-mtg_b_data.plot(n_channels=10,
-                   duration=1000, scalings=scalings, show_scrollbars=True)
+raw_intensity.plot(n_channels=5,
+                   duration=20, scalings=100, show_scrollbars=True)
+mtg_a_data.plot(n_channels=5,
+                   duration=20, scalings=100, show_scrollbars=True)
+mtg_b_data.plot(n_channels=5,
+                   duration=20, scalings=100, show_scrollbars=True)
 
 
 # ###############################################################################
