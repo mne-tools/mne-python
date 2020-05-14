@@ -196,8 +196,7 @@ def test_xdawn_regularization():
     xd = Xdawn(correct_overlap=False, reg='diagonal_fixed')
     xd.fit(epochs)
     bad_eig = (sys.platform.startswith('win') and
-               check_version('numpy', '1.16.5') and
-               'mkl_rt' in _get_numpy_libs())  # some problem with MKL on Win
+               check_version('numpy', '1.16.5'))  # some problem with on Win
     if bad_eig:
         pytest.skip('Unknown MKL+Windows error fails for eig check')
     xd = Xdawn(correct_overlap=False, reg=None)
