@@ -94,7 +94,8 @@ alpha_power = alpha_power_t.mean(axis=-1)
 
 ###############################################################################
 # Now let's use matplotlib to overplot frequency band power onto the electrodes
-# which can be plotted on top of the brain from `snapshot_brain_montage`.
+# which can be plotted on top of the brain from
+# :func:`~mne.viz.snapshot_brain_montage`.
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
