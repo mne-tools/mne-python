@@ -96,7 +96,7 @@ alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
     envelope=True).get_data()
 gamma_power = gamma_power_t.mean(axis=-1)
 alpha_power = alpha_power_t.mean(axis=-1)
-# these have edge artifcat
+
 ###############################################################################
 # Now let's use matplotlib to overplot frequency band power onto the electrodes
 # which can be plotted on top of the brain from `snapshot_brain_montage`.
@@ -158,4 +158,4 @@ show_power = gamma_power_t[:, 100:-1700:2]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
-                               interval=0.2, blit=True)
+                               interval=100, blit=True)
