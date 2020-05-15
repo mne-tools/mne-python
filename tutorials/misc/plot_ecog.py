@@ -106,6 +106,7 @@ cmap = 'viridis'
 # create a 1x2 subplot showing a snapshot of the average power
 # in gamma and alpha frequency bands
 fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+# choose a colormap range wide enough for both frequency bands
 _gamma_alpha_power = np.concatenate((gamma_power, alpha_power)).flatten()
 vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
 for ax, band_power, band in zip(axs,
