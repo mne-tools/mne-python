@@ -536,6 +536,7 @@ sphinx_gallery_conf = {
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
+    'matplotlib_animations': True,
 }
 
 ##############################################################################
