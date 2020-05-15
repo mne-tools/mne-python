@@ -30,19 +30,16 @@ boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
 raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
 
 ###separate data based on montages###
-no_mrk_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names'])
-                  if 'Markers' not in i_label]
 mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
-                 if re.search(r'S[1-5]_', i_label)]
+                 if re.search(r'(S[1-5]_|\bMarkers a\b)', i_label)]
 mtg_b_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
-                 if re.search(r'S([6-9]|10)_', i_label)]
+                 if re.search(r'(S([6-9]|10)_|\bMarkers b\b)', i_label)]
 
-mtg_a_data = raw_intensity.copy()
-mtg_b_data = raw_intensity.copy()
+mtg_a_intensity = raw_intensity.copy()
+mtg_b_intensity = raw_intensity.copy()
 
-mtg_a_data.pick(mtg_a_indices)
-mtg_b_data.pick(mtg_b_indices)
-raw_intensity.pick(no_mrk_indices)
+mtg_a_intensity.pick(mtg_a_indices)
+mtg_b_intensity.pick(mtg_b_indices)
 
 # ###############################################################################
 # # View location of sensors over brain surface
@@ -69,7 +66,7 @@ fig = mne.viz.plot_alignment(raw_intensity.info,
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(mtg_a_data.info, 
+fig = mne.viz.plot_alignment(mtg_a_intensity.info, 
 							 show_axes=True,
                              subject='fsaverage',
                              trans='fsaverage', 
@@ -82,7 +79,7 @@ fig = mne.viz.plot_alignment(mtg_a_data.info,
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(mtg_b_data.info, 
+fig = mne.viz.plot_alignment(mtg_b_intensity.info, 
 							 show_axes=True,
                              subject='fsaverage',
                              trans='fsaverage', 
@@ -104,27 +101,27 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # These short channels can be seen in the figure above.
 # # To achieve this we pick all the channels that are not considered to be short.
 
-picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
-picks_a = mne.pick_types(mtg_a_data.info, meg=False, fnirs=True)
-picks_b = mne.pick_types(mtg_b_data.info, meg=False, fnirs=True)
+picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True, stim=True)
+picks_a = mne.pick_types(mtg_a_intensity.info, meg=False, fnirs=True, stim=True)
+picks_b = mne.pick_types(mtg_b_intensity.info, meg=False, fnirs=True, stim=True)
 
 dists = mne.preprocessing.nirs.source_detector_distances(
     raw_intensity.info, picks=picks)
 dists_a = mne.preprocessing.nirs.source_detector_distances(
-    raw_intensity.info, picks=picks_a)
+    mtg_a_intensity.info, picks=picks_a)
 dists_b = mne.preprocessing.nirs.source_detector_distances(
-    raw_intensity.info, picks=picks_b)
+    mtg_b_intensity.info, picks=picks_b)
 
 raw_intensity.pick(picks[dists < 0.08])
-mtg_a_data.pick(picks_a[dists_a < 0.08])
-mtg_b_data.pick(picks_b[dists_b < 0.08])
+mtg_a_intensity.pick(picks_a[dists_a < 0.08])
+mtg_b_intensity.pick(picks_b[dists_b < 0.08])
 
 scalings = dict(fnirs_raw=1e2)
 raw_intensity.plot(n_channels=5,
                    duration=20, scalings=100, show_scrollbars=True)
-mtg_a_data.plot(n_channels=5,
+mtg_a_intensity.plot(n_channels=5,
                    duration=20, scalings=100, show_scrollbars=True)
-mtg_b_data.plot(n_channels=5,
+mtg_b_intensity.plot(n_channels=5,
                    duration=20, scalings=100, show_scrollbars=True)
 
 
@@ -135,8 +132,8 @@ mtg_b_data.plot(n_channels=5,
 # # The raw intensity values are then converted to optical density.
 
 raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
-raw_od_a = mne.preprocessing.nirs.optical_density(mtg_a_data)
-raw_od_b = mne.preprocessing.nirs.optical_density(mtg_b_data)
+raw_od_a = mne.preprocessing.nirs.optical_density(mtg_a_intensity)
+raw_od_b = mne.preprocessing.nirs.optical_density(mtg_b_intensity)
 
 raw_od.plot(n_channels=len(raw_od.ch_names),
             duration=500, show_scrollbars=False)
@@ -180,8 +177,9 @@ ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
 # # In this example we will mark all channels with a SCI less than 0.5 as bad
 # # (this dataset is quite clean, so no channels are marked as bad).
 
-# raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
-
+raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
+raw_od_a.info['bads'] = list(compress(raw_od_a.ch_names, sci_a < 0.5))
+raw_od_b.info['bads'] = list(compress(raw_od_b.ch_names, sci_b < 0.5))
 
 # ###############################################################################
 # # At this stage it is appropriate to inspect your data
@@ -199,9 +197,18 @@ ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
 # # Next we convert the optical density data to haemoglobin concentration using
 # # the modified Beer-Lambert law.
 
-# raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
-# raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
-#                duration=500, show_scrollbars=False)
+raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
+raw_haemo_a = mne.preprocessing.nirs.beer_lambert_law(raw_od_a)
+raw_haemo_b = mne.preprocessing.nirs.beer_lambert_law(raw_od_b)
+
+raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
+                duration=500, show_scrollbars=False)
+
+raw_haemo_a.plot(n_channels=len(raw_haemo_a.ch_names),
+                duration=500, show_scrollbars=False)
+
+raw_haemo_b.plot(n_channels=len(raw_haemo_b.ch_names),
+                duration=500, show_scrollbars=False)
 
 
 # ###############################################################################
@@ -214,14 +221,34 @@ ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
 # # remove this. A high pass filter is also included to remove slow drifts
 # # in the data.
 
-# fig = raw_haemo.plot_psd(average=True)
-# fig.suptitle('Before filtering', weight='bold', size='x-large')
-# fig.subplots_adjust(top=0.88)
-# raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
-#                              l_trans_bandwidth=0.02)
-# fig = raw_haemo.plot_psd(average=True)
-# fig.suptitle('After filtering', weight='bold', size='x-large')
-# fig.subplots_adjust(top=0.88)
+fig = raw_haemo.plot_psd(average=True)
+fig.suptitle('Before filtering', weight='bold', size='x-large')
+fig.subplots_adjust(top=0.88)
+raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
+                              l_trans_bandwidth=0.02)
+fig = raw_haemo.plot_psd(average=True)
+fig.suptitle('After filtering', weight='bold', size='x-large')
+fig.subplots_adjust(top=0.88)
+
+
+fig = raw_haemo_a.plot_psd(average=True)
+fig.suptitle('Before filtering Montage A', weight='bold', size='x-large')
+fig.subplots_adjust(top=0.88)
+raw_haemo_a = raw_haemo_a.filter(0.05, 0.7, h_trans_bandwidth=0.2,
+                              l_trans_bandwidth=0.02)
+fig = raw_haemo_a.plot_psd(average=True)
+fig.suptitle('After filtering Montage A', weight='bold', size='x-large')
+fig.subplots_adjust(top=0.88)
+
+
+fig = raw_haemo_b.plot_psd(average=True)
+fig.suptitle('Before filtering Montage B', weight='bold', size='x-large')
+fig.subplots_adjust(top=0.88)
+raw_haemo_b = raw_haemo_b.filter(0.05, 0.7, h_trans_bandwidth=0.2,
+                              l_trans_bandwidth=0.02)
+fig = raw_haemo_b.plot_psd(average=True)
+fig.suptitle('After filtering Montage B', weight='bold', size='x-large')
+fig.subplots_adjust(top=0.88)
 
 # ###############################################################################
 # # Extract epochs
@@ -234,13 +261,15 @@ ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
 # # First we extract the events of interest and visualise them to ensure they are
 # # correct.
 
-# events, _ = mne.events_from_annotations(raw_haemo, event_id={'1.0': 1,
-#                                                              '2.0': 2,
-#                                                              '3.0': 3})
-# event_dict = {'Control': 1, 'Tapping/Left': 2, 'Tapping/Right': 3}
-# fig = mne.viz.plot_events(events, event_id=event_dict,
-#                           sfreq=raw_haemo.info['sfreq'])
-# fig.subplots_adjust(right=0.7)  # make room for the legend
+mtg_a_events = mne.find_events(mtg_a_intensity, stim_channel='Markers a')
+
+fig = mne.viz.plot_events(mtg_a_events)
+fig.subplots_adjust(right=0.7)  # make room for the legend
+
+mtg_b_events = mne.find_events(mtg_b_intensity, stim_channel='Markers b')
+
+fig = mne.viz.plot_events(mtg_b_events)
+fig.subplots_adjust(right=0.7)  # make room for the legend
 
 
 # ###############################################################################
@@ -248,15 +277,23 @@ ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
 # # baseline correction, and extract the epochs. We visualise the log of which
 # # epochs were dropped.
 
-# reject_criteria = dict(hbo=80e-6)
-# tmin, tmax = -5, 15
+reject_criteria = dict(hbo=80e-6)
+tmin, tmax = -5, 15
 
-# epochs = mne.Epochs(raw_haemo, events, event_id=event_dict,
-#                     tmin=tmin, tmax=tmax,
-#                     reject=reject_criteria, reject_by_annotation=True,
-#                     proj=True, baseline=(None, 0), preload=True,
-#                     detrend=None, verbose=True)
-# epochs.plot_drop_log()
+epochs = mne.Epochs(raw_haemo_a, mtg_a_events,
+                    tmin=tmin, tmax=tmax,
+                    reject=reject_criteria, reject_by_annotation=False,
+                    proj=True, baseline=(None, 0), preload=True,
+                    detrend=None, verbose=True)
+epochs.plot_drop_log()
+
+
+epochs = mne.Epochs(raw_haemo_b, mtg_b_events,
+                    tmin=tmin, tmax=tmax,
+                    reject=reject_criteria, reject_by_annotation=False,
+                    proj=True, baseline=(None, 0), preload=True,
+                    detrend=None, verbose=True)
+epochs.plot_drop_log()
 
 
 # ###############################################################################

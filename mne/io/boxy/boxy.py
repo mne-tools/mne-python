@@ -13,6 +13,7 @@ from ..meas_info import create_info
 from ...transforms import apply_trans, get_ras_to_neuromag_trans
 from ...utils import logger, verbose, fill_doc
 from ...channels.montage import make_dig_montage
+from ...annotations import Annotations
 
 
 @fill_doc
@@ -204,7 +205,7 @@ class RawBOXY(BaseRaw):
                 detect_coords.append(all_coords[chan_index])
 
         # Generate meaningful channel names for each montage
-        # get our unique labels for sources and detectors for each montage            
+        # get our unique labels for sources and detectors for each montage
         unique_source_labels = []
         unique_detect_labels = []
         for mtg_num, i_mtg in enumerate(mtg_chan_num, 0):
@@ -292,9 +293,11 @@ class RawBOXY(BaseRaw):
                                           rpa=fiducial_coords[2])
 
         # create info structure
-        info = create_info(boxy_labels, srate[0], ch_types='fnirs_raw')
+        ch_types = (['fnirs_raw' if i_chan < np.sum(mtg_chan_num) else 'stim'
+                     for i_chan, _ in enumerate(boxy_labels)])
+        info = create_info(boxy_labels, srate[0], ch_types=ch_types)
+        
         # add dig info
-
         # this also applies a transform to the data into neuromag space
         # based on fiducials
         info.set_montage(my_dig_montage)
@@ -313,9 +316,12 @@ class RawBOXY(BaseRaw):
                                                   fiducial_coords[2])
 
         for i_chan in range(len(boxy_labels)):
-            temp_ch_src_det = apply_trans(native_head_t,
-                                          boxy_coords[i_chan][:9].reshape(3, 3)
-                                          ).ravel()
+            if i_chan < np.sum(mtg_chan_num):
+                temp_ch_src_det = apply_trans(native_head_t,
+                                              boxy_coords[i_chan][:9].reshape(3, 3)
+                                              ).ravel()
+            else:
+                temp_ch_src_det = np.zeros(9,)#don't want to transform markers
             # add wavelength and placeholders
             temp_other = np.asarray(boxy_coords[i_chan][9:], dtype=np.float64)
             info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det,
@@ -329,7 +335,8 @@ class RawBOXY(BaseRaw):
                       'files': files,
                       'montages': mtg_names,
                       'blocks': blk_names,
-                      'data_types': data_types,}
+                      'data_types': data_types,
+                      }
         
         ###check to make sure data is the same length for each file
         ###boxy can be set to only record so many sample points per recording
