@@ -116,8 +116,8 @@ for ax, band_power, band in zip(axs,
     ax.set_axis_off()
     sc = ax.scatter(*xy_pts.T, c=band_power, s=200,
                     cmap=cmap, vmin=vmin, vmax=vmax)
-    ax.set_title(f'{band} frequency', size='large')
-fig.colorbar(sc, ax=ax)
+    ax.set_title(f'{band} band power', size='x-large')
+fig.colorbar(sc, ax=axs)
 
 ###############################################################################
 # Say we want to visualize the evolution of the power in the gamma band,
