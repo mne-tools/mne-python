@@ -139,20 +139,48 @@ class _WebInteractor(object):
     def configure_controllers(self):
         from ipywidgets import interactive, Label, VBox
         shape = self.renderer.shape
-        subplot_selector = interactive(self.renderer.subplot,
-                                       x=(0, shape[0] - 1),
-                                       y=(0, shape[1] - 1))
-        orientation_slider = interactive(self.set_camera,
-                                         azimuth=(0., 360., 10.),
-                                         elevation=(0., 180., 10.),
-                                         distance=(100., 1000., 50.))
+        self.unit_selector = interactive(
+            self.set_unit,
+            unit=["mm", "m"]
+        )
+        self.subplot_selector = interactive(
+            self.renderer.subplot,
+            x=(0, shape[0] - 1),
+            y=(0, shape[1] - 1)
+        )
+        self.camera_slider = interactive(
+            self.set_camera,
+            azimuth=(0., 360., 10.),
+            elevation=(0., 180., 10.),
+            distance=(0.1, 1., 0.05)
+        )
         controllers = VBox([
+            Label(value='Set the default unit'),
+            self.unit_selector,
             Label(value='Select the subplot'),
-            subplot_selector,
+            self.subplot_selector,
             Label(value='Camera settings'),
-            orientation_slider,
+            self.camera_slider,
         ])
         return controllers
+
+    def set_unit(self, unit):
+        unit_range = {
+            "m": (1.0, 0.1, 0.05),
+            "mm": (1000., 100., 50.),
+        }
+        for ch in self.camera_slider.children:
+            if hasattr(ch, "description") and ch.description == 'distance':
+                new_max = unit_range[unit][0]
+                new_min = unit_range[unit][1]
+                if new_max < ch.min:
+                    ch.min = new_min
+                    ch.max = new_max
+                else:
+                    ch.max = new_max
+                    ch.min = new_min
+                ch.step = unit_range[unit][2]
+                ch.value = (ch.min + ch.max) / 2.
 
     def set_camera(self, azimuth, elevation, distance):
         focalpoint = self.renderer.plotter.camera.GetFocalPoint()
