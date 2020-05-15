@@ -68,17 +68,12 @@ raw.set_montage(montage)
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
+# We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
+# data (along with xy positions of each electrode in the image), so that later
+# we can plot frequency band power on top of it.
 #
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
-#
-# Sometimes it is useful to make a scatterplot for the current figure view.
-# This is best accomplished with matplotlib. We can capture an image of the
-# current mayavi view, along with the xy position of each electrode, with the
-# `snapshot_brain_montage` function. We can then visualize for example the
-# gamma power on the brain using MNE and matplotlib functions.
-# Here, we'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot
-# as image data, so that later in the tutorial we can plot data on top of it.
 
 subjects_dir = sample_path + '/subjects'
 fig = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
