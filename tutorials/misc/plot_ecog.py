@@ -150,9 +150,10 @@ ax.set_axis_off()
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
                    cmap=cmap, vmin=vmin, vmax=vmax)
 fig.colorbar(paths, ax=ax)
-ax.set_title('Gamma frequency over time (Morlet wavelet)',
+ax.set_title('Gamma frequency over time (Hilbert transform)',
              size='large')
 
+# sphinx_gallery_thumbnail_number = 3
 # avoid edge artifacts and decimate, showing just a short chunk
 show_power = gamma_power_t[:, 100:-1700:2]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
