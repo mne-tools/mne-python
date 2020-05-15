@@ -2300,7 +2300,10 @@ def _animate(frame, ax, ax_line, params):
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=extent, interpolation='bilinear')
     cont_lims = params['cont_lims']
-    cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        cont = ax.contour(
+            Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
     im.set_clip_path(patch)
     for col in cont.collections:

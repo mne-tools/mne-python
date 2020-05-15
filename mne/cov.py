@@ -1653,22 +1653,17 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     cov : ndarray, shape (n_channels, n_channels)
         The covariance matrix.
     """
+    _validate_type(reg, (str, 'numeric', None))
     if reg is None:
         reg = 'empirical'
-    try:
+    elif not isinstance(reg, str):
         reg = float(reg)
-    except ValueError:
-        pass
-    if isinstance(reg, float):
         if method_params is not None:
             raise ValueError('If reg is a float, method_params must be None '
                              '(got %s)' % (type(method_params),))
         method_params = dict(shrinkage=dict(
             shrinkage=reg, assume_centered=True, store_precision=False))
         reg = 'shrinkage'
-    elif not isinstance(reg, str):
-        raise ValueError('reg must be a float, str, or None, got %s (%s)'
-                         % (reg, type(reg)))
     method, method_params = _check_method_params(
         reg, method_params, name='reg', allow_auto=False, rank=rank)
     # use mag instead of eeg here to avoid the cov EEG projection warning

@@ -16,8 +16,7 @@ from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
                  create_info, EpochsArray)
 from mne.decoding import Vectorizer
 from mne.io import read_raw_fif
-from mne.utils import (requires_sklearn, run_tests_if_main, check_version,
-                       _get_numpy_libs)
+from mne.utils import requires_sklearn, run_tests_if_main, check_version
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -196,8 +195,7 @@ def test_xdawn_regularization():
     xd = Xdawn(correct_overlap=False, reg='diagonal_fixed')
     xd.fit(epochs)
     bad_eig = (sys.platform.startswith('win') and
-               check_version('numpy', '1.16.5') and
-               'mkl_rt' in _get_numpy_libs())  # some problem with MKL on Win
+               check_version('numpy', '1.16.5'))  # some problem with on Win
     if bad_eig:
         pytest.skip('Unknown MKL+Windows error fails for eig check')
     xd = Xdawn(correct_overlap=False, reg=None)
