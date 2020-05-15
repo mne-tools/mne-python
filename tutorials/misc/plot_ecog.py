@@ -61,6 +61,7 @@ raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
 raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
+raw.crop(0, 2)  # just process 2 sec of data for speed
 
 # attach montage
 raw.set_montage(montage)
@@ -89,9 +90,13 @@ xy, im = snapshot_brain_montage(fig, montage)
 ###############################################################################
 # We then compute the signal power in certain frequency bands (e.g. 30-90 Hz).
 # We compute the power in gamma and alpha bands.
-gamma_power = np.sum(raw.copy().filter(30, 90).get_data() ** 2, axis=1)
-alpha_power = np.sum(raw.copy().filter(8, 12).get_data() ** 2, axis=1)
-
+gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
+    envelope=True).get_data()
+alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
+    envelope=True).get_data()
+gamma_power = gamma_power_t.mean(axis=-1)
+alpha_power = alpha_power_t.mean(axis=-1)
+# these have edge artifcat
 ###############################################################################
 # Now let's use matplotlib to overplot frequency band power onto the electrodes
 # which can be plotted on top of the brain from `snapshot_brain_montage`.
@@ -137,16 +142,6 @@ def animate(i, activity):
     return paths,
 
 
-# create an Epoch to use morlet wavelet transform
-events = [[raw.first_samp, 0, 1]]
-epochs = mne.Epochs(raw, events, tmin=0, tmax=raw.times[-1],
-                    baseline=None, preload=True)
-
-# compute time series of the gamma frequency band
-tfr_pwr, _ = mne.time_frequency.tfr_morlet(
-    epochs, freqs=np.linspace(30, 90), n_cycles=7)
-gamma_activity = tfr_pwr.data.mean(axis=1)
-
 # create the figure and apply the animation of the
 # gamma frequency band activity
 fig, ax = plt.subplots(figsize=(10, 10))
@@ -157,7 +152,10 @@ paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
 fig.colorbar(paths, ax=ax)
 ax.set_title('Gamma frequency over time (Morlet wavelet)',
              size='large')
+
+# avoid edge artifacts and decimate, showing just a short chunk
+show_power = gamma_power_t[:, 100:-1700:2]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
-                               fargs=(gamma_activity,),
-                               frames=gamma_activity.shape[1],
-                               interval=20, blit=True)
+                               fargs=(show_power,),
+                               frames=show_power.shape[1],
+                               interval=0.2, blit=True)
