@@ -501,6 +501,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         if x.ndim == 1:
             # slices
             clusters = ndimage.find_objects(labels, n_labels)
+            # equivalent to if len(clusters) == 0 but faster
             if not clusters:
                 sums = list()
             else:
