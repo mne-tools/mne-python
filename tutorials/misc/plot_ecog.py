@@ -103,8 +103,7 @@ xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 # colormap to view spectral power
 cmap = 'viridis'
 
-# create a 1x2 subplot showing a snapshot of the average power
-# in gamma and alpha frequency bands
+# Create a 1x2 figure showing the average power in gamma and alpha bands.
 fig, axs = plt.subplots(1, 2, figsize=(20, 10))
 # choose a colormap range wide enough for both frequency bands
 _gamma_alpha_power = np.concatenate((gamma_power, alpha_power)).flatten()
