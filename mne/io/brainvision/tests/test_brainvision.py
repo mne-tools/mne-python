@@ -681,31 +681,4 @@ def test_parse_impedance():
     assert_array_equal(expected_impedances, raw.impedances)
 
 
-def test_parse_segmentation():
-    """Test case for the segmentation section parsing."""
-    expected_segmentation = {
-        'type': 'MARKERBASED',
-        'data_points': 1100,
-        'averaged': 'YES',
-        'averaged_segments': 80,
-        'artifact_rejection': {
-            'Gradient': ['Disabled'],
-            'Max. Difference': ['Disabled'],
-            'Amplitude': ['Disabled'], 'Low Activity': ['Disabled'],
-            'Test Interval': ['Whole Segment'],
-            'Untested Channels': ['C3', ' C4', ' F3', ' F4', ' F7', ' F8',
-                                  ' Fp1', ' Fp2', ' O1', ' O2', ' P3', ' P4',
-                                  ' T3', ' T4', ' T5', 'T6']
-        },
-        'intervals': {'Prestimulus': {'unit': 'ms', 'duration': '100'},
-                      'Poststimulus': {'unit': 'ms', 'duration': '1000'}},
-        'averaging': {'Averaging': ['On'], 'Baseline Correction': ['On']},
-        'miscellaneous': {'Max. Segments': ['unlimited']}
-    }
-
-    with pytest.warns(RuntimeWarning, match='software filter'):
-        raw = read_raw_brainvision(vhdr_segmentation_impedance, eog=eog)
-    assert_array_equal(expected_segmentation, raw.segmentation)
-
-
 run_tests_if_main()
