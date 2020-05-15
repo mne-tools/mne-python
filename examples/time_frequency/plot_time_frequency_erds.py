@@ -78,7 +78,7 @@ vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 baseline = [-1, 0]  # baseline interval (in s)
 cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
 kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1,
-              buffer_size=None)  # for cluster test
+              buffer_size=None, out_type='mask')  # for cluster test
 
 # Run TF decomposition overall epochs
 tfr = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
