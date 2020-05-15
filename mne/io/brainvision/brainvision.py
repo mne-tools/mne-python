@@ -95,8 +95,7 @@ class RawBrainVision(BaseRaw):
 
         settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
         split_settings = settings.splitlines()
-        self.impedances = parse_impedance(split_settings)
-        self.segmentation = _parse_segmentation(split_settings, cfg, cinfo)
+        self.impedances = _parse_impedance(split_settings)
 
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
@@ -850,7 +849,7 @@ def _check_bv_annot(descriptions):
     return len(markers_basename - bv_markers) == 0
 
 
-def parse_impedance(settings):
+def _parse_impedance(settings):
     """Parse impedances from the header file.
 
     Parameters
@@ -930,147 +929,3 @@ def _parse_impedance_ranges(settings):
                     "imp_range_unit": electrode_range[9]
                 }
     return electrode_imp_ranges
-
-
-def _parse_segmentation(settings, cfg, common_info):
-    """Parse the segmentation/averaging section of the header.
-
-    Parameters
-    ----------
-    settings : list
-        the header settings lines
-    cfg : ConfigParser
-        cfg of the header file returned by _aux_vhdr_info
-    common_info : str
-        cinfostr from the BrainVision header parser
-
-    Returns
-    -------
-    dict : The parsed segmentation sections with their
-        key-value pairs as a dict
-    """
-    segmentation = dict()
-    if 'S e g m e n t a t i o n  /  A v e r a g i n g' in settings:
-        idx = settings.index('S e g m e n t a t i o n  /  A v e r a g i n g')
-        segmentation_settings = settings[idx:]
-        segmentation = _parse_basic_segmentation(cfg, common_info)
-
-        if "Markers" in segmentation_settings:
-            idx = segmentation_settings.index("Markers")
-            markers = list()
-            for setting in segmentation_settings[idx + 2:]:
-                if re.match(r'(\t)?\w', setting):
-                    markers.append(setting.strip())
-                else:
-                    break
-            segmentation["artifact_rejection"] = markers
-
-        if "Interval" in segmentation_settings:
-            idx = segmentation_settings.index("Interval")
-            intervals = dict()
-            for setting in segmentation_settings[idx + 2:]:
-                if re.match(r'(\t)?\w', setting):
-                    interval_setting = setting.split()
-                    intervals[interval_setting[0]] = {
-                        "unit": interval_setting[1].lstrip('[').rstrip(']:'),
-                        "duration": interval_setting[2]
-                    }
-                else:
-                    break
-            segmentation["intervals"] = intervals
-
-        if "Averaging" in segmentation_settings:
-            segmentation["averaging"] = _get_segmentation_key_values(
-                segmentation_settings,
-                segmentation_settings.index("Averaging"),
-                " is "
-            )
-
-        if "Artifact Rejection" in segmentation_settings:
-            segmentation["artifact_rejection"] = _get_segmentation_key_values(
-                segmentation_settings,
-                segmentation_settings.index("Artifact Rejection")
-            )
-
-        if "Miscellaneous" in segmentation_settings:
-            segmentation["miscellaneous"] = _get_segmentation_key_values(
-                segmentation_settings,
-                segmentation_settings.index("Miscellaneous")
-            )
-
-    return segmentation
-
-
-def _parse_basic_segmentation(cfg, common_info):
-    """Parse the segmentation info from the Common Infos section.
-
-    Parameters
-    ----------
-    settings : list
-        the header settings lines
-    cfg : ConfigParser
-        cfg of the header file returned by _aux_vhdr_info
-    common_info : str
-        cinfostr from the BrainVision header parser
-
-    Returns
-    -------
-    dict : The parsed segmentation key-values pairs
-        from the Common Infos section
-    """
-    segmentation = dict()
-
-    seg_type = cfg.get(common_info, "SegmentationType")
-    if seg_type:
-        segmentation["type"] = seg_type
-    seg_data_points = cfg.getint(common_info, "SegmentDataPoints")
-    if seg_data_points:
-        segmentation["data_points"] = seg_data_points
-    seg_averaged = cfg.get(common_info, "Averaged")
-    if seg_averaged:
-        segmentation["averaged"] = seg_averaged
-    seg_averaged_segments = cfg.getint(common_info, "AveragedSegments")
-    if seg_averaged_segments:
-        segmentation["averaged_segments"] = seg_averaged_segments
-
-    return segmentation
-
-
-def _get_segmentation_key_values(segmentation_settings, idx, delimiter=":"):
-    """Parse the key value pairs from the Segmentation / Averaging section.
-
-    Default delimiter is ':' where left side is considered the key,
-    and right side is the value.
-
-    Values are parsed into arrays, elements can be split with a comma ','
-    Stops the parsing when the first empty setting line is found
-
-    Parameters
-    ----------
-    segmentation_settings : list
-        the header settings lines
-    idx : int
-        starting index in the settings
-    delimiter : str
-        delimiter to split the key and value
-
-    Returns
-    -------
-    dict : The parsed key and values
-    """
-    key_name = None
-    values = dict()
-    for setting in segmentation_settings[idx + 2:]:
-        if re.match(r'(\t)?\w', setting):
-            setting = setting.split(delimiter)
-            key_name = setting[0].strip()
-            key_values = setting[1].strip().split(',')
-            values[key_name] = key_values if key_values[0] != '' else []
-        elif re.match(r'\t\t\w', setting) and key_name is not None:
-            key_values = setting.strip().split(',')
-            for val in key_values:
-                if val != '':
-                    values[key_name].append(val)
-        else:
-            break
-    return values
