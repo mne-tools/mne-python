@@ -83,8 +83,8 @@ mne.viz.set_3d_view(fig, 200, 70)
 xy, im = snapshot_brain_montage(fig, montage)
 
 ###############################################################################
-# We then compute the signal power in certain frequency bands (e.g. 30-90 Hz).
-# We compute the power in gamma and alpha bands.
+# Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
+# (8-12 Hz) bands.
 gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
     envelope=True).get_data()
 alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
