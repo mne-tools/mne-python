@@ -454,8 +454,8 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 else:
                     len_c = len(c)
                 scores[c] += h * (len_c ** e_power)
-    # turn sums into ndarray after running
-    sums = np.concatenate(sums) if sums else np.empty(0)
+    # turn sums into array
+    sums = np.concatenate(sums) if sums else np.array([])
     if tfce:
         # each point gets treated independently
         clusters = np.arange(x.size)
@@ -514,15 +514,15 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         else:
             # boolean masks (raveled)
             clusters = list()
-            sums = list()
-            for label in range(1, n_labels + 1):
-                c = labels == label
+            sums = np.empty(n_labels)
+            for label in range(n_labels):
+                c = labels == label + 1
                 clusters.append(c.ravel())
                 if t_power == 1:
-                    sums.append(np.sum(x[c]))
+                    sums[label] = np.sum(x[c])
                 else:
-                    sums.append(np.sum(np.sign(x[c]) *
-                                       np.abs(x[c]) ** t_power))
+                    sums[label] = np.sum(np.sign(x[c]) *
+                                         np.abs(x[c]) ** t_power)
     else:
         if x.ndim > 1:
             raise Exception("Data should be 1D when using a connectivity "
