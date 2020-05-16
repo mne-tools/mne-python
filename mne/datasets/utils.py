@@ -239,7 +239,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.85', misc='0.5')
+    releases = dict(testing='0.85', misc='0.6')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -321,7 +321,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='84e606998ac379ef53029b3b1cf37918',
+        misc='e00808c3b05123059e2cf49ff276e919',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='ea825966c0a1e9b2f84e3826c5500161',
         spm='9f43f67150e3b694b523a21eb929ea75',
