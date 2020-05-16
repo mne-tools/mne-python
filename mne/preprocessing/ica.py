@@ -1115,6 +1115,28 @@ class ICA(ContainsMixin):
 
         return labels, scores
 
+    def _get_ctps_threshold(self, Pk_threshold=1e-20):
+        """Automatically decide the Kuiper index threshold for CTPS method.
+
+        References
+        ----------
+        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
+            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
+            and phase statistics for complete artifact removal in independent
+            components of neuromagnetic recordings. Biomedical
+            Engineering, IEEE Transactions on 55 (10), 2353-2362.
+        """
+        N = self.info['sfreq']
+        vs = [x / 100 for x in range(1, 100)]
+        Pks = list()
+        C = np.sqrt(N) + 0.155 + 0.24 / np.sqrt(N)
+        # when k gets large, only k=1 matters for the summation
+        # k*v*C thus becomes v*C
+        for v in vs:
+            Pk = 2 * (4 * (v * C)**2 - 1) * (np.exp(-2 * (v * C)**2))
+            Pks.append(abs(Pk - Pk_threshold))
+        return vs[Pks.index(min(Pks))]
+
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
@@ -1198,7 +1220,13 @@ class ICA(ContainsMixin):
 
         if method == 'ctps':
             if threshold is None:
+                warn('The default threshold will change from 0.25 to automatic'
+                     'computation in version 0.22.', DeprecationWarning)
                 threshold = 0.25
+                # TODO: defaults to automatic computation in v0.22
+                # threshold = self._get_ctps_threshold()
+                # logger.info('Using threshold: %.2f for CTPS ECG detection'
+                #             % threshold)
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
                     inst, ch_name, l_freq=l_freq, h_freq=h_freq,

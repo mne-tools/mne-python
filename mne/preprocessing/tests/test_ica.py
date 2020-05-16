@@ -412,7 +412,8 @@ def test_ica_additional(method):
 
     ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
     _assert_ica_attributes(ica)
-
+    # check Kuiper index threshold
+    assert_equal(ica._get_ctps_threshold(), 0.21)
     # check passing a ch_name to find_bads_ecg
     with pytest.warns(RuntimeWarning, match='longer'):
         _, scores_1 = ica.find_bads_ecg(raw)
