@@ -257,17 +257,25 @@ class ContainsMixin(object):
         coord_frame : str
             The coordinate frame of the montage's xyz coordinates.
         """
-        # get the channel positions
+        # only get channels that were picked
         picks = _picks_to_idx(self.info, picks)
-        chs = self.info['chs']
-        ch_names = self.info['ch_names']
-        pos = np.array([chs[k]['loc'][:3] for k in picks])
+        chs = [self.info['chs'][ipick] for ipick in picks]
+
+        # extract name, position, orientation (for MEG)
+        ch_names, ch_pos = [], []
+        for ch in chs:
+            ch_names.append(ch['ch_name'])
+            if ch['kind'] == FIFF.FIFFV_MEG_CH:
+                pos = ch['loc']
+            else:
+                pos = ch['loc'][:3]
+            ch_pos.append(pos)
 
         # extract landmark coords and coordinate frame
-        _, coord_frame_int = _get_fid_coords(self.info['dig'])
+        coord_frame_int = chs.pop()['coord_frame']
         coord_frame = _frame_to_str[coord_frame_int]
 
-        return dict(zip(ch_names, pos)), coord_frame
+        return dict(zip(ch_names, ch_pos)), coord_frame
 
     @fill_doc
     def get_montage(self):

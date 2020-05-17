@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
 from mne.fixes import nullcontext
-from mne.utils._testing import _dig_sort_key
+from mne.utils._testing import _dig_sort_key, assert_object_equal
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
                           read_dig_captrack,  # XXX: remove with 0.22
@@ -43,9 +43,13 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_fiducials, __file__ as _MNE_IO_FILE)
 
 from mne.io import RawArray
-from mne.datasets import testing
+from mne.datasets import testing, sample
 from mne.io.brainvision import __file__ as _BRAINVISON_FILE
 
+
+sample_data_folder = sample.data_path()
+sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                    'sample_audvis_raw.fif')
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
@@ -1304,35 +1308,49 @@ def test_set_montage_with_missing_coordinates():
     )
 
 
-def test_get_channel_coordinates():
-    """Test get montage and its coordinates."""
-    N_CHANNELS = 3
-
-    # create toy dataset
-    raw = _make_toy_raw(N_CHANNELS)
-    raw.set_channel_types({ch: 'ecog' for ch in raw.ch_names})
-    ch_names = raw.ch_names
-    n_channels = len(ch_names)
-    ch_coords = np.arange(n_channels * 3).reshape(n_channels, 3)
-    montage = make_dig_montage(
-        ch_pos=dict(zip(ch_names, ch_coords,)),
-        nasion=[0, 1, 0], lpa=[1, 0, 0], rpa=[-1, 0, 0],
-        coord_frame='head'
-    )
+def test_get_ch_positions():
+    """Test getting channel positions from Instance."""
+    # read in testing data and assert montage roundtrip
+    raw = read_raw_fif(fif_fname)
+    montage = make_standard_montage('mgh60')
+    # set the montage; note renaming to make standard montage map
+    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
     raw.set_montage(montage)
 
-    # get coordinates of the set montage
+    # get the montage channel positions
+    # and get the channel positions from Raw
+    # they should match
+    montage_ch_pos = montage._get_ch_pos()
     ch_positions, coord_frame = raw.get_ch_positions()
-    test_ch_coords = list(ch_positions.values())
+    # assert_object_equal(ch_positions, montage_ch_pos)
     assert coord_frame == 'head'
-    assert_array_equal(ch_coords, test_ch_coords)
 
-    # get montage back and it should be the same
-    test_montage = raw.get_montage()
-    raw.set_montage(test_montage)
-    assert_array_equal(_get_dig_montage_pos(montage),
-                       _get_dig_montage_pos(test_montage))
+    # read in testing data and assert montage roundtrip
+    raw = read_raw_fif(fif_fname)
+    montage = make_standard_montage('mgh60')
+    # set the montage; note renaming to make standard montage map
+    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
+    raw.set_montage(montage)
+    ch_positions, coord_frame = raw.get_ch_positions()
+    montage_ch_pos = montage._get_ch_pos()
+    assert_object_equal(ch_positions, montage_ch_pos)
 
+    # read in BV test dataset and make sure montage
+    # fulfills roundtrip on non-standard montage
+    dig_montage = read_dig_fif(fif_dig_montage_fname)
+
+    # Make a BrainVision file like the one the user would have had
+    raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    raw_bv_2 = raw_bv.copy()
+    mapping = dict()
+    for ii, ch_name in enumerate(raw_bv.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 1,)
+    raw_bv.rename_channels(mapping)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 33,)
+
+def test_get_montage():
+    """Test get montage from Instance."""
     # read in testing data and assert montage roundtrip
     raw = read_raw_fif(fif_fname)
     montage = make_standard_montage('mgh60')
@@ -1347,11 +1365,7 @@ def test_get_channel_coordinates():
     test_montage = raw.get_montage()
     raw.set_montage(test_montage, on_missing='ignore')
     test_chs = raw.info['chs']
-    assert_array_equal([ch['loc'] for ch in orig_chs],
-                       [ch['loc'] for ch in test_chs])
-    # XXX: dig montage doesn't maintain ordering...
-    # assert_array_equal(_get_dig_montage_pos(montage),
-    #                    _get_dig_montage_pos(test_montage))
+    assert_object_equal(orig_chs, test_chs)
 
     # read in BV test dataset and make sure montage
     # fulfills roundtrip on non-standard montage
@@ -1377,8 +1391,17 @@ def test_get_channel_coordinates():
     test_montage = raw_bv.get_montage()
     raw_bv.set_montage(test_montage, on_missing='ignore')
     test_chs = raw_bv.info['chs']
-    assert_array_equal([ch['loc'] for ch in orig_chs],
-                       [ch['loc'] for ch in test_chs])
+    assert_object_equal(orig_chs, test_chs)
+
+    # load in MEG data file and use standard template montage
+    raw = read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
+    ten_twenty_montage = make_standard_montage('standard_1020')
+    raw.set_montage(ten_twenty_montage, on_missing='ignore')
+    orig_chs = raw.info['chs']
+    test_montage = raw.get_montage()
+    raw.set_montage(test_montage, on_missing='ignore')
+    test_chs = raw.info['chs']
+    assert_object_equal(orig_chs, test_chs)
 
 
 def test_read_dig_hpts():
