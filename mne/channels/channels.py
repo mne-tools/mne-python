@@ -246,7 +246,7 @@ class ContainsMixin(object):
         Parameters
         ----------
         picks : str | list | slice | None
-            None gets good data indices.
+            None corresponds to all data channels that are not MEG.
 
         Returns
         -------
