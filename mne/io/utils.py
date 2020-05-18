@@ -305,6 +305,6 @@ def _construct_bids_filename(base, ext, part_idx):
             idx = deconstructed_base.index(mod)
             modality = deconstructed_base.pop(idx)
     base = '_'.join(deconstructed_base)
-    use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
+    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, modality, ext)
 
     return use_fname
