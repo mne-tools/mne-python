@@ -208,7 +208,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         Gk = _reduce_leadfield_rank(Gk)
 
     #
-    # 1. Compute max power orientation
+    # 1. Compute max power orientation if applicable
     #
     if pick_ori == 'max-power':
         # compute the numerator of the weight formula
@@ -216,14 +216,16 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                                     Cm_inv[np.newaxis]), Gk)
         if weight_norm is None:
             # compute covariance as shortcut, cf Van Veen 1997
-            ori_pick = np.linalg.pinv(numer)  # TODO: sym_inv?
+            # TODO is _sym_inv okay or should be np.linalg.pinv() ?
+            ori_pick = _sym_inv(numer, reduce_rank)
         else:
             assert weight_norm in ['unit-noise-gain', 'nai']
 
             # compute power, cf Sekihara & Nagarajan 2008, eq. 4.47
             denom = np.matmul(np.matmul(Gk.transpose(0, 2, 1),
                                         Cm_inv_sq[np.newaxis]), Gk)
-            ori_pick = np.matmul(np.linalg.pinv(denom), numer)  # TODO: sym_inv
+            # TODO is _sym_inv okay or should be np.linalg.pinv() ?
+            ori_pick = np.matmul(_sym_inv(denom, reduce_rank), numer)
 
         # TODO: bring back single inversion
         # # Compute the power
@@ -258,24 +260,18 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         n_orient = 1
 
     #
-    # 2. Compute numerator and denominator of beamformer formula
+    # 2. Compute numerator and denominator of beamformer formula (unit-gain)
     #
 
     # numer = G.T @ Cm_inv
+    # denom = G.T @ Cm_inv @ G
     numer = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
-
-    if weight_norm is None:
-        denom = np.matmul(numer, Gk)  # denom = G.T @ Cm_inv @ G
-    else:
-        # denom = sqrt(G.T @ Cm_inv**2 @ G)
-        denom = np.matmul(np.matmul(Gk.transpose(0, 2, 1),
-                                    Cm_inv_sq[np.newaxis]), Gk)
-        denom = np.sqrt(denom)
-        # TODO: nai
+    denom = np.matmul(numer, Gk)
 
     #
-    # 3. Normalize the spatial filters
+    # 3. Invert the denominator
     #
+
     if n_orient > 1:
         # Free source orientation
         if inversion == 'single':
@@ -291,13 +287,14 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         else:
             assert inversion == 'matrix'
             assert denom.shape[1:] == (3, 3)
+            # TODO is any of this still needed?
             # Invert for all dipoles simultaneously using matrix inversion.
             # if pick_ori == 'max-power' and weight_norm is not None:
             #     # G.T @ Cm_inv @ Cm_inv @ G == Wk @ Wk.H
             #     norm_inv = np.matmul(numer, np.swapaxes(numer, -2, -1).conj())
             # else:
             #     # Wk @ Gk
-            #     norm_inv = denom # TODO bring back?
+            #     norm_inv = denom
             norm = _sym_inv(denom, reduce_rank)
         # Reapply source covariance after inversion
         norm *= sk[:, :, np.newaxis]
@@ -312,57 +309,65 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     assert numer.shape == (n_sources, n_orient, n_channels)
 
     # do the normalization of the filters
-    W = np.squeeze(np.matmul(norm, numer))  # np.dot for each source
+    W = np.matmul(norm, numer)  # np.dot for each source
 
     #
-    # 4. Do the picking
+    # 4. Do the picking and reshaping
     #
 
-    if pick_ori == 'normal':
+    if pick_ori == 'max-power':
+        W = np.squeeze(W)
+    elif pick_ori == 'normal':
         W = W[:, 2]
         max_power_ori = None
     else:
         W = W.reshape(n_sources * n_orient, n_channels)
         max_power_ori = None
 
-    # del Gk, numer, sk
+    del Gk, numer, sk
 
     #
     # 5. Re-scale filter weights according to the selected weight_norm
     #
-    # if weight_norm is not None:
-    #     if pick_ori in [None, 'vector'] and n_orient > 1:
-    #         # Rescale each set of 3 filters
-    #         W = W.reshape(-1, 3, W.shape[-1])
-    #         noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
-    #     else:
-    #         # Rescale each filter separately
-    #         noise_norm = np.linalg.norm(W, axis=1, keepdims=True)
+    # Weight normalization is done by computing:
+    # W_ung = inv(sqrt(W_ug @ W_ug.T)) @ W_ug
+    # with W_ung referring to the unit-noise-gain (weight normalized) filter
+    # and W_ug referring to the above-calculated unit-gain filter stored in W
 
-    #     if weight_norm == 'nai':
-    #         # Estimate noise level based on covariance matrix, taking the
-    #         # first eigenvalue that falls outside the signal subspace or the
-    #         # loading factor used during regularization, whichever is largest.
-    #         if rank > len(Cm):
-    #             # Covariance matrix is full rank, no noise subspace!
-    #             # Use the loading factor as noise ceiling.
-    #             if loading_factor == 0:
-    #                 raise RuntimeError(
-    #                     'Cannot compute noise subspace with a full-rank '
-    #                     'covariance matrix and no regularization. Try '
-    #                     'manually specifying the rank of the covariance '
-    #                     'matrix or using regularization.')
-    #             noise = loading_factor
-    #         else:
-    #             noise, _ = linalg.eigh(Cm)
-    #             noise = noise[-rank]
-    #             noise = max(noise, loading_factor)
-    #         noise_norm *= np.sqrt(noise)
+    if weight_norm is not None:
+        if pick_ori in [None, 'vector'] and n_orient > 1:
+            # Rescale each set of 3 filters
+            # TODO is this conform with Sekihara & Nagarajan 2008 ?
+            W = W.reshape(-1, 3, W.shape[-1])
+            noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
+        else:
+            # Compute sqrt(W_ug @ W_ug.T)
+            noise_norm = np.linalg.norm(W, axis=1, keepdims=True)
 
-    #     # Apply the normalization
-    #     noise_norm_inv = 1 / np.where(noise_norm > 0, noise_norm, 1.)
-    #     W *= noise_norm_inv
-    #     W = W.reshape(-1, W.shape[-1])
+        if weight_norm == 'nai':
+            # Estimate noise level based on covariance matrix, taking the
+            # first eigenvalue that falls outside the signal subspace or the
+            # loading factor used during regularization, whichever is largest.
+            if rank > len(Cm):
+                # Covariance matrix is full rank, no noise subspace!
+                # Use the loading factor as noise ceiling.
+                if loading_factor == 0:
+                    raise RuntimeError(
+                        'Cannot compute noise subspace with a full-rank '
+                        'covariance matrix and no regularization. Try '
+                        'manually specifying the rank of the covariance '
+                        'matrix or using regularization.')
+                noise = loading_factor
+            else:
+                noise, _ = linalg.eigh(Cm)
+                noise = noise[-rank]
+                noise = max(noise, loading_factor)
+            noise_norm *= np.sqrt(noise)
+
+        # Apply the normalization: W_ung = W_ug / noise_norm
+        noise_norm_inv = 1 / np.where(noise_norm > 0, noise_norm, 1.)
+        W *= noise_norm_inv
+        W = W.reshape(-1, W.shape[-1])
 
     logger.info('Filter computation complete')
     return W, max_power_ori
