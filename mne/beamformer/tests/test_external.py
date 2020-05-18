@@ -93,7 +93,7 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
 
     # calculate the Pearson correlation between the source solutions:
     pearson = np.corrcoef(stc_mne.data.ravel(), stc_ft.data.ravel())[0, 1]
-    assert pearson >= 0.99
+    assert pearson >= 0.9999  # slight differences slipped before
 
 
 run_tests_if_main()
