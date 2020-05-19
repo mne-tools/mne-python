@@ -28,11 +28,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 import types
 import sys
+from warnings import warn
+
 import numpy
 import scipy.io
 
 if sys.version_info <= (2, 7):
     chr = unichr  # noqa This is needed for python 2 and 3 compatibility
+
+standard_matlab_classes = ('char', 'cell', 'float', 'double', 'int',
+                           'int8', 'int16', 'int32',
+                           'int64', 'uint', 'uint8', 'uint16', 'logical',
+                           'uint32', 'uint64', 'struct', 'unknown')
 
 
 def _import_h5py():
@@ -105,33 +112,48 @@ def _handle_hdf5_dataset(hdf5_object):
         # this used to be just hdf5_object.value, but this is deprecated
         data = hdf5_object[()]
 
+    matlab_class = hdf5_object.attrs.get('MATLAB_class', b'unknown').decode()
+
+    if matlab_class not in standard_matlab_classes:
+        warn('Complex objects (like classes) are not supported. '
+             'They are imported on a best effort base '
+             'but your mileage will vary.')
+
     if isinstance(data, numpy.ndarray) and \
             data.dtype == numpy.dtype('object'):
 
         data = [hdf5_object.file[cur_data] for cur_data in data.flatten()]
-        if len(data) == 1 and hdf5_object.attrs['MATLAB_class'] == b'cell':
+        if len(data) == 1 and matlab_class == 'cell':
             data = data[0]
+            matlab_class = data.attrs.get('MATLAB_class',
+                                          matlab_class).decode()
             data = data[()]
-            return _assign_types(data)
+            return _assign_types(data, matlab_class)
 
         data = _hdf5todict(data)
 
-    return _assign_types(data)
+    return _assign_types(data, matlab_class)
 
 
 def _convert_string_hdf5(values):
     if values.size > 1:
         assigned_values = u''.join(chr(c) for c in values.flatten())
     else:
-        assigned_values = chr(values)
+        try:
+            assigned_values = chr(values)
+        except TypeError:
+            assigned_values = numpy.array([])
 
     return assigned_values
 
 
-def _assign_types(values):
+def _assign_types(values, matlab_class):
     """private function, which assigns correct types to h5py extracted values
     from _browse_dataset()"""
-    if type(values) == numpy.ndarray:
+    if matlab_class == 'char':
+        values = numpy.squeeze(values).T
+        assigned_values = _handle_hdf5_strings(values)
+    elif type(values) == numpy.ndarray:
         assigned_values = _handle_ndarray(values)
     elif type(values) == numpy.float64:
         assigned_values = float(values)
@@ -143,8 +165,9 @@ def _assign_types(values):
 def _handle_ndarray(values):
     """Handle conversion of ndarrays."""
     values = numpy.squeeze(values).T
-    if values.dtype in ("uint8", "uint16", "uint32"):
-        values = _handle_hdf5_strings(values)
+    if (isinstance(values, numpy.ndarray) and
+            values.dtype.names == ('real', 'imag')):
+        values = numpy.array(values.view(numpy.complex))
 
     if isinstance(values, numpy.ndarray) and \
             values.size == 1:
@@ -185,6 +208,11 @@ def _check_for_scipy_mat_struct(data):
     if isinstance(data, dict):
         for key in data:
             data[key] = _check_for_scipy_mat_struct(data[key])
+
+    if isinstance(data, scipy.io.matlab.mio5_params.MatlabOpaque):
+        warn('Complex objects (like classes) are not supported. '
+             'They are imported on a best effort base '
+             'but your mileage will vary.')
 
     if isinstance(data, numpy.ndarray):
         data = _handle_scipy_ndarray(data)
