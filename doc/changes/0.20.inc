@@ -15,6 +15,17 @@ Version 0.20.4
 Bug
 ~~~
 
+- BIDS conformity: When saving FIF files to disk and the files are split into parts, the ``split_naming='bids'`` parameter now uses a "_split-%d" naming instead of the previous "_part-%d", by `Stefan Appelhoff`_
+
+
+.. _changes_0_20_4:
+
+Version 0.20.4
+--------------
+
+Bug
+~~~
+
 - Restore ability to use ``raise_if_subset`` in 0.20 in :meth:`mne.io.Raw.set_montage` and related functions by `Clemens Brunner`_
 
 - Add ability to load NIRX data by passing path to header file by `Robert Luke`_
