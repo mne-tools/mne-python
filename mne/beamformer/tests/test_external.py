@@ -85,7 +85,7 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     else:
         stc_mne = apply_lcmv(evoked, filters)
         # take the absolute value, since orientation can be flipped
-        stc_mne.data[:, :] = np.abs(stc_mne.data)
+        stc_mne = abs(stc_mne)
 
     # load the FieldTrip output
     ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.stc')

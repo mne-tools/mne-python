@@ -206,24 +206,35 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         Gk = _reduce_leadfield_rank(Gk)
 
     #
-    # 1. Compute max power orientation if applicable
+    # 1. Compute numerator and denominator of beamformer formula (unit-gain)
+    #
+
+    # G.T @ Cm_inv
+    bf_numer = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
+    # G.T @ Cm_inv @ G
+    bf_denom = np.matmul(bf_numer, Gk)
+    assert bf_denom.shape == (n_sources,) + (n_orient,) * 2
+    assert bf_numer.shape == (n_sources, n_orient, n_channels)
+
+    #
+    # 2. Max power orientation:
+    #    - Compute max power ori
+    #    - Rotate/subselect gain matrix
+    #    - Recompute bf_numer/denom
     #
     if pick_ori == 'max-power':
         # compute the numerator of the weight formula
-        numer = np.matmul(np.matmul(Gk.transpose(0, 2, 1),
-                                    Cm_inv[np.newaxis]), Gk)
         if weight_norm is None:
-            # compute covariance as shortcut, cf Van Veen 1997
-            # TODO is _sym_inv okay or should be np.linalg.pinv() ?
-            ori_pick = _sym_inv(numer, reduce_rank)
+            ori_denom = bf_denom
+            ori_numer = np.eye(3)[np.newaxis]
         else:
             assert weight_norm in ['unit-noise-gain', 'nai']
             # compute power, cf Sekihara & Nagarajan 2008, eq. 4.47
             Cm_inv_sq = Cm_inv.dot(Cm_inv)
-            denom = np.matmul(np.matmul(Gk.transpose(0, 2, 1),
-                                        Cm_inv_sq[np.newaxis]), Gk)
-            # TODO is _sym_inv okay or should be np.linalg.pinv() ?
-            ori_pick = np.matmul(_sym_inv(denom, reduce_rank), numer)
+            ori_denom = np.matmul(
+                np.matmul(Gk.transpose(0, 2, 1), Cm_inv_sq[np.newaxis]), Gk)
+            ori_numer = bf_denom
+        ori_pick = np.matmul(_sym_inv(ori_denom, reduce_rank), ori_numer)
 
         # TODO: single inversion for ori selection is currently missing
         # # Compute the power
@@ -249,25 +260,23 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         max_power_ori = eig_vecs[:, :, 0]  # sorted eigenvecs in columns
         assert max_power_ori.shape == (n_sources, 3)
 
-        # TODO bring back - this completely destroys the relationship to
-        # external tests now. Probably should not be done on lead field?
         # set the (otherwise arbitrary) sign to match the normal
-        # signs = np.sign(np.sum(max_power_ori[:, np.newaxis] * nn, axis=1))
-        # signs[signs == 0] = 1.
-        # max_power_ori *= signs
+        signs = np.sign(np.sum(max_power_ori[:, np.newaxis] * nn, axis=1))
+        signs[signs == 0] = 1.
+        signs[:] = 1
+        max_power_ori *= signs
 
-        # Compute the lead field for the optimal orientation
+        # Compute the lead field for the optimal orientation,
+        # and adjust numer/denom
         Gk = np.matmul(Gk, max_power_ori[:, :, np.newaxis])
         n_orient = 1
-
-    #
-    # 2. Compute numerator and denominator of beamformer formula (unit-gain)
-    #
-
-    # numer = G.T @ Cm_inv
-    # denom = G.T @ Cm_inv @ G
-    numer = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
-    denom = np.matmul(numer, Gk)
+        bf_numer = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
+        bf_denom = np.matmul(bf_numer, Gk)
+        assert bf_denom.shape == (n_sources,) + (n_orient,) * 2
+        assert bf_numer.shape == (n_sources, n_orient, n_channels)
+    else:
+        max_power_ori = None
+    del Gk  # lead field has been adjusted and should not be used anymore
 
     #
     # 3. Invert the denominator
@@ -277,59 +286,44 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # Free source orientation
         if inversion == 'single':
             # Invert for each dipole separately using plain division
-            diags = np.diagonal(denom, axis1=1, axis2=2)
+            diags = np.diagonal(bf_denom, axis1=1, axis2=2)
             assert not reduce_rank   # guaranteed above
             with np.errstate(divide='ignore'):
                 diags = 1. / diags
             # set the diagonal of each 3x3
-            norm = np.zeros((n_sources, n_orient, n_orient), denom.dtype)
+            bf_denom_inv = np.zeros((n_sources, n_orient, n_orient), bf_denom.dtype)
             for k in range(n_sources):
-                norm[k].flat[::4] = diags[k]
+                bf_denom_inv[k].flat[::4] = diags[k]
         else:
             assert inversion == 'matrix'
-            assert denom.shape[1:] == (3, 3)
-            # TODO is any of this still needed? - I guess not?
-            # Invert for all dipoles simultaneously using matrix inversion.
-            # if pick_ori == 'max-power' and weight_norm is not None:
-            #     # G.T @ Cm_inv @ Cm_inv @ G == Wk @ Wk.H
-            #     norm_inv = np.matmul(numer, np.swapaxes(numer, -2, -1).conj())
-            # else:
-            #     # Wk @ Gk
-            #     norm_inv = denom
-            norm = _sym_inv(denom, reduce_rank)
+            bf_denom_inv = _sym_inv(bf_denom, reduce_rank)
         # Reapply source covariance after inversion
-        norm *= sk[:, :, np.newaxis]
-        norm *= sk[:, np.newaxis, :]
+        bf_denom_inv *= sk[:, :, np.newaxis]
+        bf_denom_inv *= sk[:, np.newaxis, :]
     else:  # n_orient == 1
-        assert denom.shape[1:] == (1, 1)
         # Fixed source orientation
         with np.errstate(divide='ignore'):
-            norm = 1. / denom
-        norm[~np.isfinite(norm)] = 1.
-    assert norm.shape == (n_sources, n_orient, n_orient)
-    assert numer.shape == (n_sources, n_orient, n_channels)
+            bf_denom_inv = 1. / bf_denom
+        bf_denom_inv[~np.isfinite(bf_denom_inv)] = 1.
+    assert bf_denom_inv.shape == (n_sources, n_orient, n_orient)
 
     # do the normalization of the filters
-    W = np.matmul(norm, numer)  # np.dot for each source
+    W = np.matmul(bf_denom_inv, bf_numer)  # np.dot for each source
+    del bf_numer, bf_denom, bf_denom_inv, sk
 
     #
-    # 4. Do the picking and reshaping
+    # 4. Do normal picking and reshaping
     #
 
-    if pick_ori == 'max-power':
-        W = np.squeeze(W)
-    elif pick_ori == 'normal':
+    if pick_ori == 'normal':
         W = W[:, 2]
-        max_power_ori = None
-    else:
-        W = W.reshape(n_sources * n_orient, n_channels)
-        max_power_ori = None
-
-    del Gk, numer, sk
+        n_orient = 1
+    W = W.reshape(n_sources * n_orient, n_channels)
 
     #
     # 5. Re-scale filter weights according to the selected weight_norm
     #
+
     # Weight normalization is done by computing:
     # W_ung = inv(sqrt(W_ug @ W_ug.T)) @ W_ug
     # with W_ung referring to the unit-noise-gain (weight normalized) filter
