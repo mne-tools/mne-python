@@ -254,8 +254,9 @@ class ContainsMixin(object):
             A dictionary with keys as the ch_names and values as
              corresponding list of xyz coordinates in the montage
              coordinate frame.
-        coord_frame : str
-            The coordinate frame of the montage's xyz coordinates.
+        ch_frame_dict : dict
+            A dictionary with keys as the ch_names and values as
+             corresponding montage coordinate frame.
         """
         # only get channels that were picked
         picks = _picks_to_idx(self.info, picks)
@@ -272,13 +273,13 @@ class ContainsMixin(object):
             ch_names.append(ch['ch_name'])
 
         # extract landmark coords and coordinate frame
-        coord_frame_int = chs.pop()['coord_frame']
-        coord_frame = _frame_to_str[coord_frame_int]
+        ch_coord_frame = [_frame_to_str[ch['coord_frame']] for ch in chs]
 
         # construct channel position dictionary and coord frame
         ch_pos_dict = dict(zip(ch_names, ch_pos))
+        ch_frame_dict = dict(zip(ch_names, ch_coord_frame))
 
-        return ch_pos_dict, coord_frame
+        return ch_pos_dict, ch_frame_dict
 
     @fill_doc
     def get_montage(self):
