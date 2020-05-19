@@ -1310,34 +1310,9 @@ def test_set_montage_with_missing_coordinates():
 
 def test_get_ch_positions():
     """Test getting channel positions from Instance."""
-    # read in testing data and assert montage roundtrip
-    raw = read_raw_fif(fif_fname)
-    montage = make_standard_montage('mgh60')
-    # set the montage; note renaming to make standard montage map
-    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
-    raw.set_montage(montage)
-
-    # get the montage channel positions
-    # and get the channel positions from Raw
-    # they should match
-    montage_ch_pos = montage._get_ch_pos()
-    ch_positions, coord_frame = raw.get_ch_positions()
-    # assert_object_equal(ch_positions, montage_ch_pos)
-    assert coord_frame == 'head'
-
-    # read in testing data and assert montage roundtrip
-    raw = read_raw_fif(fif_fname)
-    montage = make_standard_montage('mgh60')
-    # set the montage; note renaming to make standard montage map
-    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
-    raw.set_montage(montage)
-    ch_positions, coord_frame = raw.get_ch_positions()
-    montage_ch_pos = montage._get_ch_pos()
-    assert_object_equal(ch_positions, montage_ch_pos)
-
     # read in BV test dataset and make sure montage
     # fulfills roundtrip on non-standard montage
-    dig_montage = read_dig_fif(fif_dig_montage_fname)
+    montage = read_dig_fif(fif_dig_montage_fname)
 
     # Make a BrainVision file like the one the user would have had
     raw_bv = read_raw_brainvision(bv_fname, preload=True)
@@ -1348,6 +1323,66 @@ def test_get_ch_positions():
     raw_bv.rename_channels(mapping)
     for ii, ch_name in enumerate(raw_bv_2.ch_names):
         mapping[ch_name] = 'EEG%03d' % (ii + 33,)
+    raw_bv_2.rename_channels(mapping)
+    raw_bv.add_channels([raw_bv_2])
+    for ch in raw_bv.info['chs']:
+        ch['kind'] = FIFF.FIFFV_EEG_CH
+
+    # original channel positions
+    orig_ch_positions, orig_coord_frame = raw_bv.get_ch_positions()
+
+    # set a montage and new channel positions should match
+    raw_bv.set_montage(montage)
+    ch_positions, coord_frame = raw_bv.get_ch_positions()
+    montage_ch_pos = montage._get_ch_pos()
+
+    # all montage channels should match new channel positions
+    # other channels should match original channel positions
+    for ch, pos in ch_positions.items():
+        if ch in montage_ch_pos:
+            assert_array_equal(montage_ch_pos[ch], pos)
+        else:
+            assert_array_equal(orig_ch_positions[ch], pos)
+
+    # if no montage, ch_positions should be all nans
+    raw_bv.set_montage(None)
+    ch_positions, coord_frame = raw_bv.get_ch_positions()
+    assert np.all(np.isnan(np.sum(pos)) for ch, pos in ch_positions.items())
+
+    # read in testing data and assert montage roundtrip
+    raw = read_raw_fif(fif_fname)
+
+    # set the montage; note renaming to make standard montage map
+    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
+
+    # original channel positions
+    orig_ch_positions, orig_coord_frame = raw.get_ch_positions()
+
+    # create a montage for just EEG channels
+    ch_inds = pick_types(raw.info, eeg=True, meg=False)
+    ch_names = [raw.ch_names[ind] for ind in ch_inds]
+    eeg_pos = np.random.random((len(ch_names), 3))
+    ch_pos = dict(zip(ch_names, eeg_pos))
+    eeg_montage = make_dig_montage(ch_pos, coord_frame='head')
+    raw.set_montage(eeg_montage, on_missing='ignore')
+
+    # set a montage and new channel positions should match
+    ch_positions, coord_frame = raw.get_ch_positions()
+    montage_ch_pos = eeg_montage._get_ch_pos()
+
+    # all montage channels should match new channel positions
+    # other channels should match original channel positions
+    for ch, pos in ch_positions.items():
+        if ch in montage_ch_pos:
+            assert_array_equal(montage_ch_pos[ch], pos)
+        else:
+            assert_array_equal(orig_ch_positions[ch], pos)
+
+    # if no montage, ch_positions should be all nans
+    raw.set_montage(None)
+    ch_positions, coord_frame = raw.get_ch_positions()
+    assert np.all(np.isnan(np.sum(pos)) for ch, pos in ch_positions.items())
+
 
 def test_get_montage():
     """Test get montage from Instance."""

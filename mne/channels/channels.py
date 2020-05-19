@@ -264,18 +264,21 @@ class ContainsMixin(object):
         # extract name, position, orientation (for MEG)
         ch_names, ch_pos = [], []
         for ch in chs:
-            ch_names.append(ch['ch_name'])
             if ch['kind'] == FIFF.FIFFV_MEG_CH:
                 pos = ch['loc']
             else:
                 pos = ch['loc'][:3]
             ch_pos.append(pos)
+            ch_names.append(ch['ch_name'])
 
         # extract landmark coords and coordinate frame
         coord_frame_int = chs.pop()['coord_frame']
         coord_frame = _frame_to_str[coord_frame_int]
 
-        return dict(zip(ch_names, ch_pos)), coord_frame
+        # construct channel position dictionary and coord frame
+        ch_pos_dict = dict(zip(ch_names, ch_pos))
+
+        return ch_pos_dict, coord_frame
 
     @fill_doc
     def get_montage(self):
