@@ -51,13 +51,13 @@ def tddr(raw):
 # With permission https://github.com/frankfishburn/TDDR/issues/1.
 # The only modification is the name, scipy signal import and flake fixes.
 def _TDDR(signal, sample_rate):
-    """Reference implementation for the TDDR algorithm for motion correction of
-    fNIRS data, as described in:
+    """Reference implementation for the TDDR algorithm for motion correction.
 
-      Fishburn F.A., Ludlum R.S., Vaidya C.J., & Medvedev A.V. (2019).
-      Temporal Derivative Distribution Repair (TDDR): A motion correction
-      method for fNIRS. NeuroImage, 184, 171-179.
-      https://doi.org/10.1016/j.neuroimage.2018.09.025
+    The algorithm is described in:
+    Fishburn F.A., Ludlum R.S., Vaidya C.J., & Medvedev A.V. (2019).
+    Temporal Derivative Distribution Repair (TDDR): A motion correction
+    method for fNIRS. NeuroImage, 184, 171-179.
+    https://doi.org/10.1016/j.neuroimage.2018.09.025
 
     Parameters
     ----------
