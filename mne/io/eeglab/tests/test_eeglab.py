@@ -264,12 +264,12 @@ def test_degenerate(tmpdir):
 
 
 @pytest.mark.parametrize("fname", raw_fnames)
+@pytest.mark.filterwarnings('ignore: Complex objects')
 @testing.requires_testing_data
 def test_eeglab_annotations(fname):
     """Test reading annotations in EEGLAB files."""
     _check_h5(fname)
-    with pytest.warns(UserWarning, match='Complex objects'):
-        annotations = read_annotations(fname)
+    annotations = read_annotations(fname)
     assert len(annotations) == 154
     assert set(annotations.description) == {'rt', 'square'}
     assert np.all(annotations.duration == 0.)
