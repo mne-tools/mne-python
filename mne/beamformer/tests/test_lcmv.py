@@ -704,7 +704,6 @@ _unit_fail = pytest.mark.xfail(reason='TODO FIX', raises=AssertionError)
 @pytest.mark.parametrize('pick_ori', [
     'max-power',
     'normal',
-    # TODO need to fix vector
     pytest.param('vector', marks=_unit_fail),
 ])
 @pytest.mark.parametrize('reg', (0.05, 0.))
@@ -753,33 +752,19 @@ def test_unit_noise_gain_formula(pick_ori, reg):
 
     # compute the inverse of the covariance matrix and square it
     Cm_inv, _, _ = _reg_pinv(data_cov.data, reg, rank)
-    Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
     # compute the unit-noise-gain beamformer in pedestrian mode:
     # formula: G.T @ Cm_inv / sqrt(G.T @ Cm_inv @ Cm_inv @ G)
     # Sekihara & Nagarajan 2008, eq. 4.15
-    #
-    # TODO: Fix the vector case, where there are still 3 orientations instead
-    #       of one -- depends on what the units are above, if the sqrt is a
-    #       matrix or single square root, etc.:
-    #
-    # - Here we do a proper matrix square root + inversion
-    # - in _compute_beamformer we just take the norm over the
-    #   (n_orient, n_channels) array for each source, then invert the
-    #   single value for that source
-    # - It's possible the paper computes the orientation for each output
-    #   direction instead, which would be a third way (but this is probably not
-    #   rotation invariant and sensitive to nulls, so seems unlikely?)
-    #
-    denom = np.matmul(np.matmul(fwd_sol.transpose(0, 2, 1),
-                                Cm_inv_sq), fwd_sol)
-    denom_inv = _sym_inv(sqrtm_sym(denom)[0], reduce_rank=False)
-    denom_inv_2 = sqrtm_sym(denom, inv=True)[0]
-    assert_allclose(denom_inv, denom_inv_2, atol=1e-30)
-    numer = np.matmul(fwd_sol.transpose(0, 2, 1), Cm_inv)
-    W_ung_direct = np.matmul(denom_inv, numer)
-
-    W_ung = filters['weights'].reshape(n_sources, n_orient, n_channels)
+    ung_numer = np.matmul(fwd_sol.transpose(0, 2, 1), Cm_inv)
+    ung_denom = np.sqrt(np.trace(np.matmul(
+        ung_numer, ung_numer.transpose(0, 2, 1)), axis1=1, axis2=2))
+    assert_allclose(ung_denom, np.linalg.norm(ung_numer, axis=(1, 2)))  # same
+    assert ung_denom.shape == (n_sources,)
+    W_ung_direct = ung_numer / ung_denom[:, np.newaxis, np.newaxis]
+    W_ung = filters['weights']
+    assert W_ung.shape == (n_sources * n_orient, n_channels)
+    W_ung = W_ung.reshape(n_sources, n_orient, n_channels)
     assert W_ung_direct.shape == W_ung.shape
 
     assert 1e-2 < np.mean(np.abs(W_ung)) < 1  # ensure our atol is okay

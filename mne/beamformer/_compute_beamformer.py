@@ -313,8 +313,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # and W_ug referring to the above-calculated unit-gain filter stored in W
 
     if weight_norm is not None:
-        # Compute sqrt(W_ug @ W_ug.T)
-        # TODO does this conform with Sekihara & Nagarajan 2008 for vector?
+        # Compute sqrt(W_ug @ W_ug.T):
+        # Frobenius norm (default) is the sqrt of sum of squares, also
+        # the sqrt(trace(A.T.conj() @ A))
         noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
 
         if weight_norm == 'nai':
