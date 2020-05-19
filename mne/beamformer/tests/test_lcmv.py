@@ -21,7 +21,7 @@ from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
 from mne.utils import (run_tests_if_main, object_diff, requires_h5py,
-                       catch_logging, _reg_pinv, _sym_inv, sqrtm_sym)
+                       catch_logging, _reg_pinv)
 
 
 data_path = testing.data_path(download=False)
@@ -697,15 +697,8 @@ def test_lcmv_ctf_comp():
         make_lcmv(info_comp, fwd, data_cov)
 
 
-_unit_fail = pytest.mark.xfail(reason='TODO FIX', raises=AssertionError)
-
-
 @testing.requires_testing_data
-@pytest.mark.parametrize('pick_ori', [
-    'max-power',
-    'normal',
-    pytest.param('vector', marks=_unit_fail),
-])
+@pytest.mark.parametrize('pick_ori', ['max-power', 'normal', 'vector'])
 @pytest.mark.parametrize('reg', (0.05, 0.))
 def test_unit_noise_gain_formula(pick_ori, reg):
     """Test unit-noise-gain filter against formula."""
@@ -878,9 +871,9 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
 
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper', [
-        (0.05, 'vector', 'unit-noise-gain', True, None, 36, 39),
-        (0.05, 'vector', 'unit-noise-gain', False, None, 11, 13),
-        (0.05, 'vector', 'nai', True, None, 36, 39),
+        (0.05, 'vector', 'unit-noise-gain', True, None, 50, 53),
+        (0.05, 'vector', 'unit-noise-gain', False, None, 36, 38),
+        (0.05, 'vector', 'nai', True, None, 50, 53),
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
         (0.05, 'max-power', 'unit-noise-gain', True, None, 21, 24),
@@ -891,8 +884,8 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, None, None, True, 0.8, 40, 42),
         # no reg
         (0.00, 'vector', None, True, None, 28, 31),
-        (0.00, 'vector', 'nai', True, None, 67, 69),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 67, 70),
+        (0.00, 'vector', 'nai', True, None, 69, 71),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 69, 71),
         (0.00, 'max-power', None, True, None, 15, 18),
         (0.00, 'max-power', 'nai', True, None, 46, 50),
         (0.00, 'max-power', 'unit-noise-gain', True, None, 46, 50),
