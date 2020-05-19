@@ -212,12 +212,16 @@ def _set_tmin(ft_struct):
     if time_check:
         tmin = times[0][0]
     else:
-        tmin = None
+        raise RuntimeError('Loading data with non-uniform '
+                           'times per epoch is not supported')
     return tmin
 
 
 def _create_events(ft_struct, trialinfo_column):
     """Create an event matrix from the FieldTrip structure."""
+    if not 'trialinfo' in ft_struct:
+        return None
+
     event_type = ft_struct['trialinfo']
     event_number = range(len(event_type))
 
