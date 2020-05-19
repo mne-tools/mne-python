@@ -268,7 +268,8 @@ def test_degenerate(tmpdir):
 def test_eeglab_annotations(fname):
     """Test reading annotations in EEGLAB files."""
     _check_h5(fname)
-    annotations = read_annotations(fname)
+    with pytest.warns(UserWarning, match='Complex objects'):
+        annotations = read_annotations(fname)
     assert len(annotations) == 154
     assert set(annotations.description) == {'rt', 'square'}
     assert np.all(annotations.duration == 0.)
