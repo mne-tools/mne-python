@@ -206,6 +206,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
+    max_oris = []
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
             logger.info('    computing DICS spatial filter at %sHz (%d/%d)' %
@@ -220,19 +221,27 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Cm = Cm[csd_picks, :][:, csd_picks]
 
         # compute spatial filter
-        W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                                reduce_rank, rank=rank, inversion=inversion,
-                                nn=nn, orient_std=orient_std)
+        W, max_power_ori = _compute_beamformer(G, Cm, reg, n_orient,
+                                               weight_norm, pick_ori,
+                                               reduce_rank, rank=rank,
+                                               inversion=inversion,
+                                               nn=nn, orient_std=orient_std)
         Ws.append(W)
+        max_oris.append(max_power_ori)
 
     Ws = np.array(Ws)
+    if pick_ori == 'max-power':
+        max_oris = np.array(max_oris)
+    else:
+        max_oris = None
 
     filters = Beamformer(
         kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
         vertices=vertices, subject=subject, pick_ori=pick_ori,
         inversion=inversion, weight_norm=weight_norm,
         normalize_fwd=bool(normalize_fwd), src_type=src_type,
-        n_orient=n_orient if pick_ori is None else 1)
+        n_orient=n_orient if pick_ori is None else 1,
+        max_power_ori=max_oris)
 
     return filters
 
