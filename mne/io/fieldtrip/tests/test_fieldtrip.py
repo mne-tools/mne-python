@@ -293,16 +293,18 @@ def test_throw_error_on_non_uniform_time_field():
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
 def test_throw_error_when_importing_old_ft_version_data():
-    """Test if an error is thrown when the data was saved with an old FT version."""
+    """Test if an error is thrown if the data was saved with an old version."""
     fname = os.path.join(mne.datasets.testing.data_path(),
                          'fieldtrip',
                          'old_version.mat')
 
-    with pytest.raises(RuntimeError, match='This file was created with an old version '
-                                           'of FieldTrip. You can convert the data to '
-                                           'the new version by loading it into FieldTrip '
-                                           'and applying ft_selectdata with an '
+    with pytest.raises(RuntimeError, match='This file was created with '
+                                           'an old version of FieldTrip. You '
+                                           'can convert the data to the new '
+                                           'version by loading it into '
+                                           'FieldTrip and applying '
+                                           'ft_selectdata with an '
                                            'empty cfg structure on it. '
-                                           'Otherwise you can supply the Info field.'):
+                                           'Otherwise you can supply '
+                                           'the Info field.'):
         mne.io.read_epochs_fieldtrip(fname, info=None)
-

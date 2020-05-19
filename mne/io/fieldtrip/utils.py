@@ -180,9 +180,9 @@ def _create_montage(ft_struct):
             except KeyError:
                 raise RuntimeError('This file was created with an old version '
                                    'of FieldTrip. You can convert the data to '
-                                   'the new version by loading it into FieldTrip '
-                                   'and applying ft_selectdata with an '
-                                   'empty cfg structure on it. '
+                                   'the new version by loading it into '
+                                   'FieldTrip and applying ft_selectdata with '
+                                   'an empty cfg structure on it. '
                                    'Otherwise you can supply the Info field.')
 
     montage = None
@@ -227,7 +227,7 @@ def _set_tmin(ft_struct):
 
 def _create_events(ft_struct, trialinfo_column):
     """Create an event matrix from the FieldTrip structure."""
-    if not 'trialinfo' in ft_struct:
+    if 'trialinfo' not in ft_struct:
         return None
 
     event_type = ft_struct['trialinfo']
