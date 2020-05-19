@@ -7,9 +7,9 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
-.. _changes_0_20_4:
+.. _changes_0_20_5:
 
-Version 0.20.4
+Version 0.20.5
 --------------
 
 Bug
