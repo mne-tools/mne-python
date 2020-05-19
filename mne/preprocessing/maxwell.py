@@ -1946,7 +1946,7 @@ def find_bad_channels_maxwell(
     step = int(round(raw.info['sfreq'] * duration))
     for onset, end in zip(onsets, ends):
         if end - onset >= step:
-            ss = np.arange(onset, end - step, step)
+            ss = np.arange(onset, end - step + 1, step)
             starts.extend(ss)
             ss = ss + step
             ss[-1] = end

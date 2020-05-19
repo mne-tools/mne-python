@@ -7,9 +7,8 @@
     <div class="col-xs-12 nopad">
       <img src="_static/mne_logo.svg" style="max-width: 360px; width: 100%" alt="MNE">
       <p>
-      Open-source Python software for exploring, visualizing, and
-      analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
-      and more.
+      Open-source Python package for exploring, visualizing, and
+      analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG, NIRS, and more.
       </p>
     </div>
     <div class="col-xs-12 nopad">
@@ -46,7 +45,7 @@
       <div class="panel-heading"><h3 class="panel-title">Direct financial support</h3></div>
       <div class="panel-body funding">
         <ul class="list-unstyled">
-          <li style="background: url('_static/nih.png') no-repeat left top; background-size: 24px 24px;"> <b>NIH</b> <b>R01</b>-EB009048, EB009048, EB006385, HD40712, NS44319, NS37462, <b>P41</b>-EB015896, RR14075-06</li>
+          <li style="background: url('_static/nih.png') no-repeat left top; background-size: 24px 24px;"> <b>NIH</b> <b>R01</b>-EB009048, EB009048, EB006385, HD40712, NS44319, NS37462, NS104585, <b>P41</b>-EB015896, RR14075-06</li>
           <li style="background: url('_static/nsf.png') no-repeat left top; background-size: 24px 24px;"><b>NSF</b> 0958669, 1042134</li>
           <li style="background: url('_static/erc.png') no-repeat left top; background-size: 24px 24px;"><b>ERC</b> <b>YStG</b>-263584, 676943</li>
           <li style="background: url('_static/doe.png') no-repeat left top; background-size: 24px 24px;"><b>DoE</b> DE-FG02-99ER62764 (MIND)</li>

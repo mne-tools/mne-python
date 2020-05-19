@@ -15,7 +15,6 @@ import re
 import codecs
 from shutil import copyfile
 import time
-from glob import glob
 import warnings
 import webbrowser
 import numpy as np
@@ -27,7 +26,7 @@ from .io.pick import _DATA_CH_TYPES_SPLIT
 from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
-from .viz._3d import _plot_mri_contours
+from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces, _mri_ori
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
@@ -1709,13 +1708,13 @@ class Report(object):
         html.append(u'</div>')
         return '\n'.join(html)
 
-    def _render_one_bem_axis(self, mri_fname, surf_fnames, global_id,
-                             shape, orientation='coronal', decim=2, n_jobs=1):
+    def _render_one_bem_axis(self, mri_fname, surfaces, global_id,
+                             orientation='coronal', decim=2, n_jobs=1):
         """Render one axis of bem contours (only PNG)."""
-        orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
-        orientation_axis = orientation_name2axis[orientation]
-        n_slices = shape[orientation_axis]
-        orig_size = np.roll(shape, orientation_axis)[[1, 2]]
+        import nibabel as nib
+        nim = nib.load(mri_fname)
+        (_, _, z), _, _ = _mri_ori(nim, orientation)
+        n_slices = nim.shape[z]
 
         name = orientation
         html = []
@@ -1723,8 +1722,9 @@ class Report(object):
         slides_klass = '%s-%s' % (name, global_id)
 
         sl = np.arange(0, n_slices, decim)
-        kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames, show=False,
-                      orientation=orientation, img_output=orig_size)
+        kwargs = dict(mri_fname=mri_fname, surfaces=surfaces, show=False,
+                      orientation=orientation, img_output=True, src=None,
+                      show_orientation=True)
         imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
         slices = []
         img_klass = 'slideimg-%s' % name
@@ -1965,8 +1965,6 @@ class Report(object):
     def _render_bem(self, subject, subjects_dir, decim, n_jobs,
                     section='bem', caption='BEM'):
         """Render mri+bem (only PNG)."""
-        import nibabel as nib
-
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
         # Get the MRI filename
@@ -1977,28 +1975,11 @@ class Report(object):
         # Get the BEM surface filenames
         bem_path = op.join(subjects_dir, subject, 'bem')
 
-        if not op.isdir(bem_path):
-            warn('Subject bem directory "%s" does not exist' % bem_path)
+        surfaces = _get_bem_plotting_surfaces(bem_path)
+        if len(surfaces) == 0:
+            warn('No BEM surfaces found, rendering empty MRI')
             return self._render_image_png(mri_fname, cmap='gray',
                                           n_jobs=n_jobs)
-
-        surf_fnames = []
-        for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
-            surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
-            if len(surf_fname) > 0:
-                surf_fnames.append(surf_fname[0])
-            else:
-                warn('No surface found for %s.' % surf_name)
-                continue
-        if len(surf_fnames) == 0:
-            warn('No surfaces found at all, rendering empty MRI')
-            return self._render_image_png(mri_fname, cmap='gray',
-                                          n_jobs=n_jobs)
-        # XXX : find a better way to get max range of slices
-        nim = nib.load(mri_fname)
-        data = _get_img_fdata(nim)
-        shape = data.shape
-        del data  # free up memory
 
         html = []
 
@@ -2007,17 +1988,20 @@ class Report(object):
         if section == 'bem' and 'bem' not in self.sections:
             self.sections.append('bem')
             self._sectionvars['bem'] = 'bem'
+            klass = 'bem'
+        else:
+            klass = 'report_' + _clean_varnames(section)
 
         name = caption
 
-        html += u'<li class="report_%s" id="%d">\n' % (section, global_id)
+        html += u'<li class="%s" id="%d">\n' % (klass, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
-        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'axial', decim, n_jobs)
-        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'sagittal', decim, n_jobs)
-        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'coronal', decim, n_jobs)
+        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
+                                          'axial', decim, n_jobs)
+        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
+                                          'sagittal', decim, n_jobs)
+        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
+                                          'coronal', decim, n_jobs)
         html += u'</li>\n'
         return ''.join(html)
 

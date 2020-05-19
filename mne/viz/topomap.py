@@ -25,7 +25,7 @@ from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _pick_data_channels, _picks_to_idx, _get_channel_types,
                        _MEG_CH_TYPES_SPLIT)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
-                     _validate_type, _check_sphere, _check_option)
+                     _validate_type, _check_sphere, _check_option, _is_numeric)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -1430,7 +1430,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 @fill_doc
 def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                         vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=None, scalings=None,
+                        colorbar=True, scalings=None,
                         units=None, res=64, size=1, cbar_fmt='%3.1f',
                         time_unit='s', time_format=None, proj=False,
                         show=True, show_names=False, title=None, mask=None,
@@ -1485,11 +1485,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True (default),
         circles will be used.
-    colorbar : bool | None
+    colorbar : bool
         Plot a colorbar in the rightmost column of the figure.
-        None (default) is the same as True, but emits a warning if custom
-        ``axes`` are provided to remind the user that the colorbar will
-        occupy the last :class:`matplotlib.axes.Axes` instance.
     scalings : dict | float | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -1517,16 +1514,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     show : bool
         Show figure if True.
     show_names : bool | callable
-        If True, show channel names on top of the map. If a callable is
+        If ``True``, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', ''). If `mask` is not None, only
-        significant sensors will be shown.
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, names
+        of significant sensors only will be shown.
     title : str | None
         Title. If None (default), no title is displayed.
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
-        Indices set to `True` will be considered. Defaults to None.
+        Indices set to ``True`` will be considered. Defaults to ``None``.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
         Default (None) equals::
@@ -1577,121 +1574,124 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     -------
     fig : instance of matplotlib.figure.Figure
        The figure.
+
+    Notes
+    -----
+    When existing ``axes`` are provided and ``colorbar=True``, note that the
+    colorbar scale will only accurately reflect topomaps that are generated in
+    the same call as the colorbar. Note also that the colorbar will not be
+    resized automatically when ``axes`` are provided; use matplotlib's
+    :meth:`axes.set_position() <matplotlib.axes.Axes.set_position>` method or
+    :doc:`gridspec <matplotlib:tutorials/intermediate/gridspec>` interface to
+    adjust the colorbar size yourself.
     """
     import matplotlib.pyplot as plt
-    from matplotlib import gridspec
+    from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
-    _validate_type(evoked, Evoked, 'evoked')
-    ch_type = _get_ch_type(evoked, ch_type)
 
+    _validate_type(evoked, Evoked, 'evoked')
+    evoked = evoked.copy()  # make a copy, since we'll be picking
+    ch_type = _get_ch_type(evoked, ch_type)
+    # deprecation
+    if colorbar is None:
+        colorbar = True
+        warn('colorbar=None is deprecated and will be removed in version 0.22;'
+             ' use colorbar=True (or False) instead.', DeprecationWarning)
+    # time units / formatting
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     scaling_time = 1. if time_unit == 's' else 1e3
     if time_format is None:
         time_format = '%0.3f s' if time_unit == 's' else '%01d ms'
     del time_unit
-
-    if colorbar is None:
-        colorbar = True
-        colorbar_warn = True
-    else:
-        colorbar_warn = False
+    # mask_params defaults
     mask_params = _handle_default('mask_params', mask_params)
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
-
+    # setup various parameters, and prepare outlines
     picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-
-    # project before picks
-    if proj is True and evoked.proj is not True:
-        data = evoked.copy().apply_proj().data
+    # check interactive
+    axes_given = axes is not None
+    interactive = isinstance(times, str) and times == 'interactive'
+    if interactive and axes_given:
+        raise ValueError("User-provided axes not allowed when "
+                         "times='interactive'.")
+    # units, scalings
+    key = 'grad' if ch_type.startswith('planar') else ch_type
+    scaling = _handle_default('scalings', scalings)[key]
+    unit = _handle_default('units', units)[key]
+    # ch_names (required for NIRS)
+    ch_names = names
+    if not show_names:
+        names = None
+    # apply projections before picking. NOTE: the `if proj is True`
+    # anti-pattern is needed here to exclude proj='interactive'
+    if proj is True and not evoked.proj:
+        data = evoked.apply_proj().data
     else:
         data = evoked.data
-
-    # because we are only plotting we can safely remove compensation matrices
-    # regardless of compensation status.
-    evoked = evoked.copy()
+    # remove compensation matrices (safe: only plotting & already made copy)
     evoked.info['comps'] = []
     evoked = evoked._pick_drop_channels(picks)
-
-    interactive = isinstance(times, str) and times == 'interactive'
-    if axes is not None:
-        nrows, ncols = None, None  # Deactivate ncols when axes were passed
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
-        times = _process_times(evoked, times, n_peaks=len(axes))
-    else:
-        times = _process_times(evoked, times, n_peaks=None)
-
+    # determine which times to plot
+    if isinstance(axes, plt.Axes):
+        axes = [axes]
+    n_peaks = len(axes) - int(colorbar) if axes_given else None
+    times = _process_times(evoked, times, n_peaks)
+    n_times = len(times)
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
-        raise ValueError('Times should be between {:0.3f} and '
-                         '{:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
-    n_times = len(times)
-    nax = n_times + bool(colorbar)
-
+        raise ValueError(f'Times should be between {evoked.times[0]:0.3} and '
+                         f'{evoked.times[-1]:0.3}.')
+    # create axes
+    want_axes = n_times + int(colorbar)
     if interactive:
-        if axes is not None:
-            raise ValueError("User provided axes not allowed when "
-                             "times='interactive'.")
         height_ratios = [5, 1]
         nrows = 2
-        ncols = n_times + 1 if colorbar else n_times  # room for the colorbar
-        g_kwargs = {'left': 0.2, 'right': 1., 'bottom': 0.05, 'top': 0.95}
-        width = size * nax
+        ncols = want_axes
+        width = size * ncols
         height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
-        figure_nobar(figsize=(width * 1.5, height * 1.5))
-        gs = gridspec.GridSpec(
-            nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+        fig = figure_nobar(figsize=(width * 1.5, height * 1.5))
+        g_kwargs = {'left': 0.2, 'right': 0.8, 'bottom': 0.05, 'top': 0.9}
+        gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
         axes = []
         for ax_idx in range(n_times):
-            axes.append(plt.subplot(gs[ax_idx]))
+            axes.append(plt.subplot(gs[0, ax_idx]))
+    elif axes is None:
+        fig, axes, ncols, nrows = _prepare_trellis(
+            n_times, ncols=ncols, nrows=nrows, title=title,
+            colorbar=colorbar, size=size)
     else:
-        if axes is None:
-            fig, axes, ncols, nrows = _prepare_trellis(
-                n_times, ncols=ncols, nrows=nrows, title=title,
-                colorbar=colorbar, size=size)
-        elif len(axes) != n_times:
-            raise RuntimeError('Axes and times must be equal in sizes.')
-        elif colorbar and colorbar_warn:
-            warn('Colorbar is drawn to the rightmost column of the figure. Be '
-                 'sure to provide enough space for it or turn it off with '
-                 'colorbar=False.')
-
-    if ch_type.startswith('planar'):
-        key = 'grad'
-    else:
-        key = ch_type
-
-    scaling = _handle_default('scalings', scalings)[key]
-    unit = _handle_default('units', units)[key]
-
-    ch_names = names  # required for nirs processing
-    if not show_names:
-        names = None
-
-    w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
-    top_frame = max((0.05 if title is None else 0.25), .2 / size)
-    fig = axes[0].get_figure()
-    fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
-                        top=1 - top_frame)
+        nrows, ncols = None, None  # Deactivate ncols when axes were passed
+        fig = axes[0].get_figure()
+        # check: enough space for colorbar?
+        if len(axes) != want_axes:
+            cbar_err = ' plus one for the colorbar' if colorbar else ''
+            raise RuntimeError(f'You must provide {want_axes} axes (one for '
+                               f'each time{cbar_err}), got {len(axes)}.')
+    # figure margins
+    side_margin = plt.rcParams['figure.subplot.wspace'] / (2 * want_axes)
+    top_margin = max((0.05 if title is None else 0.25), .2 / size)
+    fig.subplots_adjust(left=side_margin, right=1 - side_margin, bottom=0,
+                        top=1 - top_margin)
     # find first index that's >= (to rounding error) to each time point
-    time_idx = [np.where(_time_mask(evoked.times, tmin=t,
-                                    tmax=None,
+    time_idx = [np.where(_time_mask(evoked.times, tmin=t, tmax=None,
                                     sfreq=evoked.info['sfreq']))[0][0]
                 for t in times]
-
+    # do averaging if requested
+    avg_err = '"average" must be `None` or a positive number of seconds'
     if average is None:
         data = data[np.ix_(picks, time_idx)]
-    elif isinstance(average, float):
-        if not average > 0:
-            raise ValueError('The average parameter must be positive. You '
-                             'passed a negative value')
+    elif not _is_numeric(average):
+        raise TypeError(f'{avg_err}; got type {type(average)}.')
+    elif average <= 0:
+        raise ValueError(f'{avg_err}; got {average}.')
+    else:
         data_ = np.zeros((len(picks), len(time_idx)))
-        ave_time = float(average) / 2.
+        ave_time = average / 2.
         iter_times = evoked.times[time_idx]
         for ii, (idx, tmin_, tmax_) in enumerate(zip(time_idx,
                                                      iter_times - ave_time,
@@ -1699,44 +1699,40 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             my_range = (tmin_ < evoked.times) & (evoked.times < tmax_)
             data_[:, ii] = data[picks][:, my_range].mean(-1)
         data = data_
-    else:
-        raise ValueError('The average parameter must be None or a float.'
-                         'Check your input.')
-
+    # apply scalings and merge channels
     data *= scaling
     if merge_channels:
         data, ch_names = _merge_ch_data(data, ch_type, ch_names)
         if ch_type in _fnirs_types:
             merge_channels = False
-
-    images, contours_ = [], []
-
+    # apply mask if requested
     if mask is not None:
         if ch_type == 'grad':
             mask_ = (mask[np.ix_(picks[::2], time_idx)] |
                      mask[np.ix_(picks[1::2], time_idx)])
         else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, time_idx)]
-
+    # set up colormap
     vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_channels)
-             for i in range(len(times))]
+             for i in range(n_times)]
     vmin = np.min(vlims)
     vmax = np.max(vlims)
-    cmap = _setup_cmap(cmap, n_axes=len(times), norm=vmin >= 0)
-
+    cmap = _setup_cmap(cmap, n_axes=n_times, norm=vmin >= 0)
+    # set up contours
     if not isinstance(contours, (list, np.ndarray)):
         _, contours = _set_contour_locator(vmin, vmax, contours)
-
+    # prepare for main loop over times
     kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours,
                   image_interp=image_interp, show=False,
                   extrapolate=extrapolate, sphere=sphere, border=border,
                   ch_type=ch_type)
+    images, contours_ = [], []
+    # loop over times
     for idx, time in enumerate(times):
-        ax_idx = idx
-        if colorbar and ncols is not None:
-            ax_idx += idx // (ncols - 1)
+        adjust_for_cbar = colorbar and ncols is not None and idx >= ncols - 1
+        ax_idx = idx + 1 if adjust_for_cbar else idx
         tp, cn, interp = _plot_topomap(
             data[:, idx], pos, axes=axes[ax_idx],
             mask=mask_[:, idx] if mask is not None else None, **kwargs)
@@ -1748,7 +1744,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             axes[ax_idx].set_title(time_format % (time * scaling_time))
 
     if interactive:
-        axes.append(plt.subplot(gs[2]))
+        axes.append(plt.subplot(gs[1, :-1]))
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
                         times[0], valfmt='%1.2fs')
         slider.vline.remove()  # remove initial point indicator
@@ -1766,20 +1762,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         plt.suptitle(title, verticalalignment='top', size='x-large')
 
     if colorbar:
-        # works both when fig axes pre-defined and when not
-        n_fig_axes = max(nax, len(fig.get_axes()))
-        if nrows is None or ncols is None or interactive:
-            # If nrows or ncols is None, this means axes were given by the user
-            cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
-        else:
-            # Use the last axis from first row
-            n_fig_axes = ncols
-            cax = plt.subplot(nrows, ncols, ncols)
-            for i_row in range(2, nrows):
-                _hide_frame(axes[(i_row * ncols) - 1])
+        if interactive:
+            cax = plt.subplot(gs[0, -1])
+            _resize_cbar(cax, ncols, size)
+        elif nrows is None or ncols is None:
+            # axes were given by the user, so don't resize the colorbar
+            cax = axes[-1]
+        else:  # use the entire last column
+            cax = axes[ncols - 1]
+            _resize_cbar(cax, ncols, size)
 
-        # resize the colorbar (by default the color fills the whole axes)
-        _resize_cbar(cax, n_fig_axes, size)
         if unit is not None:
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
@@ -1800,7 +1792,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
 
-    plt_show(show)
+    plt_show(show, block=False)
+    if axes_given:
+        fig.canvas.draw()
     return fig
 
 
@@ -1808,10 +1802,10 @@ def _resize_cbar(cax, n_fig_axes, size=1):
     """Resize colorbar."""
     cpos = cax.get_position()
     if size <= 1:
-        cpos.x0 = 1 - (.7 + .1 / size) / n_fig_axes
-    cpos.x1 = cpos.x0 + .1 / n_fig_axes
-    cpos.y0 = .2
-    cpos.y1 = .7
+        cpos.x0 = 1 - (0.7 + 0.1 / size) / n_fig_axes
+    cpos.x1 = cpos.x0 + 0.1 / n_fig_axes
+    cpos.y0 = 0.2
+    cpos.y1 = 0.7
     cax.set_position(cpos)
 
 
@@ -2306,7 +2300,10 @@ def _animate(frame, ax, ax_line, params):
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=extent, interpolation='bilinear')
     cont_lims = params['cont_lims']
-    cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        cont = ax.contour(
+            Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
     im.set_clip_path(patch)
     for col in cont.collections:

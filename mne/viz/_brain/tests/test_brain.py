@@ -29,7 +29,6 @@ fname_stc = path.join(data_path, 'MEG/sample/sample_audvis_trunc-meg')
 fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
 src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-6-src.fif')
-surf = 'inflated'
 
 
 class TstVTKPicker(object):
@@ -50,15 +49,22 @@ class TstVTKPicker(object):
 
     def GetPickPosition(self):
         """Return the picked position."""
-        cell = self.mesh.faces[self.cell_id][1:]
+        vtk_cell = self.mesh.GetCell(self.cell_id)
+        cell = [vtk_cell.GetPointId(point_id) for point_id
+                in range(vtk_cell.GetNumberOfPoints())]
         self.point_id = cell[0]
         return self.mesh.points[self.point_id]
 
 
 @testing.requires_testing_data
-def test_brain_init(renderer):
+def test_brain(renderer):
     """Test initialization of the _Brain instance."""
-    hemi = 'both'
+    from mne.label import read_label
+    hemi = 'lh'
+    surf = 'inflated'
+    cortex = 'low_contrast'
+    title = 'test'
+    size = (300, 300)
 
     with pytest.raises(ValueError, match='"size" parameter must be'):
         _Brain(subject_id=subject_id, hemi=hemi, surf=surf, size=[1, 2, 3])
@@ -69,105 +75,81 @@ def test_brain_init(renderer):
     with pytest.raises(KeyError):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
-    brain = _Brain(subject_id, hemi, surf, size=(300, 300),
-                   subjects_dir=subjects_dir, title='test')
-    brain.show_view(view=dict(azimuth=180., elevation=90.))
-    brain.close()
-
-
-@testing.requires_testing_data
-def test_brain_screenshot(renderer):
-    """Test screenshot of a _Brain instance."""
-    brain = _Brain(subject_id, hemi='both', size=600,
-                   surf=surf, subjects_dir=subjects_dir)
-    img = brain.screenshot(mode='rgb')
-    assert(img.shape == (600, 600, 3))
-    brain.close()
-
-
-@testing.requires_testing_data
-def test_brain_add_data(renderer):
-    """Test adding data in _Brain instance."""
+    brain = _Brain(subject_id, hemi=hemi, surf=surf, size=size,
+                   subjects_dir=subjects_dir, title=title,
+                   cortex=cortex)
+    # add_data
     stc = read_source_estimate(fname_stc)
-
-    hemi = 'lh'
-    hemi_data = stc.data[:len(stc.vertices[0]), 10]
-    hemi_vertices = stc.vertices[0]
     fmin = stc.data.min()
     fmax = stc.data.max()
+    for h in brain._hemis:
+        if h == 'lh':
+            hi = 0
+        else:
+            hi = 1
+        hemi_data = stc.data[:len(stc.vertices[hi]), 10]
+        hemi_vertices = stc.vertices[hi]
 
-    brain_data = _Brain(subject_id, hemi, surf, size=300,
-                        subjects_dir=subjects_dir)
+        with pytest.raises(TypeError, match='scale_factor'):
+            brain.add_data(hemi_data, hemi=h, scale_factor='foo')
+        with pytest.raises(TypeError, match='vector_alpha'):
+            brain.add_data(hemi_data, hemi=h, vector_alpha='foo')
+        with pytest.raises(ValueError, match='thresh'):
+            brain.add_data(hemi_data, hemi=h, thresh=-1)
+        with pytest.raises(ValueError, match='remove_existing'):
+            brain.add_data(hemi_data, hemi=h, remove_existing=-1)
+        with pytest.raises(ValueError, match='time_label_size'):
+            brain.add_data(hemi_data, hemi=h, time_label_size=-1)
+        with pytest.raises(ValueError, match='is positive'):
+            brain.add_data(hemi_data, hemi=h, smoothing_steps=-1)
+        with pytest.raises(TypeError, match='int or NoneType'):
+            brain.add_data(hemi_data, hemi=h, smoothing_steps='foo')
+        with pytest.raises(ValueError):
+            brain.add_data(array=np.array([0, 1, 2]), hemi=h)
+        with pytest.raises(ValueError):
+            brain.add_data(hemi_data, fmin=fmin, hemi=hemi,
+                           fmax=fmax, vertices=None)
 
-    with pytest.raises(TypeError, match='scale_factor'):
-        brain_data.add_data(hemi_data, scale_factor='foo')
-    with pytest.raises(TypeError, match='vector_alpha'):
-        brain_data.add_data(hemi_data, vector_alpha='foo')
-    with pytest.raises(ValueError, match='thresh'):
-        brain_data.add_data(hemi_data, thresh=-1)
-    with pytest.raises(ValueError, match='remove_existing'):
-        brain_data.add_data(hemi_data, remove_existing=-1)
-    with pytest.raises(ValueError, match='time_label_size'):
-        brain_data.add_data(hemi_data, time_label_size=-1)
-    with pytest.raises(ValueError, match='is positive'):
-        brain_data.add_data(hemi_data, smoothing_steps=-1)
-    with pytest.raises(TypeError, match='int or NoneType'):
-        brain_data.add_data(hemi_data, smoothing_steps='foo')
-    with pytest.raises(ValueError):
-        brain_data.add_data(array=np.array([0, 1, 2]))
-    with pytest.raises(ValueError):
-        brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi,
-                            fmax=fmax, vertices=None)
+        brain.add_data(hemi_data, fmin=fmin, hemi=h, fmax=fmax,
+                       colormap='hot', vertices=hemi_vertices,
+                       smoothing_steps='nearest', colorbar=False, time=None)
+        brain.add_data(hemi_data, fmin=fmin, hemi=h, fmax=fmax,
+                       colormap='hot', vertices=hemi_vertices,
+                       smoothing_steps=1, initial_time=0., colorbar=False,
+                       time=None)
 
-    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
-                        colormap='hot', vertices=hemi_vertices,
-                        smoothing_steps='nearest', colorbar=False, time=None)
-    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
-                        colormap='hot', vertices=hemi_vertices,
-                        smoothing_steps=1, initial_time=0., colorbar=False,
-                        time=None)
-    brain_data.close()
-
-
-@testing.requires_testing_data
-def test_brain_add_label(renderer):
-    """Test adding data in _Brain instance."""
-    from mne.label import read_label
-    brain = _Brain(subject_id, hemi='lh', size=500,
-                   surf=surf, subjects_dir=subjects_dir)
+    # add label
     label = read_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
-    brain.close()
 
-    brain = _Brain(subject_id, hemi='split', size=500,
-                   surf=surf, subjects_dir=subjects_dir)
-    brain.add_label(fname_label)
-    brain.close()
-
-
-@testing.requires_testing_data
-def test_brain_add_foci(renderer):
-    """Test adding foci in _Brain instance."""
-    brain = _Brain(subject_id, hemi='lh', size=500,
-                   surf=surf, subjects_dir=subjects_dir)
+    # add foci
     brain.add_foci([0], coords_as_verts=True,
-                   hemi='lh', color='blue')
-    brain.close()
+                   hemi=hemi, color='blue')
 
-
-@testing.requires_testing_data
-def test_brain_add_text(renderer):
-    """Test adding text in _Brain instance."""
-    brain = _Brain(subject_id, hemi='lh', size=250,
-                   surf=surf, subjects_dir=subjects_dir)
+    # add text
     brain.add_text(x=0, y=0, text='foo')
+
+    # screenshot
+    brain.show_view(view=dict(azimuth=180., elevation=90.))
+    img = brain.screenshot(mode='rgb')
+    assert(img.shape == (size[0], size[1], 3))
+
+    # add annotation
+    annots = ['aparc', 'PALS_B12_Lobes']
+    borders = [True, 2]
+    alphas = [1, 0.5]
+    brain = _Brain(subject_id='fsaverage', hemi=hemi, size=size,
+                   surf='inflated', subjects_dir=subjects_dir)
+    for a, b, p in zip(annots, borders, alphas):
+        brain.add_annotation(a, b, p)
+
     brain.close()
 
 
 @testing.requires_testing_data
 def test_brain_save_movie(tmpdir, renderer):
     """Test saving a movie of a _Brain instance."""
-    if renderer.get_3d_backend() == "mayavi":
+    if renderer._get_3d_backend() == "mayavi":
         pytest.skip()
     brain_data = _create_testing_brain(hemi='lh')
     filename = str(path.join(tmpdir, "brain_test.mov"))
@@ -180,7 +162,7 @@ def test_brain_save_movie(tmpdir, renderer):
 @testing.requires_testing_data
 def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi='both')
 
@@ -205,7 +187,7 @@ def test_brain_timeviewer(renderer_interactive):
 @pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
 def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi=hemi)
     time_viewer = _TimeViewer(brain_data, show_traces=True)
@@ -260,7 +242,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
 @testing.requires_testing_data
 def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
     brain_data = _create_testing_brain(hemi='split')
     _TimeViewer(brain_data)
@@ -376,7 +358,7 @@ def test_brain_colormap():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
-def _create_testing_brain(hemi):
+def _create_testing_brain(hemi, surf='inflated'):
     sample_src = read_source_spaces(src_fname)
 
     # dense version

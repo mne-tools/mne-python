@@ -28,12 +28,13 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const)
+from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname,
-                     fill_doc, deprecated)
+                     fill_doc, logger, deprecated)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -187,6 +188,23 @@ class DigMontage(object):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
                             sphere=sphere)
+
+    def rename_channels(self, mapping):
+        """Rename the channels.
+
+        Parameters
+        ----------
+        %(rename_channels_mapping)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance. Operates in-place.
+        """
+        from .channels import rename_channels
+        temp_info = create_info(list(self._get_ch_pos()), 1000., 'eeg')
+        rename_channels(temp_info, mapping)
+        self.ch_names = temp_info['ch_names']
 
     def save(self, fname):
         """Save digitization points to FIF.
@@ -628,7 +646,7 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True):
+def _set_montage(info, montage, match_case=True, on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -643,6 +661,7 @@ def _set_montage(info, montage, match_case=True):
         The measurement info to update.
     %(montage)s
     %(match_case)s
+    %(on_missing_montage)s
 
     Notes
     -----
@@ -656,6 +675,10 @@ def _set_montage(info, montage, match_case=True):
         montage = make_standard_montage(montage)
 
     if isinstance(montage, DigMontage):
+        _check_option('on_missing', on_missing, ['raise',
+                                                 'ignore',
+                                                 'warn'])
+
         mnt_head = _get_montage_in_head(montage)
 
         def _backcompat_value(pos, ref_pos):
@@ -696,14 +719,30 @@ def _set_montage(info, montage, match_case=True):
             if n_dup:
                 raise ValueError('Cannot use match_case=False as %s channel '
                                  'name(s) require case sensitivity' % n_dup)
+
+        # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
         if len(not_in_montage):  # DigMontage is subset of info
-            raise ValueError('DigMontage is a only a subset of info. '
-                             'There are %s channel position%s not present in '
-                             'the DigMontage. The required channels are: %s'
-                             % (len(not_in_montage), _pl(not_in_montage),
-                                not_in_montage))
+            missing_coord_msg = 'DigMontage is only a subset of info. ' \
+                                'There are %s channel position%s ' \
+                                'not present in the DigMontage. ' \
+                                'The required channels are: %s' \
+                                % (len(not_in_montage), _pl(not_in_montage),
+                                   not_in_montage)
+            if on_missing == 'raise':
+                raise ValueError(missing_coord_msg)
+            elif on_missing == 'warn':
+                warn(missing_coord_msg)
+            elif on_missing == 'ignore':
+                logger.info(missing_coord_msg)
+
+            # set ch coordinates and names from digmontage or nan coords
+            _ch_pos_use = dict(ch_pos_use)  # make a copy
+            for name in info_names:
+                if name not in ch_pos_use:
+                    _ch_pos_use[name] = [np.nan, np.nan, np.nan]
+            ch_pos_use = _ch_pos_use
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']

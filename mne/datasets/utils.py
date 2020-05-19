@@ -238,7 +238,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.84', misc='0.5')
+    releases = dict(testing='0.85', misc='0.6')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -318,11 +318,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='84e606998ac379ef53029b3b1cf37918',
+        misc='e00808c3b05123059e2cf49ff276e919',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='ea825966c0a1e9b2f84e3826c5500161',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='25fbb89902adfee47a77807270cc0857',
+        testing='1ef691944239411b869b3ed2f40a69fe',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -570,7 +570,7 @@ def _download_all_example_data(verbose=True):
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor)
-    sample.data_path()
+    sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
@@ -602,7 +602,7 @@ def _download_all_example_data(verbose=True):
     fetch_fsaverage(None)
     sys.argv += ['--accept-hcpmmp-license']
     try:
-        fetch_hcp_mmp_parcellation()
+        fetch_hcp_mmp_parcellation(subjects_dir=sample_path + '/subjects')
     finally:
         sys.argv.pop(-1)
     limo.load_data(subject=1, update_path=True)
@@ -757,7 +757,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
 
         for hemi in ('lh', 'rh'):
             labels = read_labels_from_annot('fsaverage', 'HCPMMP1', hemi=hemi,
-                                            subjects_dir=subjects_dir)
+                                            subjects_dir=subjects_dir,
+                                            sort=False)
             label_names = [
                 '???' if label.name.startswith('???') else
                 label.name.split('_')[1] for label in labels]
@@ -782,8 +783,11 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
                 labels_out.append(these_labels)
             assert used.all()
         assert len(labels_out) == 46
-        write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
-                              hemi='both', subjects_dir=subjects_dir)
+        for hemi, side in (('lh', 'left'), ('rh', 'right')):
+            table_name = './%s.fsaverage164.label.gii' % (side,)
+            write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
+                                  hemi=hemi, subjects_dir=subjects_dir,
+                                  sort=False, table_name=table_name)
 
 
 def _manifest_check_download(manifest_path, destination, url, hash_):

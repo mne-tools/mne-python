@@ -16,8 +16,10 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_source_morph, read_source_estimate,
                  read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
-                 make_sphere_model, make_ad_hoc_cov, VolVectorSourceEstimate)
+                 make_sphere_model, make_ad_hoc_cov, VolVectorSourceEstimate,
+                 read_freesurfer_lut)
 from mne.datasets import testing
+from mne.fixes import _get_img_fdata
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
 from mne.source_space import get_volume_labels_from_aseg
@@ -45,6 +47,7 @@ fname_fmorph = op.join(data_path, 'MEG', 'sample',
 fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
 fname_t1 = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 fname_brain = op.join(subjects_dir, 'sample', 'mri', 'brain.mgz')
+fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 fname_stc = op.join(sample_dir, 'fsaverage_audvis_trunc-meg')
 
 
@@ -257,7 +260,7 @@ def test_volume_source_morph(tmpdir):
     stc_vol = read_source_estimate(fname_vol, 'sample')
 
     # check for invalid input type
-    with pytest.raises(ValueError, match='src must be a string or instance'):
+    with pytest.raises(TypeError, match='src must be'):
         compute_source_morph(src=42)
 
     # check for raising an error if neither
@@ -282,10 +285,9 @@ def test_volume_source_morph(tmpdir):
     # terrible quality buts fast
     zooms = 20
     kwargs = dict(zooms=zooms, niter_sdr=(1,), niter_affine=(1,))
-    with pytest.warns(RuntimeWarning, match='recommend regenerating'):
-        source_morph_vol = compute_source_morph(
-            subjects_dir=subjects_dir, src=fname_inv_vol,
-            subject_from='sample', **kwargs)
+    source_morph_vol = compute_source_morph(
+        subjects_dir=subjects_dir, src=fname_inv_vol,
+        subject_from='sample', **kwargs)
     shape = (13,) * 3  # for the given zooms
 
     assert source_morph_vol.subject_from == 'sample'
@@ -551,19 +553,29 @@ def test_morph_stc_sparse():
 
 @requires_nibabel()
 @testing.requires_testing_data
-def test_volume_labels_morph(tmpdir):
+@pytest.mark.parametrize('sl, n_real, n_mri, n_orig', [
+    # First and last should add up, middle can have overlap should be <= sum
+    (slice(0, 1), 37, 123, 8),
+    (slice(1, 2), 51, 225, 12),
+    (slice(0, 2), 88, 330, 20),
+])
+def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     """Test generating a source space from volume label."""
+    import nibabel as nib
+    n_use = (sl.stop - sl.start) // (sl.step or 1)
     # see gh-5224
     evoked = mne.read_evokeds(fname_evoked)[0].crop(0, 0)
     evoked.pick_channels(evoked.ch_names[:306:8])
     evoked.info.normalize_proj()
     n_ch = len(evoked.ch_names)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
+    lut, _ = read_freesurfer_lut()
+    label_names = sorted(get_volume_labels_from_aseg(aseg_fname))
+    use_label_names = label_names[sl]
     src = setup_volume_source_space(
-        'sample', subjects_dir=subjects_dir, volume_label=label_names[:2],
+        'sample', subjects_dir=subjects_dir, volume_label=use_label_names,
         mri=aseg_fname)
-    assert len(src) == 2
+    assert len(src) == n_use
     assert src.kind == 'volume'
     n_src = sum(s['nuse'] for s in src)
     sphere = make_sphere_model('auto', 'auto', evoked.info)
@@ -574,13 +586,32 @@ def test_volume_labels_morph(tmpdir):
     stc = apply_inverse(evoked, inv)
     assert stc.data.shape == (n_src, 1)
     img = stc.as_volume(src, mri_resolution=True)
+    assert img.shape == (86, 86, 86, 1)
     n_on = np.array(img.dataobj).astype(bool).sum()
-    # This was 291 on `master` before gh-5590. Then refactoring transforms
-    # it became 279 despite a < 1e-8 change in vox_mri_t
-    assert n_on in (279, 291)
-    img = stc.as_volume(src, mri_resolution=False)
-    n_on = np.array(img.dataobj).astype(bool).sum()
-    assert n_on == 44  # was 20 on `master` before gh-5590
+    aseg_img = _get_img_fdata(nib.load(fname_aseg))
+    n_got_real = np.in1d(
+        aseg_img.ravel(), [lut[name] for name in use_label_names]).sum()
+    assert n_got_real == n_real
+    # - This was 291 on `master` before gh-5590
+    # - Refactoring transforms it became 279 with a < 1e-8 change in vox_mri_t
+    # - Dropped to 123 once nearest-voxel was used in gh-7653
+    # - Jumped back up to 330 with morphing fixes actually correctly
+    #   interpolating across all volumes
+    assert aseg_img.shape == img.shape[:3]
+    assert n_on == n_mri
+    for ii in range(2):
+        # should work with (ii=0) or without (ii=1) the interpolator
+        if ii:
+            src[0]['interpolator'] = None
+        img = stc.as_volume(src, mri_resolution=False)
+        n_on = np.array(img.dataobj).astype(bool).sum()
+        # was 20 on `master` before gh-5590
+        # then 44 before gh-7653, which took it back to 20
+        assert n_on == n_orig
+    # without the interpolator, this should fail
+    assert src[0]['interpolator'] is None
+    with pytest.raises(RuntimeError, match=r'.*src\[0\], .* mri_resolution'):
+        stc.as_volume(src, mri_resolution=True)
 
 
 run_tests_if_main()

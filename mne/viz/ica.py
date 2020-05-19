@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
-                    _plot_raw_onscroll, _mouse_click,
+                    _plot_raw_onscroll, _mouse_click, _plot_annotations,
                     _plot_raw_onkey, plt_show, _convert_psds)
 from .topomap import (_prepare_topomap_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap, _make_head_outlines)
@@ -637,9 +637,9 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     axes[0].set_title(title)
 
     if labels == 'ecg':
-        labels = [l for l in ica.labels_ if l.startswith('ecg/')]
+        labels = [label for label in ica.labels_ if label.startswith('ecg/')]
     elif labels == 'eog':
-        labels = [l for l in ica.labels_ if l.startswith('eog/')]
+        labels = [label for label in ica.labels_ if label.startswith('eog/')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
     elif isinstance(labels, str):
         if len(axes) > 1:
@@ -833,8 +833,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     evoked.plot(axes=axes, show=show, time_unit='s')
     for ax in fig.axes:
-        for l in ax.get_lines():
-            l.set_color('r')
+        for line in ax.get_lines():
+            line.set_color('r')
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=show, time_unit='s')
     tight_layout(fig=fig)
@@ -900,13 +900,14 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
                   first_time=first_time, data_picks=[], decim=1,
                   noise_cov=None, whitened_ch_names=(), clipping=None,
-                  show_scrollbars=show_scrollbars,
+                  added_label=list(), show_scrollbars=show_scrollbars,
                   show_scalebars=False)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
     params['plot_fun'] = partial(_plot_raw_traces, params=params, color=color,
                                  bad_color=bad_color)
+    _plot_annotations(raw, params)
     params['update_fun'] = partial(_update_data, params)
     params['pick_bads_fun'] = partial(_pick_bads, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)

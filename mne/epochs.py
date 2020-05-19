@@ -26,7 +26,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
-                       _get_split_size)
+                       _get_split_size, _NEXT_FILE_BUFFER)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -57,7 +57,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
-                    _scale_dataframe_data, _check_time_format)
+                    _scale_dataframe_data, _check_time_format, object_size)
 from .utils.docs import fill_doc
 
 
@@ -71,7 +71,11 @@ def _pack_reject_params(epochs):
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
-    """Split epochs."""
+    """Split epochs.
+
+    Anything new added to this function also needs to be added to
+    BaseEpochs.save to account for new file sizes.
+    """
     # insert index in filename
     path, base = op.split(fname)
     idx = base.find('.')
@@ -120,10 +124,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
-    mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                         epochs.event_id.items()])
-
-    write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
+    write_string(fid, FIFF.FIFF_DESCRIPTION, _event_id_string(epochs.event_id))
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # Metadata
@@ -185,6 +186,10 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
+
+
+def _event_id_string(event_id):
+    return ';'.join([k + ':' + str(v) for k, v in event_id.items()])
 
 
 def _merge_events(events, event_id, selection):
@@ -1595,7 +1600,34 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._check_consistency()
         if fmt == "single":
             total_size //= 2  # 64bit data converted to 32bit before writing.
-        n_parts = max(int(np.ceil(total_size / float(split_size))), 1)
+        total_size += 32  # FIF tags
+        # Account for all the other things we write, too
+        # 1. meas_id block plus main epochs block
+        total_size += 132
+        # 2. measurement info (likely slight overestimate, but okay)
+        total_size += object_size(self.info)
+        # 3. events and event_id in its own block
+        total_size += (self.events.size * 4 +
+                       len(_event_id_string(self.event_id)) + 72)
+        # 4. Metadata in a block of its own
+        if self.metadata is not None:
+            total_size += len(_prepare_write_metadata(self.metadata)) + 56
+        # 5. first sample, last sample, baseline
+        total_size += 40 + 40 * (self.baseline is not None)
+        # 6. drop log
+        total_size += len(json.dumps(self.drop_log)) + 16
+        # 7. reject params
+        reject_params = _pack_reject_params(self)
+        if reject_params:
+            total_size += len(json.dumps(reject_params)) + 16
+        # 8. selection
+        total_size += self.selection.size * 4 + 16
+        # 9. end of file tags
+        total_size += _NEXT_FILE_BUFFER
+
+        # This is like max(int(ceil(total_size / split_size)), 1) but cleaner
+        n_parts = (total_size - 1) // split_size + 1
+        assert n_parts >= 1
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
@@ -1799,7 +1831,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Notes
         -----
         This method returns a copy and does not modify the data it
-        operates on. It also returns an EpochsArraw instance.
+        operates on. It also returns an EpochsArray instance.
 
         .. versionadded:: 0.20.0
         """

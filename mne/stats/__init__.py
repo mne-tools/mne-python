@@ -1,7 +1,8 @@
 """Functions for statistical analysis."""
 
 from .parametric import (f_threshold_mway_rm, f_mway_rm, f_oneway,
-                         _parametric_ci, ttest_1samp_no_p)
+                         _parametric_ci, ttest_1samp_no_p,
+                         ttest_ind_no_p)
 from .permutations import (permutation_t_test, _ci,
                            bootstrap_confidence_interval)
 from .cluster_level import (

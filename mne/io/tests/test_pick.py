@@ -233,8 +233,8 @@ def test_pick_seeg_ecog():
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
-    for l, r in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
-        assert_equal(l, r)
+    for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
+        assert lt == rt
     # Deal with constant debacle
     raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
                                'test_chpi_raw_sss.fif'))

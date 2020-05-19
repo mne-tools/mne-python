@@ -57,7 +57,7 @@ subject = 'sample'
 #
 # Let's look at these surfaces. The function :func:`mne.viz.plot_bem`
 # assumes that you have the ``bem`` folder of your subject's FreeSurfer
-# reconstruction, containing the necessary files.
+# reconstruction, containing the necessary surface files.
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
                  brain_surfaces='white', orientation='coronal')

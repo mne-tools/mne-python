@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+import os
 import os.path as op
 from pathlib import Path
 import sys
@@ -138,7 +139,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)
-    if renderer_interactive.get_3d_backend() == 'mayavi':
+    if renderer_interactive._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(surf, mayavi.modules.surface.Surface)
 
@@ -156,7 +157,7 @@ def test_plot_evoked_field(renderer):
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
         fig = evoked.plot_field(maps, time=0.1)
-        if renderer.get_3d_backend() == 'mayavi':
+        if renderer._get_3d_backend() == 'mayavi':
             import mayavi  # noqa: F401 analysis:ignore
             assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -280,7 +281,7 @@ def test_plot_alignment(tmpdir, renderer):
                          coord_frame='mri', subjects_dir=subjects_dir,
                          surfaces=['brain'], bem=sphere, show_axes=True)
     renderer.backend._close_all()
-    if renderer.get_3d_backend() == 'mayavi':
+    if renderer._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -302,11 +303,11 @@ def test_plot_alignment(tmpdir, renderer):
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
     # wrong eeg value:
-    with pytest.raises(ValueError, match='eeg must only contain'):
+    with pytest.raises(ValueError, match='Invalid value for the .eeg'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir, eeg='foo')
     # wrong meg value:
-    with pytest.raises(ValueError, match='meg must only contain'):
+    with pytest.raises(ValueError, match='Invalid value for the .meg'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir, meg='bar')
     # multiple brain surfaces:
@@ -338,7 +339,55 @@ def test_plot_alignment(tmpdir, renderer):
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
     log = log.getvalue()
+    assert '26 fnirs pairs' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='channels')
+    log = log.getvalue()
     assert '26 fnirs locations' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='pairs')
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='sources')
+    log = log.getvalue()
+    assert '26 fnirs sources' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs='detectors')
+    log = log.getvalue()
+    assert '26 fnirs detectors' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs=['channels', 'pairs'])
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
+    assert '26 fnirs locations' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs=['pairs', 'sources', 'detectors'])
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
+    assert '26 fnirs sources' in log
+    assert '26 fnirs detectors' in log
+
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
+                       fnirs=['channels', 'pairs', 'sources', 'detectors'])
+    log = log.getvalue()
+    assert '26 fnirs pairs' in log
+    assert '26 fnirs locations' in log
+    assert '26 fnirs sources' in log
+    assert '26 fnirs detectors' in log
 
     renderer.backend._close_all()
 
@@ -633,10 +682,17 @@ def test_plot_volume_source_estimates_morph():
                  clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
+bad_azure_3d = pytest.mark.skipif(
+    os.getenv('AZURE_CI_WINDOWS', 'false') == 'true' and
+    sys.version_info[:2] == (3, 8),
+    reason='Crashes workers on Azure')
+
+
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
+@bad_azure_3d
 def test_plot_vector_source_estimates(renderer_interactive):
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -718,6 +774,7 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
+@bad_azure_3d
 def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)
@@ -759,7 +816,7 @@ def test_link_brains(renderer_interactive):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    if renderer_interactive.get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() != 'pyvista':
         with pytest.raises(NotImplementedError, match='backend is pyvista'):
             link_brains(brain)
     else:

@@ -387,6 +387,8 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
             op.dirname(__file__), 'generated', '%s.examples' % (name,)))
         if size > 0:
             lines += """
+.. _sphx_glr_backreferences_{1}:
+
 .. rubric:: Examples using ``{0}``:
 
 .. include:: {1}.examples
@@ -534,6 +536,7 @@ sphinx_gallery_conf = {
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
+    'matplotlib_animations': True,
 }
 
 ##############################################################################

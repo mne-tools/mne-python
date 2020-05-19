@@ -119,7 +119,7 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
 
 def annotate_movement(raw, pos, rotation_velocity_limit=None,
                       translation_velocity_limit=None,
-                      mean_distance_limit=None):
+                      mean_distance_limit=None, use_dev_head_trans='average'):
     """Detect segments with movement.
 
     Detects segments periods further from rotation_velocity_limit,
@@ -139,6 +139,12 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         Head translation velocity limit in radians per second.
     mean_distance_limit : float
         Head position limit from mean recording in meters.
+    use_dev_head_trans : 'average' (default) | 'info'
+        Identify the device to head transform used to define the
+        fixed HPI locations for computing moving distances.
+        If ``average`` the average device to head transform is
+        computed using ``compute_average_dev_head_t``.
+        If ``info``, ``raw.info['dev_head_t']`` is used.
 
     Returns
     -------
@@ -146,20 +152,18 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         Periods with head motion.
     hpi_disp : array
         Head position over time with respect to the mean head pos.
+
+    See Also
+    --------
+    compute_average_dev_head_t
     """
     sfreq = raw.info['sfreq']
     hp_ts = pos[:, 0].copy()
     hp_ts -= raw.first_samp / sfreq
     dt = np.diff(hp_ts)
-    seg_good = np.append(dt, 1. / sfreq)
     hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
 
     annot = Annotations([], [], [], orig_time=None)  # rel to data start
-
-    # Mark down times that are bad according to annotations
-    onsets, ends = _annotations_starts_stops(raw, 'bad')
-    for onset, end in zip(onsets, ends):
-        seg_good[onset:end] = 0
 
     # Annotate based on rotational velocity
     t_tot = raw.times[-1]
@@ -197,20 +201,34 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     disp = []
     if mean_distance_limit is not None:
         assert mean_distance_limit > 0
+
+        # compute dev to head transform for fixed points
+        use_dev_head_trans = use_dev_head_trans.lower()
+        if use_dev_head_trans not in ['average', 'info']:
+            raise ValueError('use_dev_head_trans must be either' +
+                             ' \'average\' or \'info\': got \'%s\''
+                             % (use_dev_head_trans,))
+
+        if use_dev_head_trans == 'average':
+            fixed_dev_head_t = compute_average_dev_head_t(raw, pos)
+        elif use_dev_head_trans == 'info':
+            fixed_dev_head_t = raw.info['dev_head_t']
+
         # Get static head pos from file, used to convert quat to cartesian
         chpi_pos = sorted([d for d in raw.info['hpi_results'][-1]
                           ['dig_points']], key=lambda x: x['ident'])
         chpi_pos = np.array([d['r'] for d in chpi_pos])
-        # CTF: chpi_pos[0]-> LPA, chpi_pos[1]-> NASION, chpi_pos[2]-> RPA
+
         # Get head pos changes during recording
         chpi_pos_mov = np.array([apply_trans(_quat_to_affine(quat), chpi_pos)
                                 for quat in pos[:, 1:7]])
 
-        # get average position
-        chpi_pos_avg = np.average(chpi_pos_mov, axis=0, weights=seg_good)
+        # get fixed position
+        chpi_pos_fix = apply_trans(fixed_dev_head_t, chpi_pos)
 
         # get movement displacement from mean pos
-        hpi_disp = chpi_pos_mov - np.tile(chpi_pos_avg, (len(seg_good), 1, 1))
+        hpi_disp = chpi_pos_mov - np.tile(chpi_pos_fix, (pos.shape[0], 1, 1))
+
         # get positions above threshold distance
         disp = np.sqrt((hpi_disp ** 2).sum(axis=2))
         bad_mask = np.any(disp > mean_distance_limit, axis=1)
@@ -304,8 +322,8 @@ def _annotations_from_mask(times, art_mask, art_name):
     comps, num_comps = label(art_mask)
     onsets, durations, desc = [], [], []
     n_times = len(times)
-    for l in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == l)[0]
+    for lbl in range(1, num_comps + 1):
+        l_idx = np.nonzero(comps == lbl)[0]
         onsets.append(times[l_idx[0]])
         # duration is to the time after the last labeled time
         # or to the end of the times.

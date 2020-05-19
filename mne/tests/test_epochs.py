@@ -37,6 +37,7 @@ from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
 from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.write import _get_split_size
 from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.datasets import testing
@@ -989,6 +990,10 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
                     picks=picks, on_missing='ignore')
     epochs.save(temp_fname, overwrite=True)
+    split_fname_1 = temp_fname[:-4] + '-1.fif'
+    split_fname_2 = temp_fname[:-4] + '-2.fif'
+    assert op.isfile(temp_fname)
+    assert not op.isfile(split_fname_1)
     epochs_read = read_epochs(temp_fname, preload=preload)
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
@@ -996,8 +1001,24 @@ def test_epochs_io_preload(tmpdir, preload):
                  {str(x) for x in epochs_read.event_id.keys()})
 
     # test saving split epoch files
-    epochs.save(temp_fname, split_size='7MB', overwrite=True)
+    split_size = '7MB'
+    # ensure that we're in a position where just the data itself could fit
+    # if that were all that we saved ...
+    split_size_bytes = _get_split_size(split_size)
+    assert epochs.get_data().nbytes // 2 < split_size_bytes
+    epochs.save(temp_fname, split_size=split_size, overwrite=True)
+    # ... but we correctly account for the other stuff we need to write,
+    # so end up with two files ...
+    assert op.isfile(temp_fname)
+    assert op.isfile(split_fname_1)
+    assert not op.isfile(split_fname_2)
     epochs_read = read_epochs(temp_fname, preload=preload)
+    # ... and none of the files exceed our limit.
+    for fname in (temp_fname, split_fname_1):
+        with open(fname, 'r') as fid:
+            fid.seek(0, 2)
+            fsize = fid.tell()
+        assert fsize <= split_size_bytes
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
@@ -1025,12 +1046,20 @@ def test_split_saving(tmpdir):
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
     epochs_data = epochs.get_data()
+    assert len(epochs) == 9
     fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(fname, split_size='1MB', overwrite=True)
-    assert op.isfile(fname)
-    assert op.isfile(fname[:-4] + '-1.fif')
-    assert op.isfile(fname[:-4] + '-2.fif')
-    assert not op.isfile(fname[:-4] + '-3.fif')
+    size = _get_split_size('1MB')
+    assert size == 1048576 == 1024 * 1024
+    written_fnames = [fname] + [
+        fname[:-4] + '-%d.fif' % ii for ii in range(1, 4)]
+    for this_fname in written_fnames:
+        assert op.isfile(this_fname)
+        with open(this_fname, 'r') as fid:
+            fid.seek(0, 2)
+            file_size = fid.tell()
+        assert size * 0.5 < file_size <= size
+    assert not op.isfile(fname[:-4] + '-4.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
@@ -1594,7 +1623,7 @@ def test_epoch_eq():
     drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs_1.drop_log]
     assert_equal(drop_log1, drop_log2)
-    assert_equal(len([l for l in epochs_1.drop_log if not l]),
+    assert_equal(len([lg for lg in epochs_1.drop_log if not lg]),
                  len(epochs_1.events))
     assert (epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts([epochs_1, epochs_2], method='mintime')

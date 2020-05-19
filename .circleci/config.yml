@@ -4,24 +4,21 @@ version: 2
 jobs:
     build_docs:
       docker:
-        - image: circleci/python:3.7-stretch
+        - image: circleci/python:3.8.1-buster
       steps:
         - checkout
         - run:
             name: Set BASH_ENV
             command: |
+              set -e
               echo "set -e" >> $BASH_ENV
-              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              export MNE_ROOT=${PWD}/minimal_cmds
-              echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              source tools/get_minimal_commands.sh
+              echo "source ${PWD}/tools/get_minimal_commands.sh" >> $BASH_ENV
               echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
               echo "export _MNE_BRAIN_TRACES_AUTO=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
-              curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
-              echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
-              echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
         - run:
@@ -56,6 +53,11 @@ jobs:
               - pip-cache
 
         - run:
+            name: Install 3D rendering libraries
+            command: |
+              sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3
+
+        - run:
             name: Spin up Xvfb
             command: |
               /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
@@ -79,9 +81,12 @@ jobs:
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip numpy vtk setuptools
+              python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
+              python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
+              python -m pip install --user --upgrade --progress-bar off https://github.com/enthought/mayavi/zipball/master
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
-              python -m pip install --user --upgrade --pre sphinx
+              python -m pip uninstall -yq pysurfer mayavi
+              python -m pip install --user --upgrade --progress-bar off --pre sphinx
               python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
               python -m pip install --user --upgrade seaborn
               python -m pip install --user -e .
@@ -98,7 +103,7 @@ jobs:
                which python
                QT_DEBUG_PLUGINS=1 mne sys_info
                python -c "import numpy; numpy.show_config()"
-               LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+               LIBGL_DEBUG=verbose python -c "import pyvista; pyvista.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
@@ -108,18 +113,20 @@ jobs:
             name: Get data
             command: |
               python setup.py develop --user
-              if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
-              git fetch upstream
-              git branch -a
               mkdir -p ~/mne_data
               touch pattern.txt;
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
+                echo "Doing a full dev build";
                 echo html_dev > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               elif [ "$CIRCLE_BRANCH" == "maint/0.20" ]; then
+                echo "Doing a full stable build";
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
+                echo "Doing a partial build";
+                if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
+                git fetch upstream
                 FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
                   FNAMES="tutorials/source-modeling/plot_mne_dspm_source_localization.py tutorials/machine-learning/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/machine-learning/plot_sensors_decoding.py tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py tutorials/evoked/plot_20_visualize_evoked.py "${FNAMES};
@@ -171,7 +178,7 @@ jobs:
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                      python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation())" --accept-hcpmmp-license;
+                      python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects'))" --accept-hcpmmp-license;
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
@@ -329,7 +336,7 @@ jobs:
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip" memory_profiler
+               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip" memory_profiler https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
                python -m pip install --user -e .
         - run:
             name: make linkcheck

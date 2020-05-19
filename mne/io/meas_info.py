@@ -150,13 +150,15 @@ class MontageMixin(object):
     """Mixin for Montage setting."""
 
     @verbose
-    def set_montage(self, montage, match_case=True, verbose=None):
+    def set_montage(self, montage, match_case=True,
+                    on_missing='raise', verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         %(montage)s
         %(match_case)s
+        %(on_missing_montage)s
         %(verbose_meth)s
 
         Returns
@@ -173,7 +175,7 @@ class MontageMixin(object):
 
         from ..channels.montage import _set_montage
         info = self if isinstance(self, Info) else self.info
-        _set_montage(info, montage, match_case)
+        _set_montage(info, montage, match_case, on_missing)
         return self
 
 
@@ -182,14 +184,19 @@ class Info(dict, MontageMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
-    that is available for a recording.
-
-    This class should not be instantiated directly. To create a measurement
-    information strucure, use :func:`mne.create_info`.
+    that is available for a recording. However, its keys are restricted to
+    those provided by the
+    `FIF format specification <https://github.com/mne-tools/fiff-constants>`__,
+    so new entries should not be manually added.
 
     The only entries that should be manually changed by the user are
     ``info['bads']`` and ``info['description']``. All other entries should
-    be considered read-only, or should be modified by functions or methods.
+    be considered read-only, though they can be modified by various MNE-Python
+    functions or methods (which have safeguards to ensure all fields remain in
+    sync).
+
+    This class should not be instantiated directly. To create a measurement
+    information strucure, use :func:`mne.create_info`.
 
     Attributes
     ----------
@@ -488,7 +495,7 @@ class Info(dict, MontageMixin):
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
-            Handedness (1=right, 2=left).
+            Handedness (1=right, 2=left, 3=ambidextrous).
 
     * ``device_info`` dict:
 

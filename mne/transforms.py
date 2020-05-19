@@ -439,8 +439,12 @@ def _ensure_trans(trans, fro='mri', to='head'):
     return trans
 
 
-def _get_trans(trans, fro='mri', to='head'):
+def _get_trans(trans, fro='mri', to='head', allow_none=True):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
+    types = (Transform, 'path-like')
+    if allow_none:
+        types += (None,)
+    _validate_type(trans, types, 'trans')
     if _check_path_like(trans):
         trans = str(trans)
         if trans == 'fsaverage':
@@ -461,12 +465,10 @@ def _get_trans(trans, fro='mri', to='head'):
     elif isinstance(trans, Transform):
         fro_to_t = trans
         trans = 'instance of Transform'
-    elif trans is None:
+    else:
+        assert trans is None
         fro_to_t = Transform(fro, to)
         trans = 'identity'
-    else:
-        raise ValueError('transform type %s not known, must be str, dict, '
-                         'or None' % type(trans))
     # it's usually a head->MRI transform, so we probably need to invert it
     fro_to_t = _ensure_trans(fro_to_t, fro, to)
     return fro_to_t, trans
@@ -1481,7 +1483,7 @@ def _write_fs_xfm(fname, xfm, kind):
         fid.write((kind + '\n\nTtransform_Type = Linear;\n').encode('ascii'))
         fid.write(u'Linear_Transform =\n'.encode('ascii'))
         for li, line in enumerate(xfm[:-1]):
-            line = ' '.join(['%0.6f' % l for l in line])
+            line = ' '.join(['%0.6f' % part for part in line])
             line += '\n' if li < 2 else ';\n'
             fid.write(line.encode('ascii'))
 

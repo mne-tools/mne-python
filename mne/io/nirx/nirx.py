@@ -5,6 +5,7 @@
 from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
+import os.path as op
 
 import numpy as np
 
@@ -23,7 +24,7 @@ def read_raw_nirx(fname, preload=False, verbose=None):
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder.
+        Path to the NIRX data folder or header file.
     %(preload)s
     %(verbose)s
 
@@ -50,7 +51,7 @@ class RawNIRX(BaseRaw):
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder.
+        Path to the NIRX data folder or header file.
     %(preload)s
     %(verbose)s
 
@@ -64,6 +65,9 @@ class RawNIRX(BaseRaw):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
+
+        if fname.endswith('.hdr'):
+            fname = op.dirname(op.abspath(fname))
 
         # Check if required files exist and store names for later use
         files = dict()
@@ -241,7 +245,28 @@ class RawNIRX(BaseRaw):
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
             info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
             info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
-        raw_extras = {"sd_index": req_ind, 'files': files}
+
+        # Extract the start/stop numbers for samples in the CSV. In theory the
+        # sample bounds should just be 10 * the number of channels, but some
+        # files have mixed \n and \n\r endings (!) so we can't rely on it, and
+        # instead make a single pass over the entire file at the beginning so
+        # that we know how to seek and read later.
+        bounds = dict()
+        for key in ('wl1', 'wl2'):
+            offset = 0
+            bounds[key] = [offset]
+            with open(files[key], 'rb') as fid:
+                for line in fid:
+                    offset += len(line)
+                    bounds[key].append(offset)
+                assert offset == fid.tell()
+
+        # Extras required for reading data
+        raw_extras = {
+            'sd_index': req_ind,
+            'files': files,
+            'bounds': bounds,
+        }
 
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
@@ -269,12 +294,12 @@ class RawNIRX(BaseRaw):
         The returned data interleaves the wavelengths.
         """
         sdindex = self._raw_extras[fi]['sd_index']
-        nchan = self._raw_extras[fi]['orig_nchan']
 
         wls = [
             _read_csv_rows_cols(
                 self._raw_extras[fi]['files'][key],
-                start, stop, sdindex, nchan // 2).T
+                start, stop, sdindex,
+                self._raw_extras[fi]['bounds'][key]).T
             for key in ('wl1', 'wl2')
         ]
 
@@ -289,18 +314,11 @@ class RawNIRX(BaseRaw):
         return data
 
 
-def _read_csv_rows_cols(fname, start, stop, cols, n_cols):
-    # The following is equivalent to:
-    # x = pandas.read_csv(fname, header=None, usecols=cols, skiprows=start,
-    #                     nrows=stop - start, delimiter=' ')
-    # But does not require Pandas, and is hopefully fast enough, as the
-    # reading should be done in C (CPython), as should the conversion to float
-    # (NumPy).
-    x = np.zeros((stop - start, n_cols))
-    with _open(fname) as fid:
-        for li, line in enumerate(fid):
-            if li >= start:
-                if li >= stop:
-                    break
-                x[li - start] = np.array(line.split(), float)[cols]
+def _read_csv_rows_cols(fname, start, stop, cols, bounds):
+    with open(fname, 'rb') as fid:
+        fid.seek(bounds[start])
+        data = fid.read(bounds[stop] - bounds[start]).decode('latin-1')
+        x = np.fromstring(data, float, sep=' ')
+    x.shape = (stop - start, -1)
+    x = x[:, cols]
     return x

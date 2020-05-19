@@ -81,7 +81,7 @@ error_ignores = {
     'SA04',  # no description in See Also
     'PR04',  # Parameter "shape (n_channels" has no type
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
-   # XXX should also verify that | is used rather than , to separate params
+    # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
 }
 subclass_name_ignores = (
@@ -246,7 +246,6 @@ prepare_inverse_operator
 read_bad_channels
 read_fiducials
 read_tag
-requires_sample_data
 rescale
 setup_proj
 source_estimate_quantification

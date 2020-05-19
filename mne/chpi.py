@@ -475,7 +475,7 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
     else:
         line_freqs = np.zeros([0])
     logger.info('Line interference frequencies: %s Hz'
-                % ' '.join(['%d' % l for l in line_freqs]))
+                % ' '.join(['%d' % lf for lf in line_freqs]))
 
     # build model to extract sinusoidal amplitudes.
     slope = np.linspace(-0.5, 0.5, model_n_window)[:, np.newaxis]

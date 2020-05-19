@@ -196,26 +196,28 @@ type the following command in a terminal::
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::
 
-    Platform:      Linux-4.18.0-13-generic-x86_64-with-debian-buster-sid
-    Python:        3.6.8 |Anaconda, Inc.| (default, Dec 30 2018, 01:22:34)  [GCC 7.3.0]
-    Executable:    /home/travis/miniconda/bin/python
-    CPU:           x86_64: 48 cores
-    Memory:        62.7 GB
+    Platform:      Linux-5.0.0-1031-gcp-x86_64-with-glibc2.2.5
+    Python:        3.8.1 (default, Dec 20 2019, 10:06:11)  [GCC 7.4.0]
+    Executable:    /home/travis/virtualenv/python3.8.1/bin/python
+    CPU:           x86_64: 2 cores
+    Memory:        7.8 GB
 
-    mne:           0.17.0
-    numpy:         1.15.4 {blas=mkl_rt, lapack=mkl_rt}
-    scipy:         1.2.0
-    matplotlib:    3.0.2 {backend=Qt5Agg}
+    mne:           0.21.dev0
+    numpy:         1.19.0.dev0+8dfaa4a {blas=openblas, lapack=openblas}
+    scipy:         1.5.0.dev0+f614064
+    matplotlib:    3.2.1 {backend=Qt5Agg}
 
-    sklearn:       0.20.2
-    numba:         0.45.0
-    nibabel:       2.3.3
+    sklearn:       0.22.2.post1
+    numba:         0.49.0
+    nibabel:       3.1.0
     cupy:          Not found
-    pandas:        0.24.0
-    dipy:          0.15.0
-    mayavi:        4.7.1 {qt_api=pyqt5, PyQt5=5.10.1}
-    pyvista:       0.21.3
-    vtk:           8.2.0
+    pandas:        1.0.3
+    dipy:          1.1.1
+    mayavi:        4.7.2.dev0
+    pyvista:       0.24.1
+    vtk:           9.0.0
+    PyQt5:         5.14.1
+
 
 .. collapse:: |hand-stop-o| If you get an error...
     :class: danger
@@ -239,6 +241,45 @@ check out the :doc:`advanced` page to see if your problem is discussed there.
 If not, the `MNE mailing list`_ and `MNE gitter channel`_ are
 good resources for troubleshooting installation problems.
 
+
+Installing a Python IDE
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Most users find it convenient to write and run their code in an `Integrated
+Development Environment <ide>`_ (IDE). Some popular choices for scientific
+Python development are:
+
+- `Spyder`_ is an IDE developed by and for scientists who use Python. It is
+  included by default when you install anaconda and can be started from a
+  terminal with the command ``spyder``. If you installed MNE-Python into a
+  separate environment from the ``base`` anaconda environment, you can add
+  Spyder to your MNE-Python environment by running ``conda install spyder``
+  while your MNE-Python environment is active. Spyder is free and open-source.
+- `Visual Studio Code`_ (often shortened to "vscode") is a development-focused
+  text editor that supports many programming languages in addition to Python,
+  and has a rich ecosystem of packages to extend its capabilities. Installing
+  `Microsoft's Python Extension
+  <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
+  enough to get most Python users up and running. Visual Studio Code is free
+  and open-source.
+- `Atom`_ is a text editor similar to vscode, with a package ecosystem that
+  includes a `Python IDE package <https://atom.io/packages/ide-python>`__ as
+  well as `several <https://atom.io/packages/atom-terminal>`__
+  `packages <https://atom.io/packages/atom-terminal-panel>`__
+  `for <https://atom.io/packages/terminal-plus>`__
+  `integrated <https://atom.io/packages/platformio-ide-terminal>`__
+  `terminals <https://atom.io/packages/term3>`__.
+- `SublimeText`_ is a general-purpose text editor that is fast and lightweight,
+  and also has a rich package ecosystem. There is a package called `Terminus`_
+  that provides an integrated terminal console, and a (confusingly named)
+  package called "anaconda"
+  (`found here <https://packagecontrol.io/packages/Anaconda>`__) that provides
+  many Python-specific features. SublimeText is free (closed-source shareware).
+- `PyCharm`_ is an IDE specifically for Python development that provides an
+  all-in-one installation (no extension packages needed). PyCharm comes in a
+  free "community" edition and a paid "professional" edition, and is
+  closed-source.
+
 .. highlight:: python
 
 **Next:** :doc:`freesurfer`
@@ -251,3 +292,10 @@ good resources for troubleshooting installation problems.
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
 .. _`off-screen rendering`: https://docs.enthought.com/mayavi/mayavi/tips.html#off-screen-rendering
 .. _`rendering with a virtual framebuffer`: https://docs.enthought.com/mayavi/mayavi/tips.html#rendering-using-the-virtual-framebuffer
+.. _`ide`: https://en.wikipedia.org/wiki/Integrated_development_environment
+.. _`spyder`: https://www.spyder-ide.org/
+.. _`visual studio code`: https://code.visualstudio.com/
+.. _`sublimetext`: https://www.sublimetext.com/
+.. _`terminus`: https://packagecontrol.io/packages/Terminus
+.. _`pycharm`: https://www.jetbrains.com/pycharm/
+.. _`atom`: https://atom.io/

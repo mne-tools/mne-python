@@ -14,7 +14,7 @@ deoxyhaemoglobin (HbR) concentration.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
-# sphinx_gallery_thumbnail_number = 14
+# sphinx_gallery_thumbnail_number = 1
 
 import os
 import numpy as np
@@ -30,11 +30,34 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 
 
 ###############################################################################
+# View location of sensors over brain surface
+# -------------------------------------------
+#
+# Here we validate that the location of sources-detector pairs and channels
+# are in the expected locations. Source-detector pairs are shown as lines
+# between the optodes, channels (the mid point of source-detector pairs) are
+# optionally shown as orange dots. Source are optionally shown as red dots and
+# detectors as black.
+
+subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+                             subject='fsaverage',
+                             trans='fsaverage', surfaces=['brain'],
+                             fnirs=['channels', 'pairs',
+                                    'sources', 'detectors'],
+                             subjects_dir=subjects_dir, fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+
+
+###############################################################################
 # Selecting channels appropriate for detecting neural responses
 # -------------------------------------------------------------
 #
 # First we remove channels that are too close together (short channels) to
 # detect a neural response (less than 1 cm distance between optodes).
+# These short channels can be seen in the figure above.
 # To achieve this we pick all the channels that are not considered to be short.
 
 picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
@@ -259,7 +282,8 @@ epochs['Tapping/Right'].average(picks='hbr').plot_topomap(
 ###############################################################################
 # And we can plot the comparison at a single time point for two conditions.
 
-fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5))
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
+                         gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
 vmin, vmax, ts = -8, 8, 9.0
 
 evoked_left = epochs['Tapping/Left'].average()
@@ -280,10 +304,10 @@ evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
 
 evoked_diff = mne.combine_evoked([evoked_left, -evoked_right], weights='equal')
 
-evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2],
-                         vmin=vmin, vmax=vmax,
+evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2:],
+                         vmin=vmin, vmax=vmax, colorbar=True,
                          **topomap_args)
-evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2],
+evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2:],
                          vmin=vmin, vmax=vmax, colorbar=True,
                          **topomap_args)
 
@@ -291,6 +315,7 @@ for column, condition in enumerate(
         ['Tapping Left', 'Tapping Right', 'Left-Right']):
     for row, chroma in enumerate(['HbO', 'HbR']):
         axes[row, column].set_title('{}: {}'.format(chroma, condition))
+fig.tight_layout()
 
 ###############################################################################
 # Lastly, we can also look at the individual waveforms to see what is

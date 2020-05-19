@@ -21,10 +21,10 @@ dependencies:
 - pytest-cov
 - pytest-mock
 - pytest-timeout
+- pytest-xdist
 - joblib
 - psutil
 - flake8
-- spyder
 - numexpr
 - traits>=4.6.0
 - pyface>=6
@@ -42,7 +42,6 @@ dependencies:
   - nibabel
   - nilearn
   - neo
-  - pytest-faulthandler
   - pytest-sugar
   - pydocstyle
   - codespell
