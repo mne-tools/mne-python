@@ -125,6 +125,8 @@ def _handle_hdf5_dataset(hdf5_object):
         data = [hdf5_object.file[cur_data] for cur_data in data.flatten()]
         if len(data) == 1 and matlab_class == 'cell':
             data = data[0]
+            matlab_class = data.attrs.get('MATLAB_class',
+                                          matlab_class).decode()
             data = data[()]
             return _assign_types(data, matlab_class)
 
