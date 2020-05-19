@@ -113,6 +113,24 @@ def _reduce_leadfield_rank(G):
     return G
 
 
+def _sym_inv_sm(x, reduce_rank, inversion):
+    """Symmetric inversion with single- or matrix-style inversion."""
+    assert x.shape[1:] == (3, 3)
+    if inversion == 'matrix':
+        x_inv = _sym_inv(x, reduce_rank)
+    else:
+        # Invert for each dipole separately using plain division
+        diags = np.diagonal(x, axis1=1, axis2=2)
+        assert not reduce_rank   # guaranteed earlier
+        with np.errstate(divide='ignore'):
+            diags = 1. / diags
+        # set the diagonal of each 3x3
+        x_inv = np.zeros_like(x)
+        for k in range(x.shape[0]):
+            x_inv[k].flat[::4] = diags[k]
+    return x_inv
+
+
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         reduce_rank, rank, inversion, nn, orient_std):
     """Compute a spatial beamformer filter (LCMV or DICS).
@@ -225,32 +243,20 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if pick_ori == 'max-power':
         # compute the numerator of the weight formula
         if weight_norm is None:
-            ori_denom = bf_denom
             ori_numer = np.eye(3)[np.newaxis]
+            ori_denom = bf_denom
         else:
             assert weight_norm in ['unit-noise-gain', 'nai']
             # compute power, cf Sekihara & Nagarajan 2008, eq. 4.47
-            Cm_inv_sq = Cm_inv.dot(Cm_inv)
-            ori_denom = np.matmul(
-                np.matmul(Gk.transpose(0, 2, 1), Cm_inv_sq[np.newaxis]), Gk)
             ori_numer = bf_denom
-        ori_pick = np.matmul(_sym_inv(ori_denom, reduce_rank), ori_numer)
-
-        # TODO: single inversion for ori selection is currently missing
-        # # Compute the power
-        # if inversion == 'matrix':
-        #     # Compute power by applying the spatial filters to the cov matrix
-        #     mult = numer
-        # else:
-        #     assert inversion == 'single'
-        #     # First make the filters unit gain, then apply them to the
-        #     # cov matrix to compute power.
-        #     mult = numer / np.linalg.norm(numer, axis=2, keepdims=True)
-        # power = np.matmul(np.matmul(mult, Cm),
-        #                   mult.conj().transpose(0, 2, 1))
-        # assert ori_pick.shape == (n_sources, 3, 3)
+            ori_denom = np.matmul(
+                np.matmul(Gk.transpose(0, 2, 1),
+                          Cm_inv.dot(Cm_inv)[np.newaxis]), Gk)
+        ori_denom_inv = _sym_inv_sm(ori_denom, reduce_rank, inversion)
+        ori_pick = np.matmul(ori_denom_inv, ori_numer)
 
         # pick eigenvector that corresponds to maximum eigenvalue:
+        assert ori_pick.shape == (n_sources, 3, 3)
         eig_vals, eig_vecs = np.linalg.eig(ori_pick.real)  # not Hermitian!
         # sort eigenvectors by eigenvalues for picking:
         order = np.argsort(np.abs(eig_vals), axis=-1)[..., ::-1]
@@ -284,19 +290,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
     if n_orient > 1:
         # Free source orientation
-        if inversion == 'single':
-            # Invert for each dipole separately using plain division
-            diags = np.diagonal(bf_denom, axis1=1, axis2=2)
-            assert not reduce_rank   # guaranteed above
-            with np.errstate(divide='ignore'):
-                diags = 1. / diags
-            # set the diagonal of each 3x3
-            bf_denom_inv = np.zeros((n_sources, n_orient, n_orient), bf_denom.dtype)
-            for k in range(n_sources):
-                bf_denom_inv[k].flat[::4] = diags[k]
-        else:
-            assert inversion == 'matrix'
-            bf_denom_inv = _sym_inv(bf_denom, reduce_rank)
+        bf_denom_inv = _sym_inv_sm(bf_denom, reduce_rank, inversion)
         # Reapply source covariance after inversion
         bf_denom_inv *= sk[:, :, np.newaxis]
         bf_denom_inv *= sk[:, np.newaxis, :]
