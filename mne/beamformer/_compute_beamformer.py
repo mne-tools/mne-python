@@ -313,22 +313,28 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # and W_ug referring to the above-calculated unit-gain filter stored in W
 
     if weight_norm is not None:
-        # Use sqrt(diag(W_ug @ W_ug.T)), which will not be rotation invariant:
-        # noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj())
-        # noise_norm.shape = (n_sources, n_orient * n_orient)
-        # noise_norm = noise_norm[:, ::n_orient + 1][:, :, np.newaxis]
-        # np.sqrt(noise_norm, out=noise_norm)
-        # assert noise_norm.shape == (n_sources, n_orient, 1)
-
-        # Old way (rotation invariant) uses the Frobenius matrix norm,
-        # yielding a single scale factor for each source point:
-        # noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
-
-        # Direct way (rotation invariant, lowest bias) also uses Fro mat norm:
-        # W = G.T @ Cm_inv / sqrt(G.T @ Cm_inv @ Cm_inv @ G)
-        #   = bf_numer / noise_norm
-        W = bf_numer
-        noise_norm = np.linalg.norm(bf_numer, axis=(1, 2), keepdims=True)
+        method = 'direct'
+        if method == 'formula':
+            # Use sqrt(diag(W_ug @ W_ug.T)), not be rotation invariant:
+            noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj())
+            noise_norm = np.reshape(  # np.diag operation over last two axes...
+                noise_norm, (n_sources, -1, 1)[:, ::n_orient + 1]
+            noise_norm *= n_orient
+            np.sqrt(noise_norm.real, out=noise_norm)
+            assert noise_norm.shape == (n_sources, n_orient, 1)
+        elif method == 'old':
+            # Old way (rotation invariant) uses the Frobenius matrix norm,
+            # yielding a single scale factor for each source point:
+            noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
+            assert noise_norm.shape == (n_sources, 1, 1)
+        else:
+            assert method == 'direct'
+            # Direct way (rotation invariant, lowest bias) also uses Fro norm:
+            # W = G.T @ Cm_inv / sqrt(G.T @ Cm_inv @ Cm_inv @ G)
+            #   = bf_numer / noise_norm
+            W = bf_numer
+            noise_norm = np.linalg.norm(bf_numer, axis=(1, 2), keepdims=True)
+            assert noise_norm.shape == (n_sources, 1, 1)
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the
