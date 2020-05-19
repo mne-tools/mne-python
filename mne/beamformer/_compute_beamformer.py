@@ -164,8 +164,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         warn('data covariance does not appear to be positive semidefinite, '
              'results will likely be incorrect')
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
-    if weight_norm is not None:
-        Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
     assert orient_std.shape == (G.shape[1],)
     n_sources = G.shape[1] // n_orient
@@ -220,8 +218,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             ori_pick = _sym_inv(numer, reduce_rank)
         else:
             assert weight_norm in ['unit-noise-gain', 'nai']
-
             # compute power, cf Sekihara & Nagarajan 2008, eq. 4.47
+            Cm_inv_sq = Cm_inv.dot(Cm_inv)
             denom = np.matmul(np.matmul(Gk.transpose(0, 2, 1),
                                         Cm_inv_sq[np.newaxis]), Gk)
             # TODO is _sym_inv okay or should be np.linalg.pinv() ?
