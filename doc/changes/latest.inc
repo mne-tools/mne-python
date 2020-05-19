@@ -150,6 +150,8 @@ Bug
 
 - Fix bug in FieldTrip reader functions when channels are missing in the ``info`` object by `Thomas Hartmann`_
 
+- Throw proper error when trying to import FieldTrip Epochs data with non-uniform time for trials by `Thomas Hartmann`_
+
 API
 ~~~
 
