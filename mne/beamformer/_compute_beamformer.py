@@ -266,8 +266,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # sort eigenvectors by eigenvalues for picking:
         order = np.argsort(np.abs(eig_vals), axis=-1)
         # eig_vals = np.take_along_axis(eig_vals, order, axis=-1)
-        max_power_ori = np.take_along_axis(
-            eig_vecs, order[:, np.newaxis, -1:], axis=-1)[:, :, 0]
+        max_power_ori = eig_vecs[np.arange(len(eig_vecs)), :, order[:, -1]]
         assert max_power_ori.shape == (n_sources, n_orient)
 
         # set the (otherwise arbitrary) sign to match the normal
