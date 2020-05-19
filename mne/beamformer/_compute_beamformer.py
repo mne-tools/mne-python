@@ -249,10 +249,13 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         max_power_ori = eig_vecs[:, :, 0]  # sorted eigenvecs in columns
         assert max_power_ori.shape == (n_sources, 3)
 
-        # # set the (otherwise arbitrary) sign to match the normal  TODO
+        # TODO bring back - this completely destroys the relationship to
+        # external tests now. Probably should not be done on lead field?
+        # set the (otherwise arbitrary) sign to match the normal
         # signs = np.sign(np.sum(max_power_ori[:, np.newaxis] * nn, axis=1))
         # signs[signs == 0] = 1.
         # max_power_ori *= signs
+
         # Compute the lead field for the optimal orientation
         Gk = np.matmul(Gk, max_power_ori[:, :, np.newaxis])
         n_orient = 1
