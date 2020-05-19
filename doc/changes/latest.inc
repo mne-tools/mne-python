@@ -71,6 +71,8 @@ Changelog
 
 - BIDS conformity: When saving FIF files to disk and the files are split into parts, the ``split_naming='bids'`` parameter now uses a "_split-%d" naming instead of the previous "_part-%d", by `Stefan Appelhoff`_
 
+- Add support for loading complex numbers from mat files by `Thomas Hartmann`_
+
 Bug
 ~~~
 
