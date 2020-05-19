@@ -174,8 +174,16 @@ def _create_montage(ft_struct):
             cur_labels = np.asanyarray(tmp_labels)
             montage_ch_names.extend(
                 cur_labels[available_channels])
-            montage_pos.extend(
-                cur_ch_struct['chanpos'][available_channels])
+            try:
+                montage_pos.extend(
+                    cur_ch_struct['chanpos'][available_channels])
+            except KeyError:
+                raise RuntimeError('This file was created with an old version '
+                                   'of FieldTrip. You can convert the data to '
+                                   'the new version by loading it into FieldTrip '
+                                   'and applying ft_selectdata with an '
+                                   'empty cfg structure on it. '
+                                   'Otherwise you can supply the Info field.')
 
     montage = None
 
