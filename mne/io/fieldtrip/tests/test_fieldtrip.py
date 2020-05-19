@@ -274,3 +274,17 @@ def test_with_missing_channels():
             os.path.join(test_data_folder_ft, 'averaged_v7.mat'), info)
         mne.read_epochs_fieldtrip(
             os.path.join(test_data_folder_ft, 'epoched_v7.mat'), info)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
+@pytest.mark.filterwarnings('ignore: Cannot guess the correct type')
+def test_throw_error_on_non_uniform_time_field():
+    """Test if an error is thrown when time fields are not uniform."""
+    fname = os.path.join(mne.datasets.testing.data_path(),
+                         'fieldtrip',
+                         'not_uniform_time.mat')
+
+    with pytest.raises(RuntimeError, match='Loading data with non-uniform '
+                                           'times per epoch is not supported'):
+        mne.io.read_epochs_fieldtrip(fname, info=None)
