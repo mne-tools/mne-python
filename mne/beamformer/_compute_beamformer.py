@@ -225,7 +225,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # TODO is _sym_inv okay or should be np.linalg.pinv() ?
             ori_pick = np.matmul(_sym_inv(denom, reduce_rank), numer)
 
-        # TODO: bring back single inversion
+        # TODO: single inversion for ori selection is currently missing
         # # Compute the power
         # if inversion == 'matrix':
         #     # Compute power by applying the spatial filters to the cov matrix
@@ -285,7 +285,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         else:
             assert inversion == 'matrix'
             assert denom.shape[1:] == (3, 3)
-            # TODO is any of this still needed?
+            # TODO is any of this still needed? - I guess not?
             # Invert for all dipoles simultaneously using matrix inversion.
             # if pick_ori == 'max-power' and weight_norm is not None:
             #     # G.T @ Cm_inv @ Cm_inv @ G == Wk @ Wk.H
@@ -335,7 +335,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if weight_norm is not None:
         if pick_ori in [None, 'vector'] and n_orient > 1:
             # Rescale each set of 3 filters
-            # TODO is this conform with Sekihara & Nagarajan 2008 ?
+            # TODO is this conform with Sekihara & Nagarajan 2008 for vector
+            # beamformers?
             W = W.reshape(-1, 3, W.shape[-1])
             noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
         else:
