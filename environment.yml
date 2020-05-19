@@ -25,7 +25,6 @@ dependencies:
 - joblib
 - psutil
 - flake8
-- spyder
 - numexpr
 - traits>=4.6.0
 - pyface>=6
