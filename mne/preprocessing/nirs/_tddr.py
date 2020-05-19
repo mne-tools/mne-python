@@ -51,7 +51,7 @@ def tddr(raw):
 # With permission https://github.com/frankfishburn/TDDR/issues/1.
 # The only modification is the name, scipy signal import and flake fixes.
 def _TDDR(signal, sample_rate):
-    """Reference implementation for the TDDR algorithm for motion correction.
+    """Correct data using the TDDR algorithm for motion correction.
 
     The algorithm is described in:
     Fishburn F.A., Ludlum R.S., Vaidya C.J., & Medvedev A.V. (2019).
