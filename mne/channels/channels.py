@@ -241,7 +241,12 @@ class ContainsMixin(object):
         """Get a dictionary of channel positions for each channel.
 
         Channel positions are in meters in the specified coordinate frame
-        of the montage.
+        of the montage. All channel positions are a 3-dimensional vector
+        corresponding to xyz positions in meters. For MEG channels, they
+        also add the vectorized orientation.
+
+        For more information on the different channel type
+        positions obtained, see :class:`mne.Info` documentation.
 
         Parameters
         ----------

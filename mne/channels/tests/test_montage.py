@@ -1387,6 +1387,7 @@ def test_get_ch_positions():
 def test_get_montage():
     """Test get montage from Instance."""
     # read in testing data and assert montage roundtrip
+    # for testing dataset: 'test_raw.fif'
     raw = read_raw_fif(fif_fname)
     montage = make_standard_montage('mgh60')
 
@@ -1407,6 +1408,7 @@ def test_get_montage():
     dig_montage = read_dig_fif(fif_dig_montage_fname)
 
     # Make a BrainVision file like the one the user would have had
+    # with testing datasete 'test.vhdr'
     raw_bv = read_raw_brainvision(bv_fname, preload=True)
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
@@ -1429,6 +1431,7 @@ def test_get_montage():
     assert_object_equal(orig_chs, test_chs)
 
     # load in MEG data file and use standard template montage
+    # with testing dataset: 'sample_audvis_raw.fif'
     raw = read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
     ten_twenty_montage = make_standard_montage('standard_1020')
     raw.set_montage(ten_twenty_montage, on_missing='ignore')
