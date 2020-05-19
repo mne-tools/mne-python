@@ -116,7 +116,7 @@ def _reduce_leadfield_rank(G):
 def _sym_inv_sm(x, reduce_rank, inversion, sk):
     """Symmetric inversion with single- or matrix-style inversion."""
     if x.shape[1:] == (1, 1):
-        with np.errstate(divide='ignore'):
+        with np.errstate(invalid='ignore'):
             x_inv = 1. / x
         x_inv[~np.isfinite(x_inv)] = 1.
     else:
