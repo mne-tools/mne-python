@@ -15,7 +15,7 @@ from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import requires_version, run_tests_if_main
+from mne.utils import run_tests_if_main
 from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
@@ -71,7 +71,6 @@ def test_array_copy():
 
 
 @pytest.mark.slowtest
-@requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array."""
     # creating

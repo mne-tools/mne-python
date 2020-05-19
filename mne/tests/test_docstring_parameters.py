@@ -63,10 +63,13 @@ docstring_ignores = {
     'mne.externals',
     'mne.fixes',
     'mne.io.write',
+    'mne.io.meas_info.Info',
+    'mne.utils.docs.deprecated',
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     'mne.channels.tests.test_montage',
+    'mne.io.curry.tests.test_curry',
 ]
 error_ignores = {
     # These we do not live by:
@@ -78,7 +81,7 @@ error_ignores = {
     'SA04',  # no description in See Also
     'PR04',  # Parameter "shape (n_channels" has no type
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
-   # XXX should also verify that | is used rather than , to separate params
+    # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
 }
 subclass_name_ignores = (
@@ -142,8 +145,9 @@ def test_docstring_parameters():
             for method_name in cdoc.methods:
                 method = getattr(cls, method_name)
                 incorrect += check_parameters_match(method, cls=cls)
-            if hasattr(cls, '__call__'):
-                incorrect += check_parameters_match(cls.__call__)
+            if hasattr(cls, '__call__') and \
+                    'of type object' not in str(cls.__call__):
+                incorrect += check_parameters_match(cls.__call__, cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
             if fname.startswith('_'):
@@ -217,7 +221,6 @@ detrend
 dir_tree_find
 fast_cross_3d
 fiff_open
-find_outliers
 find_source_space_hemi
 find_tag
 get_score_funcs
@@ -243,8 +246,8 @@ prepare_inverse_operator
 read_bad_channels
 read_fiducials
 read_tag
-requires_sample_data
 rescale
+setup_proj
 source_estimate_quantification
 whiten_evoked
 write_fiducials

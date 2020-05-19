@@ -10,6 +10,6 @@
 # License: Simplified BSD
 
 from ._brain import _Brain
-from ._timeviewer import _TimeViewer
+from ._timeviewer import _TimeViewer, _LinkViewer
 
 __all__ = ['_Brain']

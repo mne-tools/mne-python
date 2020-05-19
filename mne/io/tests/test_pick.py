@@ -14,8 +14,9 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
-                         get_channel_types, _DATA_CH_TYPES_SPLIT,
-                         _contains_ch_type, pick_channels_cov)
+                         _DATA_CH_TYPES_SPLIT,
+                         _contains_ch_type, pick_channels_cov,
+                         _get_channel_types, get_channel_type_constants)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
@@ -70,7 +71,7 @@ def _channel_type_old(info, idx):
     # iterate through all defined channel types until we find a match with ch
     # go in order from most specific (most rules entries) to least specific
     channel_types = sorted(
-        get_channel_types().items(), key=lambda x: len(x[1]))[::-1]
+        get_channel_type_constants().items(), key=lambda x: len(x[1]))[::-1]
     for t, rules in channel_types:
         for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
@@ -232,8 +233,8 @@ def test_pick_seeg_ecog():
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
-    for l, r in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
-        assert_equal(l, r)
+    for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
+        assert lt == rt
     # Deal with constant debacle
     raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
                                'test_chpi_raw_sss.fif'))
@@ -245,7 +246,7 @@ def test_pick_chpi():
     # Make sure we don't mis-classify cHPI channels
     info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
     _assert_channel_types(info)
-    channel_types = {channel_type(info, idx) for idx in range(info['nchan'])}
+    channel_types = _get_channel_types(info)
     assert 'chpi' in channel_types
     assert 'seeg' not in channel_types
     assert 'ecog' not in channel_types

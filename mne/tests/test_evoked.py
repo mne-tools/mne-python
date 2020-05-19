@@ -21,7 +21,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import (_TempDir, requires_pandas, requires_version,
+from mne.utils import (_TempDir, requires_pandas,
                        run_tests_if_main, grand_average)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -90,7 +90,6 @@ def test_decim():
         assert_array_equal(ev_decim.times, expected_times)
 
 
-@requires_version('scipy', '0.14')
 def test_savgol_filter():
     """Test savgol filtering."""
     h_freq = 10.
@@ -262,7 +261,7 @@ def test_shift_time_evoked():
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
 
     # subsample shift
-    shift = 1e-6  # 1 μs, should be well below 1/sfreq
+    shift = 1e-6  # 1 µs, should be well below 1/sfreq
     ave = read_evokeds(fname, 0)
     times = ave.times
     ave.shift_time(shift)
@@ -349,20 +348,43 @@ def test_evoked_detrend():
 def test_to_data_frame():
     """Test evoked Pandas exporter."""
     ave = read_evokeds(fname, 0)
-    pytest.raises(ValueError, ave.to_data_frame, picks=np.arange(400))
-    df = ave.to_data_frame()
+    # test index checking
+    with pytest.raises(ValueError, match='options. Valid index options are'):
+        ave.to_data_frame(index=['foo', 'bar'])
+    with pytest.raises(ValueError, match='"qux" is not a valid option'):
+        ave.to_data_frame(index='qux')
+    with pytest.raises(TypeError, match='index must be `None` or a string or'):
+        ave.to_data_frame(index=np.arange(400))
+    # test setting index
+    df = ave.to_data_frame(index='time')
+    assert 'time' not in df.columns
+    assert 'time' in df.index.names
+    # test wide and long formats
+    df_wide = ave.to_data_frame()
+    assert all(np.in1d(ave.ch_names, df_wide.columns))
+    df_long = ave.to_data_frame(long_format=True)
+    expected = ('time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    assert set(ave.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == ave.data.size)
+    del df_wide, df_long
+    # test scalings
+    df = ave.to_data_frame(index='time')
     assert ((df.columns == ave.ch_names).all())
-    df = ave.to_data_frame(index=None).reset_index()
-    assert ('time' in df.columns)
-    assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
-    assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)
+    assert_array_equal(df.values[:, 0], ave.data[0] * 1e13)
+    assert_array_equal(df.values[:, 2], ave.data[2] * 1e15)
 
-    df = ave.to_data_frame(long_format=True)
-    assert(len(df) == ave.data.size)
-    assert("time" in df.columns)
-    assert("channel" in df.columns)
-    assert("ch_type" in df.columns)
-    assert("observation" in df.columns)
+
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in evoked Pandas exporter."""
+    from pandas import Timedelta
+    ave = read_evokeds(fname, 0)
+    # test time_format
+    df = ave.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])
 
 
 def test_evoked_proj():
@@ -415,7 +437,8 @@ def test_get_peak():
     assert_equal(ch_name, 'MEG 1421')
     assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', merge_grads=True)
+    pytest.raises(ValueError, evoked.get_peak, ch_type='mag',
+                  merge_grads=True)
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 

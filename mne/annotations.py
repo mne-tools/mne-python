@@ -7,13 +7,16 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-import collections
+from collections import Counter
+from collections.abc import Iterable
 import warnings
+from textwrap import shorten
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
-                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp)
+                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
+                    _check_fname)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -46,8 +49,9 @@ def _check_o_d_s(onset, duration, description):
     if description.ndim != 1:
         raise ValueError('Description must be a one dimensional array, '
                          'got %d.' % (description.ndim,))
-    if any([';' in desc for desc in description]):
-        raise ValueError('Semicolons in descriptions not supported.')
+    if any(['{COLON}' in desc for desc in description]):
+        raise ValueError('The substring "{COLON}" '
+                         'in descriptions not supported.')
 
     if not (len(onset) == len(duration) == len(description)):
         raise ValueError('Onset, duration and description must be '
@@ -63,8 +67,9 @@ class Annotations(object):
     ----------
     onset : array of float, shape (n_annotations,)
         The starting time of annotations in seconds after ``orig_time``.
-    duration : array of float, shape (n_annotations,)
-        Durations of the annotations in seconds.
+    duration : array of float, shape (n_annotations,) | float
+        Durations of the annotations in seconds. If a float, all the
+        annotations are given the same duration.
     description : array of str, shape (n_annotations,) | str
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
@@ -202,16 +207,12 @@ class Annotations(object):
 
     def __repr__(self):
         """Show the representation."""
-        counter = collections.Counter(self.description)
-        kinds = ['%s (%s)' % k for k in counter.items()]
-        kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
+        counter = Counter(self.description)
+        kinds = ', '.join(['%s (%s)' % k for k in sorted(counter.items())])
         kinds = (': ' if len(kinds) > 0 else '') + kinds
-        if self.orig_time is None:
-            orig = 'orig_time : None'
-        else:
-            orig = 'orig_time : %s' % self.orig_time
-        return ('<Annotations  |  %s segment%s %s, %s>'
-                % (len(self.onset), _pl(len(self.onset)), kinds, orig))
+        s = ('Annotations | %s segment%s%s' %
+             (len(self.onset), _pl(len(self.onset)), kinds))
+        return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 
     def __len__(self):
         """Return the number of annotations."""
@@ -248,7 +249,7 @@ class Annotations(object):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            return collections.OrderedDict(zip(out_keys, out_vals))
+            return dict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],
@@ -497,13 +498,13 @@ def _sync_onset(raw, onset, inverse=False):
     return annot_start
 
 
-def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
+def _annotations_starts_stops(raw, kinds, name='skip_by_annotation',
+                              invert=False):
     """Get starts and stops from given kinds.
 
     onsets and ends are inclusive.
     """
-    _validate_type(kinds, (str, list, tuple), str(type(kinds)),
-                   "str, list or tuple")
+    _validate_type(kinds, (str, list, tuple), name)
     if isinstance(kinds, str):
         kinds = [kinds]
     else:
@@ -550,7 +551,8 @@ def _write_annotations(fid, annotations):
     write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
                 annotations.duration + annotations.onset)
     # To allow : in description, they need to be replaced for serialization
-    write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+    # -> replace with "{COLON}". When read back in, replace it back with ":"
+    write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', '{COLON}') for d in
                                              annotations.description])
     if annotations.orig_time is not None:
         write_double(fid, FIFF.FIFF_MEAS_DATE,
@@ -629,7 +631,11 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
-
+    _validate_type(fname, 'path-like', 'fname')
+    fname = _check_fname(
+        fname, overwrite='read', must_exist=True,
+        allow_dir=str(fname).endswith('.ds'),  # allow_dir for CTF
+        name='fname')
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
         # Read FiF files
@@ -807,7 +813,10 @@ def _read_annotations_fif(fid, tree):
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
                 description = tag.data.split(':')
-                description = [d.replace(';', ':') for d in
+
+                # replace all "{COLON}" in FIF files with necessary
+                # : character
+                description = [d.replace('{COLON}', ':') for d in
                                description]
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
@@ -907,7 +916,7 @@ def _check_event_description(event_desc, events):
     if isinstance(event_desc, dict):
         for val in event_desc.values():
             _validate_type(val, (str, None), 'Event names')
-    elif isinstance(event_desc, collections.Iterable):
+    elif isinstance(event_desc, Iterable):
         event_desc = np.asarray(event_desc)
         if event_desc.ndim != 1:
             raise ValueError('event_desc must be 1D, got shape {}'.format(

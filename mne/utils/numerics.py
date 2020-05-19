@@ -27,17 +27,17 @@ from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import fill_doc
 
 
-def split_list(l, n, idx=False):
+def split_list(v, n, idx=False):
     """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
-    tot = len(l)
+    tot = len(v)
     sz = tot // n
     start = stop = 0
     for i in range(n - 1):
         stop += sz
-        yield (np.arange(start, stop), l[start:stop]) if idx else l[start:stop]
+        yield (np.arange(start, stop), v[start:stop]) if idx else v[start:stop]
         start += sz
-    yield (np.arange(start, tot), l[start:]) if idx else l[start]
+    yield (np.arange(start, tot), v[start:]) if idx else v[start]
 
 
 def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
@@ -190,7 +190,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     else:
         assert U.dtype == np.complex128
         gemm = zgemm
-    x_inv = gemm(1., U, V).T
+
+    x_inv = gemm(1., U, V).conj().T
 
     if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before
@@ -528,19 +529,20 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
-    """Make grand average of a list evoked or AverageTFR data.
+    """Make grand average of a list of Evoked or AverageTFR data.
 
-    For evoked data, the function interpolates bad channels based on the
-    ``interpolate_bads`` parameter. If ``interpolate_bads`` is True, the grand
-    average file will contain good channels and the bad channels interpolated
-    from the good MEG/EEG channels.
-    For AverageTFR data, the function takes the subset of channels not marked
-    as bad in any of the instances.
+    For :class:`mne.Evoked` data, the function interpolates bad channels based
+    on the ``interpolate_bads`` parameter. If ``interpolate_bads`` is True,
+    the grand average file will contain good channels and the bad channels
+    interpolated from the good MEG/EEG channels.
+    For :class:`mne.time_frequency.AverageTFR` data, the function takes the
+    subset of channels not marked as bad in any of the instances.
 
-    The grand_average.nave attribute will be equal to the number
+    The ``grand_average.nave`` attribute will be equal to the number
     of evoked datasets used to calculate the grand average.
 
-    Note: Grand average evoked should not be used for source localization.
+    .. note:: A grand average evoked should not be used for source
+              localization.
 
     Parameters
     ----------
@@ -568,7 +570,12 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
     from ..channels.channels import equalize_channels
-    assert len(all_inst) > 1
+
+    if not all_inst:
+        raise ValueError('Please pass a list of Evoked or AverageTFR objects.')
+    elif len(all_inst) == 1:
+        warn('Only a single dataset was passed to mne.grand_average().')
+
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
     for inst in all_inst:
@@ -638,7 +645,7 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
-        h.update(x.tostring())
+        h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif hasattr(x, '__len__'):
@@ -1005,4 +1012,41 @@ def _stamp_to_dt(utc_stamp):
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
     return (datetime.fromtimestamp(0, tz=timezone.utc) +
-            timedelta(0, stamp[0], stamp[1]))  # day, sec, μs
+            timedelta(0, stamp[0], stamp[1]))  # day, sec, µs
+
+
+class _ReuseCycle(object):
+    """Cycle over a variable, preferring to reuse earlier indices.
+
+    Requires the values in ``x`` to be hashable and unique. This holds
+    nicely for matplotlib's color cycle, which gives HTML hex color strings.
+    """
+
+    def __init__(self, x):
+        self.indices = list()
+        self.popped = dict()
+        assert len(x) > 0
+        self.x = x
+
+    def __iter__(self):
+        while True:
+            yield self.__next__()
+
+    def __next__(self):
+        if not len(self.indices):
+            self.indices = list(range(len(self.x)))
+            self.popped = dict()
+        idx = self.indices.pop(0)
+        val = self.x[idx]
+        assert val not in self.popped
+        self.popped[val] = idx
+        return val
+
+    def restore(self, val):
+        try:
+            idx = self.popped.pop(val)
+        except KeyError:
+            warn('Could not find value: %s' % (val,))
+        else:
+            loc = np.searchsorted(self.indices, idx)
+            self.indices.insert(loc, idx)

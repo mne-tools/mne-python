@@ -225,35 +225,17 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     else:
         est_is_classifier = is_classifier(estimator)
     # Setup CV
-    if check_version('sklearn', '0.18'):
-        from sklearn import model_selection as models
-        from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            XFold = StratifiedKFold if est_is_classifier else KFold
-            cv = XFold(n_splits=cv)
-        elif isinstance(cv, str):
-            if not hasattr(models, cv):
-                raise ValueError('Unknown cross-validation')
-            cv = getattr(models, cv)
-            cv = cv()
-        cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
-    else:
-        from sklearn import cross_validation as models
-        from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            if est_is_classifier:
-                cv = StratifiedKFold(y=y, n_folds=cv)
-            else:
-                cv = KFold(n=len(y), n_folds=cv)
-        elif isinstance(cv, str):
-            if not hasattr(models, cv):
-                raise ValueError('Unknown cross-validation')
-            cv = getattr(models, cv)
-            if cv.__name__ not in ['KFold', 'LeaveOneOut']:
-                raise NotImplementedError('CV cannot be defined with str for'
-                                          ' sklearn < .017.')
-            cv = cv(len(y))
-        cv = check_cv(cv=cv, X=X, y=y, classifier=est_is_classifier)
+    from sklearn import model_selection as models
+    from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
+    if isinstance(cv, (int, np.int)):
+        XFold = StratifiedKFold if est_is_classifier else KFold
+        cv = XFold(n_splits=cv)
+    elif isinstance(cv, str):
+        if not hasattr(models, cv):
+            raise ValueError('Unknown cross-validation')
+        cv = getattr(models, cv)
+        cv = cv()
+    cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
 
     # Extract train and test set to retrieve them at predict time
     if hasattr(cv, 'split'):
@@ -347,17 +329,25 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     while hasattr(est, 'steps'):
         est = est.steps[-1][1]
 
+    squeeze_first_dim = False
+
     # If SlidingEstimator, loop across estimators
     if hasattr(est, 'estimators_'):
         coef = list()
         for this_est in est.estimators_:
             coef.append(get_coef(this_est, attr, inverse_transform))
         coef = np.transpose(coef)
+        coef = coef[np.newaxis]  # fake a sample dimension
+        squeeze_first_dim = True
     elif not hasattr(est, attr):
-        raise ValueError('This estimator does not have a %s '
-                         'attribute.' % attr)
+        raise ValueError('This estimator does not have a %s attribute:\n%s'
+                         % (attr, est))
     else:
         coef = getattr(est, attr)
+
+    if coef.ndim == 1:
+        coef = coef[np.newaxis]
+        squeeze_first_dim = True
 
     # inverse pattern e.g. to get back physical units
     if inverse_transform:
@@ -367,7 +357,11 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
         for inverse_func in _get_inverse_funcs(estimator)[::-1]:
-            coef = inverse_func(np.array([coef]))[0]
+            coef = inverse_func(coef)
+
+    if squeeze_first_dim:
+        coef = coef[0]
+
     return coef
 
 
@@ -454,7 +448,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     parallel, p_func, n_jobs = parallel_func(_fit_and_score, n_jobs,
                                              pre_dispatch=pre_dispatch)
     scores = parallel(p_func(clone(estimator), X, y, scorer, train, test,
-                             verbose, None, fit_params)
+                             0, None, fit_params)
                       for train, test in cv_iter)
     return np.array(scores)[:, 0, ...]  # flatten over joblib output.
 

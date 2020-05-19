@@ -55,6 +55,9 @@ html_dev-noplot:
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
+html_dev-debug:
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -PD plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html
+
 html-noplot:
 	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo

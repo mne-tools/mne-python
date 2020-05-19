@@ -12,7 +12,7 @@ from functools import partial
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
-from ..filter import create_filter, _overlap_add_filter
+from ..filter import create_filter, _overlap_add_filter, _filtfilt
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
 from ..utils import verbose, _ensure_int, _validate_type, _check_option
@@ -64,14 +64,13 @@ def _update_raw_data(params):
         starts = np.maximum(starts[mask], start) - start
         stops = np.minimum(stops[mask], stop) - start
         for start_, stop_ in zip(starts, stops):
+            this_data = data[data_picks, start_:stop_]
             if isinstance(params['ba'], np.ndarray):  # FIR
-                data[data_picks, start_:stop_] = _overlap_add_filter(
-                    data[data_picks, start_:stop_], params['ba'], copy=False)
+                this_data = _overlap_add_filter(
+                    this_data, params['ba'], copy=False)
             else:  # IIR
-                from scipy.signal import sosfiltfilt
-                data[data_picks, start_:stop_] = sosfiltfilt(
-                    params['ba']['sos'], data[data_picks, start_:stop_],
-                    axis=1, padlen=0)
+                this_data = _filtfilt(this_data, params['ba'], None, 1, False)
+            data[data_picks, start_:stop_] = this_data
     # scale
     for di in range(data.shape[0]):
         ch_name = params['info']['ch_names'][di]
@@ -98,12 +97,15 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
+_RAW_CLIP_DEF = 3.
+
+
 @verbose
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):
@@ -186,11 +188,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
         .. versionchanged:: 0.18
            Support for ``filtorder=0`` to use FIR filtering.
-    clipping : str | None
+    clipping : str | float | None
         If None, channels are allowed to exceed their designated bounds in
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
+        If float, clipping occurs for values beyond the ``clipping`` multiple
+        of their dedicated range, so ``clipping=1.`` is an alias for
+        ``clipping='transparent'``.
+
+        .. versionchanged:: 0.21
+           Support for float, and default changed from None to 1.5.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     proj : bool
@@ -279,7 +287,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  duration=duration)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
-    _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
+    _validate_type(clipping, (None, 'numeric', str), 'clipping')
+    if isinstance(clipping, str):
+        _check_option('clipping', clipping, ['clamp', 'transparent'],
+                      extra='when a string')
+        clipping = 1. if clipping == 'transparent' else clipping
+    elif clipping is not None:
+        clipping = float(clipping)
     duration = min(raw.times[-1], float(duration))
 
     # figure out the IIR filtering parameters
@@ -663,10 +677,11 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     if 'fig_selection' in params:
         selections = params['selections']
-        labels = [l._text for l in params['fig_selection'].radio.labels]
+        labels = [
+            label._text for label in params['fig_selection'].radio.labels]
         # Flatten the selections dict to a list.
-        cis = [item for sublist in [selections[l] for l in labels] for item
-               in sublist]
+        sels = [selections[label] for label in labels]
+        cis = [item for sublist in sels for item in sublist]
 
         for idx, ci in enumerate(cis):
             this_color = (bad_color if info['ch_names'][ci] in
@@ -696,13 +711,11 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
                                        params['duration'], 1, edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
-                                       alpha=0.25, linewidth=1, clip_on=False)
+                                       alpha=0.25, linewidth=4, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
                         params['n_times'] / float(info['sfreq']))
-
-    ax_vscroll.set_title('Ch.')
 
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.axvline(0, color=vertline_color, zorder=4)
@@ -729,6 +742,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
                      event_color=None):
     """Plot raw traces."""
+    from matplotlib.patches import Rectangle
     lines = params['lines']
     info = params['info']
     inds = params['inds']
@@ -769,12 +783,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             # apply user-supplied scale factor
             this_data = params['data'][inds[ch_ind]] * params['scale_factor']
 
-            # clip to range (if relevant)
-            if params['clipping'] == 'transparent':
-                this_data[np.abs(this_data) > 1] = np.nan
-            elif params['clipping'] == 'clamp':
-                np.clip(this_data, -1, 1, out=this_data)
-
             # set color
             this_color = bad_color if ch_name in info['bads'] else color
             if isinstance(this_color, dict):
@@ -785,6 +793,20 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             else:
                 this_decim = 1
             this_t = params['times'][::this_decim] + params['first_time']
+
+            # clip to range (if relevant)
+            if params['clipping'] == 'clamp':
+                np.clip(this_data, -1, 1, out=this_data)
+            elif params['clipping'] is not None:
+                l, w = this_t[0], this_t[-1] - this_t[0]
+                ylim = params['ax'].get_ylim()
+                b = offset - params['clipping']  # max(, ylim[0])
+                h = 2 * params['clipping']  # min(, ylim[1] - b)
+                assert ylim[1] <= ylim[0]  # inverted
+                b = max(b, ylim[1])
+                h = min(h, ylim[0] - b)
+                rect = Rectangle((l, b), w, h, transform=ax.transData)
+                lines[ii].set_clip_path(rect)
 
             # subtraction here gets correct orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data[..., ::this_decim])
@@ -1007,7 +1029,7 @@ def _set_custom_selection(params):
     chs = params['fig_selection'].lasso.selection
     if len(chs) == 0:
         return
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     inds = np.in1d(params['raw'].ch_names, chs)
     params['selections']['Custom'] = np.where(inds)[0]
 

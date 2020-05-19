@@ -1,4 +1,6 @@
 """
+.. _tut_working_with_ecog:
+
 ======================
 Working with ECoG data
 ======================
@@ -9,71 +11,148 @@ electrocorticography (ECoG) data.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
+#          Adam Li <adam2392@gmail.com>
 #
 # License: BSD (3-clause)
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.io import loadmat
+import matplotlib.animation as animation
 
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
 
+# paths to mne datasets - sample ECoG and FreeSurfer subject
+misc_path = mne.datasets.misc.data_path()
+sample_path = mne.datasets.sample.data_path()
+
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
 # a :class:`mne.channels.DigMontage` class.
+# First, use pandas to read in the .tsv file.
 
-mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
-ch_names = mat['ch_names'].tolist()
-elec = mat['elec']  # electrode positions given in meters
-# Now we make a montage stating that the sEEG contacts are in head
-# coordinate system (although they are in MRI). This is compensated
-# by the fact that below we do not specicty a trans file so the Head<->MRI
-# transform is the identity.
-montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
-                                        coord_frame='head')
+# In this tutorial, the electrode coordinates are assumed to be in meters
+elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
+                      sep='\t', header=0, index_col=None)
+ch_names = elec_df['name'].tolist()
+ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
+ch_pos = dict(zip(ch_names, ch_coords))
+
+###############################################################################
+# Now we make a :class:`mne.channels.DigMontage` stating that the ECoG
+# contacts are in head coordinate system (although they are in MRI). This is
+# compensated below by the fact that we do not specify a trans file so the
+# Head<->MRI transform is the identity.
+
+montage = mne.channels.make_dig_montage(ch_pos, coord_frame='head')
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
-# Now that we have our electrode positions in MRI coordinates, we can create
-# our measurement info structure.
+# Now that we have our montage, we can load in our corresponding
+# time-series data and set the montage to the raw data.
 
-info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
+# first we'll load in the sample dataset
+raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
+
+# drop bad channels
+raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
+raw.load_data()
+raw.drop_channels(raw.info['bads'])
+raw.crop(0, 2)  # just process 2 sec of data for speed
+
+# attach montage
+raw.set_montage(montage)
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
+# We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
+# data (along with xy positions of each electrode in the image), so that later
+# we can plot frequency band power on top of it.
 #
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
-fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
+subjects_dir = sample_path + '/subjects'
+fig = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'])
 mne.viz.set_3d_view(fig, 200, 70)
 
-###############################################################################
-# Sometimes it is useful to make a scatterplot for the current figure view.
-# This is best accomplished with matplotlib. We can capture an image of the
-# current mayavi view, along with the xy position of each electrode, with the
-# `snapshot_brain_montage` function.
+xy, im = snapshot_brain_montage(fig, montage)
 
-# We'll once again plot the surface, then take a snapshot.
-fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
-                             surfaces='pial')
-mne.viz.set_3d_view(fig_scatter, 200, 70)
-xy, im = snapshot_brain_montage(fig_scatter, montage)
+###############################################################################
+# Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
+# (8-12 Hz) bands.
+gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
+    envelope=True).get_data()
+alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
+    envelope=True).get_data()
+gamma_power = gamma_power_t.mean(axis=-1)
+alpha_power = alpha_power_t.mean(axis=-1)
+
+###############################################################################
+# Now let's use matplotlib to overplot frequency band power onto the electrodes
+# which can be plotted on top of the brain from
+# :func:`~mne.viz.snapshot_brain_montage`.
 
 # Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 
-# Define an arbitrary "activity" pattern for viz
-activity = np.linspace(100, 200, xy_pts.shape[0])
+# colormap to view spectral power
+cmap = 'viridis'
 
-# This allows us to use matplotlib to create arbitrary 2d scatterplots
-_, ax = plt.subplots(figsize=(10, 10))
+# Create a 1x2 figure showing the average power in gamma and alpha bands.
+fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+# choose a colormap range wide enough for both frequency bands
+_gamma_alpha_power = np.concatenate((gamma_power, alpha_power)).flatten()
+vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
+for ax, band_power, band in zip(axs,
+                                [gamma_power, alpha_power],
+                                ['Gamma', 'Alpha']):
+    ax.imshow(im)
+    ax.set_axis_off()
+    sc = ax.scatter(*xy_pts.T, c=band_power, s=200,
+                    cmap=cmap, vmin=vmin, vmax=vmax)
+    ax.set_title(f'{band} band power', size='x-large')
+fig.colorbar(sc, ax=axs)
+
+###############################################################################
+# Say we want to visualize the evolution of the power in the gamma band,
+# instead of just plotting the average. We can use
+# `matplotlib.animation.FuncAnimation` to create an animation and apply this
+# to the brain figure.
+
+
+# create an initialization and animation function
+# to pass to FuncAnimation
+def init():
+    """Create an empty frame."""
+    return paths,
+
+
+def animate(i, activity):
+    """Animate the plot."""
+    paths.set_array(activity[:, i])
+    return paths,
+
+
+# create the figure and apply the animation of the
+# gamma frequency band activity
+fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
-ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
 ax.set_axis_off()
-plt.show()
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
+                   cmap=cmap, vmin=vmin, vmax=vmax)
+fig.colorbar(paths, ax=ax)
+ax.set_title('Gamma frequency over time (Hilbert transform)',
+             size='large')
+
+# sphinx_gallery_thumbnail_number = 3
+# avoid edge artifacts and decimate, showing just a short chunk
+show_power = gamma_power_t[:, 100:-1700:2]
+anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               fargs=(show_power,),
+                               frames=show_power.shape[1],
+                               interval=100, blit=True)

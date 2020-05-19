@@ -10,7 +10,7 @@ from collections.abc import Iterable
 import numpy as np
 
 from ..event import _get_stim_channel
-from ..filter import _Interp2
+from .._ola import _Interp2
 from ..io.pick import (pick_types, pick_info, pick_channels,
                        pick_channels_forward)
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
@@ -19,6 +19,7 @@ from ..io import RawArray, BaseRaw, Info
 from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
+from ..fixes import einsum
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _transform_orig_meg_coils,
@@ -171,9 +172,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         to use during forward calculation.
     %(interp)s
     %(n_jobs)s
-    use_cps : None | bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when surf_ori and/or force_fixed are True.
+    %(use_cps)s
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
         using ``bem``, ``trans``, and ``src``. If not None,
@@ -252,7 +251,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
                                  _get_stim_channel(None, info))[0]
 
     n_jobs = check_n_jobs(n_jobs)
-    interper = _Interp2(interp)
     if forward is not None:
         if any(x is not None for x in (trans, src, bem, head_pos)):
             raise ValueError('If forward is not None then trans, src, bem, '
@@ -289,70 +287,43 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     _log_ch('Event information', info, event_ch)
     # don't process these any more if no MEG present
     n = 1
-    for fi, fwd in enumerate(_iter_forward_solutions(
-            info, trans, src, bem, dev_head_ts, mindist, n_jobs, forward,
-            meeg_picks)):
-        # must be fixed orientation
-        # XXX eventually we could speed this up by allowing the forward
-        # solution code to only compute the normal direction
-        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
-                                       use_cps=use_cps, verbose=False)
-        interper['fwd'] = fwd['sol']['data']
-        assert fwd['sol']['data'].shape[0] == len(meeg_picks)
-        if fi == 0:
-            # Actually restrict the STC based on vertices obtained during calc
-            stc_data, stim_data, _ = _stc_data_event(
-                stc_counted, 1, info['sfreq'], fwd['src'])
-            continue
+    get_fwd = _SimForwards(
+        dev_head_ts, offsets, info, trans, src, bem, mindist, n_jobs,
+        meeg_picks, forward, use_cps)
+    interper = _Interp2(offsets, get_fwd, interp)
 
-        assert 0 <= fi <= len(offsets)
-        start = offsets[fi - 1]
-        stop = np.inf if fi == len(offsets) else offsets[fi]
-        interper.n_samp = stop - start
-        logger.info('    Simulating data for forward operator %d/%d'
-                    % (fi, len(offsets) - 1))
-
-        # To avoid a blowup of memory, process in chunk sizes equal to
-        # STC length (which will hopefully be a reasonable memory / number
-        # of iterations tradeoff)
-        this_start = start
-        while this_start < stop:
-            this_stop = min(this_start + stc_data.shape[1], stop)
-            logger.info('    Interval %0.3f-%0.3f sec'
-                        % (this_start / info['sfreq'],
-                           this_stop / info['sfreq']))
-            n_doing = this_stop - this_start
-            assert n_doing > 0
-            this_data = np.zeros((len(info['ch_names']), n_doing))
-            raw_datas.append(this_data)
-            # Stim channel
-            if event_ch is not None:
-                this_data[event_ch, :] = stim_data[:n_doing]
-            # Brain data
-            interp_sl = slice(this_start - start, this_stop - start)
-            interper.interpolate('fwd', stc_data[:, :n_doing],
-                                 this_data, meeg_picks, interp_sl)
-            # Increment parameters based on what we accomplished
-            this_start += n_doing
-            if n_doing < stc_data.shape[1]:
-                # Shift the buffer
-                stc_data = stc_data[:, n_doing:]
-                stim_data = stim_data[n_doing:]
-            else:
-                # Get more data (if necessary)
-                assert n_doing == stc_data.shape[1]
-                try:
-                    stc_counted = next(stc_enum)
-                except StopIteration:
-                    logger.info('    %d STC iteration%s provided'
-                                % (n, _pl(n)))
-                    break
-                n += 1
-                stc_data, stim_data, _ = _stc_data_event(
-                    stc_counted, fi, info['sfreq'], fwd['src'], verts)
-            if n > max_iter:
-                raise RuntimeError('Maximum number of STC iterations (%d) '
-                                   'exceeded' % (n,))
+    this_start = 0
+    for n in range(max_iter):
+        if isinstance(stc_counted[1], (list, tuple)):
+            this_n = stc_counted[1][0].data.shape[1]
+        else:
+            this_n = stc_counted[1].data.shape[1]
+        this_stop = this_start + this_n
+        logger.info('    Interval %0.3f-%0.3f sec'
+                    % (this_start / info['sfreq'],
+                        this_stop / info['sfreq']))
+        n_doing = this_stop - this_start
+        assert n_doing > 0
+        this_data = np.zeros((len(info['ch_names']), n_doing))
+        raw_datas.append(this_data)
+        # Stim channel
+        fwd, fi = interper.feed(this_stop - this_start)
+        fi = fi[0]
+        stc_data, stim_data, _ = _stc_data_event(
+            stc_counted, fi, info['sfreq'], get_fwd.src,
+            None if n == 0 else verts)
+        if event_ch is not None:
+            this_data[event_ch, :] = stim_data[:n_doing]
+        this_data[meeg_picks] = einsum('svt,vt->st', fwd, stc_data)
+        try:
+            stc_counted = next(stc_enum)
+        except StopIteration:
+            logger.info('    %d STC iteration%s provided'
+                        % (n + 1, _pl(n + 1)))
+            break
+    else:
+        raise RuntimeError('Maximum number of STC iterations (%d) '
+                           'exceeded' % (n,))
         del fwd
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
@@ -478,7 +449,6 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     data = raw._data
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=())
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=())
-    interper = _Interp2(interp)
     R, r0 = fit_sphere_to_headshape(info, units='m', verbose=False)[:2]
     bem = make_sphere_model(r0, head_radius=R,
                             relative_radii=(0.97, 0.98, 0.99, 1.),
@@ -493,7 +463,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         exg_rr *= 0.96 * R
         exg_rr += r0
         # oriented upward
-        blink_nn = np.array([[0., 0., 1.], [0., 0., 1.]])
+        nn = np.array([[0., 0., 1.], [0., 0., 1.]])
         # Blink times drawn from an inhomogeneous poisson process
         # by 1) creating the rate and 2) pulling random numbers
         blink_rate = (1 + np.cos(2 * np.pi * 1. / 60. * times)) / 2.
@@ -533,6 +503,8 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         ch = pick_types(info, meg=False, eeg=False, ecg=True)
         picks = meg_picks
         del cardiac_data, cardiac_kernel, max_beats, cardiac_idx
+        nn = np.zeros_like(exg_rr)
+        nn[:, 0] = 1  # arbitrarily rightward
     del meg_picks, meeg_picks
     noise = rng.standard_normal(exg_data.shape[1]) * 5e-6
     if len(ch) >= 1:
@@ -540,34 +512,20 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         data[ch, :] = exg_data * 1e3 + noise
     else:
         ch = None
-    nn = np.zeros_like(exg_rr)
-    nn[:, 2] = 1
     src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn),
                                     sphere_units='mm')
     _log_ch('%s simulated and trace' % kind, info, ch)
     del ch, nn, noise
 
     used = np.zeros(len(raw.times), bool)
-    for fi, fwd in enumerate(_iter_forward_solutions(
-            info, trans, src, bem, dev_head_ts, 0.005, n_jobs, None,
-            picks)):
-        fwd = fwd['sol']['data']
-        if kind == 'blink':
-            fwd = np.sum([np.dot(fwd[:, 3 * ii:3 * (ii + 1)], blink_nn[ii])
-                          for ii in range(len(exg_rr))], axis=0,
-                         keepdims=True).T
-        else:
-            # just use one arbitrary direction
-            fwd = fwd[:, [0]]
-        assert fwd.shape == (len(picks), 1)
-        interper['fwd'] = fwd
-        if fi == 0:
-            continue
-        start = offsets[fi - 1]
-        stop = None if fi == len(offsets) else offsets[fi]
-        interper.n_samp = (stop or np.inf) - start
-        interper.interpolate('fwd', exg_data[:, start:stop],
-                             data[:, start:stop], picks)
+    get_fwd = _SimForwards(
+        dev_head_ts, offsets, info, trans, src, bem, 0.005, n_jobs, picks)
+    interper = _Interp2(offsets, get_fwd, interp)
+    proc_lims = np.concatenate([np.arange(0, len(used), 10000), [len(used)]])
+    for start, stop in zip(proc_lims[:-1], proc_lims[1:]):
+        fwd, _ = interper.feed(stop - start)
+        data[picks, start:stop] = einsum(
+            'svt,vt->st', fwd, exg_data[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
     assert used.all()
@@ -610,7 +568,6 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     data = raw._data
     data[hpi_pick, :] = hpi_ons.sum()
     _log_ch('cHPI status bits enbled and', info, hpi_pick)
-    interper = _Interp2(interp)
     sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
                                (np.arange(len(times)) / info['sfreq']))
     info = pick_info(info, meg_picks)
@@ -618,24 +575,38 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     megcoils, _, _, _ = _prep_meg_channels(info, ignore_ref=False)
     used = np.zeros(len(raw.times), bool)
     dev_head_ts.append(dev_head_ts[-1])  # ZOH after time ends
-    for fi, dev_head_t in enumerate(dev_head_ts):
-        _transform_orig_meg_coils(megcoils, dev_head_t)
-        fwd = _magnetic_dipole_field_vec(hpi_rrs, megcoils).T
-        # align cHPI magnetic dipoles in approx. radial direction
-        fwd = np.array([np.dot(fwd[:, 3 * ii:3 * (ii + 1)], hpi_nns[ii])
-                        for ii in range(len(hpi_rrs))]).T
-        interper['fwd'] = fwd
-        if fi == 0:
-            continue
-        start = offsets[fi - 1]
-        stop = None if fi == len(offsets) else offsets[fi]
-        interper.n_samp = (stop or np.inf) - start
-        interper.interpolate('fwd', sinusoids[:, start:stop],
-                             data[:, start:stop], meg_picks)
+    get_fwd = _HPIForwards(offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns)
+    interper = _Interp2(offsets, get_fwd, interp)
+    lims = np.concatenate([offsets, [len(raw.times)]])
+    for start, stop in zip(lims[:-1], lims[1:]):
+        fwd, = interper.feed(stop - start)
+        data[meg_picks, start:stop] = einsum(
+            'svt,vt->st', fwd, sinusoids[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
     assert used.all()
     return raw
+
+
+class _HPIForwards(object):
+
+    def __init__(self, offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns):
+        self.offsets = offsets
+        self.dev_head_ts = dev_head_ts
+        self.hpi_rrs = hpi_rrs
+        self.hpi_nns = hpi_nns
+        self.megcoils = megcoils
+        self.idx = 0
+
+    def __call__(self, offset):
+        assert offset == self.offsets[self.idx]
+        _transform_orig_meg_coils(self.megcoils, self.dev_head_ts[self.idx])
+        fwd = _magnetic_dipole_field_vec(self.hpi_rrs, self.megcoils).T
+        # align cHPI magnetic dipoles in approx. radial direction
+        fwd = np.array([np.dot(fwd[:, 3 * ii:3 * (ii + 1)], self.hpi_nns[ii])
+                        for ii in range(len(self.hpi_rrs))]).T
+        self.idx += 1
+        return (fwd,)
 
 
 def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
@@ -668,7 +639,7 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     if len(stc.times) <= 2:  # to ensure event encoding works
         raise ValueError('stc must have at least three time points, got %s'
                          % (len(stc.times),))
-    verts_ = stc._vertices_list
+    verts_ = stc.vertices
     if verts is None:
         assert stc_idx == 0
     else:
@@ -685,6 +656,30 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
         _, stc_sel, _ = _stc_src_sel(src, stc, on_missing=on_missing)
         stc_data = stc_data[stc_sel]
     return stc_data, stim_data, verts_
+
+
+class _SimForwards(object):
+
+    def __init__(self, dev_head_ts, offsets, info, trans, src, bem, mindist,
+                 n_jobs, meeg_picks, forward=None, use_cps=True):
+        self.idx = 0
+        self.offsets = offsets
+        self.use_cps = use_cps
+        self.iter = iter(_iter_forward_solutions(
+            info, trans, src, bem, dev_head_ts, mindist, n_jobs, forward,
+            meeg_picks))
+
+    def __call__(self, offset):
+        assert self.offsets[self.idx] == offset
+        self.idx += 1
+        fwd = next(self.iter)
+        self.src = fwd['src']
+        # XXX eventually we could speed this up by allowing the forward
+        # solution code to only compute the normal direction
+        convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                 use_cps=self.use_cps, copy=False,
+                                 verbose=False)
+        return fwd['sol']['data'], np.array(self.idx, float)
 
 
 def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,

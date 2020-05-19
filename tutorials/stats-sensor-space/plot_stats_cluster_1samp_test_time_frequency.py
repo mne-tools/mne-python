@@ -87,7 +87,8 @@ threshold = 2.5
 n_permutations = 100  # Warning: 100 is too small for real-world analysis.
 T_obs, clusters, cluster_p_values, H0 = \
     permutation_cluster_1samp_test(epochs_power, n_permutations=n_permutations,
-                                   threshold=threshold, tail=0)
+                                   threshold=threshold, tail=0,
+                                   out_type='mask')
 
 ###############################################################################
 # View time-frequency plots

@@ -1,8 +1,7 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
 from copy import deepcopy
 import numpy as np
-from ..utils import (check_version, logger, _check_option, _validate_type,
-                     verbose)
+from ..utils import logger, _check_option, _validate_type, verbose
 from . import plot_sensors
 from ..io._digitization import _get_fid_coords
 
@@ -73,8 +72,5 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title, sphere=sphere)
     collection = fig.axes[0].collections[0]
-    if check_version("matplotlib", "1.4"):
-        collection.set_sizes([scale_factor])
-    else:
-        collection._sizes = [scale_factor]
+    collection.set_sizes([scale_factor])
     return fig

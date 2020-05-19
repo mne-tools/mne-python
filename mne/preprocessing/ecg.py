@@ -6,7 +6,6 @@
 
 import numpy as np
 
-from .. import pick_types, pick_channels
 from ..annotations import _annotations_starts_stops
 from ..utils import logger, verbose, sum_squared, warn
 from ..filter import filter_data
@@ -14,8 +13,8 @@ from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
 from ..evoked import Evoked
 from ..io import RawArray
-from ..io.pick import _picks_to_idx
-from .. import create_info
+from ..io.meas_info import create_info
+from ..io.pick import _picks_to_idx, pick_types, pick_channels
 
 
 @verbose

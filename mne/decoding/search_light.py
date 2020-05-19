@@ -89,8 +89,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
                                                  verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
         mesg = 'Fitting %s' % (self.__class__.__name__,)
-        with ProgressBar(X.shape[-1], verbose_bool='auto',
-                         mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
             estimators = parallel(
                 p_func(self.base_estimator, split, y, pb.subset(pb_idx),
                        **fit_params)
@@ -145,7 +144,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
-        with ProgressBar(X.shape[-1], verbose_bool='auto', mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
             y_pred = parallel(p_func(est, x, method, pb.subset(pb_idx))
                               for pb_idx, est, x in zip(
                                   idx, est_splits, X_splits))
@@ -458,8 +457,7 @@ class GeneralizingEstimator(SlidingEstimator):
         parallel, p_func, n_jobs = parallel_func(
             _gl_transform, self.n_jobs, verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
-        with ProgressBar(X.shape[-1] * len(self.estimators_),
-                         verbose_bool='auto', mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
             y_pred = parallel(
                 p_func(self.estimators_, x_split, method, pb.subset(pb_idx))
                 for pb_idx, x_split in array_split_idx(
@@ -579,8 +577,7 @@ class GeneralizingEstimator(SlidingEstimator):
         n_jobs = min(n_jobs, X.shape[-1])
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
-        with ProgressBar(X.shape[-1] * len(self.estimators_),
-                         verbose_bool='auto', mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
             score = parallel(p_func(self.estimators_, scoring, x, y,
                                     pb.subset(pb_idx))
                              for pb_idx, x in array_split_idx(
@@ -684,11 +681,10 @@ def _fix_auc(scoring, y):
     # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
     # scikit-learn/scikit-learn#6874
     if scoring is not None:
-        if (
-            hasattr(scoring, '_score_func') and
-            hasattr(scoring._score_func, '__name__') and
-            scoring._score_func.__name__ == 'roc_auc_score'
-        ):
+        score_func = getattr(scoring, '_score_func', None)
+        kwargs = getattr(scoring, '_kwargs', {})
+        if (getattr(score_func, '__name__', '') == 'roc_auc_score' and
+                kwargs.get('multi_class', 'raise') == 'raise'):
             if np.ndim(y) != 1 or len(set(y)) != 2:
                 raise ValueError('roc_auc scoring can only be computed for '
                                  'two-class problems.')

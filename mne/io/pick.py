@@ -15,7 +15,7 @@ from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
                      _check_option)
 
 
-def get_channel_types():
+def get_channel_type_constants():
     """Return all known channel types.
 
     Returns
@@ -892,7 +892,7 @@ _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
-_PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
+_PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog',
                         'hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'csd', 'eog', 'ecg',
@@ -942,8 +942,6 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     #
     # None -> all, data, or data_or_ica (ndarray of int)
     #
-    orig_picks = picks
-    orig_repr = repr(orig_picks)
     if isinstance(info, Info):
         n_chan = info['nchan']
     else:
@@ -951,13 +949,17 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
         n_chan = info
     assert n_chan >= 0
 
+    orig_picks = picks
+    # We do some extra_repr gymnastics to avoid calling repr(orig_picks) too
+    # soon as it can be a performance bottleneck (repr on ndarray is slow)
+    extra_repr = ''
     if picks is None:
         if isinstance(info, int):  # special wrapper for no real info
             picks = np.arange(n_chan)
-            orig_repr += ', treated as range(%d)' % (n_chan,)
+            extra_repr = ', treated as range(%d)' % (n_chan,)
         else:
             picks = none  # let _picks_str_to_idx handle it
-            orig_repr += ', treated as "%s"' % (none,)
+            extra_repr = 'None, treated as "%s"' % (none,)
 
     #
     # slice
@@ -974,13 +976,15 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
         raise ValueError('picks must be 1D, got %sD' % (picks.ndim,))
     if picks.dtype.char in ('S', 'U'):
         picks = _picks_str_to_idx(info, picks, exclude, with_ref_meg,
-                                  return_kind, orig_repr, allow_empty)
+                                  return_kind, extra_repr, allow_empty,
+                                  orig_picks)
         if return_kind:
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
     if picks.dtype.kind not in ['i', 'u']:
         raise TypeError('picks must be a list of int or list of str, got '
                         'a data type of %s' % (picks.dtype,))
+    del extra_repr
     picks = picks.astype(int)
 
     #
@@ -1002,7 +1006,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
 
 
 def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
-                      orig_repr, allow_empty):
+                      extra_repr, allow_empty, orig_picks):
     """Turn a list of str into ndarray of int."""
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
@@ -1025,10 +1029,11 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                                                     with_ref_meg=with_ref_meg)
             elif picks[0] == 'data_or_ica':
                 picks_generic = _pick_data_or_ica(info, exclude=exclude)
-            if len(picks_generic) == 0 and orig_repr.startswith('None, ') and \
+            if len(picks_generic) == 0 and orig_picks is None and \
                     not allow_empty:
                 raise ValueError('picks (%s) yielded no channels, consider '
-                                 'passing picks explicitly' % (orig_repr,))
+                                 'passing picks explicitly'
+                                 % (repr(orig_picks) + extra_repr,))
 
     #
     # second: match all to channel names
@@ -1086,7 +1091,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                 'picks (%s) could not be interpreted as '
                 'channel names (no channel "%s"), channel types (no '
                 'type "%s"), or a generic type (just "all" or "data")'
-                % (orig_repr, bad_name, bad_type))
+                % (repr(orig_picks) + extra_repr, bad_name, bad_type))
         picks = np.array([], int)
     elif sum(any_found) > 1:
         raise RuntimeError('Some channel names are ambiguously equivalent to '
@@ -1116,13 +1121,13 @@ def _pick_inst(inst, picks, exclude, copy=True):
     return inst
 
 
-def _get_channel_types(info, picks=None, unique=True,
-                       restrict_data_types=False):
+def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
     """Get the data channel types in an info instance."""
-    picks = range(info['nchan']) if picks is None else picks
+    none = 'data' if only_data_chs else 'all'
+    picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
     ch_types = [channel_type(info, idx) for idx in range(info['nchan'])
                 if idx in picks]
-    if restrict_data_types is True:
+    if only_data_chs:
         ch_types = [ch_type for ch_type in ch_types
                     if ch_type in _DATA_CH_TYPES_SPLIT]
-    return set(ch_types) if unique is True else ch_types
+    return set(ch_types) if unique else ch_types

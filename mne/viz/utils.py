@@ -13,11 +13,11 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
-import math
 from functools import partial
 import difflib
 import webbrowser
 import tempfile
+import math
 import numpy as np
 import platform
 from copy import deepcopy
@@ -30,7 +30,8 @@ from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
+                       _VALID_CHANNEL_TYPES, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
                        _picks_to_idx, _contains_ch_type)
 from ..io.meas_info import create_info
@@ -203,7 +204,8 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     Returns
     -------
     cmap : instance of colormap | array
-        A teal->blue->gray->red->yellow colormap.
+        A teal->blue->gray->red->yellow colormap. See docstring of the 'format'
+        argument for further details.
 
     Notes
     -----
@@ -314,6 +316,7 @@ def _toggle_proj(event, params, all_=False):
                 for bi, (old, new) in enumerate(zip(bools, new_bools)):
                     if old != new:
                         params['proj_checks'].set_active(bi)
+                        bools[bi] = new
         for bi, (b, p) in enumerate(zip(bools, params['projs'])):
             # see if they tried to deactivate an active one
             if not b and p['active']:
@@ -446,24 +449,51 @@ def _get_help_text(params):
     return ''.join(text), ''.join(text2)
 
 
-def _prepare_trellis(n_cells, max_col):
+def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
+                     size=1.3):
     import matplotlib.pyplot as plt
-    if n_cells == 1:
-        nrow = ncol = 1
-    elif n_cells <= max_col:
-        nrow, ncol = 1, n_cells
-    else:
-        nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
+    from matplotlib.gridspec import GridSpec
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
-                                                  1.5 * nrow + 1))
-    axes = [axes] if ncol == nrow == 1 else axes.flatten()
-    for ax in axes[n_cells:]:  # hide unused axes
-        # XXX: Previously done by ax.set_visible(False), but because of mpl
-        # bug, we just hide the frame.
-        from .topomap import _hide_frame
-        _hide_frame(ax)
-    return fig, axes
+    if n_cells == 1:
+        nrows = ncols = 1
+    elif isinstance(ncols, int) and n_cells <= ncols:
+        nrows, ncols = 1, n_cells
+    else:
+        if ncols == 'auto' and nrows == 'auto':
+            nrows = math.floor(math.sqrt(n_cells))
+            ncols = math.ceil(n_cells / nrows)
+        elif ncols == 'auto':
+            ncols = math.ceil(n_cells / nrows)
+        elif nrows == 'auto':
+            nrows = math.ceil(n_cells / ncols)
+        else:
+            naxes = ncols * nrows
+            if naxes < n_cells:
+                raise ValueError("Cannot plot {} axes in a {} by {} "
+                                 "figure.".format(n_cells, nrows, ncols))
+
+    if colorbar:
+        ncols += 1
+    width = size * ncols
+    height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
+    height_ratios = None
+    g_kwargs = {}
+    figure_nobar(figsize=(width * 1.5, height * 1.5))
+    gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+
+    axes = []
+    if colorbar:
+        # exclude last axis of each row except top row, which is for colorbar
+        exclude = set(range(2 * ncols - 1, nrows * ncols, ncols))
+        ax_idxs = sorted(set(range(nrows * ncols)) - exclude)[:n_cells + 1]
+    else:
+        ax_idxs = range(n_cells)
+    for ax_idx in ax_idxs:
+        axes.append(plt.subplot(gs[ax_idx]))
+
+    fig = axes[0].get_figure()
+
+    return fig, axes, ncols, nrows
 
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
@@ -519,7 +549,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 def _simplify_float(label):
     # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
-    if isinstance(label, float) and float(str(label)) != round(label):
+    if isinstance(label, float) and np.isfinite(label) and \
+            float(str(label)) != round(label):
         label = round(label, 2)
     return label
 
@@ -817,7 +848,7 @@ def _radio_clicked(label, params):
     from .evoked import _rgb
 
     # First the selection dialog.
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
     channels = params['selections'][label]
@@ -841,7 +872,7 @@ def _radio_clicked(label, params):
         return
     # Then the plotting window.
     params['ax_vscroll'].set_visible(True)
-    nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
+    nchan = sum([len(params['selections'][label]) for label in labels[:idx]])
     params['vsel_patch'].set_y(nchan)
     n_channels = len(channels)
     params['n_channels'] = n_channels
@@ -1172,7 +1203,7 @@ def _find_channel_idx(ch_name, params):
     """Find all indices when using selections."""
     indices = list()
     offset = 0
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     for label in labels:
         if label == 'Custom':
             continue  # Custom selection not included as it shifts the indices.
@@ -1235,19 +1266,13 @@ def _select_bads(event, params, bads):
     return bads
 
 
-def _onclick_help(event, params):
-    """Draw help window."""
-    text, text2 = _get_help_text(params)
-
-    width, height = 9, 5
-
+def _show_help(col1, col2, width, height):
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
-    params['fig_help'] = fig_help
 
     ax = fig_help.add_subplot(111)
-    celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
-                                           text2.strip().split("\n"))]
+    celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
+                                           col2.strip().split("\n"))]
     table = ax.table(cellText=celltext, loc="center", cellLoc="left")
     table.auto_set_font_size(False)
     table.set_fontsize(12)
@@ -1267,6 +1292,17 @@ def _onclick_help(event, params):
         plt_show(fig=fig_help, warn=False)
     except Exception:
         pass
+
+
+def _onclick_help(event, params):
+    """Draw help window."""
+    col1, col2 = _get_help_text(params)
+    params['fig_help'] = _show_help(
+        col1=col1,
+        col2=col2,
+        width=9,
+        height=5,
+    )
 
 
 def _key_press(event):
@@ -1492,9 +1528,9 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     if use_times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
-    if len(use_times) > 20:
-        raise RuntimeError('Too many plots requested. Please pass fewer '
-                           'than 20 time instants.')
+
+    if len(use_times) > 25:
+        warn('More than 25 topomaps plots requested. This might take a while.')
 
     return use_times
 
@@ -1602,9 +1638,18 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
-                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
-                    ch['loc'][:3] for ch in chs])
+    dev_head_t = info['dev_head_t']
+    pos = np.empty((len(chs), 3))
+    for ci, ch in enumerate(chs):
+        pos[ci] = ch['loc'][:3]
+        if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
+            if dev_head_t is None:
+                warn('dev_head_t is None, transforming MEG sensors to head '
+                     'coordinate frame using identity transform')
+                dev_head_t = np.eye(4)
+            pos[ci] = apply_trans(dev_head_t, pos[ci])
+    del dev_head_t
+
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
@@ -1838,11 +1883,15 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             this_data = this_data[:, :this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
             this_data = this_data.T.reshape(-1, length, shape[0])  # segment
-            this_data -= this_data.mean(0)  # subtract segment means
+            this_data -= np.nanmean(this_data, 0)  # subtract segment means
             this_data = this_data.T.reshape(shape)  # reshape into original
-
-        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
-        scalings[key] = iqr.item()
+        this_data = this_data.ravel()
+        this_data = this_data[np.isfinite(this_data)]
+        if this_data.size:
+            iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+        else:
+            iqr = 1.
+        scalings[key] = iqr
     return scalings
 
 
@@ -1959,7 +2008,7 @@ class DraggableColorbar(object):
         elif self.index >= len(self.cycle):
             self.index = 0
         cmap = self.cycle[self.index]
-        self.cbar.set_cmap(cmap)
+        self.cbar.mappable.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
         self.mappable.set_norm(self.cbar.norm)
@@ -2044,11 +2093,14 @@ class SelectFromCollection(object):
 
         # Ensure that we have separate colors for each object
         self.fc = collection.get_facecolors()
+        self.ec = collection.get_edgecolors()
         if len(self.fc) == 0:
             raise ValueError('Collection must have a facecolor')
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
+            self.ec = np.tile(self.ec, self.Npts).reshape(self.Npts, -1)
         self.fc[:, -1] = self.alpha_other  # deselect in the beginning
+        self.ec[:, -1] = self.alpha_other
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
                                    lineprops={'color': 'red', 'linewidth': .5})
@@ -2073,6 +2125,10 @@ class SelectFromCollection(object):
         self.fc[:, -1] = self.alpha_other
         self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
+
+        self.ec[:, -1] = self.alpha_other
+        self.ec[inds, -1] = 1
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2087,7 +2143,9 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
             this_alpha = 1
         self.fc[ind, -1] = this_alpha
+        self.ec[ind, -1] = this_alpha
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2095,7 +2153,9 @@ class SelectFromCollection(object):
         """Disconnect the lasso selector."""
         self.lasso.disconnect_events()
         self.fc[:, -1] = 1
+        self.ec[:, -1] = 1
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
 
 
@@ -2228,7 +2288,8 @@ def _on_hover(event, params):
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
                 line = params['ax'].plot([x, x], ylim, color=color,
-                                         linewidth=2., picker=5.)[0]
+                                         linewidth=2., picker=True)[0]
+                line.set_pickradius(5.)
                 dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:
@@ -2986,6 +3047,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    _user_picked = picks is not None
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
@@ -2997,7 +3059,9 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for name in _DATA_CH_TYPES_SPLIT:
+    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
+                        _DATA_CH_TYPES_SPLIT)
+    for name in allowed_ch_types:
         kwargs = dict(meg=False, ref_meg=False, exclude=[])
         if name in ('mag', 'grad'):
             kwargs['meg'] = name
@@ -3157,12 +3221,12 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     linewidth=0.5)
             if hyp_limits is not None:
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                                color=color, alpha=area_alpha)
+                                facecolor=color, alpha=area_alpha)
 
     if not average:
         picks = np.concatenate(picks_list)
         psd_list = np.concatenate(psd_list)
-        types = np.array([channel_type(inst.info, idx) for idx in picks])
+        types = np.array(inst.get_channel_types(picks=picks))
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)

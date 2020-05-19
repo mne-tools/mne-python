@@ -3,11 +3,15 @@ import os.path as op
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal)
 import pytest
+from itertools import compress
 
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
 from mne.utils import run_tests_if_main
+from mne.preprocessing.nirs import optical_density, scalp_coupling_index
+from mne.datasets.testing import data_path
+from mne.io import read_raw_nirx
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -217,6 +221,23 @@ def test_interpolation_ctf_comp():
     raw.info['bads'] = [raw.ch_names[5], raw.ch_names[-5]]
     raw.interpolate_bads(mode='fast', origin=(0., 0., 0.04))
     assert raw.info['bads'] == []
+
+
+@testing.requires_testing_data
+def test_interpolation_nirs():
+    """Test interpolating bad nirs channels."""
+    fname = op.join(data_path(download=False),
+                    'NIRx', 'nirx_15_2_recording_w_overlap')
+    raw_intensity = read_raw_nirx(fname, preload=False)
+    raw_od = optical_density(raw_intensity)
+    sci = scalp_coupling_index(raw_od)
+    raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
+    bad_0 = np.where([name == raw_od.info['bads'][0] for
+                      name in raw_od.ch_names])[0][0]
+    bad_0_std_pre_interp = np.std(raw_od._data[bad_0])
+    raw_od.interpolate_bads()
+    assert raw_od.info['bads'] == []
+    assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
 
 
 run_tests_if_main()

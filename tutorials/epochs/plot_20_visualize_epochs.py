@@ -131,6 +131,35 @@ epochs.plot_sensors(kind='topomap', ch_type='all')
 epochs['auditory'].plot_psd(picks='eeg')
 
 ###############################################################################
+# It is also possible to plot spectral estimates across sensors as a scalp
+# topography, using :meth:`~mne.Epochs.plot_psd_topomap`. The default
+# parameters will plot five frequency bands (δ, θ, α, β, γ), will compute power
+# based on magnetometer channels, and will plot the power estimates in
+# decibels:
+
+epochs['visual/right'].plot_psd_topomap()
+
+###############################################################################
+# Just like :meth:`~mne.Epochs.plot_projs_topomap`,
+# :meth:`~mne.Epochs.plot_psd_topomap` has a ``vlim='joint'`` option for fixing
+# the colorbar limits jointly across all subplots, to give a better sense of
+# the relative magnitude in each band. You can change which channel type is
+# used  via the ``ch_type`` parameter, and if you want to view different
+# frequency bands than the defaults, the ``bands`` parameter takes a list of
+# tuples, with each tuple containing either a single frequency and a subplot
+# title, or lower/upper frequency limits and a subplot title:
+
+bands = [(10, '10 Hz'), (15, '15 Hz'), (20, '20 Hz'), (10, 20, '10-20 Hz')]
+epochs['visual/right'].plot_psd_topomap(bands=bands, vlim='joint',
+                                        ch_type='grad')
+
+###############################################################################
+# If you prefer untransformed power estimates, you can pass ``dB=False``. It is
+# also possible to normalize the power estimates by dividing by the total power
+# across all frequencies, by passing ``normalize=True``. See the docstring of
+# :meth:`~mne.Epochs.plot_psd_topomap` for details.
+#
+#
 # Plotting ``Epochs`` as an image map
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -163,7 +192,7 @@ epochs['auditory'].plot_image(picks='mag', combine='mean')
 # plot the global field power (useful for combining sensors that respond with
 # opposite polarity).
 
-# sphinx_gallery_thumbnail_number = 8
+# sphinx_gallery_thumbnail_number = 10
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
@@ -187,7 +216,7 @@ epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
 reject_criteria = dict(mag=3000e-15,     # 3000 fT
                        grad=3000e-13,    # 3000 fT/cm
-                       eeg=150e-6)       # 150 μV
+                       eeg=150e-6)       # 150 µV
 epochs.drop_bad(reject=reject_criteria)
 
 for ch_type, title in dict(mag='Magnetometers', grad='Gradiometers').items():

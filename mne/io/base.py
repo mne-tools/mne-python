@@ -18,8 +18,7 @@ import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import (pick_types, channel_type, pick_channels, pick_info,
-                   _picks_to_idx)
+from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -28,11 +27,11 @@ from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, _get_split_size)
+                    write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
-from ..filter import (FilterMixin, notch_filter, resample,
+from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
@@ -40,194 +39,12 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel, _stamp_to_dt,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc, _validate_type,
-                     _check_preload, _get_argvalues, _check_option)
-from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
-from ..defaults import _handle_default
+                     _check_preload, _get_argvalues, _check_option,
+                     _build_data_frame, _convert_times, _scale_dataframe_data,
+                     _check_time_format)
+from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-
-
-def _set_pandas_dtype(df, columns, dtype):
-    """Try to set the right columns to dtype."""
-    for column in columns:
-        df[column] = df[column].astype(dtype)
-        logger.info('Converting "%s" to "%s"...' % (column, dtype))
-
-
-class ToDataFrameMixin(object):
-    """Class to add to_data_frame capabilities to certain classes."""
-
-    @fill_doc
-    def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
-                      scalings=None, copy=True, start=None, stop=None,
-                      long_format=False):
-        """Export data in tabular structure as a pandas DataFrame.
-
-        Columns and indices will depend on the object being converted.
-        Generally this will include as much relevant information as
-        possible for the data type being converted. This makes it easy
-        to convert data for use in packages that utilize dataframes,
-        such as statsmodels or seaborn.
-
-        Parameters
-        ----------
-        %(picks_all)s
-        index : tuple of str | None
-            Column to be used as index for the data. Valid string options
-            are 'epoch', 'time' and 'condition'. If None, all three info
-            columns will be included in the table as categorial data.
-        scaling_time : float
-            Scaling to be applied to time units.
-        scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
-        copy : bool
-            If true, data will be copied. Else data may be modified in place.
-        start : int | None
-            If it is a Raw object, this defines a starting index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
-        stop : int | None
-            If it is a Raw object, this defines a stop index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
-        long_format : bool
-            If True, the dataframe is returned in long format where each row
-            is one observation of the signal at a unique coordinate of
-            channels, time points, epochs and conditions. The number of
-            factors depends on the data container. For convenience,
-            a `ch_type` column is added when using this option that will
-            facilitate subsetting the resulting dataframe.
-            Defaults to False.
-
-        Returns
-        -------
-        df : instance of pandas.DataFrame
-            A dataframe suitable for usage with other
-            statistical/plotting/analysis packages. Column/Index values will
-            depend on the object type being converted, but should be
-            human-readable.
-        """
-        from ..epochs import BaseEpochs
-        from ..evoked import Evoked
-        from ..source_estimate import _BaseSourceEstimate
-
-        pd = _check_pandas_installed()
-        mindex = list()
-        ch_map = None
-        # Treat SourceEstimates special because they don't have the same info
-        if isinstance(self, _BaseSourceEstimate):
-            if self.subject is None:
-                default_index = ['time']
-            else:
-                default_index = ['subject', 'time']
-            data = self.data.T
-            times = self.times
-            shape = data.shape
-            mindex.append(('subject', np.repeat(self.subject, shape[0])))
-
-            if isinstance(self.vertices, list):
-                # surface source estimates
-                col_names = [i for e in [
-                    ['{} {}'.format('LH' if ii < 1 else 'RH', vert)
-                     for vert in vertno]
-                    for ii, vertno in enumerate(self.vertices)]
-                    for i in e]
-            else:
-                # volume source estimates
-                col_names = ['VOL {}'.format(vert) for vert in self.vertices]
-        elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
-            picks = _picks_to_idx(self.info, picks, 'all', exclude=())
-            if isinstance(self, BaseEpochs):
-                default_index = ['condition', 'epoch', 'time']
-                data = self.get_data()[:, picks, :]
-                times = self.times
-                n_epochs, n_picks, n_times = data.shape
-                data = np.hstack(data).T  # (time*epochs) x signals
-
-                # Multi-index creation
-                times = np.tile(times, n_epochs)
-                id_swapped = {v: k for k, v in self.event_id.items()}
-                names = [id_swapped[k] for k in self.events[:, 2]]
-                mindex.append(('condition', np.repeat(names, n_times)))
-                mindex.append(('epoch',
-                               np.repeat(np.arange(n_epochs), n_times)))
-                col_names = [self.ch_names[k] for k in picks]
-
-            elif isinstance(self, (BaseRaw, Evoked)):
-                default_index = ['time']
-                if isinstance(self, BaseRaw):
-                    data, times = self[picks, start:stop]
-                elif isinstance(self, Evoked):
-                    data = self.data[picks, :]
-                    times = self.times
-                data = data.T
-                col_names = [self.ch_names[k] for k in picks]
-
-            ch_types = [channel_type(self.info, idx) for idx in picks]
-            ch_map = dict(
-                zip([self.info['ch_names'][pp] for pp in picks],
-                    ch_types))
-
-            ch_types_used = list()
-            scalings = _handle_default('scalings', scalings)
-            for tt in scalings.keys():
-                if tt in ch_types:
-                    ch_types_used.append(tt)
-
-            for tt in ch_types_used:
-                scaling = scalings[tt]
-                idx = [ii for ii in range(len(picks)) if ch_types[ii] == tt]
-                if len(idx) > 0:
-                    data[:, idx] *= scaling
-        else:
-            # In case some other object gets this mixin w/o an explicit check
-            raise NameError('Object must be one of Raw, Epochs, Evoked,  or ' +
-                            'SourceEstimate. This is {}'.format(type(self)))
-
-        # Make sure that the time index is scaled correctly
-        times = np.round(times * scaling_time)
-        mindex.append(('time', times))
-
-        if index is not None:
-            _check_pandas_index_arguments(index, default_index)
-        else:
-            index = default_index
-
-        if copy is True:
-            data = data.copy()
-
-        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
-
-        df = pd.DataFrame(data, columns=col_names)
-        for i, (k, v) in enumerate(mindex):
-            df.insert(i, k, v)
-        if index is not None:
-            if 'time' in index and not long_format:
-                _set_pandas_dtype(df, ['time'], np.int64)
-            df.set_index(index, inplace=True)
-        if all(i in default_index for i in index):
-            if isinstance(self, _BaseSourceEstimate):
-                df.columns.name = 'source'
-            else:
-                df.columns.name = 'channel'
-
-        if long_format:
-            df = df.stack().reset_index()
-            columns = list(df.columns)
-            sig_idx = columns.index(0)
-            columns[sig_idx] = 'observation'
-            df.columns = columns
-
-            if not isinstance(self, _BaseSourceEstimate):
-                df['ch_type'] = df.channel.map(ch_map)
-
-            columns = list(df.columns)
-            to_factor = [
-                cc for cc in columns if cc not in ['observation', 'time']]
-            _set_pandas_dtype(df, to_factor, 'category')
-
-        return df
 
 
 class TimeMixin(object):
@@ -263,8 +80,7 @@ class TimeMixin(object):
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin,
-              FilterMixin):
+              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin):
     """Base class for Raw data.
 
     Parameters
@@ -289,9 +105,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     filenames : tuple
         Tuple of length one (for unsplit raw files) or length > 1 (for split
         raw files).
-    raw_extras : list
-        Whatever data is necessary for on-demand reads for the given
-        reader format.
+    raw_extras : list of dict
+        The data necessary for on-demand reads for the given reader format.
+        Should be the same length as ``filenames``. Will have the entry
+        ``raw_extras['orig_nchan']`` added to it for convenience.
     orig_format : str
         The data format of the original raw file (e.g., ``'double'``).
     dtype : dtype | None
@@ -370,7 +187,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              % {ii: self.ch_names[ii] for ii in bad})
         self.verbose = verbose
         self._cals = cals
-        self._raw_extras = list(raw_extras)
+        self._raw_extras = list(dict() if r is None else r for r in raw_extras)
+        for r in self._raw_extras:
+            r['orig_nchan'] = info['nchan']
+        self._read_picks = [np.arange(info['nchan'])
+                            for _ in range(len(raw_extras))]
         # deal with compensation (only relevant for CTF data, either CTF
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
@@ -479,6 +300,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # most classes only store real data, they won't need anything special
         return self._dtype_
 
+    @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       projector=None, verbose=None):
         """Read a chunk of raw data.
@@ -514,13 +336,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('No data in this range')
 
         #  Initialize the data and calibration vector
-        n_sel_channels = self.info['nchan'] if sel is None else len(sel)
-        assert n_sel_channels <= self.info['nchan']
-        # convert sel to a slice if possible for efficiency
-        if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
-            sel = slice(sel[0], sel[-1] + 1)
-        idx = slice(None, None, None) if sel is None else sel
-        data_shape = (n_sel_channels, stop - start)
+        if sel is None:
+            n_out = self.info['nchan']
+            idx = slice(None)
+        else:
+            n_out = len(sel)
+            idx = _convert_slice(sel)
+        del sel
+        assert n_out <= self.info['nchan']
+        data_shape = (n_out, stop - start)
         dtype = self._dtype
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
@@ -565,9 +389,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 raise ValueError('Bad array indexing, could be a bug')
             n_read = stop_file - start_file
             this_sl = slice(offset, offset + n_read)
-            self._read_segment_file(data[:, this_sl], idx, fi,
-                                    int(start_file), int(stop_file),
-                                    cals, mult)
+            # reindex back to original file
+            orig_idx = _convert_slice(self._read_picks[fi][idx])
+            _ReadSegmentFileProtector(self)._read_segment_file(
+                data[:, this_sl], orig_idx, fi,
+                int(start_file), int(stop_file), cals, mult)
             offset += n_read
         return data
 
@@ -575,7 +401,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Read a segment of data from a file.
 
         Only needs to be implemented for readers that support
-        ``preload=False``.
+        ``preload=False``. Any implementation should only make use of:
+
+        - self._raw_extras[fi]
+        - self._filenames[fi]
+
+        So be sure to store any information necessary for reading raw data
+        in self._raw_extras[fi]. Things like ``info`` can be decoupled
+        from the original data (e.g., different subsets of channels) due
+        to picking before preload, for example.
 
         Parameters
         ----------
@@ -912,8 +746,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data = self._data[sel, start:stop]
         else:
             data = self._read_segment(start=start, stop=stop, sel=sel,
-                                      projector=self._projector,
-                                      verbose=self.verbose)
+                                      projector=self._projector)
         times = self.times[start:stop]
         return data, times
 
@@ -1020,7 +853,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                       channel_wise=True, *args, **kwargs):
+                       channel_wise=True, verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
@@ -1060,14 +893,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             False, the function will be applied to all channels at once.
 
             .. versionadded:: 0.18
+        %(verbose_meth)s
         *args : list
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
         **kwargs : dict
-            Keyword arguments to pass to fun. Note that if "verbose" is passed
-            as a member of ``kwargs``, it will be consumed and will override
-            the default mne-python verbose level (see :func:`mne.verbose` and
-            :ref:`Logging documentation <tut_logging>` for more).
+            Keyword arguments to pass to fun.
 
         Returns
         -------
@@ -1201,9 +1032,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # lgtm
         """Resample all channels.
 
-        The Raw object has to have the data loaded e.g. with ``preload=True``
-        or ``self.load_data()``.
-
         .. warning:: The intended purpose of this function is primarily to
                      speed up computations (e.g., projection calculation) when
                      precise timing of events is not required, as downsampling
@@ -1260,9 +1088,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         For some data, it may be more accurate to use ``npad=0`` to reduce
         artifacts. This is dataset dependent -- check your data!
-        """
-        _check_preload(self, 'raw.resample')
 
+        For optimum performance and to make use of ``n_jobs > 1``, the raw
+        object has to have the data loaded e.g. with ``preload=True`` or
+        ``self.load_data()``, but this increases memory requirements. The
+        resulting raw object will have the data loaded into memory.
+        """
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
         # for a variety of reasons, e.g. if no stim channel is present or it is
@@ -1278,9 +1109,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         o_sfreq = float(self.info['sfreq'])
 
         offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
-        new_data = list()
-
-        ratio = sfreq / o_sfreq
 
         # set up stim channel processing
         if stim_picks is None:
@@ -1288,27 +1116,48 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                     stim=True, exclude=[])
         stim_picks = np.asanyarray(stim_picks)
 
-        for ri in range(len(self._raw_lengths)):
-            data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
-            new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
-                                     window=window, n_jobs=n_jobs, pad=pad))
-            new_ntimes = new_data[ri].shape[1]
+        kwargs = dict(up=sfreq, down=o_sfreq, npad=npad, window=window,
+                      n_jobs=n_jobs, pad=pad)
+        ratio, n_news = zip(*(_resamp_ratio_len(sfreq, o_sfreq, old_len)
+                              for old_len in self._raw_lengths))
+        ratio, n_news = ratio[0], np.array(n_news, int)
+        new_offsets = np.cumsum([0] + list(n_news))
+        if self.preload:
+            new_data = np.empty(
+                (len(self.ch_names), new_offsets[-1]), self._data.dtype)
+        for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
+            this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
+            if self.preload:
+                data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
+                new_data[:, this_sl] = resample(data_chunk, **kwargs)
+                # In empirical testing, it was faster to resample all channels
+                # (above) and then replace the stim channels than it was to
+                # only resample the proper subset of channels and then use
+                # np.insert() to restore the stims.
+                if len(stim_picks) > 0:
+                    new_data[stim_picks, this_sl] = _resample_stim_channels(
+                        data_chunk[stim_picks], n_new, data_chunk.shape[1])
+            else:  # this will not be I/O efficient, but will be mem efficient
+                for ci in range(len(self.ch_names)):
+                    data_chunk = self.get_data(
+                        ci, offsets[ri], offsets[ri + 1], verbose='error')[0]
+                    if ci == 0 and ri == 0:
+                        new_data = np.empty(
+                            (len(self.ch_names), new_offsets[-1]),
+                            data_chunk.dtype)
+                    if ci in stim_picks:
+                        resamp = _resample_stim_channels(
+                            data_chunk, n_new, data_chunk.shape[-1])[0]
+                    else:
+                        resamp = resample(data_chunk, **kwargs)
+                    new_data[ci, this_sl] = resamp
 
-            # In empirical testing, it was faster to resample all channels
-            # (above) and then replace the stim channels than it was to only
-            # resample the proper subset of channels and then use np.insert()
-            # to restore the stims.
-            if len(stim_picks) > 0:
-                stim_resampled = _resample_stim_channels(
-                    data_chunk[stim_picks], new_data[ri].shape[1],
-                    data_chunk.shape[1])
-                new_data[ri][stim_picks] = stim_resampled
-
-            self._first_samps[ri] = int(self._first_samps[ri] * ratio)
-            self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
-            self._raw_lengths[ri] = new_ntimes
-
-        self._data = np.concatenate(new_data, axis=1)
+        self._first_samps = (self._first_samps * ratio).astype(int)
+        self._last_samps = (np.array(self._first_samps) + n_news - 1).tolist()
+        self._raw_lengths[ri] = list(n_news)
+        assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
+        self._data = new_data
+        self.preload = True
         self.info['sfreq'] = sfreq
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
@@ -1353,10 +1202,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        tmin : float
-            New start time in seconds (must be >= 0).
-        tmax : float | None
-            New end time in seconds of the data (cannot exceed data duration).
+        %(raw_tmin)s
+        %(raw_tmax)s
         %(include_tmax)s
 
         Returns
@@ -1391,10 +1238,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._first_samps[0] += smin - cumul_lens[keepers[0]]
         self._last_samps = np.atleast_1d(self._last_samps[keepers])
         self._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
-        self._raw_extras = [r for ri, r in enumerate(self._raw_extras)
-                            if ri in keepers]
-        self._filenames = [r for ri, r in enumerate(self._filenames)
-                           if ri in keepers]
+        self._read_picks = [self._read_picks[ri] for ri in keepers]
+        assert all(len(r) == len(self._read_picks[0])
+                   for r in self._read_picks)
+        self._raw_extras = [self._raw_extras[ri] for ri in keepers]
+        self._filenames = [self._filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
@@ -1422,12 +1270,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
             raw_tsss.fif.gz, or _meg.fif.
         %(picks_all)s
-        tmin : float | None
-            Time in seconds of first sample to save. If None first sample
-            is used.
-        tmax : float | None
-            Time in seconds of last sample to save. If None last sample
-            is used.
+        %(raw_tmin)s
+        %(raw_tmax)s
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1522,14 +1366,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         #
 
         #   Convert to samples
-        start = int(np.floor(tmin * self.info['sfreq']))
-
-        # "stop" is the first sample *not* to save, so we need +1's here
-        if tmax is None:
-            stop = np.inf
-        else:
-            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
-        stop = min(stop, self.last_samp - self.first_samp + 1)
+        start, stop = self._tmin_tmax_to_start_stop(tmin, tmax)
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
@@ -1545,12 +1382,26 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, part_idx, None, overwrite)
 
+    def _tmin_tmax_to_start_stop(self, tmin, tmax):
+        start = int(np.floor(tmin * self.info['sfreq']))
+
+        # "stop" is the first sample *not* to save, so we need +1's here
+        if tmax is None:
+            stop = np.inf
+        else:
+            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
+        stop = min(stop, self.last_samp - self.first_samp + 1)
+        if stop <= start or stop <= 0:
+            raise ValueError('tmin (%s) and tmax (%s) yielded no samples'
+                             % (tmin, tmax))
+        return start, stop
+
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):
@@ -1649,7 +1500,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
             with open(bad_file) as fid:
-                bad_names = [l for l in fid.read().splitlines() if l]
+                bad_names = [line for line in fid.read().splitlines() if line]
             names_there = [ci for ci in bad_names if ci in names]
             count_diff = len(bad_names) - len(names_there)
 
@@ -1665,6 +1516,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             self.info['bads'] = []
 
+    @fill_doc
     def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous.
 
@@ -1678,14 +1530,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         raws : list, or Raw instance
             List of Raw instances to concatenate to the current instance
             (in order), or a single raw instance to concatenate.
-        preload : bool, str, or None (default None)
-            Preload data into memory for data manipulation and faster indexing.
-            If True, the data will be preloaded into memory (fast, requires
-            large amount of memory). If preload is a string, preload is the
-            file name of a memory-mapped file which is used to store the data
-            on the hard drive (slower, requires less memory). If preload is
-            None, preload=True or False is inferred using the preload status
-            of the raw files passed in.
+        %(preload_concatenate)s
         """
         if not isinstance(raws, list):
             raws = [raws]
@@ -1746,6 +1591,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                               sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
+            self._read_picks += r._read_picks
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         assert annotations.orig_time == self.info['meas_date']
@@ -1756,7 +1602,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self.annotations.append(onset, 0., 'BAD boundary')
             self.annotations.append(onset, 0., 'EDGE boundary')
         if not (len(self._first_samps) == len(self._last_samps) ==
-                len(self._raw_extras) == len(self._filenames)):
+                len(self._raw_extras) == len(self._filenames) ==
+                len(self._read_picks)):
             raise RuntimeError('Append error')  # should never happen
 
     def close(self):
@@ -1779,13 +1626,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = 'None' if name is None else op.basename(name)
+        name = '' if name is None else op.basename(name) + ', '
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += ', data%s loaded' % ('' if self.preload else ' not')
-        s = ('%s, n_channels x n_times : %s x %s (%0.1f sec), ~%s'
+        s = ('%s%s x %s (%0.1f s), ~%s'
              % (name, len(self.ch_names), self.n_times, self.times[-1],
                 size_str))
-        return "<%s  |  %s>" % (self.__class__.__name__, s)
+        return "<%s | %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
@@ -1836,6 +1683,63 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
+    @fill_doc
+    def to_data_frame(self, picks=None, index=None,
+                      scalings=None, copy=True, start=None, stop=None,
+                      long_format=False, time_format='ms'):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default, an
+        additional column "time" is added, unless ``index`` is not ``None``
+        (in which case time values form the DataFrame's index).
+
+        Parameters
+        ----------
+        %(picks_all)s
+        %(df_index_raw)s
+            Defaults to ``None``.
+        %(df_scalings)s
+        %(df_copy)s
+        start : int | None
+            Starting sample index for creating the DataFrame from a temporal
+            span of the Raw object. ``None`` (the default) uses the first
+            sample.
+        stop : int | None
+            Ending sample index for creating the DataFrame from a temporal span
+            of the Raw object. ``None`` (the default) uses the last sample.
+        %(df_longform_raw)s
+        %(df_time_format_raw)s
+
+            .. versionadded:: 0.20
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time']
+        valid_time_formats = ['ms', 'timedelta', 'datetime']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats,
+                                         self.info['meas_date'])
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data, times = self[picks, start:stop]
+        data = data.T
+        if copy:
+            data = data.copy()
+        data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=['time'])
+        return df
+
 
 def _allocate_data(preload, shape, dtype):
     """Allocate data in memory or in memmap for preloading."""
@@ -1865,6 +1769,25 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     """
     times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
     return times / sfreq
+
+
+def _convert_slice(sel):
+    if len(sel) and (np.diff(sel) == 1).all():
+        return slice(sel[0], sel[-1] + 1)
+    else:
+        return sel
+
+
+class _ReadSegmentFileProtector(object):
+    """Ensure only _filenames, _raw_extras, and _read_segment_file are used."""
+
+    def __init__(self, raw):
+        self.__raw = raw
+        self._filenames = raw._filenames
+        self._raw_extras = raw._raw_extras
+
+    def _read_segment_file(self, *args, **kwargs):
+        return self.__raw.__class__._read_segment_file(self, *args, **kwargs)
 
 
 class _RawShell(object):
@@ -1948,7 +1871,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                          'measurement information, you must use a larger '
                          'value for split size: %s plus enough bytes for '
                          'the chosen buffer_size' % pos_prev)
-    next_file_buffer = 2 ** 20  # extra cushion for last few post-data tags
 
     # Check to see if this has acquisition skips and, if so, if we can
     # write out empty buffers instead of zeroes
@@ -1997,7 +1919,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
         pos = fid.tell()
         this_buff_size_bytes = pos - pos_prev
-        overage = pos - split_size + next_file_buffer
+        overage = pos - split_size + _NEXT_FILE_BUFFER
         if overage > 0:
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
@@ -2007,12 +1929,12 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                 'by %s bytes after writing info (%s) and leaving enough space '
                 'for end tags (%s): decrease "buffer_size_sec" or increase '
                 '"split_size".' % (this_buff_size_bytes, split_size, overage,
-                                   pos_prev, next_file_buffer))
+                                   pos_prev, _NEXT_FILE_BUFFER))
 
         # Split files if necessary, leave some space for next file info
         # make sure we check to make sure we actually *need* another buffer
         # with the "and" check
-        if pos >= split_size - this_buff_size_bytes - next_file_buffer and \
+        if pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER and \
                 first + buffer_size < stop:
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
@@ -2196,10 +2118,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     ----------
     raws : list
         List of Raw instances to concatenate (in order).
-    preload : bool, or None
-        If None, preload status is inferred using the preload status of the
-        raw files passed in. True or False sets the resulting raw file to
-        have or not have data preloaded.
+    %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to None.
     %(verbose)s

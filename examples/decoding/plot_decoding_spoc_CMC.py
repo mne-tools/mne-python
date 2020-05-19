@@ -39,14 +39,14 @@ from sklearn.model_selection import KFold, cross_val_predict
 # Define parameters
 fname = data_path() + '/SubjectCMC.ds'
 raw = mne.io.read_raw_ctf(fname)
-raw.crop(50., 250.).load_data()  # crop for memory purposes
+raw.crop(50., 250.)  # crop for memory purposes
 
 # Filter muscular activity to only keep high frequencies
-emg = raw.copy().pick_channels(['EMGlft'])
+emg = raw.copy().pick_channels(['EMGlft']).load_data()
 emg.filter(20., None, fir_design='firwin')
 
 # Filter MEG data to focus on beta band
-raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False)
+raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False).load_data()
 raw.filter(15., 30., fir_design='firwin')
 
 # Build epochs as sliding windows over the continuous raw file

@@ -15,7 +15,7 @@ import numpy as np
 
 from ..io.pick import channel_type, pick_types
 from ..utils import _clean_names, warn, _check_option, Bunch
-from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
+from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
@@ -363,7 +363,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     for data_, color_, times_ in zip(data, color, times):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times_, data_[ch_idx], color=color_, picker=1e9)
+            line = ax.plot(times_, data_[ch_idx], color=color_, picker=True)[0]
+            line.set_pickradius(1e9)
             picker_flag = True
         else:
             ax.plot(times_, data_[ch_idx], color=color_)
@@ -567,7 +568,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, legend=True, axes=None, show=True,
+                      merge_channels=False, legend=True, axes=None, show=True,
                       noise_cov=None):
     """Plot 2D topography of evoked responses.
 
@@ -619,7 +620,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The face color to be used for each sensor plot. Defaults to black.
     font_color : color
         The color of text in the colorbar and title. Defaults to white.
-    merge_grads : bool
+    merge_channels : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
     legend : bool | int | string | tuple
@@ -678,7 +679,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
-    if merge_grads:
+    if merge_channels:
         picks = _pair_grad_sensors(info, topomap_coords=False)
         chs = list()
         for pick in picks[::2]:
@@ -691,7 +692,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         info._check_consistency()
         new_picks = list()
         for e in evoked:
-            data = _merge_grad_data(e.data[picks])
+            data, _ = _merge_ch_data(e.data[picks], 'grad', [])
             if noise_cov is None:
                 data *= scalings['grad']
             e.data = data
@@ -704,7 +705,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if layout is None:
         layout = find_layout(info)
 
-    if not merge_grads:
+    if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
         chs_in_layout = set(layout.names) & set(ch_names)
         types_used = {channel_type(info, ch_names.index(ch))
@@ -714,9 +715,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         # one check for all vendors
         meg_types = {'mag', 'grad'}
         is_meg = len(set.intersection(types_used, meg_types)) > 0
+        nirs_types = {'hbo', 'hbr', 'fnirs_raw', 'fnirs_od'}
+        is_nirs = len(set.intersection(types_used, nirs_types)) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+                     for kk in types_used]
+        elif is_nirs:
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         else:
             types_used_kwargs = {t: True for t in types_used}
@@ -840,10 +847,10 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
-        The min value in the image. The unit is uV for EEG channels,
+        The min value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     vmax : float
-        The max value in the image. The unit is uV for EEG channels,
+        The max value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     colorbar : bool | None
         Whether to display a colorbar or not. If ``None`` a colorbar will be
@@ -898,9 +905,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     ch_names = set(layout.names) & set(epochs.ch_names)
     idxs = [epochs.ch_names.index(ch_name) for ch_name in ch_names]
     epochs = epochs.pick(idxs)
-    # iterate over a sequential index to get lists of chan. type & scale coef.
-    ch_idxs = range(epochs.info['nchan'])
-    ch_types = [channel_type(epochs.info, idx) for idx in ch_idxs]
+    # get lists of channel type & scale coefficient
+    ch_types = epochs.get_channel_types()
     scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
     # scale the data
     epochs._data *= np.array(scale_coeffs)[:, np.newaxis]

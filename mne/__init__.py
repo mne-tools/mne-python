@@ -16,7 +16,7 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.20.dev0'
+__version__ = '0.21.dev0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
@@ -48,9 +48,10 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       write_forward_solution, make_forward_solution,
                       convert_forward_solution, make_field_map,
                       make_forward_dipole, use_coil_def)
-from .source_estimate import (read_source_estimate, MixedSourceEstimate,
+from .source_estimate import (read_source_estimate,
                               SourceEstimate, VectorSourceEstimate,
                               VolSourceEstimate, VolVectorSourceEstimate,
+                              MixedSourceEstimate, MixedVectorSourceEstimate,
                               grade_to_tris,
                               spatial_src_connectivity,
                               spatial_tris_connectivity,
@@ -71,7 +72,7 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
                            get_volume_labels_from_aseg,
-                           get_volume_labels_from_src)
+                           get_volume_labels_from_src, read_freesurfer_lut)
 from .annotations import (Annotations, read_annotations, annotations_from_events,
                           events_from_annotations)
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,

@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
-                    _plot_raw_onscroll, _mouse_click,
+                    _plot_raw_onscroll, _mouse_click, _plot_annotations,
                     _plot_raw_onkey, plt_show, _convert_psds)
 from .topomap import (_prepare_topomap_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap, _make_head_outlines)
@@ -23,8 +23,7 @@ from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import (pick_types, _picks_to_idx, _get_channel_types,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+from ..io.pick import (pick_types, _picks_to_idx, _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments
 
@@ -546,11 +545,12 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
                 key = exc_label
             color = label_colors[key]
             # ... but display component number too
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
+            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
                                  zorder=2, color=color, label=exc_label))
         else:
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
+            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
                                  color='k', zorder=1))
+        lines[-1].set_pickradius(3.)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel='Time (ms)', ylabel='(NA)')
     if len(exclude) > 0:
@@ -637,9 +637,9 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     axes[0].set_title(title)
 
     if labels == 'ecg':
-        labels = [l for l in ica.labels_ if l.startswith('ecg/')]
+        labels = [label for label in ica.labels_ if label.startswith('ecg/')]
     elif labels == 'eog':
-        labels = [l for l in ica.labels_ if l.startswith('eog/')]
+        labels = [label for label in ica.labels_ if label.startswith('eog/')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
     elif isinstance(labels, str):
         if len(axes) > 1:
@@ -726,7 +726,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         title = 'Signals before (red) and after (black) cleaning'
     picks = ica.ch_names if picks is None else picks
     picks = _picks_to_idx(inst.info, picks, exclude=())
-    ch_types_used = _get_channel_types(inst.info, picks=picks, unique=True)
+    ch_types_used = inst.get_channel_types(picks=picks, unique=True)
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
@@ -833,8 +833,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     evoked.plot(axes=axes, show=show, time_unit='s')
     for ax in fig.axes:
-        for l in ax.get_lines():
-            l.set_color('r')
+        for line in ax.get_lines():
+            line.set_color('r')
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=show, time_unit='s')
     tight_layout(fig=fig)
@@ -900,13 +900,14 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
                   first_time=first_time, data_picks=[], decim=1,
                   noise_cov=None, whitened_ch_names=(), clipping=None,
-                  show_scrollbars=show_scrollbars,
+                  added_label=list(), show_scrollbars=show_scrollbars,
                   show_scalebars=False)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
     params['plot_fun'] = partial(_plot_raw_traces, params=params, color=color,
                                  bad_color=bad_color)
+    _plot_annotations(raw, params)
     params['update_fun'] = partial(_update_data, params)
     params['pick_bads_fun'] = partial(_pick_bads, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
@@ -1064,10 +1065,10 @@ def _label_clicked(pos, params):
     data = np.dot(ica.mixing_matrix_[:, ic_idx].T,
                   ica.pca_components_[:ica.n_components_])
     data = np.atleast_2d(data)
-    fig, axes = _prepare_trellis(len(types), max_col=3)
+    fig, axes, _, _ = _prepare_trellis(len(types), ncols=3)
     for ch_idx, ch_type in enumerate(types):
         try:
-            data_picks, pos, merge_grads, _, _, this_sphere, clip_origin = \
+            data_picks, pos, merge_channels, _, _, this_sphere, clip_origin = \
                 _prepare_topomap_plot(ica, ch_type)
         except Exception as exc:
             warn(str(exc))
@@ -1076,11 +1077,12 @@ def _label_clicked(pos, params):
         outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
         this_data = data[:, data_picks]
         ax = axes[ch_idx]
-        if merge_grads:
-            from ..channels.layout import _merge_grad_data
+        if merge_channels:
+            from ..channels.layout import _merge_ch_data
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
-            data_ = _merge_grad_data(data_) if merge_grads else data_
+            if merge_channels:
+                data_, _ = _merge_ch_data(data_, 'grad', [])
             plot_topomap(data_.flatten(), pos, axes=ax, show=False,
                          sphere=this_sphere, outlines=outlines)
             _hide_frame(ax)

@@ -58,14 +58,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         the epochs axis of the image. If 0, no smoothing is applied.
         Defaults to 0.
     vmin : None | float | callable
-        The min value in the image (and the ER[P/F]). The unit is uV for
+        The min value in the image (and the ER[P/F]). The unit is µV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
         If vmin is None and multiple plots are returned, the limit is
         equalized within channel types.
         Hint: to specify the lower limit of the data, use
         ``vmin=lambda data: data.min()``.
     vmax : None | float | callable
-        The max value in the image (and the ER[P/F]). The unit is uV for
+        The max value in the image (and the ER[P/F]). The unit is µV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
         If vmin is None and multiple plots are returned, the limit is
         equalized within channel types.
@@ -83,7 +83,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Show figure if True.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to ``units=dict(eeg='uV', grad='fT/cm', mag='fT')``.
+        defaults to ``units=dict(eeg='µV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
@@ -207,7 +207,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # is picks a channel type (or None)?
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
-    ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
+    ch_types = _get_channel_types(epochs.info, picks)
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed
@@ -394,7 +394,8 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         rowspan = 2 if evoked else 3
         shape = (3, 10)
         for this_group in group_by:
-            this_fig = figure(this_group)
+            this_fig = figure()
+            this_fig.canvas.set_window_title(this_group)
             kwargs = dict()
             if check_version('matplotlib', '2.2'):
                 kwargs['fig'] = this_fig  # unavailable on earlier mpl
@@ -636,12 +637,12 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
     """Handle drawing epochs axes."""
     this = axes_handler[0]
     for ii, data_, ax in zip(epoch_idx, data, axes):
-        for l, d in zip(ax.lines, data_[good_ch_idx]):
-            l.set_data(times, d)
+        for line, d in zip(ax.lines, data_[good_ch_idx]):
+            line.set_data(times, d)
         if bad_ch_idx is not None:
             bad_lines = [ax.lines[k] for k in bad_ch_idx]
-            for l, d in zip(bad_lines, data_[bad_ch_idx]):
-                l.set_data(times, d)
+            for line, d in zip(bad_lines, data_[bad_ch_idx]):
+                line.set_data(times, d)
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(data.min(), data.max())
@@ -649,8 +650,8 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
         ax.set_xticks(list())
         if vars(ax)[this]['reject'] is True:
             #  memorizing reject
-            for l in ax.lines:
-                l.set_color((0.8, 0.8, 0.8))
+            for line in ax.lines:
+                line.set_color((0.8, 0.8, 0.8))
             ax.get_figure().canvas.draw()
         else:
             #  forgetting previous reject
@@ -658,11 +659,11 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
                 if k == this:
                     continue
                 if vars(ax).get(k, {}).get('reject', None) is True:
-                    for l in ax.lines[:len(good_ch_idx)]:
-                        l.set_color('k')
+                    for line in ax.lines[:len(good_ch_idx)]:
+                        line.set_color('k')
                     if bad_ch_idx is not None:
-                        for l in ax.lines[-len(bad_ch_idx):]:
-                            l.set_color('r')
+                        for line in ax.lines[-len(bad_ch_idx):]:
+                            line.set_color('r')
                     ax.get_figure().canvas.draw()
                     break
 
@@ -706,20 +707,20 @@ def _epochs_axes_onclick(event, params):
         idx = here['idx']
         if idx not in p['reject_idx']:
             p['reject_idx'].append(idx)
-            for l in ax.lines:
-                l.set_color(reject_color)
+            for line in ax.lines:
+                line.set_color(reject_color)
             here['reject'] = True
     elif here.get('reject', None) is True:
         idx = here['idx']
         if idx in p['reject_idx']:
             p['reject_idx'].pop(p['reject_idx'].index(idx))
             good_lines = [ax.lines[k] for k in p['good_ch_idx']]
-            for l in good_lines:
-                l.set_color('k')
+            for line in good_lines:
+                line.set_color('k')
             if p['bad_ch_idx'] is not None:
                 bad_lines = ax.lines[-len(p['bad_ch_idx']):]
-                for l in bad_lines:
-                    l.set_color('r')
+                for line in bad_lines:
+                    line.set_color('r')
             here['reject'] = False
     ax.get_figure().canvas.draw()
 
@@ -979,17 +980,16 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     picks = _picks_to_idx(info, picks)
     picks = sorted(picks)
     # channel type string for every channel
-    types = [channel_type(info, ch) for ch in picks]
+    types = _get_channel_types(info, picks)
     # list of unique channel types
-    ch_types = list(_get_channel_types(info))
+    unique_types = _get_channel_types(info, unique=True)
     if order is None:
         order = _DATA_CH_TYPES_ORDER_DEFAULT
     inds = [pick_idx for order_type in order
             for pick_idx, ch_type in zip(picks, types)
             if order_type == ch_type]
-    if len(ch_types) > len(order):
-        ch_missing = [ch_type for ch_type in ch_types if ch_type not in order]
-        ch_missing = np.unique(ch_missing)
+    if len(unique_types) > len(order):
+        ch_missing = unique_types - set(order)
         raise RuntimeError('%s are in picks but not in order.'
                            ' Please specify all channel types picked.' %
                            (str(ch_missing)))
@@ -1073,7 +1073,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -1093,7 +1094,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ticks = epoch_times + 0.5 * n_times
     ax.set_xticks(ticks)
     ax2.set_xticks(ticks[:n_epochs])
-    labels = list(range(1, len(ticks) + 1))  # epoch numbers
+    labels = list(range(0, len(ticks)))  # epoch numbers
     ax.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(orig_epoch_times)
     ax_hscroll.set_xlim(0, xlim)
@@ -1105,7 +1106,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     hticks = list()
     for tick in hscroll_ticks:
         hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
-    hlabels = [x // n_times + 1 for x in hticks]
+    hlabels = [x // n_times for x in hticks]
     ax_hscroll.set_xticks(hticks)
     ax_hscroll.set_xticklabels(hlabels)
 
@@ -1172,7 +1173,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ev_texts': list(),
                    'ann': list(),  # list for butterfly view annotations
                    'order': order,
-                   'ch_types': ch_types})
+                   'ch_types': unique_types})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1667,7 +1668,8 @@ def _plot_onkey(event, params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1772,7 +1774,8 @@ def _prepare_butterfly(params):
             used_types += 1
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=True, linewidths=.5,
-                                zorder=3, picker=3.)
+                                zorder=3, picker=True)
+            lc.set_pickradius(3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
@@ -1797,7 +1800,7 @@ def _onpick(event, params):
     """Add a channel name on click."""
     if event.mouseevent.button != 2 or not params['butterfly']:
         return  # text label added with a middle mouse button
-    lidx = np.where([l is event.artist for l in params['lines']])[0][0]
+    lidx = np.where([line is event.artist for line in params['lines']])[0][0]
     text = params['text']
     text.set_x(event.mouseevent.xdata)
     text.set_y(event.mouseevent.ydata)
@@ -1827,7 +1830,8 @@ def _update_channels_epochs(event, params):
         params['lines'].pop()
     while len(params['lines']) < n_channels:
         lc = LineCollection(list(), linewidths=0.5, antialiased=True,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)
     params['ax'].set_yticks(params['offsets'])

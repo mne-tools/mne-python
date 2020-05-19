@@ -3,14 +3,14 @@
 # License: BSD 3 clause
 
 from copy import deepcopy
-from os import remove, makedirs
+from os import makedirs
 import os.path as op
+import re
 from shutil import copy
 
 import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
-import matplotlib.pyplot as plt
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
@@ -19,11 +19,10 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, _TempDir, catch_logging,
-                       requires_freesurfer, requires_nibabel)
+from mne.utils import (run_tests_if_main, catch_logging)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface, make_flash_bem)
+                     _check_surface_size, _bem_find_surface)
 from mne.surface import read_surface
 from mne.io import read_info
 
@@ -67,10 +66,9 @@ def _compare_bem_solutions(sol_a, sol_b):
 
 
 @testing.requires_testing_data
-def test_io_bem():
+def test_io_bem(tmpdir):
     """Test reading and writing of bem surfaces and solutions."""
-    tempdir = _TempDir()
-    temp_bem = op.join(tempdir, 'temp-bem.fif')
+    temp_bem = op.join(str(tmpdir), 'temp-bem.fif')
     pytest.raises(ValueError, read_bem_surfaces, fname_raw)
     pytest.raises(ValueError, read_bem_surfaces, fname_bem_3, s_id=10)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=True)
@@ -80,7 +78,7 @@ def test_io_bem():
     _compare_bem_surfaces(surf, surf_read)
 
     pytest.raises(RuntimeError, read_bem_solution, fname_bem_3)
-    temp_sol = op.join(tempdir, 'temp-sol.fif')
+    temp_sol = op.join(str(tmpdir), 'temp-sol.fif')
     sol = read_bem_solution(fname_bem_sol_3)
     assert 'BEM' in repr(sol)
     write_bem_solution(temp_sol, sol)
@@ -121,19 +119,29 @@ def test_make_sphere_model():
 
 
 @testing.requires_testing_data
-def test_make_bem_model(tmpdir):
+@pytest.mark.parametrize('kwargs, fname', [
+    [dict(), fname_bem_3],
+    [dict(conductivity=[0.3]), fname_bem_1],
+])
+def test_make_bem_model(tmpdir, kwargs, fname):
     """Test BEM model creation from Python with I/O."""
     fname_temp = tmpdir.join('temp-bem.fif')
-    for kwargs, fname in zip((dict(), dict(conductivity=[0.3])),
-                             [fname_bem_3, fname_bem_1]):
+    with catch_logging() as log:
         model = make_bem_model('sample', ico=2, subjects_dir=subjects_dir,
-                               **kwargs)
-        model_c = read_bem_surfaces(fname)
-        _compare_bem_surfaces(model, model_c)
-        write_bem_surfaces(fname_temp, model)
-        model_read = read_bem_surfaces(fname_temp)
-        _compare_bem_surfaces(model, model_c)
-        _compare_bem_surfaces(model_read, model_c)
+                               verbose=True, **kwargs)
+    log = log.getvalue()
+    if len(kwargs.get('conductivity', (0, 0, 0))) == 1:
+        assert 'distance' not in log
+    else:
+        assert re.search(r'urfaces is approximately *3\.4 mm', log) is not None
+    assert re.search(r'inner skull CM is *0\.65 *-9\.62 *43\.85 mm',
+                     log) is not None
+    model_c = read_bem_surfaces(fname)
+    _compare_bem_surfaces(model, model_c)
+    write_bem_surfaces(fname_temp, model)
+    model_read = read_bem_surfaces(fname_temp)
+    _compare_bem_surfaces(model, model_c)
+    _compare_bem_surfaces(model_read, model_c)
     # bad conductivity
     with pytest.raises(ValueError, match='conductivity must be'):
         make_bem_model('sample', 4, [0.3, 0.006], subjects_dir=subjects_dir)
@@ -163,7 +171,11 @@ def test_bem_model_topology(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_bem_solution():
+@pytest.mark.parametrize('cond, fname', [
+    [(0.3,), fname_bem_sol_1],
+    [(0.3, 0.006, 0.3), fname_bem_sol_3],
+])
+def test_bem_solution(tmpdir, cond, fname):
     """Test making a BEM solution from Python with I/O."""
     # test degenerate conditions
     surf = read_bem_surfaces(fname_bem_1)[0]
@@ -188,25 +200,21 @@ def test_bem_solution():
     pytest.raises(RuntimeError, _check_surface_size, surfs[1])
 
     # actually test functionality
-    tempdir = _TempDir()
-    fname_temp = op.join(tempdir, 'temp-bem-sol.fif')
+    fname_temp = op.join(str(tmpdir), 'temp-bem-sol.fif')
     # use a model and solution made in Python
-    conductivities = [(0.3,), (0.3, 0.006, 0.3)]
-    fnames = [fname_bem_sol_1, fname_bem_sol_3]
-    for cond, fname in zip(conductivities, fnames):
-        for model_type in ('python', 'c'):
-            if model_type == 'python':
-                model = make_bem_model('sample', conductivity=cond, ico=2,
-                                       subjects_dir=subjects_dir)
-            else:
-                model = fname_bem_1 if len(cond) == 1 else fname_bem_3
-        solution = make_bem_solution(model)
-        solution_c = read_bem_solution(fname)
-        _compare_bem_solutions(solution, solution_c)
-        write_bem_solution(fname_temp, solution)
-        solution_read = read_bem_solution(fname_temp)
-        _compare_bem_solutions(solution, solution_c)
-        _compare_bem_solutions(solution_read, solution_c)
+    for model_type in ('python', 'c'):
+        if model_type == 'python':
+            model = make_bem_model('sample', conductivity=cond, ico=2,
+                                   subjects_dir=subjects_dir)
+        else:
+            model = fname_bem_1 if len(cond) == 1 else fname_bem_3
+    solution = make_bem_solution(model, verbose=True)
+    solution_c = read_bem_solution(fname)
+    _compare_bem_solutions(solution, solution_c)
+    write_bem_solution(fname_temp, solution)
+    solution_read = read_bem_solution(fname_temp)
+    _compare_bem_solutions(solution, solution_c)
+    _compare_bem_solutions(solution_read, solution_c)
 
 
 def test_fit_sphere_to_headshape():
@@ -356,43 +364,6 @@ def test_fit_sphere_to_headshape():
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)
     pytest.raises(ValueError, fit_sphere_to_headshape, info, units='m')
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
-
-
-@requires_nibabel()
-@requires_freesurfer
-@testing.requires_testing_data
-def test_make_flash_bem():
-    """Test computing bem from flash images."""
-    tmp = _TempDir()
-    bemdir = op.join(subjects_dir, 'sample', 'bem')
-    flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')
-
-    for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-        copy(op.join(bemdir, surf + '.surf'), tmp)
-        copy(op.join(bemdir, surf + '.tri'), tmp)
-    copy(op.join(bemdir, 'inner_skull_tmp.tri'), tmp)
-    copy(op.join(bemdir, 'outer_skin_from_testing.surf'), tmp)
-
-    # This function deletes the tri files at the end.
-    try:
-        make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
-                       flash_path=flash_path)
-        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            coords, faces = read_surface(op.join(bemdir, surf + '.surf'))
-            surf = 'outer_skin_from_testing' if surf == 'outer_skin' else surf
-            coords_c, faces_c = read_surface(op.join(tmp, surf + '.surf'))
-            assert_equal(0, faces.min())
-            assert_equal(coords.shape[0], faces.max() + 1)
-            assert_allclose(coords, coords_c)
-            assert_allclose(faces, faces_c)
-    finally:
-        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            remove(op.join(bemdir, surf + '.surf'))  # delete symlinks
-            copy(op.join(tmp, surf + '.tri'), bemdir)  # return deleted tri
-            copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
-        copy(op.join(tmp, 'inner_skull_tmp.tri'), bemdir)
-        copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
-    plt.close('all')
 
 
 run_tests_if_main()

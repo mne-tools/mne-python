@@ -6,9 +6,7 @@
 import numpy as np
 from scipy import linalg
 
-from ..source_estimate import (SourceEstimate, VolSourceEstimate,
-                               VectorSourceEstimate, VolVectorSourceEstimate,
-                               _BaseSourceEstimate)
+from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference)
 from ..forward import is_fixed_orient
@@ -30,7 +28,6 @@ def _check_ori(pick_ori, forward):
                          'orientation forward solution.')
 
 
-@verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
     if isinstance(weights, _BaseSourceEstimate):
@@ -113,12 +110,15 @@ def _compute_residual(forward, evoked, X, active_set, info):
 @verbose
 def _make_sparse_stc(X, active_set, forward, tmin, tstep,
                      active_is_idx=False, pick_ori=None, verbose=None):
+    source_nn = forward['source_nn']
+    vector = False
     if not is_fixed_orient(forward):
-        if pick_ori == 'vector':
-            X = X.reshape((-1, 3, X.shape[-1]))
-        else:
+        if pick_ori != 'vector':
             logger.info('combining the current components...')
             X = combine_xyz(X)
+        else:
+            vector = True
+            source_nn = np.reshape(source_nn, (-1, 3, 3))
 
     if not active_is_idx:
         active_idx = np.where(active_set)[0]
@@ -130,31 +130,20 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
         active_idx = np.unique(active_idx // n_dip_per_pos)
 
     src = forward['src']
-
-    if src.kind != 'surface':
-        vertices = src[0]['vertno'][active_idx]
-        if pick_ori == 'vector':
-            stc = VolVectorSourceEstimate(X, vertices, tmin, tstep)
-        else:
-            stc = VolSourceEstimate(X, vertices, tmin, tstep)
-    else:
-        vertices = []
-        n_points_so_far = 0
-        for this_src in src:
-            this_n_points_so_far = n_points_so_far + len(this_src['vertno'])
-            this_active_idx = active_idx[(n_points_so_far <= active_idx) &
-                                         (active_idx < this_n_points_so_far)]
-            this_active_idx -= n_points_so_far
-            this_vertno = this_src['vertno'][this_active_idx]
-            n_points_so_far = this_n_points_so_far
-            vertices.append(this_vertno)
-
-        if pick_ori == 'vector':
-            stc = VectorSourceEstimate(X, vertices, tmin, tstep)
-        else:
-            stc = SourceEstimate(X, vertices, tmin, tstep)
-
-    return stc
+    vertices = []
+    n_points_so_far = 0
+    for this_src in src:
+        this_n_points_so_far = n_points_so_far + len(this_src['vertno'])
+        this_active_idx = active_idx[(n_points_so_far <= active_idx) &
+                                     (active_idx < this_n_points_so_far)]
+        this_active_idx -= n_points_so_far
+        this_vertno = this_src['vertno'][this_active_idx]
+        n_points_so_far = this_n_points_so_far
+        vertices.append(this_vertno)
+    source_nn = source_nn[active_idx]
+    return _make_stc(
+        X, vertices, src.kind, tmin, tstep, src[0]['subject_his_id'],
+        vector=vector, source_nn=source_nn)
 
 
 @verbose
@@ -319,7 +308,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     %(rank_None)s
 
         .. versionadded:: 0.18
-    %(pick_ori-vec)s
+    %(pick_ori)s
     %(verbose)s
 
     Returns
@@ -557,7 +546,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     %(rank_None)s
 
         .. versionadded:: 0.18
-    %(pick_ori-vec)s
+    %(pick_ori)s
     n_tfmxne_iter : int
         Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
     %(verbose)s

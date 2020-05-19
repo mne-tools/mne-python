@@ -41,13 +41,13 @@ patterns :math:`b_1 \dotso b_m`, we can express the disturbance as
 where the columns of :math:`U` constitute an orthonormal basis for :math:`b_1
 \dotso b_m`, :math:`c_n(t)` is an :math:`m`-component column vector, and the
 error term :math:`e(t)` is small and does not exhibit any consistent spatial
-distributions over time, *i.e.*, :math:`C_e = E \{e e^T\} = I`. Subsequently,
+distributions over time, *i.e.*, :math:`C_e = E \{e e^\top\} = I`. Subsequently,
 we will call the column space of :math:`U` the noise subspace. The basic idea
 of SSP is that we can actually find a small basis set :math:`b_1 \dotso b_m`
 such that the conditions described above are satisfied. We can now construct
 the orthogonal complement operator
 
-.. math::    P_{\perp} = I - UU^T
+.. math::    P_{\perp} = I - UU^\top
    :label: projector
 
 and apply it to :math:`b(t)` in Equation :eq:`additive_model` yielding

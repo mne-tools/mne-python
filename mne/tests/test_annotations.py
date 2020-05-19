@@ -4,7 +4,6 @@
 
 from datetime import datetime, timezone
 from itertools import repeat
-from collections import OrderedDict
 import sys
 
 import os.path as op
@@ -99,6 +98,19 @@ def test_basics():
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
+
+
+def test_annot_sanitizing(tmpdir):
+    """Test description sanitizing."""
+    annot = Annotations([0], [1], ['a;:b'])
+    fname = str(tmpdir.join('custom-annot.fif'))
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    _assert_annotations_equal(annot, annot_read)
+
+    # make sure pytest raises error on char-sequence that is not allowed
+    with pytest.raises(ValueError, match='in descriptions not supported'):
+        Annotations([0], [1], ['a{COLON}b'])
 
 
 def test_raw_array_orig_times():
@@ -955,7 +967,7 @@ def test_annotations_simple_iteration():
                         orig_time=None)
 
     for ii, elements in enumerate(annot[:2]):
-        assert isinstance(elements, OrderedDict)
+        assert isinstance(elements, dict)
         expected_values = (ii, ii, str(ii))
         for elem, expected_type, expected_value in zip(elements.values(),
                                                        EXPECTED_ELEMENTS_TYPE,
@@ -1174,6 +1186,22 @@ def test_annotations_from_events():
                                      orig_time=None)
     assert np.all([a in ['1', '2', '3'] for a in annots.description])
     assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+
+def test_repr():
+    """Test repr of Annotations."""
+    # short annotation repr (< 79 characters)
+    r = repr(Annotations(range(3), [0] * 3, list("abc")))
+    assert r == '<Annotations | 3 segments: a (1), b (1), c (1)>'
+
+    # long annotation repr (> 79 characters, will be shortened)
+    r = repr(Annotations(range(14), [0] * 14, list("abcdefghijklmn")))
+    assert r == ('<Annotations | 14 segments: a (1), b (1), c (1), d (1), '
+                 'e (1), f (1), g ...>')
+
+    # empty Annotations
+    r = repr(Annotations([], [], []))
+    assert r == '<Annotations | 0 segments>'
 
 
 run_tests_if_main()

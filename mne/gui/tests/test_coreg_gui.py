@@ -6,8 +6,6 @@ import os
 import os.path as op
 import re
 import shutil
-import sys
-from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_almost_equal
@@ -16,6 +14,7 @@ import pytest
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
+from mne.surface import dig_mri_distances
 from mne.transforms import invert_transform
 from mne.utils import (run_tests_if_main, requires_mayavi, traits_test,
                        modified_env)
@@ -159,17 +158,10 @@ def test_coreg_model(subjects_dir_tmp):
                     [model.trans_x, model.trans_y, model.trans_z])
 
 
-def _check_ci():
-    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
-            sys.platform == 'darwin':
-        raise SkipTest('Skipping GUI tests on Travis OSX')
-
-
 @requires_mayavi
 @traits_test
-def test_coreg_gui_display(subjects_dir_tmp):
+def test_coreg_gui_display(subjects_dir_tmp, check_gui_ci):
     """Test CoregFrame."""
-    _check_ci()
     from mayavi import mlab
     from tvtk.api import tvtk
     home_dir = subjects_dir_tmp
@@ -178,8 +170,8 @@ def test_coreg_gui_display(subjects_dir_tmp):
                       'sample-fiducials.fif'))
     os.remove(op.join(subjects_dir_tmp, 'sample', 'mri', 'transforms',
                       'talairach.xfm'))
-    with modified_env(**{'_MNE_GUI_TESTING_MODE': 'true',
-                         '_MNE_FAKE_HOME_DIR': home_dir}):
+    with modified_env(_MNE_GUI_TESTING_MODE='true',
+                      _MNE_FAKE_HOME_DIR=home_dir):
         with pytest.raises(ValueError, match='not a valid subject'):
             mne.gui.coregistration(
                 subject='Elvis', subjects_dir=subjects_dir_tmp)
@@ -314,6 +306,37 @@ def test_coreg_model_with_fsaverage(tmpdir):
     assert model.hsp.n_omitted == 1
     model.hsp.file = kit_raw_path
     assert model.hsp.n_omitted == 0
+
+
+@testing.requires_testing_data
+@requires_mayavi
+@traits_test
+def test_coreg_gui_automation():
+    """Test that properties get properly updated."""
+    from mne.gui._file_traits import DigSource
+    from mne.gui._fiducials_gui import MRIHeadWithFiducialsModel
+    from mne.gui._coreg_gui import CoregModel
+    subject = 'sample'
+    hsp = DigSource()
+    hsp.file = raw_path
+    mri = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir, subject=subject)
+    model = CoregModel(mri=mri, hsp=hsp)
+    # gh-7254
+    assert not (model.nearest_transformed_high_res_mri_idx_hsp == 0).all()
+    model.fit_fiducials()
+    model.icp_iterations = 2
+    model.nasion_weight = 2.
+    model.fit_icp()
+    model.omit_hsp_points(distance=5e-3)
+    model.icp_iterations = 2
+    model.fit_icp()
+    errs_icp = np.median(
+        model._get_point_distance())
+    assert 2e-3 < errs_icp < 3e-3
+    info = mne.io.read_info(raw_path)
+    errs_nearest = np.median(
+        dig_mri_distances(info, fname_trans, subject, subjects_dir))
+    assert 1e-3 < errs_nearest < 2e-3
 
 
 run_tests_if_main()

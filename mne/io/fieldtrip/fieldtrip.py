@@ -7,7 +7,7 @@
 import numpy as np
 
 from .utils import _create_info, _set_tmin, _create_events, \
-    _create_event_metadata
+    _create_event_metadata, _validate_ft_struct
 from .. import RawArray
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
@@ -51,6 +51,8 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
 
     # load data and set ft_struct to the heading dictionary
     ft_struct = ft_struct[data_name]
+
+    _validate_ft_struct(ft_struct)
 
     info = _create_info(ft_struct, info)  # create info structure
     data = np.array(ft_struct['trial'])  # create the main data array
@@ -113,6 +115,8 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     # load data and set ft_struct to the heading dictionary
     ft_struct = ft_struct[data_name]
 
+    _validate_ft_struct(ft_struct)
+
     info = _create_info(ft_struct, info)  # create info structure
     data = np.array(ft_struct['trial'])  # create the epochs data array
     events = _create_events(ft_struct, trialinfo_column)
@@ -162,6 +166,8 @@ def read_evoked_fieldtrip(fname, info, comment=None,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
     ft_struct = ft_struct[data_name]
+
+    _validate_ft_struct(ft_struct)
 
     info = _create_info(ft_struct, info)  # create info structure
     data_evoked = ft_struct['avg']  # create evoked data

@@ -127,3 +127,48 @@ def eigh(a, overwrite_a=False, check_finite=True):
                           "%i off-diagonal elements of an "
                           "intermediate tridiagonal form did not converge"
                           " to zero." % info)
+
+
+def sqrtm_sym(A, rcond=1e-7, inv=False):
+    """Compute the square root of a symmetric matrix (or its inverse).
+
+    Parameters
+    ----------
+    A : ndarray, shape (..., n, n)
+        The array to take the square root of.
+    rcond : float
+        The relative condition number used during reconstruction.
+
+    Returns
+    -------
+    A_sqrt : ndarray, shape (..., n, n)
+        The (possibly inverted) square root of A.
+    s : ndarray, shape (..., n)
+        The original square root singular values (not inverted).
+    """
+    # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
+    s, u = np.linalg.eigh(A)  # eigenvalues in ascending order
+    s[s < s[..., -1:] * rcond] = np.inf if inv else 0
+    np.sqrt(s, out=s)
+    if inv:
+        use_s = 1. / s
+    else:
+        use_s = s
+    a = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1))
+    return a, s
+
+
+def _pos_semidef_inv(x, reduce_rank):
+    """Invert positive semidefinite matrices with optional rank reduction."""
+    s, u = np.linalg.eigh(x)
+    # mimic default np.linalg.pinv behavior
+    cutoff = 1e-15 * s[..., -1:]
+    s[s <= cutoff] = np.inf
+    if reduce_rank:
+        # These are ordered smallest to largest, so we set the first one
+        # to inf -- then the 1. / s below will turn this to zero, as needed.
+        s[..., 0] = np.inf
+    s = 1. / s
+    # For positive semidefinite matrices, the transpose is equal to the
+    # conjugate.
+    return np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1).conj())

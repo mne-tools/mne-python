@@ -28,6 +28,7 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
 from mne.io._digitization import (_write_dig_points, _read_dig_points,
                                   _make_dig_points,)
 from mne.io import read_raw_ctf
+from mne.transforms import Transform
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels import make_standard_montage, equalize_channels
 
@@ -37,6 +38,7 @@ base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+
 kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
 hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
 elp_fname = op.join(kit_data_dir, 'test_elp.txt')
@@ -46,6 +48,8 @@ sss_path = op.join(data_path, 'SSS')
 pre = op.join(sss_path, 'test_move_anon_')
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
 ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
+raw_invalid_bday_fname = op.join(data_path, 'misc',
+                                 'sample_invalid_birthday_raw.fif')
 
 
 def test_get_valid_units():
@@ -86,11 +90,10 @@ def test_make_info():
     pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types='awesome')
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
-                  ch_types=None, montage=np.array([1]))
+                  montage=np.array([1]))
     m = make_standard_montage('biosemi32')
-    with pytest.deprecated_call():
-        info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                           montage=m)
+    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg')
+    info.set_montage(m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
     ch_pos_mon = m._get_ch_pos()
     ch_pos_mon = np.array(
@@ -152,11 +155,8 @@ def test_info():
     # Test info attribute in API objects
     for obj in [raw, epochs, evoked]:
         assert (isinstance(obj.info, Info))
-        info_str = '%s' % obj.info
-        assert len(info_str.split('\n')) == len(obj.info.keys()) + 2
-        assert all(k in info_str for k in obj.info.keys())
         rep = repr(obj.info)
-        assert '2002-12-03 19:01:10 GMT' in rep, rep
+        assert '2002-12-03 19:01:10 UTC' in rep, rep
         assert '146 items (3 Cardinal, 4 HPI, 61 EEG, 78 Extra)' in rep
         dig_rep = repr(obj.info['dig'][0])
         assert 'LPA' in dig_rep, dig_rep
@@ -288,7 +288,7 @@ def test_io_dig_points(tmpdir):
 def test_make_dig_points():
     """Test application of Polhemus HSP to info."""
     extra_points = _read_dig_points(hsp_fname)
-    info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
     info['dig'] = _make_dig_points(extra_points=extra_points)
@@ -297,7 +297,7 @@ def test_make_dig_points():
 
     elp_points = _read_dig_points(elp_fname)
     nasion, lpa, rpa = elp_points[:3]
-    info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
     info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
@@ -317,7 +317,7 @@ def test_make_dig_points():
 def test_redundant():
     """Test some of the redundant properties of info."""
     # Indexing
-    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
     assert info['ch_names'][0] == 'a'
     assert info['ch_names'][1] == 'b'
     assert info['ch_names'][2] == 'c'
@@ -327,24 +327,24 @@ def test_redundant():
     assert info['ch_names'] == ['a', 'b', 'c']
 
     # No channels in info
-    info = create_info(ch_names=[], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=[], sfreq=1000.)
     assert info['ch_names'] == []
 
     # List should be read-only
-    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
 
 
 def test_merge_info():
     """Test merging of multiple Info objects."""
-    info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
-    info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
+    info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
+    info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000.)
     info_merged = _merge_info([info_a, info_b])
     assert info_merged['nchan'], 6
     assert info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f']
     pytest.raises(ValueError, _merge_info, [info_a, info_a])
 
     # Testing for force updates before merging
-    info_c = create_info(ch_names=['g', 'h', 'i'], sfreq=500., ch_types=None)
+    info_c = create_info(ch_names=['g', 'h', 'i'], sfreq=500.)
     # This will break because sfreq is not equal
     pytest.raises(RuntimeError, _merge_info, [info_a, info_c])
     _force_update_info(info_a, info_c)
@@ -364,7 +364,7 @@ def test_merge_info():
     pytest.raises(ValueError, _merge_info, (info_a, info_b))
 
     # hpi infos
-    info_d = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
+    info_d = create_info(ch_names=['d', 'e', 'f'], sfreq=1000.)
     info_merged = _merge_info([info_a, info_d])
     assert not info_merged['hpi_meas']
     assert not info_merged['hpi_results']
@@ -444,6 +444,23 @@ def test_check_consistency():
     with pytest.warns(RuntimeWarning, match='Channel names are not'):
         info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
+
+    # a few bad ones
+    idx = 0
+    ch = info['chs'][idx]
+    for key, bad, match in (('ch_name', 1., 'not a string'),
+                            ('loc', np.zeros(15), '12 elements'),
+                            ('cal', np.ones(1), 'float or int')):
+        info._check_consistency()  # okay
+        old = ch[key]
+        ch[key] = bad
+        if key == 'ch_name':
+            info['ch_names'][idx] = bad
+        with pytest.raises(TypeError, match=match):
+            info._check_consistency()
+        ch[key] = old
+        if key == 'ch_name':
+            info['ch_names'][idx] = old
 
 
 def _test_anonymize_info(base_info):
@@ -695,6 +712,23 @@ def test_equalize_channels():
 
     assert info1.ch_names == ['CH1', 'CH2']
     assert info2.ch_names == ['CH1', 'CH2']
+
+
+def test_repr():
+    """Test Info repr."""
+    info = create_info(1, 1000, 'eeg')
+    assert '7 non-empty values' in repr(info)
+
+    t = Transform(1, 2, np.ones((4, 4)))
+    info['dev_head_t'] = t
+    assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
+
+
+def test_invalid_subject_birthday():
+    """Test handling of an invalid birthday in the raw file."""
+    with pytest.warns(RuntimeWarning, match='No birthday will be set'):
+        raw = read_raw_fif(raw_invalid_bday_fname)
+    assert 'birthday' not in raw.info['subject_info']
 
 
 run_tests_if_main()

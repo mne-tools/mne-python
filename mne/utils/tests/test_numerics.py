@@ -1,5 +1,4 @@
 from copy import deepcopy
-from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
 from datetime import datetime, timezone
@@ -21,7 +20,8 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
-                       _dt_to_julian, _julian_to_dt)
+                       _dt_to_julian, _julian_to_dt, grand_average,
+                       _ReuseCycle)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -251,11 +251,11 @@ def test_reg_pinv():
     a_inv_mne, loading_factor, rank = _reg_pinv(a, rank=2)
     assert loading_factor == 0
     assert rank == 2
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test inversion with automatic rank detection
     a_inv_mne, _, estimated_rank = _reg_pinv(a, rank=None)
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
     assert estimated_rank == 2
 
     # Test adding regularization
@@ -267,12 +267,12 @@ def test_reg_pinv():
     assert estimated_rank == 2
     # Test result against the NumPy version
     a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3))
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test setting rcond
     a_inv_np = np.linalg.pinv(a, rcond=0.5)
     a_inv_mne, _, estimated_rank = _reg_pinv(a, rcond=0.5)
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
     assert estimated_rank == 1
 
     # Test inverting an all zero cov
@@ -403,7 +403,6 @@ def test_hash():
 @pytest.mark.parametrize('whiten', (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
-    import sklearn
     from sklearn.decomposition import PCA
     n_samples, n_dim = 1000, 10
     X = np.random.RandomState(0).randn(n_samples, n_dim)
@@ -415,15 +414,10 @@ def test_pca(n_components, whiten):
     assert_array_equal(X, X_orig)
     X_mne = pca_mne.fit_transform(X)
     assert_array_equal(X, X_orig)
-    old_sklearn = LooseVersion(sklearn.__version__) < LooseVersion('0.19')
-    if whiten and old_sklearn:
-        X_skl *= np.sqrt((n_samples - 1.) / n_samples)
     assert_allclose(X_skl, X_mne)
     for key in ('mean_', 'components_',
                 'explained_variance_', 'explained_variance_ratio_'):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
-        if key == 'explained_variance_' and old_sklearn:
-            val_skl *= n_samples / (n_samples - 1.)  # old bug
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
         assert 1 < pca_mne.n_components_ < n_dim
@@ -465,3 +459,52 @@ def test_julian_conversions():
 
         assert (jd == _dt_to_julian(dd))
         assert (jd == _cal_to_julian(cal[0], cal[1], cal[2]))
+
+
+def test_grand_average_empty_sequence():
+    """Test if mne.grand_average handles an empty sequence correctly."""
+    with pytest.raises(ValueError, match='Please pass a list of Evoked'):
+        grand_average([])
+
+
+def test_grand_average_len_1():
+    """Test if mne.grand_average handles a sequence of length 1 correctly."""
+    # returns a list of length 1
+    evokeds = read_evokeds(ave_fname, condition=[0], proj=True)
+
+    with pytest.warns(RuntimeWarning, match='Only a single dataset'):
+        gave = grand_average(evokeds)
+
+    assert_allclose(gave.data, evokeds[0].data)
+
+
+def test_reuse_cycle():
+    """Test _ReuseCycle."""
+    vals = 'abcde'
+    iterable = _ReuseCycle(vals)
+    assert ''.join(next(iterable) for _ in range(2 * len(vals))) == vals + vals
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(2)) == 'ab'
+    iterable.restore('a')
+    assert ''.join(next(iterable) for _ in range(10)) == 'acdeabcdea'
+    assert ''.join(next(iterable) for _ in range(4)) == 'bcde'
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(3)) == 'abc'
+    iterable.restore('a')
+    iterable.restore('b')
+    iterable.restore('c')
+    assert ''.join(next(iterable) for _ in range(5)) == 'abcde'
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(3)) == 'abc'
+    iterable.restore('a')
+    iterable.restore('c')
+    assert ''.join(next(iterable) for _ in range(4)) == 'acde'
+    assert ''.join(next(iterable) for _ in range(5)) == 'abcde'
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(3)) == 'abc'
+    iterable.restore('c')
+    iterable.restore('a')
+    with pytest.warns(RuntimeWarning, match='Could not find'):
+        iterable.restore('a')
+    assert ''.join(next(iterable) for _ in range(4)) == 'acde'
+    assert ''.join(next(iterable) for _ in range(5)) == 'abcde'

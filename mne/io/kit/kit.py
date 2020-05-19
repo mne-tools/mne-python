@@ -229,12 +229,12 @@ class RawKIT(BaseRaw):
         self._raw_extras[0]['stim'] = stim
         self._raw_extras[0]['stim_code'] = stim_code
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        nchan = self._raw_extras[fi]['nchan']
+        params = self._raw_extras[fi]
+        nchan = params['nchan']
         data_left = (stop - start) * nchan
-        conv_factor = self._raw_extras[fi]['conv_factor']
+        conv_factor = params['conv_factor']
 
         n_bytes = 2
         # Read up to 100 MB of data at a time.
@@ -246,7 +246,7 @@ class RawKIT(BaseRaw):
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             pointer = start * nchan * KIT.SHORT
             fid.seek(data_offset + pointer)
-            stim = self._raw_extras[fi]['stim']
+            stim = params['stim']
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid, dtype='h', count=blk_size)
@@ -257,11 +257,9 @@ class RawKIT(BaseRaw):
 
                 # Create a synthetic stim channel
                 if stim is not None:
-                    params = self._raw_extras[fi]
-                    stim_ch = _make_stim_channel(block[stim, :],
-                                                 params['slope'],
-                                                 params['stimthresh'],
-                                                 params['stim_code'], stim)
+                    stim_ch = _make_stim_channel(
+                        block[stim, :], params['slope'], params['stimthresh'],
+                        params['stim_code'], stim)
                     block = np.vstack((block, stim_ch))
 
                 _mult_cal_one(data_view, block, idx, None, mult)

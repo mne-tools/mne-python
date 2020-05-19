@@ -8,6 +8,7 @@ from scipy.interpolate import interp1d
 
 import pytest
 
+import mne
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table, _do_cross_dots)
@@ -21,6 +22,7 @@ from mne.utils import run_tests_if_main
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 
@@ -222,10 +224,18 @@ def _setup_args(info):
 def test_as_meg_type_evoked():
     """Test interpolation of data on to virtual channels."""
     # validation tests
-    evoked = read_evokeds(evoked_fname, condition='Left Auditory')
-    pytest.raises(ValueError, evoked.as_type, 'meg')
-    pytest.raises(ValueError, evoked.copy().pick_types(meg='grad').as_type,
-                  'meg')
+    raw = read_raw_fif(raw_fname)
+    events = mne.find_events(raw)
+    picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
+                       ecg=True, eog=True, include=['STI 014'],
+                       exclude='bads')
+    epochs = mne.Epochs(raw, events, picks=picks)
+    evoked = epochs.average()
+
+    with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
+        evoked.as_type('meg')
+    with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
+        evoked.copy().pick_types(meg='grad').as_type('meg')
 
     # channel names
     ch_names = evoked.info['ch_names']
@@ -256,6 +266,14 @@ def test_as_meg_type_evoked():
     data1 = evoked.pick_types(meg='grad').data.ravel()
     data2 = evoked.as_type('grad').data.ravel()
     assert (np.corrcoef(data1, data2)[0, 1] > 0.95)
+
+    # Do it with epochs
+    virt_epochs = \
+        epochs.copy().load_data().pick_channels(ch_names=ch_names[:10:1])
+    virt_epochs.info.normalize_proj()
+    virt_epochs = virt_epochs.as_type('mag')
+    assert (all(ch.endswith('_v') for ch in virt_epochs.info['ch_names']))
+    assert_allclose(virt_epochs.get_data().mean(0), virt_evoked.data)
 
 
 run_tests_if_main()

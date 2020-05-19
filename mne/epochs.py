@@ -26,7 +26,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
-                       _get_split_size)
+                       _get_split_size, _NEXT_FILE_BUFFER)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -38,7 +38,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
                       _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import BaseRaw, ToDataFrameMixin, TimeMixin
+from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
@@ -55,7 +55,9 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine, ShiftTimeMixin)
+                    _check_combine, ShiftTimeMixin, _build_data_frame,
+                    _check_pandas_index_arguments, _convert_times,
+                    _scale_dataframe_data, _check_time_format, object_size)
 from .utils.docs import fill_doc
 
 
@@ -69,7 +71,11 @@ def _pack_reject_params(epochs):
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
-    """Split epochs."""
+    """Split epochs.
+
+    Anything new added to this function also needs to be added to
+    BaseEpochs.save to account for new file sizes.
+    """
     # insert index in filename
     path, base = op.split(fname)
     idx = base.find('.')
@@ -118,10 +124,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
-    mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                         epochs.event_id.items()])
-
-    write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
+    write_string(fid, FIFF.FIFF_DESCRIPTION, _event_id_string(epochs.event_id))
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # Metadata
@@ -183,6 +186,10 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
+
+
+def _event_id_string(event_id):
+    return ';'.join([k + ':' + str(v) for k, v in event_id.items()])
 
 
 def _merge_events(events, event_id, selection):
@@ -297,7 +304,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -1086,17 +1093,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
-                         layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
-                         n_jobs=1, normalize=False, cbar_fmt='%0.3f',
+                         cmap=None, agg_fun=None, dB=True,
+                         n_jobs=1, normalize=False, cbar_fmt='auto',
                          outlines='head', axes=None, show=True,
-                         sphere=None, verbose=None):
+                         sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
-            layout=layout, cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
+            cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
             normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, sphere=sphere, verbose=verbose)
+            axes=axes, show=show, sphere=sphere, vlim=vlim, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
@@ -1252,7 +1259,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
-        logger.info('Dropped %d epoch%s' % (count, _pl(count)))
+        logger.info('Dropped %d epoch%s: %s' %
+                    (count, _pl(count), ', '.join(map(str, np.sort(try_idx)))))
+
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -1271,7 +1280,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, verbose=None):
+    def _get_data(self, out=True, picks=None, item=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1282,7 +1291,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(picks_all)s
         %(verbose_meth)s
         """
-        n_events = len(self.events)
+        if item is None:
+            item = slice(None)
+        elif not self._bad_dropped:
+            raise ValueError(
+                'item must be None in epochs.get_data() unless bads have been '
+                'dropped. Consider using epochs.drop_bad().')
+        select = self._item_to_select(item)  # indices or slice
+        use_idx = np.arange(len(self.events))[select]
+        n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -1296,6 +1313,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             if not out:
                 return
             if self.preload:
+                data = data[select]
                 if picks is None:
                     return data
                 else:
@@ -1303,7 +1321,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     return data[:, picks]
 
             # we need to load from disk, drop, and return data
-            for idx in range(n_events):
+            for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
                 epoch_noproj = self._detrend_offset_decim(epoch_noproj)
@@ -1311,10 +1329,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     epoch_out = epoch_noproj
                 else:
                     epoch_out = self._project_epoch(epoch_noproj)
-                if idx == 0:
+                if ii == 0:
                     data = np.empty((n_events, len(self.ch_names),
                                      len(self.times)), dtype=epoch_out.dtype)
-                data[idx] = epoch_out
+                data[ii] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
             # e.g., when calling drop_bad w/new params
@@ -1377,19 +1395,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return None
 
     @fill_doc
-    def get_data(self, picks=None):
+    def get_data(self, picks=None, item=None):
         """Get all epochs as a 3D array.
 
         Parameters
         ----------
         %(picks_all)s
+        item : slice | array-like | str | list | None
+            The items to get. See :meth:`mne.Epochs.__getitem__` for
+            a description of valid options. This can be substantially faster
+            for obtaining an ndarray than :meth:`~mne.Epochs.__getitem__`
+            for repeated access on large Epochs objects.
+            None (default) is an alias for ``slice(None)``.
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks)
+        return self._get_data(picks=picks, item=item)
 
     @property
     def times(self):
@@ -1486,6 +1512,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
+        try:
+            _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
+        except ValueError:  # in no longer applies, wipe it out
+            warn('Cropping removes baseline period, setting '
+                 'epochs.baseline = None')
+            self.baseline = None
         return self
 
     def copy(self):
@@ -1568,7 +1600,34 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._check_consistency()
         if fmt == "single":
             total_size //= 2  # 64bit data converted to 32bit before writing.
-        n_parts = max(int(np.ceil(total_size / float(split_size))), 1)
+        total_size += 32  # FIF tags
+        # Account for all the other things we write, too
+        # 1. meas_id block plus main epochs block
+        total_size += 132
+        # 2. measurement info (likely slight overestimate, but okay)
+        total_size += object_size(self.info)
+        # 3. events and event_id in its own block
+        total_size += (self.events.size * 4 +
+                       len(_event_id_string(self.event_id)) + 72)
+        # 4. Metadata in a block of its own
+        if self.metadata is not None:
+            total_size += len(_prepare_write_metadata(self.metadata)) + 56
+        # 5. first sample, last sample, baseline
+        total_size += 40 + 40 * (self.baseline is not None)
+        # 6. drop log
+        total_size += len(json.dumps(self.drop_log)) + 16
+        # 7. reject params
+        reject_params = _pack_reject_params(self)
+        if reject_params:
+            total_size += len(json.dumps(reject_params)) + 16
+        # 8. selection
+        total_size += self.selection.size * 4 + 16
+        # 9. end of file tags
+        total_size += _NEXT_FILE_BUFFER
+
+        # This is like max(int(ceil(total_size / split_size)), 1) but cleaner
+        n_parts = (total_size - 1) // split_size + 1
+        assert n_parts >= 1
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
@@ -1686,6 +1745,98 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return self, indices
+
+    @fill_doc
+    def to_data_frame(self, picks=None, index=None,
+                      scalings=None, copy=True, long_format=False,
+                      time_format='ms'):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        additional columns "time", "epoch" (epoch number), and "condition"
+        (epoch event description) are added, unless ``index`` is not ``None``
+        (in which case the columns specified in ``index`` will be used to form
+        the DataFrame's index instead).
+
+        Parameters
+        ----------
+        %(picks_all)s
+        %(df_index_epo)s
+            Valid string values are 'time', 'epoch', and 'condition'.
+            Defaults to ``None``.
+        %(df_scalings)s
+        %(df_copy)s
+        %(df_longform_epo)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.20
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time', 'epoch', 'condition']
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data = self.get_data()[:, picks, :]
+        times = self.times
+        n_epochs, n_picks, n_times = data.shape
+        data = np.hstack(data).T  # (time*epochs) x signals
+        if copy:
+            data = data.copy()
+        data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = np.tile(times, n_epochs)
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        rev_event_id = {v: k for k, v in self.event_id.items()}
+        conditions = [rev_event_id[k] for k in self.events[:, 2]]
+        mindex.append(('condition', np.repeat(conditions, n_times)))
+        mindex.append(('epoch', np.repeat(self.selection, n_times)))
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=['condition', 'epoch', 'time'])
+        return df
+
+    def as_type(self, ch_type='grad', mode='fast'):
+        """Compute virtual epochs using interpolated fields.
+
+        .. Warning:: Using virtual epochs to compute inverse can yield
+            unexpected results. The virtual channels have `'_v'` appended
+            at the end of the names to emphasize that the data contained in
+            them are interpolated.
+
+        Parameters
+        ----------
+        ch_type : str
+            The destination channel type. It can be 'mag' or 'grad'.
+        mode : str
+            Either `'accurate'` or `'fast'`, determines the quality of the
+            Legendre polynomial expansion used. `'fast'` should be sufficient
+            for most applications.
+
+        Returns
+        -------
+        epochs : instance of mne.EpochsArray
+            The transformed epochs object containing only virtual channels.
+
+        Notes
+        -----
+        This method returns a copy and does not modify the data it
+        operates on. It also returns an EpochsArray instance.
+
+        .. versionadded:: 0.20.0
+        """
+        from .forward import _as_meg_type_inst
+        return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
@@ -2397,16 +2548,19 @@ def _read_one_epoch_file(f, tree, preload):
         # on read double-precision is always used
         if data_tag.type == FIFF.FIFFT_FLOAT:
             datatype = np.float64
-            size_actual = data_tag.size // 4 - 4
+            fmt = '>f4'
         elif data_tag.type == FIFF.FIFFT_DOUBLE:
             datatype = np.float64
-            size_actual = data_tag.size // 8 - 2
+            fmt = '>f8'
         elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
             datatype = np.complex128
-            size_actual = data_tag.size // 8 - 2
+            fmt = '>c8'
         elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
             datatype = np.complex128
-            size_actual = data_tag.size // 16 - 1
+            fmt = '>c16'
+        fmt_itemsize = np.dtype(fmt).itemsize
+        assert fmt_itemsize in (4, 8, 16)
+        size_actual = data_tag.size // fmt_itemsize - 16 // fmt_itemsize
 
         if not size_actual == size_expected:
             raise ValueError('Incorrect number of samples (%d instead of %d)'
@@ -2420,7 +2574,7 @@ def _read_one_epoch_file(f, tree, preload):
         # Read the data
         if preload:
             data = read_tag(fid, data_tag.pos).data.astype(datatype)
-            data *= cals[np.newaxis, :, :]
+            data *= cals
 
         # Put it all together
         tmin = first / info['sfreq']
@@ -2435,7 +2589,8 @@ def _read_one_epoch_file(f, tree, preload):
             drop_log = [[] for _ in range(len(events))]
 
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
-            baseline, selection, drop_log, epoch_shape, cals, reject_params)
+            baseline, selection, drop_log, epoch_shape, cals, reject_params,
+            fmt)
 
 
 @verbose
@@ -2476,13 +2631,14 @@ class _RawContainer(object):
     """Helper for a raw data container."""
 
     def __init__(self, fid, data_tag, event_samps, epoch_shape,
-                 cals):  # noqa: D102
+                 cals, fmt):  # noqa: D102
         self.fid = fid
         self.data_tag = data_tag
         self.event_samps = event_samps
         self.epoch_shape = epoch_shape
         self.cals = cals
         self.proj = False
+        self.fmt = fmt
 
     def __del__(self):  # noqa: D105
         self.fid.close()
@@ -2539,7 +2695,7 @@ class EpochsFIF(BaseEpochs):
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
              baseline, selection, drop_log, epoch_shape, cals,
-             reject_params) = \
+             reject_params, fmt) = \
                 _read_one_epoch_file(fid, tree, preload)
 
             # here we ignore missing events, since users should already be
@@ -2554,7 +2710,7 @@ class EpochsFIF(BaseEpochs):
                 # store everything we need to index back to the original data
                 raw.append(_RawContainer(fiff_open(fname)[0], data_tag,
                                          events[:, 0].copy(), epoch_shape,
-                                         cals))
+                                         cals, fmt))
 
             if next_fname is not None:
                 fnames.append(next_fname)
@@ -2595,9 +2751,10 @@ class EpochsFIF(BaseEpochs):
         for raw in self._raw:
             idx = np.where(raw.event_samps == event_samp)[0]
             if len(idx) == 1:
+                fmt = raw.fmt
                 idx = idx[0]
-                size = np.prod(raw.epoch_shape) * 4
-                offset = idx * size
+                size = np.prod(raw.epoch_shape) * np.dtype(fmt).itemsize
+                offset = idx * size + 16  # 16 = Tag header
                 break
         else:
             # read the correct subset of the data
@@ -2611,9 +2768,20 @@ class EpochsFIF(BaseEpochs):
         #
         # Eventually this could be refactored in io/tag.py if other functions
         # could make use of it
+        raw.fid.seek(raw.data_tag.pos + offset, 0)
+        if fmt == '>c8':
+            read_fmt = '>f4'
+        elif fmt == '>c16':
+            read_fmt = '>f8'
+        else:
+            read_fmt = fmt
+        data = np.frombuffer(raw.fid.read(size), read_fmt)
+        if read_fmt != fmt:
+            data = data.view(fmt)
+            data = data.astype(np.complex128)
+        else:
+            data = data.astype(np.float64)
 
-        raw.fid.seek(raw.data_tag.pos + offset + 16, 0)  # 16 = Tag header
-        data = np.frombuffer(raw.fid.read(size), '>f4').astype(np.float64)
         data.shape = raw.epoch_shape
         data *= raw.cals
         return data
@@ -2984,7 +3152,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                 % (len(epochs.events)))
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
         raise RuntimeError('Epochs must have monotonically increasing events')
-    meg_picks, mag_picks, grad_picks, good_picks, _ = \
+    meg_picks, mag_picks, grad_picks, good_mask, _ = \
         _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
     coil_scale, mag_scale = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, epochs.info)
@@ -2993,7 +3161,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     data = np.zeros((n_channels, n_times))
     count = 0
     # keep only MEG w/bad channels marked in "info_from"
-    info_from = pick_info(epochs.info, good_picks, copy=True)
+    info_from = pick_info(epochs.info, meg_picks[good_mask], copy=True)
     all_coils_recon = _prep_mf_coils(epochs.info, ignore_ref=ignore_ref)
     all_coils = _prep_mf_coils(info_from, ignore_ref=ignore_ref)
     # remove MEG bads in "to" info
@@ -3004,7 +3172,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     n_in, n_out = _get_n_moments([int_order, ext_order])
     S_decomp = 0.  # this will end up being a weighted average
     last_trans = None
-    decomp_coil_scale = coil_scale[good_picks]
+    decomp_coil_scale = coil_scale[good_mask]
     exp = dict(int_order=int_order, ext_order=ext_order, head_frame=True,
                origin=origin)
     for ei, epoch in enumerate(epochs):
@@ -3065,7 +3233,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         # Get mapping matrix
         mapping = np.dot(S_recon, pS_ave)
         # Apply mapping
-        data[meg_picks] = np.dot(mapping, data[good_picks])
+        data[meg_picks] = np.dot(mapping, data[meg_picks[good_mask]])
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
                                             n_events=count, kind='average',

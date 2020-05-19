@@ -2,6 +2,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -99,7 +100,8 @@ def test_plot_topo():
     # Show topography
     evoked = _get_epochs().average()
     # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
+    plot_evoked_topo([evoked, evoked], merge_grads=True,
+                     background_color='w')
 
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -159,6 +161,14 @@ def test_plot_topo():
     for ax, idx in iter_topography(evoked.info):  # brief test with false
         ax.plot([0, 1, 2])
         break
+    plt.close('all')
+
+
+def test_plot_topo_nirs(fnirs_evoked):
+    """Test plotting of ERP topography for nirs data."""
+    fnirs_evoked.pick(picks='hbo')
+    fig = plot_evoked_topo(fnirs_evoked)
+    assert len(fig.axes) == 1
     plt.close('all')
 
 

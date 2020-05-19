@@ -17,31 +17,34 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
-- pytest
+- pytest<5.4
 - pytest-cov
 - pytest-mock
 - pytest-timeout
+- pytest-xdist
 - joblib
 - psutil
 - flake8
-- spyder
 - numexpr
 - traits>=4.6.0
 - pyface>=6
 - traitsui>=6
+- vtk
+- imageio>=2.6.1
 - pip:
   - mne
-  - https://api.github.com/repos/numpy/numpydoc/zipball/master
-  - vtk
-  - https://api.github.com/repos/pyvista/pyvista/zipball/master
+  - https://github.com/numpy/numpydoc/archive/master.zip
+  - imageio-ffmpeg>=0.4.1
+  - pyvista>=0.24
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
   - nilearn
   - neo
-  - pytest-faulthandler
   - pytest-sugar
   - pydocstyle
   - codespell
   - python-picard
+  - tqdm
+  - PyQt5>=5.10,<5.14; platform_system == "Darwin"

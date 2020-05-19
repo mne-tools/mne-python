@@ -366,8 +366,8 @@ def test_split_files(tmpdir):
     split_fname = tmpdir.join('split_raw_meg.fif')
     # intended filenames
     split_fname_elekta_part2 = tmpdir.join('split_raw_meg-1.fif')
-    split_fname_bids_part1 = tmpdir.join('split_raw_part-01_meg.fif')
-    split_fname_bids_part2 = tmpdir.join('split_raw_part-02_meg.fif')
+    split_fname_bids_part1 = tmpdir.join('split_raw_split-01_meg.fif')
+    split_fname_bids_part2 = tmpdir.join('split_raw_split-02_meg.fif')
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
@@ -431,32 +431,25 @@ def test_split_files(tmpdir):
     raw_crop = raw_1.copy().crop(0, 1)
     raw_crop.save(split_fname, buffer_size_sec=1., overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 1
-    assert raw_read._raw_extras[0][0]['nsamp'] == 301
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (301,))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     # 2 buffers required
     raw_crop.save(split_fname, buffer_size_sec=0.5, overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 2
-    assert raw_read._raw_extras[0][0]['nsamp'] == 151
-    assert raw_read._raw_extras[0][1]['nsamp'] == 150
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (151, 150))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     # 2 buffers required
     raw_crop.save(split_fname,
                   buffer_size_sec=1. - 1.01 / raw_crop.info['sfreq'],
                   overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 2
-    assert raw_read._raw_extras[0][0]['nsamp'] == 300
-    assert raw_read._raw_extras[0][1]['nsamp'] == 1
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (300, 1))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     raw_crop.save(split_fname,
                   buffer_size_sec=1. - 2.01 / raw_crop.info['sfreq'],
                   overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 2
-    assert raw_read._raw_extras[0][0]['nsamp'] == 299
-    assert raw_read._raw_extras[0][1]['nsamp'] == 2
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (299, 2))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
 
 
@@ -972,10 +965,22 @@ def test_crop():
 
 
 @testing.requires_testing_data
-def test_resample(tmpdir):
+def test_resample_equiv():
+    """Test resample (with I/O and multiple files)."""
+    raw = read_raw_fif(fif_fname).crop(0, 1)
+    raw_preload = raw.copy().load_data()
+    for r in (raw, raw_preload):
+        r.resample(r.info['sfreq'] / 4.)
+    assert_allclose(raw._data, raw_preload._data)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('preload', (True, False))
+def test_resample(tmpdir, preload):
     """Test resample (with I/O and multiple files)."""
     raw = read_raw_fif(fif_fname).crop(0, 3)
-    raw.load_data()
+    if preload:
+        raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
@@ -986,22 +991,22 @@ def test_resample(tmpdir):
                               preload=True)
     assert sfreq == raw_resamp.info['sfreq'] / 2
     assert raw.n_times == raw_resamp.n_times // 2
-    assert raw_resamp._data.shape[1] == raw_resamp.n_times
-    assert raw._data.shape[0] == raw_resamp._data.shape[0]
+    assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
+    assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
     raw_resamp.resample(sfreq, n_jobs=1, npad='auto')
     assert raw_resamp.info['sfreq'] == sfreq
-    assert raw._data.shape == raw_resamp._data.shape
+    assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp
     assert raw.last_samp == raw.last_samp
     # upsampling then downsampling doubles resampling error, but this still
     # works (hooray). Note that the stim channels had to be sub-sampled
     # without filtering to be accurately preserved
     # note we have to treat MEG and EEG+STIM channels differently (tols)
-    assert_allclose(raw._data[:306, 200:-200],
+    assert_allclose(raw.get_data()[:306, 200:-200],
                     raw_resamp._data[:306, 200:-200],
                     rtol=1e-2, atol=1e-12)
-    assert_allclose(raw._data[306:, 200:-200],
+    assert_allclose(raw.get_data()[306:, 200:-200],
                     raw_resamp._data[306:, 200:-200],
                     rtol=1e-2, atol=1e-7)
 
@@ -1149,22 +1154,42 @@ def test_raw_copy():
 @requires_pandas
 def test_to_data_frame():
     """Test raw Pandas exporter."""
+    from pandas import Timedelta
     raw = read_raw_fif(test_fif_fname, preload=True)
     _, times = raw[0, :10]
-    df = raw.to_data_frame()
+    df = raw.to_data_frame(index='time')
     assert ((df.columns == raw.ch_names).all())
     assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None)
-    assert ('time' in df.index.names)
-    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
-    assert_array_equal(df.values[:, 2], raw._data[2] * 1e15)
+    assert ('time' in df.columns)
+    assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
+    assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
+    # test long format
+    df_long = raw.to_data_frame(long_format=True)
+    assert(len(df_long) == raw.get_data().size)
+    expected = ('time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    # test bad time format
+    with pytest.raises(ValueError, match='not a valid time format. Valid'):
+        raw.to_data_frame(time_format='foo')
+    # test time format error handling
+    raw.set_meas_date(None)
+    with pytest.warns(RuntimeWarning, match='Cannot convert to Datetime when'):
+        df = raw.to_data_frame(time_format='datetime')
+    assert isinstance(df['time'].iloc[0], Timedelta)
 
-    df = raw.to_data_frame(long_format=True)
-    assert(len(df) == raw.get_data().size)
-    assert("time" in df.columns)
-    assert("channel" in df.columns)
-    assert("ch_type" in df.columns)
-    assert("observation" in df.columns)
+
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta', 'datetime'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in epochs Pandas exporter."""
+    from pandas import Timedelta, Timestamp
+    raw = read_raw_fif(test_fif_fname, preload=True)
+    # test time_format
+    df = raw.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta,
+              'datetime': Timestamp}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])
 
 
 def test_add_channels():
@@ -1200,6 +1225,18 @@ def test_add_channels():
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
     assert_object_equal(raw_arr.info['dev_head_t'], orig_head_t)
+    # Make sure all variants work
+    for simult in (False, True):  # simultaneous adding or not
+        raw_new = raw_meg.copy()
+        if simult:
+            raw_new.add_channels([raw_eeg, raw_stim])
+        else:
+            raw_new.add_channels([raw_eeg])
+            raw_new.add_channels([raw_stim])
+        for other in (raw_meg, raw_stim, raw_eeg):
+            assert_allclose(
+                raw_new.copy().pick_channels(other.ch_names).get_data(),
+                other.get_data())
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
@@ -1421,28 +1458,27 @@ def test_drop_channels_mixin():
 
 
 @testing.requires_testing_data
-def test_pick_channels_mixin():
+@pytest.mark.parametrize('preload', (True, False))
+def test_pick_channels_mixin(preload):
     """Test channel-picking functionality."""
-    # preload is True
-
-    raw = read_raw_fif(fif_fname, preload=True)
+    raw = read_raw_fif(fif_fname, preload=preload)
+    raw_orig = raw.copy()
     ch_names = raw.ch_names[:3]
 
     ch_names_orig = raw.ch_names
     dummy = raw.copy().pick_channels(ch_names)
     assert ch_names == dummy.ch_names
     assert ch_names_orig == raw.ch_names
-    assert len(ch_names_orig) == raw._data.shape[0]
+    assert len(ch_names_orig) == raw.get_data().shape[0]
 
     raw.pick_channels(ch_names)  # copy is False
     assert ch_names == raw.ch_names
     assert len(ch_names) == len(raw._cals)
-    assert len(ch_names) == raw._data.shape[0]
-    pytest.raises(ValueError, raw.pick_channels, ch_names[0])
+    assert len(ch_names) == raw.get_data().shape[0]
+    with pytest.raises(ValueError, match='must be'):
+        raw.pick_channels(ch_names[0])
 
-    raw = read_raw_fif(fif_fname, preload=False)
-    pytest.raises(RuntimeError, raw.pick_channels, ch_names)
-    pytest.raises(RuntimeError, raw.drop_channels, ch_names)
+    assert_allclose(raw[:][0], raw_orig[:3][0])
 
 
 @testing.requires_testing_data
@@ -1515,7 +1551,7 @@ def test_file_like(kind, preload, split, tmpdir):
     else:
         fname = test_fif_fname
     if preload is str:
-        preload = tmpdir.join('memmap')
+        preload = str(tmpdir.join('memmap'))
     with open(str(fname), 'rb') as file_fid:
         fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
         assert not fid.closed

@@ -197,10 +197,11 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                                % matrix_type)
         data = fid.read(int(bit * dims.prod()))
         data = np.frombuffer(data, dtype=dtype)
-        if matrix_type in (FIFF.FIFFT_COMPLEX_FLOAT,
-                           FIFF.FIFFT_COMPLEX_DOUBLE):
-            # Note: we need the non-conjugate transpose here
-            data = (data[::2] + 1j * data[1::2])
+        # Note: we need the non-conjugate transpose here
+        if matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
+            data = data.view('>c8')
+        elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
+            data = data.view('>c16')
         data.shape = dims
     elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
         # Find dimensions and return to the beginning of tag data
@@ -265,7 +266,7 @@ def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
     # Always decode to ISO 8859-1 / latin1 (FIFF standard).
     d = _frombuffer_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
-    return str(d.tostring().decode('latin1', 'ignore'))
+    return str(d.tobytes().decode('latin1', 'ignore'))
 
 
 def _read_complex_float(fid, tag, shape, rlims):
@@ -274,7 +275,7 @@ def _read_complex_float(fid, tag, shape, rlims):
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
     d = _frombuffer_rows(fid, tag.size, dtype=">f4", shape=shape, rlims=rlims)
-    d = d[::2] + 1j * d[1::2]
+    d = d.view(">c8")
     return d
 
 
@@ -284,7 +285,7 @@ def _read_complex_double(fid, tag, shape, rlims):
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
     d = _frombuffer_rows(fid, tag.size, dtype=">f8", shape=shape, rlims=rlims)
-    d = d[::2] + 1j * d[1::2]
+    d = d.view(">c16")
     return d
 
 
@@ -344,7 +345,7 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
     )
     # channel name
     ch_name = np.frombuffer(fid.read(16), dtype=">c")
-    ch_name = ch_name[:np.argmax(ch_name == b'')].tostring()
+    ch_name = ch_name[:np.argmax(ch_name == b'')].tobytes()
     d['ch_name'] = ch_name.decode()
     # coil coordinate system definition
     d['coord_frame'] = _coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)

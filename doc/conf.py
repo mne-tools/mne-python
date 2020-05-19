@@ -40,9 +40,6 @@ curdir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(curdir, '..', 'mne')))
 sys.path.append(os.path.abspath(os.path.join(curdir, 'sphinxext')))
 
-if not os.path.isdir('_images'):
-    os.mkdir('_images')
-
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -65,6 +62,8 @@ extensions = [
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
     'gen_commands',
+    'gh_substitutions',
+    'mne_substitutions',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
@@ -185,7 +184,6 @@ html_theme_options = {
         ("Examples", "auto_examples/index"),
         ("Glossary", "glossary"),
         ("API", "python_reference"),
-        ("Contribute", "install/contributing"),
     ],
 }
 
@@ -198,7 +196,7 @@ html_theme_options = {
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "_static/mne_logo_small.png"
+html_logo = "_static/mne_logo_small.svg"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -208,7 +206,7 @@ html_favicon = "_static/favicon.ico"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static', '_images']
+html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -321,7 +319,9 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
-    'statsmodels': ('http://www.statsmodels.org/stable/', None),
+    'seaborn': ('https://seaborn.pydata.org/', None),
+    'statsmodels': ('https://www.statsmodels.org/dev', None),
+    'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     # There are some problems with dipy's redirect:
     # https://github.com/nipy/dipy/issues/1955
     'dipy': ('https://dipy.org/documentation/latest',
@@ -387,6 +387,8 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
             op.dirname(__file__), 'generated', '%s.examples' % (name,)))
         if size > 0:
             lines += """
+.. _sphx_glr_backreferences_{1}:
+
 .. rubric:: Examples using ``{0}``:
 
 .. include:: {1}.examples
@@ -461,6 +463,8 @@ def reset_warnings(gallery_conf, fname):
                 r"joblib is deprecated in 0\.21",  # nilearn
                 'The usage of `cmp` is deprecated and will',  # sklearn/pytest
                 'scipy.* is deprecated and will be removed in',  # dipy
+                r'Converting `np\.character` to a dtype is deprecated',  # vtk
+                r'sphinx\.util\.smartypants is deprecated',
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -532,6 +536,7 @@ sphinx_gallery_conf = {
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
+    'matplotlib_animations': True,
 }
 
 ##############################################################################
@@ -543,7 +548,7 @@ numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
-    'Popen': 'python:subprocess.Popen',
+    # Python
     'file-like': ':term:`file-like <python:file object>`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
@@ -615,7 +620,9 @@ numpydoc_xref_ignore = {
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
-    'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient',
+    'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
+    'n_dipoles_fwd',
+
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF',

@@ -31,7 +31,7 @@ properties that are set to be equivalent.
   |-- SurfaceObject (mri_obj) [5]: Represent a solid object in a mayavi scene.
   +-- PointObject ({hsp, eeg, lpa, nasion, rpa, hsp_lpa, hsp_nasion, hsp_rpa} + _obj): Represent a group of individual points in a mayavi scene.
 
-In the MRI viewing frame, MRI points and transformed via scaling, then by
+In the MRI viewing frame, MRI points are transformed via scaling, then by
 mri_head_t to the Neuromag head coordinate frame. Digitized points (in head
 coordinate frame) are never transformed.
 
@@ -485,12 +485,12 @@ class CoregModel(HasPrivateTraits):
         return points
 
     def _nearest_calc_default(self):
-        return _DistanceQuery(np.zeros((1, 3)))
+        return _DistanceQuery(
+            self.processed_high_res_mri_points * self.parameters[6:9])
 
     @on_trait_change('processed_high_res_mri_points')
     def _update_nearest_calc(self):
-        self.nearest_calc = _DistanceQuery(
-            self.processed_high_res_mri_points * self.parameters[6:9])
+        self.nearest_calc = self._nearest_calc_default()
 
     @cached_property
     def _get_transformed_high_res_mri_points(self):

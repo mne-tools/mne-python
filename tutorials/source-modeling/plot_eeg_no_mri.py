@@ -17,7 +17,6 @@ using the standard template MRI subject ``fsaverage``.
    :depth: 2
 
 """
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #

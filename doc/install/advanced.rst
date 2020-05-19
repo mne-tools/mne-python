@@ -7,7 +7,7 @@ Advanced setup of MNE-Python
 
 .. contents::
    :local:
-   :depth: 1
+   :depth: 2
 
 Using MNE-Python with IPython / Jupyter notebooks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -79,7 +79,7 @@ instructions, this will be ``base``), and use ``pip`` to upgrade:
 .. code-block:: console
 
    $ conda activate name_of_my_mne_environment
-   $ pip install --upgrade --no-deps https://api.github.com/repos/mne-tools/mne-python/zipball/master
+   $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/master.zip
 
 If you plan to contribute to MNE-Python, or just prefer to use git rather than
 pip to make frequent updates, check out the :ref:`contributing guide
@@ -160,11 +160,36 @@ to force MESA to use modern OpenGL by using this before executing
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
 
+.. _troubleshoot_3d:
+
 Troubleshooting 3D plots in MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you run into trouble when visualizing source estimates (or anything else
-using mayavi), you can try setting a couple of environment variables at the
+3D plotting trouble after version 0.20 upgrade on macOS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When upgrading MNE-Python to version 0.20, some macOS users may end up with
+conflicting versions of some of the 3D plotting dependencies. If you plot using
+the pyvista 3D backend and find that you can click-drag to rotate the brain,
+but cannot adjust any of the settings sliders, it is likely that your versions
+of VTK and/or QT are incompatible. This series of commands should fix it:
+
+.. code-block:: console
+
+    $ conda uninstall vtk
+    $ pip uninstall -y pyvista
+    $ conda install vtk
+    $ pip install --no-cache pyvista
+
+If you installed VTK using ``pip`` rather than ``conda``, substitute the first
+line for ``pip uninstall -y vtk``.
+
+
+3D plotting trouble using mayavi 3D backend
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you run into trouble when visualizing source estimates (or anything else)
+using mayavi, you can try setting a couple of environment variables at the
 beginning of your script, session, or notebook::
 
     >>> import os

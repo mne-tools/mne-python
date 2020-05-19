@@ -1183,7 +1183,7 @@ The documented structures are:
     | eigen_leads         | double      | The matrix :math:`V`, see :ref:`mne_solution`.           |
     |                     | (:,nchan)   |                                                          |
     +---------------------+-------------+----------------------------------------------------------+
-    | eigen_fields        | double      | The matrix :math:`U^T`, see                              |
+    | eigen_fields        | double      | The matrix :math:`U^\top`, see                           |
     |                     | (nchan,     | :ref:`mne_solution`.                                     |
     |                     | nchan)      |                                                          |
     +---------------------+-------------+----------------------------------------------------------+

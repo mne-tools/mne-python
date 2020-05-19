@@ -11,11 +11,11 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 from mne.datasets import testing
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
-from mne.surface import (read_morph_map, _compute_nearest,
+from mne.surface import (read_morph_map, _compute_nearest, _tessellate_sphere,
                          fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf)
-from mne.utils import (_TempDir, requires_mayavi, requires_tvtk, catch_logging,
-                       run_tests_if_main, object_diff, traits_test)
+                         get_meg_helmet_surf, _normal_orth)
+from mne.utils import (_TempDir, requires_vtk, catch_logging,
+                       run_tests_if_main, object_diff, requires_freesurfer)
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.transforms import _get_trans
@@ -186,10 +186,8 @@ def test_read_curv():
     assert np.logical_or(bin_curv == 0, bin_curv == 1).all()
 
 
-@requires_tvtk
-@requires_mayavi
-@traits_test
-def test_decimate_surface():
+@requires_vtk
+def test_decimate_surface_vtk():
     """Test triangular surface decimation."""
     points = np.array([[-0.00686118, -0.10369860, 0.02615170],
                        [-0.00713948, -0.10370162, 0.02614874],
@@ -199,9 +197,27 @@ def test_decimate_surface():
     for n_tri in [4, 3, 2]:  # quadric decimation creates even numbered output.
         _, this_tris = decimate_surface(points, tris, n_tri)
         assert len(this_tris) == n_tri if not n_tri % 2 else 2
+    with pytest.raises(ValueError, match='exceeds number of original'):
+        decimate_surface(points, tris, len(tris) + 1)
     nirvana = 5
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
     pytest.raises(ValueError, decimate_surface, points, tris, n_tri)
+
+
+@requires_freesurfer('mris_sphere')
+def test_decimate_surface_sphere():
+    """Test sphere mode of decimation."""
+    rr, tris = _tessellate_sphere(3)
+    assert len(rr) == 66
+    assert len(tris) == 128
+    for kind, n_tri in [('ico', 20), ('oct', 32)]:
+        with catch_logging() as log:
+            _, tris_new = decimate_surface(
+                rr, tris, n_tri, method='sphere', verbose=True)
+        log = log.getvalue()
+        assert 'Freesurfer' in log
+        assert kind in log
+        assert len(tris_new) == n_tri
 
 
 @pytest.mark.parametrize('dig_kinds, exclude, count, bounds, outliers', [
@@ -218,6 +234,14 @@ def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
     assert dists.shape == (count,)
     assert bounds[0] < np.mean(dists) < bounds[1]
     assert np.sum(dists > 0.03) == outliers
+
+
+def test_normal_orth():
+    """Test _normal_orth."""
+    nns = np.eye(3)
+    for nn in nns:
+        ori = _normal_orth(nn)
+        assert_allclose(ori[2], nn, atol=1e-12)
 
 
 run_tests_if_main()

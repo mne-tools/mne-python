@@ -15,7 +15,7 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..cov import compute_covariance
 from ..source_estimate import _make_stc, _get_src_type
-from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
+from ..utils import (logger, verbose, warn, _reg_pinv,
                      _check_channels_spatial_filter, _check_option)
 from ..utils import _check_one_ch_type, _check_rank, _check_info_inv
 from .. import Epochs
@@ -67,10 +67,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
-    reduce_rank : bool
-        If True, the rank of the leadfield will be reduced by 1 for each
-        spatial location. Setting reduce_rank to True is typically necessary
-        if you use a single sphere model for MEG.
+    %(reduce_rank)s
     %(depth)s
 
         .. versionadded:: 0.18
@@ -124,8 +121,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     """
     # check number of sensor types present in the data and ensure a noise cov
     info = _simplify_info(info)
-    noise_cov, _ = _check_one_ch_type('lcmv', info, forward,
-                                      data_cov, noise_cov)
+    noise_cov, _, allow_mismatch = _check_one_ch_type(
+        'lcmv', info, forward, data_cov, noise_cov)
     # XXX we need this extra picking step (can't just rely on minimum norm's
     # because there can be a mismatch. Should probably add an extra arg to
     # _prepare_beamformer_input at some point (later)
@@ -134,7 +131,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     data_rank = compute_rank(data_cov, rank=rank, info=info)
     noise_rank = compute_rank(noise_cov, rank=rank, info=info)
     for key in data_rank:
-        if key not in noise_rank or data_rank[key] != noise_rank[key]:
+        if (key not in noise_rank or data_rank[key] != noise_rank[key]) and \
+                not allow_mismatch:
             raise ValueError('%s data rank (%s) did not match the noise '
                              'rank (%s)'
                              % (key, data_rank[key],
@@ -153,7 +151,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     ch_names = list(info['ch_names'])
 
     data_cov = pick_channels_cov(data_cov, include=ch_names)
-    Cm = data_cov['data']
+    Cm = data_cov._get_square()
     if 'estimator' in data_cov:
         del data_cov['estimator']
 
@@ -161,15 +159,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
     rank_int = sum(rank.values())
     del rank
-
-    # leadfield rank and optional rank reduction
-    if reduce_rank:
-        if not pick_ori == 'max-power':
-            raise NotImplementedError('The computation of spatial filters '
-                                      'with rank reduction using reduce_rank '
-                                      'parameter is only implemented with '
-                                      'pick_ori=="max-power".')
-        _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
 
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
@@ -623,7 +612,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # check number of sensor types present in the data
     if noise_covs is None:
         noise_covs = [None] * len(win_lengths)
-    noise_covs, picks = zip(
+    noise_covs, picks, _ = zip(
         *(_check_one_ch_type('lcmv', epochs.info, forward,
                              noise_cov=noise_cov) for noise_cov in noise_covs))
     picks = picks[0]

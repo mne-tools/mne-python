@@ -19,8 +19,8 @@ from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
-from mne.utils import (_TempDir, requires_mayavi, requires_nibabel, Bunch,
-                       run_tests_if_main, traits_test, requires_h5py)
+from mne.utils import (requires_nibabel, Bunch,
+                       run_tests_if_main, requires_h5py)
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 
@@ -51,16 +51,18 @@ def _get_example_figures():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_render_report():
+def test_render_report(renderer, tmpdir):
     """Test rendering -*.fif files for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
     ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
     cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
     for a, b in [[raw_fname, raw_fname_new],
+                 [raw_fname, raw_fname_new_bids],
                  [ms_fname, ms_fname_new],
                  [event_fname, event_fname_new],
                  [cov_fname, cov_fname_new],
@@ -150,12 +152,12 @@ def test_render_report():
 
 
 @testing.requires_testing_data
-def test_report_raw_psd_and_date():
+def test_report_raw_psd_and_date(tmpdir):
     """Test report raw PSD and DATE_NONE functionality."""
     with pytest.raises(TypeError, match='dict'):
         Report(raw_psd='foo')
 
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw.save(raw_fname_new)
@@ -193,11 +195,9 @@ def test_report_raw_psd_and_date():
 
 
 @testing.requires_testing_data
-@requires_mayavi
-@traits_test
-def test_render_add_sections():
+def test_render_add_sections(renderer, tmpdir):
     """Test adding figures/images to section."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -240,12 +240,10 @@ def test_render_add_sections():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_mayavi
-@traits_test
 @requires_nibabel()
-def test_render_mri():
+def test_render_mri(renderer, tmpdir):
     """Test rendering MRI for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     trans_fname_new = op.join(tempdir, 'temp-trans.fif')
     for a, b in [[trans_fname, trans_fname_new]]:
         shutil.copyfile(a, b)
@@ -256,21 +254,26 @@ def test_render_mri():
     assert repr(report)
     report.add_bem_to_section('sample', caption='extra', section='foo',
                               subjects_dir=subjects_dir, decim=30)
-    report.save(op.join(tempdir, 'report.html'), open_browser=False,
-                overwrite=True)
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname, open_browser=False, overwrite=True)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert 'class="report_foo"' in html
 
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_render_mri_without_bem():
+def test_render_mri_without_bem(tmpdir):
     """Test rendering MRI without BEM for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(op.join(tempdir, 'sample', 'mri'))
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
     report.parse_folder(tempdir, render_bem=False)
+    with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
+        report.parse_folder(tempdir, render_bem=True, mri_decim=20)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
@@ -289,9 +292,9 @@ def test_add_htmls_to_section():
     assert (repr(report))
 
 
-def test_add_slider_to_section():
+def test_add_slider_to_section(tmpdir):
     """Test adding a slider with a series of images to mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
@@ -310,7 +313,7 @@ def test_add_slider_to_section():
     # Smoke test that SVG w/unicode can be added
     report = Report()
     fig, ax = plt.subplots()
-    ax.set_xlabel(u'μ')
+    ax.set_xlabel('µ')
     report.add_slider_to_section([fig] * 2, image_format='svg')
 
 
@@ -333,9 +336,9 @@ def test_validate_input():
 
 
 @requires_h5py
-def test_open_report():
+def test_open_report(tmpdir):
     """Test the open_report function."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     hdf5 = op.join(tempdir, 'report.h5')
 
     # Test creating a new report through the open_report function

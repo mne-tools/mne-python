@@ -13,14 +13,14 @@ import inspect
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 from scipy.io import loadmat
 
 import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_pandas, _TempDir
+from mne.utils import run_tests_if_main, requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
@@ -52,7 +52,8 @@ edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
-
+bdf_multiple_annotations_path = op.join(data_path, 'BDF',
+                                        'multiple_annotation_chans.bdf')
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 
@@ -67,7 +68,7 @@ def test_orig_units():
     # Test original units
     orig_units = raw._orig_units
     assert len(orig_units) == len(raw.ch_names)
-    assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
+    assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
 
 
 def test_bdf_data():
@@ -105,35 +106,51 @@ def test_bdf_crop_save_stim_channel(tmpdir):
 
 
 @testing.requires_testing_data
-def test_edf_reduced():
-    """Test EDF with various sampling rates."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, verbose='error')
+@pytest.mark.parametrize('fname', [
+    edf_reduced,
+    edf_overlap_annot_path,
+])
+@pytest.mark.parametrize('stim_channel', (None, False, 'auto'))
+def test_edf_others(fname, stim_channel):
+    """Test EDF with various sampling rates and overlapping annotations."""
+    _test_raw_reader(
+        read_raw_edf, input_fname=fname, stim_channel=stim_channel,
+        verbose='error')
 
 
-def test_edf_data():
+def test_edf_data_broken(tmpdir):
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
                            exclude=['Ergo-Left', 'H10'], verbose='error')
-    raw_py = read_raw_edf(edf_path, preload=True)
-
+    raw_py = read_raw_edf(edf_path)
+    data = raw_py.get_data()
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
 
     # Test with number of records not in header (-1).
-    tempdir = _TempDir()
-    broken_fname = op.join(tempdir, 'broken.edf')
+    broken_fname = op.join(tmpdir, 'broken.edf')
     with open(edf_path, 'rb') as fid_in:
         fid_in.seek(0, 2)
         n_bytes = fid_in.tell()
         fid_in.seek(0, 0)
-        rbytes = fid_in.read(int(n_bytes * 0.4))
+        rbytes = fid_in.read()
     with open(broken_fname, 'wb') as fid_out:
         fid_out.write(rbytes[:236])
         fid_out.write(b'-1      ')
-        fid_out.write(rbytes[244:])
+        fid_out.write(rbytes[244:244 + int(n_bytes * 0.4)])
     with pytest.warns(RuntimeWarning,
                       match='records .* not match the file size'):
         raw = read_raw_edf(broken_fname, preload=True)
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
+
+    # Test with \x00's in the data
+    with open(broken_fname, 'wb') as fid_out:
+        fid_out.write(rbytes[:184])
+        assert rbytes[184:192] == b'36096   '
+        fid_out.write(rbytes[184:192].replace(b' ', b'\x00'))
+        fid_out.write(rbytes[192:])
+    raw_py = read_raw_edf(broken_fname)
+    data_new = raw_py.get_data()
+    assert_allclose(data, data_new)
 
 
 def test_duplicate_channel_labels_edf():
@@ -196,18 +213,18 @@ def test_find_events_backward_compatibility():
 @pytest.mark.parametrize('fname', [edf_path, bdf_path])
 def test_to_data_frame(fname):
     """Test EDF/BDF Raw Pandas exporter."""
-    ext = op.splitext(fname)[1][1:].lower()
+    ext = op.splitext(fname)[1].lstrip('.').lower()
     if ext == 'edf':
         raw = read_raw_edf(fname, preload=True, verbose='error')
     elif ext == 'bdf':
         raw = read_raw_bdf(fname, preload=True, verbose='error')
     _, times = raw[0, :10]
-    df = raw.to_data_frame()
+    df = raw.to_data_frame(index='time')
     assert (df.columns == raw.ch_names).all()
     assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
-    assert 'time' in df.index.names
-    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+    assert 'time' in df.columns
+    assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
 
 
 def test_read_raw_edf_stim_channel_input_parameters():
@@ -347,4 +364,24 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     assert ch_types == EXPECTED
 
 
+@testing.requires_testing_data
+def test_bdf_multiple_annotation_channels():
+    """Test BDF with multiple annotation channels."""
+    raw = read_raw_bdf(bdf_multiple_annotations_path)
+    assert len(raw.annotations) == 10
+    descriptions = np.array(['signal_start', 'EEG-check#1', 'TestStim#1',
+                             'TestStim#2', 'TestStim#3', 'TestStim#4',
+                             'TestStim#5', 'TestStim#6', 'TestStim#7',
+                             'Ligths-Off#1'], dtype='<U12')
+    assert_array_equal(descriptions, raw.annotations.description)
+
+
 run_tests_if_main()
+
+
+@testing.requires_testing_data
+def test_edf_lowpass_zero():
+    """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
+    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
+        raw = read_raw_edf(edf_stim_resamp_path)
+    assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)

@@ -3,8 +3,10 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+import os
 import os.path as op
 import shutil
+import sys
 
 import numpy as np
 import pytest
@@ -16,21 +18,36 @@ from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
-                       check_version, _check_path_like)
+                       check_version, _check_path_like, _validate_type,
+                       _suggest)
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_event = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
 fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_mgz = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
 @testing.requires_testing_data
-def test_check():
+def test_check(tmpdir):
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
     _check_fname(Path('./'))
+    fname = str(tmpdir.join('foo'))
+    with open(fname, 'wb'):
+        pass
+    assert op.isfile(fname)
+    _check_fname(fname, overwrite='read', must_exist=True)
+    orig_perms = os.stat(fname).st_mode
+    os.chmod(fname, 0)
+    if not sys.platform.startswith('win'):
+        with pytest.raises(PermissionError, match='read permissions'):
+            _check_fname(fname, overwrite='read', must_exist=True)
+    os.chmod(fname, orig_perms)
+    os.remove(fname)
+    assert not op.isfile(fname)
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
@@ -43,8 +60,10 @@ def test_check():
         check_random_state(np.random.default_rng(0)).choice(1)
 
     # _meg.fif is a valid ending and should not raise an error
-    shutil.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
-    mne.io.read_raw_fif(fname_raw.replace('_raw.', '_meg.'))
+    new_fname = str(
+        tmpdir.join(op.basename(fname_raw).replace('_raw.', '_meg.')))
+    shutil.copyfile(fname_raw, new_fname)
+    mne.io.read_raw_fif(new_fname)
 
 
 @requires_mayavi
@@ -157,3 +176,22 @@ def test_check_path_like():
     assert _check_path_like(str_path) is True
     assert _check_path_like(pathlib_path) is True
     assert _check_path_like(no_path) is False
+
+
+def test_validate_type():
+    """Test _validate_type."""
+    _validate_type(1, 'int-like')
+    with pytest.raises(TypeError, match='int-like'):
+        _validate_type(False, 'int-like')
+
+
+@testing.requires_testing_data
+def test_suggest():
+    """Test suggestions."""
+    names = mne.get_volume_labels_from_aseg(fname_mgz)
+    sug = _suggest('', names)
+    assert sug == ''  # nothing
+    sug = _suggest('Left-cerebellum', names)
+    assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
+    sug = _suggest('Cerebellum-Cortex', names)
+    assert sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501

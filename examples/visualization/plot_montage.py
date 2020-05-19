@@ -2,7 +2,7 @@
 """
 .. _plot_montage:
 
-Plotting sensor layouts of EEG Systems
+Plotting sensor layouts of EEG systems
 ======================================
 
 This example illustrates how to load all the EEG system montages

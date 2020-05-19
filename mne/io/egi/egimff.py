@@ -1,7 +1,9 @@
 """EGI NetStation Load Function."""
 
 import datetime
+import math
 import os.path as op
+import re
 import time
 from xml.dom.minidom import parse
 
@@ -13,41 +15,93 @@ from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..utils import _create_chs
+from ..utils import _create_chs, _mult_cal_one
+from ...annotations import Annotations
 from ...utils import verbose, logger, warn
-from ...annotations import _sync_onset
 
 
 def _read_mff_header(filepath):
-    """Read mff header.
-
-    Parameters
-    ----------
-    filepath : str
-        Path to the file.
-    """
+    """Read mff header."""
     all_files = _get_signalfname(filepath)
     eeg_file = all_files['EEG']['signal']
     eeg_info_file = all_files['EEG']['info']
 
+    info_filepath = op.join(filepath, 'info.xml')  # add with filepath
+    tags = ['mffVersion', 'recordTime']
+    version_and_date = _extract(tags, filepath=info_filepath)
+    version = ""
+    if len(version_and_date['mffVersion']):
+        version = version_and_date['mffVersion'][0]
+
     fname = op.join(filepath, eeg_file)
     signal_blocks = _get_blocks(fname)
-    samples_block = np.sum(signal_blocks['samples_block'])
-
-    epoch_info = _get_ep_info(filepath)
+    epochs = _get_ep_info(filepath)
     summaryinfo = dict(eeg_fname=eeg_file,
-                       info_fname=eeg_info_file,
-                       samples_block=samples_block)
+                       info_fname=eeg_info_file)
     summaryinfo.update(signal_blocks)
+    # sanity check and update relevant values
+    record_time = version_and_date['recordTime'][0]
+    # e.g.,
+    # 2018-07-30T10:47:01.021673-04:00
+    # 2017-09-20T09:55:44.072000000+01:00
+    g = re.match(
+        r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.(\d{6}(?:\d{3})?)[+-]\d{2}:\d{2}',  # noqa: E501
+        record_time)
+    if g is None:
+        raise RuntimeError('Could not parse recordTime %r' % (record_time,))
+    frac = g.groups()[0]
+    assert len(frac) in (6, 9) and all(f.isnumeric() for f in frac)  # regex
+    div = 1000 if len(frac) == 6 else 1000000
+    for key in ('last_samps', 'first_samps'):
+        # convert from times in µS to samples
+        for ei, e in enumerate(epochs[key]):
+            if e % div != 0:
+                raise RuntimeError('Could not parse epoch time %s' % (e,))
+            epochs[key][ei] = e // div
+        epochs[key] = np.array(epochs[key], np.uint64)
+        # I guess they refer to times in milliseconds?
+        # What we really need to do here is:
+        # epochs[key] *= signal_blocks['sfreq']
+        # epochs[key] //= 1000
+        # But that multiplication risks an overflow, so let's only multiply
+        # by what we need to (e.g., a sample rate of 500 means we can multiply
+        # by 1 and divide by 2 rather than multiplying by 500 and dividing by
+        # 1000)
+        numerator = signal_blocks['sfreq']
+        denominator = 1000
+        this_gcd = math.gcd(numerator, denominator)
+        numerator = numerator // this_gcd
+        denominator = denominator // this_gcd
+        with np.errstate(over='raise'):
+            epochs[key] *= numerator
+        epochs[key] //= denominator
+        # Should be safe to cast to int now, which makes things later not
+        # upbroadcast to float
+        epochs[key] = epochs[key].astype(np.int64)
+    n_samps_block = signal_blocks['samples_block'].sum()
+    n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
+    bad = (n_samps_epochs != n_samps_block or
+           not (epochs['first_samps'] < epochs['last_samps']).all() or
+           not (epochs['first_samps'][1:] >= epochs['last_samps'][:-1]).all())
+    if bad:
+        raise RuntimeError('EGI epoch first/last samps could not be parsed:\n'
+                           '%s\n%s' % (list(epochs['first_samps']),
+                                       list(epochs['last_samps'])))
+    summaryinfo.update(epochs)
+    # index which samples in raw are actually readable from disk (i.e., not
+    # in a skip)
+    disk_samps = np.full(epochs['last_samps'][-1], -1)
+    offset = 0
+    for first, last in zip(epochs['first_samps'], epochs['last_samps']):
+        n_this = last - first
+        disk_samps[first:last] = np.arange(offset, offset + n_this)
+        offset += n_this
+    summaryinfo['disk_samps'] = disk_samps
 
     # Pull header info from the summary info.
     categfile = op.join(filepath, 'categories.xml')
     if op.isfile(categfile):  # epochtype = 'seg'
-        n_samples = epoch_info[0]['last_samp'] - epoch_info['first_samp']
-        n_trials = len(epoch_info)
-    else:  # 'cnt'
-        n_samples = np.sum(summaryinfo['samples_block'])
-        n_trials = 1
+        raise NotImplementedError('Only continuous files are supported')
 
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, 'sensorLayout.xml')
@@ -68,17 +122,28 @@ def _read_mff_header(filepath):
             chan_unit.append('uV')
             n_chans = n_chans + 1
     if n_chans != summaryinfo['n_channels']:
-        print("Error. Should never occur.")
+        raise RuntimeError('Number of defined channels (%d) did not match the '
+                           'expected channels (%d)'
+                           % (n_chans, summaryinfo['n_channels']))
 
     # Check presence of PNS data
+    pns_names = []
     if 'PNS' in all_files:
         pns_fpath = op.join(filepath, all_files['PNS']['signal'])
         pns_blocks = _get_blocks(pns_fpath)
+        pns_samples = pns_blocks['samples_block']
+        signal_samples = signal_blocks['samples_block']
+        same_blocks = (np.array_equal(pns_samples[:-1],
+                                      signal_samples[:-1]) and
+                       pns_samples[-1] in (signal_samples[-1] - np.arange(2)))
+        if not same_blocks:
+            raise RuntimeError('PNS and signals samples did not match:\n'
+                               '%s\nvs\n%s'
+                               % (list(pns_samples), list(signal_samples)))
 
         pns_file = op.join(filepath, 'pnsSet.xml')
         pns_obj = parse(pns_file)
         sensors = pns_obj.getElementsByTagName('sensor')
-        pns_names = []
         pns_types = []
         pns_units = []
         for sensor in sensors:
@@ -101,21 +166,13 @@ def _read_mff_header(filepath):
             pns_names.append(name)
 
         summaryinfo.update(pns_types=pns_types, pns_units=pns_units,
-                           pns_names=pns_names, n_pns_channels=len(pns_names),
                            pns_fname=all_files['PNS']['signal'],
                            pns_sample_blocks=pns_blocks)
-
-    info_filepath = op.join(filepath, 'info.xml')  # add with filepath
-    tags = ['mffVersion', 'recordTime']
-    version_and_date = _extract(tags, filepath=info_filepath)
-    version = ""
-    if len(version_and_date['mffVersion']):
-        version = version_and_date['mffVersion'][0]
-    summaryinfo.update(version=version,
+    summaryinfo.update(pns_names=pns_names, version=version,
                        date=version_and_date['recordTime'][0],
-                       n_samples=n_samples, n_trials=n_trials,
                        chan_type=chan_type, chan_unit=chan_unit,
                        numbers=numbers)
+
     return summaryinfo
 
 
@@ -175,18 +232,8 @@ def _read_header(input_fname):
         gain=0,
         bits=0,
         value_range=0)
-    unsegmented = 1 if mff_hdr['n_trials'] == 1 else 0
-    if unsegmented:
-        info.update(dict(n_categories=0,
-                         n_segments=1,
-                         n_events=0,
-                         event_codes=[],
-                         category_names=[],
-                         category_lengths=[],
-                         pre_baseline=0))
-    else:
-        raise NotImplementedError('Only continuous files are supported')
-    info['unsegmented'] = unsegmented
+    info.update(n_categories=0, n_segments=1, n_events=0, event_codes=[],
+                category_names=[], category_lengths=[], pre_baseline=0)
     info.update(mff_hdr)
     return info
 
@@ -346,15 +393,17 @@ class RawMff(BaseRaw):
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
             events_ids = np.arange(len(include_)) + 1
-            self._new_trigger = _combine_triggers(egi_events[include_],
-                                                  remapping=events_ids)
+            egi_info['new_trigger'] = _combine_triggers(
+                egi_events[include_], remapping=events_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], events_ids))
-            if self._new_trigger is not None:
-                egi_events = np.vstack([egi_events, self._new_trigger])
+            if egi_info['new_trigger'] is not None:
+                egi_events = np.vstack([egi_events, egi_info['new_trigger']])
+            assert egi_events.shape[1] == egi_info['last_samps'][-1]
         else:
             # No events
             self.event_id = None
+            egi_info['new_trigger'] = None
             event_codes = []
         info = _empty_info(egi_info['sfreq'])
         my_time = datetime.datetime(
@@ -362,19 +411,26 @@ class RawMff(BaseRaw):
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = (my_timestamp, 0)
+
+        # First: EEG
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
+
+        # Second: Stim
         ch_names.extend(list(egi_info['event_codes']))
-        if hasattr(self, '_new_trigger') and self._new_trigger is not None:
+        if egi_info['new_trigger'] is not None:
             ch_names.append('STI 014')  # channel for combined events
-        ch_coil = FIFF.FIFFV_COIL_EEG
-        ch_kind = FIFF.FIFFV_EEG_CH
         cals = np.concatenate(
             [cals, np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog))])
-        if 'pns_names' in egi_info:
-            ch_names.extend(egi_info['pns_names'])
-            cals = np.concatenate(
-                [cals, np.repeat(1, len(egi_info['pns_names']))])
+
+        # Third: PNS
+        ch_names.extend(egi_info['pns_names'])
+        cals = np.concatenate(
+            [cals, np.repeat(1, len(egi_info['pns_names']))])
+
+        # Actually create channels as EEG, then update stim and PNS
+        ch_coil = FIFF.FIFFV_COIL_EEG
+        ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
         chs = _read_locs(input_fname, chs, egi_info)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
@@ -384,45 +440,95 @@ class RawMff(BaseRaw):
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
-        if 'pns_names' in egi_info:
-            for i_ch, ch_name in enumerate(egi_info['pns_names']):
-                idx = ch_names.index(ch_name)
-                ch_type = egi_info['pns_types'][i_ch]
-                ch_kind = FIFF.FIFFV_BIO_CH
-                if ch_type == 'ecg':
-                    ch_kind = FIFF.FIFFV_ECG_CH
-                elif ch_type == 'emg':
-                    ch_kind = FIFF.FIFFV_EMG_CH
-                ch_unit = FIFF.FIFF_UNIT_V
-                ch_cal = 1e-6
-                if egi_info['pns_units'][i_ch] != 'uV':
-                    ch_unit = FIFF.FIFF_UNIT_NONE
-                    ch_cal = 1.0
-
-                chs[idx].update({'cal': ch_cal, 'kind': ch_kind,
-                                 'coil_type': FIFF.FIFFV_COIL_NONE,
-                                 'unit': ch_unit})
+        for i_ch, ch_name in enumerate(egi_info['pns_names']):
+            idx = ch_names.index(ch_name)
+            ch_type = egi_info['pns_types'][i_ch]
+            ch_kind = FIFF.FIFFV_BIO_CH
+            if ch_type == 'ecg':
+                ch_kind = FIFF.FIFFV_ECG_CH
+            elif ch_type == 'emg':
+                ch_kind = FIFF.FIFFV_EMG_CH
+            ch_unit = FIFF.FIFF_UNIT_V
+            ch_cal = 1e-6
+            if egi_info['pns_units'][i_ch] != 'uV':
+                ch_unit = FIFF.FIFF_UNIT_NONE
+                ch_cal = 1.0
+            chs[idx].update(
+                cal=ch_cal, kind=ch_kind, coil_type=FIFF.FIFFV_COIL_NONE,
+                unit=ch_unit)
 
         info['chs'] = chs
         info._update_redundant()
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
-        if 'pns_names' in egi_info:
+        # Check how many channels to read are from EEG
+        keys = ('eeg', 'sti', 'pns')
+        idx = dict()
+        idx['eeg'] = np.where(
+            [ch['kind'] == FIFF.FIFFV_EEG_CH for ch in chs])[0]
+        idx['sti'] = np.where(
+            [ch['kind'] == FIFF.FIFFV_STIM_CH for ch in chs])[0]
+        idx['pns'] = np.where(
+            [ch['kind'] in (FIFF.FIFFV_ECG_CH, FIFF.FIFFV_EMG_CH,
+                            FIFF.FIFFV_BIO_CH) for ch in chs])[0]
+        # By construction this should always be true, but check anyway
+        if not np.array_equal(
+                np.concatenate([idx[key] for key in keys]),
+                np.arange(len(chs))):
+            raise ValueError('Currently interlacing EEG and PNS channels'
+                             'is not supported')
+        egi_info['kind_bounds'] = [0]
+        for key in keys:
+            egi_info['kind_bounds'].append(len(idx[key]))
+        egi_info['kind_bounds'] = np.cumsum(egi_info['kind_bounds'])
+        assert egi_info['kind_bounds'][0] == 0
+        assert egi_info['kind_bounds'][-1] == info['nchan']
+        first_samps = [0]
+        last_samps = [egi_info['last_samps'][-1] - 1]
+
+        annot = dict(onset=list(), duration=list(), description=list())
+        if len(idx['pns']):
+            # PNS Data is present and should be read:
             egi_info['pns_filepath'] = op.join(
                 input_fname, egi_info['pns_fname'])
+            # Check for PNS bug immediately
+            pns_samples = np.sum(
+                egi_info['pns_sample_blocks']['samples_block'])
+            eeg_samples = np.sum(egi_info['samples_block'])
+            if pns_samples == eeg_samples - 1:
+                warn('This file has the EGI PSG sample bug')
+                annot['onset'].append(last_samps[-1] / egi_info['sfreq'])
+                annot['duration'].append(1 / egi_info['sfreq'])
+                annot['description'].append('BAD_EGI_PSG')
+            elif pns_samples != eeg_samples:
+                raise RuntimeError(
+                    'PNS samples (%d) did not match EEG samples (%d)'
+                    % (pns_samples, eeg_samples))
 
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
 
         super(RawMff, self).__init__(
             info, preload=preload, orig_format='float', filenames=[file_bin],
-            last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
-            verbose=verbose)
+            first_samps=first_samps, last_samps=last_samps,
+            raw_extras=[egi_info], verbose=verbose)
+
+        # Annotate acquisition skips
+        for first, prev_last in zip(egi_info['first_samps'][1:],
+                                    egi_info['last_samps'][:-1]):
+            gap = first - prev_last
+            assert gap >= 0
+            if gap:
+                annot['onset'].append((prev_last - 0.5) / egi_info['sfreq'])
+                annot['duration'].append(gap / egi_info['sfreq'])
+                annot['description'].append('BAD_ACQ_SKIP')
+
+        if len(annot['onset']):
+            self.set_annotations(Annotations(**annot, orig_time=None))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
-        from ..utils import _mult_cal_one
         dtype = '<f4'  # Data read in four byte floats.
 
         egi_info = self._raw_extras[fi]
@@ -431,28 +537,32 @@ class RawMff(BaseRaw):
         n_channels = egi_info['n_channels']
         samples_block = egi_info['samples_block']
 
-        # Check how many channels to read are from EEG
+        # Check how many channels to read are from each type
+        bounds = egi_info['kind_bounds']
         if isinstance(idx, slice):
-            chs_to_read = self.info['chs'][idx]
-        else:
-            chs_to_read = [self.info['chs'][x] for x in idx]
-        eeg_chans = [i for i, x in enumerate(chs_to_read) if x['kind'] in
-                     (FIFF.FIFFV_EEG_CH, FIFF.FIFFV_STIM_CH)]
-        pns_chans = [i for i, x in enumerate(chs_to_read) if x['kind'] in
-                     (FIFF.FIFFV_ECG_CH, FIFF.FIFFV_EMG_CH, FIFF.FIFFV_BIO_CH)]
+            idx = np.arange(idx.start, idx.stop)
+        eeg_out = np.where(idx < bounds[1])[0]
+        eeg_in = idx[eeg_out]
+        stim_out = np.where((idx >= bounds[1]) & (idx < bounds[2]))[0]
+        stim_in = idx[stim_out] - bounds[1]
+        pns_out = np.where((idx >= bounds[2]) & (idx < bounds[3]))[0]
+        pns_in = idx[pns_out] - bounds[2]
+        eeg_out = eeg_out[:, np.newaxis]
+        pns_out = pns_out[:, np.newaxis]
 
-        eeg_chans = np.array(eeg_chans)
-        pns_chans = np.array(pns_chans)
+        # take into account events (already extended to correct size)
+        data[stim_out, :] = egi_info['egi_events'][stim_in, start:stop]
+        del stim_out
 
-        if len(pns_chans):
-            if not np.max(eeg_chans) < np.max(pns_chans):
-                raise ValueError('Currently interlacing EEG and PNS channels'
-                                 'is not supported')
-        # Number of channels to be read from EEG
-        n_data1_channels = len(eeg_chans)
-
-        # Number of channels expected in the EEG binary file
-        n_eeg_channels = n_channels
+        # Convert start and stop to limits in terms of the data
+        # actually on disk, plus an indexer (disk_use_idx) that populates
+        # the potentially larger `data` with it, taking skips into account
+        disk_samps = egi_info['disk_samps'][start:stop]
+        disk_use_idx = np.where(disk_samps > -1)[0]
+        if len(disk_use_idx):
+            start = disk_samps[disk_use_idx[0]]
+            stop = disk_samps[disk_use_idx[-1]] + 1
+            assert len(disk_use_idx) == stop - start
 
         # Get starting/stopping block/samples
         block_samples_offset = np.cumsum(samples_block)
@@ -461,28 +571,6 @@ class RawMff(BaseRaw):
                                   if offset_blocks > 0 else 0)
 
         samples_to_read = stop - start
-
-        # Now account for events
-        egi_events = egi_info['egi_events']
-        if len(egi_events) > 0:
-            n_eeg_channels += egi_events.shape[0]
-
-        if len(pns_chans):
-            # Split idx slice into EEG and PNS
-            if isinstance(idx, slice):
-                if idx.start is not None or idx.stop is not None:
-                    eeg_idx = slice(idx.start, n_data1_channels)
-                    pns_idx = slice(0, idx.stop - n_eeg_channels)
-                else:
-                    eeg_idx = idx
-                    pns_idx = idx
-            else:
-                eeg_idx = idx[eeg_chans]
-                pns_idx = idx[pns_chans] - n_eeg_channels
-        else:
-            eeg_idx = idx
-            pns_idx = []
-
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
             current_block = 0
@@ -521,22 +609,13 @@ class RawMff(BaseRaw):
                 s_start = current_data_sample
                 s_end = s_start + samples_read
 
-                # take into account events
-                if len(egi_events) > 0:
-                    e_chs = egi_events[:, start + s_start:start + s_end]
-                    block_data = np.vstack([block_data, e_chs])
-
-                data_view = data[:n_data1_channels, s_start:s_end]
-
-                _mult_cal_one(data_view, block_data, eeg_idx,
-                              cals[:n_data1_channels], mult)
+                data[eeg_out, disk_use_idx[s_start:s_end]] = block_data[eeg_in]
                 samples_to_read = samples_to_read - samples_read
                 current_data_sample = current_data_sample + samples_read
 
-        if 'pns_names' in egi_info and len(pns_chans) > 0:
+        if len(pns_out) > 0:
             # PNS Data is present and should be read:
             pns_filepath = egi_info['pns_filepath']
-            n_pns_channels = egi_info['n_pns_channels']
             pns_info = egi_info['pns_sample_blocks']
             n_channels = pns_info['n_channels']
             samples_block = pns_info['samples_block']
@@ -569,13 +648,7 @@ class RawMff(BaseRaw):
                     if samples_to_read == 1 and fid.tell() == file_size:
                         # We are in the presence of the EEG bug
                         # fill with zeros and break the loop
-                        data[n_data1_channels:, -1] = 0
-                        warn('This file has the EGI PSG sample bug')
-                        an_start = current_data_sample
-                        # XXX : use of _sync_onset should live in annotations
-                        self.annotations.append(
-                            _sync_onset(self, an_start / self.info['sfreq']),
-                            1 / self.info['sfreq'], 'BAD_EGI_PSG')
+                        data[pns_out, -1] = 0
                         break
 
                     this_block_info = _block_r(fid)
@@ -603,10 +676,10 @@ class RawMff(BaseRaw):
                     s_start = current_data_sample
                     s_end = s_start + samples_read
 
-                    data_view = data[n_data1_channels:, s_start:s_end]
-                    _mult_cal_one(data_view, block_data[:n_pns_channels],
-                                  pns_idx,
-                                  cals[n_data1_channels:], mult)
-                    del data_view
+                    data[pns_out, disk_use_idx[s_start:s_end]] = \
+                        block_data[pns_in]
                     samples_to_read = samples_to_read - samples_read
                     current_data_sample = current_data_sample + samples_read
+
+        # do the calibration
+        _mult_cal_one(data, data, slice(None), cals, mult)

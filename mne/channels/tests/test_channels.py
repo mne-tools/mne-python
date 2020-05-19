@@ -106,7 +106,7 @@ def test_set_channel_types():
     pytest.raises(RuntimeError, raw2.set_channel_types, mapping)  # has prj
     raw2.add_proj([], remove_existing=True)
     with pytest.warns(RuntimeWarning, match='The unit for channel'):
-        raw2.set_channel_types(mapping)
+        raw2 = raw2.set_channel_types(mapping)
     info = raw2.info
     assert info['chs'][372]['ch_name'] == 'EEG 058'
     assert info['chs'][372]['kind'] == FIFF.FIFFV_ECOG_CH
@@ -242,7 +242,7 @@ def test_1020_selection():
     loc_fname = op.join(base_dir, 'test_chans.locs')
     raw = read_raw_eeglab(raw_fname, preload=True)
     montage = read_custom_montage(loc_fname)
-    raw.rename_channels(dict(zip(raw.ch_names, montage.ch_names)))
+    raw = raw.rename_channels(dict(zip(raw.ch_names, montage.ch_names)))
     raw.set_montage(montage)
 
     for input in ("a_string", 100, raw, [1, 2]):

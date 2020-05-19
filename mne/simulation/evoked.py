@@ -42,9 +42,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     %(random_state)s
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations when converting to fixed orientation (if necessary).
+    %(use_cps)s
 
         .. versionadded:: 0.15
     %(verbose)s

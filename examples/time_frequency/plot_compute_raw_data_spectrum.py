@@ -97,7 +97,8 @@ raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              show=False, average=True)
 
 ax.set_title('Four left-temporal magnetometers')
-plt.legend(ax.lines[::3], ['Without SSP', 'With SSP', 'SSP + Notch'])
+leg_lines = [line for line in ax.lines if line.get_linestyle() == '-']
+plt.legend(leg_lines, ['Without SSP', 'With SSP', 'SSP + Notch'])
 
 ###############################################################################
 # Alternative functions for PSDs

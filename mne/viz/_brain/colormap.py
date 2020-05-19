@@ -85,8 +85,8 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
 
     Parameters
     ----------
-    lim_cmap : str | LinearSegmentedColormap
-        Color map obtained from MNE._limits_to_control_points.
+    lim_cmap : Colormap
+        Color map obtained from _process_mapdata.
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.

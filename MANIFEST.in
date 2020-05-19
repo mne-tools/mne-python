@@ -30,6 +30,7 @@ recursive-include mne/io/artemis123/resources *
 recursive-include mne mne/datasets *.csv
 include mne/io/edf/gdf_encodes.txt
 include mne/datasets/sleep_physionet/SHA1SUMS
+include mne/externals/tqdm/_tqdm/tqdm.1
 
 ### Exclude
 
@@ -37,6 +38,8 @@ recursive-exclude examples/MNE-sample-data *
 recursive-exclude examples/MNE-testing-data *
 recursive-exclude examples/MNE-spm-face *
 recursive-exclude examples/MNE-somato-data *
+recursive-exclude tools *
+exclude tools
 exclude Makefile
 exclude .coveragerc
 exclude *.yml
@@ -55,6 +58,8 @@ exclude .github/ISSUE_TEMPLATE/blank.md
 exclude .github/ISSUE_TEMPLATE/bug_report.md
 exclude .github/ISSUE_TEMPLATE/feature_request.md
 exclude .github/PULL_REQUEST_TEMPLATE.md
+
+prune mne/icons
 
 # Test files
 

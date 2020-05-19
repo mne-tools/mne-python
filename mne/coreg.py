@@ -27,7 +27,8 @@ from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
-                         combine_transforms, apply_trans)
+                         combine_transforms, apply_trans, _quat_to_euler,
+                         _fit_matched_points)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
@@ -289,6 +290,9 @@ def _trans_from_params(param_info, params):
     return trans
 
 
+_ALLOW_ANALITICAL = True
+
+
 # XXX this function should be moved out of coreg as used elsewhere
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
                        scale=False, tol=None, x0=None, out='trans',
@@ -334,28 +338,59 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         A single tuple containing the rotation, translation, and scaling
         parameters in that order (as applicable).
     """
-    # XXX eventually this should be refactored with the cHPI fitting code,
-    # which use fmin_cobyla with constraints
-    from scipy.optimize import leastsq
     src_pts = np.atleast_2d(src_pts)
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError("src_pts and tgt_pts must have same shape (got "
                          "{}, {})".format(src_pts.shape, tgt_pts.shape))
     if weights is not None:
-        weights = np.array(weights, float)
+        weights = np.asarray(weights, src_pts.dtype)
         if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
             raise ValueError("weights (shape=%s) must be None or have shape "
                              "(%s,)" % (weights.shape, src_pts.shape[0],))
         weights = weights[:, np.newaxis]
 
-    rotate = bool(rotate)
-    translate = bool(translate)
-    scale = int(scale)
-    if translate:
+    param_info = (bool(rotate), bool(translate), int(scale))
+    del rotate, translate, scale
+
+    # very common use case, rigid transformation (maybe with one scale factor,
+    # with or without weighted errors)
+    if param_info in ((True, True, 0), (True, True, 1)) and _ALLOW_ANALITICAL:
+        src_pts = np.asarray(src_pts, float)
+        tgt_pts = np.asarray(tgt_pts, float)
+        x, s = _fit_matched_points(
+            src_pts, tgt_pts, weights, bool(param_info[2]))
+        x[:3] = _quat_to_euler(x[:3])
+        x = np.concatenate((x, [s])) if param_info[2] else x
+    else:
+        x = _generic_fit(src_pts, tgt_pts, param_info, weights, x0)
+
+    # re-create the final transformation matrix
+    if (tol is not None) or (out == 'trans'):
+        trans = _trans_from_params(param_info, x)
+
+    # assess the error of the solution
+    if tol is not None:
+        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
+        est_pts = np.dot(src_pts, trans.T)[:, :3]
+        err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
+        if np.any(err > tol):
+            raise RuntimeError("Error exceeds tolerance. Error = %r" % err)
+
+    if out == 'params':
+        return x
+    elif out == 'trans':
+        return trans
+    else:
+        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
+                         "'trans'." % out)
+
+
+def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
+    from scipy.optimize import leastsq
+    if param_info[1]:  # translate
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 
-    param_info = (rotate, translate, scale)
     if param_info == (True, False, 0):
         def error(x):
             rx, ry, rz = x
@@ -410,27 +445,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
             "rotate=%r, translate=%r, scale=%r" % param_info)
 
     x, _, _, _, _ = leastsq(error, x0, full_output=True)
-
-    # re-create the final transformation matrix
-    if (tol is not None) or (out == 'trans'):
-        trans = _trans_from_params(param_info, x)
-
-    # assess the error of the solution
-    if tol is not None:
-        if not translate:
-            src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-        est_pts = np.dot(src_pts, trans.T)[:, :3]
-        err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
-        if np.any(err > tol):
-            raise RuntimeError("Error exceeds tolerance. Error = %r" % err)
-
-    if out == 'params':
-        return x
-    elif out == 'trans':
-        return trans
-    else:
-        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
-                         "'trans'." % out)
+    return x
 
 
 def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):

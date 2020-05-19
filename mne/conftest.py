@@ -3,6 +3,8 @@
 #
 # License: BSD (3-clause)
 
+from distutils.version import LooseVersion
+import gc
 import os
 import os.path as op
 import shutil
@@ -25,14 +27,20 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
-from mne.fixes import _fn35
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+bem_path = op.join(test_path, 'subjects', 'sample', 'bem')
+fname_bem = op.join(bem_path, 'sample-1280-bem.fif')
+fname_aseg = op.join(test_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 subjects_dir = op.join(test_path, 'subjects')
+fname_src = op.join(bem_path, 'sample-oct-4-src.fif')
+subjects_dir = op.join(test_path, 'subjects')
+fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
+fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 
 
 def pytest_configure(config):
@@ -42,7 +50,7 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'fix_pytest_tmpdir_35'):
+    for fixture in ('matplotlib_config',):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -77,6 +85,13 @@ def pytest_configure(config):
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
     ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
+    ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
+    ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
+    ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
+    ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
+    ignore:.*sphinx\.util\.smartypants is deprecated.*:
+    ignore:.*pandas\.util\.testing is deprecated.*:
+    ignore:.*tostring.*is deprecated.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -85,10 +100,27 @@ def pytest_configure(config):
             config.addinivalue_line('filterwarnings', warning_line)
 
 
+# Have to be careful with autouse=True, but this is just an int comparison
+# so it shouldn't really add appreciable overhead
+@pytest.fixture(autouse=True)
+def check_verbose(request):
+    """Set to the default logging level to ensure it's tested properly."""
+    starting_level = mne.utils.logger.level
+    yield
+    # ensures that no tests break the global state
+    try:
+        assert mne.utils.logger.level == starting_level
+    except AssertionError:
+        pytest.fail('.'.join([request.module.__name__,
+                              request.function.__name__]) +
+                    ' modifies logger.level')
+
+
 @pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
+    from matplotlib import cbook
     # "force" should not really be necessary but should not hurt
     kwargs = dict()
     with warnings.catch_warnings(record=True):  # ignore warning
@@ -107,38 +139,44 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
-    from mne.viz.backends.renderer import _enable_3d_backend_testing
-    _enable_3d_backend_testing()
+
+    # Make sure that we always reraise exceptions in handlers
+    orig = cbook.CallbackRegistry
+
+    class CallbackRegistryReraise(orig):
+        def __init__(self, exception_handler=None):
+            args = ()
+            if LooseVersion(matplotlib.__version__) >= LooseVersion('2.1'):
+                args += (exception_handler,)
+            super(CallbackRegistryReraise, self).__init__(*args)
+
+    cbook.CallbackRegistry = CallbackRegistryReraise
 
 
-def _replace(mod, key):
-    orig = getattr(mod, key)
-
-    def func(x, *args, **kwargs):
-        return orig(_fn35(x), *args, **kwargs)
-
-    setattr(mod, key, func)
-
-
-@pytest.fixture(scope='session')
-def fix_pytest_tmpdir_35():
-    """Deal with tmpdir being a LocalPath, which bombs on 3.5."""
-    if sys.version_info >= (3, 6):
-        return
-
-    for key in ('stat', 'mkdir', 'makedirs'):
-        _replace(os, key)
-    for key in ('split', 'splitext', 'realpath', 'join'):
-        _replace(op, key)
+@pytest.fixture()
+def check_gui_ci():
+    """Skip tests that are not reliable on CIs."""
+    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
+           sys.platform == 'darwin')
+    win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
+    if win or osx:
+        pytest.skip('Skipping GUI tests on Travis OSX and Azure Windows')
 
 
-@pytest.fixture(scope='function', params=[testing._pytest_param()])
-def evoked():
-    """Get evoked data."""
+@pytest.fixture(scope='session', params=[testing._pytest_param()])
+def _evoked():
+    # This one is session scoped, so be sure not to modify it (use evoked
+    # instead)
     evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
                               baseline=(None, 0))
     evoked.crop(0, 0.2)
     return evoked
+
+
+@pytest.fixture()
+def evoked(_evoked):
+    """Get evoked data."""
+    return _evoked.copy()
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
@@ -191,20 +229,51 @@ def backend_name(request):
 
 
 @pytest.yield_fixture
-def renderer(backend_name):
+def renderer(backend_name, garbage_collect):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
-    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
-    if backend_name == 'mayavi':
-        if not has_mayavi():
-            pytest.skip("Test skipped, requires mayavi.")
-    elif backend_name == 'pyvista':
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
+    _check_skip_backend(backend_name)
     with _use_test_3d_backend(backend_name):
         from mne.viz.backends import renderer
         yield renderer
-        renderer._close_all()
+        renderer.backend._close_all()
+
+
+@pytest.yield_fixture
+def garbage_collect():
+    """Garbage collect on exit."""
+    yield
+    gc.collect()
+
+
+@pytest.fixture(scope="module", params=[
+    "pyvista",
+    "mayavi",
+])
+def backend_name_interactive(request):
+    """Get the backend name."""
+    yield request.param
+
+
+@pytest.yield_fixture
+def renderer_interactive(backend_name_interactive):
+    """Yield the 3D backends."""
+    from mne.viz.backends.renderer import _use_test_3d_backend
+    _check_skip_backend(backend_name_interactive)
+    with _use_test_3d_backend(backend_name_interactive, interactive=True):
+        from mne.viz.backends import renderer
+        yield renderer
+        renderer.backend._close_all()
+
+
+def _check_skip_backend(name):
+    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
+    if name == 'mayavi':
+        if not has_mayavi():
+            pytest.skip("Test skipped, requires mayavi.")
+    elif name == 'pyvista':
+        if not has_pyvista():
+            pytest.skip("Test skipped, requires pyvista.")
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
@@ -213,3 +282,110 @@ def subjects_dir_tmp(tmpdir):
     for key in ('sample', 'fsaverage'):
         shutil.copytree(op.join(subjects_dir, key), str(tmpdir.join(key)))
     return str(tmpdir)
+
+
+# Scoping these as session will make things faster, but need to make sure
+# not to modify them in-place in the tests, so keep them private
+@pytest.fixture(scope='session', params=[testing._pytest_param()])
+def _evoked_cov_sphere(_evoked):
+    """Compute a small evoked/cov/sphere combo for use with forwards."""
+    evoked = _evoked.copy().pick_types()
+    evoked.pick_channels(evoked.ch_names[::4])
+    assert len(evoked.ch_names) == 77
+    cov = mne.read_cov(fname_cov)
+    sphere = mne.make_sphere_model('auto', 'auto', evoked.info)
+    return evoked, cov, sphere
+
+
+@pytest.fixture(scope='session')
+def _fwd_surf(_evoked_cov_sphere):
+    """Compute a forward for a surface source space."""
+    evoked, cov, sphere = _evoked_cov_sphere
+    src_surf = mne.read_source_spaces(fname_src)
+    return mne.make_forward_solution(
+        evoked.info, fname_trans, src_surf, sphere, mindist=5.0)
+
+
+@pytest.fixture(scope='session')
+def _fwd_subvolume(_evoked_cov_sphere):
+    """Compute a forward for a surface source space."""
+    evoked, cov, sphere = _evoked_cov_sphere
+    volume_labels = ['Left-Cerebellum-Cortex', 'right-Cerebellum-Cortex']
+    with pytest.raises(ValueError,
+                       match=r"Did you mean one of \['Right-Cere"):
+        mne.setup_volume_source_space(
+            'sample', pos=20., volume_label=volume_labels,
+            subjects_dir=subjects_dir)
+    volume_labels[1] = 'R' + volume_labels[1][1:]
+    src_vol = mne.setup_volume_source_space(
+        'sample', pos=20., volume_label=volume_labels,
+        subjects_dir=subjects_dir, add_interpolator=False)
+    return mne.make_forward_solution(
+        evoked.info, fname_trans, src_vol, sphere, mindist=5.0)
+
+
+@pytest.fixture(scope='session')
+def _all_src_types_fwd(_fwd_surf, _fwd_subvolume):
+    """Create all three forward types (surf, vol, mixed)."""
+    fwds = dict(surface=_fwd_surf, volume=_fwd_subvolume)
+    with pytest.raises(RuntimeError,
+                       match='Invalid source space with kinds'):
+        fwds['volume']['src'] + fwds['surface']['src']
+
+    # mixed (4)
+    fwd = fwds['surface'].copy()
+    f2 = fwds['volume']
+    for keys, axis in [(('source_rr',), 0),
+                       (('source_nn',), 0),
+                       (('sol', 'data'), 1),
+                       (('_orig_sol',), 1)]:
+        a, b = fwd, f2
+        key = keys[0]
+        if len(keys) > 1:
+            a, b = a[key], b[key]
+            key = keys[1]
+        a[key] = np.concatenate([a[key], b[key]], axis=axis)
+    fwd['sol']['ncol'] = fwd['sol']['data'].shape[1]
+    fwd['src'] = fwd['src'] + f2['src']
+    fwds['mixed'] = fwd
+
+    return fwds
+
+
+@pytest.fixture(scope='session')
+def _all_src_types_inv_evoked(_evoked_cov_sphere, _all_src_types_fwd):
+    """Compute inverses for all source types."""
+    evoked, cov, _ = _evoked_cov_sphere
+    invs = dict()
+    for kind, fwd in _all_src_types_fwd.items():
+        assert fwd['src'].kind == kind
+        with pytest.warns(RuntimeWarning, match='has magnitude'):
+            invs[kind] = mne.minimum_norm.make_inverse_operator(
+                evoked.info, fwd, cov)
+    return invs, evoked
+
+
+@pytest.fixture(scope='function')
+def all_src_types_inv_evoked(_all_src_types_inv_evoked):
+    """All source types of inverses, allowing for possible modification."""
+    invs, evoked = _all_src_types_inv_evoked
+    invs = {key: val.copy() for key, val in invs.items()}
+    evoked = evoked.copy()
+    return invs, evoked
+
+
+@pytest.fixture(scope='session')
+@pytest.mark.slowtest
+@pytest.mark.parametrize(params=[testing._pytest_param()])
+def src_volume_labels():
+    """Create a 7mm source space with labels."""
+    volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
+    src = mne.setup_volume_source_space(
+        'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
+        add_interpolator=False, bem=fname_bem,
+        subjects_dir=subjects_dir)
+    lut, _ = mne.read_freesurfer_lut()
+    assert len(volume_labels) == 46
+    assert volume_labels[0] == 'Unknown'
+    assert lut['Unknown'] == 0  # it will be excluded during label gen
+    return src, tuple(volume_labels), lut

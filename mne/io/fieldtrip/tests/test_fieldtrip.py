@@ -41,7 +41,8 @@ no_info_warning = {'expected_warning': RuntimeWarning,
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*parse meas date.*:RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*number of bytes.*:RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
 def test_read_evoked(cur_system, version, use_info):
@@ -75,7 +76,8 @@ def test_read_evoked(cur_system, version, use_info):
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*parse meas date.*:RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*number of bytes.*:RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
 # Strange, non-deterministic Pandas errors:
@@ -128,7 +130,8 @@ def test_read_epochs(cur_system, version, use_info):
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*parse meas date.*:RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*number of bytes.*:RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info', all_test_params_raw)
 def test_raw(cur_system, version, use_info):
     """Test comparing reading a raw fiff file and the FieldTrip version."""
@@ -228,3 +231,42 @@ def test_one_channel_elec_bug(version):
 
     with pytest.warns(**no_info_warning):
         mne.io.read_raw_fieldtrip(fname, info=None)
+
+
+@testing.requires_testing_data
+# Reading the sample CNT data results in a RuntimeWarning because it cannot
+# parse the measurement date. We need to ignore that warning.
+@pytest.mark.filterwarnings('ignore:.*parse meas date.*:RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*number of bytes.*:RuntimeWarning')
+@pytest.mark.parametrize('version', all_versions)
+@pytest.mark.parametrize('type', ['averaged', 'epoched', 'raw'])
+@requires_h5py
+def test_throw_exception_on_cellarray(version, type):
+    """Test for a meaningful exception when the data is a cell array."""
+    fname = os.path.join(get_data_paths('cellarray'),
+                         '%s_%s.mat' % (type, version))
+
+    info = get_raw_info('CNT')
+
+    with pytest.raises(RuntimeError, match='Loading of data in cell arrays '
+                                           'is not supported'):
+        if type == 'averaged':
+            mne.read_evoked_fieldtrip(fname, info)
+        elif type == 'epoched':
+            mne.read_epochs_fieldtrip(fname, info)
+        elif type == 'raw':
+            mne.io.read_raw_fieldtrip(fname, info)
+
+
+@testing.requires_testing_data
+def test_evoked_with_missing_channels():
+    """Test _create_info on evoked data when channels are missing from info."""
+    cur_system = 'neuromag306'
+    test_data_folder_ft = get_data_paths(cur_system)
+    info = get_raw_info(cur_system)
+    del info['chs'][1:20]
+    info._update_redundant()
+
+    with pytest.warns(RuntimeWarning):
+        mne.read_evoked_fieldtrip(
+            os.path.join(test_data_folder_ft, 'averaged_v7.mat'), info)

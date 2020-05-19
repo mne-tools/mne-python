@@ -12,7 +12,7 @@ from numpy.testing import (assert_equal, assert_array_almost_equal,
 
 import mne
 from mne.datasets import testing
-from mne.minimum_norm.resolution_matrix import (make_resolution_matrix,
+from mne.minimum_norm.resolution_matrix import (make_inverse_resolution_matrix,
                                                 get_cross_talk,
                                                 get_point_spread)
 
@@ -46,7 +46,7 @@ fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 
 @testing.requires_testing_data
 def test_resolution_matrix():
-    """Test make_resolution_matrix() function."""
+    """Test make_inverse_resolution_matrix() function."""
     # read forward solution
     forward = mne.read_forward_solution(fname_fwd)
 
@@ -77,22 +77,24 @@ def test_resolution_matrix():
     # resolution matrices for free source orientation
 
     # compute resolution matrix for MNE with free source orientations
-    rm_mne_free = make_resolution_matrix(forward, inverse_operator,
-                                         method='MNE', lambda2=lambda2)
+    rm_mne_free = make_inverse_resolution_matrix(forward, inverse_operator,
+                                                 method='MNE', lambda2=lambda2)
 
     # compute resolution matrix for MNE, fwd fixed and inv free
-    rm_mne_fxdfree = make_resolution_matrix(forward_fxd, inverse_operator,
-                                            method='MNE', lambda2=lambda2)
+    rm_mne_fxdfree = make_inverse_resolution_matrix(forward_fxd,
+                                                    inverse_operator,
+                                                    method='MNE',
+                                                    lambda2=lambda2)
 
     # resolution matrices for fixed source orientation
 
     # compute resolution matrix for MNE
-    rm_mne = make_resolution_matrix(forward_fxd, inverse_operator_fxd,
-                                    method='MNE', lambda2=lambda2)
+    rm_mne = make_inverse_resolution_matrix(forward_fxd, inverse_operator_fxd,
+                                            method='MNE', lambda2=lambda2)
 
     # compute resolution matrix for sLORETA
-    rm_lor = make_resolution_matrix(forward_fxd, inverse_operator_fxd,
-                                    method='sLORETA', lambda2=lambda2)
+    rm_lor = make_inverse_resolution_matrix(forward_fxd, inverse_operator_fxd,
+                                            method='sLORETA', lambda2=lambda2)
 
     # rectify resolution matrix for sLORETA before determining maxima
     rm_lor_abs = np.abs(rm_lor)

@@ -25,7 +25,7 @@ from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
 from ..utils import logger, verbose, warn, _pl
 from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
-                            _make_discrete_source_space, SourceSpaces)
+                            _make_discrete_source_space, _complete_vol_src)
 from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
@@ -676,8 +676,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     # NB information about dipole orientation enters here, then no more
     sources = dict(rr=pos, nn=ori)
     # Dipole objects must be in the head frame
-    sp = _make_discrete_source_space(sources, coord_frame='head')
-    src = SourceSpaces([sp])  # dict with working_dir, command_line not nec
+    src = _complete_vol_src(
+        [_make_discrete_source_space(sources, coord_frame='head')])
 
     # Forward operator created for channels in info (use pick_info to restrict)
     # Use defaults for most params, including min_dist
@@ -728,14 +728,14 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
         row += len(amp)
 
     if tstep > 0:
-        stc = VolSourceEstimate(data, vertices=fwd['src'][0]['vertno'],
+        stc = VolSourceEstimate(data, vertices=[fwd['src'][0]['vertno']],
                                 tmin=timepoints[0],
                                 tstep=tstep, subject=None)
     else:  # Must return a list of stc, one for each time point
         stc = []
         for col, tp in enumerate(timepoints):
             stc += [VolSourceEstimate(data[:, col][:, np.newaxis],
-                                      vertices=fwd['src'][0]['vertno'],
+                                      vertices=[fwd['src'][0]['vertno']],
                                       tmin=tp, tstep=0.001, subject=None)]
     return fwd, stc
 

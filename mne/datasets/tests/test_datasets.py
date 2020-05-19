@@ -6,14 +6,14 @@ import sys
 
 import pytest
 
-from mne import datasets
+from mne import datasets, read_labels_from_annot, write_labels_to_annot
 from mne.datasets import testing
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets.utils import _manifest_check_download
 
 from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
-                       catch_logging)
+                       catch_logging, hashfunc)
 
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
@@ -89,6 +89,18 @@ def test_fetch_parcellations(tmpdir):
     for hemi in ('lh', 'rh'):
         assert op.isfile(op.join(this_subjects_dir, 'fsaverage', 'label',
                                  '%s.aparc_sub.annot' % hemi))
+    # test our annot round-trips here
+    kwargs = dict(subject='fsaverage', hemi='both', sort=False,
+                  subjects_dir=this_subjects_dir)
+    labels = read_labels_from_annot(parc='HCPMMP1', **kwargs)
+    write_labels_to_annot(
+        labels, parc='HCPMMP1_round',
+        table_name='./left.fsaverage164.label.gii', **kwargs)
+    orig = op.join(this_subjects_dir, 'fsaverage', 'label', 'lh.HCPMMP1.annot')
+    first = hashfunc(orig)
+    new = orig[:-6] + '_round.annot'
+    second = hashfunc(new)
+    assert first == second
 
 
 _zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']

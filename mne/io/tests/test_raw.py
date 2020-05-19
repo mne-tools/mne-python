@@ -7,6 +7,7 @@
 
 from os import path as op
 import math
+import re
 
 import pytest
 import numpy as np
@@ -71,6 +72,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         del kwargs['montage']
     if test_preloading:
         raw = reader(preload=True, **kwargs)
+        rep = repr(raw)
+        assert rep.count('<') == 1
+        assert rep.count('>') == 1
         if montage is not None:
             raw.set_montage(montage)
         # don't assume the first is preloaded
@@ -99,6 +103,12 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info['dig'], (type(None), list))
+    data_max = full_data.max()
+    data_min = full_data.min()
+    # these limits could be relaxed if we actually find data with
+    # huge values (in SI units)
+    assert data_max < 1e5
+    assert data_min > -1e5
     if isinstance(raw.info['dig'], list):
         for di, d in enumerate(raw.info['dig']):
             assert isinstance(d, DigPoint), (di, d)
@@ -161,6 +171,35 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         assert isinstance(raw._orig_units, dict)
         for ch_name, unit in raw._orig_units.items():
             assert unit.lower() in valid_units_lower, ch_name
+
+    # Test picking with and without preload
+    if test_preloading:
+        preload_kwargs = (dict(preload=True), dict(preload=False))
+    else:
+        preload_kwargs = (dict(),)
+    n_ch = len(raw.ch_names)
+    picks = rng.permutation(n_ch)
+    for preload_kwarg in preload_kwargs:
+        these_kwargs = kwargs.copy()
+        these_kwargs.update(preload_kwarg)
+        # don't use the same filename or it could create problems
+        if isinstance(these_kwargs.get('preload', None), str) and \
+                op.isfile(these_kwargs['preload']):
+            these_kwargs['preload'] += '-1'
+        whole_raw = reader(**these_kwargs)
+        print(whole_raw)  # __repr__
+        assert n_ch >= 2
+        picks_1 = picks[:n_ch // 2]
+        picks_2 = picks[n_ch // 2:]
+        raw_1 = whole_raw.copy().pick(picks_1)
+        raw_2 = whole_raw.copy().pick(picks_2)
+        data, times = whole_raw[:]
+        data_1, times_1 = raw_1[:]
+        data_2, times_2 = raw_2[:]
+        assert_array_equal(times, times_1)
+        assert_array_equal(data[picks_1], data_1)
+        assert_array_equal(times, times_2,)
+        assert_array_equal(data[picks_2], data_2)
 
     return raw
 
@@ -327,3 +366,12 @@ def test_5839():
     assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
     assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
     assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))
+
+
+def test_repr():
+    """Test repr of Raw."""
+    sfreq = 256
+    info = create_info(3, sfreq)
+    r = repr(RawArray(np.zeros((3, 10 * sfreq)), info))
+    assert re.search('<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>',
+                     r) is not None, r

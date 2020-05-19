@@ -22,7 +22,7 @@ scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        and sys.modules[x] is not None)
 bad = scipy_submodules - ok_scipy_submodules
 if len(bad) > 0:
-    out.append('scipy submodules: %s' % list(bad))
+    out |= {'scipy submodules: %s' % list(bad)}
 
 # check sklearn and others
 _sklearn = _pandas = _mayavi = _matplotlib = False

@@ -18,6 +18,7 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
 from mne.time_frequency import csd_morlet
 from mne.utils import run_tests_if_main, object_diff, requires_h5py
 from mne.proj import compute_proj_evoked, make_projector
+from mne.surface import _compute_nearest
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -29,8 +30,6 @@ fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
 
 subjects_dir = op.join(data_path, 'subjects')
-fname_label = op.join(subjects_dir, 'sample', 'label', 'aparc',
-                      'rostralmiddlefrontal-lh.label')
 
 
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
@@ -44,14 +43,12 @@ def _load_forward():
     fwd_fixed = mne.convert_forward_solution(fwd_free, force_fixed=True,
                                              use_cps=False)
     fwd_vol = mne.read_forward_solution(fname_fwd_vol)
-    label = mne.read_label(fname_label)
-
-    return fwd_free, fwd_surf, fwd_fixed, fwd_vol, label
+    return fwd_free, fwd_surf, fwd_fixed, fwd_vol
 
 
-def _simulate_data(fwd):
+def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     """Simulate an oscillator on the cortex."""
-    source_vertno = 146374  # Somewhere on the frontal lobe
+    source_vertno = fwd['src'][0]['vertno'][idx]
 
     sfreq = 50.  # Hz.
     times = np.arange(10 * sfreq) / sfreq  # 10 seconds of data
@@ -93,7 +90,16 @@ def _simulate_data(fwd):
     # Compute the cross-spectral density matrix
     csd = csd_morlet(epochs, frequencies=[10, 20], n_cycles=[5, 10], decim=10)
 
-    return epochs, evoked, csd, source_vertno
+    labels = mne.read_labels_from_annot(
+        'sample', hemi='lh', subjects_dir=subjects_dir)
+    label = [
+        label for label in labels if np.in1d(source_vertno, label.vertices)[0]]
+    assert len(label) == 1
+    label = label[0]
+    vertices = np.intersect1d(label.vertices, fwd['src'][0]['vertno'])
+    source_ind = vertices.tolist().index(source_vertno)
+    assert vertices[source_ind] == source_vertno
+    return epochs, evoked, csd, source_vertno, label, vertices, source_ind
 
 
 def _test_weight_norm(filters, norm=1):
@@ -101,19 +107,29 @@ def _test_weight_norm(filters, norm=1):
     for ws in filters['weights']:
         ws = ws.reshape(-1, filters['n_orient'], ws.shape[1])
         for w in ws:
-            assert_allclose(np.trace(w.dot(w.T)), norm)
+            assert_allclose(np.trace(w.dot(w.conjugate().T)), norm)
+
+
+idx_param = pytest.mark.parametrize('idx, mat_tol, vol_tol', [
+    (0, 0.055, 0.),
+    (100, 0.020, 0.007),
+    (200, 0., 0.015),
+    (233, 0.035, 0.),
+])
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
-def test_make_dics(tmpdir, _load_forward):
+@idx_param
+def test_make_dics(tmpdir, _load_forward, idx, mat_tol, vol_tol):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
 
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
-    epochs, _, csd, _ = _simulate_data(fwd_fixed)
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
+    epochs, _, csd, _, label, vertices, source_ind = \
+        _simulate_data(fwd_fixed, idx)
     with pytest.raises(RuntimeError, match='several sensor types'):
         make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     epochs.pick_types(meg='grad')
@@ -141,11 +157,9 @@ def test_make_dics(tmpdir, _load_forward):
         make_dics(epochs.info, fwd_vol, csd, pick_ori="normal")
 
     # Test invalid combinations of parameters
-    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
-        make_dics(epochs.info, fwd_free, csd, reduce_rank=True, pick_ori=None)
-    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
-        make_dics(epochs.info, fwd_free, csd, reduce_rank=True,
-                  pick_ori='max-power', inversion='single')
+    with pytest.raises(ValueError, match='reduce_rank cannot be used with'):
+        make_dics(epochs.info, fwd_free, csd, inversion='single',
+                  reduce_rank=True)
     with pytest.raises(ValueError, match='not stable with depth'):
         make_dics(epochs.info, fwd_free, csd, weight_norm='unit-noise-gain',
                   inversion='single', normalize_fwd=True)
@@ -175,7 +189,7 @@ def test_make_dics(tmpdir, _load_forward):
     assert filters['weight_norm'] == 'unit-noise-gain'
     assert 'DICS' in repr(filters)
     assert 'subject "sample"' in repr(filters)
-    assert '13' in repr(filters)
+    assert str(len(vertices)) in repr(filters)
     assert str(n_channels) in repr(filters)
     assert 'rank' not in repr(filters)
     _test_weight_norm(filters)
@@ -215,13 +229,14 @@ def test_make_dics(tmpdir, _load_forward):
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
                         weight_norm=None, normalize_fwd=True)
     w = filters['weights'][0][:3]
-    assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
+    assert_allclose(np.diag(w.dot(w.conjugate().T)), 1.0, rtol=1e-6, atol=0)
 
     # Test turning off both forward and weight normalization
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         weight_norm=None, normalize_fwd=False)
     w = filters['weights'][0][:3]
-    assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
+    assert not np.allclose(np.diag(w.dot(w.conjugate().T)), 1.0,
+                           rtol=1e-2, atol=0)
 
     # Test neural-activity-index weight normalization. It should be a scaled
     # version of the unit-noise-gain beamformer.
@@ -233,8 +248,8 @@ def test_make_dics(tmpdir, _load_forward):
         epochs.info, fwd_surf, csd, label=label, pick_ori='max-power',
         weight_norm='unit-noise-gain', normalize_fwd=False)
     w_ung = filters_ung['weights'][0]
-    assert np.allclose(np.corrcoef(np.abs(w_nai).ravel(),
-                                   np.abs(w_ung).ravel()), 1)
+    assert_allclose(np.corrcoef(np.abs(w_nai).ravel(),
+                                np.abs(w_ung).ravel()), 1, atol=1e-7)
 
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
@@ -249,12 +264,19 @@ def test_make_dics(tmpdir, _load_forward):
     assert object_diff(filters, filters_read) == ''
 
 
-def test_apply_dics_csd(_load_forward):
+def _fwd_dist(power, fwd, vertices, source_ind, tidx=1):
+    idx = np.argmax(power.data[:, tidx])
+    rr_got = fwd['src'][0]['rr'][vertices[idx]]
+    rr_want = fwd['src'][0]['rr'][vertices[source_ind]]
+    return np.linalg.norm(rr_got - rr_want)
+
+
+@idx_param
+def test_apply_dics_csd(_load_forward, idx, mat_tol, vol_tol):
     """Test applying a DICS beamformer to a CSD matrix."""
-    fwd_free, fwd_surf, fwd_fixed, _, label = _load_forward
-    epochs, _, csd, source_vertno = _simulate_data(fwd_fixed)
-    vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
-    source_ind = vertices.tolist().index(source_vertno)
+    fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
+    epochs, _, csd, source_vertno, label, vertices, source_ind = \
+        _simulate_data(fwd_fixed, idx)
     reg = 1  # Lots of regularization for our toy dataset
 
     with pytest.raises(RuntimeError, match='several sensor types'):
@@ -263,8 +285,6 @@ def test_apply_dics_csd(_load_forward):
 
     # Try different types of forward models
     assert label.hemi == 'lh'
-    assert vertices[source_ind] == source_vertno
-    rr_want = fwd_free['src'][0]['rr'][source_vertno]
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
         filters = make_dics(epochs.info, fwd, csd, label=label, reg=reg,
                             inversion='single')
@@ -272,9 +292,7 @@ def test_apply_dics_csd(_load_forward):
         assert f == [10, 20]
 
         # Did we find the true source at 20 Hz?
-        idx = np.argmax(power.data[:, 1])
-        rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
-        dist = np.linalg.norm(rr_got - rr_want)
+        dist = _fwd_dist(power, fwd_free, vertices, source_ind)
         assert dist == 0.
 
         # Is the signal stronger at 20 Hz than 10?
@@ -283,14 +301,14 @@ def test_apply_dics_csd(_load_forward):
 
 @pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
 @pytest.mark.parametrize('inversion', ['single', 'matrix'])
-def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion):
-    """Testpicking different orientations and inversion modes."""
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
-    epochs, _, csd, source_vertno = _simulate_data(fwd_fixed)
+@idx_param
+def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
+                            mat_tol, vol_tol):
+    """Test picking different orientations and inversion modes."""
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
+    epochs, _, csd, source_vertno, label, vertices, source_ind = \
+        _simulate_data(fwd_fixed, idx)
     epochs.pick_types('grad')
-    vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
-    source_ind = vertices.tolist().index(source_vertno)
-    rr_want = fwd_free['src'][0]['rr'][source_vertno]
 
     reg_ = 5 if inversion == 'matrix' else 1
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
@@ -299,9 +317,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion):
                         weight_norm='unit-noise-gain')
     power, f = apply_dics_csd(csd, filters)
     assert f == [10, 20]
-    idx = np.argmax(power.data[:, 1])
-    rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
-    dist = np.linalg.norm(rr_got - rr_want)
+    dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
     assert dist <= (0.03 if inversion == 'matrix' else 0.)
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
@@ -310,7 +326,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion):
     inds = np.triu_indices(csd.n_channels)
     csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_power, f = apply_dics_csd(csd_noise, filters)
-    assert np.allclose(noise_power.data, 1)
+    assert_allclose(noise_power.data, 1., atol=1e-7)
 
     # Test filter with forward normalization instead of weight
     # normalization
@@ -320,20 +336,24 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion):
                         normalize_fwd=True)
     power, f = apply_dics_csd(csd, filters)
     assert f == [10, 20]
-    idx = np.argmax(power.data[:, 1])
-    rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
-    dist = np.linalg.norm(rr_got - rr_want)
-    assert dist <= (0.035 if inversion == 'matrix' else 0.)
+    dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
+    max_ = (mat_tol if inversion == 'matrix' else 0.)
+    assert 0 <= dist <= max_
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
-def test_real(_load_forward):
+def _nearest_vol_ind(fwd_vol, fwd, vertices, source_ind):
+    return _compute_nearest(
+        fwd_vol['source_rr'],
+        fwd['src'][0]['rr'][vertices][source_ind][np.newaxis])[0]
+
+
+@idx_param
+def test_real(_load_forward, idx, mat_tol, vol_tol):
     """Test using a real-valued filter."""
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
-    epochs, _, csd, source_vertno = _simulate_data(fwd_fixed)
-    vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
-    source_ind = vertices.tolist().index(source_vertno)
-    rr_want = fwd_free['src'][0]['rr'][source_vertno]
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
+    epochs, _, csd, source_vertno, label, vertices, source_ind = \
+        _simulate_data(fwd_fixed, idx)
     epochs.pick_types('grad')
     reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
@@ -345,7 +365,8 @@ def test_real(_load_forward):
     assert len(w) == 0
 
     assert f == [10, 20]
-    assert np.argmax(power.data[:, 1]) == source_ind
+    dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
+    assert dist == 0
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test rank reduction
@@ -354,18 +375,18 @@ def test_real(_load_forward):
                              reduce_rank=True)
     power, f = apply_dics_csd(csd, filters_real)
     assert f == [10, 20]
-    idx = np.argmax(power.data[:, 1])
-    rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
-    dist = np.linalg.norm(rr_got - rr_want)
-    assert dist <= 0.02
+    dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
+    assert dist == 0
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test computing source power on a volume source space
     filters_vol = make_dics(epochs.info, fwd_vol, csd, reg=reg)
     power, f = apply_dics_csd(csd, filters_vol)
-    vol_source_ind = 3851  # FIXME: not make this hardcoded
+    vol_source_ind = _nearest_vol_ind(fwd_vol, fwd_surf, vertices, source_ind)
     assert f == [10, 20]
-    assert np.argmax(power.data[:, 1]) == vol_source_ind
+    dist = _fwd_dist(
+        power, fwd_vol, fwd_vol['src'][0]['vertno'], vol_source_ind)
+    assert dist <= vol_tol
     assert power.data[vol_source_ind, 1] > power.data[vol_source_ind, 0]
 
     # check whether a filters object without src_type throws expected warning
@@ -377,12 +398,12 @@ def test_real(_load_forward):
 
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
-def test_apply_dics_timeseries(_load_forward):
+@idx_param
+def test_apply_dics_timeseries(_load_forward, idx, mat_tol, vol_tol):
     """Test DICS applied to timeseries data."""
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
-    epochs, evoked, csd, source_vertno = _simulate_data(fwd_fixed)
-    vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
-    source_ind = vertices.tolist().index(source_vertno)
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
+    epochs, evoked, csd, source_vertno, label, vertices, source_ind = \
+        _simulate_data(fwd_fixed, idx)
     reg = 5  # Lots of regularization for our toy dataset
 
     with pytest.raises(RuntimeError, match='several sensor types'):
@@ -423,12 +444,14 @@ def test_apply_dics_timeseries(_load_forward):
 
     # Did we find the source?
     stc = (stcs[0] ** 2).mean()
-    assert np.argmax(stc.data) == source_ind
+    dist = _fwd_dist(stc, fwd_surf, vertices, source_ind, tidx=0)
+    assert dist == 0
 
     # Apply filters to evoked
     stc = apply_dics(evoked, filters)
     stc = (stc ** 2).mean()
-    assert np.argmax(stc.data) == source_ind
+    dist = _fwd_dist(stc, fwd_surf, vertices, source_ind, tidx=0)
+    assert dist == 0
 
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = cp.deepcopy(evoked)
@@ -462,7 +485,11 @@ def test_apply_dics_timeseries(_load_forward):
     filters_vol = make_dics(evoked.info, fwd_vol, csd20, reg=reg)
     stc = apply_dics(evoked, filters_vol)
     stc = (stc ** 2).mean()
-    assert np.argmax(stc.data) == 3851  # TODO: don't make this hard coded
+    assert stc.data.shape[1] == 1
+    vol_source_ind = _nearest_vol_ind(fwd_vol, fwd_surf, vertices, source_ind)
+    dist = _fwd_dist(stc, fwd_vol, fwd_vol['src'][0]['vertno'], vol_source_ind,
+                     tidx=0)
+    assert dist <= vol_tol
 
     # check whether a filters object without src_type throws expected warning
     del filters_vol['src_type']  # emulate 0.16 behaviour to cause warning
@@ -472,12 +499,12 @@ def test_apply_dics_timeseries(_load_forward):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_tf_dics(_load_forward):
+@idx_param
+def test_tf_dics(_load_forward, idx, mat_tol, vol_tol):
     """Test 5D time-frequency beamforming based on DICS."""
-    fwd_free, fwd_surf, fwd_fixed, _, label = _load_forward
-    epochs, _, _, source_vertno = _simulate_data(fwd_fixed)
-    vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
-    source_ind = vertices.tolist().index(source_vertno)
+    fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
+    epochs, _, _, source_vertno, label, vertices, source_ind = \
+        _simulate_data(fwd_fixed, idx)
     reg = 1  # Lots of regularization for our toy dataset
 
     tmin = 0
@@ -499,8 +526,10 @@ def test_tf_dics(_load_forward):
                        decim=10, reg=reg, label=label)
 
         # Did we find the true source at 20 Hz?
-        assert np.argmax(stcs[1].data[:, 0]) == source_ind
-        assert np.argmax(stcs[1].data[:, 1]) == source_ind
+        dist = _fwd_dist(stcs[1], fwd_surf, vertices, source_ind, tidx=0)
+        assert dist == 0
+        dist = _fwd_dist(stcs[1], fwd_surf, vertices, source_ind, tidx=1)
+        assert dist == 0
 
         # 20 Hz power should decrease over time
         assert stcs[1].data[source_ind, 0] > stcs[1].data[source_ind, 1]

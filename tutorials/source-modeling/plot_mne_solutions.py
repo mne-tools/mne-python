@@ -100,7 +100,7 @@ brain = stc.plot(figure=6, **kwargs)
 brain.add_text(0.1, 0.9, 'dSPM', 'title', font_size=14)
 
 ###############################################################################
-# And sLORETA:
+# sLORETA:
 
 stc = apply_inverse(evoked, inv, lambda2, 'sLORETA', verbose=True)
 brain = stc.plot(figure=7, **kwargs)

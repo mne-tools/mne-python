@@ -8,9 +8,8 @@ import numpy as np
 
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne import io, pick_types
 from mne.fixes import einsum, rfft, irfft
-from mne.utils import requires_version, requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -26,11 +25,6 @@ tmin, tmax = -0.1, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 # Loading raw data
-raw = io.read_raw_fif(raw_fname, preload=True)
-picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                   eog=False, exclude='bads')
-picks = picks[:2]
-
 n_jobs_test = (1, 'cuda')
 
 
@@ -537,7 +531,6 @@ def test_inverse_coef():
 
 
 @requires_sklearn
-@requires_version('scipy', '1.0')
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
     from sklearn.linear_model import Ridge

@@ -16,6 +16,7 @@ signals.
 #
 # License: BSD (3-clause)
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,12 +37,13 @@ event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
 runs = [6, 10, 14]
 raw_fnames = eegbci.load_data(subject, runs)
-raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
+raw = concatenate_raws([read_raw_edf(f) for f in raw_fnames])
 
 # Extract information from the raw file
 sfreq = raw.info['sfreq']
 events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
+raw.load_data()
 
 # Assemble the classifier using scikit-learn pipeline
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),
