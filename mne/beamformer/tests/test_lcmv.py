@@ -21,7 +21,7 @@ from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
 from mne.utils import (run_tests_if_main, object_diff, requires_h5py,
-                       catch_logging)
+                       catch_logging, _reg_pinv, _sym_inv)
 
 
 data_path = testing.data_path(download=False)
@@ -699,45 +699,58 @@ def test_lcmv_ctf_comp():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('pick_ori', [
-    # XXX should undo this xfail
-    pytest.param('max-power', marks=pytest.mark.xfail(reason='WIP')),
-    'normal'
-])
-def test_unit_gain_relationships(pick_ori):
-    """Test unit-gain and unit-noise-gain relationships."""
+    # TODO only works for max-power so far
+    pytest.param('max-power')])
+def test_unit_noise_gain_formula(pick_ori):
+    """Test unit-noise-gain filter against formula."""
+    # The unit-noise-gain beamformer is computed following a shortcut, where
+    # W_ung = inv(sqrt(W_ug @ W_ug.T)) @ W_ug
+    # with W_ung referring to the unit-noise-gain (weight normalized) filter
+    # and W_ug referring to the above-calculated unit-gain filter stored in W.
+    # Here, we check that the formulation in Sekihara & Nagarajan still holds.
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
     raw.pick_types(meg='mag')
     # assert len(raw.ch_names) == 305
     epochs = mne.Epochs(raw, events, None, preload=True)
+
     # with pytest.warns(RuntimeWarning, match='Too few samples'):
-    #    noise_cov = mne.compute_covariance(epochs, tmax=0)
-    noise_cov = None
     data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+
+    noise_cov = None  # no whitening to make things easier
     forward = mne.read_forward_solution(fname_fwd)
 
-    # convert_forward_solution(forward, surf_ori=True, copy=False)
-    W_ung = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
-                      noise_cov=noise_cov, pick_ori=pick_ori,
-                      weight_norm='unit-noise-gain', rank=None)
+    # compute the unit-noise-gain scalar beamformer
+    rank = None
+    reg = 0.05
+    filters = make_lcmv(epochs.info, forward, data_cov, reg=reg,
+                        noise_cov=noise_cov, pick_ori=pick_ori,
+                        weight_norm='unit-noise-gain', rank=rank)
+
     # manipulate forward to have same orientation picking as above
+    forward = mne.pick_types_forward(forward, meg='mag')  # restrict to MAG
     fwd_sol = np.reshape(forward['sol']['data'].T,
                          (forward['nsource'], 3, forward['nchan']))
-    fwd_sol *= W_ung['max_power_ori'][:, :, np.newaxis]
-    forward['sol']['data'][:] = np.reshape(fwd_sol,
-                                           (forward['sol']['data'].shape))
-    W_ung = W_ung['weights']
+    fwd_sol = np.matmul(fwd_sol.transpose(0, 2, 1),
+                        filters['max_power_ori'][:, :, np.newaxis])
 
-    W_ug = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
-                     noise_cov=noise_cov, pick_ori=pick_ori,
-                     weight_norm=None, rank=None)['weights']
-    # XXX maybe eventually we can add back vector?
-    n_orient = 3 if pick_ori == 'vector' else 1
-    assert W_ung.shape == (forward['nsource'] * n_orient, len(epochs.ch_names))
-    W_ung_2 = W_ug / np.linalg.norm(W_ug, axis=1, keepdims=True)
+    # compute the inverse of the covariance matrix and square it
+    Cm_inv, _, _ = _reg_pinv(data_cov.data, reg, rank)
+    Cm_inv_sq = Cm_inv.dot(Cm_inv)
+
+    # compute the unit-noise-gain beamformer in pedestrian mode:
+    # formula: G.T @ Cm_inv / sqrt(G.T @ Cm_inv ** 2 @ G)
+    # Sekihara & Nagarajan 2008, eq. 4.15
+    denom = np.matmul(np.matmul(fwd_sol.transpose(0, 2, 1),
+                                Cm_inv_sq), fwd_sol)
+    numer = np.matmul(fwd_sol.transpose(0, 2, 1), Cm_inv)
+    W_ung_2 = np.squeeze(np.matmul(_sym_inv(np.sqrt(denom), reduce_rank=False),
+                                   numer))
+
+    W_ung = filters['weights']
+
     assert 1e-2 < np.mean(np.abs(W_ung)) < 1  # ensure our atol is okay
-    assert_allclose(W_ug, W_ung, atol=1e-10)
-    # assert_allclose(W_ung_2, W_ung, atol=1e-9)
+    assert_allclose(W_ung, W_ung_2, atol=1e-10)
 
 
 @testing.requires_testing_data
