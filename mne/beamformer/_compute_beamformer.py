@@ -313,7 +313,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # and W_ug referring to the above-calculated unit-gain filter stored in W
 
     if weight_norm is not None:
-        # Three differnt ways to calculate the normalization factors here.
+        # Three different ways to calculate the normalization factors here.
         # Only matters when in vector mode, as otherwise n_orient == 1 and
         # they are all equivalent.
         method = 'direct'
