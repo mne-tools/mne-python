@@ -58,10 +58,10 @@ def _create_info(ft_struct, raw_info):
             ft_struct['label'] = ch_names
 
             if 'trial' in ft_struct:
-                if ft_struct['trial'].ndim == 2:
-                    ft_struct['trial'] = np.delete(ft_struct['trial'],
-                                                   missing_chan_idx,
-                                                   axis=0)
+                ft_struct['trial'] = _remove_missing_channels_from_trial(
+                    ft_struct['trial'],
+                    missing_chan_idx
+                )
 
             if 'avg' in ft_struct:
                 if ft_struct['avg'].ndim == 2:
@@ -82,6 +82,24 @@ def _create_info(ft_struct, raw_info):
         info._update_redundant()
 
     return info
+
+
+def _remove_missing_channels_from_trial(trial, missing_chan_idx):
+    if isinstance(trial, list):
+        for idx_trial in range(len(trial)):
+            trial[idx_trial] = _remove_missing_channels_from_trial(
+                trial[idx_trial], missing_chan_idx
+            )
+    elif isinstance(trial, np.ndarray):
+        if trial.ndim == 2:
+            trial = np.delete(trial,
+                              missing_chan_idx,
+                              axis=0)
+    else:
+        raise ValueError('"trial" field of the FieldTrip structure '
+                         'has an unknown format.')
+
+    return trial
 
 
 def _create_info_chs(ft_struct):
