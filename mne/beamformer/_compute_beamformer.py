@@ -304,7 +304,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     del bf_numer, bf_denom, bf_denom_inv, sk
 
     #
-    # 4. Re-scale filter weights according to the selected weight_norm
+    # 5. Re-scale filter weights according to the selected weight_norm
     #
 
     # Weight normalization is done by computing:
