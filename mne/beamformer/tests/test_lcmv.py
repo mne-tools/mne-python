@@ -21,7 +21,7 @@ from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
 from mne.utils import (run_tests_if_main, object_diff, requires_h5py,
-                       catch_logging, _reg_pinv, _sym_inv)
+                       catch_logging, _reg_pinv, _sym_inv, sqrtm_sym)
 
 
 data_path = testing.data_path(download=False)
@@ -697,11 +697,18 @@ def test_lcmv_ctf_comp():
         make_lcmv(info_comp, fwd, data_cov)
 
 
+_unit_fail = pytest.mark.xfail(reason='TODO FIX', raises=AssertionError)
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize('pick_ori', [
-    # TODO only works for max-power so far
-    pytest.param('max-power')])
-def test_unit_noise_gain_formula(pick_ori):
+    'max-power',
+    'normal',
+    # TODO need to fix vector
+    pytest.param('vector', marks=_unit_fail),
+])
+@pytest.mark.parametrize('reg', (0.05, 0.))
+def test_unit_noise_gain_formula(pick_ori, reg):
     """Test unit-noise-gain filter against formula."""
     # The unit-noise-gain beamformer is computed following a shortcut, where
     # W_ung = inv(sqrt(W_ug @ W_ug.T)) @ W_ug
@@ -719,38 +726,64 @@ def test_unit_noise_gain_formula(pick_ori):
 
     noise_cov = None  # no whitening to make things easier
     forward = mne.read_forward_solution(fname_fwd)
+    convert_forward_solution(forward, surf_ori=True, copy=False)
 
     # compute the unit-noise-gain scalar beamformer
     rank = None
-    reg = 0.05
     filters = make_lcmv(epochs.info, forward, data_cov, reg=reg,
                         noise_cov=noise_cov, pick_ori=pick_ori,
                         weight_norm='unit-noise-gain', rank=rank)
 
     # manipulate forward to have same orientation picking as above
     forward = mne.pick_types_forward(forward, meg='mag')  # restrict to MAG
-    fwd_sol = np.reshape(forward['sol']['data'].T,
-                         (forward['nsource'], 3, forward['nchan']))
-    fwd_sol = np.matmul(fwd_sol.transpose(0, 2, 1),
-                        filters['max_power_ori'][:, :, np.newaxis])
+    fwd_sol = forward['sol']['data'].T
+    n_sources, n_channels = forward['nsource'], forward['nchan']
+    fwd_sol = np.reshape(fwd_sol, (n_sources, 3, n_channels))
+    fwd_sol = fwd_sol.transpose(0, 2, 1)
+    if pick_ori == 'normal':
+        fwd_sol = fwd_sol[:, :, 2:3]
+        n_orient = 1
+    elif pick_ori == 'max-power':
+        fwd_sol = np.matmul(fwd_sol, filters['max_power_ori'][..., np.newaxis])
+        n_orient = 1
+    else:
+        assert pick_ori == 'vector'
+        n_orient = 3
+    assert fwd_sol.shape == (498, 102, n_orient)
 
     # compute the inverse of the covariance matrix and square it
     Cm_inv, _, _ = _reg_pinv(data_cov.data, reg, rank)
     Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
     # compute the unit-noise-gain beamformer in pedestrian mode:
-    # formula: G.T @ Cm_inv / sqrt(G.T @ Cm_inv ** 2 @ G)
+    # formula: G.T @ Cm_inv / sqrt(G.T @ Cm_inv @ Cm_inv @ G)
     # Sekihara & Nagarajan 2008, eq. 4.15
+    #
+    # TODO: Fix the vector case, where there are still 3 orientations instead
+    #       of one -- depends on what the units are above, if the sqrt is a
+    #       matrix or single square root, etc.:
+    #
+    # - Here we do a proper matrix square root + inversion
+    # - in _compute_beamformer we just take the norm over the
+    #   (n_orient, n_channels) array for each source, then invert the
+    #   single value for that source
+    # - It's possible the paper computes the orientation for each output
+    #   direction instead, which would be a third way (but this is probably not
+    #   rotation invariant and sensitive to nulls, so seems unlikely?)
+    #
     denom = np.matmul(np.matmul(fwd_sol.transpose(0, 2, 1),
                                 Cm_inv_sq), fwd_sol)
+    denom_inv = _sym_inv(sqrtm_sym(denom)[0], reduce_rank=False)
+    denom_inv_2 = sqrtm_sym(denom, inv=True)[0]
+    assert_allclose(denom_inv, denom_inv_2, atol=1e-30)
     numer = np.matmul(fwd_sol.transpose(0, 2, 1), Cm_inv)
-    W_ung_2 = np.squeeze(np.matmul(_sym_inv(np.sqrt(denom), reduce_rank=False),
-                                   numer))
+    W_ung_direct = np.matmul(denom_inv, numer)
 
-    W_ung = filters['weights']
+    W_ung = filters['weights'].reshape(n_sources, n_orient, n_channels)
+    assert W_ung_direct.shape == W_ung.shape
 
     assert 1e-2 < np.mean(np.abs(W_ung)) < 1  # ensure our atol is okay
-    assert_allclose(W_ung, W_ung_2, atol=1e-10)
+    assert_allclose(W_ung, W_ung_direct, atol=1e-10)
 
 
 @testing.requires_testing_data
@@ -865,19 +898,19 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, 'vector', 'nai', True, None, 36, 39),
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
-        (0.05, 'max-power', 'unit-noise-gain', True, None, 26, 29),
-        (0.05, 'max-power', 'unit-noise-gain', False, None, 23, 25),
-        (0.05, 'max-power', 'nai', True, None, 26, 29),
-        (0.05, 'max-power', None, True, None, 12, 16),
-        (0.05, 'max-power', None, True, 0.8, 24, 26),
+        (0.05, 'max-power', 'unit-noise-gain', True, None, 21, 24),
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20),
+        (0.05, 'max-power', 'nai', True, None, 21, 24),
+        (0.05, 'max-power', None, True, None, 7, 10),
+        (0.05, 'max-power', None, True, 0.8, 15, 18),
         (0.05, None, None, True, 0.8, 40, 42),
         # no reg
         (0.00, 'vector', None, True, None, 28, 31),
         (0.00, 'vector', 'nai', True, None, 67, 69),
         (0.00, 'vector', 'unit-noise-gain', True, None, 67, 70),
-        (0.00, 'max-power', None, True, None, 18, 21),
-        (0.00, 'max-power', 'nai', True, None, 49, 52),
-        (0.00, 'max-power', 'unit-noise-gain', True, None, 49, 52),
+        (0.00, 'max-power', None, True, None, 15, 18),
+        (0.00, 'max-power', 'nai', True, None, 46, 50),
+        (0.00, 'max-power', 'unit-noise-gain', True, None, 46, 50),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
                                 use_cov, depth, lower, upper):
