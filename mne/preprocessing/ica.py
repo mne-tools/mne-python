@@ -1089,7 +1089,7 @@ class ICA(ContainsMixin):
                 reject_by_annotation=reject_by_annotation)]
             # pick last scores
             if measure == "zscore":
-                this_idx = find_outliers(scores[-1], threshold=threshold)
+                this_idx = _find_outliers(scores[-1], threshold=threshold)
             elif measure == "cor":
                 this_idx = np.where(abs(scores[-1]) > threshold)[0]
             else:
@@ -1342,7 +1342,7 @@ class ICA(ContainsMixin):
                                       axis=0) / np.linalg.norm(weights[meg_picks],    # noqa
                                       axis=0)
             scores = np.log(normrats)
-            self.labels_['ref_meg'] = list(find_outliers(scores,
+            self.labels_['ref_meg'] = list(_find_outliers(scores,
                                            threshold=threshold,
                                            tail=1))
         else:
