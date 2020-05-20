@@ -1342,9 +1342,6 @@ class ICA(ContainsMixin):
         find_bads_ecg, find_bads_ref
         """
         eog_inds = _get_eog_channel_index(ch_name, inst)
-        if len(eog_inds) > 2:
-            eog_inds = eog_inds[:1]
-            logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
         self.labels_['eog'], scores = self._find_bads_ch(
