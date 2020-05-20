@@ -10,7 +10,7 @@ import numpy as np
 
 from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option)
+                     _check_option, _validate_type)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
@@ -143,7 +143,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     To use the :func:`make_lcmv` defaults, use::
 
-        inversion='matrix', weight_norm='unit-gain', normalize_fwd=False
+        inversion='matrix', weight_norm='unit-noise-gain', normalize_fwd=False
 
     For more information about ``real_filter``, see the
     supplemental information from :footcite:`HippEtAl2011`.
@@ -156,7 +156,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
     _check_option('inversion', inversion, ['single', 'matrix'])
-    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
+    _validate_type(weight_norm, (str, None), 'weight_norm')
 
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
@@ -208,11 +208,9 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Cm = Cm[csd_picks, :][:, csd_picks]
 
         # compute spatial filter
-        W, max_power_ori = _compute_beamformer(G, Cm, reg, n_orient,
-                                               weight_norm, pick_ori,
-                                               reduce_rank, rank=rank,
-                                               inversion=inversion,
-                                               nn=nn, orient_std=orient_std)
+        W, max_power_ori = _compute_beamformer(
+            G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank,
+            rank=rank, inversion=inversion, nn=nn, orient_std=orient_std)
         Ws.append(W)
         max_oris.append(max_power_ori)
 
