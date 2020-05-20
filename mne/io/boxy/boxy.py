@@ -412,6 +412,7 @@ class RawBOXY(BaseRaw):
             else: print('No event file found. Using digaux!')
                 
         except:
+            print('No event file found. Using digaux!')
             pass
 
         # detectors, sources, and data types
@@ -552,6 +553,15 @@ class RawBOXY(BaseRaw):
                             block_markers.append(meta_data['digaux'])
                     else:
                         block_markers.append(np.zeros((len(data_[0, :]),)))
+                        
+                ###check our markers to see if anything is actually in there###
+                if (all(i_mrk == 0 for i_mrk in block_markers[i_blk]) or 
+                    all(i_mrk == 255 for i_mrk in block_markers[i_blk])):
+                    print('No markers for montage ' + mtg_name + 
+                          ' and block ' + blk_name)
+                else:
+                    print('Found markers for montage ' + mtg_name + 
+                          ' and block ' + blk_name + '!')
                     
                 #change marker for last timepoint to indicate end of block
                 #we'll be using digaux to send markers, which is a serial port
