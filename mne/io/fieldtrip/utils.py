@@ -58,10 +58,10 @@ def _create_info(ft_struct, raw_info):
             ft_struct['label'] = ch_names
 
             if 'trial' in ft_struct:
-                if ft_struct['trial'].ndim == 2:
-                    ft_struct['trial'] = np.delete(ft_struct['trial'],
-                                                   missing_chan_idx,
-                                                   axis=0)
+                ft_struct['trial'] = _remove_missing_channels_from_trial(
+                    ft_struct['trial'],
+                    missing_chan_idx
+                )
 
             if 'avg' in ft_struct:
                 if ft_struct['avg'].ndim == 2:
@@ -82,6 +82,24 @@ def _create_info(ft_struct, raw_info):
         info._update_redundant()
 
     return info
+
+
+def _remove_missing_channels_from_trial(trial, missing_chan_idx):
+    if isinstance(trial, list):
+        for idx_trial in range(len(trial)):
+            trial[idx_trial] = _remove_missing_channels_from_trial(
+                trial[idx_trial], missing_chan_idx
+            )
+    elif isinstance(trial, np.ndarray):
+        if trial.ndim == 2:
+            trial = np.delete(trial,
+                              missing_chan_idx,
+                              axis=0)
+    else:
+        raise ValueError('"trial" field of the FieldTrip structure '
+                         'has an unknown format.')
+
+    return trial
 
 
 def _create_info_chs(ft_struct):
@@ -156,8 +174,16 @@ def _create_montage(ft_struct):
             cur_labels = np.asanyarray(tmp_labels)
             montage_ch_names.extend(
                 cur_labels[available_channels])
-            montage_pos.extend(
-                cur_ch_struct['chanpos'][available_channels])
+            try:
+                montage_pos.extend(
+                    cur_ch_struct['chanpos'][available_channels])
+            except KeyError:
+                raise RuntimeError('This file was created with an old version '
+                                   'of FieldTrip. You can convert the data to '
+                                   'the new version by loading it into '
+                                   'FieldTrip and applying ft_selectdata with '
+                                   'an empty cfg structure on it. '
+                                   'Otherwise you can supply the Info field.')
 
     montage = None
 
@@ -194,12 +220,16 @@ def _set_tmin(ft_struct):
     if time_check:
         tmin = times[0][0]
     else:
-        tmin = None
+        raise RuntimeError('Loading data with non-uniform '
+                           'times per epoch is not supported')
     return tmin
 
 
 def _create_events(ft_struct, trialinfo_column):
     """Create an event matrix from the FieldTrip structure."""
+    if 'trialinfo' not in ft_struct:
+        return None
+
     event_type = ft_struct['trialinfo']
     event_number = range(len(event_type))
 
