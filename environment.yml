@@ -31,6 +31,8 @@ dependencies:
 - traitsui>=6
 - imageio>=2.6.1
 - pip:
+  - -i "https://pypi.org/simple/"
+  - -f "https://vtk.org/download"
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
