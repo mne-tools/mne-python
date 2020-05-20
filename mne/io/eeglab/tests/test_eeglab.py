@@ -264,6 +264,7 @@ def test_degenerate(tmpdir):
 
 
 @pytest.mark.parametrize("fname", raw_fnames)
+@pytest.mark.filterwarnings('ignore: Complex objects')
 @testing.requires_testing_data
 def test_eeglab_annotations(fname):
     """Test reading annotations in EEGLAB files."""
