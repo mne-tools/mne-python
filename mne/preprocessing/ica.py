@@ -1160,12 +1160,13 @@ class ICA(ContainsMixin):
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
 
-
             .. versionadded:: 0.14.0
         measure : {'zscore', "cor"}
             Which method to use for finding outliers. "zscore" (default) is
             the iterated Z-scoring method, and "cor" is an absolute raw
             correlation threshold with a range of 0 to 1.
+
+            .. versionadded:: 0.21
         %(verbose_meth)s
 
         Returns
@@ -1266,11 +1267,13 @@ class ICA(ContainsMixin):
             Method to use to identify reference channel related components.
             Defaults to "together." See notes.
 
-            .. versionadded:: 0.20
+            .. versionadded:: 0.21
         measure : {'zscore', "cor"}
             Which method to use for finding outliers. "zscore" (default) is
             the iterated Z-scoring method, and "cor" is an absolute raw
             correlation threshold with a range of 0 to 1.
+
+            .. versionadded:: 0.21
         %(verbose_meth)s
 
         Returns
@@ -1391,6 +1394,8 @@ class ICA(ContainsMixin):
             Which method to use for finding outliers. "zscore" (default) is
             the iterated Z-scoring method, and "cor" is an absolute raw
             correlation threshold with a range of 0 to 1.
+
+            .. versionadded:: 0.21
         %(verbose_meth)s
 
         Returns
