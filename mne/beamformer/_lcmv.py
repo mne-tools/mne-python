@@ -47,26 +47,14 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         gradiometers with magnetometers or EEG with MEG.
     label : instance of Label
         Restricts the LCMV solution to a given label.
-    pick_ori : None | 'normal' | 'max-power' | 'vector'
-        For forward solutions with fixed orientation, None (default) must be
-        used and a scalar beamformer is computed. For free-orientation forward
-        solutions, a vector beamformer is computed and:
+    %(bf_pick_ori)s
 
-            None
-                Pools the orientations by taking the norm.
-            'normal'
-                Keeps only the radial component.
-            'max-power'
-                Selects orientations that maximize output source power at
-                each location.
-            'vector'
-                Keeps the currents for each direction separate
+        - ``'vector'``
+            Keeps the currents for each direction separate
     %(rank_info)s
-    weight_norm : 'unit-noise-gain' | 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed,
-        if None, the unit-gain LCMV beamformer [2]_ will be computed.
+    %(weight_norm)s
+
+        Defaults to ``'unit-noise-gain'``.
     %(reduce_rank)s
     %(depth)s
 
@@ -89,7 +77,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 Whitening matrix, provided if whitening was applied to the
                 covariance matrix and leadfield during computation of the
                 beamformer weights.
-            'weight_norm' : 'unit-noise-gain'| 'nai' | None
+            'weight_norm' : str | None
                 Type of weight normalization used to compute the filter
                 weights.
             'pick_ori' : None | 'normal'
@@ -109,15 +97,11 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     Notes
     -----
-    The original reference is [1]_.
+    The original reference is :footcite:`VanVeenEtAl1997`.
 
     References
     ----------
-    .. [1] Van Veen et al. Localization of brain electrical activity via
-           linearly constrained minimum variance spatial filtering.
-           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
+    .. footbibliography::
     """
     # check number of sensor types present in the data and ensure a noise cov
     info = _simplify_info(info)
@@ -141,7 +125,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     rank = data_rank
     logger.info('Making LCMV beamformer with rank %s' % (rank,))
     del data_rank
-    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
     depth = _check_depth(depth, 'depth_sparse')
 
     is_free_ori, info, proj, vertno, G, whitener, nn, orient_std = \
@@ -594,6 +577,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
+    # TODO this has an entirely different code path, need to decide if we
+    # can unify it, or deprecate this, etc.
     _check_reference(epochs)
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal'])

@@ -179,6 +179,16 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     W : ndarray, shape (n_dipoles, n_channels)
         The beamformer filter weights.
     """
+    # TODO: This conditional just allows us to use a private
+    # "unit-noise-gain-old" for testing. If we decide
+    # "unit-noise-gain-pooled" is actually worth keeping, we should add
+    # "nai-pooled" as well. But since it's just a scale factor, it shouldn't
+    # mess with localization bias tests, so don't bother for now.
+    if not (isinstance(weight_norm, str) and
+            weight_norm == 'unit-noise-gain-old'):
+        _check_option('weight_norm', weight_norm,
+                      ['unit-noise-gain', 'unit-noise-gain-pooled', 'nai',
+                       None])
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
@@ -251,7 +261,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             ori_numer = np.eye(n_orient)[np.newaxis]
             ori_denom = bf_denom
         else:
-            assert weight_norm in ['unit-noise-gain', 'nai']
             # compute power, cf Sekihara & Nagarajan 2008, eq. 4.47
             ori_numer = bf_denom
             ori_denom = np.matmul(
@@ -315,8 +324,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # Three different ways to calculate the normalization factors here.
         # Only matters when in vector mode, as otherwise n_orient == 1 and
         # they are all equivalent.
-        method = 'direct'
-        if method == 'formula':
+        if weight_norm in ('nai', 'unit-noise-gain'):
             # Use sqrt(diag(W_ug @ W_ug.T)), not be rotation invariant:
             noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj())
             noise_norm = np.reshape(  # np.diag operation over last two axes...
@@ -324,13 +332,13 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             noise_norm *= n_orient
             np.sqrt(noise_norm.real, out=noise_norm)
             assert noise_norm.shape == (n_sources, n_orient, 1)
-        elif method == 'old':
+        elif weight_norm == 'unit-noise-gain-old':
             # Uses the Frobenius matrix norm, a single scale factor for each
             # source point:
             noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
             assert noise_norm.shape == (n_sources, 1, 1)
         else:
-            assert method == 'direct'
+            assert weight_norm == 'unit-noise-gain-pooled'
             # Uses the Frobenius matrix norm, but couple it with a
             # direct recomputation of the weights, i.e.::
             #

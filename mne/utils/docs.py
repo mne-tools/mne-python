@@ -596,6 +596,40 @@ reduce_rank : bool
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
 """
+docdict['weight_norm'] = """
+weight_norm : str | None
+    Can be:
+
+    - ``None``
+        The unit-gain LCMV beamformer :footcite:`SekiharaNagarajan2008` will be
+        computed.
+    - ``'unit-noise-gain'``
+        The unit-noise gain minimum variance beamformer will be computed
+        (Borgiotti-Kaplan beamformer) :footcite:`SekiharaNagarajan2008`.
+    - ``'nai'``
+        The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed.
+    - ``'unit-noise-gain-pooled'``
+        A unit-noise-gain beamformer will be computed, using factors pooled
+        across all orientations for a given vertex. This is the same as
+        ``'unit-noise-gain'`` for scalar beamformers, but provides
+        rotation invariance for vector beamformers.
+
+        .. versionadded:: 0.21
+"""
+docdict['bf_pick_ori'] = """
+pick_ori : None | str
+    For forward solutions with fixed orientation, None (default) must be
+    used and a scalar beamformer is computed. For free-orientation forward
+    solutions, a vector beamformer is computed and:
+
+    - ``None``
+        Orientations are pooled (Default).
+    - ``'normal'``
+        Filters are computed for the orientation tangential to the
+        cortical surface.
+    - ``'max-power'``
+        Filters are computed for the orientation that maximizes power.
+"""
 docdict['use_cps'] = """
 use_cps : bool
     Whether to use cortical patch statistics to define normal orientations for

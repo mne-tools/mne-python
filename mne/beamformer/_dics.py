@@ -51,18 +51,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         computing the inverse.
     label : Label | None
         Restricts the solution to a given label.
-    pick_ori : None | 'normal' | 'max-power'
-        The source orientation to compute the filter for:
-
-            ``None`` :
-                orientations are pooled (Default)
-            'normal' :
-                filters are computed for the orientation tangential to the
-                cortical surface
-            'max-power' :
-                filters are computer for the orientation that maximizes
-                spectral power.
-
+    %(bf_pick_ori)s
     rank : None | int | 'full'
         This controls the effective rank of the covariance matrix when
         computing the inverse. The rank can be set explicitly by specifying an
@@ -85,11 +74,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
         precise. See section 5 of :footcite:`vanVlietEtAl2018`.  Defaults to
         'single'.
-    weight_norm : 'unit-noise-gain' | 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer)
-        :footcite:`SekiharaNagarajan2008`. If 'nai', the Neural Activity Index
-        :footcite:`VanVeenEtAl1997` will be computed.
+    %(weight_norm)s
+
         Defaults to ``None``, in which case no normalization is performed.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note
@@ -166,6 +152,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    # TODO: Add `'vector'` option
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
     _check_option('inversion', inversion, ['single', 'matrix'])
