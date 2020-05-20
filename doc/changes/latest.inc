@@ -148,6 +148,14 @@ Bug
 
 - Fix bug with :func:`mne.bem.make_watershed_bem` where the RAS coordinates of watershed bem surfaces were not updated correctly from the volume file by `Yu-Han Luo`_
 
+- Fix bug in FieldTrip reader functions when channels are missing in the ``info`` object by `Thomas Hartmann`_
+
+- Throw proper error when trying to import FieldTrip Epochs data with non-uniform time for trials by `Thomas Hartmann`_
+
+- Throw proper error when trying to import FieldTrip data saved by an old, incompatible version by `Thomas Hartmann`_
+
+- Fix bug in :func:`mne.read_epochs_fieldtrip` when importing data without a ``trialinfo`` field by `Thomas Hartmann`_
+
 API
 ~~~
 

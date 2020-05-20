@@ -259,8 +259,8 @@ def test_throw_exception_on_cellarray(version, type):
 
 
 @testing.requires_testing_data
-def test_evoked_with_missing_channels():
-    """Test _create_info on evoked data when channels are missing from info."""
+def test_with_missing_channels():
+    """Test _create_info when channels are missing from info."""
     cur_system = 'neuromag306'
     test_data_folder_ft = get_data_paths(cur_system)
     info = get_raw_info(cur_system)
@@ -268,5 +268,43 @@ def test_evoked_with_missing_channels():
     info._update_redundant()
 
     with pytest.warns(RuntimeWarning):
+        mne.io.read_raw_fieldtrip(
+            os.path.join(test_data_folder_ft, 'raw_v7.mat'), info)
         mne.read_evoked_fieldtrip(
             os.path.join(test_data_folder_ft, 'averaged_v7.mat'), info)
+        mne.read_epochs_fieldtrip(
+            os.path.join(test_data_folder_ft, 'epoched_v7.mat'), info)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
+@pytest.mark.filterwarnings('ignore: Cannot guess the correct type')
+def test_throw_error_on_non_uniform_time_field():
+    """Test if an error is thrown when time fields are not uniform."""
+    fname = os.path.join(mne.datasets.testing.data_path(),
+                         'fieldtrip',
+                         'not_uniform_time.mat')
+
+    with pytest.raises(RuntimeError, match='Loading data with non-uniform '
+                                           'times per epoch is not supported'):
+        mne.io.read_epochs_fieldtrip(fname, info=None)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
+def test_throw_error_when_importing_old_ft_version_data():
+    """Test if an error is thrown if the data was saved with an old version."""
+    fname = os.path.join(mne.datasets.testing.data_path(),
+                         'fieldtrip',
+                         'old_version.mat')
+
+    with pytest.raises(RuntimeError, match='This file was created with '
+                                           'an old version of FieldTrip. You '
+                                           'can convert the data to the new '
+                                           'version by loading it into '
+                                           'FieldTrip and applying '
+                                           'ft_selectdata with an '
+                                           'empty cfg structure on it. '
+                                           'Otherwise you can supply '
+                                           'the Info field.'):
+        mne.io.read_epochs_fieldtrip(fname, info=None)
