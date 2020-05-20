@@ -41,14 +41,14 @@ data_path = refmeg_noise.data_path()
 ###############################################################################
 # Read raw data
 raw_fname = data_path + '/sample_reference_MEG_noise-raw.fif'
-#raw_fname = "/home/jeff/ATT_dat/proc/sample_reference_MEG_noise-raw.fif"
 raw = io.read_raw_fif(raw_fname, preload=True)
 
 ###############################################################################
 # Note that even though standard noise removal has already
 # been applied to these data, much of the noise in the reference channels
 # (bottom of the plot) can still be seen in the standard channels.
-raw.plot(duration=800, n_channels=160, scalings={"mag":8e-13,"ref_meg":2e-11})
+raw.plot(duration=800, n_channels=160, scalings={"mag": 8e-13,
+                                                 "ref_meg": 2e-11})
 
 ###############################################################################
 # The PSD of these data show the noise as clear peaks
@@ -58,7 +58,7 @@ raw.plot_psd(fmax=30)
 # Run the "together" algorithm
 raw_tog = raw.copy()
 all_picks = mne.pick_types(raw_tog.info, meg=True, ref_meg=True)
-ica_tog = ICA(n_components=60, method="infomax", allow_ref_meg=True)
+ica_tog = ICA(n_components=60, allow_ref_meg=True)
 ica_tog.fit(raw_tog, picks=all_picks)
 bad_comps, scores = ica_tog.find_bads_ref(raw_tog, threshold=2.5)
 
@@ -68,7 +68,7 @@ ica_tog.plot_scores(scores, bad_comps)
 # Examine the properties of removed components. It's clear from the time
 # courses and topographies that these components represent external,
 # intermittent noise.
-ica_tog.plot_properties(raw_tog,picks=bad_comps)
+ica_tog.plot_properties(raw_tog, picks=bad_comps)
 
 # Remove the components
 raw_tog = ica_tog.apply(raw_tog, exclude=bad_comps)
@@ -86,17 +86,17 @@ ref_picks = mne.pick_types(raw_sep.info, meg=False, ref_meg=True)
 ica_ref = ICA(n_components=2, allow_ref_meg=True)
 ica_ref.fit(raw_sep, picks=ref_picks)
 
-# Do ICA on both reference and standard channels
-ica_sep = ICA(n_components=60, method="infomax", allow_ref_meg=True)
-ica_sep.fit(raw_sep, picks=all_picks)
+# Do ICA on both reference and standard channels. Here, we can just reuse
+# ica_tog from the section above
+ica_sep = ica_tog.copy()
 
 # Extract the time courses of these components and add them as channels
 # to the raw data. Think of them the same way as EOG/EKG channels, but instead
 # of giving info about eye movements/cardiac activity, they give info about
 # external magnetic noise
 ref_comps = ica_ref.get_sources(raw_sep)
-for c in ref_comps.ch_names: # they need to have REF_ prefix to be recognised
-    ref_comps.rename_channels({c:"REF_" + c})
+for c in ref_comps.ch_names:  # they need to have REF_ prefix to be recognised
+    ref_comps.rename_channels({c: "REF_" + c})
 raw_sep.add_channels([ref_comps])
 
 # Now that we have our noise channels, we run the separate algorithm.
@@ -114,3 +114,9 @@ raw_sep = ica_sep.apply(raw_sep, exclude=bad_comps)
 ###############################################################################
 # Cleaned data
 raw_sep.plot_psd(fmax=30)
+
+##############################################################################
+# References
+# ----------
+#
+# .. footbibliography::
