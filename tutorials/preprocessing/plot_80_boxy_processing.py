@@ -266,10 +266,16 @@ mtg_a_events = mne.find_events(mtg_a_intensity, stim_channel='Markers a')
 fig = mne.viz.plot_events(mtg_a_events)
 fig.subplots_adjust(right=0.7)  # make room for the legend
 
+mtg_a_intensity.plot(events=mtg_a_events, start=0, duration=10,color='gray',
+                   event_color={1: 'r', 2: 'b', 1000: 'k'})
+
 mtg_b_events = mne.find_events(mtg_b_intensity, stim_channel='Markers b')
 
 fig = mne.viz.plot_events(mtg_b_events)
 fig.subplots_adjust(right=0.7)  # make room for the legend
+
+mtg_b_intensity.plot(events=mtg_b_events, start=0, duration=10,color='gray',
+                   event_color={1: 'r', 2: 'b', 2000: 'k'})
 
 # ###############################################################################
 # # Next we define the range of our epochs, the rejection criteria,
