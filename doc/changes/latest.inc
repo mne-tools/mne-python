@@ -152,6 +152,8 @@ Bug
 
 - Throw proper error when trying to import FieldTrip Epochs data with non-uniform time for trials by `Thomas Hartmann`_
 
+- Throw proper error when trying to import FieldTrip data saved by an old, incompatible version by `Thomas Hartmann`_
+
 API
 ~~~
 
