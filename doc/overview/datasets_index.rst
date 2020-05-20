@@ -409,7 +409,7 @@ References
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
 
 Reference channel noise MEG data set
-=============================
+====================================
 :func:`mne.datasets.refmeg_noise.data_path`.
 
 This dataset was obtained with a 4D Neuroimaging / BTi system at

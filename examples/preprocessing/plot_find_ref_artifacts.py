@@ -1,9 +1,9 @@
 """
 .. _ex-megnoise_processing:
 
-==================
+====================================
 Find MEG reference channel artefacts
-==================
+====================================
 
 Use ICA decompositions of MEG reference channels to remove intermittent noise.
 

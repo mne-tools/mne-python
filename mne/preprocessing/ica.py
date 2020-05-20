@@ -1313,6 +1313,10 @@ class ICA(ContainsMixin):
         Validation and further documentation for this technique can be found
         in :footcite:`HannaEtAl2020`
 
+        References
+        ----------
+        .. footbibliography::
+
         .. versionadded:: 0.18
         """
         if method == "separate":
