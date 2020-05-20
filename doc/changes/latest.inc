@@ -154,6 +154,8 @@ Bug
 
 - Throw proper error when trying to import FieldTrip data saved by an old, incompatible version by `Thomas Hartmann`_
 
+- Fix bug in :func:`mne.read_epochs_fieldtrip` when importing data without a ``trialinfo`` field by `Thomas Hartmann`_
+
 API
 ~~~
 
