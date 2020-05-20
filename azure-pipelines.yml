@@ -189,7 +189,7 @@ jobs:
       python -m pip install --upgrade pip setuptools
       python -m pip install --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
       python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
-      python -m pip install --only-binary ":all:" -f "https://vtk.org/download" "vtk>=9"
+      python -m pip install --upgrade --only-binary vtk vtk;
       python -m pip install https://github.com/enthought/mayavi/zipball/master
       python -m pip install -r requirements.txt
       python -m pip install codecov
