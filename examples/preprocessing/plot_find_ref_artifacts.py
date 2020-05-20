@@ -57,8 +57,12 @@ raw.plot_psd(fmax=30)
 ###############################################################################
 # Run the "together" algorithm
 raw_tog = raw.copy()
+ica_kwargs = dict(
+    method='picard',
+    fit_params=dict(tol=1e-3),  # use a high tol here for speed
+)
 all_picks = mne.pick_types(raw_tog.info, meg=True, ref_meg=True)
-ica_tog = ICA(n_components=60, allow_ref_meg=True)
+ica_tog = ICA(n_components=60, allow_ref_meg=True, **ica_kwargs)
 ica_tog.fit(raw_tog, picks=all_picks)
 bad_comps, scores = ica_tog.find_bads_ref(raw_tog, threshold=2.5)
 
@@ -83,7 +87,7 @@ raw_sep = raw.copy()
 
 # Do ICA only on the reference channels
 ref_picks = mne.pick_types(raw_sep.info, meg=False, ref_meg=True)
-ica_ref = ICA(n_components=2, allow_ref_meg=True)
+ica_ref = ICA(n_components=2, allow_ref_meg=True, **ica_kwargs)
 ica_ref.fit(raw_sep, picks=ref_picks)
 
 # Do ICA on both reference and standard channels. Here, we can just reuse
