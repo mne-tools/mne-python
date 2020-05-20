@@ -18,7 +18,8 @@ from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
 from mne.datasets import testing
 from mne.forward import use_coil_def
-from mne.io import read_raw_fif, read_info, read_raw_bti, read_raw_kit, BaseRaw
+from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
+                    BaseRaw, read_raw_ctf)
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -89,6 +90,7 @@ tri_cal_fname = op.join(triux_path, 'sss_cal_BMLHUS.dat')
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+ctf_fname_continuous = op.join(data_path, 'CTF', 'testdata_ctf.ds')
 
 # In some of the tests, use identical coil defs to what is used in
 # MaxFilter
@@ -1059,17 +1061,42 @@ def test_mf_skips():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('bads, annot', [
-    ([], False),
-    (['MEG 0111'], True),  # just do 0111 to test picking, add annot to test it
+@pytest.mark.parametrize('fname, bads, annot, add_ch, ignore_ref, want_bads', [
+    # Neuromag data tested against MF
+    (sample_fname, [], False, False, False, ['MEG 2443']),
+    # add 0111 to test picking, add annot to test it, and prepend chs for idx
+    (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443']),
+    # CTF data seems to be sensitive to linalg lib (?) because some channels
+    # are very close to the limit, so we just check that one shows up
+    (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}),
+    (ctf_fname_continuous, [], False, False, True, ['MLC24-4304']),  # faked
 ])
-def test_find_bad_channels_maxwell(bads, annot):
+def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
+                                   want_bads):
     """Test automatic bad channel detection."""
-    raw = mne.io.read_raw_fif(sample_fname, allow_maxshield='yes')
-    raw.fix_mag_coil_types().load_data().pick_types(exclude=())
+    if fname.endswith('.ds'):
+        raw = read_raw_ctf(fname).load_data()
+        flat_idx = 33
+    else:
+        raw = read_raw_fif(fname)
+        raw.fix_mag_coil_types().load_data().pick_types(meg=True, exclude=())
+        flat_idx = 1
     raw.filter(None, 40)
     raw.info['bads'] = bads
-    raw._data[1] = 0  # MaxFilter didn't have this but doesn't affect results
+    raw._data[flat_idx] = 0  # MaxFilter didn't have this but doesn't affect it
+    want_flats = [raw.ch_names[flat_idx]]
+    raw.apply_gradient_compensation(0)
+    if add_ch:
+        raw_eeg = read_raw_fif(fname)
+        raw_eeg.pick_types(meg=False, eeg=True, exclude=()).load_data()
+        raw_eeg.info['lowpass'] = 40.
+        raw = raw_eeg.add_channels([raw])  # prepend the EEG channels
+        assert 0 in pick_types(raw.info, meg=False, eeg=True)
+    if ignore_ref:
+        # Fake a bad one, otherwise we don't find any
+        assert 42 in pick_types(raw.info, ref_meg=False)
+        assert raw.ch_names[42:43] == want_bads
+        raw._data[42] += np.random.RandomState(0).randn(len(raw.times))
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
     if annot:
         # do a problematic one (gh-7741): exactly one "step" unit
@@ -1077,11 +1104,19 @@ def test_find_bad_channels_maxwell(bads, annot):
         dt = 1. / raw.info['sfreq']
         assert step == 1502
         raw.annotations.append(step * dt + raw._first_time, dt, 'BAD')
-    got_bads, got_flats = find_bad_channels_maxwell(
-        raw, origin=(0., 0., 0.04), regularize=None,
-        bad_condition='ignore', skip_by_annotation='BAD', verbose='debug')
-    assert got_bads == ['MEG 2443']  # from MaxFilter
-    assert got_flats == [raw.ch_names[1]]
+    with catch_logging() as log:
+        got_bads, got_flats = find_bad_channels_maxwell(
+            raw, origin=(0., 0., 0.04), regularize=None,
+            bad_condition='ignore', skip_by_annotation='BAD', verbose=True,
+            ignore_ref=ignore_ref)
+    if isinstance(want_bads, list):
+        assert got_bads == want_bads  # from MaxFilter
+    else:
+        assert want_bads.intersection(set(got_bads))
+    assert got_flats == want_flats
+    log = log.getvalue()
+    assert 'Interval   1:    0.00' in log
+    assert 'Interval   2:    5.00' in log
 
 
 run_tests_if_main()
