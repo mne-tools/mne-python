@@ -27,6 +27,8 @@ from scipy import linalg
 from scipy.linalg import LinAlgError
 from scipy._lib._util import _asarray_validated
 
+from ..fixes import take_along_axis
+
 _d = np.empty(0, np.float64)
 _z = np.empty(0, np.complex128)
 dgemm = linalg.get_blas_funcs('gemm', (_d,))
@@ -166,8 +168,8 @@ def _sym_inv(x, reduce_rank):
     # This is puts them in ascending (absolute) order, which can happen
     # when matrices are not positive semidefinite
     order = np.argsort(np.abs(s), axis=-1)[..., ::-1]
-    s = np.take_along_axis(s, order, axis=-1)
-    u = np.take_along_axis(u, order[..., np.newaxis, :], axis=-1)
+    s = take_along_axis(s, order, axis=-1)
+    u = take_along_axis(u, order[..., np.newaxis, :], axis=-1)
 
     # mimic default np.linalg.pinv behavior
     cutoff = 1e-15 * s[..., :1]

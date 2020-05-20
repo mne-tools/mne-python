@@ -986,6 +986,48 @@ def einsum(*args, **kwargs):
     return np.einsum(*args, **kwargs)
 
 
+try:
+    from numpy import take_along_axis
+except ImportError:  # NumPy < 1.15
+    def take_along_axis(arr, indices, axis):
+        # normalize inputs
+        if axis is None:
+            arr = arr.flat
+            arr_shape = (len(arr),)  # flatiter has no .shape
+            axis = 0
+        else:
+            # there is a NumPy function for this, but rather than copy our
+            # internal uses should be correct, so just normalize quickly
+            if axis < 0:
+                axis += arr.ndim
+            assert 0 <= axis < arr.ndim
+            arr_shape = arr.shape
+
+        # use the fancy index
+        return arr[_make_along_axis_idx(arr_shape, indices, axis)]
+
+    def _make_along_axis_idx(arr_shape, indices, axis):
+        # compute dimensions to iterate over
+        if not np.issubdtype(indices.dtype, np.integer):
+            raise IndexError('`indices` must be an integer array')
+        if len(arr_shape) != indices.ndim:
+            raise ValueError(
+                "`indices` and `arr` must have the same number of dimensions")
+        shape_ones = (1,) * indices.ndim
+        dest_dims = list(range(axis)) + [None] + list(range(axis+1, indices.ndim))
+
+        # build a fancy index, consisting of orthogonal aranges, with the
+        # requested index inserted at the right location
+        fancy_index = []
+        for dim, n in zip(dest_dims, arr_shape):
+            if dim is None:
+                fancy_index.append(indices)
+            else:
+                ind_shape = shape_ones[:dim] + (-1,) + shape_ones[dim+1:]
+                fancy_index.append(np.arange(n).reshape(ind_shape))
+
+        return tuple(fancy_index)
+
 ###############################################################################
 # From nilearn
 
