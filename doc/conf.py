@@ -537,6 +537,7 @@ sphinx_gallery_conf = {
     'capture_repr': ('_repr_html_',),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
+    'compress_images': ('images', 'thumbnails'),
 }
 
 ##############################################################################
