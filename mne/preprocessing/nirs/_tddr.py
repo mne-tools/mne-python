@@ -60,26 +60,25 @@ tddr = temporal_derivative_distribution_repair
 # With permission https://github.com/frankfishburn/TDDR/issues/1.
 # The only modification is the name, scipy signal import and flake fixes.
 def _TDDR(signal, sample_rate):
-    """Correct data using the TDDR algorithm for motion correction.
-
-    The algorithm is described in:
-    Fishburn F.A., Ludlum R.S., Vaidya C.J., & Medvedev A.V. (2019).
-    Temporal Derivative Distribution Repair (TDDR): A motion correction
-    method for fNIRS. NeuroImage, 184, 171-179.
-    https://doi.org/10.1016/j.neuroimage.2018.09.025
-
-    Parameters
-    ----------
-    signal : ndarray
-        Uncorrected optical density data (sample x channel).
-    sample_rate : float
-        Sampling rate in Hz.
-
-    Returns
-    -------
-    signal_corrected : ndarray
-        Corrected optical density data (sample x channel).
-    """
+    # This function is the reference implementation for the TDDR algorithm for
+    #   motion correction of fNIRS data, as described in:
+    #
+    #   Fishburn F.A., Ludlum R.S., Vaidya C.J., & Medvedev A.V. (2019).
+    #   Temporal Derivative Distribution Repair (TDDR): A motion correction
+    #   method for fNIRS. NeuroImage, 184, 171-179.
+    #   https://doi.org/10.1016/j.neuroimage.2018.09.025
+    #
+    # Usage:
+    #   signals_corrected = TDDR( signals , sample_rate );
+    #
+    # Inputs:
+    #   signals: A [sample x channel] matrix of uncorrected optical density
+    #            data
+    #   sample_rate: A scalar reflecting the rate of acquisition in Hz
+    #
+    # Outputs:
+    #   signals_corrected: A [sample x channel] matrix of corrected optical
+    #   density data
     from scipy.signal import butter, filtfilt
     signal = np.array(signal)
     if len(signal.shape) != 1:
