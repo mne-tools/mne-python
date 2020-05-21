@@ -27,7 +27,7 @@ import mne
 
 boxy_data_folder = mne.datasets.boxy_example.data_path()
 boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
-raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
+raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
 
 ###separate data based on montages###
 mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 

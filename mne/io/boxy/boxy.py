@@ -527,6 +527,85 @@ class RawBOXY(BaseRaw):
     
                                 # save our data based on data type
                                 data_[index_loc, :] = boxy_array[:, channel]
+                                
+                    ###phase unwrapping###
+                    # thresh = 0.00000001
+                    # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_matlab.mat",
+                    #                   mdict=dict(data=data_))
+                    if i_data == 'Ph':
+                        print('Fixing phase wrap')
+                        for i_chan in range(np.size(data_, axis=0)):
+                            if np.mean(data_[i_chan,:50]) < 180:
+                                wrapped_points = data_[i_chan, :] > 270
+                                data_[i_chan, wrapped_points] -= 360
+                            else:
+                                wrapped_points = data_[i_chan,:] < 90
+                                data_[i_chan, wrapped_points] += 360
+                                
+                        # unwrapped_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_unwrap_python.mat")
+                        
+                        # test1 = abs(unwrapped_data['data'] - data_) <= thresh
+                        # test1.all()
+                                
+                        print('Detrending phase data')
+                        # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_unwrap_matlab.mat",
+                        #               mdict=dict(data=data_))
+                        
+                        y = np.linspace(0, np.size(data_, axis=1)-1,
+                                        np.size(data_, axis=1))
+                        x = np.transpose(y)
+                        for i_chan in range(np.size(data_, axis=0)):
+                            poly_coeffs = np.polyfit(x,data_[i_chan, :] ,3)
+                            tmp_ph = data_[i_chan, :] - np.polyval(poly_coeffs,x)
+                            data_[i_chan, :] = tmp_ph
+                            
+                        # detrend_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_detrend_python.mat")
+                            
+                        # test2 = abs(detrend_data['data'] - data_) <= thresh
+                        # test2.all()
+                        
+                        print('Removing phase mean')
+                        # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_detrend_matlab.mat",
+                        #               mdict=dict(data=data_))
+                        
+                        mrph = np.mean(data_,axis=1);
+                        for i_chan in range(np.size(data_, axis=0)):
+                            data_[i_chan,:]=(data_[i_chan,:]-mrph[i_chan])
+                            
+                        # mean_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_mean_python.mat")
+                        
+                        # test3 = abs(mean_data['data'] - data_) <= thresh
+                        # test3.all()
+                        
+                        print('Removing phase outliers')
+                        # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_mean_matlab.mat",
+                        #               mdict=dict(data=data_))
+                        
+                        ph_out_thr=3; # always set to "3" per Kathy & Gabriele Oct 12 2012
+                        sdph=np.std(data_,1, ddof = 1); #set ddof to 1 to mimic matlab
+                        n_ph_out = np.zeros(np.size(data_, axis=0), dtype= np.int8)
+                        
+                        for i_chan in range(np.size(data_, axis=0)):
+                            outliers = np.where(np.abs(data_[i_chan,:]) > 
+                                        (ph_out_thr*sdph[i_chan]))
+                            outliers = outliers[0]
+                            if len(outliers) > 0:
+                                if outliers[0] == 0:
+                                    outliers = outliers[1:]
+                                if len(outliers) > 0:
+                                    if outliers[-1] == np.size(data_, axis=1) - 1:
+                                        outliers = outliers[:-1]
+                                    n_ph_out[i_chan] = int(len(outliers))
+                                    for i_pt in range(n_ph_out[i_chan]):
+                                        j_pt = outliers[i_pt]
+                                        data_[i_chan,j_pt] = (
+                                            (data_[i_chan,j_pt-1] + 
+                                              data_[i_chan,j_pt+1])/2)
+                                        
+                        # outlier_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_outliers_python.mat")
+                        
+                        # test4 = abs(outlier_data['data'] - data_) <= thresh
+                        # test4.all()
     
                 # swap channels to match new wavelength order
                 for i_chan in range(0, len(data_), 2):
