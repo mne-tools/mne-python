@@ -391,12 +391,8 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 .. rubric:: Examples using ``{0}``:
 
-.. include:: {1}.examples
-   :start-line: 5
+.. minigallery:: {1}
 
-.. raw:: html
-
-    <div style="clear:both"></div>
 """.format(name.split('.')[-1], name).split('\n')
 
 
@@ -537,6 +533,7 @@ sphinx_gallery_conf = {
     'capture_repr': ('_repr_html_',),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
+    'compress_images': ('images', 'thumbnails'),
 }
 
 ##############################################################################
