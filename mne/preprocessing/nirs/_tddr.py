@@ -33,7 +33,7 @@ def temporal_derivative_distribution_repair(raw):
     Notes
     -----
     There is a shorter alias :func:`mne.preprocessing.nirs.tddr` that can be
-    used instead of this function (e.g. if PEP8 character limit is an issue).
+    used instead of this function (e.g. if line length is an issue).
 
     References
     ----------
