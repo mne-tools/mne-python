@@ -12,7 +12,7 @@ from ...utils import _validate_type
 from ...io.pick import _picks_to_idx
 
 
-def tddr(raw):
+def temporal_derivative_distribution_repair(raw):
     """Apply temporal derivative distribution repair to data.
 
     Applies temporal derivative distribution repair (TDDR) to data
@@ -30,6 +30,11 @@ def tddr(raw):
     raw : instance of Raw
          Data with TDDR applied.
 
+    Notes
+    -----
+    There is a shorter alias :func:`mne.preprocessing.nirs.tddr` that can be
+    used instead of this function (e.g. if PEP8 character limit is an issue).
+
     References
     ----------
     .. footbibliography::
@@ -45,6 +50,10 @@ def tddr(raw):
         raw._data[pick] = _TDDR(raw._data[pick], raw.info['sfreq'])
 
     return raw
+
+
+# provide a short alias
+tddr = temporal_derivative_distribution_repair
 
 
 # Taken from https://github.com/frankfishburn/TDDR/ (MIT license).

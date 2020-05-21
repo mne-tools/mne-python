@@ -9,8 +9,7 @@ import numpy as np
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
-from mne.preprocessing.nirs import optical_density, \
-    tddr
+from mne.preprocessing.nirs import optical_density, tddr
 from mne.datasets import testing
 
 
