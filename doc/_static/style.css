@@ -85,6 +85,11 @@ blockquote {
     margin-bottom: 5px;
 }
 
+.devbar a {
+    color: #fff;
+    font-weight: bold;
+}
+
 #navbar a:hover {
     color: rgb(242, 80, 80);
 }
