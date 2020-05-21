@@ -16,7 +16,8 @@ how artifact correction techniques attempt to correct the data.
 import os
 import mne
 
-from mne.preprocessing.nirs import optical_density, tddr
+from mne.preprocessing.nirs import (optical_density,
+                                    temporal_derivative_distribution_repair)
 
 ###############################################################################
 # Import data
@@ -74,7 +75,7 @@ corrupted_od.plot(n_channels=15, duration=400, show_scrollbars=False)
 # This approach corrects baseline shift and spike artifacts without the need
 # for any user-supplied parameters :footcite:`FishburnEtAl2019`.
 
-corrected_tddr = tddr(corrupted_od)
+corrected_tddr = temporal_derivative_distribution_repair(corrupted_od)
 corrected_tddr.plot(n_channels=15, duration=400, show_scrollbars=False)
 
 
