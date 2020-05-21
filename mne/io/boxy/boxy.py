@@ -13,6 +13,7 @@ from ..meas_info import create_info
 from ...transforms import apply_trans, get_ras_to_neuromag_trans
 from ...utils import logger, verbose, fill_doc
 from ...channels.montage import make_dig_montage
+from ...annotations import Annotations
 
 
 @fill_doc
@@ -108,6 +109,7 @@ class RawBOXY(BaseRaw):
             with open(i_file, 'r') as data:
                 for line_num, i_line in enumerate(data, 1):
                     if '#DATA ENDS' in i_line:
+                        #data ends just before this
                         end_line.append(line_num - 1)
                         break
                     if 'Detector Channels' in i_line:
@@ -123,7 +125,8 @@ class RawBOXY(BaseRaw):
                     elif 'Updata Rate (Hz)' in i_line:
                         srate.append(float(i_line.rsplit(' ')[0]))
                     elif '#DATA BEGINS' in i_line:
-                        start_line.append(line_num)
+                        #data starts a couple lines later
+                        start_line.append(line_num + 2)
                     elif 'exmux' in i_line:
                         filetype[file_num] = 'non-parsed'
 
@@ -204,7 +207,7 @@ class RawBOXY(BaseRaw):
                 detect_coords.append(all_coords[chan_index])
 
         # Generate meaningful channel names for each montage
-        # get our unique labels for sources and detectors for each montage            
+        # get our unique labels for sources and detectors for each montage
         unique_source_labels = []
         unique_detect_labels = []
         for mtg_num, i_mtg in enumerate(mtg_chan_num, 0):
@@ -292,9 +295,11 @@ class RawBOXY(BaseRaw):
                                           rpa=fiducial_coords[2])
 
         # create info structure
-        info = create_info(boxy_labels, srate[0], ch_types='fnirs_raw')
+        ch_types = (['fnirs_raw' if i_chan < np.sum(mtg_chan_num) else 'stim'
+                     for i_chan, _ in enumerate(boxy_labels)])
+        info = create_info(boxy_labels, srate[0], ch_types=ch_types)
+        
         # add dig info
-
         # this also applies a transform to the data into neuromag space
         # based on fiducials
         info.set_montage(my_dig_montage)
@@ -313,9 +318,12 @@ class RawBOXY(BaseRaw):
                                                   fiducial_coords[2])
 
         for i_chan in range(len(boxy_labels)):
-            temp_ch_src_det = apply_trans(native_head_t,
-                                          boxy_coords[i_chan][:9].reshape(3, 3)
-                                          ).ravel()
+            if i_chan < np.sum(mtg_chan_num):
+                temp_ch_src_det = apply_trans(native_head_t,
+                                              boxy_coords[i_chan][:9].reshape(3, 3)
+                                              ).ravel()
+            else:
+                temp_ch_src_det = np.zeros(9,)#don't want to transform markers
             # add wavelength and placeholders
             temp_other = np.asarray(boxy_coords[i_chan][9:], dtype=np.float64)
             info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det,
@@ -329,7 +337,8 @@ class RawBOXY(BaseRaw):
                       'files': files,
                       'montages': mtg_names,
                       'blocks': blk_names,
-                      'data_types': data_types,}
+                      'data_types': data_types,
+                      }
         
         ###check to make sure data is the same length for each file
         ###boxy can be set to only record so many sample points per recording
@@ -355,22 +364,24 @@ class RawBOXY(BaseRaw):
         print('Original Difference: ', end_line[0] - start_line[0])
         first_samps = start_line[0]
         print('New first_samps: ', first_samps)
-        diff = end_line[0] - start_line[0]
+        diff = end_line[0] - (start_line[0])
 
         # input file has rows for each source,
         # output variable rearranges as columns and does not
         if filetype[0] == 'non-parsed':
-            last_samps = ((((diff - 2)*len(blk_names[0])) // (source_num[0])) + 
-                          start_line[0] - 1)
+            last_samps = ((diff*len(blk_names[0])) // (source_num[0]))
         elif filetype[0] == 'parsed':
-            last_samps = (start_line[0] + ((diff - 3)*len(blk_names[0])))
-            
+            last_samps = diff*len(blk_names[0])
+
+        # first sample is technically sample 0, not the start line in the file
+        first_samps = 0
+
         print('New last_samps: ', last_samps)
         print('New Difference: ', last_samps - first_samps)
-        
+
         super(RawBOXY, self).__init__(
             info, preload, filenames=[fname], first_samps=[first_samps],
-            last_samps=[last_samps],
+            last_samps=[last_samps-1],
             raw_extras=[raw_extras], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -405,6 +416,7 @@ class RawBOXY(BaseRaw):
             else: print('No event file found. Using digaux!')
                 
         except:
+            print('No event file found. Using digaux!')
             pass
 
         # detectors, sources, and data types
@@ -424,20 +436,13 @@ class RawBOXY(BaseRaw):
                 boxy_data = []
                 with open(boxy_file, 'r') as data_file:
                     for line_num, i_line in enumerate(data_file, 1):
+                        if line_num == (start_line[i_blk] - 1):# grab column names
+                            col_names = np.asarray(re.findall('\w+\-\w+|\w+\-\d+|\w+',
+                                       i_line.rsplit(' ')[0]))
                         if line_num > start_line[file_num] and line_num <= end_line[file_num]:
                             boxy_data.append(i_line.rsplit(' '))
     
                 sources = np.arange(1, source_num[file_num] + 1, 1)
-    
-                # get column names from the first row of our boxy data
-                col_names = np.asarray(re.findall('\w+\-\w+|\w+\-\d+|\w+',
-                                       boxy_data[0][0]))
-                del boxy_data[0]
-    
-                # sometimes there is an empty line before our data starts
-                # this should remove them
-                while re.findall('[-+]?\d*\.?\d+', boxy_data[0][0]) == []:
-                    del boxy_data[0]
     
                 # grab the individual data points for each column
                 boxy_data = [re.findall('[-+]?\d*\.?\d+', i_row[0])
@@ -545,6 +550,15 @@ class RawBOXY(BaseRaw):
                             block_markers.append(meta_data['digaux'])
                     else:
                         block_markers.append(np.zeros((len(data_[0, :]),)))
+                        
+                ###check our markers to see if anything is actually in there###
+                if (all(i_mrk == 0 for i_mrk in block_markers[i_blk]) or 
+                    all(i_mrk == 255 for i_mrk in block_markers[i_blk])):
+                    print('No markers for montage ' + mtg_name + 
+                          ' and block ' + blk_name)
+                else:
+                    print('Found markers for montage ' + mtg_name + 
+                          ' and block ' + blk_name + '!')
                     
                 #change marker for last timepoint to indicate end of block
                 #we'll be using digaux to send markers, which is a serial port
