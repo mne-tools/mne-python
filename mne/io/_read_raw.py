@@ -58,6 +58,8 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs):
     ----------
     fname : str
         File name to load.
+    %(preload)s
+    %(verbose)s
     **kwargs
         Keyword arguments to pass to the underlying reader. For details, see
         the arguments of the reader for the underlying file format.
