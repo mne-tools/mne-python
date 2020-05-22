@@ -261,6 +261,16 @@ fig.subplots_adjust(top=0.88)
 # # First we extract the events of interest and visualise them to ensure they are
 # # correct.
 
+# all montages
+all_mtg_events = mne.find_events(raw_intensity, stim_channel=['Markers a','Markers b'])
+
+fig = mne.viz.plot_events(all_mtg_events)
+fig.subplots_adjust(right=0.7)  # make room for the legend
+
+raw_intensity.plot(events=all_mtg_events, start=0, duration=10,color='gray',
+                   event_color={1: 'r', 2: 'b', 1000: 'k', 2000: 'k'})
+
+# montage a
 mtg_a_events = mne.find_events(mtg_a_intensity, stim_channel='Markers a')
 
 fig = mne.viz.plot_events(mtg_a_events)
@@ -269,6 +279,7 @@ fig.subplots_adjust(right=0.7)  # make room for the legend
 mtg_a_intensity.plot(events=mtg_a_events, start=0, duration=10,color='gray',
                    event_color={1: 'r', 2: 'b', 1000: 'k'})
 
+# montage b
 mtg_b_events = mne.find_events(mtg_b_intensity, stim_channel='Markers b')
 
 fig = mne.viz.plot_events(mtg_b_events)
@@ -286,6 +297,15 @@ mtg_b_intensity.plot(events=mtg_b_events, start=0, duration=10,color='gray',
 reject_criteria = None
 tmin, tmax = -0.2, 1
 
+# all montage
+all_mtg_haemo_epochs = mne.Epochs(raw_haemo, all_mtg_events,
+                    tmin=tmin, tmax=tmax,
+                    reject=reject_criteria, reject_by_annotation=False,
+                    proj=True, baseline=(None, 0), preload=True,
+                    detrend=None, verbose=True)
+all_mtg_haemo_epochs.plot_drop_log()
+
+# montage a
 mtg_a_haemo_epochs = mne.Epochs(raw_haemo_a, mtg_a_events,
                     tmin=tmin, tmax=tmax,
                     reject=reject_criteria, reject_by_annotation=False,
@@ -293,7 +313,7 @@ mtg_a_haemo_epochs = mne.Epochs(raw_haemo_a, mtg_a_events,
                     detrend=None, verbose=True)
 mtg_a_haemo_epochs.plot_drop_log()
 
-
+#montage b
 mtg_b_haemo_epochs = mne.Epochs(raw_haemo_b, mtg_b_events,
                     tmin=tmin, tmax=tmax,
                     reject=reject_criteria, reject_by_annotation=False,
@@ -303,6 +323,16 @@ mtg_b_haemo_epochs.plot_drop_log()
 
 
 #get epochs from the raw intensities
+
+# all montages
+all_mtg_epochs = mne.Epochs(raw_intensity, all_mtg_events, 
+                    event_id=dict(event_1=1,event_2=2),
+                    tmin=tmin, tmax=tmax,
+                    reject=None, reject_by_annotation=False,
+                    proj=False, baseline=(-0.2, 0), preload=True,
+                    detrend=None, verbose=True)
+
+#montage a
 mtg_a_epochs = mne.Epochs(mtg_a_intensity, mtg_a_events, 
                     event_id=dict(event_1=1,event_2=2),
                     tmin=tmin, tmax=tmax,
@@ -310,6 +340,7 @@ mtg_a_epochs = mne.Epochs(mtg_a_intensity, mtg_a_events,
                     proj=False, baseline=(-0.2, 0), preload=True,
                     detrend=None, verbose=True)
 
+#montage b
 mtg_b_epochs = mne.Epochs(mtg_b_intensity, mtg_b_events, 
                     event_id=dict(event_1=1,event_2=2),
                     tmin=tmin, tmax=tmax,
@@ -318,9 +349,16 @@ mtg_b_epochs = mne.Epochs(mtg_b_intensity, mtg_b_events,
                     detrend=None, verbose=True)
 
 #two ways to plot epochs, should be the same
+
+#all montages
+fig = mne.viz.plot_epochs(all_mtg_epochs,n_epochs=5,n_channels=5, scalings='auto')
+fig = all_mtg_epochs.plot(n_epochs=5,n_channels=5, scalings='auto')
+
+#montage a
 fig = mne.viz.plot_epochs(mtg_a_epochs,n_epochs=5,n_channels=5, scalings='auto')
 fig = mtg_a_epochs.plot(n_epochs=5,n_channels=5, scalings='auto')
 
+#montage b
 fig = mne.viz.plot_epochs(mtg_b_epochs,n_epochs=5,n_channels=5, scalings='auto')
 fig = mtg_b_epochs.plot(n_epochs=5,n_channels=5, scalings='auto')
 
@@ -336,6 +374,17 @@ fig = mtg_b_epochs.plot(n_epochs=5,n_channels=5, scalings='auto')
 # # the HbO peak.
 
 #haemo plots
+
+# all montages
+all_mtg_haemo_epochs['1'].plot_image(combine='mean', vmin=-30, vmax=30,
+                              ts_args=dict(ylim=dict(hbo=[-15, 15],
+                                                    hbr=[-15, 15])))
+
+all_mtg_haemo_epochs['2'].plot_image(combine='mean', vmin=-30, vmax=30,
+                              ts_args=dict(ylim=dict(hbo=[-15, 15],
+                                                    hbr=[-15, 15])))
+
+# montage a
 mtg_a_haemo_epochs['1'].plot_image(combine='mean', vmin=-30, vmax=30,
                               ts_args=dict(ylim=dict(hbo=[-15, 15],
                                                     hbr=[-15, 15])))
@@ -344,6 +393,7 @@ mtg_a_haemo_epochs['2'].plot_image(combine='mean', vmin=-30, vmax=30,
                               ts_args=dict(ylim=dict(hbo=[-15, 15],
                                                     hbr=[-15, 15])))
 
+# montage b
 mtg_b_haemo_epochs['1'].plot_image(combine='mean', vmin=-30, vmax=30,
                               ts_args=dict(ylim=dict(hbo=[-15, 15],
                                                     hbr=[-15, 15])))
@@ -354,6 +404,8 @@ mtg_b_haemo_epochs['2'].plot_image(combine='mean', vmin=-30, vmax=30,
 
 #raw epochs
 #separate first and last detectors
+
+# all montages
 mtg_a_first_det = ([i_index for i_index,i_label in
                    enumerate(mtg_a_epochs.info['ch_names']) if
                    re.search(r'_D[1-4]', i_label)])
@@ -362,6 +414,16 @@ mtg_a_last_det = ([i_index for i_index,i_label in
                    enumerate(mtg_a_epochs.info['ch_names']) if
                    re.search(r'_D[5-8]', i_label)])
 
+# montage a
+mtg_a_first_det = ([i_index for i_index,i_label in
+                   enumerate(mtg_a_epochs.info['ch_names']) if
+                   re.search(r'_D[1-4]', i_label)])
+
+mtg_a_last_det = ([i_index for i_index,i_label in
+                   enumerate(mtg_a_epochs.info['ch_names']) if
+                   re.search(r'_D[5-8]', i_label)])
+
+#montage b
 mtg_b_first_det = ([i_index for i_index,i_label in
                    enumerate(mtg_b_epochs.info['ch_names']) if
                    re.search(r'_D(9|1[0-2])', i_label)])
@@ -371,6 +433,8 @@ mtg_b_last_det = ([i_index for i_index,i_label in
                    re.search(r'_D1[3-6]', i_label)])
 
 #plot our two events for both montages
+
+# all montages
 fig = mtg_a_epochs['event_1'].plot_image(combine='mean', vmin=-20, vmax=20, 
                                    colorbar=True, title='Montage A Event 1',
                                    group_by=dict(FIRST_DET=mtg_a_first_det, 
@@ -381,15 +445,19 @@ fig = mtg_a_epochs['event_2'].plot_image(combine='mean', vmin=-20, vmax=20,
                                    group_by=dict(FIRST_DET=mtg_a_first_det, 
                                                  LAST_DET=mtg_a_last_det))
 
+# montage a
+fig = mtg_a_epochs['event_1'].plot_image(combine='mean', vmin=-20, vmax=20, 
+                                   colorbar=True, title='Montage A Event 1')
+
+fig = mtg_a_epochs['event_2'].plot_image(combine='mean', vmin=-20, vmax=20, 
+                                   colorbar=True, title='Montage A Event 2')
+
+# montage b
 fig = mtg_b_epochs['event_1'].plot_image(combine='mean', vmin=-20, vmax=20, 
-                                   colorbar=True, title='Montage B Event 1',
-                                   group_by=dict(FIRST_DET=mtg_b_first_det, 
-                                                 LAST_DET=mtg_b_last_det))
+                                   colorbar=True, title='Montage B Event 1')
 
 fig = mtg_b_epochs['event_2'].plot_image(combine='mean', vmin=-20, vmax=20, 
-                                   colorbar=True, title='Montage B Event 2',
-                                   group_by=dict(FIRST_DET=mtg_b_first_det, 
-                                                 LAST_DET=mtg_b_last_det))
+                                   colorbar=True, title='Montage B Event 2')
 
 # ###############################################################################
 # # View consistency of responses across channels
