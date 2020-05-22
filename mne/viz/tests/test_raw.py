@@ -102,7 +102,7 @@ def _annotation_helper(raw, events=False):
                 kind='release')
     if mpl_good_enough:
         assert raw.annotations.onset[n_anns] == onset
-        assert_allclose(raw.annotations.duration[n_anns], 1.5)
+        assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4->1.5
     # modify annotation from beginning
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1, kind='motion')

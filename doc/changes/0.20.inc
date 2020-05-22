@@ -8,6 +8,17 @@
    - "API" for backward-incompatible changes
 
 
+.. _changes_0_20_8:
+
+Version 0.20.8
+--------------
+
+Bug
+~~~
+
+- Fix bug with :meth:`mne.io.Raw.plot` with newer matplotlib where tick labeling would raise an error by `Eric Larson`_
+
+
 .. _changes_0_20_7:
 
 Version 0.20.7
