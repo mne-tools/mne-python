@@ -22,6 +22,7 @@ from . import _fake
 from . import phantom_4dbti
 from . import sleep_physionet
 from . import limo
+from . import refmeg_noise
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation)
 from ._fsaverage.base import fetch_fsaverage

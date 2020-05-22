@@ -733,7 +733,9 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
                        for _ in range(n_ch)]
-    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    ax.set_yticklabels(
+        ['X' * max([len(ch) for ch in info['ch_names']])] *
+        len(params['offsets']))
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
