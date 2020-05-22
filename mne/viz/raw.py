@@ -926,6 +926,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
     if not butterfly:
+        params['ax'].set_yticks(params['offsets'][:len(tick_list)])
         params['ax'].set_yticklabels(tick_list, rotation=0)
         _set_ax_label_style(params['ax'], params)
     if 'fig_selection' not in params:
