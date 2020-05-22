@@ -39,7 +39,7 @@ Changelog
 
 - :func:`mne.viz.plot_dipole_locations` and :meth:`mne.Dipole.plot_locations` gained a ``title`` argument to specify a custom figure title in ``orthoview`` mode by `Richard Höchenberger`_
 
-- Add temporal derivative distribution repair (TDDR) :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repar` with shortened alias ``mne.preprocessing.nirs.tddr`` by `Robert Luke`_
+- Add temporal derivative distribution repair (TDDR) :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` with shortened alias ``mne.preprocessing.nirs.tddr`` by `Robert Luke`_
 
 - Add :func:`mne.read_freesurfer_lut` to make it easier to work with volume atlases by `Eric Larson`_
 
