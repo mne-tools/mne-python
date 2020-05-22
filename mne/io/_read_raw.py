@@ -13,6 +13,7 @@ from . import (read_raw_edf, read_raw_bdf, read_raw_gdf, read_raw_brainvision,
                read_raw_eximia, read_raw_nirx, read_raw_fieldtrip,
                read_raw_artemis123, read_raw_nicolet, read_raw_kit,
                read_raw_ctf)
+from ..utils import fill_doc
 
 
 def _read_unsupported(fname, **kwargs):
@@ -51,6 +52,7 @@ suggested = {".vmrk": partial(_read_unsupported, suggest=".vhdr"),
 readers = {**supported, **suggested}
 
 
+@fill_doc
 def read_raw(fname, *, preload=False, verbose=None, **kwargs):
     """Read raw file.
 
