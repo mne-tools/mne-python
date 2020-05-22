@@ -3109,7 +3109,7 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
     colormap, lims = _linearize_map(mapdata)
     del mapdata
     norm = Normalize(vmin=lims[0], vmax=lims[2])
-    cbar = ColorbarBase(ax, colormap, norm=norm, ticks=ticks,
+    cbar = ColorbarBase(ax, cmap=colormap, norm=norm, ticks=ticks,
                         label=label, orientation=orientation)
     # make the colorbar background match the brain color
     cbar.patch.set(facecolor=bgcolor)
