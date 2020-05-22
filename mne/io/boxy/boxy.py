@@ -242,6 +242,7 @@ class RawBOXY(BaseRaw):
         mtg_end = []
         mtg_src_num = []
         mtg_det_num = []
+        mtg_mdf = []
         blk_num = [len(blk) for blk in blk_names]
         for mtg_num, i_mtg in enumerate(mtg_chan_num, 0):
             start = int(np.sum(mtg_chan_num[:mtg_num]))
@@ -254,6 +255,9 @@ class RawBOXY(BaseRaw):
             # get source and detector numbers for each montage
             mtg_src_num.append(source_num[start_blk])
             mtg_det_num.append(detect_num[start_blk])
+            # get modulation frequency for each channel and montage
+            # assuming modulation freq in MHz
+            mtg_mdf.append([int(chan_mdf)*1e6 for chan_mdf in chan_modulation[start:end]])
             for i_type in data_types:
                 for i_coord in range(start, end):
                     boxy_coords.append(np.mean(
@@ -328,7 +332,7 @@ class RawBOXY(BaseRaw):
             temp_other = np.asarray(boxy_coords[i_chan][9:], dtype=np.float64)
             info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det,
                                                         temp_other), axis=0)
-
+            
         raw_extras = {'source_num': source_num,
                       'detect_num': detect_num,
                       'start_line': start_line,
@@ -338,6 +342,7 @@ class RawBOXY(BaseRaw):
                       'montages': mtg_names,
                       'blocks': blk_names,
                       'data_types': data_types,
+                      'mtg_mdf': mtg_mdf,
                       }
         
         ###check to make sure data is the same length for each file
@@ -395,6 +400,7 @@ class RawBOXY(BaseRaw):
         data_types = self._raw_extras[fi]['data_types']
         montages = self._raw_extras[fi]['montages']
         blocks = self._raw_extras[fi]['blocks']
+        mtg_mdf = self._raw_extras[fi]['mtg_mdf']
         boxy_files = self._raw_extras[fi]['files']['*.[000-999]*']
         event_fname = os.path.join(self._filenames[fi], 'evt')
         
@@ -606,6 +612,11 @@ class RawBOXY(BaseRaw):
                         
                         # test4 = abs(outlier_data['data'] - data_) <= thresh
                         # test4.all()
+                        
+                        #convert phase to pico seconds
+                        for i_chan in range(np.size(data_, axis=0)):
+                            data_[i_chan,:] = ((1e12*data_[i_chan,:])/
+                                               (360*mtg_mdf[i_mtg][i_chan]))
     
                 # swap channels to match new wavelength order
                 for i_chan in range(0, len(data_), 2):
