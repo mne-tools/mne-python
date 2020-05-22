@@ -1303,15 +1303,16 @@ class ICA(ContainsMixin):
         is similar to an EOG/ECG, with reference components replacing the
         EOG/ECG channels. Recommended procedure is to perform ICA separately
         on reference channels, extract them using .get_sources(), and then
-        append them to the inst using .add_channels(), preferably with the
-        prefix REF_ICA so that they can be automatically detected.
+        append them to the inst using :meth:`~mne.io.Raw.add_channels`,
+        preferably with the prefix ``REF_ICA`` so that they can be
+        automatically detected.
 
         Thresholding in both cases is based on adaptive z-scoring:
-        The above threshold components will be masked and the z-score will be
+        The above-threshold components will be masked and the z-score will be
         recomputed until no supra-threshold component remains.
 
         Validation and further documentation for this technique can be found
-        in :footcite:`HannaEtAl2020`
+        in :footcite:`HannaEtAl2020`.
 
         .. versionadded:: 0.18
 
@@ -1394,7 +1395,7 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-        measure : {'zscore', "cor"}
+        measure : 'zscore' | 'cor'
             Which method to use for finding outliers. "zscore" (default) is
             the iterated Z-scoring method, and "cor" is an absolute raw
             correlation threshold with a range of 0 to 1.
