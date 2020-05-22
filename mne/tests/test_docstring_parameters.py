@@ -249,6 +249,7 @@ read_tag
 rescale
 setup_proj
 source_estimate_quantification
+tddr
 whiten_evoked
 write_fiducials
 write_info
