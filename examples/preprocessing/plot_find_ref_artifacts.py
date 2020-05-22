@@ -49,10 +49,13 @@ raw = io.read_raw_fif(raw_fname, preload=True)
 # Note that even though standard noise removal has already
 # been applied to these data, much of the noise in the reference channels
 # (bottom of the plot) can still be seen in the standard channels.
-select_picks = np.concatenate((mne.pick_types(raw.info)[-32:],
-                               mne.pick_types(raw.info, meg=False, ref_meg=True))) # noqa
-raw.plot(duration=800, order=select_picks, n_channels=len(select_picks),
-         scalings={"mag": 8e-13, "ref_meg": 2e-11})
+select_picks = np.concatenate(
+    (mne.pick_types(raw.info)[-32:],
+     mne.pick_types(raw.info, meg=False, ref_meg=True)))
+plot_kwargs = dict(
+    duration=100, order=select_picks, n_channels=len(select_picks),
+    scalings={"mag": 8e-13, "ref_meg": 2e-11})
+raw.plot(**plot_kwargs)
 
 ###############################################################################
 # The PSD of these data show the noise as clear peaks.
@@ -120,7 +123,13 @@ ica_sep.plot_properties(raw_sep, picks=bad_comps)
 raw_sep = ica_sep.apply(raw_sep, exclude=bad_comps)
 
 ###############################################################################
-# Cleaned data:
+# Cleaned raw data traces:
+
+raw_sep.plot(**plot_kwargs)
+
+###############################################################################
+# Cleaned raw data PSD:
+
 raw_sep.plot_psd(fmax=30)
 
 ##############################################################################

@@ -735,7 +735,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                        for _ in range(n_ch)]
     ax.set_yticklabels(
         ['X' * max([len(ch) for ch in info['ch_names']])] *
-        len(ax.get_yticks()))
+        len(params['offsets']))
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
