@@ -122,6 +122,11 @@ blockquote {
   border-radius: 0 0 4px 4px !important;
 }
 
+.devbar a {
+    color: #fff;
+    font-weight: bold;
+}
+
 .pad-top-30 {
   padding-top: 30px;
 }
