@@ -93,7 +93,6 @@ def pytest_configure(config):
     ignore:.*pandas\.util\.testing is deprecated.*:
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
-    ignore:.*Passing the dash.*:
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
