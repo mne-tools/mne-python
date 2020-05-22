@@ -2436,8 +2436,8 @@ def _setup_butterfly(params):
             ylim = (5. * len(picks), 0.)
             ax.set_ylim(ylim)
             offset = ylim[0] / (len(picks) + 1)
-            ticks = np.arange(0, ylim[0], offset)
-            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+            # ensure the last is not included
+            ticks = np.arange(0, ylim[0] - offset / 2., offset)
             ax.set_yticks(ticks)
             offsets = np.zeros(len(params['types']))
 
@@ -2446,8 +2446,8 @@ def _setup_butterfly(params):
                     offsets[pick] = offset * (group_idx + 1)
             params['inds'] = params['orig_inds'].copy()
             params['offsets'] = offsets
-            ax.set_yticklabels([''] + selections, color='black', rotation=45,
-                               va='top')
+            ax.set_yticklabels(
+                [''] + selections, color='black', rotation=45, va='top')
     else:
         params['inds'] = params['orig_inds'].copy()
         if 'fig_selection' not in params:
@@ -2603,8 +2603,8 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
         axes.spines['left'].set_bounds(*ybounds)
     # handle axis labels
     if skip_axlabel:
-        axes.set_yticklabels([])
-        axes.set_xticklabels([])
+        axes.set_yticklabels([''] * len(yticks))
+        axes.set_xticklabels([''] * len(xticks))
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)

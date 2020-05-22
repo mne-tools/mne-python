@@ -854,7 +854,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     projs = epochs.info['projs']
     noise_cov = _check_cov(noise_cov, epochs.info)
 
-    params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
+    params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
                   use_noise_cov=noise_cov is not None,
@@ -1092,10 +1092,10 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ax.set_yticks(offsets)
     ax.set_ylim(ylim)
     ticks = epoch_times + 0.5 * n_times
-    ax.set_xticks(ticks)
-    ax2.set_xticks(ticks[:n_epochs])
+    for ax_ in (ax, ax2):
+        ax_.set_xticks(ticks[:n_epochs])
     labels = list(range(0, len(ticks)))  # epoch numbers
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(labels[:n_epochs])
     xlim = epoch_times[-1] + len(orig_epoch_times)
     ax_hscroll.set_xlim(0, xlim)
     vertline_t = ax_hscroll.text(0, 1, '', color='y', va='bottom', ha='right')
@@ -1252,13 +1252,14 @@ def _plot_traces(params):
 
     n_times = len(epochs.times)
     tick_list = list()
-    start_idx = int(params['t_start'] / n_times)
+    start_idx = params['t_start'] // n_times
     end = params['t_start'] + params['duration']
-    end_idx = int(end / n_times)
-    xlabels = params['labels'][start_idx:]
-    event_ids = params['epochs'].events[:, 2]
-    params['ax2'].set_xticklabels(event_ids[start_idx:])
+    end_idx = end // n_times
+    xlabels = params['labels'][start_idx:end_idx]
+    event_ids = params['epochs'].events[start_idx:end_idx, 2]
+    params['ax2'].set_xticklabels(event_ids)
     ax.set_xticklabels(xlabels)
+    del event_ids, xlabels
     ylabels = ax.yaxis.get_ticklabels()
     # do the plotting
     for line_idx in range(n_channels):
@@ -1339,7 +1340,7 @@ def _plot_traces(params):
             0, ylim + 1, ylim / (4 * max(len(chan_types_split), 1)))
         offset_pos = np.arange(2, (len(chan_types_split) * 4) + 1, 4)
         ax.set_yticks(ticks)
-        labels = [''] * 20
+        labels = [''] * len(ticks)
         labels = [0 if idx in range(2, len(labels), 4) else label
                   for idx, label in enumerate(labels)]
         for idx_chan, chan_type in enumerate(chan_types_split):
@@ -1356,6 +1357,7 @@ def _plot_traces(params):
                 labels[li] = round(label, 2)
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
+        ax.set_yticks(params['offsets'][:len(tick_list)])
         ax.set_yticklabels(tick_list, fontsize=12)
         _set_ax_label_style(ax, params)
 
@@ -1382,7 +1384,7 @@ def _plot_update_epochs_proj(params, bools=None):
     n_epochs = params['n_epochs']
     params['projector'], params['whitened_ch_names'] = _setup_plot_projector(
         params['info'], params['noise_cov'], True, params['use_noise_cov'])
-    start = int(params['t_start'] / len(epochs.times))
+    start = params['t_start'] // len(epochs.times)
     end = start + n_epochs
     if epochs.preload:
         data = np.concatenate(epochs.get_data()[start:end], axis=1)
@@ -1419,6 +1421,7 @@ def _handle_picks(epochs):
 def _plot_window(value, params):
     """Deal with horizontal shift of the viewport."""
     max_times = len(params['times']) - params['duration']
+    value = int(round(value))
     if value > max_times:
         value = len(params['times']) - params['duration']
     if value < 0:
@@ -1681,7 +1684,8 @@ def _plot_onkey(event, params):
             return
         n_times = len(params['epochs'].times)
         ticks = params['epoch_times'] + 0.5 * n_times
-        params['ax2'].set_xticks(ticks[:n_epochs])
+        for key in ('ax', 'ax2'):
+            params[key].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
         params['duration'] -= n_times
         params['hsel_patch'].set_width(params['duration'])
@@ -1693,7 +1697,8 @@ def _plot_onkey(event, params):
         if n_times * n_epochs > len(params['times']):
             return
         ticks = params['epoch_times'] + 0.5 * n_times
-        params['ax2'].set_xticks(ticks[:n_epochs])
+        for key in ('ax', 'ax2'):
+            params[key].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
         if len(params['vert_lines']) > 0:
             ax = params['ax']
@@ -1842,7 +1847,8 @@ def _update_channels_epochs(event, params):
     n_epochs = int(np.around(params['epoch_slider'].val))
     n_times = len(params['epochs'].times)
     ticks = params['epoch_times'] + 0.5 * n_times
-    params['ax2'].set_xticks(ticks[:n_epochs])
+    for key in ('ax', 'ax2'):
+        params[key].set_xticks(ticks[:n_epochs])
     params['n_epochs'] = n_epochs
     params['duration'] = n_times * n_epochs
     params['hsel_patch'].set_width(params['duration'])
@@ -2003,7 +2009,7 @@ def _draw_event_lines(params):
     includes_tzero = False
     epochs = params['epochs']
     n_times = len(epochs.times)
-    start_idx = int(params['t_start'] / n_times)
+    start_idx = params['t_start'] // n_times
     color = params['event_colors']
     ax = params['ax']
     for ev_line in params['ev_lines']:

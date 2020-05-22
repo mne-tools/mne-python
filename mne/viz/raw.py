@@ -733,7 +733,9 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
                        for _ in range(n_ch)]
-    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    ax.set_yticklabels(
+        ['X' * max([len(ch) for ch in info['ch_names']])] *
+        len(params['offsets']))
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
@@ -924,6 +926,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
     if not butterfly:
+        params['ax'].set_yticks(params['offsets'][:len(tick_list)])
         params['ax'].set_yticklabels(tick_list, rotation=0)
         _set_ax_label_style(params['ax'], params)
     if 'fig_selection' not in params:
