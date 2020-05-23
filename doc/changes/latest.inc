@@ -73,6 +73,8 @@ Changelog
 
 - Add support for loading complex numbers from mat files by `Thomas Hartmann`_
 
+- Add generic reader function :func:`mne.io.read_raw` that loads files based on their extensions (it wraps the underlying specific ``read_raw_xxx`` functions) by `Clemens Brunner`_
+
 Bug
 ~~~
 
