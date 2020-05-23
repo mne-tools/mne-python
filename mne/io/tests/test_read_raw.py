@@ -4,10 +4,12 @@
 #
 # License: BSD (3-clause)
 
-
+from pathlib import Path
 import pytest
-
 from mne.io import read_raw
+
+
+base = Path(__file__).parent.parent
 
 
 @pytest.mark.parametrize('fname', ['x.xxx', 'x'])
@@ -24,10 +26,10 @@ def test_read_raw_suggested(fname):
         read_raw(fname)
 
 
-@pytest.mark.parametrize('fname', ['../edf/tests/data/test.edf',
-                                   '../edf/tests/data/test.bdf',
-                                   '../brainvision/tests/data/test.vhdr',
-                                   '../kit/tests/data/test.sqd'])
+@pytest.mark.parametrize('fname', [base / 'edf/tests/data/test.edf',
+                                   base / 'edf/tests/data/test.bdf',
+                                   base / 'brainvision/tests/data/test.vhdr',
+                                   base / 'kit/tests/data/test.sqd'])
 def test_read_raw_supported(fname):
     """Test supported file types."""
     read_raw(fname)
