@@ -1220,8 +1220,9 @@ class ICA(ContainsMixin):
 
         if method == 'ctps':
             if threshold is None:
-                warn('The default threshold will change from 0.25 to automatic'
-                     'computation in version 0.22.', DeprecationWarning)
+                warn('The default threshold will change from 0.25 to'
+                     'automatical computation in version 0.22.',
+                     DeprecationWarning)
                 threshold = 0.25
                 # TODO: defaults to automatic computation in v0.22
                 # threshold = self._get_ctps_threshold()
