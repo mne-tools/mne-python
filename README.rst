@@ -22,10 +22,10 @@
 .. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
 .. _conda-forge: https://anaconda.org/conda-forge/mne
 
-.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
-.. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
+.. _Zenodo: https://doi.org/10.5281/zenodo.592483
 
-.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.png
 .. _MNE: https://mne.tools/dev/
 
 MNE-Python
