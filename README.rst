@@ -4,7 +4,7 @@
 
 |MNE|_
 
-.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
+.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.svg?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
 
 .. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
