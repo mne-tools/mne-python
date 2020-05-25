@@ -1274,6 +1274,12 @@ def test_save(tmpdir):
     assert_array_equal(annot.description, new_raw.annotations.description)
     assert annot.orig_time == new_raw.annotations.orig_time
 
+    # test set_meas_date(None)
+    raw.set_meas_date(None)
+    raw.save(new_fname, overwrite=True)
+    new_raw = read_raw_fif(new_fname, preload=False)
+    assert new_raw.info['meas_date'] is None
+
 
 @testing.requires_testing_data
 def test_annotation_crop(tmpdir):
