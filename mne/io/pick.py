@@ -12,7 +12,7 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option)
+                     _check_option, warn)
 
 
 def get_channel_type_constants():
@@ -298,7 +298,7 @@ def _check_info_exclude(info, exclude):
     return exclude
 
 
-def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
+def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
                gof=False, bio=False, ecog=False, fnirs=False, csd=False,
@@ -310,10 +310,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     info : dict
         The measurement info.
     meg : bool | str
-        If True include all MEG channels. If False include None
-        If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
-        only magnetometers, all gradiometers, or a specific type of
-        gradiometer.
+        If True include MEG channels. If string it can be 'mag', 'grad',
+        'planar1' or 'planar2' to select only magnetometers, all gradiometers,
+        or a specific type of gradiometer.
     eeg : bool
         If True include EEG channels.
     stim : bool
@@ -325,10 +324,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     emg : bool
         If True include EMG channels.
     ref_meg : bool | str
-        If True include CTF / 4D reference channels. If 'auto', the
-        reference channels included if compensations are present
-        and ``meg`` is not False. Can also be the string options allowed
-        for the ``meg`` parameter.
+        If True include CTF / 4D reference channels. If 'auto', reference
+        channels are included if compensations are present and ``meg`` is not
+        False. Can also be the string options for the ``meg`` parameter.
     misc : bool
         If True include miscellaneous analog channels.
     resp : bool
@@ -374,6 +372,10 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     """
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
+    if meg is None:
+        meg = True
+        warn("The default of meg=True will change to meg=False in version "
+             "0.22.", DeprecationWarning)
     exclude = _check_info_exclude(info, exclude)
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
