@@ -74,7 +74,7 @@ ica_tog.fit(raw_tog, picks=all_picks)
 bad_comps, scores = ica_tog.find_bads_ref(raw_tog, threshold=2.5)
 
 # Plot scores with bad components marked.
-ica_tog.plot_scores(scores, bad_comps, n_cols=1)
+ica_tog.plot_scores(scores, bad_comps)
 
 # Examine the properties of removed components. It's clear from the time
 # courses and topographies that these components represent external,
@@ -114,7 +114,7 @@ raw_sep.add_channels([ref_comps])
 bad_comps, scores = ica_sep.find_bads_ref(raw_sep, method="separate")
 
 # Plot scores with bad components marked.
-ica_sep.plot_scores(scores, bad_comps, n_cols=1)
+ica_sep.plot_scores(scores, bad_comps)
 
 # Examine the properties of removed components.
 ica_sep.plot_properties(raw_sep, picks=bad_comps)

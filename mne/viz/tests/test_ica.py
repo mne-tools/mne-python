@@ -302,7 +302,8 @@ def test_plot_ica_scores():
     # ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
 
     # check setting number of columns (by checking largest colNum in figure)
-    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1])
+    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2], [0.3, 0.2]],
+                          axhline=[0.1, -0.1])
     assert 1 == np.max([f.colNum for f in fig.get_children()
                         if hasattr(f, 'colNum')])
 
