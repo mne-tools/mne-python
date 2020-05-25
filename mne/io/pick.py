@@ -374,8 +374,8 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     # PickChannelsMixin
     if meg is None:
         meg = True
-        warn("The default of meg=True will change to meg=False in version "
-             "0.22.", DeprecationWarning)
+        warn("The default of meg=True will change to meg=False in version 0.22"
+             ", set meg explicitly to avoid this warning.", DeprecationWarning)
     exclude = _check_info_exclude(info, exclude)
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
