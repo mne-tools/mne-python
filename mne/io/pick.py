@@ -373,9 +373,12 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
     if meg is None:
-        meg = True
-        warn("The default of meg=True will change to meg=False in version 0.22"
-             ", set meg explicitly to avoid this warning.", DeprecationWarning)
+        meg = True  # previous default arg
+        meg_default_arg = True  # default argument for meg was used
+    # only issue deprecation warning if there are MEG channels in the data and
+    # if the function was called with the default arg for meg
+    deprecation_warn = False
+
     exclude = _check_info_exclude(info, exclude)
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
@@ -407,6 +410,8 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
             param_dict[key] = fnirs
     for k in range(nchan):
         ch_type = channel_type(info, k)
+        if ch_type in ('grad', 'mag') and meg_default_arg:
+            deprecation_warn = True
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
@@ -414,8 +419,10 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
                                'fnirs_raw', 'fnirs_od')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
+                deprecation_warn = True
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
+                deprecation_warn = True
             else:  # ch_type in ('hbo', 'hbr')
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs)
 
@@ -437,6 +444,9 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     else:
         sel = pick_channels(info['ch_names'], myinclude, exclude)
 
+    if deprecation_warn:
+        warn("The default of meg=True will change to meg=False in version 0.22"
+             ", set meg explicitly to avoid this warning.", DeprecationWarning)
     return sel
 
 
