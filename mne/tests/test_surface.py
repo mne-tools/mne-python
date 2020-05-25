@@ -173,7 +173,7 @@ def test_io_surface():
         assert_array_equal(tri, c_tri)
         assert_equal(object_diff(vol_info, c_vol_info), '')
 
-        # Test writing/reader a Wavefront .obj file
+        # Test writing/reading a Wavefront .obj file
         write_surface(op.join(tempdir, 'tmp.obj'), pts, tri, volume_info=None,
                       overwrite=True, file_format='obj')
         c_pts, c_tri = read_surface(op.join(tempdir, 'tmp.obj'),
@@ -252,4 +252,4 @@ def test_normal_orth():
         assert_allclose(ori[2], nn, atol=1e-12)
 
 
-#run_tests_if_main()
+run_tests_if_main()

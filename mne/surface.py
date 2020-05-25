@@ -684,7 +684,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     file_format : 'auto' | 'freesurfer' | 'obj'
         File format to use. Can be 'freesurfer' to read a FreeSurfer surface
         file, or 'obj' to read a Wavefront .obj file (common format for
-        imporing in other software), or 'auto' to attempt to infer from the
+        importing in other software), or 'auto' to attempt to infer from the
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
@@ -729,10 +729,9 @@ def read_surface(fname, read_metadata=False, return_dict=False,
                 if len(line) == 0 or line[0] == "#":
                     continue
                 split = line.split()
-                if split[0] == "v":
-                    # vertex
+                if split[0] == "v":  # vertex
                     coords.append([float(item) for item in split[1:]])
-                elif split[0] == "f":
+                elif split[0] == "f":  # face
                     dat = [int(item.split("/")[0]) for item in split[1:]]
                     if len(dat) != 3:
                         raise RuntimeError('Only triangle faces allowed.')
@@ -743,8 +742,8 @@ def read_surface(fname, read_metadata=False, return_dict=False,
             ret += (dict(),)
 
     if return_dict:
-        ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]),
-                     use_tris=ret[1], np=len(ret[0])),)
+        ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
+                     np=len(ret[0])),)
     return ret
 
 
@@ -996,7 +995,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     file_format : 'auto' | 'freesurfer' | 'obj'
         File format to use. Can be 'freesurfer' to write a FreeSurfer surface
         file, or 'obj' to write a Wavefront .obj file (common format for
-        imporing in other software), or 'auto' to attempt to infer from the
+        importing in other software), or 'auto' to attempt to infer from the
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
@@ -1050,11 +1049,11 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     elif file_format == 'obj':
         with open(fname, 'w') as fid:
             for line in create_stamp.splitlines():
-                fid.write('# {}\n'.format(line))
+                fid.write(f'# {line}\n')
             for v in coords:
-                fid.write('v {} {} {}\n'.format(*v))
+                fid.write(f'v {v[0]} {v[1]} {v[2]}\n')
             for f in faces:
-                fid.write('f {} {} {}\n'.format(*(f + 1)))
+                fid.write(f'f {f[0] + 1} {f[1] + 1} {f[2] + 1}\n')
 
 
 ###############################################################################
