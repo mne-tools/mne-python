@@ -375,6 +375,8 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     if meg is None:
         meg = True  # previous default arg
         meg_default_arg = True  # default argument for meg was used
+    else:
+        meg_default_arg = False
     # only issue deprecation warning if there are MEG channels in the data and
     # if the function was called with the default arg for meg
     deprecation_warn = False
