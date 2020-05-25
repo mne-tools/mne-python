@@ -6,6 +6,7 @@ import os.path as op
 
 import pytest
 import numpy as np
+from numpy.testing import assert_array_equal
 from scipy.io import savemat
 
 import mne
@@ -80,16 +81,19 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     filters = make_lcmv(evoked.info, fwd, data_cov=data_cov,
                         noise_cov=None, pick_ori=pick_ori, reg=0.05,
                         weight_norm=weight_norm)
-    if pwr is True:
+    if pwr:
         stc_mne = apply_lcmv_cov(data_cov, filters)
     else:
         stc_mne = apply_lcmv(evoked, filters)
-        # take the absolute value, since orientation can be flipped
-        stc_mne = abs(stc_mne)
 
     # load the FieldTrip output
     ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.stc')
     stc_ft = mne.read_source_estimate(ft_fname)
+
+    signs = np.sign((stc_mne.data * stc_ft.data).sum(-1, keepdims=True))
+    if pwr:
+        assert_array_equal(signs, 1.)
+    stc_mne.data *= signs
 
     # calculate the Pearson correlation between the source solutions:
     pearson = np.corrcoef(stc_mne.data.ravel(), stc_ft.data.ravel())[0, 1]
