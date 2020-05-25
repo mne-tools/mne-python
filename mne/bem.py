@@ -63,7 +63,7 @@ class ConductorModel(dict):
         else:
             extra = ('BEM (%s layer%s)' % (len(self['surfs']),
                                            _pl(self['surfs'])))
-        return '<ConductorModel  |  %s>' % extra
+        return '<ConductorModel | %s>' % extra
 
     def copy(self):
         """Return copy of ConductorModel instance."""

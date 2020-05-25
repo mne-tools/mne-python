@@ -103,7 +103,7 @@ class Transform(dict):
         self['trans'] = trans
 
     def __repr__(self):  # noqa: D105
-        return ('<Transform  |  %s->%s>\n%s'
+        return ('<Transform | %s->%s>\n%s'
                 % (_coord_frame_name(self['from']),
                    _coord_frame_name(self['to']), self['trans']))
 

@@ -1464,7 +1464,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             s += ',' + '\n '.join([''] + counts)
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
-        return '<%s  |  %s>' % (class_name, s)
+        return '<%s | %s>' % (class_name, s)
 
     @fill_doc
     def crop(self, tmin=None, tmax=None, include_tmax=True):

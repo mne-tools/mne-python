@@ -112,7 +112,7 @@ class Dipole(object):
         s = "n_times : %s" % len(self.times)
         s += ", tmin : %0.3f" % np.min(self.times)
         s += ", tmax : %0.3f" % np.max(self.times)
-        return "<Dipole  |  %s>" % s
+        return "<Dipole | %s>" % s
 
     def save(self, fname, overwrite=False):
         """Save dipole in a .dip or .bdip file.
@@ -396,7 +396,7 @@ class DipoleFixed(ShiftTimeMixin):
         s = "n_times : %s" % len(self.times)
         s += ", tmin : %s" % np.min(self.times)
         s += ", tmax : %s" % np.max(self.times)
-        return "<DipoleFixed  |  %s>" % s
+        return "<DipoleFixed | %s>" % s
 
     def copy(self):
         """Copy the DipoleFixed object.
