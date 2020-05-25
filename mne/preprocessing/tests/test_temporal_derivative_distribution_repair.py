@@ -9,8 +9,7 @@ import numpy as np
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
-from mne.preprocessing.nirs import optical_density, \
-    temporal_derivative_distribution_repair
+from mne.preprocessing.nirs import optical_density, tddr
 from mne.datasets import testing
 
 
@@ -31,5 +30,5 @@ def test_temporal_derivative_distribution_repair(fname, tmpdir):
     raw._data[0, 0:30] = raw._data[0, 0:30] - (shift_amp)
     assert np.max(np.diff(raw._data[0])) > shift_amp
     # Ensure that applying the algorithm reduces the step change
-    raw = temporal_derivative_distribution_repair(raw)
+    raw = tddr(raw)
     assert np.max(np.diff(raw._data[0])) < shift_amp
