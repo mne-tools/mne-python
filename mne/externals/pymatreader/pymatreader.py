@@ -80,7 +80,7 @@ def read_mat(filename, variable_names=None, ignore_fields=None,
     try:
         with open(filename, 'rb') as fid:  # avoid open file warnings on error
             raw_data = scipy.io.loadmat(fid, struct_as_record=True,
-                                        squeeze_me=True, mat_dtype=True,
+                                        squeeze_me=True, mat_dtype=False,
                                         variable_names=variable_names,
                                         uint16_codec=uint16_codec)
         data = _check_for_scipy_mat_struct(raw_data)

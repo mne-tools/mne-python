@@ -149,7 +149,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                            values=0.0,
                            axis=0)
     from ..epochs import EpochsArray
-    epochs_src = EpochsArray(epoch_data, epochs_src.info, verbose=0)
+    epochs_src = EpochsArray(epoch_data, epochs_src.info, tmin=epochs_src.tmin,
+                             verbose=0)
 
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
                       combine=None, colorbar=False, show=False,

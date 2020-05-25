@@ -6,9 +6,10 @@
 #
 # License: BSD (3-clause)
 
-from .nirs import short_channels, source_detector_distances, _check_channels_ordered,\
-    _channel_frequencies, _fnirs_check_bads, _fnirs_spread_bads
+from .nirs import (short_channels, source_detector_distances,
+                   _check_channels_ordered, _channel_frequencies,
+                   _fnirs_check_bads, _fnirs_spread_bads)
 from ._optical_density import optical_density
 from ._beer_lambert_law import beer_lambert_law
 from ._scalp_coupling_index import scalp_coupling_index
-from ._temporal_derivative_distribution_repair import temporal_derivative_distribution_repair
+from ._tddr import temporal_derivative_distribution_repair, tddr

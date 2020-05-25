@@ -24,6 +24,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
+from ..io.write import DATE_NONE
 
 
 def _get_meg_system(info):
@@ -608,6 +609,21 @@ class SetChannelsMixin(MontageMixin):
         from ..annotations import _handle_meas_date
         meas_date = _handle_meas_date(meas_date)
         self.info['meas_date'] = meas_date
+
+        # clear file_id and meas_id if needed
+        if meas_date is None:
+            for key in ('file_id', 'meas_id'):
+                value = self.info.get(key)
+                if value is not None:
+                    assert 'msecs' not in value
+                    value['secs'] = DATE_NONE[0]
+                    value['usecs'] = DATE_NONE[1]
+                    # The following copy is needed for a test CTF dataset
+                    # otherwise value['machid'][:] = 0 would suffice
+                    _tmp = value['machid'].copy()
+                    _tmp[:] = 0
+                    value['machid'] = _tmp
+
         if hasattr(self, 'annotations'):
             self.annotations._orig_time = meas_date
         return self
