@@ -43,7 +43,7 @@ with the .vhdr header file as an input.
 
 .. warning:: Renaming BrainVision files can be problematic due to their
              multifile structure. See this
-             `example <https://mne-tools.github.io/mne-bids/auto_examples/rename_brainvision_files>`_
+             `example <https://mne.tools/mne-bids/stable/auto_examples/rename_brainvision_files.html>`_
              for an instruction.
 
 
