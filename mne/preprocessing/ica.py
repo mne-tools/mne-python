@@ -1712,11 +1712,12 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=None,
+                    title='ICA component scores', figsize=None, n_cols=None,
                     show=True):
         return plot_ica_scores(
             ica=self, scores=scores, exclude=exclude, labels=labels,
-            axhline=axhline, title=title, figsize=figsize, show=show)
+            axhline=axhline, title=title, figsize=figsize, n_cols=n_cols,
+            show=show)
 
     @copy_function_doc_to_method_doc(plot_ica_overlay)
     def plot_overlay(self, inst, exclude=None, picks=None, start=None,

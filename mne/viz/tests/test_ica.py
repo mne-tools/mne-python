@@ -296,9 +296,26 @@ def test_plot_ica_scores():
     ica.labels_['eog'] = 0
     ica.labels_['ecg'] = 1
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1])
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='foo')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
-    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+    # ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+
+    # check setting number of columns (by checking largest colNum in figure)
+    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1])
+    assert 1 == np.max([f.colNum for f in fig.get_children()
+                        if hasattr(f, 'colNum')])
+
+    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1],
+                          n_cols=1)
+    assert 0 == np.max([f.colNum for f in fig.get_children()
+                        if hasattr(f, 'colNum')])
+
+    # only use 1 column (even though 2 were requested)
+    fig = ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], n_cols=2)
+    assert 0 == np.max([f.colNum for f in fig.get_children()
+                        if hasattr(f, 'colNum')])
+
     pytest.raises(
         ValueError,
         ica.plot_scores,
