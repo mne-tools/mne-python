@@ -304,18 +304,14 @@ def test_plot_ica_scores():
     # check setting number of columns (by checking largest colNum in figure)
     fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2], [0.3, 0.2]],
                           axhline=[0.1, -0.1])
-    assert 1 == np.max([f.colNum for f in fig.get_children()
-                        if hasattr(f, 'colNum')])
-
+    assert 2 == fig.get_axes()[0].get_subplotspec().get_rows_columns()[1]
     fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1],
                           n_cols=1)
-    assert 0 == np.max([f.colNum for f in fig.get_children()
-                        if hasattr(f, 'colNum')])
+    assert 1 == fig.get_axes()[0].get_subplotspec().get_rows_columns()[1]
 
     # only use 1 column (even though 2 were requested)
     fig = ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], n_cols=2)
-    assert 0 == np.max([f.colNum for f in fig.get_children()
-                        if hasattr(f, 'colNum')])
+    assert 1 == fig.get_axes()[0].get_subplotspec().get_rows_columns()[1]
 
     pytest.raises(
         ValueError,
