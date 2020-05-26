@@ -509,6 +509,7 @@ header_template = Template(u"""
 <!DOCTYPE html>
 <html lang="{{lang}}">
 <head>
+<meta charset="UTF-8">
 {{include}}
 <script type="text/javascript">
 

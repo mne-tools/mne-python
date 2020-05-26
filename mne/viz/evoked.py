@@ -1003,7 +1003,7 @@ def _plot_update_evoked(params, bools):
 
 @verbose
 def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
-                      sphere=None, verbose=None):
+                      sphere=None, axes=None, verbose=None):
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
@@ -1025,6 +1025,10 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
 
         .. versionadded:: 0.16
     %(topomap_sphere_auto)s
+    axes : list | None
+        List of axes to plot into.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -1059,28 +1063,6 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
            covariance estimation and spatial whitening of MEG and EEG
            signals, vol. 108, 328-342, NeuroImage.
     """
-    return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
-                              scalings=None, rank=rank, show=show,
-                              time_unit=time_unit, sphere=sphere)
-
-
-def _plot_evoked_white(evoked, noise_cov, scalings, rank, show, time_unit,
-                       sphere):
-    """Help plot_evoked_white.
-
-    Additional Parameters
-    ---------------------
-    scalings : dict | None
-        The rescaling method to be applied to improve the accuracy of rank
-        estimaiton. If dict, it will override the following default values
-        (used if None)::
-
-            dict(mag=1e12, grad=1e11, eeg=1e5)
-
-        Note. These values were tested on different datests across various
-        conditions. You should not need to update them.
-
-    """
     from ..cov import whiten_evoked, read_cov  # recursive import
     import matplotlib.pyplot as plt
     time_unit, times = _check_time_unit(time_unit, evoked.times)
@@ -1099,8 +1081,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings, rank, show, time_unit,
 
     evoked.pick_types(ref_meg=False, exclude='bads', **_PICK_TYPES_DATA_DICT)
     n_ch_used, rank_list, picks_list, has_sss = _triage_rank_sss(
-        evoked.info, noise_cov, rank, scalings)
-    del rank, scalings
+        evoked.info, noise_cov, rank, scalings=None)
     if has_sss:
         logger.info('SSS has been applied to data. Showing mag and grad '
                     'whitening jointly.')
@@ -1126,9 +1107,20 @@ def _plot_evoked_white(evoked, noise_cov, scalings, rank, show, time_unit,
         n_extra_row = 1
 
     n_rows = n_ch_used + n_extra_row
-    fig, axes = plt.subplots(n_rows,
-                             n_columns, sharex=True, sharey=False,
-                             figsize=(8.8, 2.2 * n_rows))
+    want_shape = (n_rows, n_columns) if len(noise_cov) > 1 else (n_rows,)
+    _validate_type(axes, (list, tuple, np.ndarray, None), 'axes')
+    if axes is None:
+        _, axes = plt.subplots(n_rows,
+                               n_columns, sharex=True, sharey=False,
+                               figsize=(8.8, 2.2 * n_rows))
+    else:
+        axes = np.array(axes)
+    for ai, ax in enumerate(axes.flat):
+        _validate_type(ax, plt.Axes, 'axes.flat[%d]' % (ai,))
+    if axes.shape != want_shape:
+        raise ValueError(f'axes must have shape {want_shape}, got '
+                         f'{axes.shape}')
+    fig = axes.flat[0].figure
     if n_columns > 1:
         suptitle = ('Whitened evoked (left, best estimator = "%s")\n'
                     'and global field power '
