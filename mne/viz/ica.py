@@ -638,10 +638,10 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     if n_cols is None:
         # prefer more rows.
         n_rows = int(np.ceil(np.sqrt(n_scores)))
-        n_cols = int(np.ceil(n_scores / float(n_rows)))
+        n_cols = (n_scores - 1) // n_rows + 1
     else:
         n_cols = min(n_scores, n_cols)
-        n_rows = int(np.ceil(n_scores / float(n_cols)))
+        n_rows = (n_scores - 1) // n_cols + 1
 
     if figsize is None:
         figsize = (6.4 * n_cols, 2.7 * n_rows)
