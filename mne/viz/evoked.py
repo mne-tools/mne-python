@@ -1215,7 +1215,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings, rank, show, time_unit,
 
 
 @verbose
-def plot_snr_estimate(evoked, inv, show=True, verbose=None):
+def plot_snr_estimate(evoked, inv, show=True, axes=None, verbose=None):
     """Plot a data SNR estimate.
 
     Parameters
@@ -1226,6 +1226,10 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
         The minimum-norm inverse operator.
     show : bool
         Show figure if True.
+    axes : instance of Axes | None
+        The axes to plot into.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -1244,7 +1248,12 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr
     snr, snr_est = estimate_snr(evoked, inv)
-    fig, ax = plt.subplots(1, 1)
+    _validate_type(axes, (None, plt.Axes))
+    if axes is None:
+        _, ax = plt.subplots(1, 1)
+    else:
+        ax = axes
+    fig = axes.figure
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
     ax.axvline(0, color='k', ls=':', lw=1)
     ax.axhline(0, color='k', ls=':', lw=1)
