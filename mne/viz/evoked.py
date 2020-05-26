@@ -1253,7 +1253,8 @@ def plot_snr_estimate(evoked, inv, show=True, axes=None, verbose=None):
         _, ax = plt.subplots(1, 1)
     else:
         ax = axes
-    fig = axes.figure
+        del axes
+    fig = ax.figure
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
     ax.axvline(0, color='k', ls=':', lw=1)
     ax.axhline(0, color='k', ls=':', lw=1)
