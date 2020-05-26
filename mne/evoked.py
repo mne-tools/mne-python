@@ -198,7 +198,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
-        return "<Evoked  |  %s>" % s
+        return "<Evoked | %s>" % s
 
     @property
     def ch_names(self):

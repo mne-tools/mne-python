@@ -525,7 +525,7 @@ class _BaseSourceEstimate(TimeMixin):
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
         s += ", data shape : %s" % (self.shape,)
-        return "<%s  |  %s>" % (type(self).__name__, s)
+        return "<%s | %s>" % (type(self).__name__, s)
 
     @fill_doc
     def get_peak(self, tmin=None, tmax=None, mode='abs',

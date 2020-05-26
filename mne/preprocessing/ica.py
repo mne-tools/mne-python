@@ -410,7 +410,7 @@ class ICA(ContainsMixin):
         if self.exclude:
             s += ', %i sources marked for exclusion' % len(self.exclude)
 
-        return '<ICA  |  %s>' % s
+        return '<ICA | %s>' % s
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,

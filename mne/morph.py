@@ -471,7 +471,7 @@ class SourceMorph(object):
             s += ", smooth : %s" % self.smooth
             s += ", xhemi" if self.xhemi else ""
 
-        return "<SourceMorph  |  %s>" % s
+        return "<SourceMorph | %s>" % s
 
     @verbose
     def save(self, fname, overwrite=False, verbose=None):

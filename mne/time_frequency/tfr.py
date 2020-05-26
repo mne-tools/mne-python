@@ -1936,7 +1936,7 @@ class AverageTFR(_BaseTFR):
         s += ", nave : %d" % self.nave
         s += ', channels : %d' % self.data.shape[0]
         s += ', ~%s' % (sizeof_fmt(self._size),)
-        return "<AverageTFR  |  %s>" % s
+        return "<AverageTFR | %s>" % s
 
 
 @fill_doc
@@ -2036,7 +2036,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         s += ", epochs : %d" % self.data.shape[0]
         s += ', channels : %d' % self.data.shape[1]
         s += ', ~%s' % (sizeof_fmt(self._size),)
-        return "<EpochsTFR  |  %s>" % s
+        return "<EpochsTFR | %s>" % s
 
     def __abs__(self):
         """Take the absolute value."""

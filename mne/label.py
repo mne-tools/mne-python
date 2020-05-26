@@ -266,7 +266,7 @@ class Label(object):
         name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
-        return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
+        return "<Label | %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
         """Return the number of vertices."""
@@ -838,7 +838,7 @@ class BiHemiLabel(object):
         self.hemi = 'both'
 
     def __repr__(self):  # noqa: D105
-        temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
+        temp = "<BiHemiLabel | %s, lh : %i vertices,  rh : %i vertices>"
         name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))

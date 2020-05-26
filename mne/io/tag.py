@@ -43,7 +43,7 @@ class Tag(object):
         self.data = None
 
     def __repr__(self):  # noqa: D105
-        out = ("<Tag  |  kind %s - type %s - size %s - next %s - pos %s"
+        out = ("<Tag | kind %s - type %s - size %s - next %s - pos %s"
                % (self.kind, self.type, self.size, self.next, self.pos))
         if hasattr(self, 'data'):
             out += " - data %s" % self.data
