@@ -299,9 +299,9 @@ def test_plot_ica_scores():
     ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1])
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='foo')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
-    # ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
 
-    # check setting number of columns (by checking largest colNum in figure)
+    # check setting number of columns
     fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2], [0.3, 0.2]],
                           axhline=[0.1, -0.1])
     assert 2 == fig.get_axes()[0].get_geometry()[1]
