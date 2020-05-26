@@ -628,7 +628,7 @@ def test_ica_additional(method):
         idx, scores = ica.find_bads_ecg(raw, method='ctps', threshold=0.25)
     assert_equal(len(scores), ica.n_components_)
     with pytest.warns(RuntimeWarning, match='longer'):
-        idx, scores = ica.find_bads_ecg(raw, method='correlation')
+        idx, scores = ica.find_bads_ecg(raw, method='correlation', threshold=3)
     assert_equal(len(scores), ica.n_components_)
 
     with pytest.warns(RuntimeWarning, match='longer'):
@@ -656,7 +656,7 @@ def test_ica_additional(method):
     idx, scores = ica.find_bads_eog(evoked, ch_name='MEG 1441')
     assert_equal(len(scores), ica.n_components_)
 
-    idx, scores = ica.find_bads_ecg(evoked, method='correlation')
+    idx, scores = ica.find_bads_ecg(evoked, method='correlation', threshold=3)
     assert_equal(len(scores), ica.n_components_)
 
     assert_array_equal(raw_data, raw[:][0])
@@ -1075,7 +1075,8 @@ def test_ica_labels():
     for key in ('ecg', 'ref_meg', 'ecg/ECG-MAG'):
         assert key not in ica.labels_
 
-    ica.find_bads_ecg(raw, l_freq=None, h_freq=None, method='correlation')
+    ica.find_bads_ecg(raw, l_freq=None, h_freq=None, method='correlation',
+                      threshold=3)
     picks = list(pick_types(raw.info, meg=False, ecg=True))
     for idx, ch in enumerate(picks):
         assert '{}/{}/{}'.format('ecg', idx, raw.ch_names[ch]) in ica.labels_

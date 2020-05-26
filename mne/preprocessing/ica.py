@@ -1165,11 +1165,12 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
-        threshold : float | str | None
-            The value above which a feature is classified as outlier. If
-            None and method is 'ctps', defaults to 0.25. Can be 'auto' to
-            automatically determine the threshold for 'ctps' method. If None
-            and method is 'correlation', defaults to 3.0.
+        threshold : float | str
+            The value above which a feature is classified as outlier. If 'auto'
+            and method is 'ctps', automatically compute the threshold. If
+            'auto' and method is 'correlation', defaults to 3.0. The default
+            translates to 0.25 for 'ctps' and 3.0 for 'correlation' in version
+            0.21 but will change to 'auto' in version 0.22.
 
             .. versionchanged:: 0.21
         start : int | float | None
@@ -1235,10 +1236,9 @@ class ICA(ContainsMixin):
 
         if method == 'ctps':
             if threshold is None:
-                warn('The default for "threshold" for CTPS method will change '
-                     'from 0.25 to "auto" in version 0.22. To avoid this '
-                     'warning, explicitly set threshold to "auto" for '
-                     'automatic computation.',
+                warn('The default for "threshold" will change from None to'
+                     '"auto" in version 0.22. To avoid this warning, '
+                     'explicitly set threshold to "auto".',
                      DeprecationWarning)
                 threshold = 0.25
             elif threshold == 'auto':
@@ -1272,10 +1272,12 @@ class ICA(ContainsMixin):
             self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
             if threshold is None:
+                warn('The default for "threshold" will change from None to'
+                     '"auto" in version 0.22. To avoid this warning, '
+                     'explicitly set threshold to "auto".',
+                     DeprecationWarning)
                 threshold = 3.0
             elif threshold == 'auto':
-                warn('Only CTPS method supports automatic computation for '
-                     'threshold. Threshold is set to 3.0 (default)')
                 threshold = 3.0
             self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
