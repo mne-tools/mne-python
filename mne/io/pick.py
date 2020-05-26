@@ -421,10 +421,12 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
                                'fnirs_raw', 'fnirs_od')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
-                deprecation_warn = True
+                if meg_default_arg:
+                    deprecation_warn = True
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
-                deprecation_warn = True
+                if meg_default_arg:
+                    deprecation_warn = True
             else:  # ch_type in ('hbo', 'hbr')
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs)
 
