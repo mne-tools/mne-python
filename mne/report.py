@@ -472,7 +472,7 @@ slider_full_template = Template(u"""
 <div class="thumbnail">
     <ul><li class="slider">
         <div class="row">
-            <div class="col-md-8 col-md-offset-2">
+            <div class="col-lg-10 col-lg-offset-1 col-xs-12">
                 <div id="{{slider_id}}"></div>
                 <ul class="thumbnail">
                     {{image_html}}
