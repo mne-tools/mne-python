@@ -14,8 +14,6 @@ activity.
 #
 # License: BSD (3-clause)
 
-# sphinx_gallery_thumbnail_number = 5
-
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample, fetch_fsaverage
@@ -208,6 +206,7 @@ kwargs = dict(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
               initial_time=0.087, verbose=True)
 
 stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+
 ###############################################################################
 stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
@@ -216,6 +215,8 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 # courses out per voxel (one for each component of the dipole moment: x, y,
 # and z). To be able to visualize this, the plotting function combines those
 # estimates into one:
+
+# sphinx_gallery_thumbnail_number = 5
 
 stc_vec.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 

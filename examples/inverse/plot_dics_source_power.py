@@ -5,15 +5,11 @@
 Compute source power using DICS beamformer
 ==========================================
 
-Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
+Compute a Dynamic Imaging of Coherent Sources (DICS)
+:footcite:`GrossEtAl2001` filter from
 single-trial activity to estimate source power across a frequency band. This
 example demonstrates how to source localize the event-related synchronization
 (ERS) of beta band activity in this dataset: :ref:`somato-dataset`
-
-References
-----------
-.. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
-       interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #         Roman Goj <roman.goj@gmail.com>
@@ -87,3 +83,8 @@ stc = beta_source_power / baseline_source_power
 message = 'DICS source power in the 12-30 Hz frequency band'
 brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
                  subject=subject, time_label=message)
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

@@ -541,6 +541,7 @@ def test_lcmv_source_power():
 
 
 @testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*tf_lcmv is dep.*:DeprecationWarning')
 def test_tf_lcmv():
     """Test TF beamforming based on LCMV."""
     label = mne.read_label(fname_label)
@@ -697,10 +698,12 @@ def test_lcmv_ctf_comp():
         make_lcmv(info_comp, fwd, data_cov)
 
 
-@testing.requires_testing_data
-@pytest.mark.parametrize('pick_ori', ['max-power', 'normal', 'vector'])
+@testing.requires_testing_data  # formula does not work for vector!
+@pytest.mark.parametrize('pick_ori', ['max-power', 'normal'])
 @pytest.mark.parametrize('reg', (0.05, 0.))
-def test_unit_noise_gain_formula(pick_ori, reg):
+@pytest.mark.parametrize('weight_norm', [
+    'unit-noise-gain-pooled', 'unit-noise-gain-old', 'unit-noise-gain'])
+def test_unit_noise_gain_formula(pick_ori, reg, weight_norm):
     """Test unit-noise-gain filter against formula."""
     # The unit-noise-gain beamformer is computed following a shortcut, where
     # W_ung = inv(sqrt(W_ug @ W_ug.T)) @ W_ug
@@ -725,7 +728,7 @@ def test_unit_noise_gain_formula(pick_ori, reg):
     # TODO: Decide if we should actually use unit-noise-gain here...
     filters = make_lcmv(epochs.info, forward, data_cov, reg=reg,
                         noise_cov=noise_cov, pick_ori=pick_ori,
-                        weight_norm='unit-noise-gain-pooled', rank=rank)
+                        weight_norm=weight_norm, rank=rank)
 
     # manipulate forward to have same orientation picking as above
     forward = mne.pick_types_forward(forward, meg='mag')  # restrict to MAG
@@ -751,9 +754,7 @@ def test_unit_noise_gain_formula(pick_ori, reg):
     # formula: G.T @ Cm_inv / sqrt(G.T @ Cm_inv @ Cm_inv @ G)
     # Sekihara & Nagarajan 2008, eq. 4.15
     ung_numer = np.matmul(fwd_sol.transpose(0, 2, 1), Cm_inv)
-    ung_denom = np.sqrt(np.trace(np.matmul(
-        ung_numer, ung_numer.transpose(0, 2, 1)), axis1=1, axis2=2))
-    assert_allclose(ung_denom, np.linalg.norm(ung_numer, axis=(1, 2)))  # same
+    ung_denom = np.linalg.norm(ung_numer, axis=(1, 2))
     assert ung_denom.shape == (n_sources,)
     W_ung_direct = ung_numer / ung_denom[:, np.newaxis, np.newaxis]
     W_ung = filters['weights']
@@ -889,9 +890,9 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         # no reg
         (0.00, 'vector', None, True, None, 24, 32),
         (0.00, 'vector', 'unit-noise-gain-pooled', True, None, 67, 76),
-        (0.00, 'vector', 'unit-noise-gain-old', True, None, 67, 69),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 57, 60),
-        (0.00, 'vector', 'nai', True, None, 57, 60),
+        (0.00, 'vector', 'unit-noise-gain-old', True, None, 63, 73),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 50, 60),
+        (0.00, 'vector', 'nai', True, None, 50, 60),
         (0.00, 'max-power', None, True, None, 15, 19),
         (0.00, 'max-power', 'nai', True, None, 43, 50),
         (0.00, 'max-power', 'unit-noise-gain-pooled', True, None, 43, 50),

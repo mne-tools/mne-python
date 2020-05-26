@@ -17,7 +17,8 @@ from ..cov import compute_covariance
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (logger, verbose, warn, _reg_pinv,
                      _check_channels_spatial_filter, _check_option)
-from ..utils import _check_one_ch_type, _check_rank, _check_info_inv
+from ..utils import (_check_one_ch_type, _check_rank, _check_info_inv,
+                     deprecated)
 from .. import Epochs
 from ._compute_beamformer import (
     _check_proj_match, _prepare_beamformer_input, _compute_power,
@@ -484,6 +485,9 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
                      tmin=1, tstep=1, subject=subject)
 
 
+@deprecated(
+    'tf_lcmv is deprecated and will be removed in 0.22, use LCMV with '
+    'a covariances computed on band-passed data or DICS instead')
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,
@@ -576,8 +580,6 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    # TODO this has an entirely different code path, need to decide if we
-    # can unify it, or deprecate this, etc.
     _check_reference(epochs)
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal'])
