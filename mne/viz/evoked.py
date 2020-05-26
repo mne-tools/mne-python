@@ -1250,11 +1250,17 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
     ax.axhline(0, color='k', ls=':', lw=1)
     # Colors are "bluish green" and "vermilion" taken from:
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
-    ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
-    ax.plot(evoked.times, snr - 1, color=[0.8, 0.4, 0.0])
-    ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR', xlabel='Time (s)')
+    hs = list()
+    labels = ('Inverse', 'Whitened GFP')
+    hs.append(ax.plot(
+        evoked.times, snr_est, color=[0.0, 0.6, 0.5])[0])
+    hs.append(ax.plot(
+        evoked.times, snr - 1, color=[0.8, 0.4, 0.0])[0])
+    ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR',
+           xlabel='Time (s)')
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
+    ax.legend(hs, labels, title='Estimation method')
     plt_show(show)
     return fig
 
