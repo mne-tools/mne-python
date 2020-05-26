@@ -87,7 +87,7 @@ def test_data():
     py_picks = pick_types(raw_py.info, meg=True, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
     raw_bin = read_raw_fif(raw_bin, preload=True)
-    bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
+    bin_picks = pick_types(raw_bin.info, meg=True, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
