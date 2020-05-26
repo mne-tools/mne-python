@@ -84,7 +84,7 @@ def test_data():
         assert_array_equal(stim1, stim2)
 
     # Binary file only stores the sensor channels
-    py_picks = pick_types(raw_py.info, exclude='bads')
+    py_picks = pick_types(raw_py.info, meg=True, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
     raw_bin = read_raw_fif(raw_bin, preload=True)
     bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')

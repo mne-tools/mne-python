@@ -560,6 +560,8 @@ def test_pick_types_deprecation():
 
     assert list(pick_types(info1, meg=True)) == [1, 2, 4]
     assert not list(pick_types(info1, meg=False))  # empty
+    assert list(pick_types(info1, meg='planar1')) == [2]
+    assert not list(pick_types(info1, meg='planar2'))  # empty
 
     # info without any MEG channels
     info2 = create_info(6, 256, ["eeg", "eeg", "eog", "misc", "stim", "hbo"])
