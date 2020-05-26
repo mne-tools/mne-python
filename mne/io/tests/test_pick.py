@@ -550,6 +550,7 @@ def test_pick_channels_cov():
 
 
 def test_pick_types_deprecation():
+    """Test deprecation warning for pick_types(meg=True)."""
     # info with MEG channels at indices 1, 2, and 4
     info1 = create_info(6, 256, ["eeg", "mag", "grad", "misc", "grad", "hbo"])
 
