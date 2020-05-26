@@ -960,7 +960,7 @@ def _decimate_surface_spacing(surf, spacing):
 
 
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
-                  file_format='freesurfer', overwrite=False):
+                  file_format='auto', overwrite=False):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().

@@ -175,9 +175,9 @@ def test_io_surface():
 
         # Test writing/reading a Wavefront .obj file
         write_surface(op.join(tempdir, 'tmp.obj'), pts, tri, volume_info=None,
-                      overwrite=True, file_format='obj')
+                      overwrite=True)
         c_pts, c_tri = read_surface(op.join(tempdir, 'tmp.obj'),
-                                    read_metadata=False, file_format='obj')
+                                    read_metadata=False)
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
 
