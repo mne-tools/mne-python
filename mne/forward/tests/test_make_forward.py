@@ -315,7 +315,7 @@ def test_forward_mixed_source_space(tmpdir):
     src = surf + vol1 + vol2
 
     # calculate forward solution
-    fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem, None)
+    fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem)
     assert (repr(fwd))
 
     # extract source spaces

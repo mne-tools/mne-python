@@ -98,7 +98,7 @@ def test_data():
 
     assert_array_almost_equal(data_py, data_Ykgw)
 
-    py_picks = pick_types(raw_py.info, stim=True, ref_meg=False,
+    py_picks = pick_types(raw_py.info, meg=True, stim=True, ref_meg=False,
                           exclude='bads')
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
