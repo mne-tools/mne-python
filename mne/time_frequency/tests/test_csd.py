@@ -220,6 +220,20 @@ def test_csd_get_data():
     raises(IndexError, csd.mean().get_data, index=15)
 
 
+def test_csd_compute_coherence():
+    """Test computing coherence from a CSD matrix."""
+    csd = CrossSpectralDensity(
+        [1, np.sqrt(1 * 2), np.sqrt(1 * 3), 2, np.sqrt(2 * 3), 3],
+        ch_names=['CH1', 'CH2', 'CH3'],
+        frequencies=[1.],
+        tmin=0.,
+        tmax=0.,
+        n_fft=1,
+    )
+    coh = csd.compute_coherence(frequency=1)
+    assert_allclose(coh, np.ones((3, 3)))
+
+
 @requires_h5py
 def test_csd_save():
     """Test saving and loading a CrossSpectralDensity."""

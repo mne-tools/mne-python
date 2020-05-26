@@ -378,6 +378,37 @@ class CrossSpectralDensity(object):
 
         return _vector_to_sym_mat(self._data[:, index])
 
+    def compute_coherence(self, frequency=None, index=None):
+        """Compute a sensor-to-sensor coherence matrix.
+
+        If there is only one matrix defined in the CSD object, calling this
+        method without any parameters will return the coherence matrix for it.
+        If multiple matrices are defined, use either the ``frequency`` or
+        ``index`` parameter to select one to compute coherence for.
+
+        Parameters
+        ----------
+        frequency : float | None
+            Compute the coherence matrix for a specific frequency. Only
+            available when no averaging across frequencies has been done.
+        index : int | None
+            Compute the coherence for the frequency or frequency-bin with the
+            given index.
+
+        Returns
+        -------
+        coh : ndarray, shape (n_channels, n_channels)
+            The sensor-to-sensor coherence matrix corresponding to the
+            requested frequency.
+
+        See Also
+        --------
+        get_data
+        """
+        cm = self.get_data(frequency=frequency, index=index)
+        psd = np.diag(cm).real
+        return np.abs(cm) ** 2 / psd[np.newaxis, :] / psd[:, np.newaxis]
+
     @copy_function_doc_to_method_doc(plot_csd)
     def plot(self, info=None, mode='csd', colorbar=True, cmap='viridis',
              n_cols=None, show=True):

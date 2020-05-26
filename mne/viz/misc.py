@@ -1249,13 +1249,11 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         csd_mats = []
         for i in range(len(csd.frequencies)):
-            cm = csd.get_data(index=i)[ind][:, ind]
             if mode == 'csd':
+                cm = csd.get_data(index=i)[ind][:, ind]
                 cm = np.abs(cm) * scalings.get(ch_type, 1)
             elif mode == 'coh':
-                # Compute coherence from the CSD matrix
-                psd = np.diag(cm).real
-                cm = np.abs(cm) ** 2 / psd[np.newaxis, :] / psd[:, np.newaxis]
+                cm = csd.compute_coherence(index=i)[ind][:, ind]
             csd_mats.append(cm)
 
         vmax = np.max(csd_mats)
