@@ -549,4 +549,22 @@ def test_pick_channels_cov():
     assert 'loglik' not in cov_copy
 
 
+def test_pick_types_deprecation():
+    # info with MEG channels at indices 1, 2, and 4
+    info1 = create_info(6, 256, ["eeg", "mag", "grad", "misc", "grad", "hbo"])
+
+    with pytest.deprecated_call():
+        assert list(pick_types(info1)) == [1, 2, 4]
+        assert list(pick_types(info1, eeg=True)) == [0, 1, 2, 4]
+
+    assert list(pick_types(info1, meg=True)) == [1, 2, 4]
+    assert not list(pick_types(info1, meg=False))  # empty
+
+    # info without any MEG channels
+    info2 = create_info(6, 256, ["eeg", "eeg", "eog", "misc", "stim", "hbo"])
+
+    assert not list(pick_types(info2))  # empty
+    assert list(pick_types(info2, eeg=True)) == [0, 1]
+
+
 run_tests_if_main()
