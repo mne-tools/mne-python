@@ -56,6 +56,8 @@ MNE-Python, including packages for:
 - post-hoc modification of linear models (`posthoc`_)
 - a python implementation of the Preprocessing Pipeline (PREP) for EEG data
   (`pyprep`_)
+- automatic multi-dipole localization and uncertainty quantification with
+  the Bayesian algorithm SESAME (`sesameeg`_)
 
 
 What should I install?
@@ -102,3 +104,4 @@ Help with installation is available through the `MNE mailing list`_ and
 .. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html
 .. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
 .. _pyprep: https://github.com/sappelhoff/pyprep
+.. _sesameeg: https://pybees.github.io/sesameeg
