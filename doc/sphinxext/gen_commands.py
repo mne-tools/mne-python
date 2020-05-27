@@ -42,14 +42,12 @@ command_rst = """
 
 .. _{0}:
 
-.. _gen_{1}:
-
 {0}
-{2}
+{1}
 
 .. rst-class:: callout
 
-{3}
+{2}
 
 """
 
@@ -104,7 +102,7 @@ def generate_commands_rst(app=None):
             output = '\n'.join(output)
             cmd_name_space = cmd_name.replace('mne_', 'mne ')
             f.write(command_rst.format(
-                cmd_name_space, cmd_name, '=' * len(cmd_name_space), output))
+                cmd_name_space, '=' * len(cmd_name_space), output))
     _replace_md5(out_fname)
 
 

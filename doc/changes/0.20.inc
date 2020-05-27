@@ -35,9 +35,9 @@ Changelog
 
 - Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
 
-- Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
+- Add command :ref:`mne setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
-- Add command :ref:`gen_mne_sys_info` to print system information by `Eric Larson`_
+- Add command :ref:`mne sys_info` to print system information by `Eric Larson`_
 
 - Add function :func:`mne.make_fixed_length_epochs` to segment raw into fixed length epochs by `Mohammad Daneshzand`_
 
@@ -51,7 +51,7 @@ Changelog
 
 - Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment`, :func:`mne.viz.plot_evoked_topo` and :func:`mne.Evoked.animate_topomap` by `Eric Larson`_ and `Robert Luke`_
 
-- Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
+- Add command line tool :ref:`mne anonymize` for anonymizing raw fiff files by `Luke Bloy`_
 
 - Add :func:`mne.preprocessing.find_bad_channels_maxwell` for automatic bad channel detection via Maxwell filtering by `Eric Larson`_
 
@@ -103,9 +103,9 @@ Changelog
 
 - :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_
 
-- Add command :ref:`gen_mne_setup_forward_model` to quickly create a BEM model for a subject by `Victor Ferat`_.
+- Add command :ref:`mne setup_forward_model` to quickly create a BEM model for a subject by `Victor Ferat`_.
 
-- Add command :ref:`gen_mne_prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Ferat`_.
+- Add command :ref:`mne prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Ferat`_.
 
 - Add support for reading ``.bdip`` Xfit binary dipole fit files in :func:`mne.read_dipole` by `Eric Larson`_
 
@@ -207,7 +207,7 @@ Bug
 
 - The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
 
-- Fix bug where MRI distances were not properly initialized in :ref:`gen_mne_coreg` by `Eric Larson`_
+- Fix bug where MRI distances were not properly initialized in :ref:`mne coreg` by `Eric Larson`_
 
 - Fix ``xscale='log'`` in :meth:`mne.io.Raw.plot_psd` and related functions by `Alex Gramfort`_
 

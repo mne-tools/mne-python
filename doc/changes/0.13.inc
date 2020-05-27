@@ -42,9 +42,9 @@ Changelog
 
 - Add the option to plot brain surfaces and source spaces to :func:`viz.plot_bem` by `Christian Brodbeck`_
 
-- Add the ``--filterchpi`` option to :ref:`mne browse_raw <gen_mne_browse_raw>`, by `Felix Raimundo`_
+- Add the ``--filterchpi`` option to :ref:`mne browse_raw <mne browse_raw>`, by `Felix Raimundo`_
 
-- Add the ``--no-decimate`` option to :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` to skip the high-resolution surface decimation step, by `Eric Larson`_
+- Add the ``--no-decimate`` option to :ref:`mne make_scalp_surfaces <mne make_scalp_surfaces>` to skip the high-resolution surface decimation step, by `Eric Larson`_
 
 - Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters and add 'cv' parameter to :func:`mne.decoding.compute_ems`, by `Jean-Remi King`_
 

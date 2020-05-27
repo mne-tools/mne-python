@@ -213,7 +213,7 @@ The :func:`mne.what` function can be called on any :file:`.fif` file to
 identify the kind of data contained in the file. This will help you determine
 whether to use :func:`mne.read_cov`, :func:`mne.read_epochs`,
 :func:`mne.read_evokeds`, etc. There is also a corresponding command line tool
-:ref:`mne what <gen_mne_what>`:
+:ref:`mne what`:
 
 .. code-block:: console
 
@@ -355,7 +355,7 @@ This will plot the whitened evoked for the optimal estimator and display the
 My watershed BEM meshes look incorrect
 --------------------------------------
 
-After using :ref:`gen_mne_watershed_bem` or :func:`mne.bem.make_watershed_bem`
+After using :ref:`mne watershed_bem` or :func:`mne.bem.make_watershed_bem`
 you might find that the BEM meshes for the brain, inner skull, outer skull,
 and/or scalp surfaces do not look correct in :func:`mne.viz.plot_alignment`
 and :func:`mne.viz.plot_bem`.
@@ -380,9 +380,9 @@ order of difficulty):
 .. highlight:: console
 
 1. Changing the ``--preflood`` / ``-p`` parameter in
-   :ref:`gen_mne_watershed_bem`.
+   :ref:`mne watershed_bem`.
 2. Changing the ``--atlas`` and ``--gcaatlas`` options of
-   :ref:`gen_mne_watershed_bem`.
+   :ref:`mne watershed_bem`.
 3. Manually editing the meshes (see `this tutorial
    <https://github.com/ezemikulan/blender_freesurfer>`__.
 4. Manually running mri_watershed_ with various FreeSurfer flags (e.g.,
@@ -411,7 +411,7 @@ order of difficulty):
    clean directory first to see if this fixes everything, and, if not, then
    resorting to manual control point setting and/or talairach adjustment.
    Once everything looks good at the end of ``-autorecon1``, you can then run
-   :ref:`gen_mne_watershed_bem` to see if the output is good. Once it is
+   :ref:`mne watershed_bem` to see if the output is good. Once it is
    (and once brainmask.mgz is correct), you can then proceed with
    ``recon_all -autorecon2`` and ``recon_all -autorecon3`` to effectively
    complete all ``recon_all`` steps.

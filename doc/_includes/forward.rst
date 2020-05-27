@@ -203,7 +203,7 @@ and
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_2`                  | Not present                   | | MRI description filesSeparate                 |
     |                              |                               | | Separate ``-trans.fif`` files                 |
-    |                              |                               | | from :ref:`gen_mne_coreg`                     |
+    |                              |                               | | from :ref:`mne coreg`                         |
     |                              |                               | | Forward solution files                        |
     |                              |                               | | Inverse operator files                        |
     +------------------------------+-------------------------------+-------------------------------------------------+
