@@ -116,17 +116,17 @@ If the problem persists, `open a new issue
 <https://github.com/mne-tools/mne-python/issues/new?template=bug_report.md>`__
 and include the *smallest possible* code sample that replicates the error
 you're seeing. Paste the code sample into the issue, with a line containing
-three backticks (`\`\`\``) above and below the lines of code. This
+three backticks (\`\`\`) above and below the lines of code. This
 `minimal working example`_ should be self-contained, which means that
 MNE-Python contributors should be able to copy and paste the provided snippet
 and replicate the bug on their own computers.
 
-If you post to the
-[mailing list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis)
+If you post to the `mailing list
+<https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>__
 instead, a `GitHub Public Gist <https://gist.github.com>`_ for the code sample
 is recommended; if you use the
 [Gitter channel](https://gitter.im/mne-tools/mne-python) the three backticks
-(`\`\`\``) trick works there too.
+(\`\`\`) trick works there too.
 
 
 Why is it dangerous to "pickle" my MNE-Python objects and data for later use?
@@ -410,7 +410,7 @@ order of difficulty):
    It can be helpful to run ``recon_all -autorecon1 -xopts xopts.txt`` in a
    clean directory first to see if this fixes everything, and, if not, then
    resorting to manual control point setting and/or talairach adjustment.
-   Once everything looks good at the end of `-autorecon1`, you can then run
+   Once everything looks good at the end of ``-autorecon1``, you can then run
    :ref:`gen_mne_watershed_bem` to see if the output is good. Once it is
    (and once brainmask.mgz is correct), you can then proceed with
    ``recon_all -autorecon2`` and ``recon_all -autorecon3`` to effectively

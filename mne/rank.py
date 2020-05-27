@@ -311,7 +311,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         Rank will be estimated from the data after proper scaling of
         different channel types.
     ``'info'``
-        Rank is inferred from `info`. If data have been processed
+        Rank is inferred from ``info``. If data have been processed
         with Maxwell filtering, the Maxwell filtering header is used.
         Otherwise, the channel counts themselves are used.
         In both cases, the number of projectors is subtracted from

@@ -532,7 +532,7 @@ class Label(object):
         -----
         This function will set label.pos to be all zeros. If the positions
         on the new surface are required, consider using mne.read_surface
-        with label.vertices.
+        with ``label.vertices``.
         """
         subject = _check_subject(self.subject, subject)
         return self.morph(subject, subject, smooth, grade, subjects_dir,
@@ -584,7 +584,7 @@ class Label(object):
         -----
         This function will set label.pos to be all zeros. If the positions
         on the new surface are required, consider using `mne.read_surface`
-        with `label.vertices`.
+        with ``label.vertices``.
         """
         from .morph import compute_source_morph, grade_to_vertices
         subject_from = _check_subject(self.subject, subject_from)

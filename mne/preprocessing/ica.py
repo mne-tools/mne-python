@@ -180,7 +180,7 @@ class ICA(ContainsMixin):
         [1]_, [2]_, [3]_ and [4]_.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
-        `method`.
+        ``method``.
     max_iter : int
         Maximum number of iterations during fit. Defaults to 200. The actual
         number of iterations it took :meth:`ICA.fit` to complete will be stored
@@ -202,23 +202,23 @@ class ICA(ContainsMixin):
         If fit, the actual number of PCA components used for ICA decomposition.
     pre_whitener_ : ndarray, shape (n_channels, 1) or (n_channels, n_channels)
         If fit, array used to pre-whiten the data prior to PCA.
-    pca_components_ : ndarray, shape (`max_pca_components`, n_channels)
+    pca_components_ : ndarray, shape ``(max_pca_components, n_channels)``
         If fit, the PCA components.
     pca_mean_ : ndarray, shape (n_channels,)
         If fit, the mean vector used to center the data before doing the PCA.
-    pca_explained_variance_ : ndarray, shape (`max_pca_components`,)
+    pca_explained_variance_ : ndarray, shape ``(max_pca_components,)``
         If fit, the variance explained by each PCA component.
-    mixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
+    mixing_matrix_ : ndarray, shape ``(n_components_, n_components_)``
         If fit, the whitened mixing matrix to go back from ICA space to PCA
         space.
-        It is, in combination with the `pca_components_`, used by
+        It is, in combination with the ``pca_components_``, used by
         :meth:`ICA.apply` and :meth:`ICA.get_components` to re-mix/project
         a subset of the ICA components into the observed channel space.
         The former method also removes the pre-whitening (z-scaling) and the
         de-meaning.
-    unmixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
+    unmixing_matrix_ : ndarray, shape ``(n_components_, n_components_)``
         If fit, the whitened matrix to go from PCA space to ICA space.
-        Used, in combination with the `pca_components_`, by the methods
+        Used, in combination with the ``pca_components_``, by the methods
         :meth:`ICA.get_sources` and :meth:`ICA.apply` to unmix the observed
         data.
     exclude : array-like of int
@@ -227,8 +227,9 @@ class ICA(ContainsMixin):
         The components identified manually and by the various automatic
         artifact detection methods should be (manually) appended
         (e.g. ``ica.exclude.extend(eog_inds)``).
-        (There is also an `exclude` parameter in the :meth:`ICA.apply` method.)
-        To scrap all marked components, set this attribute to an empty list.
+        (There is also an ``exclude`` parameter in the :meth:`ICA.apply`
+        method.) To scrap all marked components, set this attribute to an empty
+        list.
     info : None | instance of Info
         The measurement info copied from the object fitted.
     n_samples_ : int
@@ -296,7 +297,7 @@ class ICA(ContainsMixin):
     see :class:`~sklearn.decomposition.FastICA`, :func:`~picard.picard`,
     :func:`~mne.preprocessing.infomax`.
 
-    Reducing the tolerance (set in `fit_params`) speeds up estimation at the
+    Reducing the tolerance (set in ``fit_params``) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
     compare tolerance levels between Infomax and Picard, but for Picard and
     FastICA a good rule of thumb is ``tol_fastica == tol_picard ** 2``.
@@ -451,17 +452,17 @@ class ICA(ContainsMixin):
                               eog=250e-6 # V (EOG channels)
                               )
 
-            It only applies if `inst` is of type Raw.
+            It only applies if ``inst`` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
             Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
             'hbo', 'hbr'.
             Values are floats that set the minimum acceptable peak-to-peak
             amplitude. If flat is None then no rejection is done.
-            It only applies if `inst` is of type Raw.
+            It only applies if ``inst`` is of type Raw.
         tstep : float
             Length of data chunks for artifact rejection in seconds.
-            It only applies if `inst` is of type Raw.
+            It only applies if ``inst`` is of type Raw.
         reject_by_annotation : bool
             Whether to omit bad segments from the data before fitting. If True,
             annotated segments with a description that starts with 'bad' are
@@ -810,7 +811,7 @@ class ICA(ContainsMixin):
         This method will return the sources in the container format passed.
         Typical usecases:
 
-        1. pass Raw object to use `raw.plot` for ICA sources
+        1. pass Raw object to use `raw.plot <mne.io.Raw.plot>` for ICA sources
         2. pass Epochs object to compute trial-based statistics in ICA space
         3. pass Evoked object to investigate time-locking in ICA space
 
@@ -1809,8 +1810,8 @@ class ICA(ContainsMixin):
         raw : instance of Raw
             Raw object to draw sources from. No components are actually removed
             here, i.e. ica is not applied to raw in this function. Use
-            `ica.apply()` for this after inspection of the identified
-            components.
+            `ica.apply() <ICA.apply>` for this after inspection of the
+            identified components.
         start_find : int | float | None
             First sample to include for artifact search. If float, data will be
             interpreted as time in seconds. If None, data will be used from the
@@ -1820,11 +1821,11 @@ class ICA(ContainsMixin):
             be interpreted as time in seconds. If None, data will be used to
             the last sample.
         ecg_ch : str | ndarray | None
-            The `target` argument passed to ica.find_sources_raw. Either the
+            The ``target`` argument passed to ica.find_sources_raw. Either the
             name of the ECG channel or the ECG time series. If None, this step
             will be skipped.
         ecg_score_func : str | callable
-            The `score_func` argument passed to ica.find_sources_raw. Either
+            The ``score_func`` argument passed to ica.find_sources_raw. Either
             the name of function supported by ICA or a custom function.
         ecg_criterion : float | int | list-like | slice
             The indices of the sorted ecg scores. If float, sources with
@@ -1833,12 +1834,12 @@ class ICA(ContainsMixin):
             accordingly. E.g. range(2) would return the two sources with the
             highest absolute score. If None, this step will be skipped.
         eog_ch : list | str | ndarray | None
-            The `target` argument or the list of target arguments subsequently
+            The ``target`` argument or the list of target arguments subsequently
             passed to ica.find_sources_raw. Either the name of the vertical EOG
             channel or the corresponding EOG time series. If None, this step
             will be skipped.
         eog_score_func : str | callable
-            The `score_func` argument passed to ica.find_sources_raw. Either
+            The ``score_func`` argument passed to ica.find_sources_raw. Either
             the name of function supported by ICA or a custom function.
         eog_criterion : float | int | list-like | slice
             The indices of the sorted eog scores. If float, sources with
@@ -2454,9 +2455,9 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     the analysis is repeated with the mean of the maps identified in the first
     stage.
 
-    Run with `plot` and `show` set to `True` and `label=False` to find
+    Run with ``plot`` and ``show`` set to ``True`` and ``label=False`` to find
     good parameters. Then, run with labelling enabled to apply the
-    labelling in the IC objects. (Running with both `plot` and `labels`
+    labelling in the IC objects. (Running with both ``plot`` and ``labels``
     off does nothing.)
 
     Outputs a list of fitted ICAs with the indices of the marked ICs in a

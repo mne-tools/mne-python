@@ -1117,7 +1117,7 @@ def read_ch_connectivity(fname, picks=None):
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
-    <http://www.fieldtriptoolbox.org/template/neighbours/>`_.
+    <http://www.fieldtriptoolbox.org/template/neighbours/>`__.
 
     Parameters
     ----------
@@ -1453,7 +1453,7 @@ def make_1020_channel_selections(info, midline="z"):
     This passes through all channel names, and uses a simple heuristic to
     separate channel names into three Region of Interest-based selections:
     Left, Midline and Right. The heuristic is that channels ending on any of
-    the characters in `midline` are filed under that heading, otherwise those
+    the characters in ``midline`` are filed under that heading, otherwise those
     ending in odd numbers under "Left", those in even numbers under "Right".
     Other channels are ignored. This is appropriate for 10/20 files, but not
     for other channel naming conventions.
@@ -1463,12 +1463,12 @@ def make_1020_channel_selections(info, midline="z"):
     ----------
     info : instance of Info
         Where to obtain the channel names from. The picks will
-        be in relation to the position in `info["ch_names"]`. If possible, this
-        lists will be sorted by y value position of the channel locations,
+        be in relation to the position in ``info["ch_names"]``. If possible,
+        this lists will be sorted by y value position of the channel locations,
         i.e., from back to front.
     midline : str
-        Names ending in any of these characters are stored under the `Midline`
-        key. Defaults to 'z'. Note that capitalization is ignored.
+        Names ending in any of these characters are stored under the
+        ``Midline`` key. Defaults to 'z'. Note that capitalization is ignored.
 
     Returns
     -------

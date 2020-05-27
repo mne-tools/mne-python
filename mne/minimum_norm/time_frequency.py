@@ -499,7 +499,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc_psd : instance of SourceEstimate | VolSourceEstimate
         The PSD of each of the sources.
     sensor_psd : instance of EvokedArray
-        The PSD of each sensor. Only returned if `return_sensor` is True.
+        The PSD of each sensor. Only returned if ``return_sensor`` is True.
 
     See Also
     --------
