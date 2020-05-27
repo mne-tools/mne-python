@@ -23,7 +23,7 @@ The watershed algorithm [Segonne *et al.*,
 2004] is part of the FreeSurfer software.
 The name of the program is mri_watershed .
 Its use in the MNE environment is facilitated by the script
-:ref:`gen_mne_watershed_bem`.
+:ref:`mne watershed_bem`.
 
 After ``mne watershed_bem`` has completed, the following files appear in the
 subject's :file:`bem/watershed` directory:
@@ -61,7 +61,7 @@ Creation of the BEM meshes using this method involves the following steps:
 
 - Creating a synthetic 5-degree flip angle FLASH volume, register
   it with the MPRAGE data, and run the segmentation and meshing program.
-  This step is accomplished by running the script :ref:`gen_mne_flash_bem`.
+  This step is accomplished by running the script :ref:`mne flash_bem`.
 
 - Inspecting the meshes with tkmedit, see :ref:`inspecting-meshes`.
 
@@ -88,10 +88,10 @@ Creating the surface tessellations
 ----------------------------------
 
 The BEM surface segmentation and tessellation is automated with the script
-:ref:`gen_mne_flash_bem`. It assumes that a FreeSurfer reconstruction for this
+:ref:`mne flash_bem`. It assumes that a FreeSurfer reconstruction for this
 subject is already in place.
 
-Before running :ref:`gen_mne_flash_bem` do the following:
+Before running :ref:`mne flash_bem` do the following:
 
 - Create symbolic links from the directories containing the 5-degree and
   30-degree flip angle FLASH series to ``flash05`` and ``flash30``,
@@ -161,6 +161,6 @@ Inspecting the meshes
 It is advisable to check the validity of the BEM meshes before
 using them. This can be done with:
 
-- the ``--view`` option of :ref:`gen_mne_flash_bem`
+- the ``--view`` option of :ref:`mne flash_bem`
 - calling :func:`mne.viz.plot_bem` directly
 - Using FreeSurfer tools ``tkmedit`` or ``freeview``

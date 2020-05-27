@@ -75,8 +75,8 @@ If you want to transform sensor recordings into estimates of localized brain
 activity, you will need MNE-Python, plus :doc:`FreeSurfer <freesurfer>` to
 convert structural MRI scans into models of the scalp, inner/outer skull, and
 cortical surfaces (specifically, for command-line functions
-:ref:`gen_mne_flash_bem`, :ref:`gen_mne_watershed_bem`, and
-:ref:`gen_mne_make_scalp_surfaces`). If you follow the recommended installation
+:ref:`mne flash_bem`, :ref:`mne watershed_bem`, and
+:ref:`mne make_scalp_surfaces`). If you follow the recommended installation
 procedure using anaconda, you don't need to do anything extra — Freesurfer will
 automatically be installed.
 
