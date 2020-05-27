@@ -934,8 +934,8 @@ baseline_plot(x)
 # -----------
 # Depending on the function or method used, the filter type can be specified.
 # To name an example, in :func:`mne.filter.create_filter`, the relevant
-# arguments would be `l_freq`, `h_freg`, `method`, and if the method is FIR
-# `fir_window` and `fir_design`.
+# arguments would be ``l_freq``, ```h_freq``, ```method``, and if the method is
+# FIR ``fir_window`` and ``fir_design``.
 #
 #
 # Cutoff frequency
@@ -975,7 +975,7 @@ filter_length = fir_coefs.shape[0]
 ###############################################################################
 # .. note:: If you are using an IIR filter, :func:`mne.filter.create_filter`
 #           will not print a filter length and transition bandwidth to the log.
-#           Instead, you can specify the roll-off with the `iir_params`
+#           Instead, you can specify the roll-off with the ``iir_params``
 #           argument or stay with the default, which is a fourth order
 #           (Butterworth) filter.
 #

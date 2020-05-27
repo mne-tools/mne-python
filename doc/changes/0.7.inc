@@ -42,9 +42,9 @@ Changelog
 
 - Add fiducials read/write support by `Christian Brodbeck`_ and `Alex Gramfort`_
 
-- Add select / drop bad channels in `plot_raw` on click by `Denis Engemann`_
+- Add select / drop bad channels in ``plot_raw`` on click by `Denis Engemann`_
 
-- Add `ico` and `oct` source space creation in native Python by `Eric Larson`_
+- Add ``ico`` and ``oct`` source space creation in native Python by `Eric Larson`_
 
 - Add interactive rejection of bad trials in ``plot_epochs`` by `Denis Engemann`_
 
@@ -88,14 +88,14 @@ Changelog
 
 - Add Continuum Analytics Anaconda support by `Denis Engemann`_
 
-- Add `subtract evoked` option to beamformers by `Andrew Dykstra`_
+- Add ``subtract evoked`` option to beamformers by `Andrew Dykstra`_
 
-- Add new `transform` method to SourceEstimate(s) by `Andrew Dykstra`_
+- Add new ``transform`` method to SourceEstimate(s) by `Andrew Dykstra`_
 
 API
 ~~~
 
-- The pick_normal parameter for minimum norm solvers has been renamed as ``pick_ori`` and normal orientation picking is now achieved by passing the value "normal" for the `pick_ori` parameter.
+- The pick_normal parameter for minimum norm solvers has been renamed as ``pick_ori`` and normal orientation picking is now achieved by passing the value "normal" for the ``pick_ori`` parameter.
 
 - ICA objects now expose the measurement info of the object fitted.
 
@@ -105,7 +105,7 @@ API
 
 - The ``chs`` argument in ``mne.layouts.find_layout`` is deprecated and will be removed in MNE-Python 0.9. Use ``info`` instead.
 
-- ``plot_evoked`` and ``Epochs.plot`` now open a new figure by default. To plot on an existing figure please specify the `axes` parameter.
+- ``plot_evoked`` and ``Epochs.plot`` now open a new figure by default. To plot on an existing figure please specify the ``axes`` parameter.
 
 
 Authors

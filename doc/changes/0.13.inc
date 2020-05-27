@@ -64,7 +64,7 @@ Changelog
 
 - Adds new function :func:`mne.viz.plot_compare_evokeds` to show multiple evoked time courses at a single location, or the mean over a ROI, or the GFP, automatically averaging and calculating a CI if multiple subjects are given, by `Jona Sassenhagen`_
 
-- Added `transform_into` parameter into :class:`mne.decoding.CSP` to retrieve the average power of each source or the time course of each source, by `Jean-Remi King`_
+- Added ``transform_into`` parameter into :class:`mne.decoding.CSP` to retrieve the average power of each source or the time course of each source, by `Jean-Remi King`_
 
 - Added support for reading MaxShield (IAS) evoked data (e.g., from the acquisition machine) in :func:`mne.read_evokeds` by `Eric Larson`_
 
@@ -194,7 +194,7 @@ API
 
 - ``mne.decoding.EpochsVectorizer`` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
 
-- The `epochs_data` parameter has been deprecated in :class:`mne.decoding.CSP`, in favour of the ``X`` parameter to comply to scikit-learn API, by `Jean-Remi King`_
+- The ``epochs_data`` parameter has been deprecated in :class:`mne.decoding.CSP`, in favour of the ``X`` parameter to comply to scikit-learn API, by `Jean-Remi King`_
 
 - Deprecated ``mne.time_frequency.cwt_morlet`` and ``mne.time_frequency.single_trial_power`` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and `Alex Gramfort`_
 

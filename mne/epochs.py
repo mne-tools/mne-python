@@ -606,7 +606,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Decimation can be done multiple times. For example,
         ``epochs.decimate(2).decimate(2)`` will be the same as
         ``epochs.decimate(4)``.
-        If `decim` is 1, this method does not copy the underlying data.
+        If ``decim`` is 1, this method does not copy the underlying data.
 
         .. versionadded:: 0.10.0
         """
@@ -927,7 +927,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
 
-        The `method` parameter allows e.g. robust averaging.
+        The ``method`` parameter allows e.g. robust averaging.
         For example, one could do:
 
             >>> from scipy.stats import trim_mean  # doctest:+SKIP
@@ -1658,7 +1658,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             the entries is a list of str, event_ids in that list will be
             grouped together before equalizing trial counts across conditions.
             In the case where partial matching is used (using '/' in
-            `event_ids`), `event_ids` will be matched according to the
+            ``event_ids``), ``event_ids`` will be matched according to the
             provided tags, that is, processing works as if the event_ids
             matched by the provided tags had been supplied instead.
             The event_ids must identify nonoverlapping subsets of the epochs.
@@ -1810,7 +1810,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """Compute virtual epochs using interpolated fields.
 
         .. Warning:: Using virtual epochs to compute inverse can yield
-            unexpected results. The virtual channels have `'_v'` appended
+            unexpected results. The virtual channels have ``'_v'`` appended
             at the end of the names to emphasize that the data contained in
             them are interpolated.
 
@@ -1819,8 +1819,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         ch_type : str
             The destination channel type. It can be 'mag' or 'grad'.
         mode : str
-            Either `'accurate'` or `'fast'`, determines the quality of the
-            Legendre polynomial expansion used. `'fast'` should be sufficient
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
+            Legendre polynomial expansion used. ``'fast'`` should be sufficient
             for most applications.
 
         Returns

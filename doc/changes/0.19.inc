@@ -53,13 +53,13 @@ Changelog
 
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
 
-- Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna` _
+- Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna`_
 
 - Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
-- Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
+- Add function to check the type of a FIF file using :func:`mne.what` and :ref:`mne what` by `Eric Larson`_
 
 - Add support for specifying the initial time and/or position and providing a :class:`mne.SourceMorph` instead of :class:`mne.SourceSpaces` in :func:`mne.viz.plot_volume_source_estimates` by `Eric Larson`_
 
@@ -111,7 +111,7 @@ Bug
 
 - Fix :meth:`mne.io.Raw.filter` to deal with instances with no data channels properly by `Eric Larson`_
 
-- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using ``tmin=0`` by `Milan Rybář`_
 
 - Fix bug in :func:`mne.viz.plot_volume_source_estimates` where ``'glass_brain'`` MRIs were not transformed to MNI space, by `Eric Larson`_
 

@@ -898,7 +898,7 @@ class UpdateChannelsMixin(object):
             type as the current object.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
-            values in `self`. This should generally only be used when adding
+            values in ``self``. This should generally only be used when adding
             stim channels for which important metadata won't be overwritten.
 
             .. versionadded:: 0.12

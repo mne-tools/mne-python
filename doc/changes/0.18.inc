@@ -151,7 +151,7 @@ Bug
 
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
-- Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
+- Fix ``feature_names`` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
 
 - Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
 
@@ -265,4 +265,4 @@ API
 
 - The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
 
-- Deprecate ``mne.realtime`` module to make a standalone module `mne-realtime` that will live outside of this package by `Teon Brooks`_
+- Deprecate ``mne.realtime`` module to make a standalone module ``mne-realtime`` that will live outside of this package by `Teon Brooks`_

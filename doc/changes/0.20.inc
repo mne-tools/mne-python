@@ -279,9 +279,9 @@ Bug
 
 - Fix support for multiple TAL (annotations) channels in BDF reader by `Clemens Brunner`_
 
-- Fix missing `brainmask` file type in :func:`mne.bem.make_watershed_bem` by changing its default value to `ws.mgz` by `Fu-Te Wong`_
+- Fix missing ``brainmask`` file type in :func:`mne.bem.make_watershed_bem` by changing its default value to ``ws.mgz`` by `Fu-Te Wong`_
 
-- Fix bug in :func:`mne.channels.make_standard_montage` which would return `easycap-M1` even when requesting `easycap-M10` by `Christian Brodbeck`_
+- Fix bug in :func:`mne.channels.make_standard_montage` which would return ``easycap-M1`` even when requesting ``easycap-M10`` by `Christian Brodbeck`_
 
 - Fix the way planar gradiometers are combined in :func:`mne.viz.plot_tfr_topomap` and :meth:`mne.Epochs.plot_psd_topomap` by `Geoff Brookshire`_
 
@@ -293,7 +293,7 @@ Bug
 
 - Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
-- Fix bug in :func:`mne.Report.parse_folder`, which would not recognize `*meg.fif` files by `Dmitrii Altukhov`_.
+- Fix bug in :func:`mne.Report.parse_folder`, which would not recognize ``*meg.fif`` files by `Dmitrii Altukhov`_.
 
 - Include ``fit_params`` when saving an :class:`~mne.preprocessing.ICA` instance to disk by `Richard Höchenberger`_
 
