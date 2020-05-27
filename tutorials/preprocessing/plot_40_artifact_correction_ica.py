@@ -375,7 +375,8 @@ ica.plot_sources(eog_evoked)
 
 ica.exclude = []
 # find which ICs match the ECG pattern
-ecg_indices, ecg_scores = ica.find_bads_ecg(raw, method='correlation')
+ecg_indices, ecg_scores = ica.find_bads_ecg(raw, method='correlation',
+                                            threshold='auto')
 ica.exclude = ecg_indices
 
 # barplot of ICA component "ECG match" scores
@@ -405,7 +406,8 @@ new_ica = ICA(n_components=30, random_state=97)
 new_ica.fit(filt_raw)
 
 # find which ICs match the ECG pattern
-ecg_indices, ecg_scores = new_ica.find_bads_ecg(raw, method='correlation')
+ecg_indices, ecg_scores = new_ica.find_bads_ecg(raw, method='correlation',
+                                                threshold='auto')
 new_ica.exclude = ecg_indices
 
 # barplot of ICA component "ECG match" scores

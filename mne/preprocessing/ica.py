@@ -12,6 +12,7 @@ from copy import deepcopy
 from numbers import Integral
 from time import time
 
+import math
 import os
 import json
 
@@ -1115,12 +1116,43 @@ class ICA(ContainsMixin):
 
         return labels, scores
 
+    def _get_ctps_threshold(self, pk_threshold=20):
+        """Automatically decide the threshold of Kuiper index for CTPS method.
+
+        This function finds the threshold of Kuiper index based on the
+        threshold of pk. Kuiper statistic that minimizes the difference between
+        pk and the pk threshold (defaults to 20 [1]) is returned. It is assumed
+        that the data are appropriately filtered and bad data are rejected at
+        least based on peak-to-peak amplitude when/before running the ICA
+        decomposition on data.
+
+        References
+        ----------
+        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
+            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
+            and phase statistics for complete artifact removal in independent
+            components of neuromagnetic recordings. Biomedical
+            Engineering, IEEE Transactions on 55 (10), pp.2356.
+        """
+        N = self.info['sfreq']
+        Vs = np.arange(1, 100) / 100
+        C = math.sqrt(N) + 0.155 + 0.24 / math.sqrt(N)
+        # in formula (13), when k gets large, only k=1 matters for the
+        # summation. k*V*C thus becomes V*C
+        Pks = 2 * (4 * (Vs * C)**2 - 1) * (np.exp(-2 * (Vs * C)**2))
+        # NOTE: the threshold of pk is transformed to Pk for comparison
+        # pk = -log10(Pk)
+        return Vs[np.argmin(np.abs(Pks - 10**(-pk_threshold)))]
+
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
                       reject_by_annotation=True, measure="zscore",
                       verbose=None):
-        """Detect ECG related components using correlation.
+        """Detect ECG related components.
+
+        Cross-trial phase statistics (default) or Pearson correlation can be
+        used for detection.
 
         .. note:: If no ECG channel is available, routine attempts to create
                   an artificial ECG based on cross-channel averaging.
@@ -1133,9 +1165,14 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
-        threshold : float
-            The value above which a feature is classified as outlier. If
-            method is 'ctps', defaults to 0.25, else defaults to 3.0.
+        threshold : float | str
+            The value above which a feature is classified as outlier. If 'auto'
+            and method is 'ctps', automatically compute the threshold. If
+            'auto' and method is 'correlation', defaults to 3.0. The default
+            translates to 0.25 for 'ctps' and 3.0 for 'correlation' in version
+            0.21 but will change to 'auto' in version 0.22.
+
+            .. versionchanged:: 0.21
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -1162,8 +1199,8 @@ class ICA(ContainsMixin):
 
             .. versionadded:: 0.14.0
         measure : {'zscore', "cor"}
-            Which method to use for finding outliers. "zscore" (default) is
-            the iterated Z-scoring method, and "cor" is an absolute raw
+            Which method to use for finding outliers. 'zscore' (default) is
+            the iterated Z-scoring method, and 'cor' is an absolute raw
             correlation threshold with a range of 0 to 1.
 
             .. versionadded:: 0.21
@@ -1174,7 +1211,8 @@ class ICA(ContainsMixin):
         ecg_idx : list of int
             The indices of ECG related components.
         scores : np.ndarray of float, shape (``n_components_``)
-            The correlation scores.
+            If method is 'ctps', the normalized Kuiper index scores. If method
+            is 'correlation', the correlation scores.
 
         See Also
         --------
@@ -1198,7 +1236,16 @@ class ICA(ContainsMixin):
 
         if method == 'ctps':
             if threshold is None:
+                warn('The default for "threshold" will change from None to'
+                     '"auto" in version 0.22. To avoid this warning, '
+                     'explicitly set threshold to "auto".',
+                     DeprecationWarning)
                 threshold = 0.25
+            elif threshold == 'auto':
+                # TODO: defaults to 'auto' in v0.22
+                threshold = self._get_ctps_threshold()
+                logger.info('Using threshold: %.2f for CTPS ECG detection'
+                            % threshold)
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
                     inst, ch_name, l_freq=l_freq, h_freq=h_freq,
@@ -1225,6 +1272,12 @@ class ICA(ContainsMixin):
             self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
             if threshold is None:
+                warn('The default for "threshold" will change from None to'
+                     '"auto" in version 0.22. To avoid this warning, '
+                     'explicitly set threshold to "auto".',
+                     DeprecationWarning)
+                threshold = 3.0
+            elif threshold == 'auto':
                 threshold = 3.0
             self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
