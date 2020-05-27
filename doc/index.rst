@@ -49,7 +49,7 @@
           <li style="background: url('_static/funding/nsf.png') no-repeat left top; background-size: 24px 24px;"><b>NSF</b> 0958669, 1042134</li>
           <li style="background: url('_static/funding/erc.svg') no-repeat left top; background-size: 24px 24px;"><b>ERC</b> <b>YStG</b>-263584, 676943</li>
           <li style="background: url('_static/funding/doe.svg') no-repeat left top; background-size: 24px 24px;"><b>DoE</b> DE-FG02-99ER62764 (MIND)</li>
-          <li style="background: url('_static/funding/anr.svg') no-repeat left top; background-size: 24px 24px;"><b>ANR</b> 14-NEUC-0002-01<br><b>IDEX</b> Paris-Saclay, 11-IDEX-0003-02</li>
+          <li style="background: url('_static/funding/anr.svg') no-repeat left top; background-size: 24px 10px;"><b>ANR</b> 14-NEUC-0002-01<br><b>IDEX</b> Paris-Saclay, 11-IDEX-0003-02</li>
           <li style="background: url('_static/funding/cds.png') no-repeat left top; background-size: 24px 24px;"><b>CDS</b> <a href="http://www.datascience-paris-saclay.fr"/>PARIS-SACLAY</a></li>
           <li style="background: url('_static/funding/google.svg') no-repeat left top; background-size: 24px 24px;"><b>Google</b> Summer of code (×6)</li>
           <li style="background: url('_static/funding/amazon.svg') no-repeat left top; background-size: 24px 24px;"><b>Amazon</b> - AWS Research Grants</li>
