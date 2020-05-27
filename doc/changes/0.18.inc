@@ -143,7 +143,7 @@ Bug
 
 - Fix :meth:`mne.Epochs.plot` with ``scalings='auto'`` to properly compute channel-wise scalings by `Stefan Repplinger`_
 
-- Fix :func:`mne.gui.coregistration` and :ref:`mne coreg <mne coreg>` crashing with segmentation fault when switching subjects by `Eric Larson`_
+- Fix :func:`mne.gui.coregistration` and :ref:`mne coreg` crashing with segmentation fault when switching subjects by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
 
@@ -214,7 +214,7 @@ Bug
 
 - Fix :func:`mne.compute_proj_raw` when ``duration != None`` not to apply existing proj and to avoid using duplicate raw data samples by `Eric Larson`_
 
-- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <mne clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
+- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_edf` failing when EDF header fields (such as patient name) contained special characters, by `Clemens Brunner`_
 

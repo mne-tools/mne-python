@@ -143,6 +143,14 @@ ch_type : str
 
     .. versionadded:: 0.21
 """
+docdict['topomap_show_names'] = """
+show_names : bool | callable
+    If True, show channel names on top of the map. If a callable is
+    passed, channel names will be formatted using the callable; e.g., to
+    delete the prefix 'MEG ' from all channel names, pass the function
+    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not None, only
+    significant sensors will be shown.
+"""
 
 # PSD topomaps
 docdict["psd_topo_vlim_joint"] = """
@@ -555,7 +563,7 @@ depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
     to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a :class:`python:dict`
+    no depth weighting is performed. It can also be a :class:`dict`
     containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
     defaults). This is effectively ignored when ``method='eLORETA'``.

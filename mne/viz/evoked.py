@@ -914,7 +914,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         .. versionadded:: 0.16
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
-        data that correspond to ```False`` in the mask are masked (see
+        data that correspond to ``False`` in the mask are masked (see
         ``do_mask`` below). Useful for, e.g., masking for statistical
         significance.
 

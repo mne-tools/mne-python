@@ -934,7 +934,7 @@ baseline_plot(x)
 # -----------
 # Depending on the function or method used, the filter type can be specified.
 # To name an example, in :func:`mne.filter.create_filter`, the relevant
-# arguments would be ``l_freq``, ```h_freq``, ```method``, and if the method is
+# arguments would be ``l_freq``, ``h_freq``, ``method``, and if the method is
 # FIR ``fir_window`` and ``fir_design``.
 #
 #

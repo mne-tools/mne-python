@@ -707,12 +707,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         The axes to plot to. If None, the current axes will be used.
     names : list | None
         List of channel names. If None, channel names are not plotted.
-    show_names : bool | callable
-        If True, show channel names on top of the map. If a callable is
-        passed, channel names will be formatted using the callable; e.g., to
-        delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', ''). If ``mask`` is not None, only
-        significant sensors will be shown.
+    %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
@@ -1315,12 +1310,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         topomaps at a time).
     cbar_fmt : str
         String format for colorbar values.
-    show_names : bool | callable
-        If True, show channel names on top of the map. If a callable is passed,
-        channel names will be formatted using the callable; e.g., to delete the
-        prefix 'MEG ' from all channel names, pass the function
-        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not None, only
-        significant sensors will be shown.
+    %(topomap_show_names)s
     title : str | None
         Plot title. If None (default), no title is displayed.
     axes : instance of Axes | None
@@ -1513,12 +1503,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         be show.
     show : bool
         Show figure if True.
-    show_names : bool | callable
-        If ``True``, show channel names on top of the map. If a callable is
-        passed, channel names will be formatted using the callable; e.g., to
-        delete the prefix 'MEG ' from all channel names, pass the function
-        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, names
-        of significant sensors only will be shown.
+    %(topomap_show_names)s
     title : str | None
         Title. If None (default), no title is displayed.
     mask : ndarray of bool, shape (n_channels, n_times) | None
@@ -2539,12 +2524,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         The axes to plot to. If None, a new figure will be created.
     names : list | None
         List of channel names. If None, channel names are not plotted.
-    show_names : bool | callable
-        If True, show channel names on top of the map. If a callable is
-        passed, channel names will be formatted using the callable; e.g., to
-        delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', ''). If ``mask`` is not None, only
-        significant sensors will be shown.
+    %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.

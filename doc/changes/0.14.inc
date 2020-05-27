@@ -24,7 +24,7 @@ Changelog
 
 - Add convenient default values to :meth:`mne.io.Raw.apply_hilbert` and :meth:`mne.io.Raw.apply_function` by `Denis Engemann`_
 
-- Remove MNE-C requirement for :ref:`mne make_scalp_surfaces <mne make_scalp_surfaces>` by `Eric Larson`_
+- Remove MNE-C requirement for :ref:`mne make_scalp_surfaces` by `Eric Larson`_
 
 - Add support for FastTrack Polhemus ``.mat`` file outputs in ``hsp`` argument of ``mne.channels.read_dig_montage`` by `Eric Larson`_
 

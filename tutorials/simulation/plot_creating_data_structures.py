@@ -111,7 +111,7 @@ print(custom_raw)
 # To create an :class:`mne.Epochs` object from scratch, you can use the
 # :class:`mne.EpochsArray` class, which uses a numpy array directly without
 # wrapping a raw object. The array must be of shape
-# ``(n_epochs, n_chans, n_times)```. The proper units of measure are listed
+# ``(n_epochs, n_chans, n_times)``. The proper units of measure are listed
 # above.
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
@@ -126,7 +126,7 @@ info = mne.create_info(
 
 ###############################################################################
 # It is necessary to supply an "events" array in order to create an Epochs
-# object. This is of shape ``(n_events, 3)``` where the first column is the
+# object. This is of shape ``(n_events, 3)`` where the first column is the
 # sample number (time) of the event, the second column indicates the value from
 # which the transition is made from (only used when the new value is bigger
 # than the old one), and the third column is the new event value.
@@ -172,7 +172,7 @@ _ = custom_epochs['smiling'].average().plot(time_unit='s')
 # -------------------------------------
 # If you already have data that is collapsed across trials, you may also
 # directly create an evoked array.  Its constructor accepts an array of shape
-# ``(n_chans, n_times)``` in addition to some bookkeeping parameters.
+# ``(n_chans, n_times)`` in addition to some bookkeeping parameters.
 # The proper units of measure for the data are listed above.
 
 # The averaged data

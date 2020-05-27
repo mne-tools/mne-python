@@ -2949,7 +2949,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     #
     # We could do this with two resample_from_to calls, but it's cleaner,
     # faster, and we get fewer boundary artifacts if we do it in one shot.
-    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE``` (2):
+    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE`` (2):
     upsamp = np.linalg.solve(vox_ras_t['trans'].T, RAS_AFFINE.T).T
     # Now figure out how we would resample from RAS to head or MRI coords:
     if coord_frame == 'head':
