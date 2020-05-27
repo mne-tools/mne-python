@@ -1,0 +1,19 @@
+name: mne-server
+channels:
+- conda-forge/label/vtk_dev
+- conda-forge
+- defaults
+dependencies:
+- python>=3.7
+- pip
+- mesalib
+- ffmpeg
+- vtk
+- numpy
+- scipy
+- pip:
+  - https://github.com/GuillaumeFavelier/mne-python/archive/notebook_screencast.zip
+  - matplotlib
+  - ipympl
+  - jupyter
+  - pyvista
