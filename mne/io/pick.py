@@ -656,7 +656,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     return fwd
 
 
-def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
+def pick_types_forward(orig, meg=None, eeg=False, ref_meg=True, seeg=False,
                        ecog=False, include=[], exclude=[]):
     """Pick by channel type and names from a forward operator.
 
@@ -664,10 +664,10 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     ----------
     orig : dict
         A forward solution.
-    meg : bool or str
-        If True include all MEG channels. If False include None
-        If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers.
+    meg : bool | str
+        If True include MEG channels. If string it can be 'mag', 'grad',
+        'planar1' or 'planar2' to select only magnetometers, all gradiometers,
+        or a specific type of gradiometer.
     eeg : bool
         If True include EEG channels.
     ref_meg : bool
