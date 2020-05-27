@@ -74,7 +74,7 @@ for cond in names:
 # p values, we can --
 # after applying FDR correction for multiple comparisons -- also visualise the
 # statistical significance of the regression of word concreteness.
-# The :func:`mne.viz.plot_evoked_image` function takes a `mask` parameter.
+# The :func:`mne.viz.plot_evoked_image` function takes a ``mask`` parameter.
 # If we supply it with a boolean mask of the positions where we can reject
 # the null hypothesis, points that are not significant will be shown
 # transparently, and if desired, in a different colour palette and surrounded

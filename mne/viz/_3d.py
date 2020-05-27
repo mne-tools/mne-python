@@ -471,9 +471,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     bem : list of dict | instance of ConductorModel | None
         Can be either the BEM surfaces (list of dict), a BEM solution or a
         sphere model. If None, we first try loading
-        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
-        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
-        the subjects bem and bem/flash folders are searched. Defaults to None.
+        ``'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'``, and then look
+        for ``'$SUBJECT*$SOURCE.fif'`` in the same directory. For
+        ``'outer_skin'``, the subjects bem and bem/flash folders are searched.
+        Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
     fnirs : str | list | bool | None
@@ -2724,7 +2725,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
     Note that this will take the raw values for 3d coordinates of each channel,
     without applying any transforms. If brain images are flipped up/dn upon
-    using `imshow`, check your matplotlib backend as this behavior changes.
+    using `~matplotlib.pyplot.imshow`, check your matplotlib backend as this
+    behavior changes.
 
     Parameters
     ----------
@@ -2732,9 +2734,9 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         The figure on which you've plotted electrodes using
         :func:`mne.viz.plot_alignment`.
     montage : instance of DigMontage or Info | dict
-        The digital montage for the electrodes plotted in the scene. If `Info`,
-        channel positions will be pulled from the `loc` field of `chs`.
-        dict should have ch:xyz mappings.
+        The digital montage for the electrodes plotted in the scene. If
+        :class:`~mne.Info`, channel positions will be pulled from the ``loc``
+        field of ``chs``. dict should have ch:xyz mappings.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
 

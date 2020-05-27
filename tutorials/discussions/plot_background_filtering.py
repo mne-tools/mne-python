@@ -943,7 +943,7 @@ baseline_plot(x)
 # The cutoff of FIR filters in MNE is defined as half-amplitude cutoff in the
 # middle of the transition band. That is, if you construct a lowpass FIR filter
 # with ``h_freq = 40``, the filter function will provide a transition
-# bandwidth that depends on the `h_trans_bandwidth` argument. The desired
+# bandwidth that depends on the ``h_trans_bandwidth`` argument. The desired
 # half-amplitude  cutoff of the lowpass FIR filter is then at
 # ``h_freq + transition_bandwidth/2.``.
 #

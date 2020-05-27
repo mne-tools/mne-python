@@ -110,8 +110,9 @@ print(custom_raw)
 #
 # To create an :class:`mne.Epochs` object from scratch, you can use the
 # :class:`mne.EpochsArray` class, which uses a numpy array directly without
-# wrapping a raw object. The array must be of `shape(n_epochs, n_chans,
-# n_times)`. The proper units of measure are listed above.
+# wrapping a raw object. The array must be of shape
+# ``(n_epochs, n_chans, n_times)```. The proper units of measure are listed
+# above.
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
 sfreq = 100

@@ -2333,7 +2333,7 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
             The hemisphere to display. Using 'both' or 'split' requires
             PySurfer version 0.4 or above.
         colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-            Name of colormap to use. See `plot_source_estimates`.
+            Name of colormap to use. See `~mne.viz.plot_source_estimates`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
@@ -2354,7 +2354,8 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
         colorbar : bool
             If True, display colorbar on scene.
         clim : str | dict
-            Colorbar properties specification. See `plot_source_estimates`.
+            Colorbar properties specification.
+            See `~mne.viz.plot_source_estimates`.
 
         Returns
         -------

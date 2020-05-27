@@ -226,6 +226,7 @@ Visualization
    add_background_image
    compare_fiff
    circular_layout
+   iter_topography
    mne_analyze_colormap
    plot_bem
    plot_brain_colorbar
