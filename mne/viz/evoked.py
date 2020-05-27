@@ -952,12 +952,12 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         if ``picks`` contains fewer than 25 entries.
     group_by : None | dict
         If a dict, the values must be picks, and ``axes`` must also be a dict
-        with matching keys, or None. If ``axes`` is None, one figure and one axis
-        will be created for each entry in ``group_by``.
-        Then, for each entry, the picked channels will be plotted
-        to the corresponding axis. If ``titles`` are None, keys will become plot
-        titles. This is useful for e.g. ROIs. Each entry must contain only
-        one channel type. For example::
+        with matching keys, or None. If ``axes`` is None, one figure and one
+        axis will be created for each entry in ``group_by``.Then, for each
+        entry, the picked channels will be plotted to the corresponding axis.
+        If ``titles`` are None, keys will become plot titles. This is useful
+        for e.g. ROIs. Each entry must contain only one channel type.
+        For example::
 
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 

@@ -1834,10 +1834,10 @@ class ICA(ContainsMixin):
             accordingly. E.g. range(2) would return the two sources with the
             highest absolute score. If None, this step will be skipped.
         eog_ch : list | str | ndarray | None
-            The ``target`` argument or the list of target arguments subsequently
-            passed to ica.find_sources_raw. Either the name of the vertical EOG
-            channel or the corresponding EOG time series. If None, this step
-            will be skipped.
+            The ``target`` argument or the list of target arguments
+            subsequently passed to ica.find_sources_raw. Either the name of the
+            vertical EOG channel or the corresponding EOG time series. If None,
+            this step will be skipped.
         eog_score_func : str | callable
             The ``score_func`` argument passed to ica.find_sources_raw. Either
             the name of function supported by ICA or a custom function.

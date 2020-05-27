@@ -120,8 +120,8 @@ def bootstrap_confidence_interval(arr, ci=.95, n_bootstraps=2000,
     Returns
     -------
     cis : ndarray, shape (2, ...)
-        Containing the lower boundary of the CI at ``cis[0, ...]`` and the upper
-        boundary of the CI at ``cis[1, ...]``.
+        Containing the lower boundary of the CI at ``cis[0, ...]`` and the
+        upper boundary of the CI at ``cis[1, ...]``.
     """
     if stat_fun == "mean":
         def stat_fun(x):

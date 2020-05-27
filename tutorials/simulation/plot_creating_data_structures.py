@@ -70,8 +70,8 @@ print(info)
 #           - The length of the channel information field ``chs`` must be
 #             ``nchan``.
 #           - The length of the ``ch_names`` field must be ``nchan``.
-#           - The ``ch_names`` field should be consistent with the ``name`` field
-#             of the channel information contained in ``chs``.
+#           - The ``ch_names`` field should be consistent with the ``name``
+#             field of the channel information contained in ``chs``.
 #
 # -------------------------------------
 # Creating :class:`~mne.io.Raw` objects
