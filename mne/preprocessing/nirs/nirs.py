@@ -38,7 +38,7 @@ def short_channels(info, threshold=0.01):
     r"""Determine which NIRS channels are short.
 
     Channels with a source to detector distance of less than
-    `threshold` are reported as short. The default threshold is 0.01 m.
+    ``threshold`` are reported as short. The default threshold is 0.01 m.
 
     Parameters
     ----------

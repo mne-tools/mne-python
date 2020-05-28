@@ -24,7 +24,7 @@ Changelog
 
 - Add convenient default values to :meth:`mne.io.Raw.apply_hilbert` and :meth:`mne.io.Raw.apply_function` by `Denis Engemann`_
 
-- Remove MNE-C requirement for :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` by `Eric Larson`_
+- Remove MNE-C requirement for :ref:`mne make_scalp_surfaces` by `Eric Larson`_
 
 - Add support for FastTrack Polhemus ``.mat`` file outputs in ``hsp`` argument of ``mne.channels.read_dig_montage`` by `Eric Larson`_
 
@@ -196,7 +196,7 @@ API
 
 - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
 
-- The :class:`mne.decoding.LinearModel` class will no longer support `plot_filters` and `plot_patterns`, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
+- The :class:`mne.decoding.LinearModel` class will no longer support ``plot_filters`` and ``plot_patterns``, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
 
 - Made functions :func:`mne.time_frequency.tfr_array_multitaper`, :func:`mne.time_frequency.tfr_array_morlet`, :func:`mne.time_frequency.tfr_array_stockwell`, :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing TFRs and PSDs on numpy arrays by `Jaakko Leppakangas`_
 
@@ -204,7 +204,7 @@ API
 
 - :func:`mne.io.read_raw_egi` now names channels with pattern 'E<idx>'. This behavior can be changed with parameter ``channel_naming`` by `Jaakko Leppakangas`_
 
-- the `name`` parameter in :class:`mne.Epochs` is deprecated, by `Jaakko Leppakangas`_
+- the ``name`` parameter in :class:`mne.Epochs` is deprecated, by `Jaakko Leppakangas`_
 
 Authors
 ~~~~~~~

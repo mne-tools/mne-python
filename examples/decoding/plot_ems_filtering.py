@@ -124,7 +124,7 @@ evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
 evoked.plot_topomap(time_unit='s', scalings=1)
 
 #############################################################################
-# Note that a similar transformation can be applied with `compute_ems`
+# Note that a similar transformation can be applied with ``compute_ems``
 # However, this function replicates Schurger et al's original paper, and thus
 # applies the normalization outside a leave-one-out cross-validation, which we
 # recommend not to do.

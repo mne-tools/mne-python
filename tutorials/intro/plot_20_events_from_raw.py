@@ -129,7 +129,7 @@ print(events[:5])  # show the first 5
 #     MNE-Python events are actually *three* values: in between the sample
 #     number and the integer event code is a value indicating what the event
 #     code was on the immediately preceding sample. In practice, that value is
-#     almost always `0`, but it can be used to detect the *endpoint* of an
+#     almost always ``0``, but it can be used to detect the *endpoint* of an
 #     event whose duration is longer than one sample. See the documentation of
 #     :func:`mne.find_events` for more details.
 #

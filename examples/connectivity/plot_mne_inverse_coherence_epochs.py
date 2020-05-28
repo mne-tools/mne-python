@@ -127,7 +127,7 @@ print(freqs[1])
 #
 # Finally, we'll generate a SourceEstimate with the coherence. This is simple
 # since we used a single seed. For more than one seed we would have to choose
-# one of the slices within `coh`.
+# one of the slices within ``coh``.
 #
 # .. note:: We use a hack to save the frequency axis as time.
 #

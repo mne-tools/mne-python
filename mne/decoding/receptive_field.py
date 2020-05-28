@@ -37,7 +37,7 @@ class ReceptiveField(BaseEstimator):
     estimator : instance of sklearn.base.BaseEstimator | float | None
         The model used in fitting inputs and outputs. This can be any
         scikit-learn-style model that contains a fit and predict method. If a
-        float is passed, it will be interpreted as the `alpha` parameter
+        float is passed, it will be interpreted as the ``alpha`` parameter
         to be passed to a Ridge regression model. If `None`, then a Ridge
         regression model with an alpha of 0 will be used.
     fit_intercept : bool | None
