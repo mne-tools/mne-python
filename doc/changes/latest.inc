@@ -112,6 +112,8 @@ Bug
 
 - Fix bug where :class:`VolSourceEstimate.vertices <mne.VolSourceEstimate>` was an instance of :class:`~numpy.ndarray` instead of :class:`python:list` of one :class:`~numpy.ndarray`, by `Eric Larson`_
 
+- Fix default to be ``foreground=None`` in :func:`mne.viz.plot_source_estimates` to use white or black text based on the background color by `Eric Larson`_
+
 - Fix bug with :func:`mne.io.Raw.plot` where toggling all projectors did not actually take effect by `Eric Larson`_
 
 - Fix bug with :func:`mne.read_epochs` when loading data in complex format with ``preload=False`` by `Eric Larson`_

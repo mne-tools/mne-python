@@ -535,6 +535,12 @@ class _TimeViewer(object):
             slider_rep.SetTubeWidth(self.slider_tube_width)
             slider_rep.GetSliderProperty().SetColor(self.slider_color)
             slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
+            slider_rep.GetLabelProperty().SetShadow(False)
+            slider_rep.GetLabelProperty().SetBold(True)
+            slider_rep.GetLabelProperty().SetColor(self.brain._fg_color)
+            slider_rep.GetTitleProperty().ShallowCopy(
+                slider_rep.GetLabelProperty()
+            )
             if not show_cap:
                 slider_rep.GetCapProperty().SetOpacity(0)
             if not show_label:
