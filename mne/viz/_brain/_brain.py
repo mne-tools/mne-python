@@ -177,6 +177,8 @@ class _Brain(object):
 
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
+        if foreground is None:
+            foreground = "white"
         if isinstance(foreground, str):
             foreground = colorConverter.to_rgb(foreground)
         if isinstance(views, str):

@@ -346,6 +346,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The title of the scalar bar.
         n_labels: int | None
             The number of labels to display on the scalar bar.
+        bgcolor:
+            The color of the background when there is transparency.
         """
         pass
 
