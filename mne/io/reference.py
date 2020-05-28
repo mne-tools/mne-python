@@ -392,7 +392,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         logger.info('EEG data marked as already having the desired reference.')
     else:
         logger.info('Applying a custom %s '
-                    'reference.' % DEFAULTS['titles'][type_])
+                    'reference.' % DEFAULTS['titles'][ch_type])
 
     return _apply_reference(inst, ref_channels, ch_sel)
 
