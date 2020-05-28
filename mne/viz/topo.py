@@ -32,14 +32,13 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     a series of matplotlib axis objects and data / channel
     indices, both corresponding to the sensor positions
     of the related layout passed or inferred from the channel info.
-    `iter_topography`, hence, allows to conveniently realize custom
-    topography plots.
+    Hence, this enables convenient topography plot customization.
 
     Parameters
     ----------
     info : instance of Info
         The measurement info.
-    layout : instance of mne.layout.Layout | None
+    layout : instance of mne.channels.Layout | None
         The layout to use. If None, layout will be guessed.
     on_pick : callable | None
         The callback function to be invoked on clicking one
@@ -600,7 +599,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         absolute peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     title : str
         Title of the figure.
     proj : bool | 'interactive'
@@ -870,7 +869,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         Title of the figure.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
-        ``None``, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        ``None``, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     border : str
         Matplotlib borders style to be used for each sensor plot.
     fig_facecolor : color

@@ -35,8 +35,8 @@ condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 
 ###############################################################################
-# Basic `plot_topomap` options
-# ----------------------------
+# Basic :func:`~mne.viz.plot_topomap` options
+# -------------------------------------------
 #
 # We plot evoked topographies using :func:`mne.Evoked.plot_topomap`. The first
 # argument, ``times`` allows to specify time instants (in seconds!) for which
@@ -68,8 +68,8 @@ evoked.plot_topomap(times, ch_type='mag', average=0.05, time_unit='s')
 evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 
 ###############################################################################
-# Additional `plot_topomap` options
-# ---------------------------------
+# Additional :func:`~mne.viz.plot_topomap` options
+# ------------------------------------------------
 #
 # We can also use a range of various :func:`mne.viz.plot_topomap` arguments
 # that control how the topography is drawn. For example:

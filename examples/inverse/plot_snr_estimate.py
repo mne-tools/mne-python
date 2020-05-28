@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-============================
-Plot an estimate of data SNR
-============================
+==================================
+Estimate data SNR using an inverse
+==================================
 
-This estimates the SNR as a function of time for a set of data.
+This estimates the SNR as a function of time for a set of data
+using a minimum-norm inverse operator.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #

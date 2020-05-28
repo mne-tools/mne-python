@@ -132,6 +132,12 @@ MNE-Python with all dependencies is update your base Anaconda environment:
        $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
        $ conda env update --file environment.yml
 
+   .. collapse:: |hand-stop-o| If you get errors building mayavi...
+       :class: danger
+
+       Installing `mayavi`_ needs OpenGL support. On debian-like systems this
+       means installing ``libopengl0``, i.e., ``sudo apt install libopengl0``.
+
 .. collapse:: |apple| macOS
 
    Use the base `environment file`_, e.g.::

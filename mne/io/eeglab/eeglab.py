@@ -248,7 +248,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
         If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
-        EEGLAB (.set) file with each descriptions copied from `eventtype`.
+        EEGLAB (.set) file with each descriptions copied from ``eventtype``.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.

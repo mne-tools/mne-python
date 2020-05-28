@@ -332,17 +332,22 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, color="white", title=None, n_labels=4,
+                  bgcolor=None):
         """Add a scalar bar in the scene.
 
         Parameters
         ----------
         source:
             The object of the scene used for the colormap.
+        color:
+            The color of the label text.
         title: str | None
             The title of the scalar bar.
         n_labels: int | None
             The number of labels to display on the scalar bar.
+        bgcolor:
+            The color of the background when there is transparency.
         """
         pass
 

@@ -119,7 +119,7 @@ where
 
 is the spatially whitened gain matrix. We arrive at the whitened inverse
 operator equation :eq:`inv_m_tilde` by making the substitution for
-`G` from :eq:`inv_g_tilde` in :eq:`inv_m` as
+:math:`G` from :eq:`inv_g_tilde` in :eq:`inv_m` as
 
 .. math::
 

@@ -153,9 +153,9 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     trans : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
-        If string, an ending of `.fif` or `.fif.gz` will be assumed to
+        If string, an ending of ``.fif`` or ``.fif.gz`` will be assumed to
         be in FIF format, any other ending will be assumed to be a text
-        file with a 4x4 transformation matrix (like the `--trans` MNE-C
+        file with a 4x4 transformation matrix (like the ``--trans`` MNE-C
         option). If trans is None, an identity transform will be used.
     src : str | instance of SourceSpaces | None
         Source space corresponding to the stc. If string, should be a source

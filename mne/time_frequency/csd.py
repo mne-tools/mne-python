@@ -178,7 +178,7 @@ class CrossSpectralDensity(object):
             time_str = 'unknown'
 
         return (
-            '<CrossSpectralDensity  |  '
+            '<CrossSpectralDensity | '
             'n_channels={}, time={}, frequencies={}>'
         ).format(self.n_channels, time_str, freq_str)
 

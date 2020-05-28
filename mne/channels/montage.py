@@ -344,7 +344,7 @@ def read_dig_dat(fname):
     .. Warning::
         This function was implemented based on ``*.dat`` files available from
         `Compumedics <https://compumedicsneuroscan.com/scan-acquire-
-        configuration-files/>`_ and might not work as expected with novel
+        configuration-files/>`__ and might not work as expected with novel
         files. If it does not read your files correctly please contact the
         mne-python developers.
 
@@ -480,8 +480,8 @@ def read_dig_hpts(fname, unit='mm'):
     where:
 
     ``<*category*>``
-        defines the type of points. Allowed categories are: `hpi`,
-        `cardinal` (fiducial), `eeg`, and `extra` corresponding to
+        defines the type of points. Allowed categories are: ``hpi``,
+        ``cardinal`` (fiducial), ``eeg``, and ``extra`` corresponding to
         head-position indicator coil locations, cardinal landmarks, EEG
         electrode locations, and additional head surface points,
         respectively.

@@ -67,11 +67,11 @@ print(info)
 #           :class:`mne.Info` object, it is important that the
 #           fields are consistent:
 #
-#           - The length of the channel information field `chs` must be
-#             `nchan`.
-#           - The length of the `ch_names` field must be `nchan`.
-#           - The `ch_names` field should be consistent with the `name` field
-#             of the channel information contained in `chs`.
+#           - The length of the channel information field ``chs`` must be
+#             ``nchan``.
+#           - The length of the ``ch_names`` field must be ``nchan``.
+#           - The ``ch_names`` field should be consistent with the ``name``
+#             field of the channel information contained in ``chs``.
 #
 # -------------------------------------
 # Creating :class:`~mne.io.Raw` objects
@@ -110,8 +110,9 @@ print(custom_raw)
 #
 # To create an :class:`mne.Epochs` object from scratch, you can use the
 # :class:`mne.EpochsArray` class, which uses a numpy array directly without
-# wrapping a raw object. The array must be of `shape(n_epochs, n_chans,
-# n_times)`. The proper units of measure are listed above.
+# wrapping a raw object. The array must be of shape
+# ``(n_epochs, n_chans, n_times)``. The proper units of measure are listed
+# above.
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
 sfreq = 100
@@ -125,10 +126,10 @@ info = mne.create_info(
 
 ###############################################################################
 # It is necessary to supply an "events" array in order to create an Epochs
-# object. This is of `shape(n_events, 3)` where the first column is the sample
-# number (time) of the event, the second column indicates the value from which
-# the transition is made from (only used when the new value is bigger than the
-# old one), and the third column is the new event value.
+# object. This is of shape ``(n_events, 3)`` where the first column is the
+# sample number (time) of the event, the second column indicates the value from
+# which the transition is made from (only used when the new value is bigger
+# than the old one), and the third column is the new event value.
 
 # Create an event matrix: 10 events with alternating event codes
 events = np.array([
@@ -170,8 +171,8 @@ _ = custom_epochs['smiling'].average().plot(time_unit='s')
 # Creating :class:`~mne.Evoked` Objects
 # -------------------------------------
 # If you already have data that is collapsed across trials, you may also
-# directly create an evoked array.  Its constructor accepts an array of
-# `shape(n_chans, n_times)` in addition to some bookkeeping parameters.
+# directly create an evoked array.  Its constructor accepts an array of shape
+# ``(n_chans, n_times)`` in addition to some bookkeeping parameters.
 # The proper units of measure for the data are listed above.
 
 # The averaged data
