@@ -148,9 +148,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     evoked : bool
         Draw the ER[P/F] below the image or not.
     ts_args : None | dict
-        Arguments passed to a call to `plot_compare_evokeds` to style
+        Arguments passed to a call to `~mne.viz.plot_compare_evokeds` to style
         the evoked plot below the image. Defaults to an empty dictionary,
-        meaning `plot_compare_evokeds` will be called with default parameters.
+        meaning `~mne.viz.plot_compare_evokeds` will be called with default
+        parameters.
     title : None | str
         If :class:`str`, will be plotted as figure title. Otherwise, the
         title will indicate channel(s) or channel type being plotted. Defaults
@@ -765,7 +766,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Events to show with vertical bars. If events are provided, the epoch
         numbers are not shown to prevent overlap. You can toggle epoch
         numbering through options (press 'o' key). You can use
-        :func:`mne.viz.plot_events` as a legend for the colors. By default, the
+        `~mne.viz.plot_events` as a legend for the colors. By default, the
         coloring scheme is the same.
 
         .. warning::  If the epochs have been resampled, the events no longer
@@ -776,7 +777,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Dictionary of event_id value and its associated color. If None,
         colors are automatically drawn from a default list (cycled through if
         number of events longer than list of default colors). Uses the same
-        coloring scheme as :func:`mne.viz.plot_events`.
+        coloring scheme as `~mne.viz.plot_events`.
 
         .. versionadded:: 0.14.0
     order : array of str | None

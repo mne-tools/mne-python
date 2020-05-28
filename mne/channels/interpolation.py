@@ -23,7 +23,7 @@ def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
         cosine of angles between pairs of points on a spherical surface. This
         is equivalent to the dot product of unit vectors.
     stiffness : float
-        stiffnes of the spline. Also referred to as `m`.
+        stiffnes of the spline. Also referred to as ``m``.
     n_legendre_terms : int
         number of Legendre terms to evaluate.
     """

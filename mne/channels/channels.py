@@ -24,6 +24,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
+from ..io.write import DATE_NONE
 
 
 def _get_meg_system(info):
@@ -608,6 +609,21 @@ class SetChannelsMixin(MontageMixin):
         from ..annotations import _handle_meas_date
         meas_date = _handle_meas_date(meas_date)
         self.info['meas_date'] = meas_date
+
+        # clear file_id and meas_id if needed
+        if meas_date is None:
+            for key in ('file_id', 'meas_id'):
+                value = self.info.get(key)
+                if value is not None:
+                    assert 'msecs' not in value
+                    value['secs'] = DATE_NONE[0]
+                    value['usecs'] = DATE_NONE[1]
+                    # The following copy is needed for a test CTF dataset
+                    # otherwise value['machid'][:] = 0 would suffice
+                    _tmp = value['machid'].copy()
+                    _tmp[:] = 0
+                    value['machid'] = _tmp
+
         if hasattr(self, 'annotations'):
             self.annotations._orig_time = meas_date
         return self
@@ -882,7 +898,7 @@ class UpdateChannelsMixin(object):
             type as the current object.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
-            values in `self`. This should generally only be used when adding
+            values in ``self``. This should generally only be used when adding
             stim channels for which important metadata won't be overwritten.
 
             .. versionadded:: 0.12
@@ -1101,7 +1117,7 @@ def read_ch_connectivity(fname, picks=None):
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
-    <http://www.fieldtriptoolbox.org/template/neighbours/>`_.
+    <http://www.fieldtriptoolbox.org/template/neighbours/>`__.
 
     Parameters
     ----------
@@ -1437,7 +1453,7 @@ def make_1020_channel_selections(info, midline="z"):
     This passes through all channel names, and uses a simple heuristic to
     separate channel names into three Region of Interest-based selections:
     Left, Midline and Right. The heuristic is that channels ending on any of
-    the characters in `midline` are filed under that heading, otherwise those
+    the characters in ``midline`` are filed under that heading, otherwise those
     ending in odd numbers under "Left", those in even numbers under "Right".
     Other channels are ignored. This is appropriate for 10/20 files, but not
     for other channel naming conventions.
@@ -1447,12 +1463,12 @@ def make_1020_channel_selections(info, midline="z"):
     ----------
     info : instance of Info
         Where to obtain the channel names from. The picks will
-        be in relation to the position in `info["ch_names"]`. If possible, this
-        lists will be sorted by y value position of the channel locations,
+        be in relation to the position in ``info["ch_names"]``. If possible,
+        this lists will be sorted by y value position of the channel locations,
         i.e., from back to front.
     midline : str
-        Names ending in any of these characters are stored under the `Midline`
-        key. Defaults to 'z'. Note that capitalization is ignored.
+        Names ending in any of these characters are stored under the
+        ``Midline`` key. Defaults to 'z'. Note that capitalization is ignored.
 
     Returns
     -------

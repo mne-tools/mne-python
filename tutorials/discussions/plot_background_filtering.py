@@ -934,8 +934,8 @@ baseline_plot(x)
 # -----------
 # Depending on the function or method used, the filter type can be specified.
 # To name an example, in :func:`mne.filter.create_filter`, the relevant
-# arguments would be `l_freq`, `h_freg`, `method`, and if the method is FIR
-# `fir_window` and `fir_design`.
+# arguments would be ``l_freq``, ``h_freq``, ``method``, and if the method is
+# FIR ``fir_window`` and ``fir_design``.
 #
 #
 # Cutoff frequency
@@ -943,7 +943,7 @@ baseline_plot(x)
 # The cutoff of FIR filters in MNE is defined as half-amplitude cutoff in the
 # middle of the transition band. That is, if you construct a lowpass FIR filter
 # with ``h_freq = 40``, the filter function will provide a transition
-# bandwidth that depends on the `h_trans_bandwidth` argument. The desired
+# bandwidth that depends on the ``h_trans_bandwidth`` argument. The desired
 # half-amplitude  cutoff of the lowpass FIR filter is then at
 # ``h_freq + transition_bandwidth/2.``.
 #
@@ -975,7 +975,7 @@ filter_length = fir_coefs.shape[0]
 ###############################################################################
 # .. note:: If you are using an IIR filter, :func:`mne.filter.create_filter`
 #           will not print a filter length and transition bandwidth to the log.
-#           Instead, you can specify the roll-off with the `iir_params`
+#           Instead, you can specify the roll-off with the ``iir_params``
 #           argument or stay with the default, which is a fourth order
 #           (Butterworth) filter.
 #

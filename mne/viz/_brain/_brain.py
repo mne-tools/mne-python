@@ -177,8 +177,12 @@ class _Brain(object):
 
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
+        self._bg_color = background
+        if foreground is None:
+            foreground = 'w' if sum(self._bg_color) < 2 else 'k'
         if isinstance(foreground, str):
             foreground = colorConverter.to_rgb(foreground)
+        self._fg_color = foreground
         if isinstance(views, str):
             views = [views]
         n_row = len(views)
@@ -191,7 +195,6 @@ class _Brain(object):
                              'sequence of ints.')
         fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
-        self._foreground = foreground
         self._hemi = hemi
         self._units = units
         self._subject_id = subject_id
@@ -521,6 +524,7 @@ class _Brain(object):
             if not self._time_label_added and time_label is not None:
                 time_actor = self._renderer.text2d(
                     x_window=0.95, y_window=y_txt,
+                    color=self._fg_color,
                     size=time_label_size,
                     text=time_label(self._current_time),
                     justification='right'
@@ -529,6 +533,7 @@ class _Brain(object):
                 self._time_label_added = True
             if colorbar and not self._colorbar_added:
                 self._renderer.scalarbar(source=actor, n_labels=8,
+                                         color=self._fg_color,
                                          bgcolor=(0.5, 0.5, 0.5))
                 self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,

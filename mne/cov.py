@@ -208,7 +208,7 @@ class Covariance(dict):
             s = 'diagonal : %s' % self.data.size
         s += ", n_samples : %s" % self.nfree
         s += ", data : %s" % self.data
-        return "<Covariance  |  %s>" % s
+        return "<Covariance | %s>" % s
 
     def __add__(self, cov):
         """Add Covariance taking into account number of degrees of freedom."""
@@ -312,8 +312,8 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
         Measurement info.
     std : dict of float | None
         Standard_deviation of the diagonal elements. If dict, keys should be
-        `grad` for gradiometers, `mag` for magnetometers and `eeg` for EEG
-        channels. If None, default values will be used (see Notes).
+        ``'grad'`` for gradiometers, ``'mag'`` for magnetometers and ``'eeg'``
+        for EEG channels. If None, default values will be used (see Notes).
     %(verbose)s
 
     Returns
@@ -1498,7 +1498,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for MEG magnetometers.
     grad : float (default 0.1)
         Regularization factor for MEG gradiometers. Must be the same as
-        `mag` if data have been processed with SSS.
+        ``mag`` if data have been processed with SSS.
     eeg : float (default 0.1)
         Regularization factor for EEG.
     exclude : list | 'bads' (default 'bads')
@@ -1689,7 +1689,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     noise_cov : Covariance
         The noise covariance.
     info : dict | None
-        The measurement info. Can be None if `noise_cov` has already been
+        The measurement info. Can be None if ``noise_cov`` has already been
         prepared with :func:`prepare_noise_cov`.
     %(picks_good_data_noref)s
     %(rank_None)s

@@ -45,14 +45,15 @@
       <div class="panel-heading"><h3 class="panel-title">Direct financial support</h3></div>
       <div class="panel-body funding">
         <ul class="list-unstyled">
-          <li style="background: url('_static/nih.png') no-repeat left top; background-size: 24px 24px;"> <b>NIH</b> <b>R01</b>-EB009048, EB009048, EB006385, HD40712, NS44319, NS37462, NS104585, <b>P41</b>-EB015896, RR14075-06</li>
-          <li style="background: url('_static/nsf.png') no-repeat left top; background-size: 24px 24px;"><b>NSF</b> 0958669, 1042134</li>
-          <li style="background: url('_static/erc.png') no-repeat left top; background-size: 24px 24px;"><b>ERC</b> <b>YStG</b>-263584, 676943</li>
-          <li style="background: url('_static/doe.png') no-repeat left top; background-size: 24px 24px;"><b>DoE</b> DE-FG02-99ER62764 (MIND)</li>
-          <li style="background: url('_static/anr.jpeg') no-repeat left top; background-size: 24px 24px;"><b>ANR</b> 14-NEUC-0002-01<br><b>IDEX</b> Paris-Saclay, 11-IDEX-0003-02</li>
-          <li style="background: url('_static/cds.png') no-repeat left top; background-size: 24px 24px;"><b>CDS</b> <a href="http://www.datascience-paris-saclay.fr"/>PARIS-SACLAY</a></li>
-          <li style="background: url('_static/google.svg') no-repeat left top; background-size: 24px 24px;"><b>Google</b> Summer of code (×6)</li>
-          <li style="background: url('_static/amazon.svg') no-repeat left top; background-size: 24px 24px;"><b>Amazon</b> - AWS Research Grants</li>
+          <li style="background: url('_static/funding/nih.png') no-repeat left top; background-size: 24px 24px;"> <b>National Institutes of Health:</b> <b>R01</b>-EB009048, EB009048, EB006385, HD40712, NS44319, NS37462, NS104585, <b>P41</b>-EB015896, RR14075-06</li>
+          <li style="background: url('_static/funding/nsf.png') no-repeat left top; background-size: 24px 24px;"><b>US National Science Foundation:</b> 0958669, 1042134</li>
+          <li style="background: url('_static/funding/erc.svg') no-repeat left top; background-size: 24px 24px;"><b>European Research Council:</b> <b>YStG</b>-263584, 676943</li>
+          <li style="background: url('_static/funding/doe.svg') no-repeat left top; background-size: 24px 24px;"><b>US Department of Energy:</b> DE-FG02-99ER62764 (MIND)</li>
+          <li style="background: url('_static/funding/anr.svg') no-repeat left top; background-size: 24px 10px;"><b>Agence Nationale de la Recherche:</b> 14-NEUC-0002-01<br><b>IDEX</b> Paris-Saclay, 11-IDEX-0003-02</li>
+          <li style="background: url('_static/funding/cds.png') no-repeat left top; background-size: 24px 24px;"><b>Paris-Saclay Center for Data Science:</b> <a href="http://www.datascience-paris-saclay.fr"/>PARIS-SACLAY</a></li>
+          <li style="background: url('_static/funding/google.svg') no-repeat left top; background-size: 24px 24px;"><b>Google:</b> Summer of code (×6)</li>
+          <li style="background: url('_static/funding/amazon.svg') no-repeat left top; background-size: 24px 24px;"><b>Amazon:</b> - AWS Research Grants</li>
+          <li style="background: url('_static/funding/czi.svg') no-repeat left top; background-size: 24px 24px;"><b>Chan Zuckerberg Initiative:</b> - <a href="https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python/">Essential Open Source Software for Science</a></li>
         </ul>
       </div>
     </div>

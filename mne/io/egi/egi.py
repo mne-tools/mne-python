@@ -107,7 +107,7 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     include : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None.
-       Note. Overrides `exclude` parameter.
+       Note. Overrides ``exclude`` parameter.
     exclude : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None. If None, channels that have more than

@@ -41,14 +41,10 @@ subject = 'sample'
 # example the inner skull surface, the outer skull surface and the outer skin
 # surface, a.k.a. scalp surface.
 #
-# Computing the BEM surfaces requires FreeSurfer and makes use of either of
-# the two following command line tools:
-#
-#   - :ref:`gen_mne_watershed_bem`
-#   - :ref:`gen_mne_flash_bem`
-#
-# Or by calling in a Python script one of the functions
-# :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
+# Computing the BEM surfaces requires FreeSurfer and makes use of
+# the command-line tools :ref:`mne watershed_bem` or :ref:`mne flash_bem`, or
+# the related functions :func:`mne.bem.make_watershed_bem` or
+# :func:`mne.bem.make_flash_bem`.
 #
 # Here we'll assume it's already computed. It takes a few minutes per subject.
 #
@@ -71,7 +67,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # to align the head and the sensors in stored in a so-called **trans file**.
 # It is a FIF file that ends with ``-trans.fif``. It can be obtained with
 # :func:`mne.gui.coregistration` (or its convenient command line
-# equivalent :ref:`gen_mne_coreg`), or mrilab if you're using a Neuromag
+# equivalent :ref:`mne coreg`), or mrilab if you're using a Neuromag
 # system.
 #
 # Here we assume the coregistration is done, so we just visually check the
