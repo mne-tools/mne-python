@@ -137,56 +137,83 @@ class _WebInteractor(object):
         self.fig.canvas.draw()
 
     def configure_controllers(self):
-        from ipywidgets import interactive, Label, VBox
-        shape = self.renderer.shape
-        self.unit_selector = interactive(
-            self.set_unit,
-            unit=["mm", "m"]
+        from ipywidgets import (interactive, Label, VBox, FloatSlider,
+                                IntSlider)
+        figure = self.renderer.figure
+        plotter = figure.plotter
+        # subplot
+        number_of_plots = len(plotter.renderers)
+        self.subplot_slider = IntSlider(
+            value=number_of_plots - 1,
+            min=0,
+            max=number_of_plots - 1,
+            step=1,
+            continuous_update=False
         )
-        self.subplot_selector = interactive(
-            self.renderer.subplot,
-            x=(0, shape[0] - 1),
-            y=(0, shape[1] - 1)
+        self.subplot_controller = interactive(
+            self.set_subplot,
+            index=self.subplot_slider,
         )
-        self.camera_slider = interactive(
+        # azimuth
+        default_azimuth = figure.plotter.renderer._azimuth
+        self.azimuth_slider = FloatSlider(
+            value=default_azimuth,
+            min=-180.,
+            max=180.,
+            step=10.,
+            continuous_update=False
+        )
+        # elevation
+        default_elevation = figure.plotter.renderer._elevation
+        self.elevation_slider = FloatSlider(
+            value=default_elevation,
+            min=-180.,
+            max=180.,
+            step=10.,
+            continuous_update=False
+        )
+        # distance
+        eps = 1e-5
+        default_distance = figure.plotter.renderer._distance
+        self.distance_slider = FloatSlider(
+            value=default_distance,
+            min=eps,
+            max=2. * default_distance - eps,
+            step=default_distance / 10.,
+            continuous_update=False
+        )
+        # camera
+        self.camera_controller = interactive(
             self.set_camera,
-            azimuth=(0., 360., 10.),
-            elevation=(0., 180., 10.),
-            distance=(0.1, 1., 0.05)
+            azimuth=self.azimuth_slider,
+            elevation=self.elevation_slider,
+            distance=self.distance_slider,
         )
+        # controllers
         controllers = VBox([
-            Label(value='Set the default unit'),
-            self.unit_selector,
             Label(value='Select the subplot'),
-            self.subplot_selector,
+            self.subplot_controller,
             Label(value='Camera settings'),
-            self.camera_slider,
+            self.camera_controller,
         ])
         return controllers
-
-    def set_unit(self, unit):
-        unit_range = {
-            "m": (1.0, 0.1, 0.05),
-            "mm": (1000., 100., 50.),
-        }
-        for ch in self.camera_slider.children:
-            if hasattr(ch, "description") and ch.description == 'distance':
-                new_max = unit_range[unit][0]
-                new_min = unit_range[unit][1]
-                if new_max < ch.min:
-                    ch.min = new_min
-                    ch.max = new_max
-                else:
-                    ch.max = new_max
-                    ch.min = new_min
-                ch.step = unit_range[unit][2]
-                ch.value = (ch.min + ch.max) / 2.
 
     def set_camera(self, azimuth, elevation, distance):
         focalpoint = self.renderer.plotter.camera.GetFocalPoint()
         self.renderer.set_camera(azimuth, elevation,
                                  distance, focalpoint)
         self.update()
+
+    def set_subplot(self, index):
+        row, col = self.plotter.index_to_loc(index)
+        self.renderer.subplot(row, col)
+        figure = self.renderer.figure
+        default_azimuth = figure.plotter.renderer._azimuth
+        default_elevation = figure.plotter.renderer._elevation
+        default_distance = figure.plotter.renderer._distance
+        self.azimuth_slider.value = default_azimuth
+        self.elevation_slider.value = default_elevation
+        self.distance_slider.value = default_distance
 
 
 def _enable_aa(figure, plotter):
@@ -655,10 +682,13 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         r = distance
     else:
         r = max(bounds[1::2] - bounds[::2]) * 2.0
+        distance = r
 
-    cen = (bounds[1::2] + bounds[::2]) * 0.5
     if focalpoint is not None:
         cen = np.asarray(focalpoint)
+    else:
+        cen = (bounds[1::2] + bounds[::2]) * 0.5
+        focalpoint = cen
 
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the
@@ -674,6 +704,10 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         r * np.cos(theta)]
     figure.plotter.camera_position = [
         position, cen, view_up]
+
+    figure.plotter.renderer._azimuth = azimuth
+    figure.plotter.renderer._elevation = elevation
+    figure.plotter.renderer._distance = distance
 
 
 def _set_3d_title(figure, title, size=16):
