@@ -432,13 +432,16 @@ class _Renderer(_BaseRenderer):
                                           name=text,
                                           shape_opacity=0)
 
-    def scalarbar(self, source, title=None, n_labels=4, bgcolor=None):
+    def scalarbar(self, source, color="white", title=None, n_labels=4,
+                  bgcolor=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
+            self.plotter.add_scalar_bar(color=color, title=title,
+                                        n_labels=n_labels,
                                         use_opacity=False, n_colors=256,
                                         position_x=0.15,
                                         position_y=0.05, width=0.7,
+                                        shadow=False, bold=True,
                                         label_font_size=22,
                                         font_family=self.font_family,
                                         background_color=bgcolor)

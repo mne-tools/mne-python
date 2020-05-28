@@ -521,6 +521,7 @@ class _Brain(object):
             if not self._time_label_added and time_label is not None:
                 time_actor = self._renderer.text2d(
                     x_window=0.95, y_window=y_txt,
+                    color=self._foreground,
                     size=time_label_size,
                     text=time_label(self._current_time),
                     justification='right'
@@ -529,6 +530,7 @@ class _Brain(object):
                 self._time_label_added = True
             if colorbar and not self._colorbar_added:
                 self._renderer.scalarbar(source=actor, n_labels=8,
+                                         color=self._foreground,
                                          bgcolor=(0.5, 0.5, 0.5))
                 self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,
