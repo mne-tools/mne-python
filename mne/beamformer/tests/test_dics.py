@@ -110,19 +110,20 @@ def _test_weight_norm(filters, norm=1):
             assert_allclose(np.trace(w.dot(w.conjugate().T)), norm)
 
 
-idx_param = pytest.mark.parametrize('idx, mat_tol, vol_tol', [
-    (0, 0.055, 0.),
-    (100, 0.020, 0.007),
-    (200, 0.015, 0.015),
-    (233, 0.035, 0.),
-])
+idx_param = pytest.mark.parametrize('idx', [0, 100, 200, 233])
+mat_tols = {  # only list non-zero values
+    'None': {0: 0.055, 100: 0.20, 200: 0.015, 233: 0.035},
+    'unit-noise-gain': {233: 0.018},
+    'unit-noise-gain-old': {100: 0.017, 233: 0.03},
+    'unit-noise-gain-sqrtm': {},
+}
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
 @idx_param
-def test_make_dics(tmpdir, _load_forward, idx, mat_tol, vol_tol):
+def test_make_dics(tmpdir, _load_forward, idx):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
@@ -272,7 +273,11 @@ def _fwd_dist(power, fwd, vertices, source_ind, tidx=1):
 
 
 @idx_param
-def test_apply_dics_csd(_load_forward, idx, mat_tol, vol_tol):
+@pytest.mark.parametrize('inversion, weight_norm', [
+    ('single', None),
+    ('matrix', 'unit-noise-gain-sqrtm'),
+])
+def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
     """Test applying a DICS beamformer to a CSD matrix."""
     fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
     epochs, _, csd, source_vertno, label, vertices, source_ind = \
@@ -287,7 +292,7 @@ def test_apply_dics_csd(_load_forward, idx, mat_tol, vol_tol):
     assert label.hemi == 'lh'
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
         filters = make_dics(epochs.info, fwd, csd, label=label, reg=reg,
-                            inversion='single')
+                            inversion=inversion, weight_norm=weight_norm)
         power, f = apply_dics_csd(csd, filters)
         assert f == [10, 20]
 
@@ -299,11 +304,19 @@ def test_apply_dics_csd(_load_forward, idx, mat_tol, vol_tol):
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
+weight_norm_param = pytest.mark.parametrize('weight_norm', [
+    'unit-noise-gain',
+    'unit-noise-gain-old',
+    'unit-noise-gain-sqrtm',
+])
+
+
 @pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
 @pytest.mark.parametrize('inversion', ['single', 'matrix'])
 @idx_param
+@weight_norm_param
 def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
-                            mat_tol, vol_tol):
+                            weight_norm):
     """Test picking different orientations and inversion modes."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
     epochs, _, csd, source_vertno, label, vertices, source_ind = \
@@ -314,11 +327,12 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         reg=reg_, pick_ori=pick_ori,
                         inversion=inversion, normalize_fwd=False,
-                        weight_norm='unit-noise-gain-sqrtm')
+                        weight_norm=weight_norm)
     power, f = apply_dics_csd(csd, filters)
     assert f == [10, 20]
     dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
-    assert dist <= (0.03 if inversion == 'matrix' else 0.)
+    mat_tol = mat_tols[weight_norm].get(idx, 0.)
+    assert dist <= (mat_tol if inversion == 'matrix' else 0.)
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test unit-noise-gain weighting
@@ -328,18 +342,20 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
     noise_power, f = apply_dics_csd(csd_noise, filters)
     assert_allclose(noise_power.data, 1., atol=1e-7)
 
-    # Test filter with forward normalization instead of weight
-    # normalization
-    filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        reg=reg_, pick_ori=pick_ori,
-                        inversion=inversion, weight_norm=None,
-                        normalize_fwd=True)
-    power, f = apply_dics_csd(csd, filters)
-    assert f == [10, 20]
-    dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
-    max_ = (mat_tol if inversion == 'matrix' else 0.)
-    assert 0 <= dist <= max_
-    assert power.data[source_ind, 1] > power.data[source_ind, 0]
+    if weight_norm == 'unit-noise-gain':
+        # Test filter with forward normalization instead of weight
+        # normalization
+        filters = make_dics(epochs.info, fwd_surf, csd, label=label,
+                            reg=reg_, pick_ori=pick_ori,
+                            inversion=inversion, weight_norm=None,
+                            normalize_fwd=True)
+        power, f = apply_dics_csd(csd, filters)
+        assert f == [10, 20]
+        dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
+        mat_tol = mat_tols['None'][idx]
+        max_ = (mat_tol if inversion == 'matrix' else 0.)
+        assert 0 <= dist <= max_
+        assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
 def _nearest_vol_ind(fwd_vol, fwd, vertices, source_ind):
@@ -349,7 +365,7 @@ def _nearest_vol_ind(fwd_vol, fwd, vertices, source_ind):
 
 
 @idx_param
-def test_real(_load_forward, idx, mat_tol, vol_tol):
+def test_real(_load_forward, idx):
     """Test using a real-valued filter."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
     epochs, _, csd, source_vertno, label, vertices, source_ind = \
@@ -386,7 +402,8 @@ def test_real(_load_forward, idx, mat_tol, vol_tol):
     assert f == [10, 20]
     dist = _fwd_dist(
         power, fwd_vol, fwd_vol['src'][0]['vertno'], vol_source_ind)
-    assert dist <= vol_tol
+    vol_tols = {100: 0.008, 200: 0.008}
+    assert dist <= vol_tols.get(idx, 0.)
     assert power.data[vol_source_ind, 1] > power.data[vol_source_ind, 0]
 
     # check whether a filters object without src_type throws expected warning
@@ -399,7 +416,7 @@ def test_real(_load_forward, idx, mat_tol, vol_tol):
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
 @idx_param
-def test_apply_dics_timeseries(_load_forward, idx, mat_tol, vol_tol):
+def test_apply_dics_timeseries(_load_forward, idx):
     """Test DICS applied to timeseries data."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
     epochs, evoked, csd, source_vertno, label, vertices, source_ind = \
@@ -489,6 +506,8 @@ def test_apply_dics_timeseries(_load_forward, idx, mat_tol, vol_tol):
     vol_source_ind = _nearest_vol_ind(fwd_vol, fwd_surf, vertices, source_ind)
     dist = _fwd_dist(stc, fwd_vol, fwd_vol['src'][0]['vertno'], vol_source_ind,
                      tidx=0)
+    vol_tols = {100: 0.008, 200: 0.015}
+    vol_tol = vol_tols.get(idx, 0.)
     assert dist <= vol_tol
 
     # check whether a filters object without src_type throws expected warning
@@ -500,7 +519,7 @@ def test_apply_dics_timeseries(_load_forward, idx, mat_tol, vol_tol):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @idx_param
-def test_tf_dics(_load_forward, idx, mat_tol, vol_tol):
+def test_tf_dics(_load_forward, idx):
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
     epochs, _, _, source_vertno, label, vertices, source_ind = \
