@@ -529,7 +529,6 @@ class _TimeViewer(object):
 
     def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
-            foreground_color = self.brain._foreground
             slider_rep = slider.GetRepresentation()
             slider_rep.SetSliderLength(self.slider_length)
             slider_rep.SetSliderWidth(self.slider_width)
@@ -538,7 +537,7 @@ class _TimeViewer(object):
             slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
             slider_rep.GetLabelProperty().SetShadow(False)
             slider_rep.GetLabelProperty().SetBold(True)
-            slider_rep.GetLabelProperty().SetColor(foreground_color)
+            slider_rep.GetLabelProperty().SetColor(self.brain._fg_color)
             slider_rep.GetTitleProperty().ShallowCopy(
                 slider_rep.GetLabelProperty()
             )
