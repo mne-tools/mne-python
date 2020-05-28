@@ -29,6 +29,11 @@ boxy_data_folder = mne.datasets.boxy_example.data_path()
 boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
 raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
 
+### plot the raw data ###
+raw_intensity.plot(n_channels=10, clipping='clamp')
+# raw_intensity.plot(n_channels=10, scalings={'fnirs_raw':180}, clipping='clamp')
+
+
 ###separate data based on montages###
 mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
                  if re.search(r'(S[1-5]_|\bMarkers a\b)', i_label)]
@@ -130,6 +135,11 @@ mtg_b_intensity.plot(n_channels=5,
 # # ------------------------------------------------
 # #
 # # The raw intensity values are then converted to optical density.
+
+# doesn't work with the new channel types
+# not sure what to change since _picks_to_idx(raw.info, 'fnirs_raw')
+# maybe add a try statement for the other types?
+# not sure if we want to change the default function
 
 raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
 raw_od_a = mne.preprocessing.nirs.optical_density(mtg_a_intensity)

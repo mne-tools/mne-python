@@ -99,6 +99,8 @@ _second_rules = {
                             FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr',
                             FIFF.FIFFV_COIL_FNIRS_RAW: 'fnirs_raw',
                             FIFF.FIFFV_COIL_FNIRS_OD: 'fnirs_od',
+                            FIFF.FIFFV_COIL_FNIRS_AC: 'fnirs_ac',
+                            FIFF.FIFFV_COIL_FNIRS_PH: 'fnirs_ph',
                             }),
     'eeg': ('coil_type', {FIFF.FIFFV_COIL_EEG: 'eeg',
                           FIFF.FIFFV_COIL_EEG_BIPOLAR: 'eeg',
@@ -271,6 +273,10 @@ def _triage_fnirs_pick(ch, fnirs):
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
         return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_AC and fnirs == 'fnirs_ac':
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_PH and fnirs == 'fnirs_ph':
+        return True
     return False
 
 
@@ -401,7 +407,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         for key in ('grad', 'mag'):
             param_dict[key] = meg
     if isinstance(fnirs, bool):
-        for key in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od'):
+        for key in ('hbo', 'hbr', 'fnirs_raw', 
+                    'fnirs_od', 'fnirs_ac', 'fnirs_ph'):
             param_dict[key] = fnirs
     for k in range(nchan):
         ch_type = channel_type(info, k)
@@ -409,7 +416,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
             assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg',
-                               'fnirs_raw', 'fnirs_od')
+                               'fnirs_raw', 'fnirs_od', 'fnirs_ac', 'fnirs_ph')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
@@ -937,6 +944,8 @@ def _pick_data_or_ica(info, exclude=()):
 def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
                   with_ref_meg=True, return_kind=False):
     """Convert and check pick validity."""
+    # import pdb
+    # pdb.set_trace()
     from .meas_info import Info
     picked_ch_type_or_generic = False
     #
