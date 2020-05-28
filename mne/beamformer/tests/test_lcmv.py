@@ -702,7 +702,11 @@ def test_lcmv_ctf_comp():
 @pytest.mark.parametrize('pick_ori', ['max-power', 'normal'])
 @pytest.mark.parametrize('reg', (0.05, 0.))
 @pytest.mark.parametrize('weight_norm', [
-    'unit-noise-gain-pooled', 'unit-noise-gain-old', 'unit-noise-gain'])
+    'unit-noise-gain-pooled',
+    'unit-noise-gain-old',
+    'unit-noise-gain-sqrtm',
+    'unit-noise-gain',
+])
 def test_unit_noise_gain_formula(pick_ori, reg, weight_norm):
     """Test unit-noise-gain filter against formula."""
     # The unit-noise-gain beamformer is computed following a shortcut, where
@@ -875,12 +879,14 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper', [
         (0.05, 'vector', 'unit-noise-gain-pooled', False, None, 36, 38),
         (0.05, 'vector', 'unit-noise-gain-pooled', True, None, 50, 53),
+        (0.05, 'vector', 'unit-noise-gain-sqrtm', True, None, 40, 42),
         (0.05, 'vector', 'unit-noise-gain-old', True, None, 37, 38),
         (0.05, 'vector', 'unit-noise-gain', True, None, 35, 37),
         (0.05, 'vector', 'nai', True, None, 35, 37),
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
         (0.05, 'max-power', 'unit-noise-gain-pooled', False, None, 17, 20),
+        (0.05, 'max-power', 'unit-noise-gain-sqrtm', False, None, 17, 20),
         (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20),
         (0.05, 'max-power', 'unit-noise-gain', True, None, 21, 24),
         (0.05, 'max-power', 'nai', True, None, 21, 24),

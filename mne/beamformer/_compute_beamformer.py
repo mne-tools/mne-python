@@ -17,7 +17,8 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_inv, warn)
+                     _pl, _check_src_normal, check_version, _sym_inv, warn,
+                     sqrtm_sym)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -180,15 +181,15 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The beamformer filter weights.
     """
     # TODO: This conditional just allows us to use a private
-    # "unit-noise-gain-old" for testing. If we decide
-    # "unit-noise-gain-pooled" is actually worth keeping, we should add
-    # "nai-pooled" as well. But since it's just a scale factor, it shouldn't
-    # mess with localization bias tests, so don't bother for now.
+    # "unit-noise-gain-old"/"-pooled"/"-sqrtm" for testing.
+    # The "unit-noise-gain" should follow Sekihara. Hopefully we only decide
+    # to keep one.
     if not (isinstance(weight_norm, str) and
-            weight_norm == 'unit-noise-gain-old'):
+            weight_norm in ('unit-noise-gain-old',
+                            'unit-noise-gain-pooled',
+                            'unit-noise-gain-sqrtm')):
         _check_option('weight_norm', weight_norm,
-                      ['unit-noise-gain', 'unit-noise-gain-pooled', 'nai',
-                       None])
+                      ['unit-noise-gain', 'nai', None])
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
@@ -305,6 +306,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # 4. Invert the denominator
     #
 
+    # Here W is W_ug, i.e.:
+    # G.T @ Cm_inv / (G.T @ Cm_inv @ G)
     bf_denom_inv = _sym_inv_sm(bf_denom, reduce_rank, inversion, sk)
     assert bf_denom_inv.shape == (n_sources, n_orient, n_orient)
     W = np.matmul(bf_denom_inv, bf_numer)
@@ -315,21 +318,23 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # 5. Re-scale filter weights according to the selected weight_norm
     #
 
-    # Weight normalization is done by computing:
-    # W_ung = inv(sqrt(W_ug @ W_ug.T)) @ W_ug
+    # Weight normalization is done by computing, for each source::
+    #
+    #     W_ung = W_ug / sqrt(W_ug @ W_ug.T)
+    #
     # with W_ung referring to the unit-noise-gain (weight normalized) filter
-    # and W_ug referring to the above-calculated unit-gain filter stored in W
+    # and W_ug referring to the above-calculated unit-gain filter stored in W.
 
     if weight_norm is not None:
         # Three different ways to calculate the normalization factors here.
         # Only matters when in vector mode, as otherwise n_orient == 1 and
         # they are all equivalent.
         if weight_norm in ('nai', 'unit-noise-gain'):
-            # Use sqrt(diag(W_ug @ W_ug.T)), not be rotation invariant:
+            # Sekihara: use sqrt(diag(W_ug @ W_ug.T)), not rotation invariant:
             noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj())
             noise_norm = np.reshape(  # np.diag operation over last two axes...
                 noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
-            noise_norm *= n_orient
+            # noise_norm *= n_orient
             np.sqrt(noise_norm.real, out=noise_norm)
             assert noise_norm.shape == (n_sources, n_orient, 1)
         elif weight_norm == 'unit-noise-gain-old':
@@ -337,6 +342,14 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # source point:
             noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
             assert noise_norm.shape == (n_sources, 1, 1)
+        elif weight_norm == 'unit-noise-gain-sqrtm':
+            # Use a direct recomputation of the weights using a matrix sqrt,
+            # and directly recompute the result
+            W = np.matmul(
+                sqrtm_sym(np.matmul(W, W.swapaxes(-2, -1).conj()).real,
+                          inv=True)[0],
+                W)
+            noise_norm = np.ones((W.shape[0], 1, 1))
         else:
             assert weight_norm == 'unit-noise-gain-pooled'
             # Uses the Frobenius matrix norm, but couple it with a
