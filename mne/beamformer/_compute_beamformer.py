@@ -281,6 +281,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
         # set the (otherwise arbitrary) sign to match the normal
         signs = np.sign(np.sum(max_power_ori * nn, axis=1, keepdims=True))
+        signs[signs == 0] = 1.
         max_power_ori *= signs
 
         # Compute the lead field for the optimal orientation,
