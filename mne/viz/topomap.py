@@ -37,7 +37,7 @@ from ..io.meas_info import Info, _simplify_info
 from ..io.proj import Projection
 
 
-_fnirs_types = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
+_fnirs_types = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od', 'fnirs_ph')
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):

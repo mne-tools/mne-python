@@ -31,8 +31,6 @@ raw_intensity = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data
 
 ### plot the raw data ###
 raw_intensity.plot(n_channels=10, clipping='clamp')
-# raw_intensity.plot(n_channels=10, scalings={'fnirs_raw':180}, clipping='clamp')
-
 
 ###separate data based on montages###
 mtg_a_indices = [i_index for i_index,i_label in enumerate(raw_intensity.info['ch_names']) 
@@ -121,13 +119,9 @@ raw_intensity.pick(picks[dists < 0.08])
 mtg_a_intensity.pick(picks_a[dists_a < 0.08])
 mtg_b_intensity.pick(picks_b[dists_b < 0.08])
 
-scalings = dict(fnirs_raw=1e2)
-raw_intensity.plot(n_channels=5,
-                   duration=20, scalings=100, show_scrollbars=True)
-mtg_a_intensity.plot(n_channels=5,
-                   duration=20, scalings=100, show_scrollbars=True)
-mtg_b_intensity.plot(n_channels=5,
-                   duration=20, scalings=100, show_scrollbars=True)
+raw_intensity.plot(n_channels=5, duration=20, show_scrollbars=True)
+mtg_a_intensity.plot(n_channels=5, duration=20, show_scrollbars=True)
+mtg_b_intensity.plot(n_channels=5, duration=20, show_scrollbars=True)
 
 
 # ###############################################################################
@@ -141,16 +135,16 @@ mtg_b_intensity.plot(n_channels=5,
 # maybe add a try statement for the other types?
 # not sure if we want to change the default function
 
-raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
-raw_od_a = mne.preprocessing.nirs.optical_density(mtg_a_intensity)
-raw_od_b = mne.preprocessing.nirs.optical_density(mtg_b_intensity)
+# raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
+# raw_od_a = mne.preprocessing.nirs.optical_density(mtg_a_intensity)
+# raw_od_b = mne.preprocessing.nirs.optical_density(mtg_b_intensity)
 
-raw_od.plot(n_channels=len(raw_od.ch_names),
-            duration=500, show_scrollbars=False)
-raw_od_a.plot(n_channels=len(raw_od_a.ch_names),
-            duration=500, show_scrollbars=False)
-raw_od_b.plot(n_channels=len(raw_od_b.ch_names),
-            duration=500, show_scrollbars=False)
+# raw_od.plot(n_channels=len(raw_od.ch_names),
+#             duration=500, show_scrollbars=False)
+# raw_od_a.plot(n_channels=len(raw_od_a.ch_names),
+#             duration=500, show_scrollbars=False)
+# raw_od_b.plot(n_channels=len(raw_od_b.ch_names),
+#             duration=500, show_scrollbars=False)
 
 
 # ###############################################################################
@@ -166,30 +160,30 @@ raw_od_b.plot(n_channels=len(raw_od_b.ch_names),
 # # channels, so we will not mark any channels as bad based on the scalp
 # # coupling index.
 
-sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
-sci_a = mne.preprocessing.nirs.scalp_coupling_index(raw_od_a)
-sci_b = mne.preprocessing.nirs.scalp_coupling_index(raw_od_b)
+# sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
+# sci_a = mne.preprocessing.nirs.scalp_coupling_index(raw_od_a)
+# sci_b = mne.preprocessing.nirs.scalp_coupling_index(raw_od_b)
 
-fig, ax = plt.subplots()
-ax.hist(sci)
-ax.set(xlabel='Scalp Coupling Index', ylabel='Count', xlim=[0, 1])
+# fig, ax = plt.subplots()
+# ax.hist(sci)
+# ax.set(xlabel='Scalp Coupling Index', ylabel='Count', xlim=[0, 1])
 
-fig, ax = plt.subplots()
-ax.hist(sci_a)
-ax.set(xlabel='Scalp Coupling Index-A', ylabel='Count', xlim=[0, 1])
+# fig, ax = plt.subplots()
+# ax.hist(sci_a)
+# ax.set(xlabel='Scalp Coupling Index-A', ylabel='Count', xlim=[0, 1])
 
-fig, ax = plt.subplots()
-ax.hist(sci_b)
-ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
+# fig, ax = plt.subplots()
+# ax.hist(sci_b)
+# ax.set(xlabel='Scalp Coupling Index-B', ylabel='Count', xlim=[0, 1])
 
 
 # ###############################################################################
 # # In this example we will mark all channels with a SCI less than 0.5 as bad
 # # (this dataset is quite clean, so no channels are marked as bad).
 
-raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
-raw_od_a.info['bads'] = list(compress(raw_od_a.ch_names, sci_a < 0.5))
-raw_od_b.info['bads'] = list(compress(raw_od_b.ch_names, sci_b < 0.5))
+# raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
+# raw_od_a.info['bads'] = list(compress(raw_od_a.ch_names, sci_a < 0.5))
+# raw_od_b.info['bads'] = list(compress(raw_od_b.ch_names, sci_b < 0.5))
 
 # ###############################################################################
 # # At this stage it is appropriate to inspect your data
@@ -207,18 +201,18 @@ raw_od_b.info['bads'] = list(compress(raw_od_b.ch_names, sci_b < 0.5))
 # # Next we convert the optical density data to haemoglobin concentration using
 # # the modified Beer-Lambert law.
 
-raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
-raw_haemo_a = mne.preprocessing.nirs.beer_lambert_law(raw_od_a)
-raw_haemo_b = mne.preprocessing.nirs.beer_lambert_law(raw_od_b)
+# raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
+# raw_haemo_a = mne.preprocessing.nirs.beer_lambert_law(raw_od_a)
+# raw_haemo_b = mne.preprocessing.nirs.beer_lambert_law(raw_od_b)
 
-raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
-                duration=500, show_scrollbars=False)
+# raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
+#                 duration=500, show_scrollbars=False)
 
-raw_haemo_a.plot(n_channels=len(raw_haemo_a.ch_names),
-                duration=500, show_scrollbars=False)
+# raw_haemo_a.plot(n_channels=len(raw_haemo_a.ch_names),
+#                 duration=500, show_scrollbars=False)
 
-raw_haemo_b.plot(n_channels=len(raw_haemo_b.ch_names),
-                duration=500, show_scrollbars=False)
+# raw_haemo_b.plot(n_channels=len(raw_haemo_b.ch_names),
+#                 duration=500, show_scrollbars=False)
 
 
 # ###############################################################################
@@ -231,34 +225,34 @@ raw_haemo_b.plot(n_channels=len(raw_haemo_b.ch_names),
 # # remove this. A high pass filter is also included to remove slow drifts
 # # in the data.
 
-fig = raw_haemo.plot_psd(average=True)
-fig.suptitle('Before filtering', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
-raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
-                              l_trans_bandwidth=0.02)
-fig = raw_haemo.plot_psd(average=True)
-fig.suptitle('After filtering', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
+# fig = raw_haemo.plot_psd(average=True)
+# fig.suptitle('Before filtering', weight='bold', size='x-large')
+# fig.subplots_adjust(top=0.88)
+# raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
+#                               l_trans_bandwidth=0.02)
+# fig = raw_haemo.plot_psd(average=True)
+# fig.suptitle('After filtering', weight='bold', size='x-large')
+# fig.subplots_adjust(top=0.88)
 
 
-fig = raw_haemo_a.plot_psd(average=True)
-fig.suptitle('Before filtering Montage A', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
-raw_haemo_a = raw_haemo_a.filter(0.05, 0.7, h_trans_bandwidth=0.2,
-                              l_trans_bandwidth=0.02)
-fig = raw_haemo_a.plot_psd(average=True)
-fig.suptitle('After filtering Montage A', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
+# fig = raw_haemo_a.plot_psd(average=True)
+# fig.suptitle('Before filtering Montage A', weight='bold', size='x-large')
+# fig.subplots_adjust(top=0.88)
+# raw_haemo_a = raw_haemo_a.filter(0.05, 0.7, h_trans_bandwidth=0.2,
+#                               l_trans_bandwidth=0.02)
+# fig = raw_haemo_a.plot_psd(average=True)
+# fig.suptitle('After filtering Montage A', weight='bold', size='x-large')
+# fig.subplots_adjust(top=0.88)
 
 
-fig = raw_haemo_b.plot_psd(average=True)
-fig.suptitle('Before filtering Montage B', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
-raw_haemo_b = raw_haemo_b.filter(0.05, 0.7, h_trans_bandwidth=0.2,
-                              l_trans_bandwidth=0.02)
-fig = raw_haemo_b.plot_psd(average=True)
-fig.suptitle('After filtering Montage B', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
+# fig = raw_haemo_b.plot_psd(average=True)
+# fig.suptitle('Before filtering Montage B', weight='bold', size='x-large')
+# fig.subplots_adjust(top=0.88)
+# raw_haemo_b = raw_haemo_b.filter(0.05, 0.7, h_trans_bandwidth=0.2,
+#                               l_trans_bandwidth=0.02)
+# fig = raw_haemo_b.plot_psd(average=True)
+# fig.suptitle('After filtering Montage B', weight='bold', size='x-large')
+# fig.subplots_adjust(top=0.88)
 
 # ###############################################################################
 # # Extract epochs
@@ -296,20 +290,20 @@ mtg_b_intensity.plot(events=mtg_b_events, start=0, duration=10,color='gray',
 reject_criteria = None
 tmin, tmax = -0.2, 1
 
-mtg_a_haemo_epochs = mne.Epochs(raw_haemo_a, mtg_a_events,
-                    tmin=tmin, tmax=tmax,
-                    reject=reject_criteria, reject_by_annotation=False,
-                    proj=True, baseline=(None, 0), preload=True,
-                    detrend=None, verbose=True)
-mtg_a_haemo_epochs.plot_drop_log()
+# mtg_a_haemo_epochs = mne.Epochs(raw_haemo_a, mtg_a_events,
+#                     tmin=tmin, tmax=tmax,
+#                     reject=reject_criteria, reject_by_annotation=False,
+#                     proj=True, baseline=(None, 0), preload=True,
+#                     detrend=None, verbose=True)
+# mtg_a_haemo_epochs.plot_drop_log()
 
 
-mtg_b_haemo_epochs = mne.Epochs(raw_haemo_b, mtg_b_events,
-                    tmin=tmin, tmax=tmax,
-                    reject=reject_criteria, reject_by_annotation=False,
-                    proj=True, baseline=(None, 0), preload=True,
-                    detrend=None, verbose=True)
-mtg_b_haemo_epochs.plot_drop_log()
+# mtg_b_haemo_epochs = mne.Epochs(raw_haemo_b, mtg_b_events,
+#                     tmin=tmin, tmax=tmax,
+#                     reject=reject_criteria, reject_by_annotation=False,
+#                     proj=True, baseline=(None, 0), preload=True,
+#                     detrend=None, verbose=True)
+# mtg_b_haemo_epochs.plot_drop_log()
 
 
 #get epochs from the raw intensities
@@ -345,22 +339,22 @@ fig = mtg_b_epochs.plot(n_epochs=5,n_channels=5, scalings='auto')
 # # trials, and the consistent dip in HbR that is slightly delayed relative to
 # # the HbO peak.
 
-#haemo plots
-mtg_a_haemo_epochs['1'].plot_image(combine='mean', vmin=-30, vmax=30,
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+# #haemo plots
+# mtg_a_haemo_epochs['1'].plot_image(combine='mean', vmin=-30, vmax=30,
+#                               ts_args=dict(ylim=dict(hbo=[-15, 15],
+#                                                     hbr=[-15, 15])))
 
-mtg_a_haemo_epochs['2'].plot_image(combine='mean', vmin=-30, vmax=30,
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+# mtg_a_haemo_epochs['2'].plot_image(combine='mean', vmin=-30, vmax=30,
+#                               ts_args=dict(ylim=dict(hbo=[-15, 15],
+#                                                     hbr=[-15, 15])))
 
-mtg_b_haemo_epochs['1'].plot_image(combine='mean', vmin=-30, vmax=30,
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+# mtg_b_haemo_epochs['1'].plot_image(combine='mean', vmin=-30, vmax=30,
+#                               ts_args=dict(ylim=dict(hbo=[-15, 15],
+#                                                     hbr=[-15, 15])))
 
-mtg_b_haemo_epochs['2'].plot_image(combine='mean', vmin=-30, vmax=30,
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+# mtg_b_haemo_epochs['2'].plot_image(combine='mean', vmin=-30, vmax=30,
+#                               ts_args=dict(ylim=dict(hbo=[-15, 15],
+#                                                     hbr=[-15, 15])))
 
 #raw epochs
 #separate first and last detectors

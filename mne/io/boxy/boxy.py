@@ -299,10 +299,15 @@ class RawBOXY(BaseRaw):
                                           rpa=fiducial_coords[2])
 
         # create info structure
-        ch_types = (['fnirs_ph' if i_chan < np.sum(mtg_chan_num) else 'stim'
+        if datatype == 'Ph':
+            chan_type = 'fnirs_ph'
+        else:
+            chan_type = 'fnirs_raw'
+
+        ch_types = ([chan_type if i_chan < np.sum(mtg_chan_num) else 'stim'
                      for i_chan, _ in enumerate(boxy_labels)])
         info = create_info(boxy_labels, srate[0], ch_types=ch_types)
-        
+
         # add dig info
         # this also applies a transform to the data into neuromag space
         # based on fiducials
