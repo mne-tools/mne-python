@@ -314,11 +314,11 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         reg=reg_, pick_ori=pick_ori,
                         inversion=inversion, normalize_fwd=False,
-                        weight_norm='unit-noise-gain')
+                        weight_norm='unit-noise-gain-sqrtm')
     power, f = apply_dics_csd(csd, filters)
     assert f == [10, 20]
     dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
-    assert dist <= 0.03
+    assert dist <= (0.03 if inversion == 'matrix' else 0.)
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test unit-noise-gain weighting

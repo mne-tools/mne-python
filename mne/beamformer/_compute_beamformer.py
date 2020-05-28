@@ -350,7 +350,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 sqrtm_sym(np.matmul(W, W.swapaxes(-2, -1).conj()).real,
                           inv=True)[0],
                 W)
-            noise_norm = np.ones((W.shape[0], 1, 1))
+            noise_norm = np.full((W.shape[0], 1, 1), np.sqrt(n_orient))
         else:
             assert weight_norm == 'unit-noise-gain-pooled'
             # Uses the Frobenius matrix norm, but couple it with a
