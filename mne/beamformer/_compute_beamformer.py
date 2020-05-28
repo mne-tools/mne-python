@@ -331,11 +331,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # they are all equivalent.
         if weight_norm in ('nai', 'unit-noise-gain'):
             # Sekihara: use sqrt(diag(W_ug @ W_ug.T)), not rotation invariant:
-            noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj())
+            noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj()).real
             noise_norm = np.reshape(  # np.diag operation over last two axes...
                 noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
-            # noise_norm *= n_orient
-            np.sqrt(noise_norm.real, out=noise_norm)
+            noise_norm *= n_orient
+            np.sqrt(noise_norm, out=noise_norm)
             assert noise_norm.shape == (n_sources, n_orient, 1)
         elif weight_norm == 'unit-noise-gain-old':
             # Uses the Frobenius matrix norm, a single scale factor for each
@@ -362,6 +362,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             W = bf_numer
             noise_norm = np.linalg.norm(bf_numer, axis=(1, 2), keepdims=True)
             assert noise_norm.shape == (n_sources, 1, 1)
+        assert noise_norm.dtype == np.float64
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the

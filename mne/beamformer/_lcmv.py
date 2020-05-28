@@ -28,7 +28,7 @@ from ._compute_beamformer import (
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
               pick_ori=None, rank='info', weight_norm='unit-noise-gain',
-              reduce_rank=False, depth=None, verbose=None):
+              reduce_rank=False, depth=None, inversion='matrix', verbose=None):
     """Compute LCMV spatial filter.
 
     Parameters
@@ -60,6 +60,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     %(depth)s
 
         .. versionadded:: 0.18
+    inversion : str
+        Can be "matrix" (default) or "single". TODO: Remove before merge (?).
     %(verbose)s
 
     Returns
@@ -152,7 +154,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     n_orient = 3 if is_free_ori else 1
     W, max_power_ori = _compute_beamformer(
         G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank, rank_int,
-        inversion='matrix', nn=nn, orient_std=orient_std)
+        inversion=inversion, nn=nn, orient_std=orient_std)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
