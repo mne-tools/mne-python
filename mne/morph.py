@@ -47,7 +47,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         If None (default), then ``src[0]['subject_his_id]'`` will be used.
     subject_to : str | None
         Name of the subject to which to morph as named in the SUBJECTS_DIR.
-        Default is `'fsaverage'`. If None, ``src_to[0]['subject_his_id']``
+        Default is ``'fsaverage'``. If None, ``src_to[0]['subject_his_id']``
         will be used.
 
         .. versionchanged:: 0.20
@@ -471,7 +471,7 @@ class SourceMorph(object):
             s += ", smooth : %s" % self.smooth
             s += ", xhemi" if self.xhemi else ""
 
-        return "<SourceMorph  |  %s>" % s
+        return "<SourceMorph | %s>" % s
 
     @verbose
     def save(self, fname, overwrite=False, verbose=None):

@@ -63,7 +63,7 @@ class ConductorModel(dict):
         else:
             extra = ('BEM (%s layer%s)' % (len(self['surfs']),
                                            _pl(self['surfs'])))
-        return '<ConductorModel  |  %s>' % extra
+        return '<ConductorModel | %s>' % extra
 
     def copy(self):
         """Return copy of ConductorModel instance."""
@@ -556,7 +556,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     -------
     surfaces : list of dict
         The BEM surfaces. Use `make_bem_solution` to turn these into a
-        `ConductorModel` suitable for forward calculation.
+        `~mne.bem.ConductorModel` suitable for forward calculation.
 
     See Also
     --------

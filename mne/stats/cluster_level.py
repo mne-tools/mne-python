@@ -1436,7 +1436,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
         The name of the subject.
     vertices : list of array | None
         The vertex numbers associated with the source space locations. Defaults
-        to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
+        to None. If None, equals ``[np.arange(10242), np.arange(10242)]``.
 
     Returns
     -------

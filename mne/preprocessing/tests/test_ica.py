@@ -413,10 +413,15 @@ def test_ica_additional(method):
     ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
     _assert_ica_attributes(ica)
 
+    # check Kuiper index threshold
+    assert_equal(ica._get_ctps_threshold(), 0.21)
+    # check deprecation warning
+    with pytest.warns(DeprecationWarning, match='The default for "threshold"'):
+        ica.find_bads_ecg(raw, threshold=None)
     # check passing a ch_name to find_bads_ecg
     with pytest.warns(RuntimeWarning, match='longer'):
-        _, scores_1 = ica.find_bads_ecg(raw)
-        _, scores_2 = ica.find_bads_ecg(raw, raw.ch_names[1])
+        _, scores_1 = ica.find_bads_ecg(raw, threshold='auto')
+        _, scores_2 = ica.find_bads_ecg(raw, raw.ch_names[1], threshold='auto')
     assert scores_1[0] != scores_2[0]
 
     # test corrmap
@@ -620,21 +625,22 @@ def test_ica_additional(method):
     epochs_data = epochs.get_data().copy()
 
     with pytest.warns(RuntimeWarning, match='longer'):
-        idx, scores = ica.find_bads_ecg(raw, method='ctps')
+        idx, scores = ica.find_bads_ecg(raw, method='ctps', threshold='auto')
     assert_equal(len(scores), ica.n_components_)
     with pytest.warns(RuntimeWarning, match='longer'):
-        idx, scores = ica.find_bads_ecg(raw, method='correlation')
+        idx, scores = ica.find_bads_ecg(raw, method='correlation',
+                                        threshold='auto')
     assert_equal(len(scores), ica.n_components_)
 
     with pytest.warns(RuntimeWarning, match='longer'):
         idx, scores = ica.find_bads_eog(raw)
     assert_equal(len(scores), ica.n_components_)
 
-    idx, scores = ica.find_bads_ecg(epochs, method='ctps')
+    idx, scores = ica.find_bads_ecg(epochs, method='ctps', threshold='auto')
 
     assert_equal(len(scores), ica.n_components_)
     pytest.raises(ValueError, ica.find_bads_ecg, epochs.average(),
-                  method='ctps')
+                  method='ctps', threshold='auto')
     pytest.raises(ValueError, ica.find_bads_ecg, raw,
                   method='crazy-coupling')
 
@@ -651,7 +657,8 @@ def test_ica_additional(method):
     idx, scores = ica.find_bads_eog(evoked, ch_name='MEG 1441')
     assert_equal(len(scores), ica.n_components_)
 
-    idx, scores = ica.find_bads_ecg(evoked, method='correlation')
+    idx, scores = ica.find_bads_ecg(evoked, method='correlation',
+                                    threshold='auto')
     assert_equal(len(scores), ica.n_components_)
 
     assert_array_equal(raw_data, raw[:][0])
@@ -725,14 +732,14 @@ def test_ica_additional(method):
         ica.fit(raw, picks=picks[:5])
     _assert_ica_attributes(ica)
     with pytest.warns(RuntimeWarning, match='longer'):
-        ica.find_bads_ecg(raw)
+        ica.find_bads_ecg(raw, threshold='auto')
     ica.find_bads_eog(epochs, ch_name='MEG 0121')
     assert_array_equal(raw_data, raw[:][0])
 
     raw.drop_channels(['MEG 0122'])
     pytest.raises(RuntimeError, ica.find_bads_eog, raw)
     with pytest.warns(RuntimeWarning, match='longer'):
-        pytest.raises(RuntimeError, ica.find_bads_ecg, raw)
+        pytest.raises(RuntimeError, ica.find_bads_ecg, raw, threshold='auto')
 
 
 @requires_sklearn
@@ -1070,7 +1077,8 @@ def test_ica_labels():
     for key in ('ecg', 'ref_meg', 'ecg/ECG-MAG'):
         assert key not in ica.labels_
 
-    ica.find_bads_ecg(raw, l_freq=None, h_freq=None, method='correlation')
+    ica.find_bads_ecg(raw, l_freq=None, h_freq=None, method='correlation',
+                      threshold='auto')
     picks = list(pick_types(raw.info, meg=False, ecg=True))
     for idx, ch in enumerate(picks):
         assert '{}/{}/{}'.format('ecg', idx, raw.ch_names[ch]) in ica.labels_
@@ -1101,7 +1109,7 @@ def test_ica_labels():
         assert key in ica.labels_
     assert 'ecg/ECG-MAG' not in ica.labels_
 
-    ica.find_bads_ecg(raw, l_freq=None, h_freq=None)
+    ica.find_bads_ecg(raw, l_freq=None, h_freq=None, threshold='auto')
     for key in ('ecg', 'eog', 'ref_meg', 'ecg/ECG-MAG'):
         assert key in ica.labels_
 

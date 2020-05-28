@@ -1232,8 +1232,8 @@ class Report(object):
             Must have at least 2 elements.
         captions : list of str | list of float | None
             A list of captions to the figures. If float, a str will be
-            constructed as `%f s`. If None, it will default to
-            `Data slice %d`.
+            constructed as ``%f s``. If None, it will default to
+            ``Data slice %d``.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section.

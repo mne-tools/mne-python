@@ -228,7 +228,6 @@ get_version
 invert_transform
 is_power2
 is_fixed_orient
-iter_topography
 kit2fiff
 label_src_vertno_sel
 make_eeg_average_ref_proj

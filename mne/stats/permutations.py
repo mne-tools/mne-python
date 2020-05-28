@@ -113,15 +113,15 @@ def bootstrap_confidence_interval(arr, ci=.95, n_bootstraps=2000,
     n_bootstraps : int
         Number of bootstraps.
     stat_fun : str | callable
-        Can be "mean", "median", or a callable operating along `axis=0`.
+        Can be "mean", "median", or a callable operating along ``axis=0``.
     random_state : int | float | array_like | None
         The seed at which to initialize the bootstrap.
 
     Returns
     -------
     cis : ndarray, shape (2, ...)
-        Containing the lower boundary of the CI at `cis[0, ...]` and the upper
-        boundary of the CI at `cis[1, ...]`.
+        Containing the lower boundary of the CI at ``cis[0, ...]`` and the
+        upper boundary of the CI at ``cis[1, ...]``.
     """
     if stat_fun == "mean":
         def stat_fun(x):

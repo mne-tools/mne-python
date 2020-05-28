@@ -143,6 +143,14 @@ ch_type : str
 
     .. versionadded:: 0.21
 """
+docdict['topomap_show_names'] = """
+show_names : bool | callable
+    If True, show channel names on top of the map. If a callable is
+    passed, channel names will be formatted using the callable; e.g., to
+    delete the prefix 'MEG ' from all channel names, pass the function
+    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not None, only
+    significant sensors will be shown.
+"""
 
 # PSD topomaps
 docdict["psd_topo_vlim_joint"] = """
@@ -470,7 +478,7 @@ bad_condition : str
 head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
-    parameters as returned by e.g. `read_head_pos`.
+    parameters as returned by e.g. ``read_head_pos``.
 """
 docdict['maxwell_st_fixed_only'] = """
 st_fixed : bool
@@ -555,10 +563,10 @@ depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
     to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a `dict` containing
-    keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
-    (see docstring for details and defaults). This is effectively ignored
-    when ``method='eLORETA'``.
+    no depth weighting is performed. It can also be a :class:`dict`
+    containing keyword arguments to pass to
+    :func:`mne.forward.compute_depth_prior` (see docstring for details and
+    defaults). This is effectively ignored when ``method='eLORETA'``.
 
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
@@ -694,7 +702,7 @@ head_pos : None | str | dict | tuple | array
     be the time points and entries should be 4x4 ``dev_head_t``
     matrices. If None, the original head position (from
     ``info['dev_head_t']``) will be used. If tuple, should have the
-    same format as data returned by `head_pos_to_trans_rot_t`.
+    same format as data returned by ``head_pos_to_trans_rot_t``.
     If array, should be of the form returned by
     :func:`mne.chpi.read_head_pos`.
 """
@@ -750,9 +758,9 @@ indicate the boundaries of the filter (--). The line noise frequency is
 also indicated with a dashed line (-.)
 """
 docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
-    Cannot be None if `ax` is supplied.If both `picks` and `ax` are None
+    Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
     separate subplots will be created for each standard channel type
-    (`mag`, `grad`, and `eeg`).
+    (``mag``, ``grad``, and ``eeg``).
 """
 docdict["plot_psd_color"] = """
 color : str | tuple

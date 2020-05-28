@@ -132,7 +132,7 @@ to go. Relevant tracking issues can be found under the tag :gh:`labels/DOC`.
 Coregistration / 3D viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`gen_mne_coreg` is an excellent tool for coregistration, but is limited
+:ref:`mne coreg` is an excellent tool for coregistration, but is limited
 by being tied to Mayavi, Traits, and TraitsUI. We should first refactor in
 several (mostly) separable steps:
 

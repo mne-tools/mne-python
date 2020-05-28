@@ -525,7 +525,7 @@ class _BaseSourceEstimate(TimeMixin):
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
         s += ", data shape : %s" % (self.shape,)
-        return "<%s  |  %s>" % (type(self).__name__, s)
+        return "<%s | %s>" % (type(self).__name__, s)
 
     @fill_doc
     def get_peak(self, tmin=None, tmax=None, mode='abs',
@@ -1584,7 +1584,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
              subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
-             foreground="white", initial_time=None, time_unit='s',
+             foreground=None, initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None,
              show_traces='auto', verbose=None):
         brain = plot_source_estimates(
@@ -2179,7 +2179,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
              overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
              time_viewer='auto', subjects_dir=None, figure=None, views='lat',
              colorbar=True, clim='auto', cortex='classic', size=800,
-             background='black', foreground='white', initial_time=None,
+             background='black', foreground=None, initial_time=None,
              time_unit='s', show_traces='auto', verbose=None):  # noqa: D102
 
         return plot_vector_source_estimates(
@@ -2333,7 +2333,7 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
             The hemisphere to display. Using 'both' or 'split' requires
             PySurfer version 0.4 or above.
         colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-            Name of colormap to use. See `plot_source_estimates`.
+            Name of colormap to use. See `~mne.viz.plot_source_estimates`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
@@ -2354,7 +2354,8 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
         colorbar : bool
             If True, display colorbar on scene.
         clim : str | dict
-            Colorbar properties specification. See `plot_source_estimates`.
+            Colorbar properties specification.
+            See `~mne.viz.plot_source_estimates`.
 
         Returns
         -------

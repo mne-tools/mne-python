@@ -3,8 +3,8 @@
 Plot custom topographies for MEG sensors
 ========================================
 
-This example exposes the `iter_topography` function that makes it
-very easy to generate custom sensor topography plots.
+This example exposes the :func:`~mne.viz.iter_topography` function that makes
+it very easy to generate custom sensor topography plots.
 Here we will plot the power spectrum of each channel on a topographic
 layout.
 

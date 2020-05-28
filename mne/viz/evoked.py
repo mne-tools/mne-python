@@ -661,7 +661,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     titles : dict | None
         The titles associated with the channels. If None, defaults to
-        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+        ``dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')``.
     axes : instance of Axes | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
@@ -678,11 +678,11 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         channels are plotted black and bad channels red. Defaults to False.
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
-        `spatial_colors` is used.
-        If str, must be `std` or `unsorted` (defaults to `unsorted`). If
-        `std`, data with the lowest standard deviation (weakest effects) will
+        ``spatial_colors`` is used.
+        If str, must be ``std`` or ``unsorted`` (defaults to ``unsorted``). If
+        ``std``, data with the lowest standard deviation (weakest effects) will
         be put in front so that they are not obscured by those with stronger
-        effects. If `unsorted`, channels are z-sorted as in the evoked
+        effects. If ``unsorted``, channels are z-sorted as in the evoked
         instance.
         If callable, must take one argument: a numpy array of the same
         dimensionality as the evoked raw data; and return a list of
@@ -769,7 +769,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         the maximum absolute peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     title : str
         Title of the figure.
     proj : bool | 'interactive'
@@ -895,10 +895,10 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-        If `group_by` is a dict, this cannot be a list, but it can be a dict
-        of lists of axes, with the keys matching those of `group_by`. In that
+        If ``group_by`` is a dict, this cannot be a list, but it can be a dict
+        of lists of axes, with the keys matching those of ``group_by``. In that
         case, the provided axes will be used for the corresponding groups.
-        Defaults to `None`.
+        Defaults to ``None``.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
@@ -914,26 +914,26 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         .. versionadded:: 0.16
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
-        data that correspond to ```False`` in the mask are masked (see
-        `do_mask` below). Useful for, e.g., masking for statistical
+        data that correspond to ``False`` in the mask are masked (see
+        ``do_mask`` below). Useful for, e.g., masking for statistical
         significance.
 
         .. versionadded:: 0.16
     mask_style : None | 'both' | 'contour' | 'mask'
-        If `mask` is not None: if 'contour', a contour line is drawn around
-        the masked areas (``True`` in `mask`). If 'mask', entries not
-        ``True`` in `mask` are shown transparently. If 'both', both a contour
+        If ``mask`` is not None: if 'contour', a contour line is drawn around
+        the masked areas (``True`` in ``mask``). If 'mask', entries not
+        ``True`` in ``mask`` are shown transparently. If 'both', both a contour
         and transparency are used.
-        If ``None``, defaults to 'both' if `mask` is not None, and is ignored
+        If ``None``, defaults to 'both' if ``mask`` is not None, and is ignored
         otherwise.
 
          .. versionadded:: 0.16
     mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         The colormap chosen for masked parts of the image (see below), if
-        `mask` is not ``None``. If None, `cmap` is reused. Defaults to
-        ``Greys``. Not interactive. Otherwise, as `cmap`.
+        ``mask`` is not ``None``. If None, ``cmap`` is reused. Defaults to
+        ``Greys``. Not interactive. Otherwise, as ``cmap``.
     mask_alpha : float
-        A float between 0 and 1. If `mask` is not None, this sets the
+        A float between 0 and 1. If ``mask`` is not None, this sets the
         alpha level (degree of transparency) for the masked-out segments.
         I.e., if 0, masked-out segments are not visible at all.
         Defaults to .25.
@@ -947,17 +947,17 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         Determines if channel names should be plotted on the y axis. If False,
         no names are shown. If True, ticks are set automatically by matplotlib
         and the corresponding channel names are shown. If "all", all channel
-        names are shown. If "auto", is set to False if `picks` is ``None``,
+        names are shown. If "auto", is set to False if ``picks`` is ``None``,
         to ``True`` if ``picks`` contains 25 or more entries, or to "all"
         if ``picks`` contains fewer than 25 entries.
     group_by : None | dict
-        If a dict, the values must be picks, and `axes` must also be a dict
-        with matching keys, or None. If `axes` is None, one figure and one axis
-        will be created for each entry in `group_by`.
-        Then, for each entry, the picked channels will be plotted
-        to the corresponding axis. If `titles` are None, keys will become plot
-        titles. This is useful for e.g. ROIs. Each entry must contain only
-        one channel type. For example::
+        If a dict, the values must be picks, and ``axes`` must also be a dict
+        with matching keys, or None. If ``axes`` is None, one figure and one
+        axis will be created for each entry in ``group_by``.Then, for each
+        entry, the picked channels will be plotted to the corresponding axis.
+        If ``titles`` are None, keys will become plot titles. This is useful
+        for e.g. ROIs. Each entry must contain only one channel type.
+        For example::
 
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
@@ -1215,7 +1215,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings, rank, show, time_unit,
 
 
 @verbose
-def plot_snr_estimate(evoked, inv, show=True, verbose=None):
+def plot_snr_estimate(evoked, inv, show=True, axes=None, verbose=None):
     """Plot a data SNR estimate.
 
     Parameters
@@ -1226,6 +1226,10 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
         The minimum-norm inverse operator.
     show : bool
         Show figure if True.
+    axes : instance of Axes | None
+        The axes to plot into.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -1244,17 +1248,29 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr
     snr, snr_est = estimate_snr(evoked, inv)
-    fig, ax = plt.subplots(1, 1)
+    _validate_type(axes, (None, plt.Axes))
+    if axes is None:
+        _, ax = plt.subplots(1, 1)
+    else:
+        ax = axes
+        del axes
+    fig = ax.figure
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
     ax.axvline(0, color='k', ls=':', lw=1)
     ax.axhline(0, color='k', ls=':', lw=1)
     # Colors are "bluish green" and "vermilion" taken from:
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
-    ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
-    ax.plot(evoked.times, snr - 1, color=[0.8, 0.4, 0.0])
-    ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR', xlabel='Time (s)')
+    hs = list()
+    labels = ('Inverse', 'Whitened GFP')
+    hs.append(ax.plot(
+        evoked.times, snr_est, color=[0.0, 0.6, 0.5])[0])
+    hs.append(ax.plot(
+        evoked.times, snr - 1, color=[0.8, 0.4, 0.0])[0])
+    ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR',
+           xlabel='Time (s)')
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
+    ax.legend(hs, labels, title='Estimation method')
     plt_show(show)
     return fig
 
@@ -1298,7 +1314,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         If ``None``, no customizable arguments will be passed.
         Defaults to ``None``.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to
+        A dict of ``kwargs`` that are forwarded to
         :meth:`mne.Evoked.plot_topomap` to style the topomaps.
         If it is not in this dict, ``outlines='skirt'`` will be passed.
         ``show``, ``times``, ``colorbar`` are illegal.
@@ -2047,7 +2063,8 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     Notes
     -----
     If the parameters ``styles``, ``colors``, or ``linestyles`` are passed as
-    :class:`dicts <dict>`, then ``evokeds`` must also be a :class:`dict`, and
+    :class:`dicts <python:dict>`, then ``evokeds`` must also be a
+    :class:`python:dict`, and
     the keys of the plot-style parameters must either match the keys of
     ``evokeds``, or match a ``/``-separated partial key ("condition") of
     ``evokeds``. For example, if evokeds has keys "Aud/L", "Aud/R", "Vis/L",

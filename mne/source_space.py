@@ -323,10 +323,10 @@ class SourceSpaces(list):
             FreeSurfer surface is used (Surface RAS).
         trans : dict, str, or None
             Either a transformation filename (usually made using mne_analyze)
-            or an info dict (usually opened using read_trans()).
-            If string, an ending of `.fif` or `.fif.gz` will be assumed to be
-            in FIF format, any other ending will be assumed to be a text file
-            with a 4x4 transformation matrix (like the `--trans` MNE-C option.
+            or an info dict (usually opened using read_trans()). If string, an
+            ending of ``.fif`` or ``.fif.gz`` will be assumed to be in FIF
+            format, any other ending will be assumed to be a text file with a
+            4x4 transformation matrix (like the ``--trans`` MNE-C option.
             Must be provided if source spaces are in head coordinates and
             include_surfaces and mri_resolution are True.
         mri_resolution : bool
@@ -1598,21 +1598,21 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         Defaults to None.
     pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
-        with the spacing given by `pos` in mm, generating a volume source
+        with the spacing given by ``pos`` in mm, generating a volume source
         space. If dict, pos['rr'] and pos['nn'] will be used as the source
         space locations (in meters) and normals, respectively, creating a
         discrete source space.
 
-        .. note:: For a discrete source space (`pos` is a dict),
+        .. note:: For a discrete source space (``pos`` is a dict),
                   ``mri`` must be None.
     mri : str | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
         using this interpolator. If pos is a dict, this cannot be None.
-        If subject name is provided, `pos` is a float or `volume_label`
-        are not provided then the `mri` parameter will default to 'T1.mgz'
-        or `aseg.mgz`, respectively, else it will stay None.
+        If subject name is provided, ``pos`` is a float or ``volume_label``
+        are not provided then the ``mri`` parameter will default to 'T1.mgz'
+        or ``aseg.mgz``, respectively, else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel | None
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in ``sphere_units``.
@@ -1624,7 +1624,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
     surface : str | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
-        also be a dictionary with entries `'rr'` and `'tris'`, such as
+        also be a dictionary with entries ``'rr'`` and ``'tris'``, such as
         those returned by :func:`mne.read_surface`.
     mindist : float
         Exclude points closer than this distance (mm) to the bounding surface.
@@ -1682,7 +1682,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     To create a discrete source space, ``pos`` must be a dict, ``mri`` must be
     None, and ``volume_label`` must be None. To create a whole brain volume
-    source space, `pos` must be a float and 'mri' must be provided.
+    source space, ``pos`` must be a float and 'mri' must be provided.
 
     To create a volume source space from label, ``pos`` must be a float,
     ``volume_label`` must be provided, and 'mri' must refer to a .mgh or .mgz
@@ -2491,8 +2491,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     -----
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
-    takes about 10 minutes to compute all distances (`dist_limit = np.inf`).
-    With `dist_limit = 0.007`, computing distances takes about 1 minute.
+    takes about 10 minutes to compute all distances (``dist_limit = np.inf``).
+    With ``dist_limit = 0.007``, computing distances takes about 1 minute.
 
     We recommend computing distances once per source space and then saving
     the source space to disk, as the computed distances will automatically be
