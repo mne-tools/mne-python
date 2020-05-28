@@ -1858,7 +1858,7 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
 # st_only
 @verbose
 def find_bad_channels_maxwell(
-        raw, limit=7., duration=5., min_count=5,
+        raw, limit=7., duration=5., min_count=5, return_scores=False,
         origin='auto', int_order=8, ext_order=3, calibration=None,
         cross_talk=None, coord_frame='head', regularize='in', ignore_ref=False,
         bad_condition='error', head_pos=None, mag_scale=100.,
@@ -1881,6 +1881,9 @@ def find_bad_channels_maxwell(
     min_count : int
         Minimum number of times a channel must show up as bad in a chunk.
         Default is 5.
+    return_scores : bool
+        If True (default False), return the scores and time of the window edges
+        used.
     %(maxwell_origin_int_ext_calibration_cross)s
     %(maxwell_coord)s
     %(maxwell_reg_ref_cond_pos)s
@@ -1896,6 +1899,15 @@ def find_bad_channels_maxwell(
     flat_chs : list
         List of MEG channels that were detected as being flat in at least
         ``min_count`` segments.
+    bin_edges : ndarray, shape (n_windows + 1,)
+        The window boundaries (in seconds) used to calculate the scores.
+        Only returned when ``return_scores`` is ``True``.
+    scores_flat : ndarray, shape (n_meg, n_windows)
+        The scores for testing whether MEG channels are flat. Only returned
+        when ``return_scores`` is ``True``.
+    scores_noisy : ndarray, shape (n_meg, n_windows)
+        The scores for testing whether MEG channels are noisy. Only returned
+        when ``return_scores`` is ``True``.
 
     See Also
     --------
@@ -1904,10 +1916,11 @@ def find_bad_channels_maxwell(
 
     Notes
     -----
-    All arguments after ``raw``, ``limit``, ``duration``, and ``min_count``
-    are the same as :func:`~maxwell_filter`, except that the following are
-    not allowed in this function because they are unused: ``st_duration``,
-    ``st_correlation``, ``destination``, ``st_fixed``, and ``st_only``.
+    All arguments after ``raw``, ``limit``, ``duration``, ``min_count``, and
+    ``return_scores`` are the same as :func:`~maxwell_filter`, except that the
+    following are not allowed in this function because they are unused:
+    ``st_duration``, ``st_correlation``, ``destination``, ``st_fixed``, and
+    ``st_only``.
 
     This algorithm, for a given chunk of data:
 
@@ -1973,8 +1986,14 @@ def find_bad_channels_maxwell(
         if pick in params['grad_picks'] else
         flat_limits['mag']
         for pick in good_meg_picks])
+
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
+    bin_edges = np.r_[starts, stops[-1]]  # Ensure we include the endpoint!
+    scores_flat = np.empty((len(good_meg_picks), len(starts)), dtype=bool)
+    scores_flat.fill(False)
+    scores_noisy = scores_flat.copy()
+
     for si, (start, stop) in enumerate(zip(starts, stops)):
         n_iter = 0
         orig_data = raw.get_data(None, start, stop, verbose=False)
@@ -1988,6 +2007,7 @@ def find_bad_channels_maxwell(
         data.shape = (data.shape[0], -1, flat_step)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
         chunk_flats = delta < these_limits
+        scores_flat[:, si] = chunk_flats  # We may want to return this later
         chunk_flats = np.where(chunk_flats)[0]
         chunk_flats = [raw.ch_names[good_meg_picks[chunk_flat]]
                        for chunk_flat in chunk_flats]
@@ -2035,6 +2055,9 @@ def find_bad_channels_maxwell(
                          % (name, max_))
             these_picks.pop(idx)
             chunk_noisy.append(name)
+            # We may want to return this later
+            ch_idx = raw.copy().pick_types(meg=True).ch_names.index(name)
+            scores_noisy[ch_idx, si] = True
         noisy_chs.update(chunk_noisy)
     noisy_chs = sorted((b for b, c in noisy_chs.items() if c >= min_count),
                        key=lambda x: raw.ch_names.index(x))
@@ -2043,4 +2066,8 @@ def find_bad_channels_maxwell(
     logger.info('    Static bad channels:  %s' % (noisy_chs,))
     logger.info('    Static flat channels: %s' % (flat_chs,))
     logger.info('[done]')
-    return noisy_chs, flat_chs
+
+    if return_scores:
+        return noisy_chs, flat_chs, bin_edges, scores_flat, scores_noisy
+    else:
+        return noisy_chs, flat_chs
