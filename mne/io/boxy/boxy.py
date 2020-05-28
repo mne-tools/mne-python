@@ -299,7 +299,7 @@ class RawBOXY(BaseRaw):
                                           rpa=fiducial_coords[2])
 
         # create info structure
-        ch_types = (['fnirs_raw' if i_chan < np.sum(mtg_chan_num) else 'stim'
+        ch_types = (['fnirs_ph' if i_chan < np.sum(mtg_chan_num) else 'stim'
                      for i_chan, _ in enumerate(boxy_labels)])
         info = create_info(boxy_labels, srate[0], ch_types=ch_types)
         
@@ -535,11 +535,13 @@ class RawBOXY(BaseRaw):
                                 data_[index_loc, :] = boxy_array[:, channel]
                                 
                     ###phase unwrapping###
-                    # thresh = 0.00000001
-                    # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_matlab.mat",
-                    #                   mdict=dict(data=data_))
                     if i_data == 'Ph':
                         print('Fixing phase wrap')
+                        # accounts for sharp, sudden changes in phase
+                        # such as crossing over from 0/360 degrees
+                        # estimate mean phase of first 50 points
+                        # if a point differs more than 90 degrees from the mean
+                        # add or subtract 360 degress from that point
                         for i_chan in range(np.size(data_, axis=0)):
                             if np.mean(data_[i_chan,:50]) < 180:
                                 wrapped_points = data_[i_chan, :] > 270
@@ -548,14 +550,8 @@ class RawBOXY(BaseRaw):
                                 wrapped_points = data_[i_chan,:] < 90
                                 data_[i_chan, wrapped_points] += 360
                                 
-                        # unwrapped_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_unwrap_python.mat")
-                        
-                        # test1 = abs(unwrapped_data['data'] - data_) <= thresh
-                        # test1.all()
-                                
                         print('Detrending phase data')
-                        # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_unwrap_matlab.mat",
-                        #               mdict=dict(data=data_))
+                        # remove trends and drifts in data that occur over time
                         
                         y = np.linspace(0, np.size(data_, axis=1)-1,
                                         np.size(data_, axis=1))
@@ -564,30 +560,18 @@ class RawBOXY(BaseRaw):
                             poly_coeffs = np.polyfit(x,data_[i_chan, :] ,3)
                             tmp_ph = data_[i_chan, :] - np.polyval(poly_coeffs,x)
                             data_[i_chan, :] = tmp_ph
-                            
-                        # detrend_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_detrend_python.mat")
-                            
-                        # test2 = abs(detrend_data['data'] - data_) <= thresh
-                        # test2.all()
                         
                         print('Removing phase mean')
-                        # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_detrend_matlab.mat",
-                        #               mdict=dict(data=data_))
+                        # subtract mean to better detect outliers using SD
                         
                         mrph = np.mean(data_,axis=1);
                         for i_chan in range(np.size(data_, axis=0)):
                             data_[i_chan,:]=(data_[i_chan,:]-mrph[i_chan])
-                            
-                        # mean_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_mean_python.mat")
-                        
-                        # test3 = abs(mean_data['data'] - data_) <= thresh
-                        # test3.all()
                         
                         print('Removing phase outliers')
-                        # scipy.io.savemat(file_name = r"C:\Users\spork\Desktop\data_mean_matlab.mat",
-                        #               mdict=dict(data=data_))
+                        # remove data points that are larger than three SDs
                         
-                        ph_out_thr=3; # always set to "3" per Kathy & Gabriele Oct 12 2012
+                        ph_out_thr=3;
                         sdph=np.std(data_,1, ddof = 1); #set ddof to 1 to mimic matlab
                         n_ph_out = np.zeros(np.size(data_, axis=0), dtype= np.int8)
                         
@@ -607,11 +591,6 @@ class RawBOXY(BaseRaw):
                                         data_[i_chan,j_pt] = (
                                             (data_[i_chan,j_pt-1] + 
                                               data_[i_chan,j_pt+1])/2)
-                                        
-                        # outlier_data = scipy.io.loadmat(r"C:\Users\spork\Desktop\data_outliers_python.mat")
-                        
-                        # test4 = abs(outlier_data['data'] - data_) <= thresh
-                        # test4.all()
                         
                         #convert phase to pico seconds
                         for i_chan in range(np.size(data_, axis=0)):

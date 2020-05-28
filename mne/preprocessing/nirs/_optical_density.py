@@ -25,6 +25,8 @@ def optical_density(raw):
     raw : instance of Raw
         The modified raw instance.
     """
+    # import pdb
+    # pdb.set_trace()
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
     picks = _picks_to_idx(raw.info, 'fnirs_raw')
