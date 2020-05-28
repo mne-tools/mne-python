@@ -25,8 +25,11 @@ from ...utils import copy_base_doc_to_subclass_doc
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
-    from pyvista import (Plotter, BackgroundPlotter, PolyData,
-                         Line, close_all, UnstructuredGrid)
+    from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
+    try:
+        from pyvistaqt import BackgroundPlotter  # noqa
+    except ImportError:
+        from pyvista import BackgroundPlotter
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
 

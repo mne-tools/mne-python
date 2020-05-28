@@ -1550,7 +1550,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           time_viewer='auto', subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
-                          foreground="white", initial_time=None,
+                          foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto', verbose=None):
     """Plot SourceEstimate with PySurfer.
@@ -1616,9 +1616,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Has no effect with mpl backend.
     background : matplotlib color
         Color of the background of the display window.
-    foreground : matplotlib color
+    foreground : matplotlib color | None
         Color of the foreground of the display window. Has no effect with mpl
-        backend.
+        backend. None will choose white or black based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
@@ -2224,7 +2224,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  subjects_dir=None, figure=None, views='lat',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
-                                 foreground='white', initial_time=None,
+                                 foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
                                  verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
@@ -2290,8 +2290,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         a square window, or the (width, height) of a rectangular window.
     background : matplotlib color
         Color of the background of the display window.
-    foreground : matplotlib color
+    foreground : matplotlib color | None
         Color of the foreground of the display window.
+        None will choose black or white based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).

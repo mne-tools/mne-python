@@ -1584,7 +1584,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
              subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
-             foreground="white", initial_time=None, time_unit='s',
+             foreground=None, initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None,
              show_traces='auto', verbose=None):
         brain = plot_source_estimates(
@@ -2179,7 +2179,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
              overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
              time_viewer='auto', subjects_dir=None, figure=None, views='lat',
              colorbar=True, clim='auto', cortex='classic', size=800,
-             background='black', foreground='white', initial_time=None,
+             background='black', foreground=None, initial_time=None,
              time_unit='s', show_traces='auto', verbose=None):  # noqa: D102
 
         return plot_vector_source_estimates(
