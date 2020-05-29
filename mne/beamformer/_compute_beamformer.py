@@ -346,9 +346,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         use = bf_numer
         inner = np.matmul(use, use.swapaxes(-2, -1).conj()).real
         W = np.matmul(sqrtm_sym(inner, inv=True)[0], use)
-        # This term differs from FieldTrip -- their amplitudes tend to match
-        # the max-power data better, but it breaks some DICS tests...
-        W /= np.sqrt(n_orient)
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the

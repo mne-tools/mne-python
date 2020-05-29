@@ -102,8 +102,9 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     return epochs, evoked, csd, source_vertno, label, vertices, source_ind
 
 
-def _test_weight_norm(filters, norm=1):
+def _test_weight_norm(filters, norm=None):
     """Test weight normalization."""
+    norm = filters['n_orient'] if norm is None else norm
     for ws in filters['weights']:
         ws = ws.reshape(-1, filters['n_orient'], ws.shape[1])
         for w in ws:
@@ -324,7 +325,8 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     inds = np.triu_indices(csd.n_channels)
     csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_power, f = apply_dics_csd(csd_noise, filters)
-    assert_allclose(noise_power.data, 1., atol=1e-7)
+    want_norm = 3 if pick_ori is None else 1.
+    assert_allclose(noise_power.data, want_norm, atol=1e-7)
 
     # Test filter with forward normalization instead of weight
     # normalization
@@ -572,8 +574,8 @@ def test_tf_dics(_load_forward, idx):
                         frequencies=frequencies, decim=10, reg=reg,
                         label=label, normalize_fwd=False,
                         weight_norm='unit-noise-gain')
-    assert_allclose(stcs_norm[0].data, stcs[0].data, atol=0)
-    assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
+    assert_allclose(3 * stcs_norm[0].data, stcs[0].data, atol=0)
+    assert_allclose(3 * stcs_norm[1].data, stcs[1].data, atol=0)
 
     # Test invalid parameter combinations
     with pytest.raises(ValueError, match='fourier.*freq_bins" parameter'):

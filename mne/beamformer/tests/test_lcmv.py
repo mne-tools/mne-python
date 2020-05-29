@@ -465,7 +465,7 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
     max_stc = stc_sphere.data[idx]
     tmax = stc_sphere.times[np.argmax(max_stc)]
     assert 0.08 < tmax < 0.15, tmax
-    min_, max_ = 0.4, 3.0
+    min_, max_ = 1.0, 4.0
     if weight_norm is None:
         min_ *= 2e-7
         max_ *= 2e-7
@@ -828,7 +828,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     if weight_norm == 'nai':
         # NAI is always normalized by noise-level (based on eigenvalues)
         for stc in (stc_nocov, stc_cov):
-            assert_allclose(stc.data.std(), 0.337, rtol=0.1)
+            assert_allclose(stc.data.std(), 0.584, rtol=0.1)
     elif weight_norm is None:
         # None always represents something not normalized, reflecting channel
         # weights
@@ -837,8 +837,8 @@ def test_lcmv_reg_proj(proj, weight_norm):
     else:
         assert weight_norm == 'unit-noise-gain'
         # Channel scalings depend on presence of noise_cov
-        assert_allclose(stc_nocov.data.std(), 4.5e-13, rtol=0.1)
-        assert_allclose(stc_cov.data.std(), 0.108, rtol=0.1)
+        assert_allclose(stc_nocov.data.std(), 7.8e-13, rtol=0.1)
+        assert_allclose(stc_cov.data.std(), 0.187, rtol=0.1)
 
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, depth, lower, upper', [
