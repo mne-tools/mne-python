@@ -334,6 +334,7 @@ class Raw(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
+        n_bad = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
             bounds = self._raw_extras[fi]['bounds']
             ents = self._raw_extras[fi]['ent']
@@ -353,10 +354,17 @@ class Raw(BaseRaw):
                     one = read_tag(fid, ent.pos,
                                    shape=(nsamp, nchan),
                                    rlims=(first_pick, last_pick)).data
-                    one.shape = (picksamp, nchan)
-                    _mult_cal_one(data[:, offset:(offset + picksamp)],
-                                  one.T, idx, cals, mult)
+                    try:
+                        one.shape = (picksamp, nchan)
+                    except AttributeError:  # one is None
+                        n_bad += picksamp
+                    else:
+                        _mult_cal_one(data[:, offset:(offset + picksamp)],
+                                      one.T, idx, cals, mult)
                 offset += picksamp
+            if n_bad:
+                warn(f'FIF raw buffer could not be read, acquisition error '
+                     f'likely: {n_bad} samples set to zero')
             assert offset == stop - start
 
     def fix_mag_coil_types(self):
