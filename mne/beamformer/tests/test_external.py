@@ -101,7 +101,10 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
             assert_array_equal(signs, 1.)
         stc_mne.data *= signs
     assert stc_ft_data.shape == stc_mne.data.shape
-    if stc_mne.data.ndim == 3:  # compare norms first
+    if pick_ori == 'vector':
+        if weight_norm is not None:  # different in a factor
+            stc_mne.data *= np.sqrt(3)
+        # compare norms first
         assert_allclose(np.linalg.norm(stc_mne.data, axis=1),
                         np.linalg.norm(stc_ft_data, axis=1), rtol=1e-6)
     assert_allclose(stc_mne.data, stc_ft_data, rtol=1e-6)
