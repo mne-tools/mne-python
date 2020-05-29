@@ -49,7 +49,7 @@ subjects_dir = os.path.dirname(mne.datasets.fetch_fsaverage())
 # plot all montages
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, 
-							 show_axes=True,
+                             show_axes=True,
                              subject='fsaverage',
                              trans='fsaverage', 
                              surfaces=['head-dense', 'brain'],
@@ -63,7 +63,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # montage A
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.copy().pick_channels(mtg_a).info, 
-							 show_axes=True,
+                             show_axes=True,
                              subject='fsaverage',
                              trans='fsaverage', 
                              surfaces=['head-dense', 'brain'],
@@ -77,7 +77,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # montage B
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.copy().pick_channels(mtg_b).info, 
-							 show_axes=True,
+                             show_axes=True,
                              subject='fsaverage',
                              trans='fsaverage', 
                              surfaces=['head-dense', 'brain'],

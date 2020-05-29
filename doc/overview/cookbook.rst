@@ -323,7 +323,7 @@ The corregistration is stored in ``-trans.fif`` file. If is present,
 you can follow :ref:`plot_source_alignment` to validate its correctness.
 If the ``-trans.fif`` is not present or the alignment is not correct
 you need to use :func:`mne.gui.coregistration` (or its convenient command line
-equivalent :ref:`gen_mne_coreg`) to generate it.
+equivalent :ref:`mne coreg`) to generate it.
 
 .. XXX: It would be good to link to the ``-trans.fif`` file description
 

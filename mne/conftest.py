@@ -295,7 +295,7 @@ def subjects_dir_tmp(tmpdir):
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types()
+    evoked = _evoked.copy().pick_types(meg=True)
     evoked.pick_channels(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)

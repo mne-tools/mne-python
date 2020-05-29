@@ -124,10 +124,10 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         fraction of the font-size.
     h_pad : float
         Padding height between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     w_pad : float
         Padding width between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     fig : instance of Figure
         Figure to apply changes to.
     """
@@ -1442,8 +1442,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
 def add_background_image(fig, im, set_ratios=None):
     """Add a background image to a plot.
 
-    Adds the image specified in `im` to the
-    figure `fig`. This is generally meant to
+    Adds the image specified in ``im`` to the
+    figure ``fig``. This is generally meant to
     be done with topo plots, though it could work
     for any plot.
 
@@ -2066,13 +2066,13 @@ class SelectFromCollection(object):
         Collection you want to select from.
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an
-        alpha value of 1 and non-selected points to `alpha_other`.
+        alpha value of 1 and non-selected points to ``alpha_other``.
         Defaults to 0.3.
 
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
     """
 
     def __init__(self, ax, collection, ch_names,
@@ -3065,7 +3065,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
         kwargs = dict(meg=False, ref_meg=False, exclude=[])
         if name in ('mag', 'grad'):
             kwargs['meg'] = name
-        elif name in ('fnirs_raw', 'fnirs_od', 'hbo', 'hbr'):
+        elif name in ('fnirs_raw', 'fnirs_od', 'fnirs_ph', 'hbo', 'hbr'):
             kwargs['fnirs'] = name
         else:
             kwargs[name] = True
@@ -3234,7 +3234,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         valid_channel_types = [
             'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
             'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-            'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
+            'hbr', 'misc', 'fnirs_raw', 'fnirs_od', 'fnirs_ph']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:

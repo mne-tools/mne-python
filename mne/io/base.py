@@ -886,7 +886,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
         n_jobs : int (default: 1)
-            Number of jobs to run in parallel. Ignored if `channel_wise` is
+            Number of jobs to run in parallel. Ignored if ``channel_wise`` is
             False.
         channel_wise : bool (default: True)
             Whether to apply the function to each channel individually. If
@@ -2128,7 +2128,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     raw : instance of Raw
         The result of the concatenation (first Raw instance passed in).
     events : ndarray of int, shape (n_events, 3)
-        The events. Only returned if `event_list` is not None.
+        The events. Only returned if ``event_list`` is not None.
     """
     if events_list is not None:
         if len(events_list) != len(raws):

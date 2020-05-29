@@ -649,7 +649,7 @@ def test_fine_calibration():
     raw_sss_bad = maxwell_filter(
         raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
         regularize=None, bad_condition='ignore')
-    raw_missing.pick_types()  # actually remove bads
+    raw_missing.pick_types(meg=True)  # actually remove bads
     raw_sss_bad.pick_channels(raw_missing.ch_names)  # remove them here, too
     with pytest.warns(RuntimeWarning, match='cal channels not in data'):
         raw_sss_missing = maxwell_filter(
@@ -1094,7 +1094,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         assert 0 in pick_types(raw.info, meg=False, eeg=True)
     if ignore_ref:
         # Fake a bad one, otherwise we don't find any
-        assert 42 in pick_types(raw.info, ref_meg=False)
+        assert 42 in pick_types(raw.info, meg=True, ref_meg=False)
         assert raw.ch_names[42:43] == want_bads
         raw._data[42] += np.random.RandomState(0).randn(len(raw.times))
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501

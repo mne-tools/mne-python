@@ -97,7 +97,7 @@ def test_add_noise():
         rng = np.random.RandomState(0)
     raw = read_raw_fif(raw_fname)
     raw.del_proj()
-    picks = pick_types(raw.info, eeg=True, exclude=())
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=())
     cov = compute_raw_covariance(raw, picks=picks)
     with pytest.raises(RuntimeError, match='to be loaded'):
         add_noise(raw, cov)

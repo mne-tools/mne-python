@@ -372,7 +372,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for
-        VectorView type layout. Use `meg` to force using the full layout
+        VectorView type layout. Use ``'meg'`` to force using the full layout
         in situations where the info does only contain one sensor type.
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any.
@@ -907,7 +907,7 @@ def _merge_ch_data(data, ch_type, names, method='rms'):
     if ch_type == 'grad':
         data = _merge_grad_data(data, method)
     else:
-        assert ch_type in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
+        assert ch_type in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od', 'fnirs_ph')
         data, names = _merge_nirs_data(data, names)
     return data, names
 

@@ -84,10 +84,10 @@ def test_data():
         assert_array_equal(stim1, stim2)
 
     # Binary file only stores the sensor channels
-    py_picks = pick_types(raw_py.info, exclude='bads')
+    py_picks = pick_types(raw_py.info, meg=True, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
     raw_bin = read_raw_fif(raw_bin, preload=True)
-    bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
+    bin_picks = pick_types(raw_bin.info, meg=True, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
@@ -98,7 +98,7 @@ def test_data():
 
     assert_array_almost_equal(data_py, data_Ykgw)
 
-    py_picks = pick_types(raw_py.info, stim=True, ref_meg=False,
+    py_picks = pick_types(raw_py.info, meg=True, stim=True, ref_meg=False,
                           exclude='bads')
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)

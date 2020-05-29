@@ -432,7 +432,7 @@ def test_plot_raw_psd():
 
     # gh-5046
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
-    picks = pick_types(raw.info)
+    picks = pick_types(raw.info, meg=True)
     raw.plot_psd(picks=picks, average=False)
     raw.plot_psd(picks=picks, average=True)
     plt.close('all')
