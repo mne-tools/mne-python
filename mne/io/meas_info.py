@@ -528,9 +528,20 @@ class Info(dict, MontageMixin):
 
     def __init__(self, *args, **kwargs):
         super(Info, self).__init__(*args, **kwargs)
-        t = self.get('dev_head_t', None)
-        if t is not None and not isinstance(t, Transform):
+        # Deal with h5io writing things as dict
+        try:
+            t = self['dev_head_t']
+        except KeyError:
+            pass
+        else:
             self['dev_head_t'] = Transform(t['from'], t['to'], t['trans'])
+        # Old files could have meas_date as tuple instead of datetime
+        try:
+            meas_date = self['meas_date']
+        except KeyError:
+            pass
+        else:
+            self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
 
     def copy(self):
         """Copy the instance.
@@ -1362,11 +1373,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['proj_name'] = proj_name
     if meas_date is None:
         meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
-    if np.array_equal(meas_date, DATE_NONE):
-        meas_date = None
-    else:
-        meas_date = _stamp_to_dt(meas_date)
-    info['meas_date'] = meas_date
+    info['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
     info['utc_offset'] = utc_offset
 
     info['sfreq'] = sfreq
@@ -1406,6 +1413,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['kit_system_id'] = kit_system_id
     info._check_consistency()
     return info, meas
+
+
+def _ensure_meas_date_none_or_dt(meas_date):
+    if meas_date is None or np.array_equal(meas_date, DATE_NONE):
+        meas_date = None
+    elif not isinstance(meas_date, datetime.datetime):
+        meas_date = _stamp_to_dt(meas_date)
+    return meas_date
 
 
 def _check_dates(info, prepend_error=''):

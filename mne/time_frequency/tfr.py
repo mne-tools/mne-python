@@ -2294,6 +2294,7 @@ def read_tfrs(fname, condition=None):
     tfr_data = read_hdf5(fname, title='mnepython', slash='replace')
     for k, tfr in tfr_data:
         tfr['info'] = Info(tfr['info'])
+        tfr['info']._check_consistency()
         if 'metadata' in tfr:
             tfr['metadata'] = _prepare_read_metadata(tfr['metadata'])
     is_average = 'nave' in tfr
