@@ -109,7 +109,7 @@ class _Projection(object):
         self.pts.SetVisibility(state)
 
 
-class _WebInteractor(object):
+class _JupyterInteractor(object):
     def __init__(self, renderer):
         from IPython import display
         from ipywidgets import HBox
@@ -124,15 +124,19 @@ class _WebInteractor(object):
         import matplotlib.pyplot as plt
         plt.ioff()
 
-        fig, ax = plt.subplots()
+        width, height = self.renderer.figure.store['window_size']
+
+        my_dpi = 100
+        fig = plt.figure(figsize=(width / my_dpi, height / my_dpi), dpi=my_dpi)
         fig.canvas.toolbar_visible = False
         fig.canvas.header_visible = False
         fig.canvas.resizable = False
         fig.canvas.callbacks.callbacks.clear()
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
 
         dh = ax.imshow(self.plotter.screenshot())
-        ax.axes.xaxis.set_visible(False)
-        ax.axes.yaxis.set_visible(False)
         return fig, dh
 
     def update(self):
@@ -142,23 +146,43 @@ class _WebInteractor(object):
     def configure_controllers(self):
         from ipywidgets import (interactive, Label, VBox, FloatSlider,
                                 IntSlider)
-        figure = self.renderer.figure
-        plotter = figure.plotter
-        # subplot
-        number_of_plots = len(plotter.renderers)
-        self.subplot_slider = IntSlider(
-            value=number_of_plots - 1,
-            min=0,
-            max=number_of_plots - 1,
+        controllers = list()
+        # dpi
+        self.dpi_slider = IntSlider(
+            value=80,
+            min=50,
+            max=150,
             step=1,
             continuous_update=False
         )
-        self.subplot_controller = interactive(
-            self.set_subplot,
-            index=self.subplot_slider,
-        )
+        self.dpi_controller = VBox([
+            Label(value='Configure the DPI'),
+            interactive(
+                self.set_dpi,
+                dpi=self.dpi_slider
+            )
+        ])
+        controllers.append(self.dpi_controller)
+        # subplot
+        number_of_plots = len(self.plotter.renderers)
+        if number_of_plots > 1:
+            self.subplot_slider = IntSlider(
+                value=number_of_plots - 1,
+                min=0,
+                max=number_of_plots - 1,
+                step=1,
+                continuous_update=False
+            )
+            self.subplot_controller = VBox([
+                Label(value='Select the subplot'),
+                interactive(
+                    self.set_subplot,
+                    index=self.subplot_slider,
+                )
+            ])
+            controllers.append(self.subplot_controller)
         # azimuth
-        default_azimuth = figure.plotter.renderer._azimuth
+        default_azimuth = self.plotter.renderer._azimuth
         self.azimuth_slider = FloatSlider(
             value=default_azimuth,
             min=-180.,
@@ -167,7 +191,7 @@ class _WebInteractor(object):
             continuous_update=False
         )
         # elevation
-        default_elevation = figure.plotter.renderer._elevation
+        default_elevation = self.plotter.renderer._elevation
         self.elevation_slider = FloatSlider(
             value=default_elevation,
             min=-180.,
@@ -177,7 +201,7 @@ class _WebInteractor(object):
         )
         # distance
         eps = 1e-5
-        default_distance = figure.plotter.renderer._distance
+        default_distance = self.plotter.renderer._distance
         self.distance_slider = FloatSlider(
             value=default_distance,
             min=eps,
@@ -186,23 +210,25 @@ class _WebInteractor(object):
             continuous_update=False
         )
         # camera
-        self.camera_controller = interactive(
-            self.set_camera,
-            azimuth=self.azimuth_slider,
-            elevation=self.elevation_slider,
-            distance=self.distance_slider,
-        )
-        # controllers
-        controllers = VBox([
-            Label(value='Select the subplot'),
-            self.subplot_controller,
+        self.camera_controller = VBox([
             Label(value='Camera settings'),
-            self.camera_controller,
+            interactive(
+                self.set_camera,
+                azimuth=self.azimuth_slider,
+                elevation=self.elevation_slider,
+                distance=self.distance_slider,
+            )
         ])
-        return controllers
+        controllers.append(self.camera_controller)
+        return VBox(controllers)
+
+    def set_dpi(self, dpi):
+        width, height = self.renderer.figure.store['window_size']
+        self.fig.figsize = (width / dpi, height / dpi)
+        self.fig.dpi = dpi
 
     def set_camera(self, azimuth, elevation, distance):
-        focalpoint = self.renderer.plotter.camera.GetFocalPoint()
+        focalpoint = self.plotter.camera.GetFocalPoint()
         self.renderer.set_camera(azimuth, elevation,
                                  distance, focalpoint)
         self.update()
@@ -567,7 +593,7 @@ class _Renderer(_BaseRenderer):
 
     def show(self):
         if self.figure.notebook:
-            self.figure.display = _WebInteractor(self)
+            self.figure.display = _JupyterInteractor(self)
         if hasattr(self.plotter, "app_window"):
             self.plotter.app_window.show()
         return self.scene()
