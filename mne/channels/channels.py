@@ -634,7 +634,7 @@ class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
 
     @verbose
-    def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
+    def pick_types(self, meg=None, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
@@ -645,10 +645,9 @@ class UpdateChannelsMixin(object):
         Parameters
         ----------
         meg : bool | str
-            If True include all MEG channels. If False include None.
-            If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
-            only magnetometers, all gradiometers, or a specific type of
-            gradiometer.
+            If True include MEG channels. If string it can be 'mag', 'grad',
+            'planar1' or 'planar2' to select only magnetometers, all
+            gradiometers, or a specific type of gradiometer.
         eeg : bool
             If True include EEG channels.
         stim : bool
@@ -660,8 +659,10 @@ class UpdateChannelsMixin(object):
         emg : bool
             If True include EMG channels.
         ref_meg : bool | str
-            If True include CTF / 4D reference channels. If 'auto', the
-            reference channels are only included if compensations are present.
+            If True include CTF / 4D reference channels. If 'auto', reference
+            channels are included if compensations are present and ``meg`` is
+            not False. Can also be the string options for the ``meg``
+            parameter.
         misc : bool
             If True include miscellaneous analog channels.
         resp : bool

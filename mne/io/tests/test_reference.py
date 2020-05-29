@@ -190,7 +190,7 @@ def test_set_eeg_reference():
     # custom_ref_applied flag remains untouched.
     reref = raw.copy()
     reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
-    reref.pick_types(eeg=False)  # Cause making average ref fail
+    reref.pick_types(meg=True, eeg=False)  # Cause making average ref fail
     pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
     assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
 

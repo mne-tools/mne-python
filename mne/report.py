@@ -436,8 +436,7 @@ def _build_html_image(img, id, div_klass, img_klass, caption=None,
     html.append(u'<li class="%s" id="%s" %s>' % (div_klass, id, add_style))
     html.append(u'<div class="thumbnail">')
     if image_format == 'png':
-        html.append(u'<img class="%s" alt="" style="width:90%%;" '
-                    'src="data:image/png;base64,%s">'
+        html.append(u'<img class="%s" alt="" src="data:image/png;base64,%s">'
                     % (img_klass, img))
     else:
         html.append(u'<div style="text-align:center;" class="%s">%s</div>'
@@ -473,7 +472,7 @@ slider_full_template = Template(u"""
 <div class="thumbnail">
     <ul><li class="slider">
         <div class="row">
-            <div class="col-md-6 col-md-offset-3">
+            <div class="col-lg-10 col-lg-offset-1 col-xs-12">
                 <div id="{{slider_id}}"></div>
                 <ul class="thumbnail">
                     {{image_html}}
@@ -509,6 +508,7 @@ header_template = Template(u"""
 <!DOCTYPE html>
 <html lang="{{lang}}">
 <head>
+<meta charset="UTF-8">
 {{include}}
 <script type="text/javascript">
 

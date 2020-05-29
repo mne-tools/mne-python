@@ -12,7 +12,7 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option)
+                     _check_option, warn)
 
 
 def get_channel_type_constants():
@@ -303,7 +303,7 @@ def _check_info_exclude(info, exclude):
     return exclude
 
 
-def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
+def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
                gof=False, bio=False, ecog=False, fnirs=False, csd=False,
@@ -315,10 +315,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     info : dict
         The measurement info.
     meg : bool | str
-        If True include all MEG channels. If False include None
-        If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
-        only magnetometers, all gradiometers, or a specific type of
-        gradiometer.
+        If True include MEG channels. If string it can be 'mag', 'grad',
+        'planar1' or 'planar2' to select only magnetometers, all gradiometers,
+        or a specific type of gradiometer.
     eeg : bool
         If True include EEG channels.
     stim : bool
@@ -330,10 +329,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     emg : bool
         If True include EMG channels.
     ref_meg : bool | str
-        If True include CTF / 4D reference channels. If 'auto', the
-        reference channels included if compensations are present
-        and ``meg`` is not False. Can also be the string options allowed
-        for the ``meg`` parameter.
+        If True include CTF / 4D reference channels. If 'auto', reference
+        channels are included if compensations are present and ``meg`` is not
+        False. Can also be the string options for the ``meg`` parameter.
     misc : bool
         If True include miscellaneous analog channels.
     resp : bool
@@ -379,6 +377,15 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     """
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
+    if meg is None:
+        meg = True  # previous default arg
+        meg_default_arg = True  # default argument for meg was used
+    else:
+        meg_default_arg = False
+    # only issue deprecation warning if there are MEG channels in the data and
+    # if the function was called with the default arg for meg
+    deprecation_warn = False
+
     exclude = _check_info_exclude(info, exclude)
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
@@ -392,9 +399,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
                   ias, syst, seeg, dipole, gof, bio, ecog, csd):
         if not isinstance(param, bool):
-            w = ('Parameters for all channel types (with the exception '
-                 'of "meg", "ref_meg" and "fnirs") must be of type bool, '
-                 'not {0}.')
+            w = ('Parameters for all channel types (with the exception of '
+                 '"meg", "ref_meg" and "fnirs") must be of type bool, not {}.')
             raise ValueError(w.format(type(param)))
 
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
@@ -410,6 +416,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             param_dict[key] = fnirs
     for k in range(nchan):
         ch_type = channel_type(info, k)
+        if ch_type in ('grad', 'mag') and meg_default_arg:
+            deprecation_warn = True
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
@@ -417,8 +425,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                                'fnirs_raw', 'fnirs_od', 'fnirs_ph')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
+                if meg_default_arg:
+                    deprecation_warn = True
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
+                if meg_default_arg:
+                    deprecation_warn = True
             else:  # ch_type in ('hbo', 'hbr')
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs)
 
@@ -439,6 +451,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     else:
         sel = pick_channels(info['ch_names'], myinclude, exclude)
 
+    if deprecation_warn:
+        warn("The default of meg=True will change to meg=False in version 0.22"
+             ", set meg explicitly to avoid this warning.", DeprecationWarning)
     return sel
 
 
@@ -644,7 +659,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     return fwd
 
 
-def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
+def pick_types_forward(orig, meg=None, eeg=False, ref_meg=True, seeg=False,
                        ecog=False, include=[], exclude=[]):
     """Pick by channel type and names from a forward operator.
 
@@ -652,10 +667,10 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     ----------
     orig : dict
         A forward solution.
-    meg : bool or str
-        If True include all MEG channels. If False include None
-        If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers.
+    meg : bool | str
+        If True include MEG channels. If string it can be 'mag', 'grad',
+        'planar1' or 'planar2' to select only magnetometers, all gradiometers,
+        or a specific type of gradiometer.
     eeg : bool
         If True include EEG channels.
     ref_meg : bool
@@ -932,7 +947,8 @@ def _pick_aux_channels(info, exclude='bads'):
 def _pick_data_or_ica(info, exclude=()):
     """Pick only data or ICA channels."""
     if any(ch_name.startswith('ICA') for ch_name in info['ch_names']):
-        picks = pick_types(info, exclude=exclude, misc=True)
+        # FIXME: is meg=True really correct here?
+        picks = pick_types(info, exclude=exclude, misc=True, meg=True)
     else:
         picks = _pick_data_channels(info, exclude=exclude, with_ref_meg=True)
     return picks

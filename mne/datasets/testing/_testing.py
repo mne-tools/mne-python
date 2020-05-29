@@ -52,9 +52,12 @@ def requires_testing_data(func):
                               reason='Requires testing dataset')(func)
 
 
-def _pytest_param():
+def _pytest_param(*args, **kwargs):
+    if len(args) == len(kwargs) == 0:
+        args = ('testing_data',)
     import pytest
     # turn anything that uses testing data into an auto-skipper by
-    # setting params=[testing._pytest_param()]
-    return pytest.param('testing_data', marks=pytest.mark.skipif(
+    # setting params=[testing._pytest_param()], or by parametrizing functions
+    # with testing._pytest_param(whatever)
+    return pytest.param(*args, **kwargs, marks=pytest.mark.skipif(
         _skip_testing_data(), reason='Requires testing dataset'))
