@@ -76,7 +76,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         If None, all vertices will be used (potentially filling the
         surface). If a list, then values will be morphed to the set of
         vertices specified in in ``spacing[0]`` and ``spacing[1]``.
-        This will be ignored if `src_to` is supplied.
+        This will be ignored if ``src_to`` is supplied.
 
         .. versionchanged:: 0.21
            src_to, if provided, takes precedence.
