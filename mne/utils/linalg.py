@@ -142,6 +142,9 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
         The array to take the square root of.
     rcond : float
         The relative condition number used during reconstruction.
+    inv : bool
+        If True, compute the inverse of the square root rather than the
+        square root itself.
 
     Returns
     -------
