@@ -50,7 +50,7 @@ raw = io.read_raw_fif(raw_fname, preload=True)
 # been applied to these data, much of the noise in the reference channels
 # (bottom of the plot) can still be seen in the standard channels.
 select_picks = np.concatenate(
-    (mne.pick_types(raw.info)[-32:],
+    (mne.pick_types(raw.info, meg=True)[-32:],
      mne.pick_types(raw.info, meg=False, ref_meg=True)))
 plot_kwargs = dict(
     duration=100, order=select_picks, n_channels=len(select_picks),

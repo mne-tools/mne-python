@@ -1410,7 +1410,7 @@ def _plot_update_epochs_proj(params, bools=None):
 def _handle_picks(epochs):
     """Handle picks."""
     if any('ICA' in k for k in epochs.ch_names):
-        picks = pick_types(epochs.info, misc=True, ref_meg=False,
+        picks = pick_types(epochs.info, meg=True, misc=True, ref_meg=False,
                            exclude=[])
     else:
         picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,

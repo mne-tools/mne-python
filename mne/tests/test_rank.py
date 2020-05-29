@@ -200,7 +200,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 ])
 def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     """Test maxfilter rank lookup."""
-    raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types()
+    raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types(meg=True)
     assert raw.info['projs'] == []
     mf = raw.info['proc_history'][0]['max_info']
     assert mf['sss_info']['nfree'] == rank_orig

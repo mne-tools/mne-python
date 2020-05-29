@@ -325,7 +325,7 @@ def test_evoked_resample():
 def test_evoked_filter():
     """Test filtering evoked data."""
     # this is mostly a smoke test as the Epochs and raw tests are more complete
-    ave = read_evokeds(fname, 0).pick_types('grad')
+    ave = read_evokeds(fname, 0).pick_types(meg='grad')
     ave.data[:] = 1.
     assert round(ave.info['lowpass']) == 172
     ave_filt = ave.copy().filter(None, 40., fir_design='firwin')
