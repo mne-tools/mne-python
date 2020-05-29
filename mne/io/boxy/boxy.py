@@ -565,27 +565,7 @@ class RawBOXY(BaseRaw):
                 #so we can send values between 1-255
                 #we'll multiply our block start/end markers by 1000 to ensure 
                 #we aren't within the 1-255 range
-                # import pdb
-                # pdb.set_trace()
-                # if i_mtg == 0:
-                #     block_markers[i_blk][100:200] = 1
-                #     block_markers[i_blk][400:600] = 1
-                #     block_markers[i_blk][700:900] = 1
-                #     block_markers[i_blk][1000:1200] = 1
-                #     block_markers[i_blk][1300:1500] = 1
-                # elif i_mtg == 1:
-                #     block_markers[i_blk][100:200] = 2
-                #     block_markers[i_blk][400:600] = 2
-                #     block_markers[i_blk][700:900] = 2
-                #     block_markers[i_blk][1000:1200] = 2
-                #     block_markers[i_blk][1300:1500] = 2
                 block_markers[i_blk][-1] = int(blk_name) * 1000
-
-                # # indicate which montage our markers belong to
-                # block_markers[i_blk] = ([(i_mrk+((i_mtg+1)*10000)) 
-                #                           if i_mrk > 0 
-                #                           else 0 for i_mrk 
-                #                           in block_markers[i_blk]])
                     
                 all_blocks.append(data_)
     
