@@ -6,10 +6,11 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from scipy.io import savemat
 
 import mne
+from mne.externals.pymatreader import read_mat
 from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
@@ -41,7 +42,8 @@ def _get_bf_data(save_fieldtrip=False):
 
         # src (tris are not available in fwd['src'] once imported into MATLAB)
         src = fwd['src'].copy()
-        mne.write_source_spaces(op.join(ft_data_path, 'src.fif'), src)
+        mne.write_source_spaces(op.join(ft_data_path, 'src.fif'), src,
+                                verbose='error', overwrite=True)
 
     # pick gradiometers only:
     epochs.pick_types(meg='grad')
@@ -54,11 +56,11 @@ def _get_bf_data(save_fieldtrip=False):
     if save_fieldtrip is True:
         # if the covariance matrix and epochs need resaving:
         # data covariance:
-        cov_savepath = op.join(ft_data_path, 'sample_cov')
+        cov_savepath = op.join(ft_data_path, 'sample_cov.mat')
         sample_cov = {'sample_cov': data_cov['data']}
         savemat(cov_savepath, sample_cov)
         # evoked data:
-        ev_savepath = op.join(ft_data_path, 'sample_evoked')
+        ev_savepath = op.join(ft_data_path, 'sample_evoked.mat')
         data_ev = {'sample_evoked': evoked.data}
         savemat(ev_savepath, data_ev)
 
@@ -68,10 +70,11 @@ def _get_bf_data(save_fieldtrip=False):
 # beamformer types to be tested: unit-gain (vector and scalar) and
 # unit-noise-gain (time series and power output [apply_lcmv_cov])
 @pytest.mark.parametrize('bf_type, weight_norm, pick_ori, pwr', [
-    ['ug_vec', None, None, False],
-    pytest.param('ug_scal', None, 'max-power', False),
-    pytest.param('ung', 'unit-noise-gain', 'max-power', False),
-    pytest.param('ung_pow', 'unit-noise-gain', 'max-power', True)
+    ['ug_scal', None, 'max-power', False],
+    ['ung', 'unit-noise-gain', 'max-power', False],
+    ['ung_pow', 'unit-noise-gain', 'max-power', True],
+    ['ug_vec', None, 'vector', False],
+    ['ung_vec', 'unit-noise-gain', 'vector', False],
 ])
 def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     """Test LCMV vs fieldtrip output."""
@@ -87,17 +90,21 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
         stc_mne = apply_lcmv(evoked, filters)
 
     # load the FieldTrip output
-    ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.stc')
-    stc_ft = mne.read_source_estimate(ft_fname)
+    ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.mat')
+    stc_ft_data = read_mat(ft_fname)['stc']
+    if stc_ft_data.ndim == 1:
+        stc_ft_data.shape = (stc_ft_data.size, 1)
 
-    signs = np.sign((stc_mne.data * stc_ft.data).sum(-1, keepdims=True))
-    if pwr:
-        assert_array_equal(signs, 1.)
-    stc_mne.data *= signs
-
-    # calculate the Pearson correlation between the source solutions:
-    exp_var = np.corrcoef(stc_mne.data.ravel(), stc_ft.data.ravel())[0, 1] ** 2
-    assert exp_var >= 0.999999  # slight differences slipped before
+    if stc_mne.data.ndim == 2:
+        signs = np.sign((stc_mne.data * stc_ft_data).sum(-1, keepdims=True))
+        if pwr:
+            assert_array_equal(signs, 1.)
+        stc_mne.data *= signs
+    assert stc_ft_data.shape == stc_mne.data.shape
+    if stc_mne.data.ndim == 3:  # compare norms first
+        assert_allclose(np.linalg.norm(stc_mne.data, axis=1),
+                        np.linalg.norm(stc_ft_data, axis=1), rtol=1e-6)
+    assert_allclose(stc_mne.data, stc_ft_data, rtol=1e-6)
 
 
 run_tests_if_main()

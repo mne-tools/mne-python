@@ -180,16 +180,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     W : ndarray, shape (n_dipoles, n_channels)
         The beamformer filter weights.
     """
-    # TODO: This conditional just allows us to use a private
-    # "unit-noise-gain-old"/"-pooled"/"-sqrtm" for testing.
-    # The "unit-noise-gain" should follow Sekihara. Hopefully we only decide
-    # to keep one.
-    if not (isinstance(weight_norm, str) and
-            weight_norm in ('unit-noise-gain-old',
-                            'unit-noise-gain-pooled',
-                            'unit-noise-gain-sqrtm')):
-        _check_option('weight_norm', weight_norm,
-                      ['unit-noise-gain', 'nai', None])
+    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
@@ -329,41 +320,27 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if weight_norm is not None:
         # Three different ways to calculate the normalization factors here.
         # Only matters when in vector mode, as otherwise n_orient == 1 and
-        # they are all equivalent.
-        if weight_norm in ('nai', 'unit-noise-gain'):
-            # Sekihara: use sqrt(diag(W_ug @ W_ug.T)), not rotation invariant:
-            noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj()).real
-            noise_norm = np.reshape(  # np.diag operation over last two axes...
-                noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
-            noise_norm *= n_orient
-            np.sqrt(noise_norm, out=noise_norm)
-            assert noise_norm.shape == (n_sources, n_orient, 1)
-        elif weight_norm == 'unit-noise-gain-old':
-            # Uses the Frobenius matrix norm, a single scale factor for each
-            # source point:
-            noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
-            assert noise_norm.shape == (n_sources, 1, 1)
-        elif weight_norm == 'unit-noise-gain-sqrtm':
-            # Use a direct recomputation of the weights using a matrix sqrt,
-            # and directly recompute the result
-            W = np.matmul(
-                sqrtm_sym(np.matmul(W, W.swapaxes(-2, -1).conj()).real,
-                          inv=True)[0],
-                W)
-            noise_norm = np.full((W.shape[0], 1, 1), np.sqrt(n_orient))
-        else:
-            assert weight_norm == 'unit-noise-gain-pooled'
-            # Uses the Frobenius matrix norm, but couple it with a
-            # direct recomputation of the weights, i.e.::
-            #
-            #     W = G.T @ Cm_inv / sqrt(G.T @ Cm_inv @ Cm_inv @ G)
-            #       = bf_numer / sqrt(trace(bf_numer.T @ bf_numer)))
-            #       = bf_numer / noise_norm
-            #
-            W = bf_numer
-            noise_norm = np.linalg.norm(bf_numer, axis=(1, 2), keepdims=True)
-            assert noise_norm.shape == (n_sources, 1, 1)
-        assert noise_norm.dtype == np.float64
+        # they are all equivalent. Sekihara 2008 says to use
+        # sqrt(diag(W_ug @ W_ug.T)), which is not rotation invariant::
+        #
+        #    noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj()).real
+        #    noise_norm = np.reshape(  # np.diag operation over last two axes
+        #        noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
+        #    noise_norm *= n_orient
+        #    np.sqrt(noise_norm, out=noise_norm)
+        #    assert noise_norm.shape == (n_sources, n_orient, 1)
+        #
+        # In MNE < 0.21, we just used the Frobenius matrix norm:
+        #
+        #    noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
+        #    assert noise_norm.shape == (n_sources, 1, 1)
+        #    W /= noise_norm
+        #
+        # Here we do what FieldTrip does, sqrtm:
+        W = np.matmul(
+            sqrtm_sym(np.matmul(W, W.swapaxes(-2, -1).conj()).real,
+                      inv=True)[0], W)
+        W /= np.sqrt(n_orient)
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the
@@ -383,11 +360,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 noise, _ = linalg.eigh(Cm)
                 noise = noise[-rank]
                 noise = max(noise, loading_factor)
-            noise_norm *= np.sqrt(noise)
-
-        # Apply the normalization: W_ung = W_ug / noise_norm
-        noise_norm_inv = 1 / np.where(noise_norm > 0, noise_norm, 1.)
-        W *= noise_norm_inv
+            W /= np.sqrt(noise)
 
     W = W.reshape(n_sources * n_orient, n_channels)
     logger.info('Filter computation complete')

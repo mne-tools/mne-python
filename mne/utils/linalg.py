@@ -152,7 +152,7 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
     """
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
     s, u = np.linalg.eigh(A)  # eigenvalues in ascending order
-    s[s < s[..., -1:] * rcond] = np.inf if inv else 0
+    s[s <= s[..., -1:] * rcond] = np.inf if inv else 0
     np.sqrt(s, out=s)
     if inv:
         use_s = 1. / s

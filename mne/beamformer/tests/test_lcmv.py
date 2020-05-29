@@ -701,13 +701,7 @@ def test_lcmv_ctf_comp():
 @testing.requires_testing_data  # formula does not work for vector!
 @pytest.mark.parametrize('pick_ori', ['max-power', 'normal'])
 @pytest.mark.parametrize('reg', (0.05, 0.))
-@pytest.mark.parametrize('weight_norm', [
-    'unit-noise-gain-pooled',
-    'unit-noise-gain-old',
-    'unit-noise-gain-sqrtm',
-    'unit-noise-gain',
-])
-def test_unit_noise_gain_formula(pick_ori, reg, weight_norm):
+def test_unit_noise_gain_formula(pick_ori, reg):
     """Test unit-noise-gain filter against formula."""
     # The unit-noise-gain beamformer is computed following a shortcut, where
     # W_ung = inv(sqrt(W_ug @ W_ug.T)) @ W_ug
@@ -732,7 +726,7 @@ def test_unit_noise_gain_formula(pick_ori, reg, weight_norm):
     # TODO: Decide if we should actually use unit-noise-gain here...
     filters = make_lcmv(epochs.info, forward, data_cov, reg=reg,
                         noise_cov=noise_cov, pick_ori=pick_ori,
-                        weight_norm=weight_norm, rank=rank)
+                        weight_norm='unit-noise-gain', rank=rank)
 
     # manipulate forward to have same orientation picking as above
     forward = mne.pick_types_forward(forward, meg='mag')  # restrict to MAG
@@ -834,7 +828,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     if weight_norm == 'nai':
         # NAI is always normalized by noise-level (based on eigenvalues)
         for stc in (stc_nocov, stc_cov):
-            assert_allclose(stc.data.std(), 0.39, rtol=0.1)
+            assert_allclose(stc.data.std(), 0.337, rtol=0.1)
     elif weight_norm is None:
         # None always represents something not normalized, reflecting channel
         # weights
@@ -843,8 +837,8 @@ def test_lcmv_reg_proj(proj, weight_norm):
     else:
         assert weight_norm == 'unit-noise-gain'
         # Channel scalings depend on presence of noise_cov
-        assert_allclose(stc_nocov.data.std(), 5.3e-13, rtol=0.1)
-        assert_allclose(stc_cov.data.std(), 0.13, rtol=0.1)
+        assert_allclose(stc_nocov.data.std(), 4.5e-13, rtol=0.1)
+        assert_allclose(stc_cov.data.std(), 0.108, rtol=0.1)
 
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, depth, lower, upper', [
@@ -877,31 +871,23 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
 
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper', [
-        (0.05, 'vector', 'unit-noise-gain-pooled', False, None, 36, 38),
-        (0.05, 'vector', 'unit-noise-gain-pooled', True, None, 50, 53),
-        (0.05, 'vector', 'unit-noise-gain-sqrtm', True, None, 40, 42),
-        (0.05, 'vector', 'unit-noise-gain-old', True, None, 37, 38),
-        (0.05, 'vector', 'unit-noise-gain', True, None, 35, 37),
-        (0.05, 'vector', 'nai', True, None, 35, 37),
+        (0.05, 'vector', 'unit-noise-gain', False, None, 26, 28),
+        (0.05, 'vector', 'unit-noise-gain', True, None, 40, 42),
+        (0.05, 'vector', 'nai', True, None, 40, 42),
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
-        (0.05, 'max-power', 'unit-noise-gain-pooled', False, None, 17, 20),
-        (0.05, 'max-power', 'unit-noise-gain-sqrtm', False, None, 17, 20),
         (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20),
-        (0.05, 'max-power', 'unit-noise-gain', True, None, 21, 24),
         (0.05, 'max-power', 'nai', True, None, 21, 24),
         (0.05, 'max-power', None, True, None, 7, 10),
         (0.05, 'max-power', None, True, 0.8, 15, 18),
         (0.05, None, None, True, 0.8, 40, 42),
         # no reg
         (0.00, 'vector', None, True, None, 24, 32),
-        (0.00, 'vector', 'unit-noise-gain-pooled', True, None, 67, 76),
-        (0.00, 'vector', 'unit-noise-gain-old', True, None, 63, 73),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 50, 62),
-        (0.00, 'vector', 'nai', True, None, 50, 62),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 63, 65),
+        (0.00, 'vector', 'nai', True, None, 63, 65),
         (0.00, 'max-power', None, True, None, 15, 19),
+        (0.00, 'max-power', 'unit-noise-gain', True, None, 43, 50),
         (0.00, 'max-power', 'nai', True, None, 43, 50),
-        (0.00, 'max-power', 'unit-noise-gain-pooled', True, None, 43, 50),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
                                 use_cov, depth, lower, upper):
