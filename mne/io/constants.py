@@ -827,6 +827,7 @@ FIFF.FIFFV_COIL_FNIRS_HBO             = 300  # fNIRS oxyhemoglobin
 FIFF.FIFFV_COIL_FNIRS_HBR             = 301  # fNIRS deoxyhemoglobin
 FIFF.FIFFV_COIL_FNIRS_RAW             = 302  # fNIRS raw light intensity
 FIFF.FIFFV_COIL_FNIRS_OD              = 303  # fNIRS optical density
+FIFF.FIFFV_COIL_FNIRS_PH              = 304  # fNIRS phase of optical signal
 
 FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 

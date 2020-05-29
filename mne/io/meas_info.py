@@ -5,7 +5,6 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
-
 from collections import Counter
 from copy import deepcopy
 import datetime
@@ -54,6 +53,8 @@ _kind_dict = dict(
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     fnirs_raw=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_RAW,
                FIFF.FIFF_UNIT_V),
+    fnirs_ph=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_PH,
+              FIFF.FIFF_UNIT_V),
     fnirs_od=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_OD,
               FIFF.FIFF_UNIT_NONE),
     hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_MOL),
@@ -886,6 +887,7 @@ def read_info(fname, verbose=None):
     info : instance of Info
        Measurement information for the dataset.
     """
+    print('###############################################################')
     f, tree, _ = fiff_open(fname)
     with f as fid:
         info = read_meas_info(fid, tree)[0]

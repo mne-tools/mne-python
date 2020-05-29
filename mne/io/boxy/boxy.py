@@ -242,6 +242,7 @@ class RawBOXY(BaseRaw):
         mtg_end = []
         mtg_src_num = []
         mtg_det_num = []
+        mtg_mdf = []
         blk_num = [len(blk) for blk in blk_names]
         for mtg_num, i_mtg in enumerate(mtg_chan_num, 0):
             start = int(np.sum(mtg_chan_num[:mtg_num]))
@@ -254,6 +255,9 @@ class RawBOXY(BaseRaw):
             # get source and detector numbers for each montage
             mtg_src_num.append(source_num[start_blk])
             mtg_det_num.append(detect_num[start_blk])
+            # get modulation frequency for each channel and montage
+            # assuming modulation freq in MHz
+            mtg_mdf.append([int(chan_mdf)*1e6 for chan_mdf in chan_modulation[start:end]])
             for i_type in data_types:
                 for i_coord in range(start, end):
                     boxy_coords.append(np.mean(
@@ -295,10 +299,15 @@ class RawBOXY(BaseRaw):
                                           rpa=fiducial_coords[2])
 
         # create info structure
-        ch_types = (['fnirs_raw' if i_chan < np.sum(mtg_chan_num) else 'stim'
+        if datatype == 'Ph':
+            chan_type = 'fnirs_ph'
+        else:
+            chan_type = 'fnirs_raw'
+
+        ch_types = ([chan_type if i_chan < np.sum(mtg_chan_num) else 'stim'
                      for i_chan, _ in enumerate(boxy_labels)])
         info = create_info(boxy_labels, srate[0], ch_types=ch_types)
-        
+
         # add dig info
         # this also applies a transform to the data into neuromag space
         # based on fiducials
@@ -328,7 +337,7 @@ class RawBOXY(BaseRaw):
             temp_other = np.asarray(boxy_coords[i_chan][9:], dtype=np.float64)
             info['chs'][i_chan]['loc'] = np.concatenate((temp_ch_src_det,
                                                         temp_other), axis=0)
-
+            
         raw_extras = {'source_num': source_num,
                       'detect_num': detect_num,
                       'start_line': start_line,
@@ -338,6 +347,7 @@ class RawBOXY(BaseRaw):
                       'montages': mtg_names,
                       'blocks': blk_names,
                       'data_types': data_types,
+                      'mtg_mdf': mtg_mdf,
                       }
         
         ###check to make sure data is the same length for each file
@@ -395,6 +405,7 @@ class RawBOXY(BaseRaw):
         data_types = self._raw_extras[fi]['data_types']
         montages = self._raw_extras[fi]['montages']
         blocks = self._raw_extras[fi]['blocks']
+        mtg_mdf = self._raw_extras[fi]['mtg_mdf']
         boxy_files = self._raw_extras[fi]['files']['*.[000-999]*']
         event_fname = os.path.join(self._filenames[fi], 'evt')
         
@@ -527,6 +538,69 @@ class RawBOXY(BaseRaw):
     
                                 # save our data based on data type
                                 data_[index_loc, :] = boxy_array[:, channel]
+                                
+                    ###phase unwrapping###
+                    if i_data == 'Ph':
+                        print('Fixing phase wrap')
+                        # accounts for sharp, sudden changes in phase
+                        # such as crossing over from 0/360 degrees
+                        # estimate mean phase of first 50 points
+                        # if a point differs more than 90 degrees from the mean
+                        # add or subtract 360 degress from that point
+                        for i_chan in range(np.size(data_, axis=0)):
+                            if np.mean(data_[i_chan,:50]) < 180:
+                                wrapped_points = data_[i_chan, :] > 270
+                                data_[i_chan, wrapped_points] -= 360
+                            else:
+                                wrapped_points = data_[i_chan,:] < 90
+                                data_[i_chan, wrapped_points] += 360
+                                
+                        print('Detrending phase data')
+                        # remove trends and drifts in data that occur over time
+                        
+                        y = np.linspace(0, np.size(data_, axis=1)-1,
+                                        np.size(data_, axis=1))
+                        x = np.transpose(y)
+                        for i_chan in range(np.size(data_, axis=0)):
+                            poly_coeffs = np.polyfit(x,data_[i_chan, :] ,3)
+                            tmp_ph = data_[i_chan, :] - np.polyval(poly_coeffs,x)
+                            data_[i_chan, :] = tmp_ph
+                        
+                        print('Removing phase mean')
+                        # subtract mean to better detect outliers using SD
+                        
+                        mrph = np.mean(data_,axis=1);
+                        for i_chan in range(np.size(data_, axis=0)):
+                            data_[i_chan,:]=(data_[i_chan,:]-mrph[i_chan])
+                        
+                        print('Removing phase outliers')
+                        # remove data points that are larger than three SDs
+                        
+                        ph_out_thr=3;
+                        sdph=np.std(data_,1, ddof = 1); #set ddof to 1 to mimic matlab
+                        n_ph_out = np.zeros(np.size(data_, axis=0), dtype= np.int8)
+                        
+                        for i_chan in range(np.size(data_, axis=0)):
+                            outliers = np.where(np.abs(data_[i_chan,:]) > 
+                                        (ph_out_thr*sdph[i_chan]))
+                            outliers = outliers[0]
+                            if len(outliers) > 0:
+                                if outliers[0] == 0:
+                                    outliers = outliers[1:]
+                                if len(outliers) > 0:
+                                    if outliers[-1] == np.size(data_, axis=1) - 1:
+                                        outliers = outliers[:-1]
+                                    n_ph_out[i_chan] = int(len(outliers))
+                                    for i_pt in range(n_ph_out[i_chan]):
+                                        j_pt = outliers[i_pt]
+                                        data_[i_chan,j_pt] = (
+                                            (data_[i_chan,j_pt-1] + 
+                                              data_[i_chan,j_pt+1])/2)
+                        
+                        #convert phase to pico seconds
+                        for i_chan in range(np.size(data_, axis=0)):
+                            data_[i_chan,:] = ((1e12*data_[i_chan,:])/
+                                               (360*mtg_mdf[i_mtg][i_chan]))
     
                 # swap channels to match new wavelength order
                 for i_chan in range(0, len(data_), 2):
