@@ -195,19 +195,19 @@ and
     | Transformation               | FreeSurfer                    | MNE                                             |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_1`                  | Not present                   | | Measurement data files                        |
-    |                              |                               | | Forward solution files (`*fwd.fif`)           |
-    |                              |                               | | Inverse operator files (`*inv.fif`)           |
+    |                              |                               | | Forward solution files (``*fwd.fif``)         |
+    |                              |                               | | Inverse operator files (``*inv.fif``)         |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_{s_1}\dots T_{s_n}` | Not present                   | Channel information in files                    |
     |                              |                               | containing :math:`T_1`.                         |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_2`                  | Not present                   | | MRI description filesSeparate                 |
     |                              |                               | | Separate ``-trans.fif`` files                 |
-    |                              |                               | | from :ref:`gen_mne_coreg`                     |
+    |                              |                               | | from :ref:`mne coreg`                         |
     |                              |                               | | Forward solution files                        |
     |                              |                               | | Inverse operator files                        |
     +------------------------------+-------------------------------+-------------------------------------------------+
-    | :math:`T_3`                  | `mri/*mgz` files              | :class:`nibabel.freesurfer.mghformat.MGHImage`  |
+    | :math:`T_3`                  | ``mri/*mgz`` files            | :class:`nibabel.freesurfer.mghformat.MGHImage`  |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_4`                  | mri/transforms/talairach.xfm  | Internal reading                                |
     +------------------------------+-------------------------------+-------------------------------------------------+

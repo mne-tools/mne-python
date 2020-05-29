@@ -35,15 +35,15 @@ consisting of:
 * key-value pairs marked as ``key=value``
 
 A documentation for core BrainVision file format is provided by Brain Products.
-You can view the specification
-`here <https://docs.google.com/viewer?url=https://raw.githubusercontent.com/sappelhoff/brainvision-validator/master/doc/BrainVisionCoreFileFormat.pdf>`_
+You can view the specification hosted on the
+`Brain Products website <https://www.brainproducts.com/productdetails.php?id=21&tab=5>`_
 
 BrainVision EEG files can be read in using :func:`mne.io.read_raw_brainvision`
 with the .vhdr header file as an input.
 
 .. warning:: Renaming BrainVision files can be problematic due to their
              multifile structure. See this
-             `example <https://mne-tools.github.io/mne-bids/auto_examples/rename_brainvision_files>`_
+             `example <https://mne.tools/mne-bids/stable/auto_examples/rename_brainvision_files.html>`_
              for an instruction.
 
 

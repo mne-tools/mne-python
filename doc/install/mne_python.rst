@@ -132,6 +132,12 @@ MNE-Python with all dependencies is update your base Anaconda environment:
        $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
        $ conda env update --file environment.yml
 
+   .. collapse:: |hand-stop-o| If you get errors building mayavi...
+       :class: danger
+
+       Installing `mayavi`_ needs OpenGL support. On debian-like systems this
+       means installing ``libopengl0``, i.e., ``sudo apt install libopengl0``.
+
 .. collapse:: |apple| macOS
 
    Use the base `environment file`_, e.g.::
@@ -241,6 +247,45 @@ check out the :doc:`advanced` page to see if your problem is discussed there.
 If not, the `MNE mailing list`_ and `MNE gitter channel`_ are
 good resources for troubleshooting installation problems.
 
+
+Installing a Python IDE
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Most users find it convenient to write and run their code in an `Integrated
+Development Environment <ide>`_ (IDE). Some popular choices for scientific
+Python development are:
+
+- `Spyder`_ is an IDE developed by and for scientists who use Python. It is
+  included by default when you install anaconda and can be started from a
+  terminal with the command ``spyder``. If you installed MNE-Python into a
+  separate environment from the ``base`` anaconda environment, you can add
+  Spyder to your MNE-Python environment by running ``conda install spyder``
+  while your MNE-Python environment is active. Spyder is free and open-source.
+- `Visual Studio Code`_ (often shortened to "vscode") is a development-focused
+  text editor that supports many programming languages in addition to Python,
+  and has a rich ecosystem of packages to extend its capabilities. Installing
+  `Microsoft's Python Extension
+  <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
+  enough to get most Python users up and running. Visual Studio Code is free
+  and open-source.
+- `Atom`_ is a text editor similar to vscode, with a package ecosystem that
+  includes a `Python IDE package <https://atom.io/packages/ide-python>`__ as
+  well as `several <https://atom.io/packages/atom-terminal>`__
+  `packages <https://atom.io/packages/atom-terminal-panel>`__
+  `for <https://atom.io/packages/terminal-plus>`__
+  `integrated <https://atom.io/packages/platformio-ide-terminal>`__
+  `terminals <https://atom.io/packages/term3>`__.
+- `SublimeText`_ is a general-purpose text editor that is fast and lightweight,
+  and also has a rich package ecosystem. There is a package called `Terminus`_
+  that provides an integrated terminal console, and a (confusingly named)
+  package called "anaconda"
+  (`found here <https://packagecontrol.io/packages/Anaconda>`__) that provides
+  many Python-specific features. SublimeText is free (closed-source shareware).
+- `PyCharm`_ is an IDE specifically for Python development that provides an
+  all-in-one installation (no extension packages needed). PyCharm comes in a
+  free "community" edition and a paid "professional" edition, and is
+  closed-source.
+
 .. highlight:: python
 
 **Next:** :doc:`freesurfer`
@@ -253,3 +298,10 @@ good resources for troubleshooting installation problems.
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
 .. _`off-screen rendering`: https://docs.enthought.com/mayavi/mayavi/tips.html#off-screen-rendering
 .. _`rendering with a virtual framebuffer`: https://docs.enthought.com/mayavi/mayavi/tips.html#rendering-using-the-virtual-framebuffer
+.. _`ide`: https://en.wikipedia.org/wiki/Integrated_development_environment
+.. _`spyder`: https://www.spyder-ide.org/
+.. _`visual studio code`: https://code.visualstudio.com/
+.. _`sublimetext`: https://www.sublimetext.com/
+.. _`terminus`: https://packagecontrol.io/packages/Terminus
+.. _`pycharm`: https://www.jetbrains.com/pycharm/
+.. _`atom`: https://atom.io/

@@ -103,7 +103,7 @@ class Transform(dict):
         self['trans'] = trans
 
     def __repr__(self):  # noqa: D105
-        return ('<Transform  |  %s->%s>\n%s'
+        return ('<Transform | %s->%s>\n%s'
                 % (_coord_frame_name(self['from']),
                    _coord_frame_name(self['to']), self['trans']))
 
@@ -1483,7 +1483,7 @@ def _write_fs_xfm(fname, xfm, kind):
         fid.write((kind + '\n\nTtransform_Type = Linear;\n').encode('ascii'))
         fid.write(u'Linear_Transform =\n'.encode('ascii'))
         for li, line in enumerate(xfm[:-1]):
-            line = ' '.join(['%0.6f' % l for l in line])
+            line = ' '.join(['%0.6f' % part for part in line])
             line += '\n' if li < 2 else ';\n'
             fid.write(line.encode('ascii'))
 

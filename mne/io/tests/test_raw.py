@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Generic tests that all raw classes should run."""
-# # Authors: MNE Developers
-#            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+# Authors: MNE Developers
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 

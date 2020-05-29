@@ -272,6 +272,8 @@ def test_render_mri_without_bem(tmpdir):
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
     report.parse_folder(tempdir, render_bem=False)
+    with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
+        report.parse_folder(tempdir, render_bem=True, mri_decim=20)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 

@@ -365,16 +365,16 @@ def test_annot_io():
                                     subjects_dir=tempdir)
 
     # test saving parcellation only covering one hemisphere
-    parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
+    parc = [label for label in labels if label.name == 'LOBE.TEMPORAL-lh']
     write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
     parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
-    parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
+    parc1 = [label for label in parc1 if not label.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
-    for l1, l in zip(parc1, parc):
-        assert_labels_equal(l1, l)
+    for lt, rt in zip(parc1, parc):
+        assert_labels_equal(lt, rt)
 
     # test saving only one hemisphere
-    parc = [l for l in labels if l.name.startswith('LOBE')]
+    parc = [label for label in labels if label.name.startswith('LOBE')]
     write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
                           subjects_dir=tempdir)
     annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
@@ -383,9 +383,9 @@ def test_annot_io():
     parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)
-    parc_lh = [l for l in parc if l.name.endswith('lh')]
-    for l1, l in zip(parc1, parc_lh):
-        assert_labels_equal(l1, l)
+    parc_lh = [label for label in parc if label.name.endswith('lh')]
+    for lt, rt in zip(parc1, parc_lh):
+        assert_labels_equal(lt, rt)
 
     # test that the annotation is complete (test Label() support)
     rr = read_surface(op.join(surf_dir, 'lh.white'))[0]

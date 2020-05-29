@@ -100,8 +100,8 @@ def test_spatial_inter_hemi_connectivity():
                                                           axis=1 - hi))[0]]
         labels = read_labels_from_annot('sample', 'aparc.a2009s', hemi,
                                         subjects_dir=subjects_dir)
-        use_labels = [l.name[:-3] for l in labels
-                      if np.in1d(l.vertices, has_neighbors).any()]
+        use_labels = [label.name[:-3] for label in labels
+                      if np.in1d(label.vertices, has_neighbors).any()]
         assert (set(use_labels) - set(good_labels) == set())
 
 

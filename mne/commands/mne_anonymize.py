@@ -5,7 +5,7 @@
 """Anonymize raw fif file.
 
 To anonymize other file types call :func:`mne.io.anonymize_info` on their
-`info` objects and resave to disk.
+:class:`~mne.Info` objects and resave to disk.
 
 Examples
 --------

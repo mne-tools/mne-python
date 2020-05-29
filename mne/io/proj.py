@@ -32,7 +32,7 @@ class Projection(dict):
         s = "%s" % self['desc']
         s += ", active : %s" % self['active']
         s += ", n_channels : %s" % self['data']['ncol']
-        return "<Projection  |  %s>" % s
+        return "<Projection | %s>" % s
 
     # speed up info copy by taking advantage of mutability
     def __deepcopy__(self, memodict):

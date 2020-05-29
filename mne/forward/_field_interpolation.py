@@ -368,7 +368,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
     trans : str | 'auto' | None
-        The full path to the `*-trans.fif` file produced during
+        The full path to the ``*-trans.fif`` file produced during
         coregistration. If present or found using 'auto'
         the maps will be in MRI coordinates.
         If None, map for EEG data will not be available.
@@ -382,8 +382,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         If None, a map for each available channel type will be returned.
         Else only the specified type will be used.
     mode : 'accurate' | 'fast'
-        Either `'accurate'` or `'fast'`, determines the quality of the
-        Legendre polynomial expansion used. `'fast'` should be sufficient
+        Either ``'accurate'`` or ``'fast'``, determines the quality of the
+        Legendre polynomial expansion used. ``'fast'`` should be sufficient
         for most applications.
     meg_surf : 'helmet' | 'head'
         Should be ``'helmet'`` or ``'head'`` to specify in which surface

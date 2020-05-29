@@ -677,10 +677,11 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     if 'fig_selection' in params:
         selections = params['selections']
-        labels = [l._text for l in params['fig_selection'].radio.labels]
+        labels = [
+            label._text for label in params['fig_selection'].radio.labels]
         # Flatten the selections dict to a list.
-        cis = [item for sublist in [selections[l] for l in labels] for item
-               in sublist]
+        sels = [selections[label] for label in labels]
+        cis = [item for sublist in sels for item in sublist]
 
         for idx, ci in enumerate(cis):
             this_color = (bad_color if info['ch_names'][ci] in
@@ -716,8 +717,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
                         params['n_times'] / float(info['sfreq']))
 
-    ax_vscroll.set_title('Ch.')
-
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.axvline(0, color=vertline_color, zorder=4)
     params['ax_vertline'].ch_name = ''
@@ -734,7 +733,9 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
                        for _ in range(n_ch)]
-    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    ax.set_yticklabels(
+        ['X' * max([len(ch) for ch in info['ch_names']])] *
+        len(params['offsets']))
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
@@ -925,6 +926,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
     if not butterfly:
+        params['ax'].set_yticks(params['offsets'][:len(tick_list)])
         params['ax'].set_yticklabels(tick_list, rotation=0)
         _set_ax_label_style(params['ax'], params)
     if 'fig_selection' not in params:
@@ -1030,7 +1032,7 @@ def _set_custom_selection(params):
     chs = params['fig_selection'].lasso.selection
     if len(chs) == 0:
         return
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     inds = np.in1d(params['raw'].ch_names, chs)
     params['selections']['Custom'] = np.where(inds)[0]
 

@@ -258,9 +258,12 @@ class _Renderer(_BaseRenderer):
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)
 
-    def scalarbar(self, source, title=None, n_labels=4, bgcolor=None):
+    def scalarbar(self, source, color="white", title=None, n_labels=4,
+                  bgcolor=None):
         with warnings.catch_warnings(record=True):  # traits
-            self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
+            bar = self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
+        if color is not None:
+            bar.label_text_property.color = _check_color(color)
         if bgcolor is not None:
             from tvtk.api import tvtk
             bgcolor = np.asarray(bgcolor)

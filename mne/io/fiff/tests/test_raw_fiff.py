@@ -366,8 +366,8 @@ def test_split_files(tmpdir):
     split_fname = tmpdir.join('split_raw_meg.fif')
     # intended filenames
     split_fname_elekta_part2 = tmpdir.join('split_raw_meg-1.fif')
-    split_fname_bids_part1 = tmpdir.join('split_raw_part-01_meg.fif')
-    split_fname_bids_part2 = tmpdir.join('split_raw_part-02_meg.fif')
+    split_fname_bids_part1 = tmpdir.join('split_raw_split-01_meg.fif')
+    split_fname_bids_part2 = tmpdir.join('split_raw_split-02_meg.fif')
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
@@ -1273,6 +1273,12 @@ def test_save(tmpdir):
     assert_array_equal(annot.duration, new_raw.annotations.duration)
     assert_array_equal(annot.description, new_raw.annotations.description)
     assert annot.orig_time == new_raw.annotations.orig_time
+
+    # test set_meas_date(None)
+    raw.set_meas_date(None)
+    raw.save(new_fname, overwrite=True)
+    new_raw = read_raw_fif(new_fname, preload=False)
+    assert new_raw.info['meas_date'] is None
 
 
 @testing.requires_testing_data

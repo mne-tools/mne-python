@@ -10,8 +10,10 @@
 #
 # License: Simplified BSD
 
+import base64
 import copy
 from glob import glob
+from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
@@ -29,9 +31,9 @@ from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
 from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
-                            _check_mri)
+                            _check_mri, _ensure_src)
 from ..transforms import invert_transform, apply_trans
-from ..utils import (logger, verbose, warn, _check_option,
+from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
                      _mask_to_onsets_offsets, _pl)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
@@ -293,11 +295,27 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
+def _mri_ori(nim, orientation):
+    import nibabel as nib
+    axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
+    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
+    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
+    order = dict(
+        coronal=('R', 'S', 'A'),
+        axial=('R', 'A', 'S'),
+        sagittal=('A', 'S', 'R'),
+    )[orientation]
+    xyz = [axcodes.index(c) for c in order]
+    flips = [flips[c] for c in order]
+    return xyz, flips, order
+
+
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True, show_indices=False):
+                       slices=None, show=True, show_indices=False,
+                       show_orientation=False, img_output=False):
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
-    import nibabel as nib
+    from matplotlib import patheffects
     # For ease of plotting, we will do everything in voxel coordinates.
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
@@ -308,24 +326,15 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     del vox_mri_t
 
     # plot axes (x, y, z) as data axes
-    axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
-    # we don't care about directonality reversal, so convert LPI to RAS. For
-    # conformed images, we get axcodes == 'RSA'
-    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    orientation_to_xyz = dict(
-        coronal=('R', 'S', 'A'),
-        axial=('A', 'R', 'S'),
-        sagittal=('A', 'S', 'R'),
-    )
-    x, y, z = [axcodes.index(c) for c in orientation_to_xyz[orientation]]
+    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_ori(nim, orientation)
     transpose = x < y
-    del orientation
 
     data = _get_img_fdata(nim)
+    shift_x = data.shape[x] if flip_x < 0 else 0
+    shift_y = data.shape[y] if flip_y < 0 else 0
     n_slices = data.shape[z]
     if slices is None:
-        slices = np.round(
-            np.linspace(0, n_slices, 12, endpoint=False)).astype(np.int)
+        slices = np.round(np.linspace(0, n_slices - 1, 14)).astype(int)[1:-1]
     slices = np.atleast_1d(slices).copy()
     slices[slices < 0] += n_slices  # allow negative indexing
     if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
@@ -334,6 +343,9 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         raise ValueError('slices must be a sorted 1D array of int with unique '
                          'elements, at least one element, and no elements '
                          'greater than %d, got %s' % (n_slices - 1, slices))
+    if flip_z < 0:
+        # Proceed in the opposite order to maintain left-to-right / orientation
+        slices = slices[::-1]
 
     # create of list of surfaces
     surfs = list()
@@ -345,56 +357,96 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         surfs.append((surf, color))
 
     src_points = list()
-    if isinstance(src, SourceSpaces):
-        for src_ in src:
-            points = src_['rr'][src_['inuse'].astype(bool)] * 1e3
-            src_points.append(apply_trans(mri_vox_t, points))
-    elif src is not None:
-        raise TypeError("src needs to be None or SourceSpaces instance, not "
-                        "%s" % repr(src))
+    if src is not None:
+        _ensure_src(src, extra=' or None')
 
-    fig, axs, _, _ = _prepare_trellis(len(slices), 4)
+    if img_output:
+        n_col = n_axes = 1
+        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
+        axs = [ax] * len(slices)
+
+        w = fig.get_size_inches()[0]
+        fig.set_size_inches([w, w / data.shape[x] * data.shape[y]])
+        plt.close(fig)
+    else:
+        n_col = 4
+        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        n_axes = len(axs)
     fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
     slicer = [slice(None)] * 3
-    for ax, sl, lower, upper in zip(axs, slices, bounds[:-1], bounds[1:]):
+    ori_labels = dict(R='LR', A='PA', S='IS')
+    xlabels, ylabels = ori_labels[order[0]], ori_labels[order[1]]
+    path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
+                                           alpha=0.75)]
+    out = list() if img_output else fig
+    for ai, (ax, sl, lower, upper) in enumerate(zip(
+            axs, slices, bounds[:-1], bounds[1:])):
         # adjust the orientations for good view
         slicer[z] = sl
         dat = data[tuple(slicer)]
         dat = dat.T if transpose else dat
+        dat = dat[::flip_y, ::flip_x]
 
         # First plot the anatomical data
-        ax.imshow(dat, cmap=plt.cm.gray)
+        if img_output:
+            ax.clear()
+        ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
         ax.set_autoscale_on(False)
         ax.axis('off')
+        ax.set_aspect('equal')  # XXX eventually could deal with zooms
 
         # and then plot the contours on top
         for surf, color in surfs:
             with warnings.catch_warnings(record=True):  # ignore contour warn
                 warnings.simplefilter('ignore')
-                ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
+                ax.tricontour(flip_x * surf['rr'][:, x] + shift_x,
+                              flip_y * surf['rr'][:, y] + shift_y,
                               surf['tris'], surf['rr'][:, z],
                               levels=[sl], colors=color, linewidths=1.0,
                               zorder=1)
 
         for sources in src_points:
             in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
-            ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
-                       color='#FF00FF', s=1, zorder=2)
+            ax.scatter(flip_x * sources[in_slice, x] + shift_x,
+                       flip_y * sources[in_slice, y] + shift_y,
+                       marker='.', color='#FF00FF', s=1, zorder=2)
         if show_indices:
             ax.text(dat.shape[1] // 8 + 0.5, 0.5, str(sl),
-                    color='w', fontsize='x-small', va='top', ha='left')
+                    color='w', fontsize='x-small', va='bottom', ha='left')
+        # label the axes
+        kwargs = dict(
+            color='#66CCEE', fontsize='medium', path_effects=path_effects,
+            family='monospace', clip_on=False, zorder=5, weight='bold')
+        if show_orientation:
+            if ai % n_col == 0:  # left
+                ax.text(0, dat.shape[0] / 2., xlabels[0],
+                        va='center', ha='left', **kwargs)
+            if ai % n_col == n_col - 1 or ai == n_axes - 1:  # right
+                ax.text(dat.shape[1] - 1, dat.shape[0] / 2., xlabels[1],
+                        va='center', ha='right', **kwargs)
+            if ai >= n_axes - n_col:  # bottom
+                ax.text(dat.shape[1] / 2., 0, ylabels[0],
+                        ha='center', va='bottom', **kwargs)
+            if ai < n_col or n_col == 1:  # top
+                ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
+                        ha='center', va='top', **kwargs)
+        if img_output:
+            output = BytesIO()
+            fig.savefig(output, bbox_inches='tight',
+                        pad_inches=0, format='png')
+            out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
-    plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+    fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
-    plt_show(show)
-    return fig
+    plt_show(show, fig=fig)
+    return out
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
              slices=None, brain_surfaces=None, src=None, show=True,
-             show_indices=True, mri='T1.mgz'):
+             show_indices=True, mri='T1.mgz', show_orientation=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -432,6 +484,10 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         ``'T1.mgz'``, or a full path to a custom MRI file.
 
         .. versionadded:: 0.21
+    show_orientation : str
+        Show the orientation (L/R, P/A, I/S) of the data slices.
+
+        .. versionadded:: 0.21
 
     Returns
     -------
@@ -456,6 +512,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     on top of the midpoint MRI slice with the BEM boundary drawn for that
     slice.
     """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     mri_fname = _check_mri(mri, subject, subjects_dir)
 
     # Get the BEM surface filenames
@@ -464,16 +521,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
-    surfaces = []
-    for surf_name, color in (('*inner_skull', '#FF0000'),
-                             ('*outer_skull', '#FFFF00'),
-                             ('*outer_skin', '#FFAA80')):
-        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
-        if len(surf_fname) > 0:
-            surf_fname = surf_fname[0]
-            logger.info("Using surface: %s" % surf_fname)
-            surfaces.append((surf_fname, color))
-
+    surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
         if isinstance(brain_surfaces, str):
             brain_surfaces = (brain_surfaces,)
@@ -504,7 +552,20 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, show_indices)
+                              show, show_indices, show_orientation)
+
+
+def _get_bem_plotting_surfaces(bem_path):
+    surfaces = []
+    for surf_name, color in (('*inner_skull', '#FF0000'),
+                             ('*outer_skull', '#FFFF00'),
+                             ('*outer_skin', '#FFAA80')):
+        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
+        if len(surf_fname) > 0:
+            surf_fname = surf_fname[0]
+            logger.info("Using surface: %s" % surf_fname)
+            surfaces.append((surf_fname, color))
+    return surfaces
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
@@ -802,8 +863,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
         .. versionadded:: 0.18
     plot : list | tuple | str
-        A list of the requested plots from `time`, `magnitude` and `delay`.
-        Default is to plot all three filter properties
+        A list of the requested plots from ``time``, ``magnitude`` and
+        ``delay``. Default is to plot all three filter properties
         ('time', 'magnitude', 'delay').
 
         .. versionadded:: 0.21.0
@@ -811,7 +872,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of requested plot types. If instance of
         Axes, there must be only one filter property plotted.
-        Defaults to `None`.
+        Defaults to ``None``.
 
         .. versionadded:: 0.21.0
 

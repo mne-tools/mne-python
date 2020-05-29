@@ -101,7 +101,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     data : array of shape (n_channels, n_times)
         Evoked response.
     times :  array
-        Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
+        Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
     %(verbose)s
@@ -198,7 +198,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
-        return "<Evoked  |  %s>" % s
+        return "<Evoked | %s>" % s
 
     @property
     def ch_names(self):
@@ -357,10 +357,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
-                   sphere=None, verbose=None):
+                   sphere=None, axes=None, verbose=None):
         return plot_evoked_white(
             self, noise_cov=noise_cov, rank=rank, show=show,
-            time_unit=time_unit, sphere=sphere, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, axes=axes, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
@@ -430,7 +430,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Compute virtual evoked using interpolated fields.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
-            unexpected results. The virtual channels have `'_v'` appended
+            unexpected results. The virtual channels have ``'_v'`` appended
             at the end of the names to emphasize that the data contained in
             them are interpolated.
 
@@ -439,8 +439,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ch_type : str
             The destination channel type. It can be 'mag' or 'grad'.
         mode : str
-            Either `'accurate'` or `'fast'`, determines the quality of the
-            Legendre polynomial expansion used. `'fast'` should be sufficient
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
+            Legendre polynomial expansion used. ``'fast'`` should be sufficient
             for most applications.
 
         Returns
@@ -842,9 +842,9 @@ def combine_evoked(all_evoked, weights):
     ``combine_evoked([evoked1, -evoked2], 'equal')``
 
     .. Warning::
-        If you provide an array of weights instead of using `'equal'` or
-        `'nave'`, strange things may happen with your resulting signal
-        amplitude and/or `.nave` attribute.
+        If you provide an array of weights instead of using ``'equal'`` or
+        ``'nave'``, strange things may happen with your resulting signal
+        amplitude and/or ``.nave`` attribute.
 
     Parameters
     ----------

@@ -36,7 +36,7 @@ Changelog
 
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
 
-- Add `replace` parameter to :meth:`mne.io.Raw.add_events` to allow adding events while removing the old ones on the stim channel by `Alex Gramfort`_
+- Add ``replace`` parameter to :meth:`mne.io.Raw.add_events` to allow adding events while removing the old ones on the stim channel by `Alex Gramfort`_
 
 - Add ability to pass ``axes`` to ``ts_args`` and ``topomap_args`` of :meth:`mne.viz.plot_evoked_joint` by `Jona Sassenhagen`_
 
@@ -54,7 +54,7 @@ Changelog
 
 - Add support for raw PSD plots in :meth:`mne.Report.parse_folder` via ``raw_psd`` argument of :class:`mne.Report` by `Eric Larson`_
 
-- Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
+- Add ``trig_shift_by_type`` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
 
 - Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
 
@@ -66,7 +66,7 @@ Changelog
 
 - Add handling in :func:`mne.combine_evoked` and :func:`mne.grand_average` for input with the same channels in different orders, if required, by `Jona Sassenhagen`_
 
-- Add `split_naming` parameter to the `Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
+- Add ``split_naming`` parameter to the `mne.io.Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
 
 - Add ``origin`` parameter to :meth:`mne.Evoked.interpolate_bads` and related methods by `Eric Larson`_
 
@@ -100,7 +100,7 @@ Changelog
 
 - Handle different time vectors in topography plots using :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
 
-- Speed up :func:`mne.inverse_sparse.mixed_norm` if the :solver: parameter is set to `bcd` using :func:`scipy.linalg.get_blas_funcs` by `Quentin Bertrand`_
+- Speed up :func:`mne.inverse_sparse.mixed_norm` if the ``solver`` parameter is set to ``bcd`` using :func:`scipy.linalg.get_blas_funcs` by `Quentin Bertrand`_
 
 Bug
 ~~~
@@ -145,7 +145,7 @@ Bug
 
 - Fix bug in :func:`mne.io.read_raw_edf` where GDF files had ``info['highpass']`` and ``info['lowpass']`` set to NaN and ``info['meas_date']`` set incorrectly, by `Eric Larson`_
 
-- Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_
+- Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as ``exclude`` property by `Joan Massich`_
 
 - Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` when using a sphere model and saved ``inv`` by `Eric Larson`_
 
@@ -236,7 +236,7 @@ API
 
 - Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
 
-- :meth:`mne.Epochs.save` now has the parameter `fmt` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
+- :meth:`mne.Epochs.save` now has the parameter ``fmt`` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
 
 - Deprecated ``mne.SourceEstimate.morph_precomputed``, ``mne.SourceEstimate.morph``, ``mne.compute_morph_matrix``, ``mne.morph_data_precomputed`` and ``mne.morph_data`` in favor of :func:`mne.compute_source_morph`, by `Tommy Clausner`_
 
@@ -256,7 +256,7 @@ API
 
 - Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
 
-- `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
+- ``src.kind`` now equals to ``'mixed'`` (and not ``'combined'``) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
 
 - Deprecation of :attr:`mne.io.Raw.annotations` property in favor of :meth:`mne.io.Raw.set_annotations` by `Joan Massich`_
 

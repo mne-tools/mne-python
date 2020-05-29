@@ -53,6 +53,7 @@ Reading raw data
    :toctree: generated/
 
    anonymize_info
+   read_raw
    read_raw_artemis123
    read_raw_bti
    read_raw_cnt
@@ -204,6 +205,7 @@ Datasets
    spm_face.data_path
    visual_92_categories.data_path
    phantom_4dbti.data_path
+   refmeg_noise.data_path
 
 
 Visualization
@@ -224,6 +226,7 @@ Visualization
    add_background_image
    compare_fiff
    circular_layout
+   iter_topography
    mne_analyze_colormap
    plot_bem
    plot_brain_colorbar

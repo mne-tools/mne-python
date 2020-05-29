@@ -1623,7 +1623,7 @@ def test_epoch_eq():
     drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs_1.drop_log]
     assert_equal(drop_log1, drop_log2)
-    assert_equal(len([l for l in epochs_1.drop_log if not l]),
+    assert_equal(len([lg for lg in epochs_1.drop_log if not lg]),
                  len(epochs_1.events))
     assert (epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts([epochs_1, epochs_2], method='mintime')
@@ -2628,6 +2628,33 @@ def test_metadata(tmpdir):
     with pytest.raises(ValueError,
                        match='metadata must have the same number of rows .*'):
         epochs['new_key == 1']
+
+    # metadata should be same length as original events
+    raw_data = np.random.randn(2, 10000)
+    info = mne.create_info(2, 1000.)
+    raw = mne.io.RawArray(raw_data, info)
+    opts = dict(raw=raw, tmin=0, tmax=.001, baseline=None)
+    events = [[0, 0, 1], [1, 0, 2]]
+    metadata = DataFrame(events, columns=['onset', 'duration', 'value'])
+    epochs = Epochs(events=events, event_id=1, metadata=metadata, **opts)
+    epochs.drop_bad()
+    assert len(epochs) == 1
+    assert len(epochs.metadata) == 1
+    with pytest.raises(ValueError, match='same number of rows'):
+        Epochs(events=events, event_id=1, metadata=metadata.iloc[:1], **opts)
+
+    # gh-7732: problem when repeated events and metadata
+    for er in ('drop', 'merge'):
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(events=events, event_repeated=er, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(
+            events=events, event_repeated=er, metadata=metadata, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        assert len(epochs.metadata) == 1
 
 
 def assert_metadata_equal(got, exp):

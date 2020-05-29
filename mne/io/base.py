@@ -886,7 +886,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
         n_jobs : int (default: 1)
-            Number of jobs to run in parallel. Ignored if `channel_wise` is
+            Number of jobs to run in parallel. Ignored if ``channel_wise`` is
             False.
         channel_wise : bool (default: True)
             Whether to apply the function to each channel individually. If
@@ -1500,7 +1500,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
             with open(bad_file) as fid:
-                bad_names = [l for l in fid.read().splitlines() if l]
+                bad_names = [line for line in fid.read().splitlines() if line]
             names_there = [ci for ci in bad_names if ci in names]
             count_diff = len(bad_names) - len(names_there)
 
@@ -2128,7 +2128,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     raw : instance of Raw
         The result of the concatenation (first Raw instance passed in).
     events : ndarray of int, shape (n_events, 3)
-        The events. Only returned if `event_list` is not None.
+        The events. Only returned if ``event_list`` is not None.
     """
     if events_list is not None:
         if len(events_list) != len(raws):
