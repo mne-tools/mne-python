@@ -75,6 +75,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         precise. See section 5 of :footcite:`vanVlietEtAl2018`.  Defaults to
         'single'.
     %(weight_norm)s
+
         Defaults to ``None``, in which case no normalization is performed.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note

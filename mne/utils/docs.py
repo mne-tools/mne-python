@@ -616,8 +616,6 @@ weight_norm : str | None
         (Borgiotti-Kaplan beamformer) :footcite:`SekiharaNagarajan2008`.
     - ``'nai'``
         The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed.
-
-        .. versionadded:: 0.21
 """
 docdict['bf_pick_ori'] = """
 pick_ori : None | str

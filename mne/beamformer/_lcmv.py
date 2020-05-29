@@ -54,6 +54,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             Keeps the currents for each direction separate
     %(rank_info)s
     %(weight_norm)s
+
         Defaults to ``'unit-noise-gain'``.
     %(reduce_rank)s
     %(depth)s

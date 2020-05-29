@@ -21,7 +21,7 @@ from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
 from mne.utils import (run_tests_if_main, object_diff, requires_h5py,
-                       catch_logging, _reg_pinv)
+                       catch_logging)
 
 
 data_path = testing.data_path(download=False)
@@ -817,8 +817,8 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, None, None, True, 0.8, 40, 42),
         # no reg
         (0.00, 'vector', None, True, None, 24, 32),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 63, 65),
-        (0.00, 'vector', 'nai', True, None, 63, 65),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 52, 65),
+        (0.00, 'vector', 'nai', True, None, 52, 65),
         (0.00, 'max-power', None, True, None, 15, 19),
         (0.00, 'max-power', 'unit-noise-gain', True, None, 43, 50),
         (0.00, 'max-power', 'nai', True, None, 43, 50),
