@@ -180,7 +180,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     W : ndarray, shape (n_dipoles, n_channels)
         The beamformer filter weights.
     """
-    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
+    if not (isinstance(weight_norm, str) and
+            weight_norm == 'unit-noise-gain-shortcut'):  # XXX temporary
+        _check_option('weight_norm', weight_norm,
+                      ['unit-noise-gain', 'nai', None])
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
@@ -336,10 +339,17 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         #    assert noise_norm.shape == (n_sources, 1, 1)
         #    W /= noise_norm
         #
-        # Here we do what FieldTrip does, sqrtm:
-        W = np.matmul(
-            sqrtm_sym(np.matmul(W, W.swapaxes(-2, -1).conj()).real,
-                      inv=True)[0], W)
+        # Here we do what FieldTrip does, sqrtm.:
+        if weight_norm == 'unit-noise-gain-shortcut':
+            # The shortcut ...
+            use = W
+        else:
+            # ... does not match the direct route (it is rotated!), so we'll
+            # use the direct one to match FieldTrip:
+            assert weight_norm in ('unit-noise-gain', 'nai')
+            use = bf_numer
+        inner = np.matmul(use, use.swapaxes(-2, -1).conj()).real
+        W = np.matmul(sqrtm_sym(inner, inv=True)[0], use)
         W /= np.sqrt(n_orient)
 
         if weight_norm == 'nai':

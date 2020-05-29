@@ -75,6 +75,7 @@ def _get_bf_data(save_fieldtrip=False):
     ['ung_pow', 'unit-noise-gain', 'max-power', True],
     ['ug_vec', None, 'vector', False],
     ['ung_vec', 'unit-noise-gain', 'vector', False],
+    ['ung_vec', 'unit-noise-gain-shortcut', 'vector', False],
 ])
 def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     """Test LCMV vs fieldtrip output."""
@@ -107,7 +108,11 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
         # compare norms first
         assert_allclose(np.linalg.norm(stc_mne.data, axis=1),
                         np.linalg.norm(stc_ft_data, axis=1), rtol=1e-6)
-    assert_allclose(stc_mne.data, stc_ft_data, rtol=1e-6)
+    if weight_norm == 'unit-noise-gain-shortcut':
+        assert not np.allclose(stc_mne.data, stc_ft_data,
+                               rtol=1e-3, atol=1e-20)
+    else:
+        assert_allclose(stc_mne.data, stc_ft_data, rtol=1e-6)
 
 
 run_tests_if_main()
