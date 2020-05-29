@@ -415,8 +415,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     else:  # on_missing == 'ignore':
                         pass
 
+            # ensure metadata matches original events size
+            self.selection = np.arange(len(events))
+            self.events = events
+            self.metadata = metadata
+            del events
+
             values = list(self.event_id.values())
-            selected = np.where(np.in1d(events[:, 2], values))[0]
+            selected = np.where(np.in1d(self.events[:, 2], values))[0]
             if selection is None:
                 selection = selected
             else:
@@ -427,20 +433,30 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self.selection = selection
             if drop_log is None:
                 self.drop_log = [list() if k in self.selection else ['IGNORED']
-                                 for k in range(max(len(events),
+                                 for k in range(max(len(self.events),
                                                     max(self.selection) + 1))]
             else:
                 self.drop_log = drop_log
 
-            events = events[selected]
+            self.events = self.events[selected]
 
-            events, self.event_id, self.selection, self.drop_log = \
-                _handle_event_repeated(events, self.event_id, event_repeated,
-                                       self.selection, self.drop_log)
+            self.events, self.event_id, self.selection, self.drop_log = \
+                _handle_event_repeated(
+                    self.events, self.event_id, event_repeated,
+                    self.selection, self.drop_log)
 
-            n_events = len(events)
+            # then subselect
+            sub = np.where(np.in1d(selection, self.selection))[0]
+            if isinstance(metadata, list):
+                metadata = [metadata[s] for s in sub]
+            elif metadata is not None:
+                metadata = metadata.iloc[sub]
+            self.metadata = metadata
+            del metadata
+
+            n_events = len(self.events)
             if n_events > 1:
-                if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
+                if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
                     warn('The events passed to the Epochs constructor are not '
                          'chronologically ordered.', RuntimeWarning)
 
@@ -448,11 +464,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 logger.info('%d matching events found' % n_events)
             else:
                 raise ValueError('No desired events found.')
-            self.events = events
-            del events
         else:
             self.drop_log = list()
             self.selection = np.array([], int)
+            self.metadata = metadata
             # do not set self.events here, let subclass do it
 
         # check reject_tmin and reject_tmax
@@ -481,7 +496,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                    allow_empty=False)
         self.info = pick_info(info, self.picks)
         del info
-        self.metadata = metadata
         self._current = 0
 
         if data is None:
