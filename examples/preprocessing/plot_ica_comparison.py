@@ -31,7 +31,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
-picks = mne.pick_types(raw.info)
+picks = mne.pick_types(raw.info, meg=True)
 reject = dict(mag=5e-12, grad=4000e-13)
 raw.filter(1, 30, fir_design='firwin')
 

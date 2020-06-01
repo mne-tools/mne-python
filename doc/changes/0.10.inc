@@ -100,9 +100,9 @@ API
 
 - Rename and deprecate ``mne.viz.plot_topo`` for ``mne.viz.plot_evoked_topo`` by `Jaakko Leppakangas`_
 
-- Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_
+- Deprecated ``mne.decoding.transformer.ConcatenateChannels`` and replaced by ``mne.decoding.EpochsVectorizer`` by `Romain Trachel`_
 
-- Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.CSP` by `Romain Trachel`_
+- Deprecated ``lws`` and renamed ``ledoit_wolf`` for the ``reg`` argument in :class:`mne.decoding.CSP` by `Romain Trachel`_
 
 - Redesigned and rewrote :meth:`mne.Epochs.plot` (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_, `Federico Raimondo`_ and `Denis Engemann`_
 

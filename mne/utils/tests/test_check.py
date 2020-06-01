@@ -84,7 +84,8 @@ def _get_data():
 
     # decimate for speed
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.pick_types(raw.info, selection=left_temporal_channels)
+    picks = mne.pick_types(raw.info, meg=True,
+                           selection=left_temporal_channels)
     picks = picks[::2]
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     del picks

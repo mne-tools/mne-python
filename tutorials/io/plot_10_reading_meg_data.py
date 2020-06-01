@@ -40,7 +40,7 @@ MEG data from the Artemis123 system can be read with\
 
 MNE-Python provides :func:`mne.io.read_raw_bti` to read and convert 4D / BTI
 data. This reader function will by default replace the original channel names,
-typically composed of the letter `A` and the channel number with Neuromag.
+typically composed of the letter ``A`` and the channel number with Neuromag.
 To import the data, the following input files are mandatory:
 
 - A data file (typically c,rfDC)

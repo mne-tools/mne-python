@@ -10,6 +10,7 @@ recursive-include tutorials *.txt
 
 recursive-include mne *.py
 recursive-include mne/data *
+recursive-include mne/icons *
 recursive-include mne/data/helmets *
 recursive-include mne/data/image *
 recursive-include mne/data/fsaverage *
@@ -58,8 +59,6 @@ exclude .github/ISSUE_TEMPLATE/blank.md
 exclude .github/ISSUE_TEMPLATE/bug_report.md
 exclude .github/ISSUE_TEMPLATE/feature_request.md
 exclude .github/PULL_REQUEST_TEMPLATE.md
-
-prune mne/icons
 
 # Test files
 

@@ -41,25 +41,25 @@ Changelog
 
 - Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
 
-- Add options for controlling the use of the ``-T1`` flag and the location of the brainmask output in :ref:`mne watershed_bem <gen_mne_watershed_bem>` by `Eric Larson`_
+- Add options for controlling the use of the ``-T1`` flag and the location of the brainmask output in :ref:`mne watershed_bem` by `Eric Larson`_
 
 - Add support to :func:`mne.read_annotations` to read CTF marker files by `Joan Massich`_
 
 - Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
 
-- Add automatic fiducial position estimation in :ref:`mne coreg <gen_mne_coreg>` using MNI Talairach fiducial locations in :func:`mne.coreg.get_mni_fiducials` by `Jon Houck`_ and `Eric Larson`_
+- Add automatic fiducial position estimation in :ref:`mne coreg` using MNI Talairach fiducial locations in :func:`mne.coreg.get_mni_fiducials` by `Jon Houck`_ and `Eric Larson`_
 
-- Add support for :ref:`mne coreg <gen_mne_coreg>` scaling surrogate subjects without surface reconstructions, such as those created for volumetric analyses only (e.g., with ``recon-all -autorecon1``) by `Eric Larson`_
+- Add support for :ref:`mne coreg` scaling surrogate subjects without surface reconstructions, such as those created for volumetric analyses only (e.g., with ``recon-all -autorecon1``) by `Eric Larson`_
 
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
 
-- Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna` _
+- Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna`_
 
 - Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
-- Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
+- Add function to check the type of a FIF file using :func:`mne.what` and :ref:`mne what` by `Eric Larson`_
 
 - Add support for specifying the initial time and/or position and providing a :class:`mne.SourceMorph` instead of :class:`mne.SourceSpaces` in :func:`mne.viz.plot_volume_source_estimates` by `Eric Larson`_
 
@@ -67,7 +67,7 @@ Changelog
 
 - Speed up :func:`mne.setup_volume_source_space`, especially when ``volume_label is not None`` by `Eric Larson`_
 
-- Speed up :ref:`mne coreg <gen_mne_coreg>` interactive and automated (ICP) alignment by using nearest-neighbor calculations in the MRI coordinate frame, by `Eric Larson`_
+- Speed up :ref:`mne coreg` interactive and automated (ICP) alignment by using nearest-neighbor calculations in the MRI coordinate frame, by `Eric Larson`_
 
 - Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
 
@@ -91,7 +91,7 @@ Changelog
 
 - Add control over dipole colors in :func:`mne.viz.plot_dipole_locations` when using orthoview mode by `Eric Larson`_
 
-- Use second-order-sections filtering in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw <gen_mne_browse_raw>` by `Eric Larson`_
+- Use second-order-sections filtering in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw` by `Eric Larson`_
 
 - Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
 
@@ -111,7 +111,7 @@ Bug
 
 - Fix :meth:`mne.io.Raw.filter` to deal with instances with no data channels properly by `Eric Larson`_
 
-- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using ``tmin=0`` by `Milan Rybář`_
 
 - Fix bug in :func:`mne.viz.plot_volume_source_estimates` where ``'glass_brain'`` MRIs were not transformed to MNI space, by `Eric Larson`_
 

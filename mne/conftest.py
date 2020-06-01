@@ -121,13 +121,19 @@ def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
     from matplotlib import cbook
-    # "force" should not really be necessary but should not hurt
-    kwargs = dict()
+    # Allow for easy interactive debugging with a call like:
+    #
+    #     $ MNE_MPL_TESTING_BACKEND=Qt5Agg pytest mne/viz/tests/test_raw.py -k annotation -x --pdb  # noqa: E501
+    #
+    try:
+        want = os.environ['MNE_MPL_TESTING_BACKEND']
+    except KeyError:
+        want = 'agg'  # don't pop up windows
     with warnings.catch_warnings(record=True):  # ignore warning
         warnings.filterwarnings('ignore')
-        matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
+        matplotlib.use(want, force=True)
     import matplotlib.pyplot as plt
-    assert plt.get_backend() == 'agg'
+    assert plt.get_backend() == want
     # overwrite some params that can horribly slow down tests that
     # users might have changed locally (but should not otherwise affect
     # functionality)
@@ -289,7 +295,7 @@ def subjects_dir_tmp(tmpdir):
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types()
+    evoked = _evoked.copy().pick_types(meg=True)
     evoked.pick_channels(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)

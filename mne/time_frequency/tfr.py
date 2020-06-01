@@ -565,7 +565,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
         Use FFT for convolutions. Defaults to True.
     mode : 'same' | 'valid' | 'full'
         Convention for convolution. 'full' is currently not implemented with
-        `use_fft=False`. Defaults to 'same'.
+        ``use_fft=False``. Defaults to ``'same'``.
     decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
@@ -1161,18 +1161,18 @@ class AverageTFR(_BaseTFR):
 
             .. versionadded:: 0.16.0
         mask_style : None | 'both' | 'contour' | 'mask'
-            If `mask` is not None: if 'contour', a contour line is drawn around
-            the masked areas (``True`` in `mask`). If 'mask', entries not
-            ``True`` in `mask` are shown transparently. If 'both', both a contour
-            and transparency are used.
-            If ``None``, defaults to 'both' if `mask` is not None, and is ignored
-            otherwise.
+            If ``mask`` is not None: if ``'contour'``, a contour line is drawn
+            around the masked areas (``True`` in ``mask``). If ``'mask'``,
+            entries not ``True`` in ``mask`` are shown transparently. If
+            ``'both'``, both a contour and transparency are used.
+            If ``None``, defaults to ``'both'`` if ``mask`` is not None, and is
+            ignored otherwise.
 
              .. versionadded:: 0.17
         mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
             The colormap chosen for masked parts of the image (see below), if
-            `mask` is not ``None``. If None, `cmap` is reused. Defaults to
-            ``Greys``. Not interactive. Otherwise, as `cmap`.
+            ``mask`` is not ``None``. If None, ``cmap`` is reused. Defaults to
+            ``'Greys'``. Not interactive. Otherwise, as ``cmap``.
 
              .. versionadded:: 0.17
         mask_alpha : float
@@ -1334,11 +1334,11 @@ class AverageTFR(_BaseTFR):
             available is used.
         vmin : float | None
             The minimum value of the color scale for the image (for
-            topomaps, see `topomap_args`). If vmin is None, the data
+            topomaps, see ``topomap_args``). If vmin is None, the data
             absolute minimum value is used.
         vmax : float | None
             The maximum value of the color scale for the image (for
-            topomaps, see `topomap_args`). If vmax is None, the data
+            topomaps, see ``topomap_args``). If vmax is None, the data
             absolute maximum value is used.
         cmap : matplotlib colormap
             The colormap to use.
@@ -1360,17 +1360,17 @@ class AverageTFR(_BaseTFR):
             Type of aggregation to perform across selected channels.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
-            bad channels are excluded. Defaults to an empty list, i.e., `[]`.
+            bad channels are excluded. Defaults to an empty list, i.e., ``[]``.
         topomap_args : None | dict
-            A dict of `kwargs` that are forwarded to
-            :func:`mne.viz.plot_topomap` to style the topomaps. `axes` and
-            `show` are ignored. If `times` is not in this dict, automatic
+            A dict of ``kwargs`` that are forwarded to
+            :func:`mne.viz.plot_topomap` to style the topomaps. ``axes`` and
+            ``show`` are ignored. If ``times`` is not in this dict, automatic
             peak detection is used. Beyond that, if ``None``, no customizable
             arguments will be passed.
             Defaults to ``None``.
         image_args : None | dict
-            A dict of `kwargs` that are forwarded to :meth:`AverageTFR.plot`
-            to style the image. `axes` and `show` are ignored. Beyond that,
+            A dict of ``kwargs`` that are forwarded to :meth:`AverageTFR.plot`
+            to style the image. ``axes`` and ``show`` are ignored. Beyond that,
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
         %(verbose_meth)s
@@ -1382,18 +1382,18 @@ class AverageTFR(_BaseTFR):
 
         Notes
         -----
-        `timefreqs` has three different modes: tuples, dicts, and auto.
+        ``timefreqs`` has three different modes: tuples, dicts, and auto.
         For (list of) tuple(s) mode, each tuple defines a pair
         (time, frequency) in s and Hz on the TFR plot. For example, to
         look at 10 Hz activity 1 second into the epoch and 3 Hz activity
-        300 msec into the epoch,::
+        300 msec into the epoch, ::
 
             timefreqs=((1, 10), (.3, 3))
 
         If provided as a dictionary, (time, frequency) tuples are keys and
         (time_window, frequency_window) tuples are the values - indicating the
         width of the windows (centered on the time and frequency indicated by
-        the key) to be averaged over. For example,::
+        the key) to be averaged over. For example, ::
 
             timefreqs={(1, 10): (0.1, 2)}
 
@@ -1867,7 +1867,7 @@ class AverageTFR(_BaseTFR):
             If True, show channel names on top of the map. If a callable is
             passed, channel names will be formatted using the callable; e.g.,
             to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
+            function lambda x: x.replace('MEG ', ''). If ``mask`` is not None,
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
@@ -1936,7 +1936,7 @@ class AverageTFR(_BaseTFR):
         s += ", nave : %d" % self.nave
         s += ', channels : %d' % self.data.shape[0]
         s += ', ~%s' % (sizeof_fmt(self._size),)
-        return "<AverageTFR  |  %s>" % s
+        return "<AverageTFR | %s>" % s
 
 
 @fill_doc
@@ -2036,7 +2036,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         s += ", epochs : %d" % self.data.shape[0]
         s += ', channels : %d' % self.data.shape[1]
         s += ', ~%s' % (sizeof_fmt(self._size),)
-        return "<EpochsTFR  |  %s>" % s
+        return "<EpochsTFR | %s>" % s
 
     def __abs__(self):
         """Take the absolute value."""
@@ -2269,7 +2269,7 @@ def read_tfrs(fname, condition=None):
     Returns
     -------
     tfrs : list of instances of AverageTFR | instance of AverageTFR
-        Depending on `condition` either the TFR object or a list of multiple
+        Depending on ``condition`` either the TFR object or a list of multiple
         TFR objects.
 
     See Also

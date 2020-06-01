@@ -149,7 +149,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                            values=0.0,
                            axis=0)
     from ..epochs import EpochsArray
-    epochs_src = EpochsArray(epoch_data, epochs_src.info, verbose=0)
+    epochs_src = EpochsArray(epoch_data, epochs_src.info, tmin=epochs_src.tmin,
+                             verbose=0)
 
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
                       combine=None, colorbar=False, show=False,
@@ -584,7 +585,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
 
 
 def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=None, show=True):
+                    title='ICA component scores', figsize=None,
+                    n_cols=None, show=True):
     """Plot scores related to detected components.
 
     Use this function to asses how well your score describes outlier
@@ -601,7 +603,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         will be used.
     labels : str | list | 'ecg' | 'eog' | None
         The labels to consider for the axes tests. Defaults to None.
-        If list, should match the outer shape of `scores`.
+        If list, should match the outer shape of ``scores``.
         If 'ecg' or 'eog', the ``labels_`` attributes will be looked up.
         Note that '/' is used internally for sublabels specifying ECG and
         EOG channels.
@@ -611,6 +613,11 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         The figure title.
     figsize : tuple of int | None
         The figure size. If None it gets set automatically.
+    n_cols : int | None
+        Scores are plotted in a grid. This parameter controls how
+        many to plot side by side before starting a new row. By
+        default, a number will be chosen to make the grid as square as
+        possible.
     show : bool
         Show figure if True.
 
@@ -626,30 +633,48 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     exclude = np.unique(exclude)
     if not isinstance(scores[0], (list, np.ndarray)):
         scores = [scores]
-    n_rows = len(scores)
+    n_scores = len(scores)
+
+    if n_cols is None:
+        # prefer more rows.
+        n_rows = int(np.ceil(np.sqrt(n_scores)))
+        n_cols = (n_scores - 1) // n_rows + 1
+    else:
+        n_cols = min(n_scores, n_cols)
+        n_rows = (n_scores - 1) // n_cols + 1
+
     if figsize is None:
-        figsize = (6.4, 2.7 * n_rows)
-    fig, axes = plt.subplots(n_rows, figsize=figsize, sharex=True, sharey=True)
+        figsize = (6.4 * n_cols, 2.7 * n_rows)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize,
+                             sharex=True, sharey=True)
+
     if isinstance(axes, np.ndarray):
         axes = axes.flatten()
     else:
         axes = [axes]
-    axes[0].set_title(title)
+
+    fig.suptitle(title)
 
     if labels == 'ecg':
         labels = [label for label in ica.labels_ if label.startswith('ecg/')]
+        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        if len(labels) == 0:
+            labels = [label for label in ica.labels_ if
+                      label.startswith('ecg')]
     elif labels == 'eog':
         labels = [label for label in ica.labels_ if label.startswith('eog/')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        if len(labels) == 0:
+            labels = [label for label in ica.labels_ if
+                      label.startswith('eog')]
     elif isinstance(labels, str):
-        if len(axes) > 1:
-            raise ValueError('Need as many labels as axes (%i)' % len(axes))
         labels = [labels]
-    elif isinstance(labels, (tuple, list)):
-        if len(labels) != len(axes):
-            raise ValueError('Need as many labels as axes (%i)' % len(axes))
     elif labels is None:
-        labels = (None,) * n_rows
+        labels = (None,) * n_scores
+
+    if len(labels) != n_scores:
+        raise ValueError('Need as many labels (%i) as scores (%i)'
+                         % (len(labels), n_scores))
 
     for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
@@ -676,6 +701,8 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
 
     tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.90)
+    fig.canvas.draw()
     plt_show(show)
     return fig
 

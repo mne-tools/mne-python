@@ -471,9 +471,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     bem : list of dict | instance of ConductorModel | None
         Can be either the BEM surfaces (list of dict), a BEM solution or a
         sphere model. If None, we first try loading
-        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
-        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
-        the subjects bem and bem/flash folders are searched. Defaults to None.
+        ``'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'``, and then look
+        for ``'$SUBJECT*$SOURCE.fif'`` in the same directory. For
+        ``'outer_skin'``, the subjects bem and bem/flash folders are searched.
+        Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
     fnirs : str | list | bool | None
@@ -1550,7 +1551,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           time_viewer='auto', subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
-                          foreground="white", initial_time=None,
+                          foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto', verbose=None):
     """Plot SourceEstimate with PySurfer.
@@ -1616,9 +1617,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Has no effect with mpl backend.
     background : matplotlib color
         Color of the background of the display window.
-    foreground : matplotlib color
+    foreground : matplotlib color | None
         Color of the foreground of the display window. Has no effect with mpl
-        backend.
+        backend. None will choose white or black based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
@@ -2224,7 +2225,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  subjects_dir=None, figure=None, views='lat',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
-                                 foreground='white', initial_time=None,
+                                 foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
                                  verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
@@ -2290,8 +2291,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         a square window, or the (width, height) of a rectangular window.
     background : matplotlib color
         Color of the background of the display window.
-    foreground : matplotlib color
+    foreground : matplotlib color | None
         Color of the foreground of the display window.
+        None will choose black or white based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
@@ -2724,7 +2726,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
     Note that this will take the raw values for 3d coordinates of each channel,
     without applying any transforms. If brain images are flipped up/dn upon
-    using `imshow`, check your matplotlib backend as this behavior changes.
+    using `~matplotlib.pyplot.imshow`, check your matplotlib backend as this
+    behavior changes.
 
     Parameters
     ----------
@@ -2732,9 +2735,9 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         The figure on which you've plotted electrodes using
         :func:`mne.viz.plot_alignment`.
     montage : instance of DigMontage or Info | dict
-        The digital montage for the electrodes plotted in the scene. If `Info`,
-        channel positions will be pulled from the `loc` field of `chs`.
-        dict should have ch:xyz mappings.
+        The digital montage for the electrodes plotted in the scene. If
+        :class:`~mne.Info`, channel positions will be pulled from the ``loc``
+        field of ``chs``. dict should have ch:xyz mappings.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
 
@@ -2947,7 +2950,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     #
     # We could do this with two resample_from_to calls, but it's cleaner,
     # faster, and we get fewer boundary artifacts if we do it in one shot.
-    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE``` (2):
+    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE`` (2):
     upsamp = np.linalg.solve(vox_ras_t['trans'].T, RAS_AFFINE.T).T
     # Now figure out how we would resample from RAS to head or MRI coords:
     if coord_frame == 'head':
@@ -3109,7 +3112,7 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
     colormap, lims = _linearize_map(mapdata)
     del mapdata
     norm = Normalize(vmin=lims[0], vmax=lims[2])
-    cbar = ColorbarBase(ax, colormap, norm=norm, ticks=ticks,
+    cbar = ColorbarBase(ax, cmap=colormap, norm=norm, ticks=ticks,
                         label=label, orientation=orientation)
     # make the colorbar background match the brain color
     cbar.patch.set(facecolor=bgcolor)

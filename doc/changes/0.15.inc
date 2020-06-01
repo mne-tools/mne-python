@@ -82,7 +82,7 @@ Changelog
 
 - Add support for :class:`numpy.random.RandomState` argument to ``seed`` in :mod:`statistical clustering functions <mne.stats>` and better documentation of exact 1-sample tests by `Eric Larson`_
 
-- Extend :func:`mne.viz.plot_epochs_image`/:meth:`mne.Epochs.plot_image` with regards to grouping by or aggregating over channels. See the new example at `examples/visualization/plot_roi_erpimage_by_rt.py` by `Jona Sassenhagen`_
+- Extend :func:`mne.viz.plot_epochs_image`/:meth:`mne.Epochs.plot_image` with regards to grouping by or aggregating over channels. See the new example at ``examples/visualization/plot_roi_erpimage_by_rt.py`` by `Jona Sassenhagen`_
 
 - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` by `Jona Sassenhagen`_ and `Denis Engemann`_
 
@@ -120,7 +120,7 @@ BUG
 
 - :meth:`mne.concatenate_epochs` now maintains the relative position of events during concatenation by `Alexandre Barachant`_
 
-- Fix bug in script `mne make_scalp_surfaces` by `Denis Engemann`_ (this bug prevented creation of high-resolution meshes when they were absent in the first place.)
+- Fix bug in script ``mne make_scalp_surfaces`` by `Denis Engemann`_ (this bug prevented creation of high-resolution meshes when they were absent in the first place.)
 
 - Fix writing of raw files with empty set of annotations by `Jaakko Leppakangas`_
 

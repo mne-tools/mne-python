@@ -124,10 +124,10 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         fraction of the font-size.
     h_pad : float
         Padding height between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     w_pad : float
         Padding width between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     fig : instance of Figure
         Figure to apply changes to.
     """
@@ -1442,8 +1442,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
 def add_background_image(fig, im, set_ratios=None):
     """Add a background image to a plot.
 
-    Adds the image specified in `im` to the
-    figure `fig`. This is generally meant to
+    Adds the image specified in ``im`` to the
+    figure ``fig``. This is generally meant to
     be done with topo plots, though it could work
     for any plot.
 
@@ -2066,13 +2066,13 @@ class SelectFromCollection(object):
         Collection you want to select from.
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an
-        alpha value of 1 and non-selected points to `alpha_other`.
+        alpha value of 1 and non-selected points to ``alpha_other``.
         Defaults to 0.3.
 
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
     """
 
     def __init__(self, ax, collection, ch_names,
@@ -2436,8 +2436,8 @@ def _setup_butterfly(params):
             ylim = (5. * len(picks), 0.)
             ax.set_ylim(ylim)
             offset = ylim[0] / (len(picks) + 1)
-            ticks = np.arange(0, ylim[0], offset)
-            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+            # ensure the last is not included
+            ticks = np.arange(0, ylim[0] - offset / 2., offset)
             ax.set_yticks(ticks)
             offsets = np.zeros(len(params['types']))
 
@@ -2446,8 +2446,8 @@ def _setup_butterfly(params):
                     offsets[pick] = offset * (group_idx + 1)
             params['inds'] = params['orig_inds'].copy()
             params['offsets'] = offsets
-            ax.set_yticklabels([''] + selections, color='black', rotation=45,
-                               va='top')
+            ax.set_yticklabels(
+                [''] + selections, color='black', rotation=45, va='top')
     else:
         params['inds'] = params['orig_inds'].copy()
         if 'fig_selection' not in params:
@@ -2603,8 +2603,8 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
         axes.spines['left'].set_bounds(*ybounds)
     # handle axis labels
     if skip_axlabel:
-        axes.set_yticklabels([])
-        axes.set_xticklabels([])
+        axes.set_yticklabels([''] * len(yticks))
+        axes.set_xticklabels([''] * len(xticks))
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)

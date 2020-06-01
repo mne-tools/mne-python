@@ -48,7 +48,7 @@ Changelog
 
 - Add option to expand Labels defined in a source space to the original surface (``Label.fill()``) by `Christian Brodbeck`_
 
-- GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
+- GUIs can be invoked form the command line using ``$ mne coreg`` and ``$ mne kit2fiff`` by `Christian Brodbeck`_
 
 - Add ``add_channels_epochs`` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
 
@@ -98,7 +98,7 @@ Changelog
 
 - Add computation of point spread and cross-talk functions for MNE type solutions by `Alex Gramfort`_ and `Olaf Hauk`_
 
-- Add mask parameter to `plot_evoked_topomap` and ``evoked.plot_topomap`` by `Denis Engemann`_ and `Alex Gramfort`_
+- Add mask parameter to ``plot_evoked_topomap`` and ``evoked.plot_topomap`` by `Denis Engemann`_ and `Alex Gramfort`_
 
 - Add infomax and extended infomax ICA by `Denis Engemann`_, `Juergen Dammers`_ and `Lukas Breuer`_ and `Federico Raimondo`_
 
@@ -112,7 +112,7 @@ Changelog
 
 - Add InverseOperator class to display inverse operator info by `Mainak Jas`_
 
-- Add `$ mne report` command to generate html reports of MEG/EEG data analysis pipelines by `Mainak Jas`_, `Alex Gramfort`_ and `Denis Engemann`_
+- Add ``$ mne report`` command to generate html reports of MEG/EEG data analysis pipelines by `Mainak Jas`_, `Alex Gramfort`_ and `Denis Engemann`_
 
 - Improve ICA verbosity with regard to rank reduction by `Denis Engemann`_
 

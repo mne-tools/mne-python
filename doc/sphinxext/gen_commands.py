@@ -40,14 +40,14 @@ Command line tools using Python
 
 command_rst = """
 
-.. _gen_%s:
+.. _{0}:
 
-%s
-%s
+{0}
+{1}
 
 .. rst-class:: callout
 
-%s
+{2}
 
 """
 
@@ -100,10 +100,9 @@ def generate_commands_rst(app=None):
                 output.insert(ii + 3, '.. rst-class:: field-list cmd-list')
                 output.insert(ii + 4, '')
             output = '\n'.join(output)
-            f.write(command_rst % (cmd_name,
-                                   cmd_name.replace('mne_', 'mne '),
-                                   '=' * len(cmd_name),
-                                   output))
+            cmd_name_space = cmd_name.replace('mne_', 'mne ')
+            f.write(command_rst.format(
+                cmd_name_space, '=' * len(cmd_name_space), output))
     _replace_md5(out_fname)
 
 

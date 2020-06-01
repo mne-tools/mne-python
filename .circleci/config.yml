@@ -208,6 +208,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*limo.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.limo.data_path(subject=1, update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*refmeg_noise.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.refmeg_noise.data_path(update_path=True))";
+                    fi;
                   fi;
                 done;
                 echo PATTERN="$PATTERN";
@@ -254,6 +257,12 @@ jobs:
               if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
+                rm -f doc/auto_*/*/*.pickle
+                rm -f doc/auto_*/*/*.codeobj
+                rm -f doc/auto_*/*/*.md5
+                rm -f doc/auto_*/*/*.py
+                rm -f doc/auto_*/*/*.ipynb
+                rm -f doc/generated/*.examples
               fi
 
         # Save the JUnit file
@@ -262,7 +271,17 @@ jobs:
         - store_artifacts:
             path: doc/_build/test-results
             destination: test-results
-        # Save the outputs
+        # Save the SG RST
+        - store_artifacts:
+            path: doc/auto_examples
+            destination: auto_examples
+        - store_artifacts:
+            path: doc/auto_tutorials
+            destination: auto_tutorials
+        - store_artifacts:
+            path: doc/generated
+            destination: generated
+        # Save the HTML
         - store_artifacts:
             path: doc/_build/html/
             destination: dev

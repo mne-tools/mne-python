@@ -143,7 +143,7 @@ brain_gen = stc_gen.plot(clim=clim, **kwargs)
 #
 # Use the forward solution and add Gaussian noise to simulate sensor-space
 # (evoked) data from the known source-space signals. The amount of noise is
-# controlled by `nave` (higher values imply less noise).
+# controlled by ``nave`` (higher values imply less noise).
 #
 evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, nave,
                              random_state=seed)
@@ -166,7 +166,7 @@ brain_inv = stc_inv.plot(**kwargs)
 ###############################################################################
 # Exercises
 # ---------
-#    - Change the `method` parameter to either `dSPM` or `MNE` to explore the
-#      effect of the inverse method.
-#    - Try setting `evoked_snr` to a small, finite value, e.g. 3., to see the
+#    - Change the ``method`` parameter to either ``'dSPM'`` or ``'MNE'`` to
+#      explore the effect of the inverse method.
+#    - Try setting ``evoked_snr`` to a small, finite value, e.g. 3., to see the
 #      effect of noise.
