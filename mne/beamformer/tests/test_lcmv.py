@@ -11,11 +11,12 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 
 import mne
 from mne import (convert_forward_solution, read_forward_solution, compute_rank,
-                 VolVectorSourceEstimate, VolSourceEstimate)
+                 VolVectorSourceEstimate, VolSourceEstimate, EvokedArray,
+                 pick_channels_cov)
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv, Beamformer,
-                            read_beamformer)
+                            read_beamformer, apply_lcmv_cov)
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
@@ -419,7 +420,7 @@ def test_make_lcmv(tmpdir, reg, proj):
 
     # Test condition where one channel type is picked
     # (avoid "grad data rank (13) did not match the noise rank (None)")
-    data_cov_grad = mne.pick_channels_cov(
+    data_cov_grad = pick_channels_cov(
         data_cov, [ch_name for ch_name in epochs.info['ch_names']
                    if ch_name.endswith(('2', '3'))])
     assert len(data_cov_grad['names']) > 4
@@ -497,6 +498,35 @@ def test_lcmv_raw():
     assert len(stc.vertices[0]) == len(np.intersect1d(vertno[0],
                                                       label.vertices))
     assert len(stc.vertices[1]) == 0
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('weight_norm', (None, 'unit-noise-gain'))
+@pytest.mark.parametrize('pick_ori', ('max-power', 'normal'))
+def test_lcmv_cov(weight_norm, pick_ori):
+    """Test LCMV source power computation."""
+    raw, epochs, evoked, data_cov, noise_cov, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    convert_forward_solution(forward, surf_ori=True, copy=False)
+    filters = make_lcmv(evoked.info, forward, data_cov, noise_cov=noise_cov,
+                        weight_norm=weight_norm, pick_ori=pick_ori)
+    for cov in (data_cov, noise_cov):
+        this_cov = pick_channels_cov(cov, evoked.ch_names)
+        this_evoked = evoked.copy().pick_channels(this_cov['names'])
+        this_cov['projs'] = this_evoked.info['projs']
+        assert this_evoked.ch_names == this_cov['names']
+        stc = apply_lcmv_cov(this_cov, filters)
+        assert stc.data.min() > 0
+        assert stc.shape == (498, 1)
+        ev = EvokedArray(this_cov.data, this_evoked.info)
+        stc_1 = apply_lcmv(ev, filters)
+        assert stc_1.data.min() < 0
+        ev = EvokedArray(stc_1.data.T, this_evoked.info)
+        stc_2 = apply_lcmv(ev, filters)
+        assert stc_2.data.shape == (498, 498)
+        data = np.diag(stc_2.data)[:, np.newaxis]
+        assert data.min() > 0
+        assert_allclose(data, stc.data, rtol=1e-12)
 
 
 @testing.requires_testing_data

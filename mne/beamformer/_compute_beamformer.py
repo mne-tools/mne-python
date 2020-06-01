@@ -24,10 +24,9 @@ from ..time_frequency.csd import CrossSpectralDensity
 from ..externals.h5io import read_hdf5, write_hdf5
 
 
-def _check_proj_match(info, filters):
+def _check_proj_match(proj, filters):
     """Check whether SSP projections in data and spatial filter match."""
-    proj_data, _, _ = make_projector(info['projs'],
-                                     filters['ch_names'])
+    proj_data, _, _ = make_projector(proj, filters['ch_names'])
     if not np.allclose(proj_data, filters['proj'],
                        atol=np.finfo(float).eps, rtol=1e-13):
         raise ValueError('The SSP projections present in the data '
@@ -239,7 +238,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         Gk = _reduce_leadfield_rank(Gk)
 
     def _compute_bf_terms(Gk, Cm_inv):
-        bf_numer = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
+        bf_numer = np.matmul(Gk.transpose(0, 2, 1).conj(), Cm_inv[np.newaxis])
         bf_denom = np.matmul(bf_numer, Gk)
         return bf_numer, bf_denom
 
@@ -256,7 +255,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # compute power, cf Sekihara & Nagarajan 2008, eq. 4.47
             ori_numer = bf_denom
             ori_denom = np.matmul(
-                np.matmul(Gk.transpose(0, 2, 1),
+                np.matmul(Gk.transpose(0, 2, 1).conj(),
                           Cm_inv.dot(Cm_inv)[np.newaxis]), Gk)
         ori_denom_inv = _sym_inv_sm(ori_denom, reduce_rank, inversion, sk)
         ori_pick = np.matmul(ori_denom_inv, ori_numer)

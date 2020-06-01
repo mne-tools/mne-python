@@ -131,6 +131,7 @@ Bug
   - Noise normalization factors ``weight_norm='unit-noise-gain'`` and ``weight_norm='nai'`` were computed incorrectly
   - ``pick_ori='max-power'`` computed the max-power orientation incorrectly
   - ``pick_ori='normal'`` did not compute power or noise normalization factors correctly
+  - :func:`mne.beamformer.apply_lcmv_cov` did not apply whitening and projections properly
 
 - Fix :ref:`mne setup_forward_model` to have it actually compute the BEM solution in addition to creating the BEM model by `Eric Larson`_
 

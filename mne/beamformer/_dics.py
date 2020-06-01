@@ -252,7 +252,7 @@ def _apply_dics(data, filters, info, tmin):
 
         # Apply SSPs
         if info['projs']:
-            _check_proj_match(info, filters)
+            _check_proj_match(info['projs'], filters)
             M = np.dot(filters['proj'], M)
 
         stcs = []
