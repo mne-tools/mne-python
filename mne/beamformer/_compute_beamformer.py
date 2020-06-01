@@ -204,6 +204,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     n_channels = G.shape[0]
     assert n_orient in (3, 1)
     Gk = np.reshape(G.T, (n_sources, n_orient, n_channels)).transpose(0, 2, 1)
+    assert not np.iscomplexobj(Gk)
     assert Gk.shape == (n_sources, n_channels, n_orient)
     sk = np.reshape(orient_std, (n_sources, n_orient))
     del G, orient_std
