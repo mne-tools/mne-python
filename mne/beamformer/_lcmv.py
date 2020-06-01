@@ -60,8 +60,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     %(depth)s
 
         .. versionadded:: 0.18
-    inversion : str
-        Can be "matrix" (default) or "single". TODO: Remove before merge (?).
     %(verbose)s
 
     Returns
