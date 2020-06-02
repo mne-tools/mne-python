@@ -1609,6 +1609,14 @@ def test_subtract_evoked():
     data = zero_evoked.data
     assert_allclose(data, np.zeros_like(data), atol=1e-15)
 
+    # with decimation (gh-7854)
+    epochs3 = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                     decim=10, verbose='error')
+    data_old = epochs2.decimate(10, verbose='error').get_data()
+    data = epochs3.subtract_evoked().get_data()
+    assert_allclose(data, data_old)
+    assert_allclose(epochs3.average().data, 0., atol=1e-20)
+
 
 def test_epoch_eq():
     """Test epoch count equalization and condition combining."""

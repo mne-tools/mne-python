@@ -85,7 +85,7 @@ def test_array_raw():
     types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
     types.extend(['stim'] * 9)
     types.extend(['eeg'] * 60)
-    picks = np.concatenate([pick_types(raw.info)[::20],
+    picks = np.concatenate([pick_types(raw.info, meg=True)[::20],
                             pick_types(raw.info, meg=False, stim=True),
                             pick_types(raw.info, meg=False, eeg=True)[::20]])
     del raw
@@ -113,7 +113,7 @@ def test_array_raw():
     pytest.raises(TypeError, RawArray, info, data)
 
     # filtering
-    picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
+    picks = pick_types(raw2.info, meg=True, misc=True, exclude='bads')[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
     kwargs = dict(fir_design='firwin', picks=picks)

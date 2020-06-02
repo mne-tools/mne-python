@@ -558,7 +558,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
 def test_inverse_residual(evoked, method):
     """Test MNE inverse application."""
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
-    evoked = evoked.pick_types()
+    evoked = evoked.pick_types(meg=True)
     inv = read_inverse_operator(fname_inv_fixed_depth)
     fwd = read_forward_solution(fname_fwd)
     pick_channels_forward(fwd, evoked.ch_names, copy=False)
