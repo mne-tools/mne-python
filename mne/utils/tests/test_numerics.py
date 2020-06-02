@@ -237,10 +237,13 @@ def test_cov_scaling():
 
 
 @requires_version('numpy', '1.17')  # hermitian kwarg
-def test_reg_pinv():
+@pytest.mark.parametrize('ndim', (2, 3))
+def test_reg_pinv(ndim):
     """Test regularization and inversion of covariance matrix."""
     # create rank-deficient array
     a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+    for _ in range(ndim - 2):
+        a = a[np.newaxis]
 
     # Test if rank-deficient matrix without regularization throws
     # specific warning

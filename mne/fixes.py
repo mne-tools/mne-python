@@ -976,6 +976,24 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     return out
 
 
+# This shim can be removed once NumPy 1.19.0+ is required (1.18.4 has sign bug)
+def svd(a, hermitian=False):
+    if hermitian:  # faster
+        s, u = np.linalg.eigh(a)
+        sgn = np.sign(s)
+        s = np.abs(s)
+        sidx = np.argsort(s)[..., ::-1]
+        sgn = take_along_axis(sgn, sidx, axis=-1)
+        s = take_along_axis(s, sidx, axis=-1)
+        u = take_along_axis(u, sidx[..., None, :], axis=-1)
+        # singular values are unsigned, move the sign into v
+        vt = (u * sgn[..., np.newaxis, :]).swapaxes(-2, -1).conj()
+        np.abs(s, out=s)
+        return u, s, vt
+    else:
+        return np.linalg.svd(a)
+
+
 ###############################################################################
 # NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
 # XXX eventually we should hand-tune our `einsum` calls given our array sizes!

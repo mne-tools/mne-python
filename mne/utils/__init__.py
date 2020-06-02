@@ -58,8 +58,7 @@ from .numerics import (hashfunc, _compute_row_norms,
                        _check_dt, _ReuseCycle)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas, ShiftTimeMixin)
-from .linalg import (_svd_lwork, _repeated_svd, sqrtm_sym,
-                     dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh,
-                     _sym_inv)
+from .linalg import (_svd_lwork, _repeated_svd, _sym_mat_pow, sqrtm_sym,
+                     dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh)
 from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
                         _convert_times, _build_data_frame)

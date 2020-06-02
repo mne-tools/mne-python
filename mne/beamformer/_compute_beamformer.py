@@ -17,8 +17,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_inv, warn,
-                     sqrtm_sym)
+                     _pl, _check_src_normal, check_version, _sym_mat_pow, warn)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -122,7 +121,7 @@ def _sym_inv_sm(x, reduce_rank, inversion, sk):
     else:
         assert x.shape[1:] == (3, 3)
         if inversion == 'matrix':
-            x_inv = _sym_inv(x, reduce_rank)
+            x_inv = _sym_mat_pow(x, -1, reduce_rank=reduce_rank)
             # Reapply source covariance after inversion
             x_inv *= sk[:, :, np.newaxis]
             x_inv *= sk[:, np.newaxis, :]
@@ -180,19 +179,15 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The beamformer filter weights.
     """
     _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
-    # Tikhonov regularization using reg parameter to control for
-    # trade-off between spatial resolution and noise sensitivity
-    # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
     assert Cm.shape == (G.shape[0],) * 2
-    # Because of whitening, Cm is only guaranteed to be positive
-    # semidefinite when loading is added, otherwise it can have
-    # negative eigenvalues (?)
-    # So make sure _reg_pinv handles them properly by using abs
     s, _ = np.linalg.eigh(Cm)
     if not (s >= -s.max() * 1e-7).all():
         # This shouldn't ever happen, but just in case
         warn('data covariance does not appear to be positive semidefinite, '
              'results will likely be incorrect')
+    # Tikhonov regularization using reg parameter to control for
+    # trade-off between spatial resolution and noise sensitivity
+    # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
 
     assert orient_std.shape == (G.shape[1],)
@@ -237,9 +232,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     #
     if reduce_rank:
         Gk = _reduce_leadfield_rank(Gk)
+    assert np.isrealobj(Gk)  # otherwise we need to be more mindful of .T's
 
     def _compute_bf_terms(Gk, Cm_inv):
-        bf_numer = np.matmul(Gk.transpose(0, 2, 1).conj(), Cm_inv[np.newaxis])
+        bf_numer = np.matmul(Gk.transpose(0, 2, 1), Cm_inv)
         bf_denom = np.matmul(bf_numer, Gk)
         return bf_numer, bf_denom
 
@@ -255,9 +251,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         else:
             # compute power, cf Sekihara & Nagarajan 2008, eq. 4.47
             ori_numer = bf_denom
+            # Cm_inv should be Hermitian so no need for .T.conj()
             ori_denom = np.matmul(
-                np.matmul(Gk.transpose(0, 2, 1).conj(),
-                          Cm_inv.dot(Cm_inv)[np.newaxis]), Gk)
+                np.matmul(Gk.transpose(0, 2, 1), Cm_inv @ Cm_inv), Gk)
         ori_denom_inv = _sym_inv_sm(ori_denom, reduce_rank, inversion, sk)
         ori_pick = np.matmul(ori_denom_inv, ori_numer)
         assert ori_pick.shape == (n_sources, n_orient, n_orient)
@@ -344,8 +340,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # use the direct one to match FieldTrip:
         assert weight_norm in ('unit-noise-gain', 'nai')
         use = bf_numer
-        inner = np.matmul(use, use.swapaxes(-2, -1).conj()).real
-        W = np.matmul(sqrtm_sym(inner, inv=True)[0], use)
+        inner = np.matmul(use, use.swapaxes(-2, -1).conj())
+        W = np.matmul(_sym_mat_pow(inner, -0.5), use)
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the

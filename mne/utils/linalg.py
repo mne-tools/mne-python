@@ -27,8 +27,6 @@ from scipy import linalg
 from scipy.linalg import LinAlgError
 from scipy._lib._util import _asarray_validated
 
-from ..fixes import take_along_axis
-
 _d = np.empty(0, np.float64)
 _z = np.empty(0, np.complex128)
 dgemm = linalg.get_blas_funcs('gemm', (_d,))
@@ -132,9 +130,7 @@ def eigh(a, overwrite_a=False, check_finite=True):
 
 
 def sqrtm_sym(A, rcond=1e-7, inv=False):
-    """Compute the square root of a symmetric matrix (or its inverse).
-
-    This requires real, positive-semidefinite matrices.
+    """Compute the sqrt of a positive, semi-definite matrix (or its inverse).
 
     Parameters
     ----------
@@ -154,34 +150,26 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
         The original square root singular values (not inverted).
     """
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
+    return _sym_mat_pow(A, -0.5 if inv else 0.5, rcond, return_s=True)
+
+
+def _sym_mat_pow(A, power, rcond=1e-7, reduce_rank=False, return_s=False):
+    """Exponentiate Hermitian matrices with optional rank reduction."""
+    assert power in (-1, 0.5, -0.5)  # only used internally
     s, u = np.linalg.eigh(A)  # eigenvalues in ascending order
-    s[s <= s[..., -1:] * rcond] = np.inf if inv else 0
-    np.sqrt(s, out=s)
-    if inv:
-        use_s = 1. / s
-    else:
-        use_s = s
-    a = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1))
-    return a, s
-
-
-def _sym_inv(x, reduce_rank):
-    """Invert hermitian matrices with optional rank reduction."""
-    s, u = np.linalg.eigh(x)
-    # This is puts them in ascending (absolute) order, which can happen
-    # when matrices are not positive semidefinite
-    order = np.argsort(np.abs(s), axis=-1)[..., ::-1]
-    s = take_along_axis(s, order, axis=-1)
-    u = take_along_axis(u, order[..., np.newaxis, :], axis=-1)
-
-    # mimic default np.linalg.pinv behavior
-    cutoff = 1e-15 * s[..., :1]
-    s[s <= cutoff] = np.inf
+    # Is it positive semi-defidite? If so, keep real
+    limit = s[..., -1:] * rcond
+    if not (s >= -limit).all():  # allow some tiny small negative ones
+        raise ValueError('Matrix is not positive semi-definite')
+    s[s <= limit] = np.inf if power < 0 else 0
     if reduce_rank:
         # These are ordered smallest to largest, so we set the first one
         # to inf -- then the 1. / s below will turn this to zero, as needed.
-        s[..., -1] = np.inf
-    s = 1. / s
-    # For positive semidefinite matrices, the transpose is equal to the
-    # conjugate.
-    return np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1).conj())
+        s[..., 0] = np.inf
+    if power in (-0.5, 0.5):
+        np.sqrt(s, out=s)
+    use_s = 1. / s if power < 0 else s
+    out = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1).conj())
+    if return_s:
+        out = (out, s)
+    return out
