@@ -17,6 +17,7 @@ import warnings
 
 import numpy as np
 import vtk
+import matplotlib.pyplot as plt
 
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
@@ -115,15 +116,25 @@ class _JupyterInteractor(object):
         from ipywidgets import HBox
         self.renderer = renderer
         self.plotter = self.renderer.plotter
-        self.fig, self.dh = self.screenshot()
+        with self.disabled_interactivity():
+            self.fig, self.dh = self.screenshot()
         self.controllers = self.configure_controllers()
         layout = HBox([self.fig.canvas, self.controllers])
         display.display(layout)
 
-    def screenshot(self):
-        import matplotlib.pyplot as plt
+    @contextmanager
+    def disabled_interactivity(self):
+        state = plt.isinteractive()
         plt.ioff()
+        try:
+            yield
+        finally:
+            if state:
+                plt.ion()
+            else:
+                plt.ioff()
 
+    def screenshot(self):
         width, height = self.renderer.figure.store['window_size']
 
         my_dpi = 100
