@@ -81,7 +81,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         three dipoles at a source vertex are considered as a group and the
         spatial filters are computed jointly using a matrix inversion. While
         ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of :footcite:`vanVlietEtAl2018`.  Defaults to
+        precise. See section 5 of :footcite:`vanVlietEtAl2018`. Defaults to
         'single'.
     %(weight_norm)s
 

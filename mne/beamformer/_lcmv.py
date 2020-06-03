@@ -69,7 +69,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         three dipoles at a source vertex are considered as a group and the
         spatial filters are computed jointly using a matrix inversion. While
         ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of [3]_.  Defaults to 'matrix'.
+        precise. See section 5 of :footcite:`vanVlietEtAl2018`.
+        Defaults to 'matrix'.
     %(verbose)s
 
     Returns
