@@ -97,8 +97,8 @@ def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
         if s.ndim == 1:  # typical
             logger.info('    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g'
                         '  max singular value)' % (tol, eps, len(s), max_s))
-    else:
-        tol = np.array(tol, float)
+    elif not (isinstance(tol, np.ndarray) and tol.dtype.kind == 'f'):
+        tol = float(tol)
         if tol_kind == 'relative':
             tol = tol * max_s
 
