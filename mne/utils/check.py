@@ -514,7 +514,7 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         if isinstance(noise_cov, Covariance) and 'estimator' in noise_cov:
             del noise_cov['estimator']
         allow_mismatch = False
-    _validate_type(noise_cov, Covariance, 'noise_cov')
+    _validate_type(noise_cov, (Covariance, CrossSpectralDensity), 'noise_cov')
     return noise_cov, picks, allow_mismatch
 
 

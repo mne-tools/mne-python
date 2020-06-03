@@ -470,7 +470,6 @@ class CrossSpectralDensity(object):
         """
         return cp.deepcopy(self)
 
-
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this cross-spectral density matrix.
 

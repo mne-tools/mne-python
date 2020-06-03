@@ -53,6 +53,13 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         - ``'vector'``
             Keeps the currents for each direction separate
     %(rank_info)s
+    %(weight_norm)s
+
+        Defaults to ``'unit-noise-gain'``.
+    %(reduce_rank)s
+    %(depth)s
+
+        .. versionadded:: 0.18
     inversion : 'single' | 'matrix'
         This determines how the beamformer deals with source spaces in "free"
         orientation. Such source spaces define three orthogonal dipoles at each
@@ -63,13 +70,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         spatial filters are computed jointly using a matrix inversion. While
         ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
         precise. See section 5 of [3]_.  Defaults to 'matrix'.
-    %(weight_norm)s
-
-        Defaults to ``'unit-noise-gain'``.
-    %(reduce_rank)s
-    %(depth)s
-
-        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
