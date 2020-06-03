@@ -7,14 +7,14 @@
 # http://psychophysiology.cpmc.columbia.edu/Software/CSDtoolbox/
 
 # Authors: Denis A. Engeman <denis.engemann@gmail.com>
-#          Alex Rockhill <aprockhill206@gmail.com>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: Relicensed under BSD (3-clause) and adapted with
 #          permission from authors of original GPL code
 
 import numpy as np
 
-from scipy import linalg
+from scipy import linalg, special
 
 from .. import pick_types
 from ..utils import _validate_type, _ensure_int
@@ -23,7 +23,59 @@ from ..io.constants import FIFF
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape
-from ..channels.interpolation import _calc_g, _calc_h
+
+
+def _calc_cos_dist(pos):
+    """Compute cosine distance between all pairs of electrodes."""
+    n_chs = pos.shape[0]
+    cos_dist = np.zeros((n_chs, n_chs))
+    for i, (x0, y0, z0) in enumerate(pos):
+        for j, (x1, y1, z1) in enumerate(pos[i + 1:]):
+            cos_dist[i, i + 1 + j] = \
+                1 - (((x0 - x1) ** 2 + (y0 - y1) ** 2 + (z0 - z1) ** 2) / 2)
+    cos_dist += cos_dist.T + np.identity(n_chs)
+    return cos_dist
+
+
+def _calc_G_H(n_legendre_terms, stiffness, cos_dist):
+    """Compute G and H matrixes."""
+    n_chs = cos_dist.shape[0]
+    # get legendre polynomials
+    leg_poly = np.zeros((n_legendre_terms, n_chs, n_chs))
+    for ni in range(n_legendre_terms):
+        for i in range(n_chs):
+            for j in range(i + 1, n_chs):
+                leg_poly[ni, i, j] = special.lpn(ni + 1,
+                                                 cos_dist[i, j])[0][ni + 1]
+    # add transpose
+    leg_poly += np.transpose(leg_poly, (0, 2, 1))
+    for i in range(n_legendre_terms):
+        leg_poly[i] += np.identity(n_chs)
+    # compute G and H matrixes
+    two_n1 = np.multiply(2, range(1, n_legendre_terms + 1)) + 1
+    g_denom = np.power(np.multiply(range(1, n_legendre_terms + 1),
+                                   range(2, n_legendre_terms + 2)),
+                       stiffness, dtype=float)
+    h_denom = np.power(np.multiply(range(1, n_legendre_terms + 1),
+                                   range(2, n_legendre_terms + 2)),
+                       stiffness - 1, dtype=float)
+    # intantiate G and H
+    G = np.zeros((n_chs, n_chs))
+    H = np.zeros((n_chs, n_chs))
+    # compute term by term
+    for i in range(n_chs):
+        for j in range(i, n_chs):
+            g = 0
+            h = 0
+            for ni in range(n_legendre_terms):
+                g = g + (two_n1[ni] * leg_poly[ni, i, j]) / g_denom[ni]
+                h = h - (two_n1[ni] * leg_poly[ni, i, j]) / h_denom[ni]
+            G[i, j] = g / (4 * np.pi)
+            H[i, j] = -h / (4 * np.pi)
+    # add transposes
+    G += G.T - np.identity(n_chs) * G[1, 1] / 2
+    H += H.T - np.identity(n_chs) * H[1, 1] / 2
+    return G, H
 
 
 def _prepare_G(G, lambda2):
@@ -152,11 +204,11 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     if not np.isfinite(pos).all() or np.isclose(pos, 0.).all(1).any():
         raise ValueError('Zero or infinite position found in chs')
     pos -= (x, y, z)
+    pos /= radius
 
-    G = _calc_g(np.dot(pos, pos.T), stiffness=stiffness,
-                n_legendre_terms=n_legendre_terms)
-    H = _calc_h(np.dot(pos, pos.T), stiffness=stiffness,
-                n_legendre_terms=n_legendre_terms)
+    cos_dist = _calc_cos_dist(pos)
+
+    G, H = _calc_G_H(n_legendre_terms, stiffness, cos_dist)
 
     G_precomputed = _prepare_G(G, lambda2)
 
