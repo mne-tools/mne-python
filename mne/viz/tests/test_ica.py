@@ -291,14 +291,33 @@ def test_plot_ica_scores():
               max_pca_components=3, n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
+    ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1])
+
+    # check labels
     ica.labels_ = dict()
-    ica.labels_['eog/0/foo'] = 0
     ica.labels_['eog'] = 0
     ica.labels_['ecg'] = 1
-    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+    ica.labels_['eog/0/foo'] = 0
+    ica.labels_['ecg/1/bar'] = 0
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='foo')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+
+    # check setting number of columns
+    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2], [0.3, 0.2]],
+                          axhline=[0.1, -0.1])
+    assert 2 == fig.get_axes()[0].get_geometry()[1]
+    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1],
+                          n_cols=1)
+    assert 1 == fig.get_axes()[0].get_geometry()[1]
+
+    # only use 1 column (even though 2 were requested)
+    fig = ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], n_cols=2)
+    assert 1 == fig.get_axes()[0].get_geometry()[1]
+
     pytest.raises(
         ValueError,
         ica.plot_scores,

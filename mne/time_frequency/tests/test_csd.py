@@ -58,19 +58,19 @@ def test_csd():
 def test_csd_repr():
     """Test string representation of CrossSpectralDensity."""
     csd = _make_csd()
-    assert str(csd) == ('<CrossSpectralDensity  |  n_channels=3, time=0.0 to '
+    assert str(csd) == ('<CrossSpectralDensity | n_channels=3, time=0.0 to '
                         '1.0 s, frequencies=1.0, 2.0, 3.0, 4.0 Hz.>')
 
-    assert str(csd.mean()) == ('<CrossSpectralDensity  |  n_channels=3, '
+    assert str(csd.mean()) == ('<CrossSpectralDensity | n_channels=3, '
                                'time=0.0 to 1.0 s, frequencies=1.0-4.0 Hz.>')
 
     csd_binned = csd.mean(fmin=[1, 3], fmax=[2, 4])
-    assert str(csd_binned) == ('<CrossSpectralDensity  |  n_channels=3, '
+    assert str(csd_binned) == ('<CrossSpectralDensity | n_channels=3, '
                                'time=0.0 to 1.0 s, frequencies=1.0-2.0, '
                                '3.0-4.0 Hz.>')
 
     csd_binned = csd.mean(fmin=[1, 2], fmax=[1, 4])
-    assert str(csd_binned) == ('<CrossSpectralDensity  |  n_channels=3, '
+    assert str(csd_binned) == ('<CrossSpectralDensity | n_channels=3, '
                                'time=0.0 to 1.0 s, frequencies=1.0, 2.0-4.0 '
                                'Hz.>')
 
@@ -78,7 +78,7 @@ def test_csd_repr():
     csd_no_time.tmin = None
     csd_no_time.tmax = None
     assert str(csd_no_time) == (
-        '<CrossSpectralDensity  |  n_channels=3, time=unknown, '
+        '<CrossSpectralDensity | n_channels=3, time=unknown, '
         'frequencies=1.0, 2.0, 3.0, 4.0 Hz.>'
     )
 

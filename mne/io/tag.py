@@ -43,14 +43,14 @@ class Tag(object):
         self.data = None
 
     def __repr__(self):  # noqa: D105
-        out = ("<Tag  |  kind %s - type %s - size %s - next %s - pos %s"
+        out = ("<Tag | kind %s - type %s - size %s - next %s - pos %s"
                % (self.kind, self.type, self.size, self.next, self.pos))
         if hasattr(self, 'data'):
             out += " - data %s" % self.data
         out += ">"
         return out
 
-    def __cmp__(self, tag):  # noqa: D105
+    def __eq__(self, tag):  # noqa: D105
         return int(self.kind == tag.kind and
                    self.type == tag.type and
                    self.size == tag.size and
@@ -447,11 +447,11 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
             tag.data = _read_matrix(fid, tag, shape, rlims, matrix_coding)
         else:
             #   All other data types
-            fun = _call_dict.get(tag.type)
-            if fun is not None:
-                tag.data = fun(fid, tag, shape, rlims)
-            else:
+            try:
+                fun = _call_dict[tag.type]
+            except KeyError:
                 raise Exception('Unimplemented tag data type %s' % tag.type)
+            tag.data = fun(fid, tag, shape, rlims)
     if tag.next != FIFF.FIFFV_NEXT_SEQ:
         # f.seek(tag.next,0)
         fid.seek(tag.next, 1)  # XXX : fix? pb when tag.next < 0

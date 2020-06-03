@@ -1609,6 +1609,14 @@ def test_subtract_evoked():
     data = zero_evoked.data
     assert_allclose(data, np.zeros_like(data), atol=1e-15)
 
+    # with decimation (gh-7854)
+    epochs3 = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                     decim=10, verbose='error')
+    data_old = epochs2.decimate(10, verbose='error').get_data()
+    data = epochs3.subtract_evoked().get_data()
+    assert_allclose(data, data_old)
+    assert_allclose(epochs3.average().data, 0., atol=1e-20)
+
 
 def test_epoch_eq():
     """Test epoch count equalization and condition combining."""
@@ -2628,6 +2636,33 @@ def test_metadata(tmpdir):
     with pytest.raises(ValueError,
                        match='metadata must have the same number of rows .*'):
         epochs['new_key == 1']
+
+    # metadata should be same length as original events
+    raw_data = np.random.randn(2, 10000)
+    info = mne.create_info(2, 1000.)
+    raw = mne.io.RawArray(raw_data, info)
+    opts = dict(raw=raw, tmin=0, tmax=.001, baseline=None)
+    events = [[0, 0, 1], [1, 0, 2]]
+    metadata = DataFrame(events, columns=['onset', 'duration', 'value'])
+    epochs = Epochs(events=events, event_id=1, metadata=metadata, **opts)
+    epochs.drop_bad()
+    assert len(epochs) == 1
+    assert len(epochs.metadata) == 1
+    with pytest.raises(ValueError, match='same number of rows'):
+        Epochs(events=events, event_id=1, metadata=metadata.iloc[:1], **opts)
+
+    # gh-7732: problem when repeated events and metadata
+    for er in ('drop', 'merge'):
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(events=events, event_repeated=er, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(
+            events=events, event_repeated=er, metadata=metadata, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        assert len(epochs.metadata) == 1
 
 
 def assert_metadata_equal(got, exp):

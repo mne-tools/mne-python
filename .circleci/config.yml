@@ -53,9 +53,12 @@ jobs:
               - pip-cache
 
         - run:
-            name: Install 3D rendering libraries
+            name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
             command: |
-              sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3
+              sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
+                  libxkbcommon-x11-0 \
+                  graphviz \
+                  optipng
 
         - run:
             name: Spin up Xvfb
@@ -64,15 +67,10 @@ jobs:
 
         # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
         # https://github.com/golemfactory/golem/issues/1019
-        - run:
-            name: Install PyQt5 dependencies
-            command: |
-              sudo apt-get install libxkbcommon-x11-0
 
         - run:
-            name: Install graphviz and fonts needed for diagrams
+            name: Install fonts needed for diagrams
             command: |
-              sudo apt-get install graphviz
               mkdir -p $HOME/.fonts
               curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
               curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/2.045R-ro/1.095R-it | tar xz -C $HOME/.fonts
@@ -82,8 +80,8 @@ jobs:
             name: Get Python running
             command: |
               python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
-              python -m pip install --user --upgrade --progress-bar off "vtk>=9.0.0rc3" -f https://vtk.org/download/
-              python -m pip install --user --upgrade --progress-bar off https://github.com/larsoner/mayavi/zipball/vtk9
+              python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
+              python -m pip install --user --upgrade --progress-bar off https://github.com/enthought/mayavi/zipball/master
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
@@ -210,6 +208,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*limo.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.limo.data_path(subject=1, update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*refmeg_noise.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.refmeg_noise.data_path(update_path=True))";
+                    fi;
                   fi;
                 done;
                 echo PATTERN="$PATTERN";
@@ -256,6 +257,12 @@ jobs:
               if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
+                rm -f doc/auto_*/*/*.pickle
+                rm -f doc/auto_*/*/*.codeobj
+                rm -f doc/auto_*/*/*.md5
+                rm -f doc/auto_*/*/*.py
+                rm -f doc/auto_*/*/*.ipynb
+                rm -f doc/generated/*.examples
               fi
 
         # Save the JUnit file
@@ -264,7 +271,17 @@ jobs:
         - store_artifacts:
             path: doc/_build/test-results
             destination: test-results
-        # Save the outputs
+        # Save the SG RST
+        - store_artifacts:
+            path: doc/auto_examples
+            destination: auto_examples
+        - store_artifacts:
+            path: doc/auto_tutorials
+            destination: auto_tutorials
+        - store_artifacts:
+            path: doc/generated
+            destination: generated
+        # Save the HTML
         - store_artifacts:
             path: doc/_build/html/
             destination: dev

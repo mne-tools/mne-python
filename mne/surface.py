@@ -51,9 +51,9 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     subject : str
         Subject name.
     source : str | list of str
-        Type to load. Common choices would be `'bem'` or `'head'`. We first
-        try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
-        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory by going
+        Type to load. Common choices would be ``'bem'`` or ``'head'``. We first
+        try loading ``'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'``, and
+        then look for ``'$SUBJECT*$SOURCE.fif'`` in the same directory by going
         through all files matching the pattern. The head surface will be read
         from the first file containing a head surface. Can also be a list
         to try multiple strings.

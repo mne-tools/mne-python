@@ -252,16 +252,16 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     if len(cl_goods) > 0:
         keepers = [np.array([], dtype=int)] * n_times
         row, col = np.unravel_index(cl_goods, (n_times, n_src))
+        lims = [0]
         if isinstance(row, int):
             row = [row]
             col = [col]
-            lims = [0]
         else:
             order = np.argsort(row)
             row = row[order]
             col = col[order]
-            lims = [0] + (np.where(np.diff(row) > 0)[0] +
-                          1).tolist() + [len(row)]
+            lims += (np.where(np.diff(row) > 0)[0] + 1).tolist()
+            lims.append(len(row))
 
         for start, end in zip(lims[:-1], lims[1:]):
             keepers[row[start]] = np.sort(col[start:end])
@@ -416,11 +416,10 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
     # set these here just in case thresholds == []
     clusters = list()
-    sums = np.empty(0)
+    sums = list()
     for ti, thresh in enumerate(thresholds):
         # these need to be reset on each run
         clusters = list()
-        sums = np.empty(0)
         if tail == 0:
             x_ins = [np.logical_and(x > thresh, include),
                      np.logical_and(x < -thresh, include)]
@@ -435,7 +434,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                                                 max_step, partitions, t_power,
                                                 ndimage)
                 clusters += out[0]
-                sums = np.concatenate((sums, out[1]))
+                sums.append(out[1])
         if tfce:
             # the score of each point is the sum of the h^H * e^E for each
             # supporting section "rectangle" h x e.
@@ -455,6 +454,8 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 else:
                     len_c = len(c)
                 scores[c] += h * (len_c ** e_power)
+    # turn sums into array
+    sums = np.concatenate(sums) if sums else np.array([])
     if tfce:
         # each point gets treated independently
         clusters = np.arange(x.size)
@@ -500,7 +501,8 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         if x.ndim == 1:
             # slices
             clusters = ndimage.find_objects(labels, n_labels)
-            if len(clusters) == 0:
+            # equivalent to if len(clusters) == 0 but faster
+            if not clusters:
                 sums = list()
             else:
                 index = list(range(1, n_labels + 1))
@@ -562,8 +564,6 @@ def _pval_from_histogram(T, H0, tail):
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
     """
-    _check_option('tail', tail, [-1, 0, 1])
-
     # from pct to fraction
     if tail == -1:  # up tail
         pval = np.array([np.mean(H0 <= t) for t in T])
@@ -822,6 +822,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     is elicited.
     """
     _check_option('out_type', out_type, ['mask', 'indices'])
+    _check_option('tail', tail, [-1, 0, 1])
     if not isinstance(threshold, dict):
         threshold = float(threshold)
         if (tail < 0 and threshold > 0 or tail > 0 and threshold < 0 or
@@ -1039,7 +1040,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
 def permutation_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         connectivity=None, n_jobs=1, seed=None, max_step=1, exclude=None,
-        step_down_p=0, t_power=1, out_type='mask', check_disjoint=False,
+        step_down_p=0, t_power=1, out_type=None, check_disjoint=False,
         buffer_size=1000, verbose=None):
     """Cluster-level statistical permutation test.
 
@@ -1079,8 +1080,7 @@ def permutation_cluster_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_f)s
-    %(clust_out)s
-        Default is ``'mask'``.
+    %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1101,6 +1101,11 @@ def permutation_cluster_test(
     .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, 'between')
+    if out_type is None:
+        warn('The default for "out_type" will change from "mask" to "indices" '
+             'in version 0.22. To avoid this warning, explicitly set '
+             '"out_type" to one of its string values.', DeprecationWarning)
+        out_type = 'mask'
     return _permutation_cluster_test(
         X=X, threshold=threshold, n_permutations=n_permutations, tail=tail,
         stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
@@ -1113,7 +1118,7 @@ def permutation_cluster_test(
 def permutation_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
-        exclude=None, step_down_p=0, t_power=1, out_type='mask',
+        exclude=None, step_down_p=0, t_power=1, out_type=None,
         check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level paired t-test.
 
@@ -1141,8 +1146,7 @@ def permutation_cluster_1samp_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_t)s
-    %(clust_out)s
-        Default is ``'mask'``.
+    %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1187,6 +1191,11 @@ def permutation_cluster_1samp_test(
     .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
+    if out_type is None:
+        warn('The default for "out_type" will change from "mask" to "indices" '
+             'in version 0.22. To avoid this warning, explicitly set '
+             '"out_type" to one of its string values.', DeprecationWarning)
+        out_type = 'mask'
     return _permutation_cluster_test(
         X=[X], threshold=threshold, n_permutations=n_permutations, tail=tail,
         stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
@@ -1227,7 +1236,6 @@ def spatio_temporal_cluster_1samp_test(
     %(clust_stepdown)s
     %(clust_power_t)s
     %(clust_out)s
-        Default is ``'indices'``.
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1298,7 +1306,6 @@ def spatio_temporal_cluster_test(
     %(clust_stepdown)s
     %(clust_power_f)s
     %(clust_out)s
-        Default is ``'indices'``.
     %(clust_disjoint)s
     %(clust_buffer)s
 
@@ -1429,7 +1436,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
         The name of the subject.
     vertices : list of array | None
         The vertex numbers associated with the source space locations. Defaults
-        to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
+        to None. If None, equals ``[np.arange(10242), np.arange(10242)]``.
 
     Returns
     -------

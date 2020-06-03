@@ -33,6 +33,7 @@ References
 #
 # License: BSD (3-clause)
 import os
+import os.path as op
 
 import mne
 from mne.datasets import sample
@@ -42,9 +43,13 @@ print(__doc__)
 ###############################################################################
 # Setup paths
 
-sample_dir_raw = sample.data_path()
-sample_dir = os.path.join(sample_dir_raw, 'MEG', 'sample')
-subjects_dir = os.path.join(sample_dir_raw, 'subjects')
+data_path = sample.data_path()
+sample_dir = op.join(data_path, 'MEG', 'sample')
+subjects_dir = op.join(data_path, 'subjects')
+fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
+fname_fwd = op.join(sample_dir, 'sample_audvis-meg-oct-6-fwd.fif')
+fname_fsaverage_src = os.path.join(subjects_dir, 'fsaverage', 'bem',
+                                   'fsaverage-ico-5-src.fif')
 
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 
@@ -58,32 +63,40 @@ stc = mne.read_source_estimate(fname_stc, subject='sample')
 # Setting up SourceMorph for SourceEstimate
 # -----------------------------------------
 #
-# In MNE surface source estimates represent the source space simply as
-# lists of vertices (see
-# :ref:`tut-source-estimate-class`).
-# This list can either be obtained from
-# :class:`mne.SourceSpaces` (src) or from the ``stc`` itself.
+# In MNE, surface source estimates represent the source space simply as
+# lists of vertices (see :ref:`tut-source-estimate-class`).
+# This list can either be obtained from :class:`mne.SourceSpaces` (src) or from
+# the ``stc`` itself. If you use the source space, be sure to use the
+# source space from the forward or inverse operator, because vertices
+# can be excluded during forward computation due to proximity to the BEM
+# inner skull surface:
+
+src_orig = mne.read_source_spaces(fname_src)
+print(src_orig)  # n_used=4098, 4098
+fwd = mne.read_forward_solution(fname_fwd)
+print(fwd['src'])  # n_used=3732, 3766
+print([len(v) for v in stc.vertices])
+
+###############################################################################
+# We also need to specify the set of vertices to morph to. This can be done
+# using the ``spacing`` parameter, but for consistency it's better to pass the
+# ``src_to`` parameter.
 #
-# Since the default ``spacing`` (resolution of surface mesh) is ``5`` and
-# ``subject_to`` is set to 'fsaverage', :class:`mne.SourceMorph` will use
-# default ico-5 ``fsaverage`` vertices to morph, which are the special
-# values ``[np.arange(10242)] * 2``.
-#
-# .. note:: This is not generally true for other subjects! The set of vertices
-#           used for ``fsaverage`` with ico-5 spacing was designed to be
-#           special. ico-5 spacings for other subjects (or other spacings
-#           for fsaverage) must be calculated and will not be consecutive
-#           integers.
-#
-# If src was not defined, the morph will actually not be precomputed, because
-# we lack the vertices *from* that we want to compute. Instead the morph will
-# be set up and when applying it, the actual transformation will be computed on
-# the fly.
+# .. note::
+#      Since the default values of :func:`mne.compute_source_morph` are
+#      ``spacing=5, subject_to='fsaverage'``, in this example
+#      we could actually omit the ``src_to`` and ``subject_to`` arguments
+#      below. The ico-5 ``fsaverage`` source space contains the
+#      special values ``[np.arange(10242)] * 2``, but in general this will
+#      not be true for other spacings or other subjects. Thus it is recommended
+#      to always pass the destination ``src`` for consistency.
 #
 # Initialize SourceMorph for SourceEstimate
 
+src_to = mne.read_source_spaces(fname_fsaverage_src)
+print(src_to[0]['vertno'])  # special, np.arange(10242)
 morph = mne.compute_source_morph(stc, subject_from='sample',
-                                 subject_to='fsaverage',
+                                 subject_to='fsaverage', src_to=src_to,
                                  subjects_dir=subjects_dir)
 
 ###############################################################################

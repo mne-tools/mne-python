@@ -36,7 +36,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 # this by
 # keeping track of the bad channel indices in a list and looking at that list
 # when doing analysis or plotting tasks. The list of bad channels is stored in
-# the `'bads'` field of the :class:`~mne.Info` object that is attached to
+# the ``'bads'`` field of the :class:`~mne.Info` object that is attached to
 # :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked` objects.
 
 print(raw.info['bads'])

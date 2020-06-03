@@ -138,7 +138,7 @@ add_arrows(fig.axes[:2])
 # unaffected by the power line noise, we'll also specify a ``picks`` argument
 # so that only the magnetometers and gradiometers get filtered:
 
-meg_picks = mne.pick_types(raw.info)  # meg=True, eeg=False are the defaults
+meg_picks = mne.pick_types(raw.info, meg=True)
 freqs = (60, 120, 180, 240)
 raw_notch = raw.copy().notch_filter(freqs=freqs, picks=meg_picks)
 for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):

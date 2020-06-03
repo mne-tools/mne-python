@@ -143,6 +143,14 @@ ch_type : str
 
     .. versionadded:: 0.21
 """
+docdict['topomap_show_names'] = """
+show_names : bool | callable
+    If True, show channel names on top of the map. If a callable is
+    passed, channel names will be formatted using the callable; e.g., to
+    delete the prefix 'MEG ' from all channel names, pass the function
+    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not None, only
+    significant sensors will be shown.
+"""
 
 # PSD topomaps
 docdict["psd_topo_vlim_joint"] = """
@@ -470,7 +478,7 @@ bad_condition : str
 head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
-    parameters as returned by e.g. `read_head_pos`.
+    parameters as returned by e.g. ``read_head_pos``.
 """
 docdict['maxwell_st_fixed_only'] = """
 st_fixed : bool
@@ -522,6 +530,32 @@ rank : None | dict | 'info' | 'full'
     of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+docdict['rank_tol'] = """
+tol : float | 'auto'
+    Tolerance for singular values to consider non-zero in
+    calculating the rank. The singular values are calculated
+    in this method such that independent data are expected to
+    have singular value around one. Can be 'auto' to use the
+    same thresholding as :func:`scipy.linalg.orth`.
+"""
+docdict['rank_tol_kind'] = """
+tol_kind : str
+    Can be: "absolute" (default) or "relative". Only used if ``tol`` is a
+    float, because when ``tol`` is a string the mode is implicitly relative.
+    After applying the chosen scale factors / normalization to the data,
+    the singular values are computed, and the rank is then taken as:
+
+    - ``'absolute'``
+        The number of singular values ``s`` greater than ``tol``.
+        This mode can fail if your data do not adhere to typical
+        data scalings.
+    - ``'relative'``
+        The number of singular values ``s`` greater than ``tol * s.max()``.
+        This mode can fail if you have one or more large components in the
+        data (e.g., artifacts).
+
+    .. versionadded:: 0.21.0
+"""
 
 # Inverses
 docdict['depth'] = """
@@ -529,10 +563,10 @@ depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
     to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a `dict` containing
-    keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
-    (see docstring for details and defaults). This is effectively ignored
-    when ``method='eLORETA'``.
+    no depth weighting is performed. It can also be a :class:`dict`
+    containing keyword arguments to pass to
+    :func:`mne.forward.compute_depth_prior` (see docstring for details and
+    defaults). This is effectively ignored when ``method='eLORETA'``.
 
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
@@ -634,7 +668,7 @@ head_pos : None | str | dict | tuple | array
     be the time points and entries should be 4x4 ``dev_head_t``
     matrices. If None, the original head position (from
     ``info['dev_head_t']``) will be used. If tuple, should have the
-    same format as data returned by `head_pos_to_trans_rot_t`.
+    same format as data returned by ``head_pos_to_trans_rot_t``.
     If array, should be of the form returned by
     :func:`mne.chpi.read_head_pos`.
 """
@@ -690,9 +724,9 @@ indicate the boundaries of the filter (--). The line noise frequency is
 also indicated with a dashed line (-.)
 """
 docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
-    Cannot be None if `ax` is supplied.If both `picks` and `ax` are None
+    Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
     separate subplots will be created for each standard channel type
-    (`mag`, `grad`, and `eeg`).
+    (``mag``, ``grad``, and ``eeg``).
 """
 docdict["plot_psd_color"] = """
 color : str | tuple
@@ -1102,7 +1136,17 @@ out_type : 'mask' | 'indices'
     part of a cluster. If ``'indices'``, returns a list of lists, where each
     sublist contains the indices of locations that together form a cluster.
     Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``.
+    ``'mask'``. Default is ``'indices'``.
+"""
+docdict['clust_out_none'] = """
+out_type : 'mask' | 'indices'
+    Output format of clusters. If ``'mask'``, returns boolean arrays the same
+    shape as the input data, with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of lists, where each
+    sublist contains the indices of locations that together form a cluster.
+    Note that for large datasets, ``'indices'`` may use far less memory than
+    ``'mask'``. The default translates to ``'mask'`` in version 0.21 but will
+    change to ``'indices'`` in version 0.22.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool

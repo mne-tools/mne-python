@@ -208,7 +208,7 @@ class Covariance(dict):
             s = 'diagonal : %s' % self.data.size
         s += ", n_samples : %s" % self.nfree
         s += ", data : %s" % self.data
-        return "<Covariance  |  %s>" % s
+        return "<Covariance | %s>" % s
 
     def __add__(self, cov):
         """Add Covariance taking into account number of degrees of freedom."""
@@ -312,8 +312,8 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
         Measurement info.
     std : dict of float | None
         Standard_deviation of the diagonal elements. If dict, keys should be
-        `grad` for gradiometers, `mag` for magnetometers and `eeg` for EEG
-        channels. If None, default values will be used (see Notes).
+        ``'grad'`` for gradiometers, ``'mag'`` for magnetometers and ``'eeg'``
+        for EEG channels. If None, default values will be used (see Notes).
     %(verbose)s
 
     Returns
@@ -1498,7 +1498,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for MEG magnetometers.
     grad : float (default 0.1)
         Regularization factor for MEG gradiometers. Must be the same as
-        `mag` if data have been processed with SSS.
+        ``mag`` if data have been processed with SSS.
     eeg : float (default 0.1)
         Regularization factor for EEG.
     exclude : list | 'bads' (default 'bads')
@@ -1653,22 +1653,17 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     cov : ndarray, shape (n_channels, n_channels)
         The covariance matrix.
     """
+    _validate_type(reg, (str, 'numeric', None))
     if reg is None:
         reg = 'empirical'
-    try:
+    elif not isinstance(reg, str):
         reg = float(reg)
-    except ValueError:
-        pass
-    if isinstance(reg, float):
         if method_params is not None:
             raise ValueError('If reg is a float, method_params must be None '
                              '(got %s)' % (type(method_params),))
         method_params = dict(shrinkage=dict(
             shrinkage=reg, assume_centered=True, store_precision=False))
         reg = 'shrinkage'
-    elif not isinstance(reg, str):
-        raise ValueError('reg must be a float, str, or None, got %s (%s)'
-                         % (reg, type(reg)))
     method, method_params = _check_method_params(
         reg, method_params, name='reg', allow_auto=False, rank=rank)
     # use mag instead of eeg here to avoid the cov EEG projection warning
@@ -1694,7 +1689,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     noise_cov : Covariance
         The noise covariance.
     info : dict | None
-        The measurement info. Can be None if `noise_cov` has already been
+        The measurement info. Can be None if ``noise_cov`` has already been
         prepared with :func:`prepare_noise_cov`.
     %(picks_good_data_noref)s
     %(rank_None)s

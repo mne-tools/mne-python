@@ -79,7 +79,7 @@ plt.title('Between-sensor adjacency')
 # Compute permutation statistic
 # -----------------------------
 #
-# How does it work? We use clustering to `bind` together features which are
+# How does it work? We use clustering to "bind" together features which are
 # similar. Our features are the magnetic fields measured over our sensor
 # array at different times. This reduces the multiple comparison problem.
 # To compute the actual test-statistic, we first sum all F-values in all

@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+import os
 import os.path as op
 from pathlib import Path
 import sys
@@ -681,10 +682,17 @@ def test_plot_volume_source_estimates_morph():
                  clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
+bad_azure_3d = pytest.mark.skipif(
+    os.getenv('AZURE_CI_WINDOWS', 'false') == 'true' and
+    sys.version_info[:2] == (3, 8),
+    reason='Crashes workers on Azure')
+
+
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
+@bad_azure_3d
 def test_plot_vector_source_estimates(renderer_interactive):
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -766,6 +774,7 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
+@bad_azure_3d
 def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)

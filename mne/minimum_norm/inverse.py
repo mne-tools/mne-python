@@ -1647,7 +1647,7 @@ def estimate_snr(evoked, inv, verbose=None):
     Returns
     -------
     snr : ndarray, shape (n_times,)
-        The SNR estimated from the whitened data.
+        The SNR estimated from the whitened data (i.e., GFP of whitened data).
     snr_est : ndarray, shape (n_times,)
         The SNR estimated using the mismatch between the unregularized
         solution and the regularized solution.

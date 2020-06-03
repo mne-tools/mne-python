@@ -19,15 +19,15 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
 
     This is a modified version of :func:`scipy.stats.ttest_1samp` that avoids
     a (relatively) time-consuming p-value calculation, and can adjust
-    for implausibly small variance values [1]_.
+    for implausibly small variance values :footcite:`RidgwayEtAl2012`.
 
     Parameters
     ----------
     X : array
         Array to return t-values for.
     sigma : float
-        The variance estate will be given by "var + sigma * max(var)" or
-        "var + sigma", depending on "method". By default this is 0 (no
+        The variance estimate will be given by ``var + sigma * max(var)`` or
+        ``var + sigma``, depending on "method". By default this is 0 (no
         adjustment). See Notes for details.
     method : str
         If 'relative', the minimum variance estimate will be sigma * max(var),
@@ -40,8 +40,8 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
 
     Notes
     -----
-    To use the "hat" adjustment method [1]_, a value of ``sigma=1e-3`` may be a
-    reasonable choice.
+    To use the "hat" adjustment method :footcite:`RidgwayEtAl2012`, a value
+    of ``sigma=1e-3`` may be a reasonable choice.
 
     You can use the conversion from ``scipy.stats.distributions.t.ppf``::
 
@@ -53,9 +53,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
 
     References
     ----------
-    .. [1] Ridgway et al. 2012 "The problem of low variance voxels in
-       statistical parametric mapping; a new hat avoids a 'haircut'",
-       NeuroImage. 2012 Feb 1;59(3):2131-41.
+    .. footbibliography::
     """
     _check_option('method', method, ['absolute', 'relative'])
     var = np.var(X, axis=0, ddof=1)
@@ -65,11 +63,12 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     return np.mean(X, axis=0) / np.sqrt(var / X.shape[0])
 
 
-def ttest_ind_no_p(a, b, equal_var=True, sigma=1e-3):
-    """Independent samples t-test with hat adjustment and no p calculation.
+def ttest_ind_no_p(a, b, equal_var=True, sigma=0.):
+    """Independent samples t-test without p calculation.
 
     This is a modified version of :func:`scipy.stats.ttest_ind`. It operates
-    along the first axis.
+    along the first axis. The ``sigma`` parameter provides an optional "hat"
+    adjustment (see :func:`ttest_1samp_no_p` and :footcite:`RidgwayEtAl2012`).
 
     Parameters
     ----------
@@ -86,6 +85,10 @@ def ttest_ind_no_p(a, b, equal_var=True, sigma=1e-3):
     -------
     t : array
         T values.
+
+    References
+    ----------
+    .. footbibliography::
     """
     v1 = np.var(a, axis=0, ddof=1)
     v2 = np.var(b, axis=0, ddof=1)
