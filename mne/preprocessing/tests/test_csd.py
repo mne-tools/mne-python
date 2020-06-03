@@ -3,137 +3,126 @@
 
 For each supported file format, implement a test.
 """
-# Authors: Alex Rockhill <aprockhill206@gmail.com>
+# Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD (3-clause)
 
 import os.path as op
 
 import numpy as np
-from scipy import io as sio
 
 import pytest
 from numpy.testing import assert_allclose
 
-from mne.channels import make_standard_montage
-from mne import (create_info, Annotations, events_from_annotations, Epochs,
-                 pick_types)
-from mne.io import RawArray, read_raw_fif
+from mne.channels import make_dig_montage
+from mne import create_info, EpochsArray, pick_types
+from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import object_diff, run_tests_if_main
 from mne.datasets import testing
 
 from mne.preprocessing import compute_current_source_density
 
-from mne.channels.interpolation import _calc_g, _calc_h
 
-data_path = testing.data_path(download=False)
-eeg_fname = op.join(data_path, 'preprocessing', 'test-eeg.mat')
-csd_fname = op.join(data_path, 'preprocessing', 'test-eeg-csd.mat')
+eeg_fname = './data/test_eeg.csv'
+coords_fname = './data/test_eeg_pos.csv'
+csd_fname = './data/test_eeg_csd.csv'
+
+ch_names = ['Fp1', 'AF7', 'AF3', 'F1', 'F3', 'F5', 'F7', 'FT7', 'FC5',
+            'FC3', 'FC1', 'C1', 'C3', 'C5', 'T7', 'TP7', 'CP5', 'CP3',
+            'CP1', 'P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'O1',
+            'Iz', 'Oz', 'POz', 'Pz', 'CPz', 'Fpz', 'Fp2', 'AF8', 'AF4',
+            'AFz', 'Fz', 'F2', 'F4', 'F6', 'F8', 'FT8', 'FC6', 'FC4',
+            'FC2', 'FCz', 'Cz', 'C2', 'C4', 'C6', 'T8', 'TP8', 'CP6',
+            'CP4', 'CP2', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4',
+            'O2']
 
 io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(io_path, 'test_raw.fif')
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
-def raw_epochs_sphere():
+def epochs_csd_sphere():
     """Get the MATLAB EEG data."""
-    n_times = 386
-    mat_contents = sio.loadmat(eeg_fname)
-    data = mat_contents['data']
-    n_channels, n_epochs = data.shape[0], data.shape[1] // n_times
-    sfreq = 250.
-    ch_names = ['E%i' % i for i in range(1, n_channels + 1, 1)]
-    ch_types = ['eeg'] * n_channels
-    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
-    raw = RawArray(data=data, info=info)
-    montage = make_standard_montage('GSN-HydroCel-257')
-    raw.set_montage(montage)
-    onset = raw.times[np.arange(50, n_epochs * n_times, n_times)]
-    raw.set_annotations(Annotations(onset=onset,
-                                    duration=np.repeat(0.1, 3),
-                                    description=np.repeat('foo', 3)))
+    data = np.genfromtxt(eeg_fname, delimiter=',')
+    # re-arrange data into a 3d array
+    data = data.reshape((64, 640, 99), order='F')
+    # swap data's shape
+    data = np.rollaxis(data, 2)
+    # re-scale data
+    data *= 1e-6
+    coords = np.genfromtxt(coords_fname, delimiter=',')
+    csd = np.genfromtxt(csd_fname, delimiter=',')
 
-    events, event_id = events_from_annotations(raw)
-    epochs = Epochs(raw, events, event_id, tmin=-.2, tmax=1.34,
-                    preload=True, reject=None, picks=None,
-                    baseline=(None, 0), verbose=False)
-    sphere = (0., 0., 0., 0.095)
-    return raw, epochs, sphere
+    sphere = (0, 0, 0, 85)
+    sfreq = 256  # sampling rate
+    # swap coordinates' shape
+    pos = np.rollaxis(coords, 1)
+    # swap coordinates' positions
+    pos[:, [0]], pos[:, [1]] = pos[:, [1]], pos[:, [0]]
+    # invert first coordinate
+    pos[:, [0]] *= -1
+    # assign channel names to coordinates
+    dig_ch_pos = dict(zip(ch_names, pos))
+    montage = make_dig_montage(ch_pos=dig_ch_pos, nasion=(0, 50, 0),
+                               lpa=(-100, 0, 0), rpa=(100, 0, 0))
+    # create info
+    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+    # make Epochs object
+    epochs = EpochsArray(data=data, info=info, tmin=-1)
+    epochs.set_montage(montage)
+    return epochs, csd, sphere
 
 
-def test_csd_matlab(raw_epochs_sphere):
+def test_csd_matlab(epochs_csd_sphere):
     """Test replication of the CSD MATLAB toolbox."""
-    raw, epochs, sphere = raw_epochs_sphere
-    n_epochs = len(epochs)
-    picks = pick_types(epochs.info, meg=False, eeg=True, eog=False,
-                       stim=False, exclude='bads')
-
-    csd_data = sio.loadmat(csd_fname)
-
-    montage = make_standard_montage('EGI_256', head_size=0.100004)
-    positions = np.array([montage.dig[pick]['r'] * 10 for pick in picks])
-    cosang = np.dot(positions, positions.T)
-    G = _calc_g(cosang)
-    assert_allclose(G, csd_data['G'], atol=1e-3)
-    H = _calc_h(cosang)
-    assert_allclose(H, csd_data['H'], atol=1e-3)
-    for i in range(n_epochs):
-        epochs_csd = compute_current_source_density(epochs, sphere=sphere)
-        assert_allclose(epochs_csd.get_data(), csd_data['X'], atol=1e-3)
+    epochs, csd, sphere = epochs_csd_sphere
+    epochs_csd = compute_current_source_density(epochs,
+                                                sphere=sphere)
+    print(epochs_csd.average().data)
+    print(csd)
+    assert_allclose(epochs_csd.average().data, csd, atol=1e-4)
 
     # test raw
-    csd_raw = compute_current_source_density(raw, sphere=sphere)
+    csd_epochs = compute_current_source_density(epochs, sphere=sphere)
 
     with pytest.raises(ValueError, match=('CSD already applied, '
                                           'should not be reapplied')):
-        compute_current_source_density(csd_raw, sphere=sphere)
+        compute_current_source_density(csd_epochs, sphere=sphere)
 
-    csd_raw_test_array = np.array([[2.29938168e-07, 1.55737642e-07],
-                                   [-9.63976630e-09, 8.31646698e-09],
-                                   [-2.30898926e-07, -1.56250505e-07],
-                                   [-1.81081104e-07, -5.46661150e-08],
-                                   [-9.08835568e-08, 1.61788422e-07],
-                                   [5.38295661e-09, 3.75240220e-07]])
-    assert_allclose(csd_raw._data[:, 100:102], csd_raw_test_array, atol=1e-3)
-
-    csd_epochs = compute_current_source_density(epochs, sphere=sphere)
-    assert_allclose(csd_epochs._data, csd_data['X'], atol=1e-3)
-
-    csd_epochs = compute_current_source_density(epochs, sphere=sphere)
+    assert_allclose(csd_epochs._data.sum(), 0.0001411335742733275, atol=1e-3)
 
     csd_evoked = compute_current_source_density(epochs.average(),
                                                 sphere=sphere)
-    assert_allclose(csd_evoked.data, csd_data['X'].mean(0), atol=1e-3)
     assert_allclose(csd_evoked.data, csd_epochs._data.mean(0), atol=1e-3)
 
 
-def test_csd_degenerate(raw_epochs_sphere):
+def test_csd_degenerate(epochs_csd_sphere):
     """Test degenerate conditions."""
-    raw, epochs, sphere = raw_epochs_sphere
-    warn_raw = raw.copy()
-    warn_raw.info['bads'].append(warn_raw.ch_names[3])
+    epochs, csd, sphere = epochs_csd_sphere
+    warn_epochs = epochs.copy()
+    warn_epochs.info['bads'].append(warn_epochs.ch_names[3])
     with pytest.raises(ValueError, match='Either drop.*or interpolate'):
-        compute_current_source_density(warn_raw)
+        compute_current_source_density(warn_epochs)
 
     with pytest.raises(TypeError, match='must be an instance of'):
         compute_current_source_density(None)
 
-    fail_raw = raw.copy()
+    fail_epochs = epochs.copy()
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        for ch in fail_raw.info['chs']:
+        for ch in fail_epochs.info['chs']:
             ch['loc'][:3] = np.array([0, 0, 0])
-        compute_current_source_density(fail_raw, sphere=sphere)
+        compute_current_source_density(fail_epochs, sphere=sphere)
 
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        fail_raw.info['chs'][3]['loc'][:3] = np.inf
-        compute_current_source_density(fail_raw, sphere=sphere)
+        fail_epochs.info['chs'][3]['loc'][:3] = np.inf
+        compute_current_source_density(fail_epochs, sphere=sphere)
 
     with pytest.raises(ValueError, match=('No EEG channels found.')):
-        fail_raw = raw.copy()
-        fail_raw.set_channel_types({ch_name: 'ecog' for ch_name in
-                                    fail_raw.ch_names})
-        compute_current_source_density(fail_raw, sphere=sphere)
+        fail_epochs = epochs.copy()
+        fail_epochs.set_channel_types({ch_name: 'ecog' for ch_name in
+                                       fail_epochs.ch_names})
+        compute_current_source_density(fail_epochs, sphere=sphere)
 
     with pytest.raises(TypeError):
         compute_current_source_density(epochs, lambda2='0', sphere=sphere)
