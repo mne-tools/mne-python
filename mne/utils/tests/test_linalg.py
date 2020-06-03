@@ -73,7 +73,7 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
     want_rank = n - deficient
     assert_array_equal(rank, want_rank)
     # assert equiv with NumPy
-    mat_pinv = np.linalg.pinv(mat, hermitian=True)
+    mat_pinv = np.linalg.pinv(mat)
     if func is _sym_mat_pow:
         if not psdef:
             with pytest.raises(ValueError, match='not positive semi-'):
