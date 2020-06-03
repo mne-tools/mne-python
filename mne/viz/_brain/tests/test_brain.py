@@ -182,6 +182,11 @@ def test_brain_timeviewer(renderer_interactive):
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
 
+    # screenshot
+    brain_data.show_view(view=dict(azimuth=180., elevation=90.))
+    img = brain_data.screenshot(mode='rgb')
+    assert(img.shape == (300, 300, 3))
+
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
