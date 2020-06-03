@@ -176,6 +176,22 @@ class _Renderer(_BaseRenderer):
             if not MNE_3D_BACKEND_TESTING:
                 _enable_aa(self.figure, self.plotter)
 
+    @contextmanager
+    def ensure_minimum_sizes(self):
+        sz = self.figure.store['window_size']
+        # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
+        # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
+        # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
+        # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
+        # plotter.ren_win:    vtkXOpenGLRenderWindow
+        self.plotter.interactor.setMinimumSize(*sz)
+        try:
+            yield
+        finally:
+            for _ in range(2):
+                self.plotter.app.processEvents()
+            self.plotter.interactor.setMinimumSize(0, 0)
+
     def subplot(self, x, y):
         from .renderer import MNE_3D_BACKEND_TESTING
         with warnings.catch_warnings():
@@ -450,9 +466,10 @@ class _Renderer(_BaseRenderer):
                                         background_color=bgcolor)
 
     def show(self):
-        self.figure.display = self.plotter.show()
-        if hasattr(self.plotter, "app_window"):
-            self.plotter.app_window.show()
+        with self.ensure_minimum_sizes():
+            self.figure.display = self.plotter.show()
+            if hasattr(self.plotter, "app_window"):
+                self.plotter.app_window.show()
         return self.scene()
 
     def close(self):

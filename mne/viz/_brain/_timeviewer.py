@@ -362,15 +362,7 @@ class _TimeViewer(object):
 
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
-        plotter = self.brain._renderer.plotter
-        # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
-        # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
-        # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
-        # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
-        # plotter.ren_win:    vtkXOpenGLRenderWindow
         sz = self.brain._size
-        plotter.interactor.setMinimumSize(*sz)
-        # plotter.app_window.setBaseSize(0, 0)  # doesn't seem necessary
         adjust_mpl = self.show_traces and not self.separate_canvas
         if adjust_mpl:
             self.mpl_canvas.canvas.setMinimumSize(
@@ -378,10 +370,6 @@ class _TimeViewer(object):
         try:
             yield
         finally:
-            for _ in range(2):
-                plotter.app.processEvents()
-            # plotter.app_window.adjustSize()  # doesn't seem necessary
-            plotter.interactor.setMinimumSize(0, 0)
             if adjust_mpl:
                 self.mpl_canvas.canvas.setMinimumSize(0, 0)
 
