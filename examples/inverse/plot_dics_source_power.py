@@ -73,7 +73,7 @@ csd_ers = csd_ers.mean()
 # Computing DICS spatial filters using the CSD that was computed on the entire
 # timecourse.
 filters = make_dics(epochs.info, fwd, csd, noise_csd=csd_baseline,
-                    pick_ori='max-power', real_filter=True)
+                    pick_ori='max-power')
 
 ###############################################################################
 # Applying DICS spatial filters separately to the CSD computed using the

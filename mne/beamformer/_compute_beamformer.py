@@ -199,7 +199,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     n_channels = G.shape[0]
     assert n_orient in (3, 1)
     Gk = np.reshape(G.T, (n_sources, n_orient, n_channels)).transpose(0, 2, 1)
-    assert not np.iscomplexobj(Gk)
     assert Gk.shape == (n_sources, n_channels, n_orient)
     sk = np.reshape(orient_std, (n_sources, n_orient))
     del G, orient_std
@@ -232,10 +231,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     #
     if reduce_rank:
         Gk = _reduce_leadfield_rank(Gk)
-    assert np.isrealobj(Gk)  # otherwise we need to be more mindful of .T's
 
     def _compute_bf_terms(Gk, Cm_inv):
-        bf_numer = np.matmul(Gk.transpose(0, 2, 1), Cm_inv)
+        bf_numer = np.matmul(Gk.swapaxes(-2, -1).conj(), Cm_inv)
         bf_denom = np.matmul(bf_numer, Gk)
         return bf_numer, bf_denom
 
@@ -253,7 +251,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             ori_numer = bf_denom
             # Cm_inv should be Hermitian so no need for .T.conj()
             ori_denom = np.matmul(
-                np.matmul(Gk.transpose(0, 2, 1), Cm_inv @ Cm_inv), Gk)
+                np.matmul(Gk.swapaxes(-2, -1).conj(), Cm_inv @ Cm_inv), Gk)
         ori_denom_inv = _sym_inv_sm(ori_denom, reduce_rank, inversion, sk)
         ori_pick = np.matmul(ori_denom_inv, ori_numer)
         assert ori_pick.shape == (n_sources, n_orient, n_orient)
@@ -319,7 +317,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # they are all equivalent. Sekihara 2008 says to use
         # sqrt(diag(W_ug @ W_ug.T)), which is not rotation invariant::
         #
-        #    noise_norm = np.matmul(W, W.transpose(0, 2, 1).conj()).real
+        #    noise_norm = np.matmul(W, W.swapaxes(-2, -1).conj()).real
         #    noise_norm = np.reshape(  # np.diag operation over last two axes
         #        noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
         #    noise_norm *= n_orient

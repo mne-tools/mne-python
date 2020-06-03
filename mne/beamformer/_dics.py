@@ -182,10 +182,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         if len(noise_csd.frequencies) > 1:
             noise_csd = noise_csd.mean()
         noise_csd = noise_csd.get_data(as_cov=True)
-
-        # We only use the real component for whitening to prevent the leadfield
-        # from becoming complex.
-        noise_csd['data'] = noise_csd['data'].real
+        if real_filter:
+            noise_csd['data'] = noise_csd['data'].real
 
     depth = _check_depth(depth, 'depth_sparse')
     if inversion == 'single':

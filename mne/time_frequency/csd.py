@@ -76,7 +76,7 @@ class CrossSpectralDensity(object):
 
     Parameters
     ----------
-    data : ndarray, shape ((n_channels**2 + n_channels) / 2, n_frequencies)
+    data : ndarray, shape ((n_channels**2 + n_channels) // 2, n_frequencies)
         For each frequency, the cross-spectral density matrix in vector format.
     ch_names : list of str
         List of string names for each channel.
