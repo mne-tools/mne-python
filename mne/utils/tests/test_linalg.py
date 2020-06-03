@@ -9,9 +9,10 @@ from numpy.testing import assert_allclose, assert_array_equal
 from scipy import linalg
 import pytest
 
-from mne.utils import _sym_mat_pow, _reg_pinv
+from mne.utils import _sym_mat_pow, _reg_pinv, requires_version
 
 
+@requires_version('numpy', '1.17')  # pinv bugs
 @pytest.mark.parametrize('dtype', (np.float64, np.complex128))  # real, complex
 @pytest.mark.parametrize('ndim', (2, 3, 4))
 @pytest.mark.parametrize('n', (3, 4))
