@@ -364,13 +364,14 @@ class _TimeViewer(object):
     def ensure_minimum_sizes(self):
         sz = self.brain._size
         adjust_mpl = self.show_traces and not self.separate_canvas
-        if adjust_mpl:
+        if not adjust_mpl:
+            yield
+        else:
             self.mpl_canvas.canvas.setMinimumSize(
                 sz[0], int(round(sz[1] / self.interactor_stretch)))
-        try:
-            yield
-        finally:
-            if adjust_mpl:
+            try:
+                yield
+            finally:
                 self.mpl_canvas.canvas.setMinimumSize(0, 0)
 
     def toggle_interface(self, value=None):
