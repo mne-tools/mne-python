@@ -936,9 +936,9 @@ def _check_scalings_user(scalings):
 def _eigvec_subspace(eig, eigvec, mask):
     """Compute the subspace from a subset of eigenvectors."""
     # We do the same thing we do with projectors:
-    P = np.eye(len(eigvec)) - np.dot(eigvec[~mask].T, eigvec[~mask])
+    P = np.eye(len(eigvec)) - np.dot(eigvec[~mask].conj().T, eigvec[~mask])
     eig, eigvec = eigh(P)
-    eigvec = eigvec.T
+    eigvec = eigvec.conj().T
     return eig, eigvec
 
 
@@ -1337,7 +1337,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     """Get whitener params for a set of channels."""
     # whitening operator
     eig, eigvec = eigh(A, overwrite_a=True)
-    eigvec = eigvec.T
+    eigvec = eigvec.conj().T
     mask = np.ones(len(eig), bool)
     eig[:-rank] = 0.0
     mask[:-rank] = False
@@ -1441,8 +1441,10 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
     # time saving short-circuit
     if proj_subspace and sum(rank.values()) == C.shape[0]:
         return np.ones(n_chan), np.eye(n_chan), np.ones(n_chan, bool)
-    eig = np.zeros(n_chan)
-    eigvec = np.zeros((n_chan, n_chan))
+
+    dtype = np.complex if C.dtype == np.complex else np.float
+    eig = np.zeros(n_chan, dtype)
+    eigvec = np.zeros((n_chan, n_chan), dtype)
     mask = np.zeros(n_chan, bool)
     for ch_type, picks in _picks_by_type(info, meg_combined=True,
                                          ref_meg=False, exclude='bads'):
@@ -1757,11 +1759,12 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     nzero = (eig > 0)
     eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
 
-    W = np.zeros((n_chan, 1), dtype=np.float)
+    dtype = np.complex if noise_cov['eigvec'].dtype == np.complex else np.float
+    W = np.zeros((n_chan, 1), dtype)
     W[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
     #   Rows of eigvec are the eigenvectors
     W = W * noise_cov['eigvec']  # C ** -0.5
-    C = np.sqrt(eig) * noise_cov['eigvec'].T  # C ** 0.5
+    C = np.sqrt(eig) * noise_cov['eigvec'].conj().T  # C ** 0.5
     n_nzero = nzero.sum()
     logger.info('    Created the whitener using a noise covariance matrix '
                 'with rank %d (%d small eigenvalues omitted)'
@@ -1772,7 +1775,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         W = W[nzero]
         C = C[:, nzero]
     elif pca is False:
-        W = np.dot(noise_cov['eigvec'].T, W)
+        W = np.dot(noise_cov['eigvec'].conj().T, W)
         C = np.dot(C, noise_cov['eigvec'])
 
     # Triage return

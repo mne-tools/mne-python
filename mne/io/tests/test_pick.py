@@ -14,9 +14,14 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
+<<<<<<< HEAD
                          _DATA_CH_TYPES_SPLIT,
                          _contains_ch_type, pick_channels_cov,
                          _get_channel_types, get_channel_type_constants)
+=======
+                         get_channel_types, _DATA_CH_TYPES_SPLIT,
+                         _contains_ch_type)
+>>>>>>> 56320f4ea... Undo broken equalize_channels implementation
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal

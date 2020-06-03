@@ -1130,4 +1130,4 @@ def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
     if only_data_chs:
         ch_types = [ch_type for ch_type in ch_types
                     if ch_type in _DATA_CH_TYPES_SPLIT]
-    return set(ch_types) if unique else ch_types
+    return set(ch_types) if unique is True else ch_types

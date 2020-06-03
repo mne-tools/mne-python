@@ -486,32 +486,32 @@ def _check_rank(rank):
 def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     """Check number of sensor types and presence of noise covariance matrix."""
     from ..cov import make_ad_hoc_cov, Covariance
+    from ..time_frequency.csd import CrossSpectralDensity
     from ..io.pick import pick_info
     from ..channels.channels import _contains_ch_type
-    picks = _check_info_inv(info, forward, data_cov=data_cov,
-                            noise_cov=noise_cov)
-    info_pick = pick_info(info, picks)
+    if isinstance(data_cov, CrossSpectralDensity):
+        _validate_type(noise_cov, [None, CrossSpectralDensity], 'noise_cov')
+        # FIXME
+        picks = list(range(len(data_cov.ch_names)))
+        info_pick = info
+    else:
+        _validate_type(noise_cov, [None, Covariance], 'noise_cov')
+        picks = _check_info_inv(info, forward, data_cov=data_cov,
+                                noise_cov=noise_cov)
+        info_pick = pick_info(info, picks)
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
     if sum(ch_types) > 1:
-        if method == 'lcmv' and noise_cov is None:
+        if noise_cov is None:
             raise ValueError('Source reconstruction with several sensor types'
                              ' requires a noise covariance matrix to be '
                              'able to apply whitening.')
-        if method == 'dics':
-            raise RuntimeError(
-                'The use of several sensor types with the DICS beamformer is '
-                'not supported yet.')
-    # Later in the code we use the data covariance rank for our computations,
-    # so we can allow_mismatch between the data and noise cov if we construct
-    # a known diagonal covariance (the correct/chosen subspace based on rank
-    # will still be used).
     if noise_cov is None:
         noise_cov = make_ad_hoc_cov(info_pick, std=1.)
         allow_mismatch = True
     else:
         noise_cov = noise_cov.copy()
-        if 'estimator' in noise_cov:
+        if isinstance(noise_cov, Covariance) and 'estimator' in noise_cov:
             del noise_cov['estimator']
         allow_mismatch = False
     _validate_type(noise_cov, Covariance, 'noise_cov')

@@ -37,13 +37,9 @@ raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
 
 raw = mne.io.read_raw_fif(raw_fname)
 
-# Set picks, use a single sensor type
-picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
-
 # Read epochs
 events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
-                    preload=True)
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, preload=True)
 
 # Read forward operator and point to freesurfer subject directory
 fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
@@ -67,15 +63,23 @@ csd_baseline = csd_morlet(epochs, freqs, tmin=-1, tmax=0, decim=20)
 csd_ers = csd_morlet(epochs, freqs, tmin=0.5, tmax=1.5, decim=20)
 
 ###############################################################################
+# To compute the source power for a frequency band, rather than each frequency
+# separately, we average the CSD objects across frequencies.
+csd = csd.mean()
+csd_baseline = csd_baseline.mean()
+csd_ers = csd_ers.mean()
+
+###############################################################################
 # Computing DICS spatial filters using the CSD that was computed on the entire
 # timecourse.
-filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power')
+filters = make_dics(epochs.info, fwd, csd, noise_csd=csd_baseline,
+                    pick_ori='max-power', real_filter=True)
 
 ###############################################################################
 # Applying DICS spatial filters separately to the CSD computed using the
 # baseline and the CSD computed during the ERS activity.
-baseline_source_power, freqs = apply_dics_csd(csd_baseline.mean(), filters)
-beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
+baseline_source_power, freqs = apply_dics_csd(csd_baseline, filters)
+beta_source_power, freqs = apply_dics_csd(csd_ers, filters)
 
 ###############################################################################
 # Visualizing source power during ERS activity relative to the baseline power.

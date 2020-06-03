@@ -28,7 +28,7 @@ from ._compute_beamformer import (
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
               pick_ori=None, rank='info', weight_norm='unit-noise-gain',
-              reduce_rank=False, depth=None, verbose=None):
+              reduce_rank=False, depth=None, inversion='matrix', verbose=None):
     """Compute LCMV spatial filter.
 
     Parameters
@@ -53,6 +53,16 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         - ``'vector'``
             Keeps the currents for each direction separate
     %(rank_info)s
+    inversion : 'single' | 'matrix'
+        This determines how the beamformer deals with source spaces in "free"
+        orientation. Such source spaces define three orthogonal dipoles at each
+        source point. When ``inversion='single'``, each dipole is considered
+        as an individual source and the corresponding spatial filter is
+        computed for each dipole separately. When ``inversion='matrix'``, all
+        three dipoles at a source vertex are considered as a group and the
+        spatial filters are computed jointly using a matrix inversion. While
+        ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
+        precise. See section 5 of [3]_.  Defaults to 'matrix'.
     %(weight_norm)s
 
         Defaults to ``'unit-noise-gain'``.
@@ -152,7 +162,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     n_orient = 3 if is_free_ori else 1
     W, max_power_ori = _compute_beamformer(
         G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank, rank_int,
-        inversion='matrix', nn=nn, orient_std=orient_std)
+        inversion=inversion, nn=nn, orient_std=orient_std)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
