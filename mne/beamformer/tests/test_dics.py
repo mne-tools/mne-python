@@ -15,10 +15,12 @@ from mne.datasets import testing
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
                             apply_dics_csd, tf_dics, read_beamformer,
                             Beamformer)
+from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.time_frequency import csd_morlet
 from mne.utils import run_tests_if_main, object_diff, requires_h5py
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
+from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -102,15 +104,6 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     return epochs, evoked, csd, source_vertno, label, vertices, source_ind
 
 
-def _test_weight_norm(filters, norm=None):
-    """Test weight normalization."""
-    norm = filters['n_orient'] if norm is None else norm
-    for ws in filters['weights']:
-        ws = ws.reshape(-1, filters['n_orient'], ws.shape[1])
-        for w in ws:
-            assert_allclose(np.trace(w.dot(w.conjugate().T)), norm)
-
-
 idx_param = pytest.mark.parametrize('idx', [0, 100, 200, 233])
 
 
@@ -188,7 +181,12 @@ def test_make_dics(tmpdir, _load_forward, idx):
     assert str(len(vertices)) in repr(filters)
     assert str(n_channels) in repr(filters)
     assert 'rank' not in repr(filters)
-    _test_weight_norm(filters)
+    _, _, _, _, G, _, _, _ = _prepare_beamformer_input(
+        epochs.info, fwd_surf, label, 'vector', combine_xyz=False, exp=None)
+    G.shape = (n_channels, n_verts, n_orient)
+    G = G.transpose(1, 2, 0)  # verts, orient, ch
+
+    _assert_weight_norm(filters, G)
 
     # Test picking orientations. Also test weight norming under these different
     # conditions.
@@ -198,7 +196,7 @@ def test_make_dics(tmpdir, _load_forward, idx):
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
-    _test_weight_norm(filters)
+    _assert_weight_norm(filters, G)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         pick_ori='max-power', weight_norm='unit-noise-gain',
@@ -206,7 +204,7 @@ def test_make_dics(tmpdir, _load_forward, idx):
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
-    _test_weight_norm(filters)
+    _assert_weight_norm(filters, G)
 
     # From here on, only work on a single frequency
     csd = csd[0]

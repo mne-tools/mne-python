@@ -185,7 +185,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     return filters
 
 
-def _proj_data(M, proj, filters):
+def _proj_whiten_data(M, proj, filters):
     if filters['is_ssp']:
         # check whether data and filter projs match
         _check_proj_match(proj, filters)
@@ -218,7 +218,7 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
 
-        M = _proj_data(M, info['projs'], filters)
+        M = _proj_whiten_data(M, info['projs'], filters)
 
         # project to source space using beamformer weights
         vector = False
@@ -422,8 +422,8 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
 
     n_orient = filters['weights'].shape[0] // filters['nsource']
     # Need to project and whiten along both dimensions
-    data = _proj_data(data_cov['data'].T, data_cov['projs'], filters)
-    data = _proj_data(data.T, data_cov['projs'], filters)
+    data = _proj_whiten_data(data_cov['data'].T, data_cov['projs'], filters)
+    data = _proj_whiten_data(data.T, data_cov['projs'], filters)
     del data_cov
     source_power = _compute_power(data, filters['weights'], n_orient)
 

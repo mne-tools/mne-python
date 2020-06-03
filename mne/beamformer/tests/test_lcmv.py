@@ -17,12 +17,12 @@ from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv, Beamformer,
                             read_beamformer, apply_lcmv_cov)
+from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
-from mne.utils import (run_tests_if_main, object_diff, requires_h5py,
-                       catch_logging)
+from mne.utils import object_diff, requires_h5py, catch_logging
 
 
 data_path = testing.data_path(download=False)
@@ -906,4 +906,63 @@ def test_lcmv_maxfiltered():
         make_lcmv(epochs.info, fwd, data_cov, rank=use_rank)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+@pytest.mark.parametrize('pick_ori', ['max-power', 'normal', 'vector'])
+@pytest.mark.parametrize('reg', (0.05, 0.))
+def test_unit_noise_gain_formula(pick_ori, reg):
+    """Test unit-noise-gain filter against formula."""
+    raw = mne.io.read_raw_fif(fname_raw, preload=True)
+    events = mne.find_events(raw)
+    raw.pick_types(meg='mag')
+    assert len(raw.ch_names) == 102
+    epochs = mne.Epochs(raw, events, None, preload=True)
+    data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+    noise_cov = None  # no whitening to make things easier
+    forward = mne.read_forward_solution(fname_fwd)
+    convert_forward_solution(forward, surf_ori=True, copy=False)
+    rank = None
+    filters = make_lcmv(epochs.info, forward, data_cov, reg=reg,
+                        noise_cov=noise_cov, pick_ori=pick_ori,
+                        weight_norm='unit-noise-gain', rank=rank)
+    _, _, _, _, G, _, _, _ = _prepare_beamformer_input(
+        epochs.info, forward, None, 'vector', noise_cov=noise_cov, rank=rank,
+        pca=False, exp=None)
+    n_channels, n_sources = G.shape
+    n_sources //= 3
+    G.shape = (n_channels, n_sources, 3)
+    G = G.transpose(1, 2, 0)  # verts, orient, ch
+    _assert_weight_norm(filters, G)
+
+
+def _assert_weight_norm(filters, G):
+    weights, max_power_ori = filters['weights'], filters['max_power_ori']
+    if weights.ndim == 2:  # LCMV
+        weights = weights[np.newaxis]
+        if max_power_ori is not None:
+            max_power_ori = max_power_ori[np.newaxis]
+    if max_power_ori is not None:
+        max_power_ori.shape = max_power_ori.shape + (1,)
+    if 'nsource' in filters:
+        # LCMV
+        n_sources = filters['nsource']
+        n_orient = weights.shape[1] // n_sources
+    else:
+        # DICS
+        n_orient = filters['n_orient']
+        n_sources = weights.shape[1] // n_orient
+    n_channels = weights.shape[-1]
+    for wi, w in enumerate(weights):
+        w = w.reshape(n_sources, n_orient, n_channels)
+        if filters['max_power_ori'] is not None:
+            use_G = np.sum(G * max_power_ori[wi], axis=1, keepdims=True)
+        elif filters['pick_ori'] == 'normal':
+            use_G = G[:, -1:]
+        else:
+            use_G = G
+        assert w.shape == use_G.shape == (n_sources, n_orient, n_channels)
+        got = np.matmul(w, w.conj().swapaxes(-2, -1))
+        desired = np.repeat(np.eye(n_orient)[np.newaxis], w.shape[0], axis=0)
+        assert_allclose(got, desired, atol=1e-7, err_msg='w @ w.conj().T')
+        # TODO: Some variant of this should also hold
+        # got = w @ use_G.T
+        # assert_allclose(got, want, atol=1e-7, err_msg='G @ w')
