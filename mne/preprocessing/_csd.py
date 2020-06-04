@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from scipy import linalg
+from scipy import linalg, special
 
 from .. import pick_types
 from ..utils import _validate_type, _ensure_int
@@ -23,6 +23,18 @@ from ..io.constants import FIFF
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape
+
+
+def _calc_cos_dist(pos):
+    """Compute cosine distance between all pairs of electrodes."""
+    n_chs = pos.shape[0]
+    cos_dist = np.zeros((n_chs, n_chs))
+    for i, (x0, y0, z0) in enumerate(pos):
+        for j, (x1, y1, z1) in enumerate(pos[i + 1:]):
+            cos_dist[i, i + 1 + j] = \
+                1 - (((x0 - x1) ** 2 + (y0 - y1) ** 2 + (z0 - z1) ** 2) / 2)
+    cos_dist += cos_dist.T + np.identity(n_chs)
+    return cos_dist
 
 
 def _calc_G_H(n_legendre_terms, stiffness, cos_dist):
@@ -59,6 +71,31 @@ def _calc_G_H(n_legendre_terms, stiffness, cos_dist):
     H.flat[::n_chs + 1] = np.dot(two_n1, h_denom) / (4 * np.pi)
     assert G.shape == H.shape == (n_chs, n_chs)
     return G, H
+
+
+def _apply_transform(inst, G, H, lambda2):
+    data = inst._data
+    data = np.rollaxis(data, 0, 3)
+    orig_data_size = np.squeeze(data.shape)
+
+    numelectrodes = orig_data_size[0]
+
+    if np.any(orig_data_size==1):
+        data = data[:]
+    else:
+        data = np.reshape(data, (orig_data_size[0], np.prod(orig_data_size[1:3])))
+
+    # compute C matrix
+    Gs = G + np.identity(numelectrodes) * lambda2
+    GsinvS = np.sum(np.linalg.inv(Gs), 0)
+    dataGs = np.dot(data.T, np.linalg.inv(Gs))
+    C = dataGs - np.dot(np.atleast_2d(np.sum(dataGs, 1)/np.sum(GsinvS)).T, np.atleast_2d(GsinvS))
+
+    # apply transform
+    original = np.reshape(data, orig_data_size)
+    surf_lap = np.reshape(np.transpose(np.dot(C,np.transpose(H))), orig_data_size)
+    surf_lap = np.rollaxis(surf_lap, 2, 0)
+    return surf_lap
 
 
 def _prepare_G(G, lambda2):
@@ -103,7 +140,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     Parameters
     ----------
-    inst : instance of Raw, Epochs or Evoked
+    inst : instance of Raw, inst or Evoked
         The data to be transformed.
     sphere : array-like, shape (4,) | str
         The sphere, head-model of the form (x, y, z, r) where x, y, z
@@ -120,7 +157,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     Returns
     -------
-    inst_csd : instance of Raw, Epochs or Evoked
+    inst_csd : instance of Raw, inst or Evoked
         The transformed data. Output type will match input type.
 
     Notes
@@ -194,19 +231,25 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         raise ValueError('Zero or infinite position found in chs')
     pos -= (x, y, z)
     # project to unit vectors (sphere)
-    pos /= np.linalg.norm(pos, axis=1, keepdims=True)
-    cos_dist = np.clip(0.5 + np.dot(pos, pos.T) / 2., 0, 1)
+    pos /= radius
+    # cos_dist = np.clip(0.5 + np.dot(pos, pos.T) / 2., 0, 1)
 
+    cos_dist = _calc_cos_dist(pos)  # cosdist
     G, H = _calc_G_H(n_legendre_terms, stiffness, cos_dist)
 
-    G_precomputed = _prepare_G(G, lambda2)
+    # G_precomputed = _prepare_G(G, lambda2)
 
-    trans_csd = _compute_csd(G_precomputed=G_precomputed,
-                             H=H, radius=radius)
+    # trans_csd = _compute_csd(G_precomputed=G_precomputed,
+    #                          H=H, radius=radius)
 
-    epochs = [inst._data] if not isinstance(inst, BaseEpochs) else inst._data
+    inst._data = _apply_transform(inst, G, H, lambda2)
+
+    '''
+    epochs = [inst._data] if not isinstance(inst, Baseinst) else inst._data
     for epo in epochs:
         epo[picks] = np.dot(trans_csd, epo[picks])
+    '''
+
     inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     for pick in picks:
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
