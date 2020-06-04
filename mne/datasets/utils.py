@@ -651,8 +651,9 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
-    This will download and install the HCP-MMP parcellation [1]_ files for
-    FreeSurfer's fsaverage [2]_ to the specified directory.
+    This will download and install the HCP-MMP parcellation
+    :footcite:`GlasserEtAl2016a` files for FreeSurfer's fsaverage
+    :footcite:`Mills2016` to the specified directory.
 
     Parameters
     ----------
@@ -661,7 +662,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         ``subjects_dir + '/fsaverage/label'``.
     combine : bool
         If True, also produce the combined/reduced set of 23 labels per
-        hemisphere as ``HCPMMP1_combined.annot`` [3]_.
+        hemisphere as ``HCPMMP1_combined.annot`` :footcite:`GlasserEtAl2016b`.
     %(verbose)s
 
     Notes
@@ -671,13 +672,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
 
     References
     ----------
-    .. [1] Glasser MF et al. (2016) A multi-modal parcellation of human
-           cerebral cortex. Nature 536:171-178.
-    .. [2] Mills K (2016) HCP-MMP1.0 projected on fsaverage.
-           https://figshare.com/articles/HCP-MMP1_0_projected_on_fsaverage/3498446/2
-    .. [3] Glasser MF et al. (2016) Supplemental information.
-           https://images.nature.com/full/nature-assets/nature/journal/v536/n7615/extref/nature18933-s3.pdf
-    """  # noqa: E501
+    .. footbibliography::
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
