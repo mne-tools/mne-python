@@ -652,7 +652,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
     This will download and install the HCP-MMP parcellation
-    :footcite:`GlasserEtAl2016a` files for FreeSurfer's fsaverage
+    :footcite:`GlasserEtAl2016` files for FreeSurfer's fsaverage
     :footcite:`Mills2016` to the specified directory.
 
     Parameters
@@ -662,7 +662,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         ``subjects_dir + '/fsaverage/label'``.
     combine : bool
         If True, also produce the combined/reduced set of 23 labels per
-        hemisphere as ``HCPMMP1_combined.annot`` :footcite:`GlasserEtAl2016b`.
+        hemisphere as ``HCPMMP1_combined.annot``
+        :footcite:`GlasserEtAl2016supp`.
     %(verbose)s
 
     Notes
