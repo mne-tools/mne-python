@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from scipy import linalg, special
+from scipy import linalg
 
 from .. import pick_types
 from ..utils import _validate_type, _ensure_int
@@ -23,86 +23,10 @@ from ..io.constants import FIFF
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape
-
-
-def _calc_cos_dist(pos):
-    """Compute cosine distance between all pairs of electrodes."""
-    n_chs = pos.shape[0]
-    cos_dist = np.zeros((n_chs, n_chs))
-    for i, (x0, y0, z0) in enumerate(pos):
-        for j, (x1, y1, z1) in enumerate(pos[i + 1:]):
-            cos_dist[i, i + 1 + j] = \
-                1 - (((x0 - x1) ** 2 + (y0 - y1) ** 2 + (z0 - z1) ** 2) / 2)
-    cos_dist += cos_dist.T + np.identity(n_chs)
-    return cos_dist
-
-
-def _calc_G_H(n_legendre_terms, stiffness, cos_dist):
-    """Compute G and H matrixes."""
-    from scipy.special import lpn
-    from scipy.spatial.distance import squareform
-    n_chs = cos_dist.shape[0]
-    # get legendre polynomials, only process upper right triangle
-    leg_poly = np.zeros(((n_chs * (n_chs - 1)) // 2, n_legendre_terms))
-    count = 0
-    for i in range(n_chs):
-        for j in range(i + 1, n_chs):
-            leg_poly[count] = lpn(n_legendre_terms, cos_dist[i, j])[0][1:]
-            count += 1
-    assert count == leg_poly.shape[0]
-    # Compute G and H
-    products = (np.arange(1, n_legendre_terms + 1) *
-                np.arange(2, n_legendre_terms + 2)).astype(float)
-    h_denom = products ** (stiffness - 1)
-    g_denom = h_denom * products  # products ** stiffness
-    # Same as: 2 * np.arange(1, n_legendre_terms + 1) + 1
-    two_n1 = np.arange(3, 2 * n_legendre_terms + 3, 2)
-    leg_poly *= two_n1
-    g_denom = 1. / g_denom
-    h_denom = 1. / h_denom
-    G = np.dot(leg_poly, g_denom)  # product + sum over last axis
-    H = np.dot(leg_poly, h_denom)
-    G /= (4 * np.pi)
-    H /= (4 * np.pi)
-    G = squareform(G)
-    H = squareform(H)
-    # Put the diagonal terms back in
-    G.flat[::n_chs + 1] = np.dot(two_n1, g_denom) / (4 * np.pi)
-    H.flat[::n_chs + 1] = np.dot(two_n1, h_denom) / (4 * np.pi)
-    assert G.shape == H.shape == (n_chs, n_chs)
-    return G, H
-
-
-def _apply_transform(inst, G, H, lambda2):
-    data = inst._data
-    data = np.rollaxis(data, 0, 3)
-    orig_data_size = np.squeeze(data.shape)
-
-    numelectrodes = orig_data_size[0]
-
-    if np.any(orig_data_size==1):
-        data = data[:]
-    else:
-        data = np.reshape(data, (orig_data_size[0], np.prod(orig_data_size[1:3])))
-
-    # compute C matrix
-    Gs = G + np.identity(numelectrodes) * lambda2
-    GsinvS = np.sum(np.linalg.inv(Gs), 0)
-    dataGs = np.dot(data.T, np.linalg.inv(Gs))
-    C = dataGs - np.dot(np.atleast_2d(np.sum(dataGs, 1)/np.sum(GsinvS)).T, np.atleast_2d(GsinvS))
-
-    # apply transform
-    original = np.reshape(data, orig_data_size)
-    surf_lap = np.reshape(np.transpose(np.dot(C,np.transpose(H))), orig_data_size)
-    surf_lap = np.rollaxis(surf_lap, 2, 0)
-    return surf_lap
+from ..channels.interpolation import _calc_g, _calc_h
 
 
 def _prepare_G(G, lambda2):
-    # XXX This should probably be lambda2 * linalg.norm(G) to make it actually
-    # matter... the norm of G can be huge, and it's vastly different (~6 orders
-    # of magnitude) between the FIF test and the CSD test, so something is very
-    # wrong...
     G.flat[::len(G) + 1] += lambda2
     # compute the CSD
     Gi = linalg.inv(G)
@@ -125,7 +49,7 @@ def _compute_csd(G_precomputed, H, radius):
     Cp2 = np.dot(Gi, Z)
     c02 = np.sum(Cp2, axis=0) / sgi
     C2 = Cp2 - np.dot(TC[:, np.newaxis], c02[np.newaxis, :])
-    X = np.dot(C2.T, H).T / radius
+    X = np.dot(C2.T, H).T / radius ** 2
     return X
 
 
@@ -135,12 +59,11 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     """Get the current source density (CSD) transformation.
 
     Transformation based on spherical spline surface Laplacian
-    :footcite:`PerrinEtAl1987` :footcite:`PerrinEtAl1989`
-    :footcite:`KayserTenke2015`.
+    :footcite:`PerrinEtAl1987,PerrinEtAl1989,KayserTenke2015`.
 
     Parameters
     ----------
-    inst : instance of Raw, inst or Evoked
+    inst : instance of Raw, Epochs or Evoked
         The data to be transformed.
     sphere : array-like, shape (4,) | str
         The sphere, head-model of the form (x, y, z, r) where x, y, z
@@ -157,7 +80,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     Returns
     -------
-    inst_csd : instance of Raw, inst or Evoked
+    inst_csd : instance of Raw, Epochs or Evoked
         The transformed data. Output type will match input type.
 
     Notes
@@ -170,9 +93,6 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     References
     ----------
     .. footbibliography::
-    .. [3] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
-           (Current Source Density) methodology in electrophysiology.
-           Int J Psychophysiol. 2015 Sep; 97(3): 171–173.
     """
     _validate_type(inst, (BaseEpochs, BaseRaw, Evoked), 'inst')
 
@@ -230,26 +150,29 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     if not np.isfinite(pos).all() or np.isclose(pos, 0.).all(1).any():
         raise ValueError('Zero or infinite position found in chs')
     pos -= (x, y, z)
-    # project to unit vectors (sphere)
-    pos /= radius
-    # cos_dist = np.clip(0.5 + np.dot(pos, pos.T) / 2., 0, 1)
 
-    cos_dist = _calc_cos_dist(pos)  # cosdist
-    G, H = _calc_G_H(n_legendre_terms, stiffness, cos_dist)
+    # Original code does not project onto the sphere, probably not good:
+    # pos /= radius
+    # from scipy.spatial.distance import squareform, pdist
+    # cos_dist = 1 - squareform(pdist(pos, 'sqeuclidean')) / 2.
+    # Project onto the sphere and do the distance (effectively)
+    pos /= np.linalg.norm(pos, axis=1, keepdims=True)
+    cos_dist = np.clip(np.dot(pos, pos.T), -1, 1)
+    del pos
 
-    # G_precomputed = _prepare_G(G, lambda2)
+    G = _calc_g(cos_dist, stiffness=stiffness,
+                n_legendre_terms=n_legendre_terms)
+    H = _calc_h(cos_dist, stiffness=stiffness,
+                n_legendre_terms=n_legendre_terms)
 
-    # trans_csd = _compute_csd(G_precomputed=G_precomputed,
-    #                          H=H, radius=radius)
+    G_precomputed = _prepare_G(G, lambda2)
 
-    inst._data = _apply_transform(inst, G, H, lambda2)
+    trans_csd = _compute_csd(G_precomputed=G_precomputed,
+                             H=H, radius=radius)
 
-    '''
-    epochs = [inst._data] if not isinstance(inst, Baseinst) else inst._data
+    epochs = [inst._data] if not isinstance(inst, BaseEpochs) else inst._data
     for epo in epochs:
         epo[picks] = np.dot(trans_csd, epo[picks])
-    '''
-
     inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     for pick in picks:
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
