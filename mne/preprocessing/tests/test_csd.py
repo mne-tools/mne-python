@@ -13,9 +13,11 @@ import numpy as np
 
 import pytest
 from numpy.testing import assert_allclose
+from scipy.io import loadmat
+from scipy import linalg
 
 from mne.channels import make_dig_montage
-from mne import create_info, EpochsArray, pick_types
+from mne import create_info, EvokedArray, pick_types
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import object_diff, run_tests_if_main
@@ -23,38 +25,24 @@ from mne.datasets import testing
 
 from mne.preprocessing import compute_current_source_density
 
-
-eeg_fname = './data/test_eeg.csv'
-coords_fname = './data/test_eeg_pos.csv'
-csd_fname = './data/test_eeg_csd.csv'
-
-ch_names = ['Fp1', 'AF7', 'AF3', 'F1', 'F3', 'F5', 'F7', 'FT7', 'FC5',
-            'FC3', 'FC1', 'C1', 'C3', 'C5', 'T7', 'TP7', 'CP5', 'CP3',
-            'CP1', 'P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'O1',
-            'Iz', 'Oz', 'POz', 'Pz', 'CPz', 'Fpz', 'Fp2', 'AF8', 'AF4',
-            'AFz', 'Fz', 'F2', 'F4', 'F6', 'F8', 'FT8', 'FC6', 'FC4',
-            'FC2', 'FCz', 'Cz', 'C2', 'C4', 'C6', 'T8', 'TP8', 'CP6',
-            'CP4', 'CP2', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4',
-            'O2']
+data_path = op.join(testing.data_path(download=False), 'preprocessing')
+eeg_fname = op.join(data_path, 'test_eeg.mat')
+coords_fname = op.join(data_path, 'test_eeg_pos.mat')
+csd_fname = op.join(data_path, 'test_eeg_csd.mat')
 
 io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(io_path, 'test_raw.fif')
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
-def epochs_csd_sphere():
+def evoked_csd_sphere():
     """Get the MATLAB EEG data."""
-    data = np.genfromtxt(eeg_fname, delimiter=',')
-    # re-arrange data into a 3d array
-    data = data.reshape((64, 640, 99), order='F')
-    # swap data's shape
-    data = np.rollaxis(data, 2)
-    # re-scale data
-    data *= 1e-6
-    coords = np.genfromtxt(coords_fname, delimiter=',')
-    csd = np.genfromtxt(csd_fname, delimiter=',')
+    # These were errantly created with an extra 1e-6 scale factor
+    data = loadmat(eeg_fname)['data']
+    coords = loadmat(coords_fname)['coords']
+    csd = loadmat(csd_fname)['csd']
 
-    sphere = (0, 0, 0, 85)
+    sphere = np.array((0, 0, 0, 85))
     sfreq = 256  # sampling rate
     # swap coordinates' shape
     pos = np.rollaxis(coords, 1)
@@ -62,98 +50,95 @@ def epochs_csd_sphere():
     pos[:, [0]], pos[:, [1]] = pos[:, [1]], pos[:, [0]]
     # invert first coordinate
     pos[:, [0]] *= -1
+    # to meters
+    # pos /= 1000.
+    # sphere /= 1000.
     # assign channel names to coordinates
+    ch_names = [str(ii) for ii in range(len(pos))]
     dig_ch_pos = dict(zip(ch_names, pos))
-    montage = make_dig_montage(ch_pos=dig_ch_pos, nasion=(0, 50, 0),
-                               lpa=(-100, 0, 0), rpa=(100, 0, 0))
+    montage = make_dig_montage(ch_pos=dig_ch_pos, coord_frame='head')
     # create info
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
     # make Epochs object
-    epochs = EpochsArray(data=data, info=info, tmin=-1)
-    epochs.set_montage(montage)
-    return epochs, csd, sphere
+    evoked = EvokedArray(data=data, info=info, tmin=-1)
+    evoked.set_montage(montage)
+    return evoked, csd, sphere
 
 
-def test_csd_matlab(epochs_csd_sphere):
+def test_csd_matlab(evoked_csd_sphere):
     """Test replication of the CSD MATLAB toolbox."""
-    epochs, csd, sphere = epochs_csd_sphere
-    epochs_csd = compute_current_source_density(epochs,
-                                                sphere=sphere)
-    print(epochs_csd.average().data)
-    print(csd)
-    assert_allclose(epochs_csd.average().data, csd, atol=1e-4)
+    evoked, csd, sphere = evoked_csd_sphere
+    evoked_csd = compute_current_source_density(evoked, sphere=sphere)
+    assert 1e-4 < linalg.norm(csd) < 1e-3
+    assert_allclose(evoked_csd.data, csd, atol=1e-7)
 
     # test raw
-    csd_epochs = compute_current_source_density(epochs, sphere=sphere)
+    csd_evoked = compute_current_source_density(evoked, sphere=sphere)
 
     with pytest.raises(ValueError, match=('CSD already applied, '
                                           'should not be reapplied')):
-        compute_current_source_density(csd_epochs, sphere=sphere)
+        compute_current_source_density(csd_evoked, sphere=sphere)
 
-    assert_allclose(csd_epochs._data.sum(), 0.0001411335742733275, atol=1e-3)
-
-    csd_evoked = compute_current_source_density(epochs.average(),
-                                                sphere=sphere)
-    assert_allclose(csd_evoked.data, csd_epochs._data.mean(0), atol=1e-3)
+    assert_allclose(csd_evoked.data.sum(), 0.0001411335742733275, atol=1e-3)
 
 
-def test_csd_degenerate(epochs_csd_sphere):
+def test_csd_degenerate(evoked_csd_sphere):
     """Test degenerate conditions."""
-    epochs, csd, sphere = epochs_csd_sphere
-    warn_epochs = epochs.copy()
-    warn_epochs.info['bads'].append(warn_epochs.ch_names[3])
+    evoked, csd, sphere = evoked_csd_sphere
+    warn_evoked = evoked.copy()
+    warn_evoked.info['bads'].append(warn_evoked.ch_names[3])
     with pytest.raises(ValueError, match='Either drop.*or interpolate'):
-        compute_current_source_density(warn_epochs)
+        compute_current_source_density(warn_evoked)
 
     with pytest.raises(TypeError, match='must be an instance of'):
         compute_current_source_density(None)
 
-    fail_epochs = epochs.copy()
+    fail_evoked = evoked.copy()
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        for ch in fail_epochs.info['chs']:
+        for ch in fail_evoked.info['chs']:
             ch['loc'][:3] = np.array([0, 0, 0])
-        compute_current_source_density(fail_epochs, sphere=sphere)
+        compute_current_source_density(fail_evoked, sphere=sphere)
 
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        fail_epochs.info['chs'][3]['loc'][:3] = np.inf
-        compute_current_source_density(fail_epochs, sphere=sphere)
+        fail_evoked.info['chs'][3]['loc'][:3] = np.inf
+        compute_current_source_density(fail_evoked, sphere=sphere)
 
-    with pytest.raises(ValueError, match=('No EEG channels found.')):
-        fail_epochs = epochs.copy()
-        fail_epochs.set_channel_types({ch_name: 'ecog' for ch_name in
-                                       fail_epochs.ch_names})
-        compute_current_source_density(fail_epochs, sphere=sphere)
+    with pytest.raises(ValueError, match='No EEG channels found.'):
+        fail_evoked = evoked.copy()
+        fail_evoked.set_channel_types({ch_name: 'ecog' for ch_name in
+                                       fail_evoked.ch_names})
+        compute_current_source_density(fail_evoked, sphere=sphere)
 
-    with pytest.raises(TypeError):
-        compute_current_source_density(epochs, lambda2='0', sphere=sphere)
+    with pytest.raises(TypeError, match='lambda2'):
+        compute_current_source_density(evoked, lambda2='0', sphere=sphere)
 
     with pytest.raises(ValueError, match='lambda2 must be between 0 and 1'):
-        compute_current_source_density(epochs, lambda2=2, sphere=sphere)
+        compute_current_source_density(evoked, lambda2=2, sphere=sphere)
 
-    with pytest.raises(TypeError):
-        compute_current_source_density(epochs, stiffness='0', sphere=sphere)
+    with pytest.raises(TypeError, match='stiffness must be'):
+        compute_current_source_density(evoked, stiffness='0', sphere=sphere)
 
     with pytest.raises(ValueError, match='stiffness must be non-negative'):
-        compute_current_source_density(epochs, stiffness=-2, sphere=sphere)
+        compute_current_source_density(evoked, stiffness=-2, sphere=sphere)
 
-    with pytest.raises(TypeError):
-        compute_current_source_density(epochs, n_legendre_terms=0.1,
+    with pytest.raises(TypeError, match='n_legendre_terms must be'):
+        compute_current_source_density(evoked, n_legendre_terms=0.1,
                                        sphere=sphere)
 
     with pytest.raises(ValueError, match=('n_legendre_terms must be '
                                           'greater than 0')):
-        compute_current_source_density(epochs, n_legendre_terms=0,
+        compute_current_source_density(evoked, n_legendre_terms=0,
                                        sphere=sphere)
 
-    with pytest.raises(TypeError):
-        compute_current_source_density(epochs, sphere=-0.1)
+    with pytest.raises(ValueError, match='sphere must be'):
+        compute_current_source_density(evoked, sphere=-0.1)
 
     with pytest.raises(ValueError, match=('sphere radius must be '
                                           'greater than 0')):
-        compute_current_source_density(epochs, sphere=(-0.1, 0., 0., -1.))
+        compute_current_source_density(evoked, sphere=(-0.1, 0., 0., -1.))
 
     with pytest.raises(TypeError):
-        compute_current_source_density(epochs, copy=2, sphere=sphere)
+        compute_current_source_density(evoked, copy=2, sphere=sphere)
 
 
 def test_csd_fif():
