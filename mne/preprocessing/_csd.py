@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from scipy import linalg, special
+from scipy import linalg
 
 from .. import pick_types
 from ..utils import _validate_type, _ensure_int
@@ -25,60 +25,47 @@ from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape
 
 
-def _calc_cos_dist(pos):
-    """Compute cosine distance between all pairs of electrodes."""
-    n_chs = pos.shape[0]
-    cos_dist = np.zeros((n_chs, n_chs))
-    for i, (x0, y0, z0) in enumerate(pos):
-        for j, (x1, y1, z1) in enumerate(pos[i + 1:]):
-            cos_dist[i, i + 1 + j] = \
-                1 - (((x0 - x1) ** 2 + (y0 - y1) ** 2 + (z0 - z1) ** 2) / 2)
-    cos_dist += cos_dist.T + np.identity(n_chs)
-    return cos_dist
-
-
 def _calc_G_H(n_legendre_terms, stiffness, cos_dist):
     """Compute G and H matrixes."""
+    from scipy.special import lpn
+    from scipy.spatial.distance import squareform
     n_chs = cos_dist.shape[0]
-    # get legendre polynomials
-    leg_poly = np.zeros((n_legendre_terms, n_chs, n_chs))
-    for ni in range(n_legendre_terms):
-        for i in range(n_chs):
-            for j in range(i + 1, n_chs):
-                leg_poly[ni, i, j] = special.lpn(ni + 1,
-                                                 cos_dist[i, j])[0][ni + 1]
-    # add transpose
-    leg_poly += np.transpose(leg_poly, (0, 2, 1))
-    for i in range(n_legendre_terms):
-        leg_poly[i] += np.identity(n_chs)
-    # compute G and H matrixes
-    two_n1 = np.multiply(2, range(1, n_legendre_terms + 1)) + 1
-    g_denom = np.power(np.multiply(range(1, n_legendre_terms + 1),
-                                   range(2, n_legendre_terms + 2)),
-                       stiffness, dtype=float)
-    h_denom = np.power(np.multiply(range(1, n_legendre_terms + 1),
-                                   range(2, n_legendre_terms + 2)),
-                       stiffness - 1, dtype=float)
-    # intantiate G and H
-    G = np.zeros((n_chs, n_chs))
-    H = np.zeros((n_chs, n_chs))
-    # compute term by term
+    # get legendre polynomials, only process upper right triangle
+    leg_poly = np.zeros(((n_chs * (n_chs - 1)) // 2, n_legendre_terms))
+    count = 0
     for i in range(n_chs):
-        for j in range(i, n_chs):
-            g = 0
-            h = 0
-            for ni in range(n_legendre_terms):
-                g = g + (two_n1[ni] * leg_poly[ni, i, j]) / g_denom[ni]
-                h = h - (two_n1[ni] * leg_poly[ni, i, j]) / h_denom[ni]
-            G[i, j] = g / (4 * np.pi)
-            H[i, j] = -h / (4 * np.pi)
-    # add transposes
-    G += G.T - np.identity(n_chs) * G[1, 1] / 2
-    H += H.T - np.identity(n_chs) * H[1, 1] / 2
+        for j in range(i + 1, n_chs):
+            leg_poly[count] = lpn(n_legendre_terms, cos_dist[i, j])[0][1:]
+            count += 1
+    assert count == leg_poly.shape[0]
+    # Compute G and H
+    products = (np.arange(1, n_legendre_terms + 1) *
+                np.arange(2, n_legendre_terms + 2)).astype(float)
+    h_denom = products ** (stiffness - 1)
+    g_denom = h_denom * products  # products ** stiffness
+    # Same as: 2 * np.arange(1, n_legendre_terms + 1) + 1
+    two_n1 = np.arange(3, 2 * n_legendre_terms + 3, 2)
+    leg_poly *= two_n1
+    g_denom = 1. / g_denom
+    h_denom = 1. / h_denom
+    G = np.dot(leg_poly, g_denom)  # product + sum over last axis
+    H = np.dot(leg_poly, h_denom)
+    G /= (4 * np.pi)
+    H /= (4 * np.pi)
+    G = squareform(G)
+    H = squareform(H)
+    # Put the diagonal terms back in
+    G.flat[::n_chs + 1] = np.dot(two_n1, g_denom) / (4 * np.pi)
+    H.flat[::n_chs + 1] = np.dot(two_n1, h_denom) / (4 * np.pi)
+    assert G.shape == H.shape == (n_chs, n_chs)
     return G, H
 
 
 def _prepare_G(G, lambda2):
+    # XXX This should probably be lambda2 * linalg.norm(G) to make it actually
+    # matter... the norm of G can be huge, and it's vastly different (~6 orders
+    # of magnitude) between the FIF test and the CSD test, so something is very
+    # wrong...
     G.flat[::len(G) + 1] += lambda2
     # compute the CSD
     Gi = linalg.inv(G)
@@ -101,7 +88,7 @@ def _compute_csd(G_precomputed, H, radius):
     Cp2 = np.dot(Gi, Z)
     c02 = np.sum(Cp2, axis=0) / sgi
     C2 = Cp2 - np.dot(TC[:, np.newaxis], c02[np.newaxis, :])
-    X = np.dot(C2.T, H).T / radius ** 2
+    X = np.dot(C2.T, H).T / radius
     return X
 
 
@@ -110,7 +97,9 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
                                    copy=True):
     """Get the current source density (CSD) transformation.
 
-    Transformation based on spherical spline surface Laplacian [1]_ [2]_ [3]_.
+    Transformation based on spherical spline surface Laplacian
+    :footcite:`PerrinEtAl1987` :footcite:`PerrinEtAl1989`
+    :footcite:`KayserTenke2015`.
 
     Parameters
     ----------
@@ -143,12 +132,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     References
     ----------
-    .. [1] Perrin F, Bertrand O, Pernier J. "Scalp current density mapping:
-           Value and estimation from potential data." IEEE Trans Biomed Eng.
-           1987;34(4):283–288.
-    .. [2] Perrin F, Pernier J, Bertrand O, Echallier JF. "Spherical splines
-           for scalp potential and current density mapping."
-           Electroenceph Clin Neurophysiol. 1989;72(2):184–187.
+    .. footbibliography::
     .. [3] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
            (Current Source Density) methodology in electrophysiology.
            Int J Psychophysiol. 2015 Sep; 97(3): 171–173.
@@ -184,12 +168,17 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         raise ValueError('n_legendre_terms must be greater than 0, '
                          'got %s' % n_legendre_terms)
 
-    if sphere == 'auto':
+    if isinstance(sphere, str) and sphere == 'auto':
         radius, origin_head, origin_device = fit_sphere_to_headshape(inst.info)
         x, y, z = origin_head - origin_device
         sphere = (x, y, z, radius)
-    _validate_type(sphere, tuple, 'sphere')
-    x, y, z, radius = sphere
+    try:
+        sphere = np.array(sphere, float)
+        x, y, z, radius = sphere
+    except Exception:
+        raise ValueError(
+            f'sphere must be "auto" or array-like with shape (4,), '
+            f'got {sphere}')
     _validate_type(x, 'numeric', 'x')
     _validate_type(y, 'numeric', 'y')
     _validate_type(z, 'numeric', 'z')
@@ -204,9 +193,9 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     if not np.isfinite(pos).all() or np.isclose(pos, 0.).all(1).any():
         raise ValueError('Zero or infinite position found in chs')
     pos -= (x, y, z)
-    pos /= radius
-
-    cos_dist = _calc_cos_dist(pos)
+    # project to unit vectors (sphere)
+    pos /= np.linalg.norm(pos, axis=1, keepdims=True)
+    cos_dist = np.clip(0.5 + np.dot(pos, pos.T) / 2., 0, 1)
 
     G, H = _calc_G_H(n_legendre_terms, stiffness, cos_dist)
 
@@ -223,19 +212,3 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
                                       unit=FIFF.FIFF_UNIT_V_M2)
     return inst
-
-# References
-# ----------
-#
-# [1] Perrin F, Bertrand O, Pernier J. "Scalp current density mapping:
-#     Value and estimation from potential data." IEEE Trans Biomed Eng.
-#     1987;34(4):283–288.
-#
-# [2] Perrin F, Pernier J, Bertrand O, Echallier JF. "Spherical splines
-#     for scalp potential and current density mapping."
-#     [Corrigenda EEG 02274, EEG Clin. Neurophysiol., 1990, 76, 565]
-#     Electroenceph Clin Neurophysiol. 1989;72(2):184–187.
-#
-# [3] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
-#     (Current Source Density) methodology in electrophysiology."
-#     Int J Psychophysiol. 2015 Sep; 97(3): 171–173.
