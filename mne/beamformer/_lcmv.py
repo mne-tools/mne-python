@@ -138,6 +138,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     logger.info('Making LCMV beamformer with rank %s' % (rank,))
     del data_rank
     depth = _check_depth(depth, 'depth_sparse')
+    if inversion == 'single':
+        depth['combine_xyz'] = False
 
     is_free_ori, info, proj, vertno, G, whitener, nn, orient_std = \
         _prepare_beamformer_input(
