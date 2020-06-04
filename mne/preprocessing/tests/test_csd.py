@@ -17,7 +17,7 @@ from scipy.io import loadmat
 from scipy import linalg
 
 from mne.channels import make_dig_montage
-from mne import create_info, EpochsArray, pick_types
+from mne import create_info, EvokedArray, pick_types
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import object_diff, run_tests_if_main
@@ -26,30 +26,21 @@ from mne.datasets import testing
 from mne.preprocessing import compute_current_source_density
 
 data_path = op.join(testing.data_path(download=False), 'preprocessing')
-# eeg_fname = op.join(data_path, 'test_eeg.mat')
-eeg_fname = op.join(op.dirname(__file__), 'data', 'test_eeg.csv')
+eeg_fname = op.join(data_path, 'test_eeg.mat')
 coords_fname = op.join(data_path, 'test_eeg_pos.mat')
-# csd_fname = op.join(data_path, 'test_eeg_csd.mat')
-csd_fname = op.join(op.dirname(__file__), 'data', 'test_eeg_csd.csv')
+csd_fname = op.join(data_path, 'test_eeg_csd.mat')
 
 io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(io_path, 'test_raw.fif')
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
-def epochs_csd_sphere():
+def evoked_csd_sphere():
     """Get the MATLAB EEG data."""
-    # These were errantly created with an extra 1e-6 scale factor
-    # data = loadmat(eeg_fname)['data']
-    data = np.genfromtxt(eeg_fname, delimiter=',')
-    data = data.reshape((64, 640, 99), order='F')
-    data = np.rollaxis(data, 2)  # swap data's shape
-    data = (data) * 1e-6
+    data = loadmat(eeg_fname)['data']
     coords = loadmat(coords_fname)['coords'] * 1e-3
-    # csd = loadmat(csd_fname)['csd']
-    csd = np.genfromtxt(csd_fname, delimiter=',')
-
-    sphere = np.array((0, 0, 0, 0.08500060886258405))
+    csd = loadmat(csd_fname)['csd']
+    sphere = np.array((0, 0, 0, 0.08500060886258405))  # meters
     sfreq = 256  # sampling rate
     # swap coordinates' shape
     pos = np.rollaxis(coords, 1)
@@ -57,36 +48,38 @@ def epochs_csd_sphere():
     pos[:, [0]], pos[:, [1]] = pos[:, [1]], pos[:, [0]]
     # invert first coordinate
     pos[:, [0]] *= -1
-    # to meters
-    # pos /= 1000.
-    # sphere /= 1000.
+    dists = np.linalg.norm(pos, axis=-1)
+    assert_allclose(dists, sphere[-1], rtol=1e-2)  # close to spherical, meters
     # assign channel names to coordinates
     ch_names = [str(ii) for ii in range(len(pos))]
     dig_ch_pos = dict(zip(ch_names, pos))
     montage = make_dig_montage(ch_pos=dig_ch_pos, coord_frame='head')
     # create info
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
-    # make Epochs object
-    epochs = EpochsArray(data=data, info=info, tmin=-1)
-    epochs.set_montage(montage)
-    return epochs, csd, sphere
+    # make Evoked object
+    evoked = EvokedArray(data=data, info=info, tmin=-1)
+    evoked.set_montage(montage)
+    return evoked, csd, sphere
 
 
-def test_csd_matlab(epochs_csd_sphere):
+def test_csd_matlab(evoked_csd_sphere):
     """Test replication of the CSD MATLAB toolbox."""
-    epochs, csd, sphere = epochs_csd_sphere
-    epochs_csd = compute_current_source_density(epochs, sphere=sphere)
-    # assert 1e-4 < linalg.norm(csd) < 1e-3
-    assert_allclose(epochs_csd.average().data, csd, atol=1e-12)
-    '''
-    # test raw
-    csd_evoked = compute_current_source_density(evoked, sphere=sphere)
+    evoked, csd, sphere = evoked_csd_sphere
+    evoked_csd = compute_current_source_density(evoked, sphere=sphere)
+    assert_allclose(linalg.norm(csd), 0.00177, atol=1e-5)
+    # If we don't project onto the sphere, we get 1e-12 accuracy here,
+    # but it's a bad assumption for real data!
+    # Also, we divide by (radius ** 2) to get to units of V/m², unclear
+    # why this isn't done in the upstream implementation
+    evoked_csd_data = evoked_csd.data * sphere[-1] ** 2
+    assert_allclose(evoked_csd_data, csd, atol=2e-7)
 
     with pytest.raises(ValueError, match=('CSD already applied, '
                                           'should not be reapplied')):
-        compute_current_source_density(csd_evoked, sphere=sphere)
+        compute_current_source_density(evoked_csd, sphere=sphere)
 
-    assert_allclose(csd_evoked.data.sum(), 0.0001411335742733275, atol=1e-3)
+    # 1e-5 here if we don't project...
+    assert_allclose(evoked_csd_data.sum(), 0.02455, atol=2e-3)
 
 
 def test_csd_degenerate(evoked_csd_sphere):
@@ -146,10 +139,8 @@ def test_csd_degenerate(evoked_csd_sphere):
 
     with pytest.raises(TypeError):
         compute_current_source_density(evoked, copy=2, sphere=sphere)
-    '''
 
 
-'''
 def test_csd_fif():
     """Test applying CSD to FIF data."""
     raw = read_raw_fif(raw_fname).load_data()
@@ -173,6 +164,6 @@ def test_csd_fif():
         ch.update(coil_type=FIFF.FIFFV_COIL_EEG, unit=FIFF.FIFF_UNIT_V)
         raw_csd._data[pick] = raw._data[pick]
     assert object_diff(raw.info, raw_csd.info) == ''
-    '''
+
 
 run_tests_if_main()
