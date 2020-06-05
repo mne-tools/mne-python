@@ -59,7 +59,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     """Get the current source density (CSD) transformation.
 
     Transformation based on spherical spline surface Laplacian
-    :footcite:`PerrinEtAl1987,PerrinEtAl1989,KayserTenke2015`.
+    :footcite:`PerrinEtAl1987,PerrinEtAl1989,Cohen2014,KayserTenke2015`.
 
     Parameters
     ----------
@@ -151,13 +151,12 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         raise ValueError('Zero or infinite position found in chs')
     pos -= (x, y, z)
 
-    # Original code does not project onto the sphere, probably not good:
-    # pos /= radius
-    # from scipy.spatial.distance import squareform, pdist
-    # cos_dist = 1 - squareform(pdist(pos, 'sqeuclidean')) / 2.
-    # Project onto the sphere and do the distance (effectively)
+    # Project onto a unit sphere to compute the cosine similarity:
     pos /= np.linalg.norm(pos, axis=1, keepdims=True)
     cos_dist = np.clip(np.dot(pos, pos.T), -1, 1)
+    # This is equivalent to doing one minus half the squared Euclidean:
+    # from scipy.spatial.distance import squareform, pdist
+    # cos_dist = 1 - squareform(pdist(pos, 'sqeuclidean')) / 2.
     del pos
 
     G = _calc_g(cos_dist, stiffness=stiffness,
