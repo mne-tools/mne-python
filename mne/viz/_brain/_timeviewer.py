@@ -291,10 +291,23 @@ class _TimeViewer(object):
         from ..backends._pyvista import _require_minimum_version
         _require_minimum_version('0.24')
 
+        # shared configuration
+        self.brain = brain
+        self.orientation = [
+            'lateral',
+            'medial',
+            'rostral',
+            'caudal',
+            'dorsal',
+            'ventral',
+            'frontal',
+            'parietal'
+        ]
+
         # detect notebook
         if brain._notebook:
             self.notebook = True
-            self.configure_notebook(brain)
+            self.configure_notebook()
             return
         else:
             self.notebook = False
@@ -315,16 +328,6 @@ class _TimeViewer(object):
         self.icons = dict()
         self.actions = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
-        self.orientation = [
-            'lateral',
-            'medial',
-            'rostral',
-            'caudal',
-            'dorsal',
-            'ventral',
-            'frontal',
-            'parietal'
-        ]
         self.slider_length = 0.02
         self.slider_width = 0.04
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
@@ -332,7 +335,6 @@ class _TimeViewer(object):
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
 
         # Direct access parameters:
-        self.brain = brain
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
@@ -555,9 +557,9 @@ class _TimeViewer(object):
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
 
-    def configure_notebook(self, brain):
-        brain._renderer.figure.display = _BrainJupyterInteractor(
-            brain
+    def configure_notebook(self):
+        self.brain._renderer.figure.display = _BrainJupyterInteractor(
+            self
         )
 
     def configure_time_label(self):

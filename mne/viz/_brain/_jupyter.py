@@ -6,12 +6,13 @@ from ..backends._pyvista import _JupyterInteractor
 
 
 class _BrainJupyterInteractor(_JupyterInteractor):
-    def __init__(self, brain):
-        self.brain = brain
-        super().__init__(brain._renderer)
+    def __init__(self, time_viewer):
+        self.time_viewer = time_viewer
+        self.brain = self.time_viewer.brain
+        super().__init__(self.brain._renderer)
 
     def configure_controllers(self):
-        from ipywidgets import FloatSlider, VBox, interactive
+        from ipywidgets import FloatSlider, interactive
         super().configure_controllers()
         # time slider
         max_time = len(self.brain._data['time']) - 1
@@ -22,9 +23,17 @@ class _BrainJupyterInteractor(_JupyterInteractor):
                 max=max_time,
                 continuous_update=False
             )
-            self.controllers["time"] = VBox([
-                interactive(
-                    self.brain.set_time_point,
-                    time_idx=self.sliders["time"],
-                )
-            ])
+            self.controllers["time"] = interactive(
+                self.brain.set_time_point,
+                time_idx=self.sliders["time"],
+            )
+        # orientation
+        self.controllers["orientation"] = interactive(
+            self.set_orientation,
+            orientation=self.time_viewer.orientation,
+        )
+
+    def set_orientation(self, orientation):
+        row, col = self.plotter.index_to_loc(
+            self.plotter._active_renderer_index)
+        self.brain.show_view(orientation, row=row, col=col)
