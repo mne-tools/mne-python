@@ -262,11 +262,10 @@ print([evok.nave for evok in (left_aud, right_aud)])
 # This can be accomplished by the function :func:`mne.combine_evoked`, which
 # computes a weighted sum of the :class:`~mne.Evoked` objects given to it. The
 # weights can be manually specified as a list or array of float values, or can
-# be specified using the keyword ``'equal'`` (weight each :class:`~mne.Evoked`
-# object by :math:`\frac{1}{N}`, where :math:`N` is the number of
-# :class:`~mne.Evoked` objects given) or the keyword ``'nave'`` (weight each
-# :class:`~mne.Evoked` object by the number of epochs that were averaged
-# together to create it):
+# be specified using the keyword ``'equal'`` (weight each `~mne.Evoked` object
+# by :math:`\frac{1}{N}`, where :math:`N` is the number of `~mne.Evoked`
+# objects given) or the keyword ``'nave'`` (weight each `~mne.Evoked` object
+# proportional to the number of epochs averaged together to create it):
 
 left_right_aud = mne.combine_evoked([left_aud, right_aud], weights='nave')
 assert left_right_aud.nave == left_aud.nave + right_aud.nave
