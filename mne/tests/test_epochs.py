@@ -1158,12 +1158,10 @@ def test_evoked_arithmetic():
     evoked2 = epochs2.average()
     epochs = Epochs(raw, events[:8], event_id, tmin, tmax, picks=picks)
     evoked = epochs.average()
-    evoked_sum = combine_evoked([evoked1, evoked2], weights='nave')
-    assert_array_equal(evoked.data, evoked_sum.data)
-    assert_array_equal(evoked.times, evoked_sum.times)
-    assert_equal(evoked_sum.nave, evoked1.nave + evoked2.nave)
-    evoked_diff = combine_evoked([evoked1, evoked1], weights=[1, -1])
-    assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
+    evoked_avg = combine_evoked([evoked1, evoked2], weights='nave')
+    assert_array_equal(evoked.data, evoked_avg.data)
+    assert_array_equal(evoked.times, evoked_avg.times)
+    assert_equal(evoked_avg.nave, evoked1.nave + evoked2.nave)
 
 
 def test_evoked_io_from_epochs(tmpdir):
