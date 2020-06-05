@@ -156,7 +156,7 @@ class _JupyterInteractor(object):
 
     def configure_controllers(self):
         from ipywidgets import (interactive, Label, VBox, FloatSlider,
-                                IntSlider)
+                                IntSlider, Checkbox)
         controllers = list()
         # dpi
         self.dpi_slider = IntSlider(
@@ -231,6 +231,18 @@ class _JupyterInteractor(object):
             )
         ])
         controllers.append(self.camera_controller)
+        # continuous update
+        self.continuous_update_button = Checkbox(
+            value=False,
+            description='Continuous update',
+            disabled=False,
+            indent=False,
+        )
+        self.continuous_update_controller = interactive(
+            self.set_continuous_update,
+            value=self.continuous_update_button
+        )
+        controllers.append(self.continuous_update_controller)
         return VBox(controllers)
 
     def set_dpi(self, dpi):
@@ -254,6 +266,12 @@ class _JupyterInteractor(object):
         self.azimuth_slider.value = default_azimuth
         self.elevation_slider.value = default_elevation
         self.distance_slider.value = default_distance
+
+    def set_continuous_update(self, value):
+        self.dpi_slider.continuous_update = value
+        self.azimuth_slider.continuous_update = value
+        self.elevation_slider.continuous_update = value
+        self.distance_slider.continuous_update = value
 
 
 def _enable_aa(figure, plotter):
