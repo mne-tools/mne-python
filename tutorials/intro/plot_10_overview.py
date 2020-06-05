@@ -323,7 +323,7 @@ aud_evoked.plot_topomap(times=[0., 0.08, 0.1, 0.12, 0.2], ch_type='eeg')
 # :meth:`~mne.Evoked.plot_topo`:
 
 evoked_diff = mne.combine_evoked([aud_evoked, -vis_evoked], weights='equal')
-evoked_diff.pick_types('mag').plot_topo(color='r', legend=False)
+evoked_diff.pick_types(meg='mag').plot_topo(color='r', legend=False)
 
 ##############################################################################
 # Inverse modeling

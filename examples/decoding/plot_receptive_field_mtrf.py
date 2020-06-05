@@ -6,24 +6,13 @@ Receptive Field Estimation and Prediction
 =========================================
 
 This example reproduces figures from Lalor et al's mTRF toolbox in
-matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
+matlab :footcite:`CrosseEtAl2016`. We will show how the
+:class:`mne.decoding.ReceptiveField` class
 can perform a similar function along with scikit-learn. We will first fit a
 linear encoding model using the continuously-varying speech envelope to predict
 activity of a 128 channel EEG system. Then, we will take the reverse approach
 and try to predict the speech envelope from the EEG (known in the literature
 as a decoding model, or simply stimulus reconstruction).
-
-References
-----------
-.. [1] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-       The Multivariate Temporal Response Function (mTRF) Toolbox:
-       A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-       Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
-
-.. [2] Haufe, S., Meinecke, F., Goergen, K., Daehne, S., Haynes, J.-D.,
-       Blankertz, B., & Biessmann, F. (2014). On the interpretation of weight
-       vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
-       96-110. doi:10.1016/j.neuroimage.2013.10.067
 
 .. _figure 1: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F1
 .. _figure 2: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F2
@@ -52,7 +41,8 @@ from sklearn.preprocessing import scale
 # Load the data from the publication
 # ----------------------------------
 #
-# First we will load the data collected in [1]_. In this experiment subjects
+# First we will load the data collected in :footcite:`CrosseEtAl2016`.
+# In this experiment subjects
 # listened to natural speech. Raw EEG and the speech stimulus are provided.
 # We will load these below, downsampling the data in order to speed up
 # computation since we know that our features are primarily low-frequency in
@@ -136,9 +126,10 @@ mne.viz.tight_layout()
 # ==============================
 # Finally, we will look at how the linear coefficients (sometimes
 # referred to as beta values) are distributed across time delays as well as
-# across the scalp. We will recreate `figure 1`_ and `figure 2`_ from [1]_.
+# across the scalp. We will recreate `figure 1`_ and `figure 2`_ from
+# :footcite:`CrosseEtAl2016`.
 
-# Print mean coefficients across all time delays / channels (see Fig 1 in [1])
+# Print mean coefficients across all time delays / channels (see Fig 1)
 time_plot = 0.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
 max_coef = mean_coefs.max()
@@ -151,7 +142,7 @@ ax.set(xlabel='Delay (s)', ylabel='Channel', title="Mean Model\nCoefficients",
 plt.setp(ax.get_xticklabels(), rotation=45)
 mne.viz.tight_layout()
 
-# Make a topographic map of coefficients for a given delay (see Fig 2C in [1])
+# Make a topographic map of coefficients for a given delay (see Fig 2C)
 ix_plot = np.argmin(np.abs(time_plot - times))
 fig, ax = plt.subplots()
 mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
@@ -167,7 +158,8 @@ mne.viz.tight_layout()
 # We will now demonstrate another use case for the for the
 # :class:`mne.decoding.ReceptiveField` class as we try to predict the stimulus
 # activity from the EEG data. This is known in the literature as a decoding, or
-# stimulus reconstruction model [1]_. A decoding model aims to find the
+# stimulus reconstruction model :footcite:`CrosseEtAl2016`.
+# A decoding model aims to find the
 # relationship between the speech signal and a time-delayed version of the EEG.
 # This can be useful as we exploit all of the available neural data in a
 # multivariate context, compared to the encoding case which treats each M/EEG
@@ -175,7 +167,8 @@ mne.viz.tight_layout()
 # better quality of fit (at the expense of not controlling for stimulus
 # covariance), especially for low SNR stimuli such as speech.
 
-# We use the same lags as in [1]. Negative lags now index the relationship
+# We use the same lags as in :footcite:`CrosseEtAl2016`. Negative lags now
+# index the relationship
 # between the neural response and the speech envelope earlier in time, whereas
 # positive lags would index how a unit change in the amplitude of the EEG would
 # affect later stimulus activity (obviously this should have an amplitude of
@@ -184,8 +177,9 @@ tmin, tmax = -.2, 0.
 
 # Initialize the model. Here the features are the EEG data. We also specify
 # ``patterns=True`` to compute inverse-transformed coefficients during model
-# fitting (cf. next section). We'll use a ridge regression estimator with an
-# alpha value similar to [1].
+# fitting (cf. next section and :footcite:`HaufeEtAl2014`).
+# We'll use a ridge regression estimator with an alpha value similar to
+# Crosse et al.
 sr = ReceptiveField(tmin, tmax, sfreq, feature_names=raw.ch_names,
                     estimator=1e4, scoring='corrcoef', patterns=True)
 # We'll have (tmax - tmin) * sfreq delays
@@ -238,11 +232,13 @@ mne.viz.tight_layout()
 # ==============================
 #
 # Finally, we will look at how the decoding model coefficients are distributed
-# across the scalp. We will attempt to recreate `figure 5`_ from [1]_. The
+# across the scalp. We will attempt to recreate `figure 5`_ from
+# :footcite:`CrosseEtAl2016`. The
 # decoding model weights reflect the channels that contribute most toward
 # reconstructing the stimulus signal, but are not directly interpretable in a
 # neurophysiological sense. Here we also look at the coefficients obtained
-# via an inversion procedure [2]_, which have a more straightforward
+# via an inversion procedure :footcite:`HaufeEtAl2014`, which have a more
+# straightforward
 # interpretation as their value (and sign) directly relates to the stimulus
 # signal's strength (and effect direction).
 
@@ -264,3 +260,9 @@ ax[1].set(title="Inverse-transformed coefficients\nbetween delays %s and %s"
 mne.viz.tight_layout()
 
 plt.show()
+
+###############################################################################
+# References
+# ----------
+#
+# .. footbibliography::

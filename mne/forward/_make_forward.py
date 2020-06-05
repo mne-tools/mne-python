@@ -457,7 +457,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     megcoils, compcoils, megnames, meg_info = [], [], [], []
     eegels, eegnames = [], []
 
-    if meg and len(pick_types(info, ref_meg=False, exclude=[])) > 0:
+    if meg and len(pick_types(info, meg=True, ref_meg=False, exclude=[])) > 0:
         megcoils, compcoils, megnames, meg_info = \
             _prep_meg_channels(info, ignore_ref=ignore_ref)
     if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False,

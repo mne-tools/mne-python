@@ -10,10 +10,10 @@ from numpy.testing import assert_array_equal, assert_allclose
 from scipy.io import savemat
 
 import mne
-from mne.externals.pymatreader import read_mat
 from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
+from mne.externals.pymatreader import read_mat
 from mne.utils import run_tests_if_main
 
 

@@ -374,7 +374,7 @@ def test_needs_eeg_average_ref_proj():
 def test_sss_proj():
     """Test `meg` proj option."""
     raw = read_raw_fif(raw_fname)
-    raw.crop(0, 1.0).load_data().pick_types(exclude=())
+    raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
     raw.pick_channels(raw.ch_names[:51]).del_proj()
     with pytest.raises(ValueError, match='can only be used with Maxfiltered'):
         compute_proj_raw(raw, meg='combined')

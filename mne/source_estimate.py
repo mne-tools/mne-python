@@ -1963,8 +1963,9 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        src : list
-            The list of source spaces (should all be of type volume).
+        src : instance of SourceSpaces
+            The source spaces (should all be of type volume, or part of a
+            mixed source space).
         dest : 'mri' | 'surf'
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system

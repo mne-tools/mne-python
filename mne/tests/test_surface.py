@@ -45,7 +45,7 @@ def test_helmet():
     trans = _get_trans(fname_trans)[0]
     new_info = read_info(fname_raw)
     artemis_info = new_info.copy()
-    for pick in pick_types(new_info):
+    for pick in pick_types(new_info, meg=True):
         new_info['chs'][pick]['coil_type'] = 9999
         artemis_info['chs'][pick]['coil_type'] = \
             FIFF.FIFFV_COIL_ARTEMIS123_GRAD

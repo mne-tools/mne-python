@@ -21,6 +21,7 @@ from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif
+from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
@@ -1586,6 +1587,24 @@ def test_str_like():
     raw_path = read_raw_fif(fname, preload=True)
     raw_str = read_raw_fif(test_fif_fname, preload=True)
     assert_allclose(raw_path._data, raw_str._data)
+
+
+@pytest.mark.parametrize('fname', [
+    test_fif_fname,
+    testing._pytest_param(fif_fname),
+    testing._pytest_param(ms_fname),
+])
+def test_bad_acq(fname):
+    """Test handling of acquisition errors."""
+    # see gh-7844
+    raw = read_raw_fif(fname, allow_maxshield='yes').load_data()
+    with open(fname, 'rb') as fid:
+        for ent in raw._raw_extras[0]['ent']:
+            fid.seek(ent.pos, 0)
+            tag = _read_tag_header(fid)
+            # hack these, others (kind, type) should be correct
+            tag.pos, tag.next = ent.pos, ent.next
+            assert tag == ent
 
 
 run_tests_if_main()

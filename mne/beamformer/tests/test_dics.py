@@ -331,7 +331,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
     epochs, _, csd, source_vertno, label, vertices, source_ind = \
         _simulate_data(fwd_fixed, idx)
-    epochs.pick_types('grad')
+    epochs.pick_types(meg='grad')
 
     reg_ = 5 if inversion == 'matrix' else 1
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
@@ -379,7 +379,7 @@ def test_real(_load_forward, idx):
     fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
     epochs, _, csd, source_vertno, label, vertices, source_ind = \
         _simulate_data(fwd_fixed, idx)
-    epochs.pick_types('grad')
+    epochs.pick_types(meg='grad')
     reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
                              real_filter=True)

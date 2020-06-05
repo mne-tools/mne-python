@@ -45,7 +45,7 @@ def test_resolution_matrix_lcmv():
 
     # evoked info
     info = mne.io.read_info(fname_evoked)
-    mne.pick_info(info, mne.pick_types(info), copy=False)  # good MEG channels
+    mne.pick_info(info, mne.pick_types(info, meg=True), copy=False)  # good MEG
 
     # noise covariance matrix
     # ad-hoc to avoid discrepancies due to regularisation of real noise

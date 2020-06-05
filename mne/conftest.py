@@ -85,7 +85,7 @@ def pytest_configure(config):
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
     ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
-    ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
+    ignore:.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
     ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
@@ -295,7 +295,7 @@ def subjects_dir_tmp(tmpdir):
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types()
+    evoked = _evoked.copy().pick_types(meg=True)
     evoked.pick_channels(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
