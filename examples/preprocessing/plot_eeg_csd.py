@@ -4,13 +4,13 @@ Transform EEG data using current source density (CSD)
 =====================================================
 
 This script shows an example of how to use CSD
-:footcite`PerrinEtAl1987,PerrinEtAl1989,KayserTenke2015`.
+:footcite`PerrinEtAl1987,PerrinEtAl1989,KayserTenke2015,Cohen2014`.
 CSD takes the spatial Laplacian of the sensor signal (derivative in both
 x and y). It does what a planar gradiometer does in MEG. Computing these
 spatial derivatives reduces point spread. CSD transformed data have a sharper
 or more distinct topography, reducing the negative impact of volume conduction.
 """
-# Authors: Alex Rockhill <aprockhill206@gmail.com>
+# Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD (3-clause)
 
