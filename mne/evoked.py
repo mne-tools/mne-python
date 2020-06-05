@@ -842,12 +842,11 @@ def combine_evoked(all_evoked, weights):
     ``weights=[1, -1]``.
 
     .. Warning::
-        Other than the case of simple subtraction mentioned above, if you
-        provide numeric weights instead of using ``'equal'`` or ``'nave'``,
-        strange things may happen with your signal amplitude, and the resulting
-        `~mne.Evoked` object's ``.nave`` attribute (which is used to scale
-        noise covariance when applying the inverse operator) may not be
-        accurate.
+        Other than cases like simple subtraction mentioned above (where all
+        weights are -1 or 1), if you provide numeric weights instead of using
+        ``'equal'`` or ``'nave'``, the resulting `~mne.Evoked` object's
+        ``.nave`` attribute (which is used to scale noise covariance when
+        applying the inverse operator) may not be suitable for inverse imaging.
 
     Parameters
     ----------
