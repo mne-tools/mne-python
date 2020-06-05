@@ -837,23 +837,27 @@ def _check_evokeds_ch_names_times(all_evoked):
 def combine_evoked(all_evoked, weights):
     """Merge evoked data by weighted addition or subtraction.
 
-    Data should have the same channels and the same time instants.
-    Subtraction can be performed by calling
-    ``combine_evoked([evoked1, -evoked2], 'equal')``
+    Each `~mne.Evoked` in ``all_evoked`` should have the same channels and the
+    same time instants. Subtraction can be performed by passing
+    ``weights=[1, -1]``.
 
     .. Warning::
-        If you provide an array of weights instead of using ``'equal'`` or
-        ``'nave'``, strange things may happen with your resulting signal
-        amplitude and/or ``.nave`` attribute.
+        Other than the case of simple subtraction mentioned above, if you
+        provide numeric weights instead of using ``'equal'`` or ``'nave'``,
+        strange things may happen with your signal amplitude, and the resulting
+        `~mne.Evoked` object's ``.nave`` attribute (which is used to scale
+        noise covariance when applying the inverse operator) may not be
+        accurate.
 
     Parameters
     ----------
     all_evoked : list of Evoked
         The evoked datasets.
-    weights : list of float | str
-        The weights to apply to the data of each evoked instance.
-        Can also be ``'nave'`` to weight according to evoked.nave,
-        or ``"equal"`` to use equal weighting (each weighted as ``1/N``).
+    weights : list of float | 'equal' | 'nave'
+        The weights to apply to the data of each evoked instance, or a string
+        describing the weighting strategy to apply: ``'nave'`` computes
+        sum-to-one weights proportional to each object's ``nave`` attribute;
+        ``'equal'`` weights each `~mne.Evoked` by ``1 / len(all_evoked)``.
 
     Returns
     -------
@@ -870,16 +874,15 @@ def combine_evoked(all_evoked, weights):
         if weights == 'nave':
             weights = naves / naves.sum()
         else:
-            weights = np.ones_like(naves)
+            weights = np.ones_like(naves) / len(naves)
     else:
-        weights = np.array(weights, float)
+        weights = np.squeeze(weights).astype(float)
 
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
 
     # cf. https://en.wikipedia.org/wiki/Weighted_arithmetic_mean, section on
-    # how variances change when summing Gaussian random variables. The variance
-    # of a weighted sample mean is:
+    # "weighted sample variance". The variance of a weighted sample mean is:
     #
     #    σ² = w₁² σ₁² + w₂² σ₂² + ... + wₙ² σₙ²
     #
@@ -892,18 +895,17 @@ def combine_evoked(all_evoked, weights):
     # This general formula is equivalent to formulae in Matti's manual
     # (pp 128-129), where:
     # new_nave = sum(naves) when weights='nave' and
-    # new_nave = 1. / sum(1. / naves) when weights='equal'
+    # new_nave = 1. / sum(1. / naves) when weights are all 1.
 
     all_evoked = _check_evokeds_ch_names_times(all_evoked)
     evoked = all_evoked[0].copy()
 
     # use union of bad channels
-    bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
-                                                 for ev in all_evoked[1:])))
+    bads = list(set(b for e in all_evoked for b in e.info['bads']))
     evoked.info['bads'] = bads
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
     evoked.nave = new_nave
-    evoked.comment = ' + '.join('%0.3f * %s' % (w, e.comment or 'unknown')
+    evoked.comment = ' + '.join(f'{w:0.3f} × {e.comment or "unknown"}'
                                 for w, e in zip(weights, all_evoked))
     return evoked
 
