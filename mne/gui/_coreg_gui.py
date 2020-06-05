@@ -73,7 +73,7 @@ from pyface.api import (error, confirm, OK, YES, NO, CANCEL, information,
                         FileDialog, GUI)
 from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Enum, Float, HasTraits, HasPrivateTraits, Instance,
-                        Int, on_trait_change, Property, Str, List, RGBColor)
+                        Int, on_trait_change, Property, Str, List)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
                           Handler, Label, Spring, InstanceEditor, StatusItem,
                           UIInfo)
@@ -100,6 +100,11 @@ from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       _RESET_LABEL, _RESET_WIDTH,
                       laggy_float_editor_scale, laggy_float_editor_deg,
                       laggy_float_editor_mm, laggy_float_editor_weight)
+
+try:
+    from traitsui.api import RGBColor
+except ImportError:
+    from traits.api import RGBColor
 
 defaults = DEFAULTS['coreg']
 
