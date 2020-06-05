@@ -76,7 +76,7 @@ def test_si_units():
             assert den_SI.strip(powers) in known_SI
         # reconstruct the scale factor
         want_scale = known_prefixes[den_prefix] / known_prefixes[num_prefix]
-        if key in ('csd_bad', 'csd'):  # XXX CSD is wrong...
+        if key == 'csd_bad':
             assert not np.isclose(scale, want_scale, rtol=10)
         else:
             assert_allclose(scale, want_scale, rtol=1e-12)
