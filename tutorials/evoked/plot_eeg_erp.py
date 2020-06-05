@@ -125,15 +125,15 @@ print(epochs)
 
 ###############################################################################
 # Next, we create averages of stimulation-left vs stimulation-right trials.
-# We can use basic arithmetic to, for example, construct and plot
-# difference ERPs.
+# We can use negative weights in `mne.combine_evoked` to construct difference
+# ERPs.
 
 left, right = epochs["left"].average(), epochs["right"].average()
 
 # create and plot difference ERP
 joint_kwargs = dict(ts_args=dict(time_unit='s'),
                     topomap_args=dict(time_unit='s'))
-mne.combine_evoked([left, -right], weights='equal').plot_joint(**joint_kwargs)
+mne.combine_evoked([left, right], weights=[1, -1]).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # This is an equal-weighting difference. If you have imbalanced trial numbers,
