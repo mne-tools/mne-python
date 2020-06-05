@@ -14,6 +14,7 @@ import sys
 import numpy as np
 
 from . import _Brain
+from ._jupyter import _BrainJupyterInteractor
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
@@ -290,6 +291,14 @@ class _TimeViewer(object):
         from ..backends._pyvista import _require_minimum_version
         _require_minimum_version('0.24')
 
+        # detect notebook
+        if brain._notebook:
+            self.notebook = True
+            self.configure_notebook(brain)
+            return
+        else:
+            self.notebook = False
+
         # Default configuration
         self.playback = False
         self.visibility = False
@@ -545,6 +554,11 @@ class _TimeViewer(object):
                 slider_rep.GetCapProperty().SetOpacity(0)
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
+
+    def configure_notebook(self, brain):
+        brain._renderer.figure.display = _BrainJupyterInteractor(
+            brain
+        )
 
     def configure_time_label(self):
         self.time_actor = self.brain._data.get('time_actor')

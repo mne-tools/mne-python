@@ -1086,6 +1086,7 @@ class _Brain(object):
                     self.update_glyphs(hemi, vectors)
         self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
+        self._update()
 
     def update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import (_set_colormap_range,
@@ -1486,7 +1487,7 @@ class _Brain(object):
     def _update(self):
         from ..backends import renderer
         if renderer.get_3d_backend() == "pyvista":
-            if self._notebook:
+            if self._notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
 
 

@@ -113,13 +113,16 @@ class _Projection(object):
 class _JupyterInteractor(object):
     def __init__(self, renderer):
         from IPython import display
-        from ipywidgets import HBox
+        from ipywidgets import HBox, VBox
+        self.sliders = dict()
+        self.controllers = dict()
         self.renderer = renderer
         self.plotter = self.renderer.plotter
         with self.disabled_interactivity():
             self.fig, self.dh = self.screenshot()
-        self.controllers = self.configure_controllers()
-        layout = HBox([self.fig.canvas, self.controllers])
+        self.configure_controllers()
+        controllers = VBox(list(self.controllers.values()))
+        layout = HBox([self.fig.canvas, controllers])
         display.display(layout)
 
     @contextmanager
@@ -157,44 +160,41 @@ class _JupyterInteractor(object):
     def configure_controllers(self):
         from ipywidgets import (interactive, Label, VBox, FloatSlider,
                                 IntSlider, Checkbox)
-        controllers = list()
         # dpi
-        self.dpi_slider = IntSlider(
+        self.sliders["dpi"] = IntSlider(
             value=80,
             min=50,
             max=150,
             step=1,
             continuous_update=False
         )
-        self.dpi_controller = VBox([
+        self.controllers["dpi"] = VBox([
             Label(value='Configure the DPI'),
             interactive(
                 self.set_dpi,
-                dpi=self.dpi_slider
+                dpi=self.sliders["dpi"],
             )
         ])
-        controllers.append(self.dpi_controller)
         # subplot
         number_of_plots = len(self.plotter.renderers)
         if number_of_plots > 1:
-            self.subplot_slider = IntSlider(
+            self.sliders["subplot"] = IntSlider(
                 value=number_of_plots - 1,
                 min=0,
                 max=number_of_plots - 1,
                 step=1,
                 continuous_update=False
             )
-            self.subplot_controller = VBox([
+            self.controllers["subplot"] = VBox([
                 Label(value='Select the subplot'),
                 interactive(
                     self.set_subplot,
-                    index=self.subplot_slider,
+                    index=self.sliders["subplot"],
                 )
             ])
-            controllers.append(self.subplot_controller)
         # azimuth
         default_azimuth = self.plotter.renderer._azimuth
-        self.azimuth_slider = FloatSlider(
+        self.sliders["azimuth"] = FloatSlider(
             value=default_azimuth,
             min=-180.,
             max=180.,
@@ -203,7 +203,7 @@ class _JupyterInteractor(object):
         )
         # elevation
         default_elevation = self.plotter.renderer._elevation
-        self.elevation_slider = FloatSlider(
+        self.sliders["elevation"] = FloatSlider(
             value=default_elevation,
             min=-180.,
             max=180.,
@@ -213,7 +213,7 @@ class _JupyterInteractor(object):
         # distance
         eps = 1e-5
         default_distance = self.plotter.renderer._distance
-        self.distance_slider = FloatSlider(
+        self.sliders["distance"] = FloatSlider(
             value=default_distance,
             min=eps,
             max=2. * default_distance - eps,
@@ -221,16 +221,15 @@ class _JupyterInteractor(object):
             continuous_update=False
         )
         # camera
-        self.camera_controller = VBox([
+        self.controllers["camera"] = VBox([
             Label(value='Camera settings'),
             interactive(
                 self.set_camera,
-                azimuth=self.azimuth_slider,
-                elevation=self.elevation_slider,
-                distance=self.distance_slider,
+                azimuth=self.sliders["azimuth"],
+                elevation=self.sliders["elevation"],
+                distance=self.sliders["distance"],
             )
         ])
-        controllers.append(self.camera_controller)
         # continuous update
         self.continuous_update_button = Checkbox(
             value=False,
@@ -238,12 +237,10 @@ class _JupyterInteractor(object):
             disabled=False,
             indent=False,
         )
-        self.continuous_update_controller = interactive(
+        self.controllers["continuous_update"] = interactive(
             self.set_continuous_update,
             value=self.continuous_update_button
         )
-        controllers.append(self.continuous_update_controller)
-        return VBox(controllers)
 
     def set_dpi(self, dpi):
         width, height = self.renderer.figure.store['window_size']
@@ -263,15 +260,13 @@ class _JupyterInteractor(object):
         default_azimuth = figure.plotter.renderer._azimuth
         default_elevation = figure.plotter.renderer._elevation
         default_distance = figure.plotter.renderer._distance
-        self.azimuth_slider.value = default_azimuth
-        self.elevation_slider.value = default_elevation
-        self.distance_slider.value = default_distance
+        self.sliders["azimuth"].value = default_azimuth
+        self.sliders["elevation"].value = default_elevation
+        self.sliders["distance"].value = default_distance
 
     def set_continuous_update(self, value):
-        self.dpi_slider.continuous_update = value
-        self.azimuth_slider.continuous_update = value
-        self.elevation_slider.continuous_update = value
-        self.distance_slider.continuous_update = value
+        for slider in self.sliders.values():
+            slider.continuous_update = value
 
 
 def _enable_aa(figure, plotter):
