@@ -144,10 +144,10 @@ mne.combine_evoked([left, right], weights=[1, -1]).plot_joint(**joint_kwargs)
 # each `~mne.Evoked` (by passing ``weights='nave'`` to `~mne.combine_evoked`).
 # As an example, first, we create individual ERPs for each condition.
 
-aud_l = epochs["auditory", "left"].average()
-aud_r = epochs["auditory", "right"].average()
-vis_l = epochs["visual", "left"].average()
-vis_r = epochs["visual", "right"].average()
+aud_l = epochs["auditory/left"].average()
+aud_r = epochs["auditory/right"].average()
+vis_l = epochs["visual/left"].average()
+vis_r = epochs["visual/right"].average()
 
 all_evokeds = [aud_l, aud_r, vis_l, vis_r]
 print(all_evokeds)
@@ -160,7 +160,7 @@ print(all_evokeds)
 # Then, we can construct and plot an unweighted average of left vs. right
 # trials this way, too:
 mne.combine_evoked(
-    all_evokeds, weights=[0.5, -0.5, 0.5, -0.5]).plot_joint(**joint_kwargs)
+    all_evokeds, weights=[0.5, 0.5, -0.5, -0.5]).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -
