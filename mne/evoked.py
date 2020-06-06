@@ -875,7 +875,7 @@ def combine_evoked(all_evoked, weights):
         else:
             weights = np.ones_like(naves) / len(naves)
     else:
-        weights = np.squeeze(weights).astype(float)
+        weights = np.array(weights, float)
 
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
