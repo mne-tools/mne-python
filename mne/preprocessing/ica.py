@@ -117,7 +117,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     if not check:
         raise ValueError('Invalid channel type%s passed for ICA: %s.'
                          'Only the following types are supported: %s'
-                         .format(_pl(chs), chs, types))
+                         % (_pl(chs), chs, types))
 
 
 @fill_doc
