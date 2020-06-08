@@ -14,11 +14,15 @@ from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
-                        Range, Str, RGBColor, Property, cached_property,
-                        ArrayOrNone)
+                        Range, Str, Property, cached_property, ArrayOrNone)
 from traitsui.api import (View, Item, HGroup, VGrid, VGroup, Spring,
                           TextEditor)
 from tvtk.api import tvtk
+
+try:
+    from traitsui.api import RGBColor
+except ImportError:
+    from traits.api import RGBColor
 
 from ..defaults import DEFAULTS
 from ..surface import _CheckInside, _DistanceQuery
