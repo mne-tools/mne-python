@@ -390,6 +390,6 @@ def test_edf_lowpass_zero():
 
 @testing.requires_testing_data
 def test_edf_annot_ms_onset():
-    """Test reading of sub-milisecond annotation onsets."""
+    """Test reading of sub-second annotation onsets."""
     raw = read_raw_edf(edf_annot_sub_ms_path)
     assert_allclose(raw.annotations.onset, [1.951172, 3.492188])
