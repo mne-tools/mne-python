@@ -30,6 +30,8 @@ def _reload_backend(backend_name):
         ipython.magic('matplotlib widget')
         os.environ["MNE_3D_NOTEBOOK"] = "True"
         backend_name = 'pyvista'
+    else:
+        os.environ["MNE_3D_NOTEBOOK"] = "False"
     backend = importlib.import_module(name=_backend_name_map[backend_name],
                                       package='mne.viz.backends')
     logger.info('Using %s 3d backend.\n' % backend_name)
