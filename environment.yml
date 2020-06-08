@@ -33,7 +33,7 @@ dependencies:
 - pip:
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
-  - pyvista>=0.24
+  - pyvista==0.24
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
