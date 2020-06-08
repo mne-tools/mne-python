@@ -1881,9 +1881,9 @@ def find_bad_channels_maxwell(
     min_count : int
         Minimum number of times a channel must show up as bad in a chunk.
         Default is 5.
-    return_scores : bool
-        If True (default False), return the scores and time of the window edges
-        used.
+    return_scores : True
+        If True (default False), return a dictionary with scoring information
+        for each evaluated segment of the data.
     %(maxwell_origin_int_ext_calibration_cross)s
     %(maxwell_coord)s
     %(maxwell_reg_ref_cond_pos)s
@@ -1899,15 +1899,30 @@ def find_bad_channels_maxwell(
     flat_chs : list
         List of MEG channels that were detected as being flat in at least
         ``min_count`` segments.
-    bin_edges : ndarray, shape (n_windows + 1,)
-        The window boundaries (in seconds) used to calculate the scores.
-        Only returned when ``return_scores`` is ``True``.
-    scores_flat : ndarray, shape (n_meg, n_windows)
-        The scores for testing whether MEG channels are flat. Only returned
-        when ``return_scores`` is ``True``.
-    scores_noisy : ndarray, shape (n_meg, n_windows)
-        The scores for testing whether MEG channels are noisy. Only returned
-        when ``return_scores`` is ``True``.
+    scores : dict
+        A dictionary with information produced by the scoring algorithms.
+        Only returned when ``return_scores`` is ``True`` and contains the
+        following keys:
+
+        - ``bin_edges`` : ndarray, shape (n_windows + 1,)
+
+          The window boundaries (in seconds) used to calculate the scores.
+
+        - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
+
+          The scores for testing whether MEG channels are flat.
+
+        - ``limits_flat`` : ndarray, shape (n_meg, n_windows)
+
+          The thresholds above which a score classified a segment as "flat".
+
+
+        - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
+          The scores for testing whether MEG channels are noisy.
+
+        - ``limits_noisy`` : ndarray, shape (n_meg, n_windows)
+
+          The thresholds above which a score classified a segment as "noisy".
 
     See Also
     --------
@@ -1990,9 +2005,10 @@ def find_bad_channels_maxwell(
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
     bin_edges = np.r_[starts, stops[-1]]  # Ensure we include the endpoint!
-    scores_flat = np.empty((len(good_meg_picks), len(starts)), dtype=bool)
-    scores_flat.fill(False)
+    scores_flat = np.empty((len(good_meg_picks), len(starts)))
+    thresh_flat = scores_flat.copy()
     scores_noisy = scores_flat.copy()
+    thresh_noisy = scores_flat.copy()
 
     for si, (start, stop) in enumerate(zip(starts, stops)):
         n_iter = 0
@@ -2006,8 +2022,12 @@ def find_bad_channels_maxwell(
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
         data.shape = (data.shape[0], -1, flat_step)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
+
+        # We may want to return this later
+        scores_flat[:, si] = delta
+        thresh_flat[:, si] = these_limits
+
         chunk_flats = delta < these_limits
-        scores_flat[:, si] = chunk_flats  # We may want to return this later
         chunk_flats = np.where(chunk_flats)[0]
         chunk_flats = [raw.ch_names[good_meg_picks[chunk_flat]]
                        for chunk_flat in chunk_flats]
@@ -2048,16 +2068,20 @@ def find_bad_channels_maxwell(
             z = (range_ - mean) / std
             idx = np.argmax(z)
             max_ = z[idx]
+            name = raw.ch_names[these_picks[idx]]
+
+            # We may want to return this later
+            ch_idx = raw.copy().pick_types(meg=True).ch_names.index(name)
+            scores_noisy[ch_idx, si] = max_
+            thresh_noisy[ch_idx, si] = limit
+
             if max_ < limit:
                 break
-            name = raw.ch_names[these_picks[idx]]
+
             logger.debug('            Bad:       %s %0.1f'
                          % (name, max_))
             these_picks.pop(idx)
             chunk_noisy.append(name)
-            # We may want to return this later
-            ch_idx = raw.copy().pick_types(meg=True).ch_names.index(name)
-            scores_noisy[ch_idx, si] = True
         noisy_chs.update(chunk_noisy)
     noisy_chs = sorted((b for b, c in noisy_chs.items() if c >= min_count),
                        key=lambda x: raw.ch_names.index(x))
@@ -2068,6 +2092,11 @@ def find_bad_channels_maxwell(
     logger.info('[done]')
 
     if return_scores:
-        return noisy_chs, flat_chs, bin_edges, scores_flat, scores_noisy
+        scores = dict(bin_edges=bin_edges,
+                      scores_flat=scores_flat,
+                      limits_flat=thresh_flat,
+                      scores_noisy=scores_noisy,
+                      limits_noisy=thresh_noisy)
+        return noisy_chs, flat_chs, scores
     else:
         return noisy_chs, flat_chs
