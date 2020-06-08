@@ -3152,7 +3152,12 @@ def set_3d_options(antialias=None):
     antialias : bool | None
         If not None, set the default full-screen anti-aliasing setting.
         False is useful when renderers have problems (such as software
-        MESA renderers).
+        MESA renderers). This option can also be controlled using an
+        environment variable, e.g., ``MNE_3D_OPTION_ANTIALIAS=false``.
+
+    Notes
+    -----
+    .. versionadded:: 0.21.0
     """
     if antialias is not None:
         _3d_options['antialias'] = str(bool(antialias)).lower()
