@@ -23,6 +23,13 @@ backend = None
 
 def _reload_backend(backend_name):
     global backend
+    if backend_name == 'notebook':
+        import os
+        from IPython import get_ipython
+        ipython = get_ipython()
+        ipython.magic('matplotlib widget')
+        os.environ["MNE_3D_NOTEBOOK"] = "True"
+        backend_name = 'pyvista'
     backend = importlib.import_module(name=_backend_name_map[backend_name],
                                       package='mne.viz.backends')
     logger.info('Using %s 3d backend.\n' % backend_name)

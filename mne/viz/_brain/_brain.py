@@ -1487,7 +1487,7 @@ class _Brain(object):
 
     def _update(self):
         from ..backends import renderer
-        if renderer.get_3d_backend() == "pyvista":
+        if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self._notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
 

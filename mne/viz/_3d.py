@@ -1718,7 +1718,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         "figure": figure, "subjects_dir": subjects_dir,
         "views": views
     }
-    if _get_3d_backend() == "pyvista":
+    if _get_3d_backend() in ['pyvista', 'notebook']:
         kwargs["show"] = not time_viewer
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
@@ -2350,12 +2350,17 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         smoothing_steps = 1  # Disable smoothing to save time.
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    kwargs = {
+        "subject_id": subject, "hemi": hemi, "surf": 'white',
+        "title": title, "cortex": cortex, "size": size,
+        "background": background, "foreground": foreground,
+        "figure": figure, "subjects_dir": subjects_dir,
+        "views": views, "alpha": brain_alpha,
+    }
+    if _get_3d_backend() in ['pyvista', 'notebook']:
+        kwargs["show"] = not time_viewer
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf='white',
-                      title=title, cortex=cortex, size=size,
-                      background=background, foreground=foreground,
-                      figure=figure, subjects_dir=subjects_dir,
-                      views=views, alpha=brain_alpha)
+        brain = Brain(**kwargs)
     if scale_factor is None:
         # Configure the glyphs scale directly
         width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
