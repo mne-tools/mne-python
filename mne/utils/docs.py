@@ -923,13 +923,6 @@ show_traces : bool | str
 
     .. versionadded:: 0.20.0
 """
-docdict["antialias"] = """
-antialias : bool
-    If True (default), enable full-screen anti-aliasing. Can be problematic
-    on some renderers, such as software MESA rendering.
-
-    .. versionadded:: 0.21.0
-"""
 docdict["time_label"] = """
 time_label : str | callable | None
     Format of the time label (a format string, a function that maps

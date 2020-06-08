@@ -38,7 +38,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           invert_transform, Transform,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     has_nibabel, check_version, fill_doc, _pl,
+                     has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
@@ -1553,8 +1553,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, show_traces='auto', antialias=True,
-                          verbose=None):
+                          title=None, show_traces='auto', verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1645,7 +1644,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
         .. versionadded:: 0.17.0
     %(show_traces)s
-    %(antialias)s
     %(verbose)s
 
     Returns
@@ -1721,9 +1719,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     }
     if _get_3d_backend() == "pyvista":
         kwargs["show"] = not time_viewer
-    kwargs.update(_check_antialias(Brain, antialias))
+    else:
+        kwargs.update(_check_pysurfer_antialias(Brain))
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
+    del kwargs
     center = 0. if diverging else None
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
@@ -2218,7 +2218,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     return fig
 
 
-def _check_antialias(Brain, antialias):
+def _check_pysurfer_antialias(Brain):
+    antialias = _get_3d_option('antialias')
     kwargs = dict()
     if not antialias:
         if 'antialias' not in _get_args(Brain):
@@ -2239,7 +2240,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
-                                 antialias=True, verbose=None):
+                                 verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2313,7 +2314,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     %(show_traces)s
-    %(antialias)s
     %(verbose)s
 
     Returns
@@ -2333,8 +2333,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     if _get_3d_backend() == "mayavi":
         from surfer import Brain
         from surfer import __version__ as surfer_version
+        kwargs = _check_pysurfer_antialias(Brain)
     else:  # PyVista
         from ._brain import _Brain as Brain
+        kwargs = dict()
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
@@ -2363,7 +2365,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         smoothing_steps = 1  # Disable smoothing to save time.
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
-    kwargs = _check_antialias(Brain, antialias)
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi=hemi, surf='white',
                       title=title, cortex=cortex, size=size,
@@ -3137,3 +3138,31 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
                 'bottom' if orientation == 'vertical' else 'right'):
         ax.spines[key].set_visible(False)
     return cbar
+
+
+_3d_options = dict()
+_3d_default = dict(antialias='true')
+
+
+def set_3d_options(antialias=None):
+    """Set 3D rendering options.
+
+    Parameters
+    ----------
+    antialias : bool | None
+        If not None, set the default full-screen anti-aliasing setting.
+        False is useful when renderers have problems (such as software
+        MESA renderers).
+    """
+    if antialias is not None:
+        _3d_options['antialias'] = str(bool(antialias)).lower()
+
+
+def _get_3d_option(key):
+    try:
+        opt = _3d_options[key]
+    except KeyError:
+        opt = get_config(f'MNE_3D_OPTION_{key.upper()}', _3d_default[key])
+    opt = opt.lower()
+    _check_option(f'3D option {key}', opt, ('true', 'false'))
+    return opt == 'true'

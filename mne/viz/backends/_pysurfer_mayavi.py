@@ -65,17 +65,15 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
-                 name=None, show=False, shape=(1, 1), antialias=True):
+                 name=None, show=False, shape=(1, 1)):
         if bgcolor is not None:
             bgcolor = _check_color(bgcolor)
         self.mlab = _import_mlab()
         self.shape = shape
         if fig is None:
-            self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size,
-                                    antialias=antialias)
+            self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
         elif isinstance(fig, int):
-            self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size,
-                                    antialias=antialias)
+            self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
         self.fig._window_size = size
@@ -318,9 +316,10 @@ class _Renderer(_BaseRenderer):
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""
-    antialias = kwargs.pop('antialias', True)
+    from .._3d import _get_3d_option
     fig = _import_mlab().figure(**kwargs)
     # If using modern VTK/Mayavi, improve rendering with FXAA
+    antialias = _get_3d_option('antialias')
     if antialias and hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
         fig.scene.renderer.use_fxaa = True
     return fig

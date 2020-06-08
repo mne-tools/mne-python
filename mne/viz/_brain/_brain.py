@@ -90,7 +90,6 @@ class _Brain(object):
         Can be 'm' or 'mm' (default).
     show : bool
         Display the window as soon as it is ready. Defaults to True.
-    %(antialias)s
 
     Attributes
     ----------
@@ -154,7 +153,7 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm',
-                 show=True, antialias=True):
+                 show=True):
         from ..backends.renderer import backend, _get_renderer
         from matplotlib.colors import colorConverter
 
@@ -223,7 +222,7 @@ class _Brain(object):
         self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
-                                       fig=figure, antialias=antialias)
+                                       fig=figure)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry

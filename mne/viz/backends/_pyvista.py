@@ -137,13 +137,14 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
-                 name="PyVista Scene", show=False, shape=(1, 1),
-                 antialias=True):
+                 name="PyVista Scene", show=False, shape=(1, 1)):
         from .renderer import MNE_3D_BACKEND_TESTING
+        from ._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=None)
         self.font_family = "arial"
         self.tube_n_sides = 20
+        antialias = _get_3d_option('antialias')
         self.antialias = antialias and not MNE_3D_BACKEND_TESTING
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
