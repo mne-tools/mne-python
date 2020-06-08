@@ -2027,8 +2027,10 @@ class CoregFrame(HasTraits):
             renderer.use_depth_peeling = 0
             renderer.vtk_window.multi_samples = 8
             renderer.vtk_window.alpha_bit_planes = 0
-            if hasattr(renderer, 'use_fxaa'):
-                self.scene.renderer.use_fxaa = True
+            # This can break things on MESA and it's not really necessary
+            # for coreg, so let's not set it.
+            # if hasattr(renderer, 'use_fxaa'):
+            #     self.scene.renderer.use_fxaa = True
         self.scene.render()
 
     @on_trait_change('lock_fiducials')

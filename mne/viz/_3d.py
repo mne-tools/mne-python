@@ -22,7 +22,7 @@ import numpy as np
 from scipy import linalg, sparse
 
 from ..defaults import DEFAULTS
-from ..fixes import einsum, _crop_colorbar, _get_img_fdata
+from ..fixes import einsum, _crop_colorbar, _get_img_fdata, _get_args
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
@@ -1553,7 +1553,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, show_traces='auto', verbose=None):
+                          title=None, show_traces='auto', antialias=True,
+                          verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1631,7 +1632,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         mayavi, but resorts to matplotlib if mayavi is not available.
 
         .. versionadded:: 0.15.0
-
     spacing : str
         The spacing to use for the source space. Can be ``'ico#'`` for a
         recursively subdivided icosahedron, ``'oct#'`` for a recursively
@@ -1645,6 +1645,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
         .. versionadded:: 0.17.0
     %(show_traces)s
+    %(antialias)s
     %(verbose)s
 
     Returns
@@ -1716,10 +1717,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         "title": title, "cortex": cortex, "size": size,
         "background": background, "foreground": foreground,
         "figure": figure, "subjects_dir": subjects_dir,
-        "views": views
+        "views": views,
     }
     if _get_3d_backend() == "pyvista":
         kwargs["show"] = not time_viewer
+    kwargs.update(_check_antialias(Brain, antialias))
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
     center = 0. if diverging else None
@@ -2216,6 +2218,16 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     return fig
 
 
+def _check_antialias(Brain, antialias):
+    kwargs = dict()
+    if not antialias:
+        if 'antialias' not in _get_args(Brain):
+            raise ValueError('To turn off antialiasing, PySurfer needs to be '
+                             'updated to version 0.11+')
+        kwargs['antialias'] = antialias
+    return kwargs
+
+
 @verbose
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
@@ -2227,7 +2239,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
-                                 verbose=None):
+                                 antialias=True, verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2301,6 +2313,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     %(show_traces)s
+    %(antialias)s
     %(verbose)s
 
     Returns
@@ -2350,12 +2363,13 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         smoothing_steps = 1  # Disable smoothing to save time.
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    kwargs = _check_antialias(Brain, antialias)
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi=hemi, surf='white',
                       title=title, cortex=cortex, size=size,
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
-                      views=views, alpha=brain_alpha)
+                      views=views, alpha=brain_alpha, **kwargs)
     if scale_factor is None:
         # Configure the glyphs scale directly
         width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
