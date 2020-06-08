@@ -1383,14 +1383,14 @@ def _read_annotations_edf(annotations):
             if description:
                 events.append([onset, duration, description])
             elif k == 0:
-                # "The startdate/time of a file is specified in the EDF+ header
+                # The startdate/time of a file is specified in the EDF+ header
                 # fields 'startdate of recording' and 'starttime of recording'.
                 # These fields must indicate the absolute second in which the
                 # start of the first data record falls. So, the first TAL in
-                # the first data record always starts with +0.X2020, indicating
+                # the first data record always starts with +0.X, indicating
                 # that the first data record starts a fraction, X, of a second
                 # after the startdate/time that is specified in the EDF+
-                # header. If X=0, then the .X may be omitted."
+                # header. If X=0, then the .X may be omitted.
                 offset = -onset
 
     return zip(*events) if events else (list(), list(), list())
