@@ -1,5 +1,4 @@
 from copy import deepcopy
-import inspect
 import os.path as op
 
 from numpy.testing import assert_array_equal, assert_equal
@@ -21,14 +20,14 @@ from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 
-io_dir = op.join(op.dirname(inspect.getfile(inspect.currentframe())), '..')
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_mc = op.join(data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
 
-base_dir = op.join(op.dirname(__file__), 'data')
-ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+io_dir = op.join(op.dirname(__file__), '..')
+ctf_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_raw.fif')
+fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
 
 
 def _picks_by_type_old(info, meg_combined=False, ref_meg=False,
@@ -568,6 +567,25 @@ def test_pick_types_deprecation():
 
     assert not list(pick_types(info2))  # empty
     assert list(pick_types(info2, eeg=True)) == [0, 1]
+
+
+@pytest.mark.parametrize('meg', [True, False, 'grad', 'mag'])
+@pytest.mark.parametrize('eeg', [True, False])
+@pytest.mark.parametrize('ordered', [True, False])
+def test_get_channel_types_equiv(meg, eeg, ordered):
+    """Test equivalence of get_channel_types."""
+    raw = read_raw_fif(fif_fname)
+    pick_types(raw.info, meg=meg, eeg=eeg)
+    picks = pick_types(raw.info, meg=meg, eeg=eeg)
+    if not ordered:
+        picks = np.random.RandomState(0).permutation(picks)
+    if not meg and not eeg:
+        with pytest.raises(ValueError, match='No appropriate channels'):
+            raw.get_channel_types(picks=picks)
+        return
+    types = np.array(raw.get_channel_types(picks=picks))
+    types_iter = np.array([channel_type(raw.info, idx) for idx in picks])
+    assert_array_equal(types, types_iter)
 
 
 run_tests_if_main()
