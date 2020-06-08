@@ -114,6 +114,7 @@ class _JupyterInteractor(object):
     def __init__(self, renderer):
         from IPython import display
         from ipywidgets import HBox, VBox
+        self.dpi = 90
         self.sliders = dict()
         self.controllers = dict()
         self.renderer = renderer
@@ -140,8 +141,9 @@ class _JupyterInteractor(object):
     def screenshot(self):
         width, height = self.renderer.figure.store['window_size']
 
-        my_dpi = 100
-        fig = plt.figure(figsize=(width / my_dpi, height / my_dpi), dpi=my_dpi)
+        fig = plt.figure()
+        fig.figsize = (width / self.dpi, height / self.dpi)
+        fig.dpi = self.dpi
         fig.canvas.toolbar_visible = False
         fig.canvas.header_visible = False
         fig.canvas.resizable = False
@@ -160,21 +162,6 @@ class _JupyterInteractor(object):
     def configure_controllers(self):
         from ipywidgets import (interactive, Label, VBox, FloatSlider,
                                 IntSlider, Checkbox)
-        # dpi
-        self.sliders["dpi"] = IntSlider(
-            value=80,
-            min=50,
-            max=150,
-            step=1,
-            continuous_update=False
-        )
-        self.controllers["dpi"] = VBox([
-            Label(value='Configure the DPI'),
-            interactive(
-                self.set_dpi,
-                dpi=self.sliders["dpi"],
-            )
-        ])
         # subplot
         number_of_plots = len(self.plotter.renderers)
         if number_of_plots > 1:
@@ -241,11 +228,6 @@ class _JupyterInteractor(object):
             self.set_continuous_update,
             value=self.continuous_update_button
         )
-
-    def set_dpi(self, dpi):
-        width, height = self.renderer.figure.store['window_size']
-        self.fig.figsize = (width / dpi, height / dpi)
-        self.fig.dpi = dpi
 
     def set_camera(self, azimuth, elevation, distance):
         focalpoint = self.plotter.camera.GetFocalPoint()
