@@ -273,7 +273,7 @@ assert left_right_aud.nave == left_aud.nave + right_aud.nave
 ###############################################################################
 # Note that the ``nave`` attribute of the resulting `~mne.Evoked` object will
 # reflect the *effective* number of averages, and depends on both the ``nave``
-# attributes of the contributing `~mne.Evoked` objects and and the weights at
+# attributes of the contributing `~mne.Evoked` objects and the weights at
 # which they are combined. Keeping track of effective ``nave`` is important for
 # inverse imaging, because ``nave`` is used to scale the noise covariance
 # estimate (which in turn affects the magnitude of estimated source activity).
