@@ -2,7 +2,7 @@
 #
 # License: Simplified BSD
 
-from ..backends._pyvista import _JupyterInteractor
+from ..backends._jupyter import _JupyterInteractor
 
 
 class _BrainJupyterInteractor(_JupyterInteractor):

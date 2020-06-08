@@ -10,6 +10,7 @@
 from contextlib import contextmanager
 import importlib
 
+import os
 from ._utils import VALID_3D_BACKENDS
 from ...utils import logger, verbose, get_config, _check_option
 
@@ -24,7 +25,6 @@ backend = None
 def _reload_backend(backend_name):
     global backend
     if backend_name == 'notebook':
-        import os
         from IPython import get_ipython
         ipython = get_ipython()
         ipython.magic('matplotlib widget')

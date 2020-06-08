@@ -17,9 +17,9 @@ import warnings
 
 import numpy as np
 import vtk
-import matplotlib.pyplot as plt
 
 from .base_renderer import _BaseRenderer
+from ._jupyter import _JupyterInteractor
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc, get_config
 
@@ -108,147 +108,6 @@ class _Projection(object):
     def visible(self, state):
         """Modify visibility attribute of the sensors."""
         self.pts.SetVisibility(state)
-
-
-class _JupyterInteractor(object):
-    def __init__(self, renderer):
-        from IPython import display
-        from ipywidgets import HBox, VBox
-        self.dpi = 90
-        self.sliders = dict()
-        self.controllers = dict()
-        self.renderer = renderer
-        self.plotter = self.renderer.plotter
-        with self.disabled_interactivity():
-            self.fig, self.dh = self.screenshot()
-        self.configure_controllers()
-        controllers = VBox(list(self.controllers.values()))
-        layout = HBox([self.fig.canvas, controllers])
-        display.display(layout)
-
-    @contextmanager
-    def disabled_interactivity(self):
-        state = plt.isinteractive()
-        plt.ioff()
-        try:
-            yield
-        finally:
-            if state:
-                plt.ion()
-            else:
-                plt.ioff()
-
-    def screenshot(self):
-        width, height = self.renderer.figure.store['window_size']
-
-        fig = plt.figure()
-        fig.figsize = (width / self.dpi, height / self.dpi)
-        fig.dpi = self.dpi
-        fig.canvas.toolbar_visible = False
-        fig.canvas.header_visible = False
-        fig.canvas.resizable = False
-        fig.canvas.callbacks.callbacks.clear()
-        ax = plt.Axes(fig, [0., 0., 1., 1.])
-        ax.set_axis_off()
-        fig.add_axes(ax)
-
-        dh = ax.imshow(self.plotter.screenshot())
-        return fig, dh
-
-    def update(self):
-        self.dh.set_data(self.plotter.screenshot())
-        self.fig.canvas.draw()
-
-    def configure_controllers(self):
-        from ipywidgets import (interactive, Label, VBox, FloatSlider,
-                                IntSlider, Checkbox)
-        # subplot
-        number_of_plots = len(self.plotter.renderers)
-        if number_of_plots > 1:
-            self.sliders["subplot"] = IntSlider(
-                value=number_of_plots - 1,
-                min=0,
-                max=number_of_plots - 1,
-                step=1,
-                continuous_update=False
-            )
-            self.controllers["subplot"] = VBox([
-                Label(value='Select the subplot'),
-                interactive(
-                    self.set_subplot,
-                    index=self.sliders["subplot"],
-                )
-            ])
-        # azimuth
-        default_azimuth = self.plotter.renderer._azimuth
-        self.sliders["azimuth"] = FloatSlider(
-            value=default_azimuth,
-            min=-180.,
-            max=180.,
-            step=10.,
-            continuous_update=False
-        )
-        # elevation
-        default_elevation = self.plotter.renderer._elevation
-        self.sliders["elevation"] = FloatSlider(
-            value=default_elevation,
-            min=-180.,
-            max=180.,
-            step=10.,
-            continuous_update=False
-        )
-        # distance
-        eps = 1e-5
-        default_distance = self.plotter.renderer._distance
-        self.sliders["distance"] = FloatSlider(
-            value=default_distance,
-            min=eps,
-            max=2. * default_distance - eps,
-            step=default_distance / 10.,
-            continuous_update=False
-        )
-        # camera
-        self.controllers["camera"] = VBox([
-            Label(value='Camera settings'),
-            interactive(
-                self.set_camera,
-                azimuth=self.sliders["azimuth"],
-                elevation=self.sliders["elevation"],
-                distance=self.sliders["distance"],
-            )
-        ])
-        # continuous update
-        self.continuous_update_button = Checkbox(
-            value=False,
-            description='Continuous update',
-            disabled=False,
-            indent=False,
-        )
-        self.controllers["continuous_update"] = interactive(
-            self.set_continuous_update,
-            value=self.continuous_update_button
-        )
-
-    def set_camera(self, azimuth, elevation, distance):
-        focalpoint = self.plotter.camera.GetFocalPoint()
-        self.renderer.set_camera(azimuth, elevation,
-                                 distance, focalpoint)
-        self.update()
-
-    def set_subplot(self, index):
-        row, col = self.plotter.index_to_loc(index)
-        self.renderer.subplot(row, col)
-        figure = self.renderer.figure
-        default_azimuth = figure.plotter.renderer._azimuth
-        default_elevation = figure.plotter.renderer._elevation
-        default_distance = figure.plotter.renderer._distance
-        self.sliders["azimuth"].value = default_azimuth
-        self.sliders["elevation"].value = default_elevation
-        self.sliders["distance"].value = default_distance
-
-    def set_continuous_update(self, value):
-        for slider in self.sliders.values():
-            slider.continuous_update = value
 
 
 def _enable_aa(figure, plotter):
