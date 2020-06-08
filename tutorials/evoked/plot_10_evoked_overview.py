@@ -271,13 +271,18 @@ left_right_aud = mne.combine_evoked([left_aud, right_aud], weights='nave')
 assert left_right_aud.nave == left_aud.nave + right_aud.nave
 
 ###############################################################################
-# Keeping track of ``nave`` is important for inverse imaging, because it is
-# used to scale the noise covariance estimate (which in turn affects the
-# magnitude of estimated source activity). See :ref:`minimum_norm_estimates`
-# for more information (especially the :ref:`whitening_and_scaling` section).
-# For this reason, combining :class:`~mne.Evoked` objects with either
-# ``weights='equal'`` or by providing custom numeric weights **should usually
-# not be done** if you intend to perform inverse imaging on the resulting
+# Note that the ``nave`` attribute of the resulting `~mne.Evoked` object will
+# reflect the *effective* number of averages, and depends on both the ``nave``
+# attributes of the contributing `~mne.Evoked` objects and and the weights at
+# which they are combined. Keeping track of effective ``nave`` is important for
+# inverse imaging, because ``nave`` is used to scale the noise covariance
+# estimate (which in turn affects the magnitude of estimated source activity).
+# See :ref:`minimum_norm_estimates` for more information (especially the
+# :ref:`whitening_and_scaling` section). Note that `mne.grand_average` does
+# *not* adjust ``nave`` to reflect effective number of averaged epochs; rather
+# it simply sets ``nave`` to the number of *evokeds* that were averaged
+# together. For this reason, it is best to use `mne.combine_evoked` rather than
+# `mne.grand_average` if you intend to perform inverse imaging on the resulting
 # :class:`~mne.Evoked` object.
 #
 #
