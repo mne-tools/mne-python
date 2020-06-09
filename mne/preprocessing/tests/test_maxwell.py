@@ -1150,21 +1150,23 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
                 got_scores['limits_noisy'].shape ==
                 (len(meg_chs), len(got_scores['bin_edges']) - 1))
 
-        for want_bad in want_bads:
-            ch_idx = list(got_scores['ch_names']).index(want_bad)
-            scores = got_scores['scores_noisy'][ch_idx]
-            limits = got_scores['limits_noisy'][ch_idx]
-            n_segments_exceed_limit = (scores > limits).sum()
-            assert (n_segments_exceed_limit >=
-                    min(min_count, len(got_scores['bin_edges']) - 1))
+        # Check "flat" scores.
+        scores_flat = got_scores['scores_flat']
+        limits_flat = got_scores['limits_flat']
+        n_segments_below_limit = (scores_flat < limits_flat).sum(-1)
+        ch_idx = np.where(n_segments_below_limit >=
+                          min(min_count, len(got_scores['bin_edges']) - 1))
+        flats = set(got_scores['ch_names'][ch_idx])
+        assert flats == set(want_flats)
 
-        for want_flat in want_flats:
-            ch_idx = list(got_scores['ch_names']).index(want_flat)
-            scores = got_scores['scores_flat'][ch_idx]
-            limits = got_scores['limits_flat'][ch_idx]
-            n_segments_below_limit = (scores < limits).sum()
-            assert (n_segments_below_limit >=
-                    min(min_count, len(got_scores['bin_edges']) - 1))
+        # Check "noisy" scores.
+        scores_noisy = got_scores['scores_noisy']
+        limits_noisy = got_scores['limits_noisy']
+        n_segments_below_limit = (scores_noisy > limits_noisy).sum(-1)
+        ch_idx = np.where(n_segments_below_limit >=
+                          min(min_count, len(got_scores['bin_edges']) - 1))
+        bads = set(got_scores['ch_names'][ch_idx])
+        assert bads == set(want_bads)
 
 
 run_tests_if_main()

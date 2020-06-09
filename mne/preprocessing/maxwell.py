@@ -1906,8 +1906,8 @@ def find_bad_channels_maxwell(
         following keys:
 
         - ``ch_names`` : ndarray, shape (n_meg,)
-            The names of the MEG channels. Their order corresponds to the order
-            of rows in the ``scores`` and ``limits`` arrays.
+            The names of the MEG channels. Their order corresponds to the
+            order of rows in the ``scores`` and ``limits`` arrays.
         - ``ch_types`` : ndarray, shape (n_meg,)
             The types of the MEG channels in ``ch_names`` (``'mag'``,
             ``'grad'``).
@@ -2006,15 +2006,14 @@ def find_bad_channels_maxwell(
     all_flats = set()
 
     # Prepare variables to return if `return_scores=True`.
-    ch_names = np.array(raw.ch_names)[params['meg_picks']]
-    ch_types = np.array(raw.get_channel_types(params['meg_picks']))
     bin_edges = np.r_[starts, stops[-1]]  # Ensure we include the endpoint!
     # We create ndarrays with one row per channel, regardless of channel type
     # and whether the channel has been marked as "bad" in info or not. This
     # makes indexing in the loop easier. We only filter this down to the subset
-    # of all MEG channels after all processing is done.
-    scores_flat = np.empty((len(raw.ch_names), len(starts)))
-    scores_flat.fill(np.nan)
+    # of MEG channels after all processing is done.
+    ch_names = np.array(raw.ch_names)
+    ch_types = np.array(raw.get_channel_types(ch_names))
+    scores_flat = np.empty((len(ch_names), len(starts)))
     thresh_flat = scores_flat.copy()
     scores_noisy = scores_flat.copy()
     thresh_noisy = scores_flat.copy()
@@ -2097,6 +2096,8 @@ def find_bad_channels_maxwell(
                       key=lambda x: raw.ch_names.index(x))
 
     # Only include MEG channels.
+    ch_names = ch_names[params['meg_picks']]
+    ch_types = ch_types[params['meg_picks']]
     scores_flat = scores_flat[params['meg_picks']]
     thresh_flat = thresh_flat[params['meg_picks']]
     scores_noisy = scores_noisy[params['meg_picks']]
