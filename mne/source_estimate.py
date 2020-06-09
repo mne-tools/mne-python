@@ -17,7 +17,6 @@ from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
-from .fixes import einsum
 from .io.constants import FIFF
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
