@@ -1129,7 +1129,7 @@ def test_vec_stc_basic(tmpdir, klass, kind, dtype):
         [0, 1, 0],
         [np.sqrt(1. / 2.), 0, np.sqrt(1. / 2.)],
         [np.sqrt(1 / 3.)] * 3
-    ], dtype)
+    ], np.float32)
 
     data = np.array([
         [1, 0, 0],

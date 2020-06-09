@@ -1814,6 +1814,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
                             zip(src, self.vertices)])
         return normals
 
+    @fill_doc
     def project_onto(self, directions=None, src=None, use_cps=True):
         """Project the data for each vertex in a given direction.
 
@@ -1860,7 +1861,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             # The sign is arbitrary, so let's flip it in the direction that
             # makes the resulting time series the most positive:
             if src is None:
-                signs = np.sum(v[:, 0], axis=1, keepdims=True)
+                signs = np.sum(v[:, 0].real, axis=1, keepdims=True)
             else:
                 normals = self._get_src_normals(src, use_cps)
                 signs = np.sum(directions * normals, axis=1, keepdims=True)
