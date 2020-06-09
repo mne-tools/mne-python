@@ -335,15 +335,28 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     ('eLORETA', 99, 100, 0.8, 0.2),
     ('eLORETA', 99, 100, 0.8, 0.001),
 ])
+@pytest.mark.parametrize('pick_ori', (None, 'vector'))
 def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
-                                 depth, loose):
+                                 depth, loose, pick_ori):
     """Test inverse localization bias for loose minimum-norm solvers."""
+    if pick_ori == 'vector' and method == 'eLORETA':  # works, but save cycles
+        return
     evoked, fwd, noise_cov, _, want = bias_params_fixed
     fwd = convert_forward_solution(fwd, surf_ori=False, force_fixed=False)
     assert not is_fixed_orient(fwd)
     inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose,
                                       depth=depth)
-    loc = apply_inverse(evoked, inv_loose, lambda2, method).data
+    loc = apply_inverse(
+        evoked, inv_loose, lambda2, method, pick_ori=pick_ori)
+    if pick_ori is not None:
+        assert loc.data.ndim == 3
+        loc, directions = loc.project_onto(src=fwd['src'])
+        abs_cos_sim = np.abs(np.sum(
+            directions * inv_loose['source_nn'][2::3], axis=1))
+        assert np.percentile(abs_cos_sim, 10) > 0.9  # most very aligned
+        loc = abs(loc).data
+    else:
+        loc = loc.data
     assert (loc >= 0).all()
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
