@@ -2108,6 +2108,7 @@ def find_bad_channels_maxwell(
     flat_chs = sorted((f for f, c in flat_chs.items() if c >= min_count),
                       key=lambda x: raw.ch_names.index(x))
 
+    # Only include MEG channels.
     scores_flat = scores_flat[params['meg_picks']]
     thresh_flat = thresh_flat[params['meg_picks']]
     scores_noisy = scores_noisy[params['meg_picks']]
