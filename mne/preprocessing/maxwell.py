@@ -1906,33 +1906,21 @@ def find_bad_channels_maxwell(
         following keys:
 
         - ``ch_names`` : ndarray, shape (n_meg,)
-
-          The names of the MEG channels. Their order corresponds to the order
-          of rows in the ``scores`` and ``limits`` arrays.
-
+            The names of the MEG channels. Their order corresponds to the order
+            of rows in the ``scores`` and ``limits`` arrays.
         - ``ch_types`` : ndarray, shape (n_meg,)
-
-          The types of the MEG channels in ``ch_names`` (``mag``, ``grad``).
-
+            The types of the MEG channels in ``ch_names`` (``'mag'``,
+            ``'grad'``).
         - ``bin_edges`` : ndarray, shape (n_windows + 1,)
-
-          The window boundaries (in seconds) used to calculate the scores.
-
+            The window boundaries (in seconds) used to calculate the scores.
         - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
-
-          The scores for testing whether MEG channels are flat.
-
+            The scores for testing whether MEG channels are flat.
         - ``limits_flat`` : ndarray, shape (n_meg, n_windows)
-
-          The thresholds above which a score classified a segment as "flat".
-
+            The thresholds above which a score classified a segment as "flat".
         - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
-
-          The scores for testing whether MEG channels are noisy.
-
+            The scores for testing whether MEG channels are noisy.
         - ``limits_noisy`` : ndarray, shape (n_meg, n_windows)
-
-          The thresholds above which a score classified a segment as "noisy".
+            The thresholds above which a score classified a segment as "noisy".
 
         Segments of channels marked as ``bad`` will be ``np.nan``.
 
