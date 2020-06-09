@@ -1877,13 +1877,14 @@ def find_bad_channels_maxwell(
         Detection limit (default is 7.). Smaller values will find more bad
         channels at increased risk of including good ones.
     duration : float
-        Duration into which to window the data for processing. Default is 5.
+        Duration of the segments into which to slice the data for processing,
+        in seconds. Default is 5.
     min_count : int
         Minimum number of times a channel must show up as bad in a chunk.
         Default is 5.
-    return_scores : True
-        If True (default False), return a dictionary with scoring information
-        for each evaluated segment of the data.
+    return_scores : bool
+        If ``True``, return a dictionary with scoring information for each
+        evaluated segment of the data. Default is ``False``.
     %(maxwell_origin_int_ext_calibration_cross)s
     %(maxwell_coord)s
     %(maxwell_reg_ref_cond_pos)s
@@ -1915,7 +1916,6 @@ def find_bad_channels_maxwell(
         - ``limits_flat`` : ndarray, shape (n_meg, n_windows)
 
           The thresholds above which a score classified a segment as "flat".
-
 
         - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
           The scores for testing whether MEG channels are noisy.
