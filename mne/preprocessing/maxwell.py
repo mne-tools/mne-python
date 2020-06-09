@@ -2012,7 +2012,7 @@ def find_bad_channels_maxwell(
     # makes indexing in the loop easier. We only filter this down to the subset
     # of MEG channels after all processing is done.
     ch_names = np.array(raw.ch_names)
-    ch_types = np.array(raw.get_channel_types(ch_names))
+    ch_types = np.array(raw.get_channel_types())
     scores_flat = np.empty((len(ch_names), len(starts)))
     thresh_flat = scores_flat.copy()
     scores_noisy = scores_flat.copy()
