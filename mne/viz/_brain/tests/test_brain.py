@@ -50,7 +50,9 @@ class TstVTKPicker(object):
 
     def GetPickPosition(self):
         """Return the picked position."""
-        cell = self.mesh.faces[self.cell_id][1:]
+        vtk_cell = self.mesh.GetCell(self.cell_id)
+        cell = [vtk_cell.GetPointId(point_id) for point_id
+                in range(vtk_cell.GetNumberOfPoints())]
         self.point_id = cell[0]
         return self.mesh.points[self.point_id]
 

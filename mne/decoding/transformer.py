@@ -123,10 +123,12 @@ class Scaler(TransformerMixin, BaseEstimator):
             self._scaler = _ConstantScaler(info, scalings, self.with_std)
         elif scalings == 'mean':
             from sklearn.preprocessing import StandardScaler
-            self._scaler = StandardScaler(self.with_mean, self.with_std)
+            self._scaler = StandardScaler(
+                with_mean=self.with_mean, with_std=self.with_std)
         else:  # scalings == 'median':
             from sklearn.preprocessing import RobustScaler
-            self._scaler = RobustScaler(self.with_mean, self.with_std)
+            self._scaler = RobustScaler(
+                with_centering=self.with_mean, with_scaling=self.with_std)
 
     def fit(self, epochs_data, y=None):
         """Standardize data across channels.

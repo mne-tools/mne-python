@@ -1312,7 +1312,7 @@ def linkcode_resolve(domain, info):
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
-       kind, fn, linespec)
+        kind, fn, linespec)
 
 
 def open_docs(kind=None, version=None):
