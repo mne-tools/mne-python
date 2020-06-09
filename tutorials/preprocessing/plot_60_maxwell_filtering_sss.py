@@ -131,7 +131,7 @@ raw.info['bads'] = bads
 #
 # In the following, we will generate a total of four of such visualizations for
 # the automated detection of *noisy* channels.
-# %%
+
 for ch_type in ('mag', 'grad'):
     # Only select the data for mag or grad channels.
     ch_subset = auto_scores['ch_types'] == ch_type
