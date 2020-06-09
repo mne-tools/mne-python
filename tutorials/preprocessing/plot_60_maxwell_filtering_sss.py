@@ -144,7 +144,6 @@ for ch_type in ('mag', 'grad'):
     data_to_plot = pd.DataFrame(data=scores,
                                 columns=pd.Index(segments, name='Segment'),
                                 index=pd.Index(ch_names, name='Channel'))
-
     # Plot the "raw" scores.
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
     fig.suptitle(f'Automated noisy channel detection: {ch_type}',
@@ -154,9 +153,13 @@ for ch_type in ('mag', 'grad'):
     ax[0].set_title('All Scores', fontweight='bold')
 
     # Only plot scores that exceeded the limits.
+    # We also pass the optional parameters ``vmin`` and ``vmax`` to the
+    # plotting function to avoid a (harmless) warning about missing values.
+    # However, this is purely optional.
     mask = scores <= limits
-    sns.heatmap(data=data_to_plot, mask=mask, cmap='Reds',
-                cbar_kws=dict(label='Score'), ax=ax[1])
+    sns.heatmap(data=data_to_plot, mask=mask,
+                vmin=limits.min(), vmax=limits.max(),  # May be omitted.
+                cmap='Reds', cbar_kws=dict(label='Score'), ax=ax[1])
     ax[1].set_title('Scores > Limit', fontweight='bold')
 
     # Figure title should not overlap with subplots.
