@@ -191,9 +191,9 @@ for ch_type in ('mag', 'grad'):
 # of the raw data after looking at the diagnostic plots above, it becomes clear
 # that the channel exceeding the "noise" limits in some segments without
 # qualifying as "bad", in fact contains some flux jumps. There were just not
-# *enough* flux jumps in the recording for our automated detecion to report the
-# channel as bad. So it can still be useful to manually inspect and mark bad
-# channels. The channel in question is ``MEG 2313``. Let's mark it as bad:
+# *enough* flux jumps in the recording for our automated procedure to report
+# the channel as bad. So it can still be useful to manually inspect and mark
+# bad channels. The channel in question is ``MEG 2313``. Let's mark it as bad:
 
 raw.info['bads'] += ['MEG 2313']  # from manual inspection
 
