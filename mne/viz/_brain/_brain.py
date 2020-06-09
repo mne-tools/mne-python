@@ -22,8 +22,7 @@ from .._3d import _process_clim, _handle_time
 from ...surface import mesh_edges
 from ...morph import _hemi_morph
 from ...label import read_label, _read_annot
-from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      get_config)
+from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
 
 
 class _Brain(object):
@@ -196,7 +195,8 @@ class _Brain(object):
                              'sequence of ints.')
         fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
-        self._notebook = get_config(key='MNE_3D_NOTEBOOK', default=False)
+        notebook_str = os.environ.get('MNE_3D_NOTEBOOK', default="False")
+        self._notebook = (notebook_str == "True")
         self._hemi = hemi
         self._units = units
         self._subject_id = subject_id

@@ -21,7 +21,7 @@ import vtk
 from .base_renderer import _BaseRenderer
 from ._jupyter import _JupyterInteractor
 from ._utils import _get_colormap_from_array
-from ...utils import copy_base_doc_to_subclass_doc, get_config
+from ...utils import copy_base_doc_to_subclass_doc
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -141,8 +141,9 @@ class _Renderer(_BaseRenderer):
                  name="PyVista Scene", show=False, shape=(1, 1),
                  notebook=None):
         from .renderer import MNE_3D_BACKEND_TESTING
+        notebook_str = os.environ.get('MNE_3D_NOTEBOOK', default="False")
         if notebook is None:
-            notebook = get_config(key='MNE_3D_NOTEBOOK', default=False)
+            notebook = (notebook_str == "True")
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=notebook)
         self.font_family = "arial"
