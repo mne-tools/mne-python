@@ -174,7 +174,7 @@ for ch_type in ('mag', 'grad'):
 #           "flat", and invert the ``mask``, such that it reads:
 #           ``mask = scores >= limits`` to omit all scores that do not qualify
 #           as "flat" when generating the right subplots.
-
+#
 # You can see the un-altered scores for each channel and time segment in the
 # left subplots, and thresholded scores – those which exceeded a certain limit
 # of noisiness – in the right subplots. While the right subplot is entirely
@@ -185,7 +185,7 @@ for ch_type in ('mag', 'grad'):
 # in a more transient fashion. It was therefore *not* detected as bad, because
 # the number of segments in which it exceeded the limits was less than 5,
 # which MNE-Python uses by default.
-
+#
 # .. note:: You can request a different number of segments that must be
 #           found to be problematic before
 #           `~mne.preprocessing.find_bad_channels_maxwell` reports them as bad.
