@@ -1162,8 +1162,8 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         # Check "noisy" scores.
         scores_noisy = got_scores['scores_noisy']
         limits_noisy = got_scores['limits_noisy']
-        n_segments_below_limit = (scores_noisy > limits_noisy).sum(-1)
-        ch_idx = np.where(n_segments_below_limit >=
+        n_segments_beyond_limit = (scores_noisy > limits_noisy).sum(-1)
+        ch_idx = np.where(n_segments_beyond_limit >=
                           min(min_count, len(got_scores['bin_edges']) - 1))
         bads = set(got_scores['ch_names'][ch_idx])
         assert bads == set(want_bads)
