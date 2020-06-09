@@ -1061,18 +1061,25 @@ def test_mf_skips():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('fname, bads, annot, add_ch, ignore_ref, want_bads', [
-    # Neuromag data tested against MF
-    (sample_fname, [], False, False, False, ['MEG 2443']),
-    # add 0111 to test picking, add annot to test it, and prepend chs for idx
-    (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443']),
-    # CTF data seems to be sensitive to linalg lib (?) because some channels
-    # are very close to the limit, so we just check that one shows up
-    (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}),
-    (ctf_fname_continuous, [], False, False, True, ['MLC24-4304']),  # faked
-])
+@pytest.mark.parametrize(
+    ('fname', 'bads', 'annot', 'add_ch', 'ignore_ref', 'want_bads',
+     'return_scores'), [
+        # Neuromag data tested against MF
+        (sample_fname, [], False, False, False, ['MEG 2443'], False),
+        # add 0111 to test picking, add annot to test it, and prepend chs for
+        # idx
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], False),
+        # CTF data seems to be sensitive to linalg lib (?) because some
+        # channels are very close to the limit, so we just check that one shows
+        # up
+        (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}, False),
+        # faked
+        (ctf_fname_continuous, [], False, False, True, ['MLC24-4304'], False),
+        # For `return_scores=True`
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True)
+    ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
-                                   want_bads):
+                                   want_bads, return_scores):
     """Test automatic bad channel detection."""
     if fname.endswith('.ds'):
         raw = read_raw_ctf(fname).load_data()
@@ -1086,6 +1093,9 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     raw._data[flat_idx] = 0  # MaxFilter didn't have this but doesn't affect it
     want_flats = [raw.ch_names[flat_idx]]
     raw.apply_gradient_compensation(0)
+
+    min_count = 5
+
     if add_ch:
         raw_eeg = read_raw_fif(fname)
         raw_eeg.pick_types(meg=False, eeg=True, exclude=()).load_data()
@@ -1105,10 +1115,19 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         assert step == 1502
         raw.annotations.append(step * dt + raw._first_time, dt, 'BAD')
     with catch_logging() as log:
-        got_bads, got_flats = find_bad_channels_maxwell(
+        return_vals = find_bad_channels_maxwell(
             raw, origin=(0., 0., 0.04), regularize=None,
             bad_condition='ignore', skip_by_annotation='BAD', verbose=True,
-            ignore_ref=ignore_ref)
+            ignore_ref=ignore_ref, min_count=min_count,
+            return_scores=return_scores)
+
+    if return_scores:
+        assert len(return_vals) == 3
+        got_bads, got_flats, got_scores = return_vals
+    else:
+        assert len(return_vals) == 2
+        got_bads, got_flats = return_vals
+
     if isinstance(want_bads, list):
         assert got_bads == want_bads  # from MaxFilter
     else:
@@ -1117,6 +1136,35 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     log = log.getvalue()
     assert 'Interval   1:    0.00' in log
     assert 'Interval   2:    5.00' in log
+
+    if return_scores:
+        meg_chs = raw.copy().pick_types(meg=True, exclude=[]).ch_names
+        ch_types = raw.get_channel_types(meg_chs)
+
+        assert list(got_scores['ch_names']) == meg_chs
+        assert list(got_scores['ch_types']) == ch_types
+
+        assert (got_scores['scores_flat'].shape ==
+                got_scores['limits_flat'].shape ==
+                got_scores['scores_noisy'].shape ==
+                got_scores['limits_noisy'].shape ==
+                (len(meg_chs), len(got_scores['bin_edges']) - 1))
+
+        for want_bad in want_bads:
+            ch_idx = list(got_scores['ch_names']).index(want_bad)
+            scores = got_scores['scores_noisy'][ch_idx]
+            limits = got_scores['limits_noisy'][ch_idx]
+            n_segments_exceed_limit = (scores > limits).sum()
+            assert (n_segments_exceed_limit >=
+                    min(min_count, len(got_scores['bin_edges']) - 1))
+
+        for want_flat in want_flats:
+            ch_idx = list(got_scores['ch_names']).index(want_flat)
+            scores = got_scores['scores_flat'][ch_idx]
+            limits = got_scores['limits_flat'][ch_idx]
+            n_segments_below_limit = (scores < limits).sum()
+            assert (n_segments_below_limit >=
+                    min(min_count, len(got_scores['bin_edges']) - 1))
 
 
 run_tests_if_main()
