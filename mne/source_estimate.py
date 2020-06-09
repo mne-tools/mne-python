@@ -1819,7 +1819,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        directions : ndarray, shape (n_src, 3) | None
+        directions : ndarray, shape (n_vertices, 3) | None
             If None, SVD will be used to project onto the direction of
             maximal power.
         src : instance of SourceSpaces | None
@@ -1832,7 +1832,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         -------
         stc : instance of SourceEstimate
             The projected source estimate.
-        normals : ndarray, shape (n_src, 3)
+        normals : ndarray, shape (n_vertices, 3)
             Only returned if ``normals is None``, the normals computed
             using SVD.
 
