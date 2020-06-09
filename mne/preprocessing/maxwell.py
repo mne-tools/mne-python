@@ -1905,6 +1905,15 @@ def find_bad_channels_maxwell(
         Only returned when ``return_scores`` is ``True``. It contains the
         following keys:
 
+        - ``ch_names`` : ndarray, shape (n_meg,)
+
+          The names of the MEG channels. Their order corresponds to the order
+          of rows in the ``scores`` and ``limits`` arrays.
+
+        - ``ch_types`` : ndarray, shape (n_meg,)
+
+          The types of the MEG channels in ``ch_names`` (``mag``, ``grad``).
+
         - ``bin_edges`` : ndarray, shape (n_windows + 1,)
 
           The window boundaries (in seconds) used to calculate the scores.
@@ -2008,7 +2017,9 @@ def find_bad_channels_maxwell(
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
 
-    # Return values for `return_scores=True`.
+    # Prepare variables to return if `return_scores=True`.
+    ch_names = np.array(raw.ch_names)[params['meg_picks']]
+    ch_types = np.array(raw.get_channel_types(params['meg_picks']))
     bin_edges = np.r_[starts, stops[-1]]  # Ensure we include the endpoint!
     # We create ndarrays with one row per channel, regardless of channel type
     # and whether the channel has been marked as "bad" in info or not. This
@@ -2107,7 +2118,9 @@ def find_bad_channels_maxwell(
     logger.info('[done]')
 
     if return_scores:
-        scores = dict(bin_edges=bin_edges,
+        scores = dict(ch_names=ch_names,
+                      ch_types=ch_types,
+                      bin_edges=bin_edges,
                       scores_flat=scores_flat,
                       limits_flat=thresh_flat,
                       scores_noisy=scores_noisy,
