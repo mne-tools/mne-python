@@ -1924,7 +1924,7 @@ def find_bad_channels_maxwell(
         - ``limits_noisy`` : ndarray, shape (n_meg, n_windows)
 
           The thresholds above which a score classified a segment as "noisy".
-        
+
         Segments of channels marked as ``bad`` will be ``np.nan``.
 
     See Also
@@ -2007,7 +2007,7 @@ def find_bad_channels_maxwell(
 
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
-    
+
     # Return values for `return_scores=True`.
     bin_edges = np.r_[starts, stops[-1]]  # Ensure we include the endpoint!
     # We create ndarrays with one row per channel, regardless of channel type
