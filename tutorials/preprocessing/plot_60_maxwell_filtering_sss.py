@@ -116,6 +116,7 @@ auto_noisy_chs, auto_flat_chs, auto_scores = find_bad_channels_maxwell(
 print(auto_noisy_chs)  # we should find them!
 print(auto_flat_chs)  # none for this dataset
 
+###############################################################################
 # Now we can update the list of bad channels in the dataset. We first create a
 # set (a collection of unique values) to ensure no channel appears more than
 # once in the list.
@@ -124,6 +125,7 @@ bads = set([*raw.info['bads'], *auto_noisy_chs, *auto_flat_chs])
 bads = list(bads)
 raw.info['bads'] = bads
 
+###############################################################################
 # We called `~mne.preprocessing.find_bad_channels_maxwell` with the optional
 # keyword argument ``return_scores=True``, causing the function to return a
 # dictionary of all data related to the scoring used to classify channels as
@@ -166,6 +168,7 @@ for ch_type in ('mag', 'grad'):
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
 
+###############################################################################
 # .. note:: You can use the very same code as above to produce figures for
 #           *flat* channel detection; simply replace the word "noisy" with
 #           "flat", and invert the ``mask``, such that it reads:
