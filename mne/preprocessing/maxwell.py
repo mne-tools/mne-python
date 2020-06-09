@@ -1902,7 +1902,7 @@ def find_bad_channels_maxwell(
         ``min_count`` segments.
     scores : dict
         A dictionary with information produced by the scoring algorithms.
-        Only returned when ``return_scores`` is ``True`` and contains the
+        Only returned when ``return_scores`` is ``True``. It contains the
         following keys:
 
         - ``bin_edges`` : ndarray, shape (n_windows + 1,)
@@ -1923,6 +1923,8 @@ def find_bad_channels_maxwell(
         - ``limits_noisy`` : ndarray, shape (n_meg, n_windows)
 
           The thresholds above which a score classified a segment as "noisy".
+        
+        Segments of channels marked as ``bad`` will be ``np.nan``.
 
     See Also
     --------
@@ -2004,8 +2006,15 @@ def find_bad_channels_maxwell(
 
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
+    
+    # Return values for `return_scores=True`.
     bin_edges = np.r_[starts, stops[-1]]  # Ensure we include the endpoint!
-    scores_flat = np.empty((len(good_meg_picks), len(starts)))
+    # We create ndarrays with one row per channel, regardless of channel type
+    # and whether the channel has been marked as "bad" in info or not. This
+    # makes indexing in the loop easier. We only filter this down to the subset
+    # of all MEG channels after all processing is done.
+    scores_flat = np.empty((len(raw.ch_names), len(starts)))
+    scores_flat.fill(np.nan)
     thresh_flat = scores_flat.copy()
     scores_noisy = scores_flat.copy()
     thresh_noisy = scores_flat.copy()
@@ -2023,9 +2032,9 @@ def find_bad_channels_maxwell(
         data.shape = (data.shape[0], -1, flat_step)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
 
-        # We may want to return this later
-        scores_flat[:, si] = delta
-        thresh_flat[:, si] = these_limits
+        # We may want to return this later if `return_scores=True`.
+        scores_flat[good_meg_picks, si] = delta
+        thresh_flat[good_meg_picks, si] = these_limits
 
         chunk_flats = delta < these_limits
         chunk_flats = np.where(chunk_flats)[0]
@@ -2070,10 +2079,9 @@ def find_bad_channels_maxwell(
             max_ = z[idx]
             name = raw.ch_names[these_picks[idx]]
 
-            # We may want to return this later
-            ch_idx = raw.copy().pick_types(meg=True).ch_names.index(name)
-            scores_noisy[ch_idx, si] = max_
-            thresh_noisy[ch_idx, si] = limit
+            # We may want to return this later if `return_scores=True`.
+            scores_noisy[these_picks, si] = max_
+            thresh_noisy[these_picks, si] = limit
 
             if max_ < limit:
                 break
@@ -2087,6 +2095,12 @@ def find_bad_channels_maxwell(
                        key=lambda x: raw.ch_names.index(x))
     flat_chs = sorted((f for f, c in flat_chs.items() if c >= min_count),
                       key=lambda x: raw.ch_names.index(x))
+
+    scores_flat = scores_flat[params['meg_picks']]
+    thresh_flat = thresh_flat[params['meg_picks']]
+    scores_noisy = scores_noisy[params['meg_picks']]
+    thresh_noisy = thresh_noisy[params['meg_picks']]
+
     logger.info('    Static bad channels:  %s' % (noisy_chs,))
     logger.info('    Static flat channels: %s' % (flat_chs,))
     logger.info('[done]')
