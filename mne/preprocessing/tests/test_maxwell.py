@@ -1145,15 +1145,24 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         assert list(got_scores['ch_types']) == ch_types
 
         assert (got_scores['scores_flat'].shape ==
-                got_scores['limits_flat'].shape ==
                 got_scores['scores_noisy'].shape ==
-                got_scores['limits_noisy'].shape ==
                 (len(meg_chs), len(got_scores['bin_edges']) - 1))
+
+        assert (got_scores['limits_flat'].shape ==
+                got_scores['limits_noisy'].shape ==
+                (len(meg_chs), 1))
 
         # Check "flat" scores.
         scores_flat = got_scores['scores_flat']
         limits_flat = got_scores['limits_flat']
-        n_segments_below_limit = (scores_flat < limits_flat).sum(-1)
+        # The following essentially is just this:
+        #     n_segments_below_limit = (scores_flat < limits_flat).sum(-1)
+        # made to work with NaN's in the scores.
+        n_segments_below_limit = np.less(
+            scores_flat, limits_flat,
+            where=np.equal(np.isnan(scores_flat), False),
+            out=np.full_like(scores_flat, fill_value=False)).sum(-1)
+
         ch_idx = np.where(n_segments_below_limit >=
                           min(min_count, len(got_scores['bin_edges']) - 1))
         flats = set(got_scores['ch_names'][ch_idx])
@@ -1162,7 +1171,14 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         # Check "noisy" scores.
         scores_noisy = got_scores['scores_noisy']
         limits_noisy = got_scores['limits_noisy']
-        n_segments_beyond_limit = (scores_noisy > limits_noisy).sum(-1)
+        # The following essentially is just this:
+        #     n_segments_beyond_limit = (scores_noisy > limits_noisy).sum(-1)
+        # made to work with NaN's in the scores.
+        n_segments_beyond_limit = np.greater(
+            scores_noisy, limits_noisy,
+            where=np.equal(np.isnan(scores_noisy), False),
+            out=np.full_like(scores_noisy, fill_value=False)).sum(-1)
+
         ch_idx = np.where(n_segments_beyond_limit >=
                           min(min_count, len(got_scores['bin_edges']) - 1))
         bads = set(got_scores['ch_names'][ch_idx])
