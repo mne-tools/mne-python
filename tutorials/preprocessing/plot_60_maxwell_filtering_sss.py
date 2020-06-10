@@ -134,7 +134,7 @@ raw.info['bads'] = bads
 # In the following, we will generate such visualizations for
 # the automated detection of *noisy* gradiometer channels.
 
-# Only select the data for mag or grad channels.
+# Only select the data forgradiometer channels.
 ch_type = 'grad'
 ch_subset = auto_scores['ch_types'] == ch_type
 ch_names = auto_scores['ch_names'][ch_subset]
