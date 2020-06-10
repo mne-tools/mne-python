@@ -2018,12 +2018,10 @@ def find_bad_channels_maxwell(
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
 
-    scores_flat = np.empty((len(ch_names), len(starts)))
-    scores_flat.fill(np.nan)
+    scores_flat = np.full((len(ch_names), len(starts)), np.nan)
     scores_noisy = np.full_like(scores_flat, fill_value=np.nan)
 
-    thresh_flat = np.empty((len(ch_names), 1))
-    thresh_flat.fill(np.nan)
+    thresh_flat = np.full((len(ch_names), 1), np.nan)
     thresh_noisy = np.full_like(thresh_flat, fill_value=np.nan)
 
     for si, (start, stop) in enumerate(zip(starts, stops)):
