@@ -158,6 +158,8 @@ for ch_type in ('mag', 'grad'):
                  fontsize=16, fontweight='bold')
     sns.heatmap(data=data_to_plot, cmap='Reds', cbar_kws=dict(label='Score'),
                 ax=ax[0])
+    [ax[0].axvline(x, ls='dashed', lw=0.25, dashes=(25, 15), color='gray')
+     for x in range(1, len(bins))]
     ax[0].set_title('All Scores', fontweight='bold')
 
     # Only plot scores that exceeded the limits.
@@ -168,6 +170,8 @@ for ch_type in ('mag', 'grad'):
     sns.heatmap(data=data_to_plot, mask=mask,
                 vmin=limits.min(), vmax=scores.max(),  # May be omitted.
                 cmap='Reds', cbar_kws=dict(label='Score'), ax=ax[1])
+    [ax[1].axvline(x, ls='dashed', lw=0.25, dashes=(25, 15), color='gray')
+     for x in range(1, len(bins))]
     ax[1].set_title('Scores > Limit', fontweight='bold')
 
     # Figure title should not overlap with subplots.
