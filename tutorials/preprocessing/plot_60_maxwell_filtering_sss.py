@@ -119,10 +119,10 @@ print(auto_flat_chs)  # none for this dataset
 ###############################################################################
 # Now we can update the list of bad channels in the dataset. We first create a
 # set (a collection of unique values) to ensure no channel appears more than
-# once in the list.
+# once; we then sort the channels alphabetically.
 
 bads = set([*raw.info['bads'], *auto_noisy_chs, *auto_flat_chs])
-bads = list(bads)
+bads = sorted(bads)
 raw.info['bads'] = bads
 
 ###############################################################################
@@ -141,7 +141,10 @@ for ch_type in ('mag', 'grad'):
     scores = auto_scores['scores_noisy'][ch_subset]
     limits = auto_scores['limits_noisy'][ch_subset]
     bins = auto_scores['bins']  # The the windows that were evaluated.
-    bin_labels = [f'{start} – {stop}' for start, stop in bins]
+    # We will label each segment by its start and stop time, with up to 3
+    # 3 digits before and 3 digits after the decimal place (1 ms precision).
+    bin_labels = [f'{start:3.3f} – {stop:3.3f}'
+                  for start, stop in bins]
 
     # We store the data in a Pandas DataFrame. The seaborn heatmap function
     # we will call below will then be able to automatically assign the correct
@@ -150,7 +153,7 @@ for ch_type in ('mag', 'grad'):
                                 columns=pd.Index(bin_labels, name='Time (s)'),
                                 index=pd.Index(ch_names, name='Channel'))
     # Plot the "raw" scores.
-    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(12, 8))
     fig.suptitle(f'Automated noisy channel detection: {ch_type}',
                  fontsize=16, fontweight='bold')
     sns.heatmap(data=data_to_plot, cmap='Reds', cbar_kws=dict(label='Score'),
