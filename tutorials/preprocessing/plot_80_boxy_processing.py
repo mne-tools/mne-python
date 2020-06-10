@@ -27,14 +27,18 @@ import mne
 # load AC and Phase data
 boxy_data_folder = mne.datasets.boxy_example.data_path()
 boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
-raw_intensity_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
-raw_intensity_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
+raw_intensity_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC',
+                                        verbose=True).load_data()
+raw_intensity_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph',
+                                        verbose=True).load_data()
 
 # get channel indices for our two montages
-mtg_a = [raw_intensity_ac.ch_names[i_index] for i_index,i_label in enumerate(raw_intensity_ac.info['ch_names']) 
-                 if re.search(r'S[1-5]_', i_label)]
-mtg_b = [raw_intensity_ac.ch_names[i_index] for i_index,i_label in enumerate(raw_intensity_ac.info['ch_names']) 
-                 if re.search(r'S([6-9]|10)_', i_label)]
+mtg_a = [raw_intensity_ac.ch_names[i_index] for i_index, i_label
+         in enumerate(raw_intensity_ac.info['ch_names'])
+         if re.search(r'S[1-5]_', i_label)]
+mtg_b = [raw_intensity_ac.ch_names[i_index] for i_index, i_label
+         in enumerate(raw_intensity_ac.info['ch_names'])
+         if re.search(r'S([6-9]|10)_', i_label)]
 
 # ###############################################################################
 # # View location of sensors over brain surface
@@ -49,43 +53,43 @@ subjects_dir = os.path.dirname(mne.datasets.fetch_fsaverage())
 
 # plot all montages
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw_intensity_ac.info, 
+fig = mne.viz.plot_alignment(raw_intensity_ac.info,
                              show_axes=True,
                              subject='fsaverage',
-                             trans='fsaverage', 
+                             trans='fsaverage',
                              surfaces=['head-dense', 'brain'],
-                             fnirs=['sources','detectors', 'pairs'],
+                             fnirs=['sources', 'detectors', 'pairs'],
                              mri_fiducials=True,
                              dig=True,
-                             subjects_dir=subjects_dir, 
+                             subjects_dir=subjects_dir,
                              fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
 # montage A
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw_intensity_ac.copy().pick_channels(mtg_a).info, 
+fig = mne.viz.plot_alignment(raw_intensity_ac.copy().pick_channels(mtg_a).info,
                              show_axes=True,
                              subject='fsaverage',
-                             trans='fsaverage', 
+                             trans='fsaverage',
                              surfaces=['head-dense', 'brain'],
-                             fnirs=['sources','detectors', 'pairs'],
+                             fnirs=['sources', 'detectors', 'pairs'],
                              mri_fiducials=True,
                              dig=True,
-                             subjects_dir=subjects_dir, 
+                             subjects_dir=subjects_dir,
                              fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
 # montage B
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw_intensity_ac.copy().pick_channels(mtg_b).info, 
+fig = mne.viz.plot_alignment(raw_intensity_ac.copy().pick_channels(mtg_b).info,
                              show_axes=True,
                              subject='fsaverage',
-                             trans='fsaverage', 
+                             trans='fsaverage',
                              surfaces=['head-dense', 'brain'],
-                             fnirs=['sources','detectors', 'pairs'],
+                             fnirs=['sources', 'detectors', 'pairs'],
                              mri_fiducials=True,
                              dig=True,
-                             subjects_dir=subjects_dir, 
+                             subjects_dir=subjects_dir,
                              fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
@@ -107,13 +111,13 @@ raw_intensity_ac.pick(picks[dists < 0.08])
 
 # AC
 scalings = dict(fnirs_raw=1e2)
-raw_intensity_ac.plot(n_channels=5,
-                   duration=20, scalings=scalings, show_scrollbars=True)
+raw_intensity_ac.plot(n_channels=5, duration=20, scalings=scalings,
+                      show_scrollbars=True)
 
 # Phase
 scalings = dict(fnirs_ph=1e4)
-raw_intensity_ph.plot(n_channels=5,
-                   duration=20, scalings=scalings, show_scrollbars=True)
+raw_intensity_ph.plot(n_channels=5, duration=20, scalings=scalings,
+                      show_scrollbars=True)
 
 # ###############################################################################
 # # Converting from raw intensity to optical density
@@ -171,7 +175,7 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
 
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
-                duration=500, show_scrollbars=False)
+               duration=500, show_scrollbars=False)
 
 # ###############################################################################
 # # Removing heart rate from signal
@@ -187,7 +191,7 @@ fig = raw_haemo.plot_psd(average=True)
 fig.suptitle('Before filtering', weight='bold', size='x-large')
 fig.subplots_adjust(top=0.88)
 raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
-                              l_trans_bandwidth=0.02)
+                             l_trans_bandwidth=0.02)
 fig = raw_haemo.plot_psd(average=True)
 fig.suptitle('After filtering', weight='bold', size='x-large')
 fig.subplots_adjust(top=0.88)
@@ -209,28 +213,39 @@ fig.subplots_adjust(top=0.88)
 # Montage A Events
 mtg_a_events = mne.find_events(raw_intensity_ac, stim_channel=['Markers a'])
 
-mtg_a_event_dict = {'Montage_A/Event_1': 1, 'Montage_A/Event_2': 2,
-              'Montage A/Block 1 End': 1000, 'Montage A/Block 2 End': 2000}
+mtg_a_event_dict = {'Montage_A/Event_1': 1,
+                    'Montage_A/Event_2': 2,
+                    'Montage A/Block 1 End': 1000,
+                    'Montage A/Block 2 End': 2000}
 
 fig = mne.viz.plot_events(mtg_a_events)
 fig.subplots_adjust(right=0.7)  # make room for the legend
 
-raw_intensity_ac.copy().pick_channels(mtg_a).plot(
-    events=mtg_a_events, start=0, duration=10,color='gray',
-    event_color={1: 'r', 2: 'b', 1000: 'k', 2000: 'k'})
+raw_intensity_ac.copy().pick_channels(mtg_a).plot(events=mtg_a_events, start=0,
+                                                  duration=10, color='gray',
+                                                  event_color={1: 'r',
+                                                               2: 'b',
+                                                               1000: 'k',
+                                                               2000: 'k'})
 
 # Montage B Events
 mtg_b_events = mne.find_events(raw_intensity_ac, stim_channel=['Markers b'])
 
-mtg_b_event_dict = {'Montage_B/Event_1': 1, 'Montage_B/Event_2': 2,
-              'Montage B/Block 1 End': 1000, 'Montage B/Block 2 End': 2000}
+mtg_b_event_dict = {'Montage_B/Event_1': 1,
+                    'Montage_B/Event_2': 2,
+                    'Montage B/Block 1 End': 1000,
+                    'Montage B/Block 2 End': 2000}
 
 fig = mne.viz.plot_events(mtg_b_events)
 fig.subplots_adjust(right=0.7)  # make room for the legend
 
-raw_intensity_ac.copy().pick_channels(mtg_b).plot(
-    events=mtg_b_events, start=0, duration=10,color='gray',
-    event_color={1: 'r', 2: 'b', 1000: 'k', 2000: 'k'})
+raw_intensity_ac.copy().pick_channels(mtg_b).plot(events=mtg_b_events,
+                                                  start=0, duration=10,
+                                                  color='gray',
+                                                  event_color={1: 'r',
+                                                               2: 'b',
+                                                               1000: 'k',
+                                                               2000: 'k'})
 
 # ###############################################################################
 # # Next we define the range of our epochs, the rejection criteria,
@@ -243,72 +258,72 @@ tmin, tmax = -0.2, 2
 tmin_AC, tmax_AC = -2, 10
 
 # Montage A
-mtg_a = [i_index for i_index,i_label in enumerate(raw_haemo.info['ch_names']) 
-                 if re.search(r'S[1-5]_', i_label)]
+mtg_a = [i_index for i_index, i_label
+         in enumerate(raw_haemo.info['ch_names'])
+         if re.search(r'S[1-5]_', i_label)]
 
 # haemo epochs
-mtg_a_haemo_epochs = mne.Epochs(raw_haemo,
-                    mtg_a_events, event_id = mtg_a_event_dict,
-                    tmin=tmin_AC, tmax=tmax_AC,
-                    reject=reject_criteria, reject_by_annotation=False,
-                    proj=True, baseline=(None, 0), preload=True,
-                    detrend=None, verbose=True, event_repeated='drop')
+mtg_a_haemo_epochs = mne.Epochs(raw_haemo, mtg_a_events,
+                                event_id=mtg_a_event_dict, tmin=tmin_AC,
+                                tmax=tmax_AC, reject=reject_criteria,
+                                reject_by_annotation=False, proj=True,
+                                baseline=(None, 0), preload=True, detrend=None,
+                                verbose=True, event_repeated='drop')
 mtg_a_haemo_epochs.plot_drop_log()
 
-mtg_a_epochs_ph = mne.Epochs(raw_intensity_ph, 
-                    mtg_a_events, event_id=mtg_a_event_dict,
-                    tmin=tmin, tmax=tmax,
-                    reject=None, reject_by_annotation=False,
-                    proj=False, baseline=(-0.2, 0), preload=True,
-                    detrend=None, verbose=True)
+mtg_a_epochs_ph = mne.Epochs(raw_intensity_ph, mtg_a_events,
+                             event_id=mtg_a_event_dict, tmin=tmin, tmax=tmax,
+                             reject=None, reject_by_annotation=False,
+                             proj=False, baseline=(-0.2, 0), preload=True,
+                             detrend=None, verbose=True)
 
-#two ways to plot epochs, should be the same
+# two ways to plot epochs, should be the same
 
 # haemo epochs
-fig = mne.viz.plot_epochs(mtg_a_haemo_epochs,n_epochs=5,n_channels=5, 
-                          scalings='auto', picks = mtg_a)
-fig = mtg_a_haemo_epochs.plot(n_epochs=5,n_channels=5, scalings='auto', 
-                              picks = mtg_a)
+fig = mne.viz.plot_epochs(mtg_a_haemo_epochs, n_epochs=5, n_channels=5,
+                          scalings='auto', picks=mtg_a)
+fig = mtg_a_haemo_epochs.plot(n_epochs=5, n_channels=5, scalings='auto',
+                              picks=mtg_a)
 
 # ph epochs
-fig = mne.viz.plot_epochs(mtg_a_epochs_ph,n_epochs=5,n_channels=5, 
-                          scalings='auto', picks = mtg_a)
-fig = mtg_a_epochs_ph.plot(n_epochs=5,n_channels=5, scalings='auto', 
-                        picks = mtg_a)
+fig = mne.viz.plot_epochs(mtg_a_epochs_ph, n_epochs=5, n_channels=5,
+                          scalings='auto', picks=mtg_a)
+fig = mtg_a_epochs_ph.plot(n_epochs=5, n_channels=5, scalings='auto',
+                           picks=mtg_a)
 
 
 # Montage B
-mtg_b = [i_index for i_index,i_label in enumerate(raw_haemo.info['ch_names']) 
-                 if re.search(r'S([6-9]|10)_', i_label)]
+mtg_b = [i_index for i_index, i_label
+         in enumerate(raw_haemo.info['ch_names'])
+         if re.search(r'S([6-9]|10)_', i_label)]
 
 # haemo epochs
-mtg_b_haemo_epochs = mne.Epochs(raw_haemo,
-                    mtg_b_events, event_id = mtg_b_event_dict,
-                    tmin=tmin, tmax=tmax,
-                    reject=reject_criteria, reject_by_annotation=False,
-                    proj=True, baseline=(None, 0), preload=True,
-                    detrend=None, verbose=True, event_repeated='drop')
+mtg_b_haemo_epochs = mne.Epochs(raw_haemo, mtg_b_events,
+                                event_id=mtg_b_event_dict, tmin=tmin_AC,
+                                tmax=tmax_AC, reject=reject_criteria,
+                                reject_by_annotation=False, proj=True,
+                                baseline=(None, 0), preload=True, detrend=None,
+                                verbose=True, event_repeated='drop')
 mtg_b_haemo_epochs.plot_drop_log()
 
-mtg_b_epochs_ph = mne.Epochs(raw_intensity_ph, 
-                    mtg_b_events, event_id=mtg_b_event_dict,
-                    tmin=tmin, tmax=tmax,
-                    reject=None, reject_by_annotation=False,
-                    proj=False, baseline=(-0.2, 0), preload=True,
-                    detrend=None, verbose=True)
+mtg_b_epochs_ph = mne.Epochs(raw_intensity_ph, mtg_b_events,
+                             event_id=mtg_b_event_dict, tmin=tmin, tmax=tmax,
+                             reject=None, reject_by_annotation=False,
+                             proj=False, baseline=(-0.2, 0), preload=True,
+                             detrend=None, verbose=True)
 
-#two ways to plot epochs, should be the same
+# two ways to plot epochs, should be the same
 # haemo epochs
-fig = mne.viz.plot_epochs(mtg_b_haemo_epochs,n_epochs=5,n_channels=5, 
-                          scalings='auto', picks = mtg_b)
-fig = mtg_b_haemo_epochs.plot(n_epochs=5,n_channels=5, scalings='auto',
-                               picks = mtg_b)
+fig = mne.viz.plot_epochs(mtg_b_haemo_epochs, n_epochs=5, n_channels=5,
+                          scalings='auto', picks=mtg_b)
+fig = mtg_b_haemo_epochs.plot(n_epochs=5, n_channels=5, scalings='auto',
+                              picks=mtg_b)
 
 # ph epochs
-fig = mne.viz.plot_epochs(mtg_b_epochs_ph,n_epochs=5,n_channels=5, 
-                          scalings='auto', picks = mtg_b)
-fig = mtg_b_epochs_ph.plot(n_epochs=5,n_channels=5, scalings='auto',
-                        picks = mtg_b)
+fig = mne.viz.plot_epochs(mtg_b_epochs_ph, n_epochs=5, n_channels=5,
+                          scalings='auto', picks=mtg_b)
+fig = mtg_b_epochs_ph.plot(n_epochs=5, n_channels=5, scalings='auto',
+                           picks=mtg_b)
 
 # ###############################################################################
 # # View consistency of responses across trials
@@ -320,71 +335,59 @@ fig = mtg_b_epochs_ph.plot(n_epochs=5,n_channels=5, scalings='auto',
 # # trials, and the consistent dip in HbR that is slightly delayed relative to
 # # the HbO peak.
 
-#haemo plots
+# haemo plots
 # Montage A
-hbo = [i_index for i_index,i_label 
-       in enumerate(mtg_a_haemo_epochs.info['ch_names']) 
+hbo = [i_index for i_index, i_label
+       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
        if re.search(r'S[1-5]_D[0-9] hbo', i_label)]
 
-hbr = [i_index for i_index,i_label 
-       in enumerate(mtg_a_haemo_epochs.info['ch_names']) 
+hbr = [i_index for i_index, i_label
+       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
        if re.search(r'S[1-5]_D[0-9] hbr', i_label)]
 
 mtg_a_haemo_epochs['Montage_A/Event_1'].plot_image(
-                              combine='mean', vmin=-30, vmax=30,
-                              group_by = {'Oxy':hbo,'De-Oxy':hbr},
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 mtg_a_haemo_epochs['Montage_A/Event_2'].plot_image(
-                              combine='mean', vmin=-30, vmax=30,
-                              group_by = {'Oxy':hbo,'De-Oxy':hbr},
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 # ph epochs
 fig = mtg_a_epochs_ph['Montage_A/Event_1'].plot_image(
-                                   combine='mean', vmin=-180, vmax=180, 
-                                   picks = mtg_a, colorbar=True, 
-                                   title='Montage A Event 1')
+    combine='mean', vmin=-180, vmax=180, picks=mtg_a, colorbar=True,
+    title='Montage A Event 1')
 
 fig = mtg_a_epochs_ph['Montage_A/Event_2'].plot_image(
-                                   combine='mean', vmin=-180, vmax=180, 
-                                   picks = mtg_a, colorbar=True, 
-                                   title='Montage A Event 2')
+    combine='mean', vmin=-180, vmax=180, picks=mtg_a, colorbar=True,
+    title='Montage A Event 2')
 
 
 # Montage B
-hbo = [i_index for i_index,i_label 
-       in enumerate(mtg_a_haemo_epochs.info['ch_names']) 
+hbo = [i_index for i_index, i_label
+       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
        if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbo', i_label)]
 
-hbr = [i_index for i_index,i_label 
-       in enumerate(mtg_a_haemo_epochs.info['ch_names']) 
+hbr = [i_index for i_index, i_label
+       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
        if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbr', i_label)]
 
 mtg_b_haemo_epochs['Montage_B/Event_1'].plot_image(
-                              combine='mean', vmin=-30, vmax=30,
-                              group_by = {'Oxy':hbo,'De-Oxy':hbr},
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 mtg_b_haemo_epochs['Montage_B/Event_2'].plot_image(
-                              combine='mean', vmin=-30, vmax=30,
-                              group_by = {'Oxy':hbo,'De-Oxy':hbr},
-                              ts_args=dict(ylim=dict(hbo=[-15, 15],
-                                                    hbr=[-15, 15])))
+    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 # ph epochs
 fig = mtg_b_epochs_ph['Montage_B/Event_1'].plot_image(
-                                   combine='mean', vmin=-180, vmax=180, 
-                                   picks = mtg_b, colorbar=True, 
-                                   title='Montage B Event 1')
+    combine='mean', vmin=-180, vmax=180, picks=mtg_b, colorbar=True,
+    title='Montage B Event 1')
 
 fig = mtg_b_epochs_ph['Montage_B/Event_2'].plot_image(
-                                   combine='mean', vmin=-180, vmax=180, 
-                                   picks = mtg_b, colorbar=True, 
-                                   title='Montage B Event 2')
+    combine='mean', vmin=-180, vmax=180, picks=mtg_b, colorbar=True,
+    title='Montage B Event 2')
 
 # ###############################################################################
 # # View consistency of responses across channels
@@ -395,92 +398,103 @@ fig = mtg_b_epochs_ph['Montage_B/Event_2'].plot_image(
 # # motor cortex, and all channels show a similar pattern in the data.
 
 # ac evoked
-fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
-clim=dict(fnirs_raw=[-20,20])
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(15, 6))
+clim = dict(hbo=[-10, 10], hbr=[-10, 10])
 
 mtg_a_1_evoked_ac = mtg_a_haemo_epochs['Montage_A/Event_1'].average()
 mtg_a_2_evoked_ac = mtg_a_haemo_epochs['Montage_A/Event_2'].average()
 mtg_b_1_evoked_ac = mtg_b_haemo_epochs['Montage_B/Event_1'].average()
 mtg_b_2_evoked_ac = mtg_b_haemo_epochs['Montage_B/Event_2'].average()
 
-mtg_a_1_evoked_ac.plot_image(axes=axes[0, 0], picks = mtg_a,
-                                        titles='Montage A Event 1', clim=clim)
-mtg_a_2_evoked_ac.plot_image(axes=axes[1, 0], picks = mtg_a,
-                                        titles='Montage A Event 2', clim=clim)
-mtg_b_1_evoked_ac.plot_image(axes=axes[0, 1], picks = mtg_b,
-                                        titles='Montage B Event 1', clim=clim)
-mtg_b_2_evoked_ac.plot_image(axes=axes[1, 1], picks = mtg_b,
-                                        titles='Montage B Event 2', clim=clim)
+mtg_a_1_evoked_ac.plot_image(axes=axes[0, 0], picks=hbo,
+                             titles='HBO Montage A Event 1', clim=clim)
+mtg_a_1_evoked_ac.plot_image(axes=axes[0, 1], picks=hbr,
+                             titles='HBR Montage A Event 1', clim=clim)
+mtg_a_2_evoked_ac.plot_image(axes=axes[1, 0], picks=hbo,
+                             titles='HBO Montage A Event 2', clim=clim)
+mtg_a_2_evoked_ac.plot_image(axes=axes[1, 1], picks=hbr,
+                             titles='HBR Montage A Event 2', clim=clim)
+mtg_b_1_evoked_ac.plot_image(axes=axes[2, 0], picks=hbo,
+                             titles='HBO Montage B Event 1', clim=clim)
+mtg_b_1_evoked_ac.plot_image(axes=axes[2, 1], picks=hbr,
+                             titles='HBR Montage B Event 1', clim=clim)
+mtg_b_2_evoked_ac.plot_image(axes=axes[3, 0], picks=hbo,
+                             titles='HBO Montage B Event 2', clim=clim)
+mtg_b_2_evoked_ac.plot_image(axes=axes[3, 1], picks=hbr,
+                             titles='HBR Montage B Event 2', clim=clim)
 
 # Combine Montages
-evoked_1_ac = mtg_a_haemo_epochs['Montage_A/Event_1'].average()
-evoked_2_ac = mtg_a_haemo_epochs['Montage_A/Event_2'].average()
-evoked_3_ac = mtg_b_haemo_epochs['Montage_B/Event_1'].average()
-evoked_4_ac = mtg_b_haemo_epochs['Montage_B/Event_2'].average()
+mtg_a_channels_ac = [i_index for i_index, i_label
+                     in enumerate(mtg_a_1_evoked_ac.info['ch_names'])
+                     if re.search(r'S[1-5]_', i_label)]
 
-mtg_a_channels_ac = [i_index for i_index,i_label in enumerate(evoked_1_ac.info['ch_names']) 
-                  if re.search(r'S[1-5]_', i_label)]
+mtg_b_channels_ac = [i_index for i_index, i_label
+                     in enumerate(mtg_b_1_evoked_ac.info['ch_names'])
+                     if re.search(r'S([6-9]|10)_', i_label)]
 
-mtg_b_channels_ac = [i_index for i_index,i_label in enumerate(evoked_3_ac.info['ch_names']) 
-                  if re.search(r'S([6-9]|10)_', i_label)]
+mtg_a_1_evoked_ac._data[mtg_b_channels_ac, :] = 0
+mtg_a_2_evoked_ac._data[mtg_b_channels_ac, :] = 0
+mtg_b_1_evoked_ac._data[mtg_a_channels_ac, :] = 0
+mtg_b_2_evoked_ac._data[mtg_a_channels_ac, :] = 0
 
-evoked_1_ac._data[mtg_b_channels_ac,:] = 0
-evoked_2_ac._data[mtg_b_channels_ac,:] = 0
-evoked_3_ac._data[mtg_a_channels_ac,:] = 0
-evoked_4_ac._data[mtg_a_channels_ac,:] = 0
+evoked_event_1_ac = mne.combine_evoked([mtg_a_1_evoked_ac, mtg_b_1_evoked_ac],
+                                       'equal')
+evoked_event_2_ac = mne.combine_evoked([mtg_a_2_evoked_ac, mtg_b_2_evoked_ac],
+                                       'equal')
 
-evoked_event_1_ac = mne.combine_evoked([evoked_1_ac,evoked_3_ac],'equal')
-evoked_event_2_ac = mne.combine_evoked([evoked_2_ac,evoked_4_ac],'equal')
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
+clim = dict(fnirs_raw=[-20, 20])
 
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
-clim=dict(fnirs_raw=[-20,20])
-
-evoked_event_1_ac.plot_image(axes=axes[0], titles='Event_1', clim=clim)
-evoked_event_2_ac.plot_image(axes=axes[1], titles='Event_2', clim=clim)
+evoked_event_1_ac.plot_image(axes=axes[:, 0],
+                             titles=dict(hbo='HBO_Event_1', hbr='HBR_Event_1'),
+                             clim=clim)
+evoked_event_2_ac.plot_image(axes=axes[:, 1],
+                             titles=dict(hbo='HBO_Event_2', hbr='HBR_Event_2'),
+                             clim=clim)
 
 # ph evoked
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
-clim=dict(fnirs_ph=[-180,180])
+clim = dict(fnirs_ph=[-180, 180])
 
 mtg_a_1_evoked_ph = mtg_a_epochs_ph['Montage_A/Event_1'].average()
 mtg_a_2_evoked_ph = mtg_a_epochs_ph['Montage_A/Event_2'].average()
 mtg_b_1_evoked_ph = mtg_b_epochs_ph['Montage_B/Event_1'].average()
 mtg_b_2_evoked_ph = mtg_b_epochs_ph['Montage_B/Event_2'].average()
 
-mtg_a_1_evoked_ph.plot_image(axes=axes[0, 0], picks = mtg_a,
-                                        titles='Montage A Event 1', clim=clim)
-mtg_a_2_evoked_ph.plot_image(axes=axes[1, 0], picks = mtg_a,
-                                        titles='Montage A Event 2', clim=clim)
-mtg_b_1_evoked_ph.plot_image(axes=axes[0, 1], picks = mtg_b,
-                                        titles='Montage B Event 1', clim=clim)
-mtg_b_2_evoked_ph.plot_image(axes=axes[1, 1], picks = mtg_b,
-                                        titles='Montage B Event 2', clim=clim)
+mtg_a_1_evoked_ph.plot_image(axes=axes[0, 0], picks=mtg_a,
+                             titles='Montage A Event 1', clim=clim)
+mtg_a_2_evoked_ph.plot_image(axes=axes[1, 0], picks=mtg_a,
+                             titles='Montage A Event 2', clim=clim)
+mtg_b_1_evoked_ph.plot_image(axes=axes[0, 1], picks=mtg_b,
+                             titles='Montage B Event 1', clim=clim)
+mtg_b_2_evoked_ph.plot_image(axes=axes[1, 1], picks=mtg_b,
+                             titles='Montage B Event 2', clim=clim)
 
 # Combine Montages
-evoked_1_ph = mtg_a_epochs_ph['Montage_A/Event_1'].average()
-evoked_2_ph = mtg_a_epochs_ph['Montage_A/Event_2'].average()
-evoked_3_ph = mtg_b_epochs_ph['Montage_B/Event_1'].average()
-evoked_4_ph = mtg_b_epochs_ph['Montage_B/Event_2'].average()
+mtg_a_channels_ph = [i_index for i_index, i_label
+                     in enumerate(mtg_a_1_evoked_ph.info['ch_names'])
+                     if re.search(r'S[1-5]_', i_label)]
 
-mtg_a_channels_ph = [i_index for i_index,i_label in enumerate(evoked_1_ph.info['ch_names']) 
-                  if re.search(r'S[1-5]_', i_label)]
+mtg_b_channels_ph = [i_index for i_index, i_label
+                     in enumerate(mtg_b_1_evoked_ph.info['ch_names'])
+                     if re.search(r'S([6-9]|10)_', i_label)]
 
-mtg_b_channels_ph = [i_index for i_index,i_label in enumerate(evoked_3_ph.info['ch_names']) 
-                  if re.search(r'S([6-9]|10)_', i_label)]
+mtg_a_1_evoked_ph._data[mtg_b_channels_ph, :] = 0
+mtg_a_2_evoked_ph._data[mtg_b_channels_ph, :] = 0
+mtg_b_1_evoked_ph._data[mtg_a_channels_ph, :] = 0
+mtg_b_2_evoked_ph._data[mtg_a_channels_ph, :] = 0
 
-evoked_1_ph._data[mtg_b_channels_ph,:] = 0
-evoked_2_ph._data[mtg_b_channels_ph,:] = 0
-evoked_3_ph._data[mtg_a_channels_ph,:] = 0
-evoked_4_ph._data[mtg_a_channels_ph,:] = 0
-
-evoked_event_1_ph = mne.combine_evoked([evoked_1_ph,evoked_3_ph],'equal')
-evoked_event_2_ph = mne.combine_evoked([evoked_2_ph,evoked_4_ph],'equal')
+evoked_event_1_ph = mne.combine_evoked([mtg_a_1_evoked_ph, mtg_b_1_evoked_ph],
+                                       'equal')
+evoked_event_2_ph = mne.combine_evoked([mtg_a_2_evoked_ph, mtg_b_2_evoked_ph],
+                                       'equal')
 
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
-clim=dict(fnirs_ph=[-180,180])
+clim = dict(fnirs_ph=[-180, 180])
 
 evoked_event_1_ph.plot_image(axes=axes[0], titles='Event_1', clim=clim)
 evoked_event_2_ph.plot_image(axes=axes[1], titles='Event_2', clim=clim)
+
 # ###############################################################################
 # # Plot standard fNIRS response image
 # # ----------------------------------
@@ -490,20 +504,20 @@ evoked_event_2_ph.plot_image(axes=axes[1], titles='Event_2', clim=clim)
 # # the two signals.
 
 # ac
-evoked_dict_ac = {'Event_1': evoked_event_1_ac,'Event_2': evoked_event_2_ac}
+evoked_dict_ac = {'Event_1': evoked_event_1_ac, 'Event_2': evoked_event_2_ac}
 
-color_dict = {'Event_1':'r','Event_2':'b'}
+color_dict = {'Event_1': 'r', 'Event_2': 'b'}
 
 mne.viz.plot_compare_evokeds(evoked_dict_ac, combine="mean", ci=0.95,
-                              colors=color_dict)
+                             colors=color_dict)
 
 # ph
-evoked_dict_ph = {'Event_1': evoked_event_1_ph,'Event_2': evoked_event_2_ph}
+evoked_dict_ph = {'Event_1': evoked_event_1_ph, 'Event_2': evoked_event_2_ph}
 
-color_dict = {'Event_1':'r','Event_2':'b'}
+color_dict = {'Event_1': 'r', 'Event_2': 'b'}
 
 mne.viz.plot_compare_evokeds(evoked_dict_ph, combine="mean", ci=0.95,
-                              colors=color_dict)
+                             colors=color_dict)
 
 # ###############################################################################
 # # View topographic representation of activity
@@ -512,7 +526,7 @@ mne.viz.plot_compare_evokeds(evoked_dict_ph, combine="mean", ci=0.95,
 # # Next we view how the topographic activity changes throughout the response.
 
 # ac
-times = np.arange(0.0, 2.0, 0.5)
+times = np.arange(0.0, 10.0, 2.0)
 topomap_args = dict(extrapolate='local')
 
 fig = evoked_event_1_ac.plot_joint(times=times, topomap_args=topomap_args)
@@ -532,33 +546,104 @@ fig = evoked_event_2_ph.plot_joint(times=times, topomap_args=topomap_args)
 # # Finally we generate topo maps for the left and right conditions to view
 # # the location of activity. First we visualise the HbO activity.
 
-# ac
+# ac HBO
 fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
                          gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
 
-topomap_args = dict(extrapolate='local', size=3,res=256, sensors='k.')
+topomap_args = dict(extrapolate='local', size=3, res=256, sensors='k.')
 times = 1.0
 
-evoked_1_ac.copy().pick(mtg_a_channels_ac).plot_topomap(times=times, axes=axes[0,0], 
-                                                  colorbar=False,**topomap_args)
+hbo_a = [i_index for i_index, i_label
+         in enumerate(mtg_a_1_evoked_ac.info['ch_names'])
+         if re.search(r'S[1-5]_D[0-9] hbo', i_label)]
 
-evoked_2_ac.copy().pick(mtg_a_channels_ac).plot_topomap(times=times, axes=axes[1,0], 
-                                                  colorbar=False,**topomap_args)
+hbo_b = [i_index for i_index, i_label
+         in enumerate(mtg_b_1_evoked_ac.info['ch_names'])
+         if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbo', i_label)]
 
-evoked_3_ac.copy().pick(mtg_b_channels_ac).plot_topomap(times=times, axes=axes[0,1], 
-                                                  colorbar=False,**topomap_args)
+evoked_event_1_ac.copy().pick(hbo_a).plot_topomap(times=times,
+                                                  axes=axes[0, 0],
+                                                  colorbar=False,
+                                                  **topomap_args)
 
-evoked_4_ac.copy().pick(mtg_b_channels_ac).plot_topomap(times=times, axes=axes[1,1], 
-                                                  colorbar=False, **topomap_args)
+evoked_event_2_ac.copy().pick(hbo_a).plot_topomap(times=times,
+                                                  axes=axes[1, 0],
+                                                  colorbar=False,
+                                                  **topomap_args)
 
-evoked_event_1_ac.plot_topomap(times=times, axes=axes[0,2:], colorbar=True, 
-                            **topomap_args)
-evoked_event_2_ac.plot_topomap(times=times, axes=axes[1,2:], colorbar=True, 
-                            **topomap_args)
+evoked_event_1_ac.copy().pick(hbo_b).plot_topomap(times=times,
+                                                  axes=axes[0, 1],
+                                                  colorbar=False,
+                                                  **topomap_args)
 
-for column, condition in enumerate(
-        ['Montage A', 'Montage B','Combined']):
-    for row, chroma in enumerate(['Event 1', 'Event 2']):
+evoked_event_2_ac.copy().pick(hbo_b).plot_topomap(times=times,
+                                                  axes=axes[1, 1],
+                                                  colorbar=False,
+                                                  **topomap_args)
+
+evoked_event_1_ac.copy().pick(hbo_a+hbo_b).plot_topomap(times=times,
+                                                        axes=axes[0, 2:],
+                                                        colorbar=True,
+                                                        **topomap_args)
+
+evoked_event_2_ac.copy().pick(hbo_a+hbo_b).plot_topomap(times=times,
+                                                        axes=axes[1, 2:],
+                                                        colorbar=True,
+                                                        **topomap_args)
+
+for column, condition in enumerate(['Montage A', 'Montage B', 'Combined']):
+    for row, chroma in enumerate(['HBO Event 1', 'HBO Event 2']):
+        axes[row, column].set_title('{}: {}'.format(chroma, condition))
+fig.tight_layout()
+
+
+# ac HBR
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
+                         gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
+
+topomap_args = dict(extrapolate='local', size=3, res=256, sensors='k.')
+times = 1.0
+
+hbr_a = [i_index for i_index, i_label
+         in enumerate(mtg_a_1_evoked_ac.info['ch_names'])
+         if re.search(r'S[1-5]_D[0-9] hbr', i_label)]
+
+hbr_b = [i_index for i_index, i_label
+         in enumerate(mtg_b_1_evoked_ac.info['ch_names'])
+         if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbr', i_label)]
+
+
+evoked_event_1_ac.copy().pick(hbr_a).plot_topomap(times=times,
+                                                  axes=axes[0, 0],
+                                                  colorbar=False,
+                                                  **topomap_args)
+
+evoked_event_2_ac.copy().pick(hbr_a).plot_topomap(times=times,
+                                                  axes=axes[1, 0],
+                                                  colorbar=False,
+                                                  **topomap_args)
+
+evoked_event_1_ac.copy().pick(hbr_b).plot_topomap(times=times,
+                                                  axes=axes[0, 1],
+                                                  colorbar=False,
+                                                  **topomap_args)
+
+evoked_event_2_ac.copy().pick(hbr_b).plot_topomap(times=times,
+                                                  axes=axes[1, 1],
+                                                  colorbar=False,
+                                                  **topomap_args)
+
+evoked_event_1_ac.copy().pick(hbr_a+hbr_b).plot_topomap(times=times,
+                                                        axes=axes[0, 2:],
+                                                        colorbar=True,
+                                                        **topomap_args)
+evoked_event_2_ac.copy().pick(hbr_a+hbr_b).plot_topomap(times=times,
+                                                        axes=axes[1, 2:],
+                                                        colorbar=True,
+                                                        **topomap_args)
+
+for column, condition in enumerate(['Montage A', 'Montage B', 'Combined']):
+    for row, chroma in enumerate(['HBR Event 1', 'HBR Event 2']):
         axes[row, column].set_title('{}: {}'.format(chroma, condition))
 fig.tight_layout()
 
@@ -567,28 +652,35 @@ fig.tight_layout()
 fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
                          gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
 
-topomap_args = dict(extrapolate='local', size=3,res=256, sensors='k.')
+topomap_args = dict(extrapolate='local', size=3, res=256, sensors='k.')
 times = 1.0
 
-evoked_1_ph.copy().pick(mtg_a_channels_ph).plot_topomap(times=times, axes=axes[0,0], 
-                                                  colorbar=False,**topomap_args)
+evoked_event_1_ph.copy().pick(mtg_a_channels_ph).plot_topomap(times=times,
+                                                              axes=axes[0, 0],
+                                                              colorbar=False,
+                                                              **topomap_args)
 
-evoked_2_ph.copy().pick(mtg_a_channels_ph).plot_topomap(times=times, axes=axes[1,0], 
-                                                  colorbar=False,**topomap_args)
+evoked_event_2_ph.copy().pick(mtg_a_channels_ph).plot_topomap(times=times,
+                                                              axes=axes[1, 0],
+                                                              colorbar=False,
+                                                              **topomap_args)
 
-evoked_3_ph.copy().pick(mtg_b_channels_ph).plot_topomap(times=times, axes=axes[0,1], 
-                                                  colorbar=False,**topomap_args)
+evoked_event_1_ph.copy().pick(mtg_b_channels_ph).plot_topomap(times=times,
+                                                              axes=axes[0, 1],
+                                                              colorbar=False,
+                                                              **topomap_args)
 
-evoked_4_ph.copy().pick(mtg_b_channels_ph).plot_topomap(times=times, axes=axes[1,1], 
-                                                  colorbar=False, **topomap_args)
+evoked_event_2_ph.copy().pick(mtg_b_channels_ph).plot_topomap(times=times,
+                                                              axes=axes[1, 1],
+                                                              colorbar=False,
+                                                              **topomap_args)
 
-evoked_event_1_ph.plot_topomap(times=times, axes=axes[0,2:], colorbar=True, 
-                            **topomap_args)
-evoked_event_2_ph.plot_topomap(times=times, axes=axes[1,2:], colorbar=True, 
-                            **topomap_args)
+evoked_event_1_ph.plot_topomap(times=times, axes=axes[0, 2:], colorbar=True,
+                               **topomap_args)
+evoked_event_2_ph.plot_topomap(times=times, axes=axes[1, 2:], colorbar=True,
+                               **topomap_args)
 
-for column, condition in enumerate(
-        ['Montage A', 'Montage B','Combined']):
+for column, condition in enumerate(['Montage A', 'Montage B', 'Combined']):
     for row, chroma in enumerate(['Event 1', 'Event 2']):
         axes[row, column].set_title('{}: {}'.format(chroma, condition))
 fig.tight_layout()
@@ -596,28 +688,59 @@ fig.tight_layout()
 # ###############################################################################
 # # And we can plot the comparison at a single time point for two conditions.
 
-# ac
+# ac HBO
 fig, axes = plt.subplots(nrows=1, ncols=4, figsize=(9, 5),
                          gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
 vmin, vmax, ts = -0.192, 0.992, 0.1
-vmin = -20
-vmax = 20
+vmin = -5
+vmax = 5
 
-evoked_1_ac.plot_topomap(times=ts, axes=axes[0], vmin=vmin, vmax=vmax, 
-                            colorbar=False,**topomap_args)
+evoked_event_1_ac.plot_topomap(ch_type='hbo', times=ts, axes=axes[0],
+                               vmin=vmin, vmax=vmax,
+                               colorbar=False, **topomap_args)
 
-evoked_2_ac.plot_topomap(times=ts, axes=axes[1], vmin=vmin, vmax=vmax, 
-                            colorbar=False,**topomap_args)
+evoked_event_2_ac.plot_topomap(ch_type='hbo', times=ts, axes=axes[1],
+                               vmin=vmin, vmax=vmax,
+                               colorbar=False, **topomap_args)
 
-evoked_diff_ac = mne.combine_evoked([evoked_1_ac, -evoked_2_ac],
-                                       weights='equal')
+evoked_diff_ac = mne.combine_evoked([evoked_event_1_ac, -evoked_event_2_ac],
+                                    weights='equal')
 
-evoked_diff_ac.plot_topomap(times=ts, axes=axes[2:],vmin=vmin, vmax=vmax, 
-                         colorbar=True,**topomap_args)
+evoked_diff_ac.plot_topomap(ch_type='hbo', times=ts, axes=axes[2:],
+                            vmin=vmin, vmax=vmax,
+                            colorbar=True, **topomap_args)
 
 for column, condition in enumerate(
-        ['Event 1', 'Event 2', 'Difference']):
-        axes[column].set_title('{}'.format(condition))
+        ['HBO Event 1', 'HBO Event 2', 'HBO Difference']):
+    axes[column].set_title('{}'.format(condition))
+fig.tight_layout()
+
+
+# ac HBR
+fig, axes = plt.subplots(nrows=1, ncols=4, figsize=(9, 5),
+                         gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
+vmin, vmax, ts = -0.192, 0.992, 0.1
+vmin = -5
+vmax = 5
+
+evoked_event_1_ac.plot_topomap(ch_type='hbr', times=ts, axes=axes[0],
+                               vmin=vmin, vmax=vmax,
+                               colorbar=False, **topomap_args)
+
+evoked_event_2_ac.plot_topomap(ch_type='hbr', times=ts, axes=axes[1],
+                               vmin=vmin, vmax=vmax,
+                               colorbar=False, **topomap_args)
+
+evoked_diff_ac = mne.combine_evoked([evoked_event_1_ac, -evoked_event_2_ac],
+                                    weights='equal')
+
+evoked_diff_ac.plot_topomap(ch_type='hbr', times=ts, axes=axes[2:],
+                            vmin=vmin, vmax=vmax,
+                            colorbar=True, **topomap_args)
+
+for column, condition in enumerate(
+        ['HBR Event 1', 'HBR Event 2', 'HBR Difference']):
+    axes[column].set_title('{}'.format(condition))
 fig.tight_layout()
 
 
@@ -628,42 +751,56 @@ vmin, vmax, ts = -0.192, 0.992, 0.1
 vmin = -20
 vmax = 20
 
-evoked_1_ph.plot_topomap(times=ts, axes=axes[0], vmin=vmin, vmax=vmax, 
-                            colorbar=False,**topomap_args)
+evoked_event_1_ph.plot_topomap(times=ts, axes=axes[0], vmin=vmin, vmax=vmax,
+                               colorbar=False, **topomap_args)
 
-evoked_2_ph.plot_topomap(times=ts, axes=axes[1], vmin=vmin, vmax=vmax, 
-                            colorbar=False,**topomap_args)
+evoked_event_2_ph.plot_topomap(times=ts, axes=axes[1], vmin=vmin, vmax=vmax,
+                               colorbar=False, **topomap_args)
 
-evoked_diff_ph = mne.combine_evoked([evoked_1_ph, -evoked_2_ph],
-                                       weights='equal')
+evoked_diff_ph = mne.combine_evoked([evoked_event_1_ph, -evoked_event_2_ph],
+                                    weights='equal')
 
-evoked_diff_ph.plot_topomap(times=ts, axes=axes[2:],vmin=vmin, vmax=vmax, 
-                         colorbar=True,**topomap_args)
+evoked_diff_ph.plot_topomap(times=ts, axes=axes[2:], vmin=vmin, vmax=vmax,
+                            colorbar=True, **topomap_args)
 
-for column, condition in enumerate(
-        ['Event 1', 'Event 2', 'Difference']):
-        axes[column].set_title('{}'.format(condition))
+for column, condition in enumerate(['Event 1', 'Event 2', 'Difference']):
+    axes[column].set_title('{}'.format(condition))
 fig.tight_layout()
 
-# ###############################################################################
+# #############################################################################
 # # Lastly, we can also look at the individual waveforms to see what is
 # # driving the topographic plot above.
 
-# ac
+# ac HBO
 fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
-mne.viz.plot_evoked_topo(evoked_1_ac, color='b', axes=axes, legend=False)
-mne.viz.plot_evoked_topo(evoked_2_ac, color='r', axes=axes, legend=False)
+mne.viz.plot_evoked_topo(evoked_event_1_ac.copy().pick('hbo'),
+                         color='b', axes=axes, legend=False)
+mne.viz.plot_evoked_topo(evoked_event_2_ac.copy().pick('hbo'),
+                         color='r', axes=axes, legend=False)
 
 # Tidy the legend
 leg_lines = [line for line in axes.lines if line.get_c() == 'b'][:1]
 leg_lines.append([line for line in axes.lines if line.get_c() == 'r'][0])
-fig.legend(leg_lines, ['Event 1', 'Event 2'], loc='lower right')
+fig.legend(leg_lines, ['HBO Event 1', 'HBO Event 2'], loc='lower right')
+
+
+# ac HBR
+fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
+mne.viz.plot_evoked_topo(evoked_event_1_ac.copy().pick('hbr'),
+                         color='b', axes=axes, legend=False)
+mne.viz.plot_evoked_topo(evoked_event_2_ac.copy().pick('hbr'),
+                         color='r', axes=axes, legend=False)
+
+# Tidy the legend
+leg_lines = [line for line in axes.lines if line.get_c() == 'b'][:1]
+leg_lines.append([line for line in axes.lines if line.get_c() == 'r'][0])
+fig.legend(leg_lines, ['HBR Event 1', 'HBR Event 2'], loc='lower right')
 
 
 # ph
 fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
-mne.viz.plot_evoked_topo(evoked_1_ph, color='b', axes=axes, legend=False)
-mne.viz.plot_evoked_topo(evoked_2_ph, color='r', axes=axes, legend=False)
+mne.viz.plot_evoked_topo(evoked_event_1_ph, color='b', axes=axes, legend=False)
+mne.viz.plot_evoked_topo(evoked_event_2_ph, color='r', axes=axes, legend=False)
 
 # Tidy the legend
 leg_lines = [line for line in axes.lines if line.get_c() == 'b'][:1]
