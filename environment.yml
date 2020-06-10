@@ -37,7 +37,7 @@ dependencies:
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
   - vtk
-  - pyvista>=0.24
+  - pyvista==0.24
   - https://github.com/enthought/mayavi/archive/master.zip
   - PySurfer[save_movie]
   - dipy --only-binary dipy

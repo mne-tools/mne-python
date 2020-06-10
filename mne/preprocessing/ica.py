@@ -483,11 +483,39 @@ class ICA(ContainsMixin):
         _check_for_unsupported_ica_channels(
             picks, inst.info, allow_ref_meg=self.allow_ref_meg)
 
+        # Actually start fitting
         t_start = time()
+        if self.current_fit != 'unfitted':
+            self._reset()
+
+        logger.info('Fitting ICA to data using %i channels '
+                    '(please be patient, this may take a while)' % len(picks))
+
+        if self.max_pca_components is None:
+            self.max_pca_components = len(picks)
+            logger.info('Inferring max_pca_components from picks')
+        elif self.max_pca_components > len(picks):
+            raise ValueError(
+                f'ica.max_pca_components ({self.max_pca_components}) cannot '
+                f'be greater than len(picks) ({len(picks)})')
+        # n_components could be float 0 < x <= 1, but that's okay here
+        if self.n_components is not None and self.n_components > len(picks):
+            raise ValueError(
+                f'ica.n_components ({self.n_components}) cannot '
+                f'be greater than len(picks) ({len(picks)})')
+
+        # filter out all the channels the raw wouldn't have initialized
+        self.info = pick_info(inst.info, picks)
+
+        if self.info['comps']:
+            self.info['comps'] = []
+        self.ch_names = self.info['ch_names']
+
         if isinstance(inst, BaseRaw):
             self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                           tstep, reject_by_annotation, verbose)
-        elif isinstance(inst, BaseEpochs):
+        else:
+            assert isinstance(inst, BaseEpochs)
             self._fit_epochs(inst, picks, decim, verbose)
 
         # sort ICA components by explained variance
@@ -500,37 +528,16 @@ class ICA(ContainsMixin):
 
     def _reset(self):
         """Aux method."""
-        del self.pre_whitener_
-        del self.unmixing_matrix_
-        del self.mixing_matrix_
-        del self.n_components_
-        del self.n_samples_
-        del self.pca_components_
-        del self.pca_explained_variance_
-        del self.pca_mean_
-        del self.n_iter_
-        if hasattr(self, 'drop_inds_'):
-            del self.drop_inds_
-        if hasattr(self, 'reject_'):
-            del self.reject_
+        for key in ('pre_whitener_', 'unmixing_matrix_', 'mixing_matrix_',
+                    'n_components_', 'n_samples_', 'pca_components_',
+                    'pca_explained_variance_', 'pca_mean_', 'n_iter_',
+                    'drop_inds_', 'reject_'):
+            if hasattr(self, key):
+                delattr(self, key)
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):
         """Aux method."""
-        if self.current_fit != 'unfitted':
-            self._reset()
-
-        logger.info('Fitting ICA to data using %i channels '
-                    '(please be patient, this may take a while)' % len(picks))
-
-        if self.max_pca_components is None:
-            self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks')
-
-        self.info = pick_info(raw.info, picks)
-        if self.info['comps']:
-            self.info['comps'] = []
-        self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
         reject_by_annotation = 'omit' if reject_by_annotation else None
@@ -558,27 +565,10 @@ class ICA(ContainsMixin):
 
     def _fit_epochs(self, epochs, picks, decim, verbose):
         """Aux method."""
-        if self.current_fit != 'unfitted':
-            self._reset()
-
         if epochs.events.size == 0:
             raise RuntimeError('Tried to fit ICA with epochs, but none were '
                                'found: epochs.events is "{}".'
                                .format(epochs.events))
-
-        logger.info('Fitting ICA to data using %i channels '
-                    '(please be patient, this may take a while)' % len(picks))
-
-        # filter out all the channels the raw wouldn't have initialized
-        self.info = pick_info(epochs.info, picks)
-
-        if self.info['comps']:
-            self.info['comps'] = []
-        self.ch_names = self.info['ch_names']
-
-        if self.max_pca_components is None:
-            self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks')
 
         # this should be a copy (picks a list of int)
         data = epochs.get_data()[:, picks]
@@ -1018,7 +1008,7 @@ class ICA(ContainsMixin):
                                         reject_by_annotation)
 
             if sources.shape[-1] != target.shape[-1]:
-                raise ValueError('Sources and target do not have the same'
+                raise ValueError('Sources and target do not have the same '
                                  'number of time slices.')
             # auto target selection
             if isinstance(inst, BaseRaw):

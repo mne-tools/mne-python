@@ -140,11 +140,14 @@ class _Renderer(_BaseRenderer):
                  name="PyVista Scene", show=False, shape=(1, 1),
                  notebook=None):
         from .renderer import MNE_3D_BACKEND_TESTING
+        from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=notebook)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.shape = shape
+        antialias = _get_3d_option('antialias')
+        self.antialias = antialias and not MNE_3D_BACKEND_TESTING
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -175,17 +178,16 @@ class _Renderer(_BaseRenderer):
                 self.plotter.default_camera_tool_bar.close()
             if hasattr(self.plotter, "saved_cameras_tool_bar"):
                 self.plotter.saved_cameras_tool_bar.close()
-            if not MNE_3D_BACKEND_TESTING:
+            if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
     def subplot(self, x, y):
-        from .renderer import MNE_3D_BACKEND_TESTING
         x = np.max([0, np.min([x, self.shape[0] - 1])])
         y = np.max([0, np.min([y, self.shape[1] - 1])])
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
-            if not MNE_3D_BACKEND_TESTING:
+            if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
     def scene(self):

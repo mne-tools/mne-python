@@ -67,6 +67,8 @@ Changelog
 
 - Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
 
+- Add better sanity checking of ``max_pca_components`` and ``n_components`` to provide more informative error messages for :class:`mne.preprocessing.ICA` by `Eric Larson`_
+
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
 
 - Add estimation method legend to :func:`mne.viz.plot_snr_estimate` by `Eric Larson`_
@@ -76,6 +78,8 @@ Changelog
 - Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes by `Kyle Mathewson`_
 
 - Add ECoG misc EDF dataset to the :ref:`tut_working_with_ecog` tutorial to show snapshots of time-frequency activity by `Adam Li`_
+
+- Add :func:`mne.viz.set_3d_options` and ``MNE_3D_OPTION_ANTIALIAS`` environment variable to control full-scene antialiasing (FXAA) in 3D functions like :ref:`mne coreg`, :func:`mne.viz.plot_alignment`, and :func:`mne.viz.plot_source_estimates`; this can be useful on systems where FXAA does not work well, such as some with MESA software rendering, by `Eric Larson`_
 
 - Add better support for reading corrupted FIF files in :func:`mne.io.read_raw_fif` by `Eric Larson`_
 
@@ -103,6 +107,10 @@ Bug
 - Fix bug with :func:`mne.minimum_norm.compute_source_psd_epochs` and :func:`mne.minimum_norm.source_band_induced_power` raised errors when ``method='eLORETA'`` by `Eric Larson`_
 
 - Fix bug with :func:`mne.minimum_norm.apply_inverse` where the explained variance did not work for complex data by `Eric Larson`_
+
+- Fix bug with :func:`mne.preprocessing.compute_current_source_density` where values were not properly computed; maps should now be more focal, by `Alex Rockhill`_ and `Eric Larson`_
+
+- Fix bug with :func:`mne.combine_evoked` where equal-weighted averages were wrongly computed as equal-weighted sums, by `Daniel McCloy`_
 
 - Fix to enable interactive plotting with no colorbar with :func:`mne.viz.plot_evoked_topomap` by `Daniel McCloy`_
 
@@ -175,6 +183,10 @@ Bug
 - Fix bug with :func:`mne.beamformer.make_dics` where complex conjugates were not applied properly by `Britta Westner`_ and `Eric Larson`_
 
 - Fix bug with :func:`mne.bem.make_watershed_bem` where the RAS coordinates of watershed bem surfaces were not updated correctly from the volume file by `Yu-Han Luo`_
+
+- Fix bug with :meth:`mne.io.Raw.get_channel_types` and related methods where the ordering of ``picks`` was not preserved, by `Eric Larson`_
+
+- Fix bug with :meth:`mne.io.Raw.plot_psd` with ``average=False`` and multiple channel types where channel locations were not shown properly by `Eric Larson`_
 
 - Fix bug in FieldTrip reader functions when channels are missing in the ``info`` object by `Thomas Hartmann`_
 
