@@ -454,6 +454,7 @@ class _Renderer(_BaseRenderer):
                                         background_color=bgcolor)
 
     def show(self):
+        self.figure.display = self.plotter.show()
         if hasattr(self.plotter, "app_window"):
             self.plotter.app_window.show()
         return self.scene()

@@ -17,7 +17,7 @@ class _Renderer(_PyVistaRenderer):
 
     def show(self):
         self.figure.display = _NotebookInteractor(self)
-        return super().show()
+        return self.scene()
 
 
 class _NotebookInteractor(object):
