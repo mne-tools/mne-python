@@ -57,8 +57,8 @@ params = dict(spatial_colors=True, show=False, ylim=dict(grad=(-200, 200)),
               time_unit='s')
 epochs[cond].average().plot(axes=ax1, **params)
 evokeds[cond].plot(axes=ax2, **params)
-contrast = mne.combine_evoked([evokeds[cond], -epochs[cond].average()],
-                              weights='equal')
+contrast = mne.combine_evoked([evokeds[cond], epochs[cond].average()],
+                              weights=[1, -1])
 contrast.plot(axes=ax3, **params)
 ax1.set_title("Traditional averaging")
 ax2.set_title("rERF")
