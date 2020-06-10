@@ -19,6 +19,7 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+# import numpy as np
 import mne
 from mne.preprocessing import find_bad_channels_maxwell
 
@@ -168,9 +169,8 @@ ax[0].set_title('All Scores', fontweight='bold')
 # plotting function to avoid a (harmless) warning about missing values.
 # However, this is purely optional.
 mask = scores <= limits
-sns.heatmap(data=data_to_plot, mask=mask,
-            vmin=limits.min(), vmax=scores.max(),  # May be omitted.
-            cmap='Reds', cbar_kws=dict(label='Score'), ax=ax[1])
+sns.heatmap(data=data_to_plot, mask=mask, cmap='Reds',
+            cbar_kws=dict(label='Score'), ax=ax[1])
 [ax[1].axvline(x, ls='dashed', lw=0.25, dashes=(25, 15), color='gray')
     for x in range(1, len(bins))]
 ax[1].set_title('Scores > Limit', fontweight='bold')
