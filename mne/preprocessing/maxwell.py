@@ -2076,15 +2076,15 @@ def find_bad_channels_maxwell(
             z = (range_ - mean) / std
             idx = np.argmax(z)
             max_ = z[idx]
-            name = raw.ch_names[these_picks[idx]]
 
             # We may want to return this later if `return_scores=True`.
-            scores_noisy[these_picks, si] = max_
+            scores_noisy[these_picks, si] = z
             thresh_noisy[these_picks, si] = limit
 
             if max_ < limit:
                 break
 
+            name = raw.ch_names[these_picks[idx]]
             logger.debug('            Bad:       %s %0.1f'
                          % (name, max_))
             these_picks.pop(idx)
