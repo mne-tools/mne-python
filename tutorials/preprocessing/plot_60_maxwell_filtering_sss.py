@@ -172,7 +172,6 @@ for ch_type in ('mag', 'grad'):
 
     # Figure title should not overlap with subplots.
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
 
 ###############################################################################
 #
