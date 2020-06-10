@@ -1922,7 +1922,8 @@ def find_bad_channels_maxwell(
         - ``limits_noisy`` : ndarray, shape (n_meg, 1)
             The thresholds above which a score classified a segment as "noisy".
 
-        Segments of channels marked as ``bad`` will be ``np.nan``.
+        The scores and limits for channels marked as ``bad`` in the input data
+        will will be set to ``np.nan``.
 
     See Also
     --------
