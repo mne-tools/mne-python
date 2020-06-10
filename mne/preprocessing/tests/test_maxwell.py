@@ -1143,10 +1143,12 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
 
         assert list(got_scores['ch_names']) == meg_chs
         assert list(got_scores['ch_types']) == ch_types
+        # Check that time is monotonically increasing.
+        assert (np.diff(got_scores['bins'].flatten()) >= 0).all()
 
         assert (got_scores['scores_flat'].shape ==
                 got_scores['scores_noisy'].shape ==
-                (len(meg_chs), len(got_scores['bin_edges']) - 1))
+                (len(meg_chs), len(got_scores['bins'])))
 
         assert (got_scores['limits_flat'].shape ==
                 got_scores['limits_noisy'].shape ==
@@ -1164,7 +1166,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
             out=np.full_like(scores_flat, fill_value=False)).sum(-1)
 
         ch_idx = np.where(n_segments_below_limit >=
-                          min(min_count, len(got_scores['bin_edges']) - 1))
+                          min(min_count, len(got_scores['bins'])))
         flats = set(got_scores['ch_names'][ch_idx])
         assert flats == set(want_flats)
 
@@ -1180,7 +1182,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
             out=np.full_like(scores_noisy, fill_value=False)).sum(-1)
 
         ch_idx = np.where(n_segments_beyond_limit >=
-                          min(min_count, len(got_scores['bin_edges']) - 1))
+                          min(min_count, len(got_scores['bins'])))
         bads = set(got_scores['ch_names'][ch_idx])
         assert bads == set(want_bads)
 

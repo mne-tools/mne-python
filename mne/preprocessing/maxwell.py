@@ -1911,8 +1911,9 @@ def find_bad_channels_maxwell(
         - ``ch_types`` : ndarray, shape (n_meg,)
             The types of the MEG channels in ``ch_names`` (``'mag'``,
             ``'grad'``).
-        - ``bin_edges`` : ndarray, shape (n_windows + 1,)
-            The window boundaries (in seconds) used to calculate the scores.
+        - ``bins`` : ndarray, shape (n_windows, 2)
+            The inclusive window boundaries (start and stop; in seconds) used
+            to calculate the scores.
         - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
             The scores for testing whether MEG channels are flat.
         - ``limits_flat`` : ndarray, shape (n_meg, 1)
@@ -2007,7 +2008,7 @@ def find_bad_channels_maxwell(
     all_flats = set()
 
     # Prepare variables to return if `return_scores=True`.
-    bin_edges = np.r_[starts, stops[-1]]  # Ensure we include the endpoint!
+    bins = np.empty((len(starts), 2))  # To store start, stop of each segment
     # We create ndarrays with one row per channel, regardless of channel type
     # and whether the channel has been marked as "bad" in info or not. This
     # makes indexing in the loop easier. We only filter this down to the subset
@@ -2037,6 +2038,7 @@ def find_bad_channels_maxwell(
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
 
         # We may want to return this later if `return_scores=True`.
+        bins[si, :] = chunk_raw.times[0], chunk_raw.times[-1]
         scores_flat[good_meg_picks, si] = delta
         thresh_flat[good_meg_picks] = these_limits.reshape(-1, 1)
 
@@ -2115,7 +2117,7 @@ def find_bad_channels_maxwell(
     if return_scores:
         scores = dict(ch_names=ch_names,
                       ch_types=ch_types,
-                      bin_edges=bin_edges,
+                      bins=bins,
                       scores_flat=scores_flat,
                       limits_flat=thresh_flat,
                       scores_noisy=scores_noisy,

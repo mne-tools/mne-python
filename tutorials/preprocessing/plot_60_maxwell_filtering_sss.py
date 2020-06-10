@@ -140,14 +140,14 @@ for ch_type in ('mag', 'grad'):
     ch_names = auto_scores['ch_names'][ch_subset]
     scores = auto_scores['scores_noisy'][ch_subset]
     limits = auto_scores['limits_noisy'][ch_subset]
-    # Number of time windows.
-    segments = range(1, len(auto_scores['bin_edges']))
+    bins = auto_scores['bins']  # The the windows that were evaluated.
+    bin_labels = [f'{start} – {stop}' for start, stop in bins]
 
     # We store the data in a Pandas DataFrame. The seaborn heatmap function
     # we will call below will then be able to automatically assign the correct
     # labels to all axes.
     data_to_plot = pd.DataFrame(data=scores,
-                                columns=pd.Index(segments, name='Segment'),
+                                columns=pd.Index(bin_labels, name='Time (s)'),
                                 index=pd.Index(ch_names, name='Channel'))
     # Plot the "raw" scores.
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
