@@ -240,6 +240,7 @@ raw_intensity_ac.copy().pick_channels(mtg_b).plot(
 # reject_criteria = dict(hbo=80e-6)
 reject_criteria = None
 tmin, tmax = -0.2, 2
+tmin_AC, tmax_AC = -2, 10
 
 # Montage A
 mtg_a = [i_index for i_index,i_label in enumerate(raw_haemo.info['ch_names']) 
@@ -248,19 +249,11 @@ mtg_a = [i_index for i_index,i_label in enumerate(raw_haemo.info['ch_names'])
 # haemo epochs
 mtg_a_haemo_epochs = mne.Epochs(raw_haemo,
                     mtg_a_events, event_id = mtg_a_event_dict,
-                    tmin=tmin, tmax=tmax,
+                    tmin=tmin_AC, tmax=tmax_AC,
                     reject=reject_criteria, reject_by_annotation=False,
                     proj=True, baseline=(None, 0), preload=True,
                     detrend=None, verbose=True, event_repeated='drop')
 mtg_a_haemo_epochs.plot_drop_log()
-
-#get epochs from the raw AC and Phase
-mtg_a_epochs_ac = mne.Epochs(raw_intensity_ac, 
-                    mtg_a_events, event_id=mtg_a_event_dict,
-                    tmin=tmin, tmax=tmax,
-                    reject=None, reject_by_annotation=False,
-                    proj=False, baseline=(-0.2, 0), preload=True,
-                    detrend=None, verbose=True)
 
 mtg_a_epochs_ph = mne.Epochs(raw_intensity_ph, 
                     mtg_a_events, event_id=mtg_a_event_dict,
@@ -276,12 +269,6 @@ fig = mne.viz.plot_epochs(mtg_a_haemo_epochs,n_epochs=5,n_channels=5,
                           scalings='auto', picks = mtg_a)
 fig = mtg_a_haemo_epochs.plot(n_epochs=5,n_channels=5, scalings='auto', 
                               picks = mtg_a)
-
-# ac epochs
-fig = mne.viz.plot_epochs(mtg_a_epochs_ac,n_epochs=5,n_channels=5, 
-                          scalings='auto', picks = mtg_a)
-fig = mtg_a_epochs_ac.plot(n_epochs=5,n_channels=5, scalings='auto', 
-                        picks = mtg_a)
 
 # ph epochs
 fig = mne.viz.plot_epochs(mtg_a_epochs_ph,n_epochs=5,n_channels=5, 
@@ -303,14 +290,6 @@ mtg_b_haemo_epochs = mne.Epochs(raw_haemo,
                     detrend=None, verbose=True, event_repeated='drop')
 mtg_b_haemo_epochs.plot_drop_log()
 
-#get epochs from the raw AC and Phase
-mtg_b_epochs_ac = mne.Epochs(raw_intensity_ac, 
-                    mtg_b_events, event_id=mtg_b_event_dict,
-                    tmin=tmin, tmax=tmax,
-                    reject=None, reject_by_annotation=False,
-                    proj=False, baseline=(-0.2, 0), preload=True,
-                    detrend=None, verbose=True)
-
 mtg_b_epochs_ph = mne.Epochs(raw_intensity_ph, 
                     mtg_b_events, event_id=mtg_b_event_dict,
                     tmin=tmin, tmax=tmax,
@@ -324,12 +303,6 @@ fig = mne.viz.plot_epochs(mtg_b_haemo_epochs,n_epochs=5,n_channels=5,
                           scalings='auto', picks = mtg_b)
 fig = mtg_b_haemo_epochs.plot(n_epochs=5,n_channels=5, scalings='auto',
                                picks = mtg_b)
-
-# ac epochs
-fig = mne.viz.plot_epochs(mtg_b_epochs_ac,n_epochs=5,n_channels=5, 
-                          scalings='auto', picks = mtg_b)
-fig = mtg_b_epochs_ac.plot(n_epochs=5,n_channels=5, scalings='auto',
-                        picks = mtg_b)
 
 # ph epochs
 fig = mne.viz.plot_epochs(mtg_b_epochs_ph,n_epochs=5,n_channels=5, 
@@ -369,17 +342,6 @@ mtg_a_haemo_epochs['Montage_A/Event_2'].plot_image(
                               ts_args=dict(ylim=dict(hbo=[-15, 15],
                                                     hbr=[-15, 15])))
 
-# ac epochs
-fig = mtg_a_epochs_ac['Montage_A/Event_1'].plot_image(
-                                   combine='mean', vmin=-20, vmax=20, 
-                                   picks = mtg_a, colorbar=True, 
-                                   title='Montage A Event 1')
-
-fig = mtg_a_epochs_ac['Montage_A/Event_2'].plot_image(
-                                   combine='mean', vmin=-20, vmax=20, 
-                                   picks = mtg_a, colorbar=True, 
-                                   title='Montage A Event 2')
-
 # ph epochs
 fig = mtg_a_epochs_ph['Montage_A/Event_1'].plot_image(
                                    combine='mean', vmin=-180, vmax=180, 
@@ -413,17 +375,6 @@ mtg_b_haemo_epochs['Montage_B/Event_2'].plot_image(
                               ts_args=dict(ylim=dict(hbo=[-15, 15],
                                                     hbr=[-15, 15])))
 
-# ac epochs
-fig = mtg_b_epochs_ac['Montage_B/Event_1'].plot_image(
-                                   combine='mean', vmin=-20, vmax=20, 
-                                   picks = mtg_b, colorbar=True, 
-                                   title='Montage B Event 1')
-
-fig = mtg_b_epochs_ac['Montage_B/Event_2'].plot_image(
-                                   combine='mean', vmin=-20, vmax=20, 
-                                   picks = mtg_b, colorbar=True, 
-                                   title='Montage B Event 2')
-
 # ph epochs
 fig = mtg_b_epochs_ph['Montage_B/Event_1'].plot_image(
                                    combine='mean', vmin=-180, vmax=180, 
@@ -447,10 +398,10 @@ fig = mtg_b_epochs_ph['Montage_B/Event_2'].plot_image(
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
 clim=dict(fnirs_raw=[-20,20])
 
-mtg_a_1_evoked_ac = mtg_a_epochs_ac['Montage_A/Event_1'].average()
-mtg_a_2_evoked_ac = mtg_a_epochs_ac['Montage_A/Event_2'].average()
-mtg_b_1_evoked_ac = mtg_b_epochs_ac['Montage_B/Event_1'].average()
-mtg_b_2_evoked_ac = mtg_b_epochs_ac['Montage_B/Event_2'].average()
+mtg_a_1_evoked_ac = mtg_a_haemo_epochs['Montage_A/Event_1'].average()
+mtg_a_2_evoked_ac = mtg_a_haemo_epochs['Montage_A/Event_2'].average()
+mtg_b_1_evoked_ac = mtg_b_haemo_epochs['Montage_B/Event_1'].average()
+mtg_b_2_evoked_ac = mtg_b_haemo_epochs['Montage_B/Event_2'].average()
 
 mtg_a_1_evoked_ac.plot_image(axes=axes[0, 0], picks = mtg_a,
                                         titles='Montage A Event 1', clim=clim)
@@ -462,10 +413,10 @@ mtg_b_2_evoked_ac.plot_image(axes=axes[1, 1], picks = mtg_b,
                                         titles='Montage B Event 2', clim=clim)
 
 # Combine Montages
-evoked_1_ac = mtg_a_epochs_ac['Montage_A/Event_1'].average()
-evoked_2_ac = mtg_a_epochs_ac['Montage_A/Event_2'].average()
-evoked_3_ac = mtg_b_epochs_ac['Montage_B/Event_1'].average()
-evoked_4_ac = mtg_b_epochs_ac['Montage_B/Event_2'].average()
+evoked_1_ac = mtg_a_haemo_epochs['Montage_A/Event_1'].average()
+evoked_2_ac = mtg_a_haemo_epochs['Montage_A/Event_2'].average()
+evoked_3_ac = mtg_b_haemo_epochs['Montage_B/Event_1'].average()
+evoked_4_ac = mtg_b_haemo_epochs['Montage_B/Event_2'].average()
 
 mtg_a_channels_ac = [i_index for i_index,i_label in enumerate(evoked_1_ac.info['ch_names']) 
                   if re.search(r'S[1-5]_', i_label)]
