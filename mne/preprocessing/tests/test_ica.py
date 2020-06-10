@@ -122,7 +122,8 @@ def test_ica_full_data_recovery(method):
             else:
                 diff = np.abs(evoked.data[:n_channels] - data2)
                 assert (np.max(diff) > 1e-14)
-    pytest.raises(ValueError, ICA, method='pizza-decomposision')
+    with pytest.raises(ValueError, match='Invalid value'):
+        ICA(method='pizza-decomposision')
 
 
 @pytest.mark.parametrize("method", ["fastica", "picard"])
@@ -264,8 +265,10 @@ def test_ica_core(method):
                               picks_, methods)
 
     # # test init catchers
-    pytest.raises(ValueError, ICA, n_components=3, max_pca_components=2)
-    pytest.raises(ValueError, ICA, n_components=2.3, max_pca_components=2)
+    with pytest.raises(ValueError, match='must be smaller than max_pca'):
+        ICA(n_components=3, max_pca_components=2)
+    with pytest.raises(ValueError, match='explained variance needs values'):
+        ICA(n_components=2.3, max_pca_components=3)
 
     # test essential core functionality
     for n_cov, n_comp, max_n, pcks, method in iter_ica_params:
@@ -273,13 +276,16 @@ def test_ica_core(method):
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0, method=method, max_iter=1)
-        pytest.raises(ValueError, ica.__contains__, 'mag')
+        with pytest.raises(ValueError, match='Cannot check for channels of t'):
+            'meg' in ica
 
         print(ica)  # to test repr
 
         # test fit checker
-        pytest.raises(RuntimeError, ica.get_sources, raw)
-        pytest.raises(RuntimeError, ica.get_sources, epochs)
+        with pytest.raises(RuntimeError, match='No fit available'):
+            ica.get_sources(raw)
+        with pytest.raises(RuntimeError, match='No fit available'):
+            ica.get_sources(epochs)
 
         # Test error upon empty epochs fitting
         with pytest.raises(RuntimeError, match='none were found'):
@@ -336,14 +342,14 @@ def test_ica_core(method):
         sources = ica.get_sources(epochs).get_data()
         assert (sources.shape[1] == ica.n_components_)
 
-        pytest.raises(ValueError, ica.score_sources, epochs,
-                      target=np.arange(1))
+        with pytest.raises(ValueError, match='target do not have the same nu'):
+            ica.score_sources(epochs, target=np.arange(1))
 
         # test preload filter
         epochs3 = epochs.copy()
         epochs3.preload = False
-        pytest.raises(RuntimeError, ica.apply, epochs3,
-                      include=[1, 2])
+        with pytest.raises(RuntimeError, match='requires epochs data to be l'):
+            ica.apply(epochs3, include=[1, 2])
 
     # test for bug with whitener updating
     _pre_whitener = ica.pre_whitener_.copy()
@@ -353,12 +359,26 @@ def test_ica_core(method):
 
     # test expl. var threshold leading to empty sel
     ica.n_components = 0.1
-    pytest.raises(RuntimeError, ica.fit, epochs)
+    with pytest.raises(RuntimeError, match='One PCA component captures most'):
+        ica.fit(epochs)
 
     offender = 1, 2, 3,
-    pytest.raises(ValueError, ica.get_sources, offender)
-    pytest.raises(TypeError, ica.fit, offender)
-    pytest.raises(TypeError, ica.apply, offender)
+    with pytest.raises(ValueError, match='Data input must be of Raw'):
+        ica.get_sources(offender)
+    with pytest.raises(TypeError, match='must be an instance of'):
+        ica.fit(offender)
+    with pytest.raises(TypeError, match='must be an instance of'):
+        ica.apply(offender)
+
+    # gh-7868
+    ica.max_pca_components = 3
+    ica.n_components = 0.99
+    with pytest.raises(ValueError, match='pca_components.*cannot be greater'):
+        ica.fit(epochs, picks=[0, 1])
+    ica.max_pca_components = None
+    ica.n_components = 3
+    with pytest.raises(ValueError, match='n_components.*cannot be greater'):
+        ica.fit(epochs, picks=[0, 1])
 
 
 @requires_sklearn

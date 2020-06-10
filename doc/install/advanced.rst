@@ -160,6 +160,17 @@ to force MESA to use modern OpenGL by using this before executing
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
 
+MESA also can have trouble with full-screen antialiasing, which you can
+disable with:
+
+.. code-block:: console
+
+    $ export MNE_3D_OPTION_ANTIALIAS=false
+
+or by doing
+:func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
+a given Python session.
+
 .. _troubleshoot_3d:
 
 Troubleshooting 3D plots in MNE-Python
