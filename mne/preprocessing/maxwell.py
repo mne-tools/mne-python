@@ -1915,11 +1915,11 @@ def find_bad_channels_maxwell(
             The window boundaries (in seconds) used to calculate the scores.
         - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
             The scores for testing whether MEG channels are flat.
-        - ``limits_flat`` : ndarray, shape (n_meg, n_windows)
+        - ``limits_flat`` : ndarray, shape (n_meg, 1)
             The thresholds above which a score classified a segment as "flat".
         - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
             The scores for testing whether MEG channels are noisy.
-        - ``limits_noisy`` : ndarray, shape (n_meg, n_windows)
+        - ``limits_noisy`` : ndarray, shape (n_meg, 1)
             The thresholds above which a score classified a segment as "noisy".
 
         Segments of channels marked as ``bad`` will be ``np.nan``.
@@ -2013,10 +2013,14 @@ def find_bad_channels_maxwell(
     # of MEG channels after all processing is done.
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
+
     scores_flat = np.empty((len(ch_names), len(starts)))
-    thresh_flat = scores_flat.copy()
-    scores_noisy = scores_flat.copy()
-    thresh_noisy = scores_flat.copy()
+    scores_flat.fill(np.nan)
+    scores_noisy = np.full_like(scores_flat, fill_value=np.nan)
+
+    thresh_flat = np.empty((len(ch_names), 1))
+    thresh_flat.fill(np.nan)
+    thresh_noisy = np.full_like(thresh_flat, fill_value=np.nan)
 
     for si, (start, stop) in enumerate(zip(starts, stops)):
         n_iter = 0
@@ -2033,7 +2037,7 @@ def find_bad_channels_maxwell(
 
         # We may want to return this later if `return_scores=True`.
         scores_flat[good_meg_picks, si] = delta
-        thresh_flat[good_meg_picks, si] = these_limits
+        thresh_flat[good_meg_picks] = these_limits.reshape(-1, 1)
 
         chunk_flats = delta < these_limits
         chunk_flats = np.where(chunk_flats)[0]
@@ -2079,7 +2083,7 @@ def find_bad_channels_maxwell(
 
             # We may want to return this later if `return_scores=True`.
             scores_noisy[these_picks, si] = z
-            thresh_noisy[these_picks, si] = limit
+            thresh_noisy[these_picks] = limit
 
             if max_ < limit:
                 break
