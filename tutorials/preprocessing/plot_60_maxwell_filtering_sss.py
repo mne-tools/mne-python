@@ -142,7 +142,7 @@ scores = auto_scores['scores_noisy'][ch_subset]
 limits = auto_scores['limits_noisy'][ch_subset]
 bins = auto_scores['bins']  # The the windows that were evaluated.
 # We will label each segment by its start and stop time, with up to 3
-# 3 digits before and 3 digits after the decimal place (1 ms precision).
+# digits before and 3 digits after the decimal place (1 ms precision).
 bin_labels = [f'{start:3.3f} – {stop:3.3f}'
               for start, stop in bins]
 
