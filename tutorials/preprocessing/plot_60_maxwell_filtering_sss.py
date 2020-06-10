@@ -1,4 +1,3 @@
-# %%
 """
 .. _tut-artifact-sss:
 
@@ -20,7 +19,6 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import numpy as np
 import mne
 from mne.preprocessing import find_bad_channels_maxwell
 
@@ -135,7 +133,7 @@ raw.info['bads'] = bads
 #
 # In the following, we will generate a total of four of such visualizations for
 # the automated detection of *noisy* channels.
-# %%
+
 for ch_type in ('mag', 'grad'):
     # Only select the data for mag or grad channels.
     ch_subset = auto_scores['ch_types'] == ch_type
@@ -173,7 +171,6 @@ for ch_type in ('mag', 'grad'):
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
 
-# %%
 ###############################################################################
 #
 # .. note:: You can use the very same code as above to produce figures for
