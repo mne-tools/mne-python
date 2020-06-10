@@ -2032,6 +2032,11 @@ def find_bad_channels_maxwell(
         chunk_raw = RawArray(
             orig_data, params['info'],
             first_samp=raw.first_samp + start, copy='data', verbose=False)
+
+        t = chunk_raw.times[[0, -1]] + start / raw.info['sfreq']
+        logger.info('        Interval %3d: %8.3f - %8.3f'
+                    % ((si + 1,) + tuple(t[[0, -1]])))
+
         # Flat pass: var < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
         flat_stop = n - (n % flat_step)
@@ -2040,7 +2045,7 @@ def find_bad_channels_maxwell(
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
 
         # We may want to return this later if `return_scores=True`.
-        bins[si, :] = chunk_raw.times[0], chunk_raw.times[-1]
+        bins[si, :] = t[0], t[-1]
         scores_flat[good_meg_picks, si] = delta
         thresh_flat[good_meg_picks] = these_limits.reshape(-1, 1)
 
@@ -2057,9 +2062,6 @@ def find_bad_channels_maxwell(
         chunk_noisy = list()
         params['st_duration'] = int(round(
             chunk_raw.times[-1] * raw.info['sfreq']))
-        t = chunk_raw.times[[0, -1]] + start / raw.info['sfreq']
-        logger.info('        Interval %3d: %8.3f - %8.3f'
-                    % ((si + 1,) + tuple(t[[0, -1]])))
         for n_iter in range(1, 101):  # iteratively exclude the worst ones
             assert set(raw.info['bads']) & set(chunk_noisy) == set()
             params['good_mask'][:] = [
