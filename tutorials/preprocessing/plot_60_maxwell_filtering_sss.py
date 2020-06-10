@@ -163,10 +163,8 @@ sns.heatmap(data=data_to_plot, cmap='Reds', cbar_kws=dict(label='Score'),
     for x in range(1, len(bins))]
 ax[0].set_title('All Scores', fontweight='bold')
 
-# Now, only plot scores that exceeded the limits.
-# We also pass the optional parameters ``vmin`` and ``vmax`` to the
-# plotting function to avoid a (harmless) warning about missing values.
-# However, this is purely optional.
+# Now, only plot scores that exceeded the limits. We do this by placing a mask
+# on all data points less than or equal to the limits.
 mask = scores <= limits
 sns.heatmap(data=data_to_plot, mask=mask, cmap='Reds',
             cbar_kws=dict(label='Score'), ax=ax[1])
