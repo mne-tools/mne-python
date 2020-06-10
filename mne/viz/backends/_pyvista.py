@@ -19,7 +19,6 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
-from ._jupyter import _JupyterInteractor
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
 
@@ -141,9 +140,6 @@ class _Renderer(_BaseRenderer):
                  name="PyVista Scene", show=False, shape=(1, 1),
                  notebook=None):
         from .renderer import MNE_3D_BACKEND_TESTING
-        notebook_str = os.environ.get('MNE_3D_NOTEBOOK', default="False")
-        if notebook is None:
-            notebook = (notebook_str == "True")
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=notebook)
         self.font_family = "arial"
@@ -458,8 +454,6 @@ class _Renderer(_BaseRenderer):
                                         background_color=bgcolor)
 
     def show(self):
-        if self.figure.notebook:
-            self.figure.display = _JupyterInteractor(self)
         if hasattr(self.plotter, "app_window"):
             self.plotter.app_window.show()
         return self.scene()

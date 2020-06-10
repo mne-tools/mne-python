@@ -4,9 +4,23 @@
 
 import matplotlib.pyplot as plt
 from contextlib import contextmanager
+from ._pyvista import _Renderer as _PyVistaRenderer
 
 
-class _JupyterInteractor(object):
+class _Renderer(_PyVistaRenderer):
+    def __init__(self, **kwargs):
+        from IPython import get_ipython
+        ipython = get_ipython()
+        ipython.magic('matplotlib widget')
+        kwargs["notebook"] = True
+        super().__init__(**kwargs)
+
+    def show(self):
+        self.figure.display = _NotebookInteractor(self)
+        return super().show()
+
+
+class _NotebookInteractor(object):
     def __init__(self, renderer):
         from IPython import display
         from ipywidgets import HBox, VBox

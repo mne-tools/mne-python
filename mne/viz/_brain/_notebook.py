@@ -2,10 +2,11 @@
 #
 # License: Simplified BSD
 
-from ..backends._jupyter import _JupyterInteractor
+from ..backends._notebook \
+    import _NotebookInteractor as _PyVistaNotebookInteractor
 
 
-class _BrainJupyterInteractor(_JupyterInteractor):
+class _NotebookInteractor(_PyVistaNotebookInteractor):
     def __init__(self, time_viewer):
         self.time_viewer = time_viewer
         self.brain = self.time_viewer.brain

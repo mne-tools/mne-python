@@ -154,7 +154,7 @@ class _Brain(object):
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm',
                  show=True):
-        from ..backends.renderer import backend, _get_renderer
+        from ..backends.renderer import backend, _get_renderer, _get_3d_backend
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -195,8 +195,7 @@ class _Brain(object):
                              'sequence of ints.')
         fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
-        notebook_str = os.environ.get('MNE_3D_NOTEBOOK', default="False")
-        self._notebook = (notebook_str == "True")
+        self._notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
         self._units = units
         self._subject_id = subject_id

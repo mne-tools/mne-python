@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 from . import _Brain
-from ._jupyter import _BrainJupyterInteractor
+from ._notebook import _NotebookInteractor
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
@@ -558,9 +558,7 @@ class _TimeViewer(object):
                 slider_rep.ShowSliderLabelOff()
 
     def configure_notebook(self):
-        self.brain._renderer.figure.display = _BrainJupyterInteractor(
-            self
-        )
+        self.brain._renderer.figure.display = _NotebookInteractor(self)
 
     def configure_time_label(self):
         self.time_actor = self.brain._data.get('time_actor')
