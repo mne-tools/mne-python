@@ -1,3 +1,4 @@
+# %%
 """
 .. _tut-artifact-sss:
 
@@ -19,6 +20,7 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 import mne
 from mne.preprocessing import find_bad_channels_maxwell
 
@@ -133,16 +135,19 @@ raw.info['bads'] = bads
 #
 # In the following, we will generate a total of four of such visualizations for
 # the automated detection of *noisy* channels.
-
+# %%
 for ch_type in ('mag', 'grad'):
     # Only select the data for mag or grad channels.
     ch_subset = auto_scores['ch_types'] == ch_type
     ch_names = auto_scores['ch_names'][ch_subset]
     scores = auto_scores['scores_noisy'][ch_subset]
     limits = auto_scores['limits_noisy'][ch_subset]
-    # Number of time windows
+    # Number of time windows.
     segments = range(1, len(auto_scores['bin_edges']))
 
+    # We store the data in a Pandas DataFrame. The seaborn heatmap function
+    # we will call below will then be able to automatically assign the correct
+    # labels to all axes.
     data_to_plot = pd.DataFrame(data=scores,
                                 columns=pd.Index(segments, name='Segment'),
                                 index=pd.Index(ch_names, name='Channel'))
@@ -160,7 +165,7 @@ for ch_type in ('mag', 'grad'):
     # However, this is purely optional.
     mask = scores <= limits
     sns.heatmap(data=data_to_plot, mask=mask,
-                vmin=limits.min(), vmax=limits.max(),  # May be omitted.
+                vmin=limits.min(), vmax=scores.max(),  # May be omitted.
                 cmap='Reds', cbar_kws=dict(label='Score'), ax=ax[1])
     ax[1].set_title('Scores > Limit', fontweight='bold')
 
@@ -168,12 +173,14 @@ for ch_type in ('mag', 'grad'):
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
 
+# %%
 ###############################################################################
+#
 # .. note:: You can use the very same code as above to produce figures for
-#           *flat* channel detection; simply replace the word "noisy" with
+#           *flat* channel detection. Simply replace the word "noisy" with
 #           "flat", and invert the ``mask``, such that it reads:
-#           ``mask = scores >= limits`` to omit all scores that do not qualify
-#           as "flat" when generating the right subplots.
+#           ``mask = scores >= limits``. Lastly, in the second plot command,
+#           set ``vmin=scores.min()`` and ``vmax=limits.max()``.
 #
 # You can see the un-altered scores for each channel and time segment in the
 # left subplots, and thresholded scores – those which exceeded a certain limit
