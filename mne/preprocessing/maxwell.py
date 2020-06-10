@@ -1928,8 +1928,8 @@ def find_bad_channels_maxwell(
         .. note:: The scores and limits for channels marked as ``bad`` in the
                   input data will either be set to ``np.inf`` or ``-np.inf``,
                   such that the comparison between the scores and their
-                  corresponding limits via `<` and `>` will not yield
-                  the channel as auto-detected bad.
+                  corresponding limits via the "greater than" and "less than"
+                  operators will not yield the channel as auto-detected bad.
 
     See Also
     --------
