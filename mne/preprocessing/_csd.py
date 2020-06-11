@@ -7,7 +7,7 @@
 # http://psychophysiology.cpmc.columbia.edu/Software/CSDtoolbox/
 
 # Authors: Denis A. Engeman <denis.engemann@gmail.com>
-#          Alex Rockhill <aprockhill206@gmail.com>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: Relicensed under BSD (3-clause) and adapted with
 #          permission from authors of original GPL code
@@ -58,7 +58,8 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
                                    copy=True):
     """Get the current source density (CSD) transformation.
 
-    Transformation based on spherical spline surface Laplacian [1]_ [2]_ [3]_.
+    Transformation based on spherical spline surface Laplacian
+    :footcite:`PerrinEtAl1987,PerrinEtAl1989,Cohen2014,KayserTenke2015`.
 
     Parameters
     ----------
@@ -91,15 +92,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     References
     ----------
-    .. [1] Perrin F, Bertrand O, Pernier J. "Scalp current density mapping:
-           Value and estimation from potential data." IEEE Trans Biomed Eng.
-           1987;34(4):283–288.
-    .. [2] Perrin F, Pernier J, Bertrand O, Echallier JF. "Spherical splines
-           for scalp potential and current density mapping."
-           Electroenceph Clin Neurophysiol. 1989;72(2):184–187.
-    .. [3] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
-           (Current Source Density) methodology in electrophysiology.
-           Int J Psychophysiol. 2015 Sep; 97(3): 171–173.
+    .. footbibliography::
     """
     _validate_type(inst, (BaseEpochs, BaseRaw, Evoked), 'inst')
 
@@ -132,12 +125,17 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         raise ValueError('n_legendre_terms must be greater than 0, '
                          'got %s' % n_legendre_terms)
 
-    if sphere == 'auto':
+    if isinstance(sphere, str) and sphere == 'auto':
         radius, origin_head, origin_device = fit_sphere_to_headshape(inst.info)
         x, y, z = origin_head - origin_device
         sphere = (x, y, z, radius)
-    _validate_type(sphere, tuple, 'sphere')
-    x, y, z, radius = sphere
+    try:
+        sphere = np.array(sphere, float)
+        x, y, z, radius = sphere
+    except Exception:
+        raise ValueError(
+            f'sphere must be "auto" or array-like with shape (4,), '
+            f'got {sphere}')
     _validate_type(x, 'numeric', 'x')
     _validate_type(y, 'numeric', 'y')
     _validate_type(z, 'numeric', 'z')
@@ -153,9 +151,17 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         raise ValueError('Zero or infinite position found in chs')
     pos -= (x, y, z)
 
-    G = _calc_g(np.dot(pos, pos.T), stiffness=stiffness,
+    # Project onto a unit sphere to compute the cosine similarity:
+    pos /= np.linalg.norm(pos, axis=1, keepdims=True)
+    cos_dist = np.clip(np.dot(pos, pos.T), -1, 1)
+    # This is equivalent to doing one minus half the squared Euclidean:
+    # from scipy.spatial.distance import squareform, pdist
+    # cos_dist = 1 - squareform(pdist(pos, 'sqeuclidean')) / 2.
+    del pos
+
+    G = _calc_g(cos_dist, stiffness=stiffness,
                 n_legendre_terms=n_legendre_terms)
-    H = _calc_h(np.dot(pos, pos.T), stiffness=stiffness,
+    H = _calc_h(cos_dist, stiffness=stiffness,
                 n_legendre_terms=n_legendre_terms)
 
     G_precomputed = _prepare_G(G, lambda2)
@@ -171,19 +177,3 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
                                       unit=FIFF.FIFF_UNIT_V_M2)
     return inst
-
-# References
-# ----------
-#
-# [1] Perrin F, Bertrand O, Pernier J. "Scalp current density mapping:
-#     Value and estimation from potential data." IEEE Trans Biomed Eng.
-#     1987;34(4):283–288.
-#
-# [2] Perrin F, Pernier J, Bertrand O, Echallier JF. "Spherical splines
-#     for scalp potential and current density mapping."
-#     [Corrigenda EEG 02274, EEG Clin. Neurophysiol., 1990, 76, 565]
-#     Electroenceph Clin Neurophysiol. 1989;72(2):184–187.
-#
-# [3] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
-#     (Current Source Density) methodology in electrophysiology."
-#     Int J Psychophysiol. 2015 Sep; 97(3): 171–173.
