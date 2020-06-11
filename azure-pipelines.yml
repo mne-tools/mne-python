@@ -220,5 +220,15 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -v -m "not ultraslowtest" -n 1 mne
+  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run tests'
+  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+    displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
+    condition: always()
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: 'junit-*.xml'
+      testRunTitle: 'Publish test results for Python $(python.version)'
+    condition: always()
