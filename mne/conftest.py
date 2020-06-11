@@ -33,8 +33,11 @@ s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+bem_path = op.join(test_path, 'subjects', 'sample', 'bem')
+fname_bem = op.join(bem_path, 'sample-1280-bem.fif')
+fname_aseg = op.join(test_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 subjects_dir = op.join(test_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
+fname_src = op.join(bem_path, 'sample-oct-4-src.fif')
 subjects_dir = op.join(test_path, 'subjects')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
@@ -82,7 +85,7 @@ def pytest_configure(config):
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
     ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
-    ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
+    ignore:.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
     ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
@@ -97,18 +100,40 @@ def pytest_configure(config):
             config.addinivalue_line('filterwarnings', warning_line)
 
 
+# Have to be careful with autouse=True, but this is just an int comparison
+# so it shouldn't really add appreciable overhead
+@pytest.fixture(autouse=True)
+def check_verbose(request):
+    """Set to the default logging level to ensure it's tested properly."""
+    starting_level = mne.utils.logger.level
+    yield
+    # ensures that no tests break the global state
+    try:
+        assert mne.utils.logger.level == starting_level
+    except AssertionError:
+        pytest.fail('.'.join([request.module.__name__,
+                              request.function.__name__]) +
+                    ' modifies logger.level')
+
+
 @pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
     from matplotlib import cbook
-    # "force" should not really be necessary but should not hurt
-    kwargs = dict()
+    # Allow for easy interactive debugging with a call like:
+    #
+    #     $ MNE_MPL_TESTING_BACKEND=Qt5Agg pytest mne/viz/tests/test_raw.py -k annotation -x --pdb  # noqa: E501
+    #
+    try:
+        want = os.environ['MNE_MPL_TESTING_BACKEND']
+    except KeyError:
+        want = 'agg'  # don't pop up windows
     with warnings.catch_warnings(record=True):  # ignore warning
         warnings.filterwarnings('ignore')
-        matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
+        matplotlib.use(want, force=True)
     import matplotlib.pyplot as plt
-    assert plt.get_backend() == 'agg'
+    assert plt.get_backend() == want
     # overwrite some params that can horribly slow down tests that
     # users might have changed locally (but should not otherwise affect
     # functionality)
@@ -270,7 +295,7 @@ def subjects_dir_tmp(tmpdir):
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types()
+    evoked = _evoked.copy().pick_types(meg=True)
     evoked.pick_channels(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
@@ -353,3 +378,20 @@ def all_src_types_inv_evoked(_all_src_types_inv_evoked):
     invs = {key: val.copy() for key, val in invs.items()}
     evoked = evoked.copy()
     return invs, evoked
+
+
+@pytest.fixture(scope='session')
+@pytest.mark.slowtest
+@pytest.mark.parametrize(params=[testing._pytest_param()])
+def src_volume_labels():
+    """Create a 7mm source space with labels."""
+    volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
+    src = mne.setup_volume_source_space(
+        'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
+        add_interpolator=False, bem=fname_bem,
+        subjects_dir=subjects_dir)
+    lut, _ = mne.read_freesurfer_lut()
+    assert len(volume_labels) == 46
+    assert volume_labels[0] == 'Unknown'
+    assert lut['Unknown'] == 0  # it will be excluded during label gen
+    return src, tuple(volume_labels), lut

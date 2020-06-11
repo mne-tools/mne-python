@@ -137,7 +137,7 @@ exclude_trees = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-default_role = "autolink"
+default_role = "py:obj"
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 #add_function_parentheses = True
@@ -387,14 +387,12 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
             op.dirname(__file__), 'generated', '%s.examples' % (name,)))
         if size > 0:
             lines += """
+.. _sphx_glr_backreferences_{1}:
+
 .. rubric:: Examples using ``{0}``:
 
-.. include:: {1}.examples
-   :start-line: 5
+.. minigallery:: {1}
 
-.. raw:: html
-
-    <div style="clear:both"></div>
 """.format(name.split('.')[-1], name).split('\n')
 
 
@@ -534,6 +532,8 @@ sphinx_gallery_conf = {
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
+    'matplotlib_animations': True,
+    'compress_images': ('images', 'thumbnails'),
 }
 
 ##############################################################################

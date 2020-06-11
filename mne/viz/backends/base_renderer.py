@@ -34,7 +34,8 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -57,6 +58,20 @@ class _BaseRenderer(metaclass=ABCMeta):
             If True, enable the mesh shading.
         backface_culling: bool
             If True, enable backface culling on the mesh.
+        scalars: ndarray, shape (n_vertices,)
+            The scalar valued associated to the vertices.
+        vmin: float | None
+            vmin is used to scale the colormap.
+            If None, the min of the data will be used
+        vmax: float | None
+            vmax is used to scale the colormap.
+            If None, the max of the data will be used
+        colormap:
+            The colormap to use.
+        interpolate_before_map:
+            Enabling makes for a smoother scalars display. Default is True.
+            When False, OpenGL will interpolate the mapped colors which can
+            result is showing colors that are not present in the color map.
         kwargs: args
             The arguments to pass to triangular_mesh
 
@@ -317,17 +332,22 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, color="white", title=None, n_labels=4,
+                  bgcolor=None):
         """Add a scalar bar in the scene.
 
         Parameters
         ----------
         source:
             The object of the scene used for the colormap.
+        color:
+            The color of the label text.
         title: str | None
             The title of the scalar bar.
         n_labels: int | None
             The number of labels to display on the scalar bar.
+        bgcolor:
+            The color of the background when there is transparency.
         """
         pass
 

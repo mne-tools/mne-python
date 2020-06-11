@@ -134,7 +134,7 @@ report.save('report_cov.html')
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The python interface has greater flexibility compared to the :ref:`command
-# line interface <gen_mne_report>`. For example, custom plots can be added via
+# line interface <mne report>`. For example, custom plots can be added via
 # the :meth:`~mne.Report.add_figs_to_section` method:
 
 # generate a custom plot:

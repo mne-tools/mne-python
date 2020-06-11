@@ -24,6 +24,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
+from ..io.write import DATE_NONE
 
 
 def _get_meg_system(info):
@@ -462,15 +463,13 @@ class SetChannelsMixin(MontageMixin):
             warn(msg.format(", ".join(sorted(names)), *this_change))
         return self
 
+    @fill_doc
     def rename_channels(self, mapping):
         """Rename channels.
 
         Parameters
         ----------
-        mapping : dict | callable
-            A dictionary mapping the old channel to a new channel name
-            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-            that takes and returns a string (new in version 0.10.0).
+        %(rename_channels_mapping)s
 
         Returns
         -------
@@ -610,6 +609,21 @@ class SetChannelsMixin(MontageMixin):
         from ..annotations import _handle_meas_date
         meas_date = _handle_meas_date(meas_date)
         self.info['meas_date'] = meas_date
+
+        # clear file_id and meas_id if needed
+        if meas_date is None:
+            for key in ('file_id', 'meas_id'):
+                value = self.info.get(key)
+                if value is not None:
+                    assert 'msecs' not in value
+                    value['secs'] = DATE_NONE[0]
+                    value['usecs'] = DATE_NONE[1]
+                    # The following copy is needed for a test CTF dataset
+                    # otherwise value['machid'][:] = 0 would suffice
+                    _tmp = value['machid'].copy()
+                    _tmp[:] = 0
+                    value['machid'] = _tmp
+
         if hasattr(self, 'annotations'):
             self.annotations._orig_time = meas_date
         return self
@@ -619,7 +633,7 @@ class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
 
     @verbose
-    def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
+    def pick_types(self, meg=None, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
@@ -630,10 +644,9 @@ class UpdateChannelsMixin(object):
         Parameters
         ----------
         meg : bool | str
-            If True include all MEG channels. If False include None.
-            If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
-            only magnetometers, all gradiometers, or a specific type of
-            gradiometer.
+            If True include MEG channels. If string it can be 'mag', 'grad',
+            'planar1' or 'planar2' to select only magnetometers, all
+            gradiometers, or a specific type of gradiometer.
         eeg : bool
             If True include EEG channels.
         stim : bool
@@ -645,8 +658,10 @@ class UpdateChannelsMixin(object):
         emg : bool
             If True include EMG channels.
         ref_meg : bool | str
-            If True include CTF / 4D reference channels. If 'auto', the
-            reference channels are only included if compensations are present.
+            If True include CTF / 4D reference channels. If 'auto', reference
+            channels are included if compensations are present and ``meg`` is
+            not False. Can also be the string options for the ``meg``
+            parameter.
         misc : bool
             If True include miscellaneous analog channels.
         resp : bool
@@ -884,7 +899,7 @@ class UpdateChannelsMixin(object):
             type as the current object.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
-            values in `self`. This should generally only be used when adding
+            values in ``self``. This should generally only be used when adding
             stim channels for which important metadata won't be overwritten.
 
             .. versionadded:: 0.12
@@ -964,9 +979,11 @@ class UpdateChannelsMixin(object):
                                          for inst in [self] + add_list])
             # We should never use these since data are preloaded, let's just
             # set it to something large and likely to break (2 ** 31 - 1)
-            extra_idx = [2147483647] * len(add_list)
+            extra_idx = [2147483647] * sum(info['nchan'] for info in infos[1:])
+            assert all(len(r) == infos[0]['nchan'] for r in self._read_picks)
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
+            assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
 
 
@@ -1025,6 +1042,7 @@ class InterpolationMixin(object):
         return self
 
 
+@fill_doc
 def rename_channels(info, mapping):
     """Rename channels.
 
@@ -1033,12 +1051,10 @@ def rename_channels(info, mapping):
     Parameters
     ----------
     info : dict
-        Measurement info.
-    mapping : dict | callable
-        A dictionary mapping the old channel to a new channel name
-        e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-        that takes and returns a string (new in version 0.10.0).
+        Measurement info to modify.
+    %(rename_channels_mapping)s
     """
+    _validate_type(info, Info, 'info')
     info._check_consistency()
     bads = list(info['bads'])  # make our own local copies
     ch_names = list(info['ch_names'])
@@ -1102,7 +1118,7 @@ def read_ch_connectivity(fname, picks=None):
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
-    <http://www.fieldtriptoolbox.org/template/neighbours/>`_.
+    <http://www.fieldtriptoolbox.org/template/neighbours/>`__.
 
     Parameters
     ----------
@@ -1438,7 +1454,7 @@ def make_1020_channel_selections(info, midline="z"):
     This passes through all channel names, and uses a simple heuristic to
     separate channel names into three Region of Interest-based selections:
     Left, Midline and Right. The heuristic is that channels ending on any of
-    the characters in `midline` are filed under that heading, otherwise those
+    the characters in ``midline`` are filed under that heading, otherwise those
     ending in odd numbers under "Left", those in even numbers under "Right".
     Other channels are ignored. This is appropriate for 10/20 files, but not
     for other channel naming conventions.
@@ -1448,12 +1464,12 @@ def make_1020_channel_selections(info, midline="z"):
     ----------
     info : instance of Info
         Where to obtain the channel names from. The picks will
-        be in relation to the position in `info["ch_names"]`. If possible, this
-        lists will be sorted by y value position of the channel locations,
+        be in relation to the position in ``info["ch_names"]``. If possible,
+        this lists will be sorted by y value position of the channel locations,
         i.e., from back to front.
     midline : str
-        Names ending in any of these characters are stored under the `Midline`
-        key. Defaults to 'z'. Note that capitalization is ignored.
+        Names ending in any of these characters are stored under the
+        ``Midline`` key. Defaults to 'z'. Note that capitalization is ignored.
 
     Returns
     -------

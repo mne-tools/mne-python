@@ -20,7 +20,7 @@ class LinearModel(BaseEstimator):
     The linear model coefficients (filters) are used to extract discriminant
     neural sources from the measured data. This class computes the
     corresponding patterns of these linear filters to make them more
-    interpretable [1]_.
+    interpretable :footcite:`HaufeEtAl2014`.
 
     Parameters
     ----------
@@ -48,10 +48,7 @@ class LinearModel(BaseEstimator):
 
     References
     ----------
-    .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
-           Blankertz, B., & Biebmann, F. (2014). On the interpretation of
-           weight vectors of linear models in multivariate neuroimaging.
-           NeuroImage, 87, 96-110.
+    .. footbibliography::
     """
 
     def __init__(self, model=None):  # noqa: D102
@@ -299,7 +296,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     """Retrieve the coefficients of an estimator ending with a Linear Model.
 
     This is typically useful to retrieve "spatial filters" or "spatial
-    patterns" of decoding models [1]_.
+    patterns" of decoding models :footcite:`HaufeEtAl2014`.
 
     Parameters
     ----------
@@ -319,15 +316,14 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
 
     References
     ----------
-    .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
-       Blankertz, B., & Biessmann, F. (2014). On the interpretation of weight
-       vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
-       96-110. doi:10.1016/j.neuroimage.2013.10.067.
+    .. footbibliography::
     """
     # Get the coefficients of the last estimator in case of nested pipeline
     est = estimator
     while hasattr(est, 'steps'):
         est = est.steps[-1][1]
+
+    squeeze_first_dim = False
 
     # If SlidingEstimator, loop across estimators
     if hasattr(est, 'estimators_'):
@@ -335,11 +331,17 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         for this_est in est.estimators_:
             coef.append(get_coef(this_est, attr, inverse_transform))
         coef = np.transpose(coef)
+        coef = coef[np.newaxis]  # fake a sample dimension
+        squeeze_first_dim = True
     elif not hasattr(est, attr):
-        raise ValueError('This estimator does not have a %s '
-                         'attribute.' % attr)
+        raise ValueError('This estimator does not have a %s attribute:\n%s'
+                         % (attr, est))
     else:
         coef = getattr(est, attr)
+
+    if coef.ndim == 1:
+        coef = coef[np.newaxis]
+        squeeze_first_dim = True
 
     # inverse pattern e.g. to get back physical units
     if inverse_transform:
@@ -349,7 +351,11 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
         for inverse_func in _get_inverse_funcs(estimator)[::-1]:
-            coef = inverse_func(np.array([coef]))[0]
+            coef = inverse_func(coef)
+
+    if squeeze_first_dim:
+        coef = coef[0]
+
     return coef
 
 

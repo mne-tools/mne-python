@@ -52,6 +52,29 @@ raw_invalid_bday_fname = op.join(data_path, 'misc',
                                  'sample_invalid_birthday_raw.fif')
 
 
+@pytest.mark.parametrize('kwargs, want', [
+    (dict(meg=False, eeg=True), [0]),
+    (dict(meg=False, fnirs=True), [5]),
+    (dict(meg=False, fnirs='hbo'), [5]),
+    (dict(meg=False, fnirs='hbr'), []),
+    (dict(meg=False, misc=True), [1]),
+    (dict(meg=True), [2, 3, 4]),
+    (dict(meg='grad'), [2, 3]),
+    (dict(meg='planar1'), [2]),
+    (dict(meg='planar2'), [3]),
+    (dict(meg='mag'), [4]),
+])
+def test_create_info_grad(kwargs, want):
+    """Test create_info behavior with grad coils."""
+    info = create_info(6, 256, ["eeg", "misc", "grad", "grad", "mag", "hbo"])
+    # Put these in an order such that grads get named "2" and "3", since
+    # they get picked based first on coil_type then ch_name...
+    assert [ch['ch_name'] for ch in info['chs']
+            if ch['coil_type'] == FIFF.FIFFV_COIL_VV_PLANAR_T1] == ['2', '3']
+    picks = pick_types(info, **kwargs)
+    assert_array_equal(picks, want)
+
+
 def test_get_valid_units():
     """Test the valid units."""
     valid_units = _get_valid_units()

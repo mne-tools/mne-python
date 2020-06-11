@@ -161,8 +161,8 @@ limo_epochs['Face/B'].average().plot_joint(times=[0.15],
 
 # Face A minus Face B
 difference_wave = combine_evoked([limo_epochs['Face/A'].average(),
-                                  -limo_epochs['Face/B'].average()],
-                                 weights='equal')
+                                  limo_epochs['Face/B'].average()],
+                                 weights=[1, -1])
 
 # plot difference wave
 difference_wave.plot_joint(times=[0.15], title='Difference Face A - Face B')

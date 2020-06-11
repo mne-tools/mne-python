@@ -27,17 +27,17 @@ from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import fill_doc
 
 
-def split_list(l, n, idx=False):
+def split_list(v, n, idx=False):
     """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
-    tot = len(l)
+    tot = len(v)
     sz = tot // n
     start = stop = 0
     for i in range(n - 1):
         stop += sz
-        yield (np.arange(start, stop), l[start:stop]) if idx else l[start:stop]
+        yield (np.arange(start, stop), v[start:stop]) if idx else v[start:stop]
         start += sz
-    yield (np.arange(start, tot), l[start:]) if idx else l[start]
+    yield (np.arange(start, tot), v[start:]) if idx else v[start]
 
 
 def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
@@ -190,7 +190,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     else:
         assert U.dtype == np.complex128
         gemm = zgemm
-    x_inv = gemm(1., U, V).T
+
+    x_inv = gemm(1., U, V).conj().T
 
     if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before
@@ -589,10 +590,8 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
             all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
                         else inst for inst in all_inst]
         from ..evoked import combine_evoked as combine
-        weights = [1. / len(all_inst)] * len(all_inst)
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
-        weights = 'equal'
 
     if drop_bads:
         bads = list({b for inst in all_inst for b in inst.info['bads']})
@@ -602,7 +601,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
 
     equalize_channels(all_inst, copy=False)
     # make grand_average object using combine_[evoked/tfr]
-    grand_average = combine(all_inst, weights=weights)
+    grand_average = combine(all_inst, weights='equal')
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_inst)
     # change comment field

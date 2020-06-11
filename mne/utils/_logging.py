@@ -138,6 +138,7 @@ def set_log_level(verbose=None, return_old_level=False):
         The old level. Only returned if ``return_old_level`` is True.
     """
     from .config import get_config
+    from .check import _check_option
     if verbose is None:
         verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
     elif isinstance(verbose, bool):
@@ -150,12 +151,12 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if verbose not in logging_types:
-            raise ValueError('verbose must be of a valid type')
+        _check_option('verbose', verbose, logging_types, '(when a string)')
         verbose = logging_types[verbose]
     logger = logging.getLogger('mne')
     old_verbose = logger.level
-    logger.setLevel(verbose)
+    if verbose != old_verbose:
+        logger.setLevel(verbose)
     return (old_verbose if return_old_level else None)
 
 

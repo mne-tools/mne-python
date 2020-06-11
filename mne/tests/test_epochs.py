@@ -37,6 +37,7 @@ from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
 from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.write import _get_split_size
 from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.datasets import testing
@@ -989,6 +990,10 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
                     picks=picks, on_missing='ignore')
     epochs.save(temp_fname, overwrite=True)
+    split_fname_1 = temp_fname[:-4] + '-1.fif'
+    split_fname_2 = temp_fname[:-4] + '-2.fif'
+    assert op.isfile(temp_fname)
+    assert not op.isfile(split_fname_1)
     epochs_read = read_epochs(temp_fname, preload=preload)
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
@@ -996,8 +1001,24 @@ def test_epochs_io_preload(tmpdir, preload):
                  {str(x) for x in epochs_read.event_id.keys()})
 
     # test saving split epoch files
-    epochs.save(temp_fname, split_size='7MB', overwrite=True)
+    split_size = '7MB'
+    # ensure that we're in a position where just the data itself could fit
+    # if that were all that we saved ...
+    split_size_bytes = _get_split_size(split_size)
+    assert epochs.get_data().nbytes // 2 < split_size_bytes
+    epochs.save(temp_fname, split_size=split_size, overwrite=True)
+    # ... but we correctly account for the other stuff we need to write,
+    # so end up with two files ...
+    assert op.isfile(temp_fname)
+    assert op.isfile(split_fname_1)
+    assert not op.isfile(split_fname_2)
     epochs_read = read_epochs(temp_fname, preload=preload)
+    # ... and none of the files exceed our limit.
+    for fname in (temp_fname, split_fname_1):
+        with open(fname, 'r') as fid:
+            fid.seek(0, 2)
+            fsize = fid.tell()
+        assert fsize <= split_size_bytes
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
@@ -1025,12 +1046,20 @@ def test_split_saving(tmpdir):
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
     epochs_data = epochs.get_data()
+    assert len(epochs) == 9
     fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(fname, split_size='1MB', overwrite=True)
-    assert op.isfile(fname)
-    assert op.isfile(fname[:-4] + '-1.fif')
-    assert op.isfile(fname[:-4] + '-2.fif')
-    assert not op.isfile(fname[:-4] + '-3.fif')
+    size = _get_split_size('1MB')
+    assert size == 1048576 == 1024 * 1024
+    written_fnames = [fname] + [
+        fname[:-4] + '-%d.fif' % ii for ii in range(1, 4)]
+    for this_fname in written_fnames:
+        assert op.isfile(this_fname)
+        with open(this_fname, 'r') as fid:
+            fid.seek(0, 2)
+            file_size = fid.tell()
+        assert size * 0.5 < file_size <= size
+    assert not op.isfile(fname[:-4] + '-4.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
@@ -1129,12 +1158,10 @@ def test_evoked_arithmetic():
     evoked2 = epochs2.average()
     epochs = Epochs(raw, events[:8], event_id, tmin, tmax, picks=picks)
     evoked = epochs.average()
-    evoked_sum = combine_evoked([evoked1, evoked2], weights='nave')
-    assert_array_equal(evoked.data, evoked_sum.data)
-    assert_array_equal(evoked.times, evoked_sum.times)
-    assert_equal(evoked_sum.nave, evoked1.nave + evoked2.nave)
-    evoked_diff = combine_evoked([evoked1, evoked1], weights=[1, -1])
-    assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
+    evoked_avg = combine_evoked([evoked1, evoked2], weights='nave')
+    assert_array_equal(evoked.data, evoked_avg.data)
+    assert_array_equal(evoked.times, evoked_avg.times)
+    assert_equal(evoked_avg.nave, evoked1.nave + evoked2.nave)
 
 
 def test_evoked_io_from_epochs(tmpdir):
@@ -1580,6 +1607,14 @@ def test_subtract_evoked():
     data = zero_evoked.data
     assert_allclose(data, np.zeros_like(data), atol=1e-15)
 
+    # with decimation (gh-7854)
+    epochs3 = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                     decim=10, verbose='error')
+    data_old = epochs2.decimate(10, verbose='error').get_data()
+    data = epochs3.subtract_evoked().get_data()
+    assert_allclose(data, data_old)
+    assert_allclose(epochs3.average().data, 0., atol=1e-20)
+
 
 def test_epoch_eq():
     """Test epoch count equalization and condition combining."""
@@ -1594,7 +1629,7 @@ def test_epoch_eq():
     drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs_1.drop_log]
     assert_equal(drop_log1, drop_log2)
-    assert_equal(len([l for l in epochs_1.drop_log if not l]),
+    assert_equal(len([lg for lg in epochs_1.drop_log if not lg]),
                  len(epochs_1.events))
     assert (epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts([epochs_1, epochs_2], method='mintime')
@@ -2599,6 +2634,33 @@ def test_metadata(tmpdir):
     with pytest.raises(ValueError,
                        match='metadata must have the same number of rows .*'):
         epochs['new_key == 1']
+
+    # metadata should be same length as original events
+    raw_data = np.random.randn(2, 10000)
+    info = mne.create_info(2, 1000.)
+    raw = mne.io.RawArray(raw_data, info)
+    opts = dict(raw=raw, tmin=0, tmax=.001, baseline=None)
+    events = [[0, 0, 1], [1, 0, 2]]
+    metadata = DataFrame(events, columns=['onset', 'duration', 'value'])
+    epochs = Epochs(events=events, event_id=1, metadata=metadata, **opts)
+    epochs.drop_bad()
+    assert len(epochs) == 1
+    assert len(epochs.metadata) == 1
+    with pytest.raises(ValueError, match='same number of rows'):
+        Epochs(events=events, event_id=1, metadata=metadata.iloc[:1], **opts)
+
+    # gh-7732: problem when repeated events and metadata
+    for er in ('drop', 'merge'):
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(events=events, event_repeated=er, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(
+            events=events, event_repeated=er, metadata=metadata, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        assert len(epochs.metadata) == 1
 
 
 def assert_metadata_equal(got, exp):

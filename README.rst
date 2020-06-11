@@ -1,26 +1,31 @@
 .. -*- mode: rst -*-
 
-
-|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |Zenodo|_
+|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
 
 |MNE|_
 
-.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
+.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.svg?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
 
 .. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
 .. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 
-.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
+.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=shield
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python
 
 .. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
-.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
-.. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
+.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
+.. _PyPI: https://pypi.org/project/mne/
 
-.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
+.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
+.. _conda-forge: https://anaconda.org/conda-forge/mne
+
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
+.. _Zenodo: https://doi.org/10.5281/zenodo.592483
+
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.png
 .. _MNE: https://mne.tools/dev/
 
 MNE-Python

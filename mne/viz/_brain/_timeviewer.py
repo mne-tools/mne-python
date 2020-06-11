@@ -535,6 +535,12 @@ class _TimeViewer(object):
             slider_rep.SetTubeWidth(self.slider_tube_width)
             slider_rep.GetSliderProperty().SetColor(self.slider_color)
             slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
+            slider_rep.GetLabelProperty().SetShadow(False)
+            slider_rep.GetLabelProperty().SetBold(True)
+            slider_rep.GetLabelProperty().SetColor(self.brain._fg_color)
+            slider_rep.GetTitleProperty().ShallowCopy(
+                slider_rep.GetLabelProperty()
+            )
             if not show_cap:
                 slider_rep.GetCapProperty().SetOpacity(0)
             if not show_label:
@@ -936,7 +942,9 @@ class _TimeViewer(object):
         elif self._mouse_no_mvt:
             hemi = mesh._hemi
             pos = vtk_picker.GetPickPosition()
-            cell = mesh.faces[cell_id][1:]
+            vtk_cell = mesh.GetCell(cell_id)
+            cell = [vtk_cell.GetPointId(point_id) for point_id
+                    in range(vtk_cell.GetNumberOfPoints())]
             vertices = mesh.points[cell]
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]

@@ -73,7 +73,7 @@ from pyface.api import (error, confirm, OK, YES, NO, CANCEL, information,
                         FileDialog, GUI)
 from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Enum, Float, HasTraits, HasPrivateTraits, Instance,
-                        Int, on_trait_change, Property, Str, List, RGBColor)
+                        Int, on_trait_change, Property, Str, List)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
                           Handler, Label, Spring, InstanceEditor, StatusItem,
                           UIInfo)
@@ -89,6 +89,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rot_to_quat, _angle_between_quats)
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
+from ..viz._3d import _get_3d_option
 from ..utils import logger, set_config, _pl
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
@@ -100,6 +101,11 @@ from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       _RESET_LABEL, _RESET_WIDTH,
                       laggy_float_editor_scale, laggy_float_editor_deg,
                       laggy_float_editor_mm, laggy_float_editor_weight)
+
+try:
+    from traitsui.api import RGBColor
+except ImportError:
+    from traits.api import RGBColor
 
 defaults = DEFAULTS['coreg']
 
@@ -2023,7 +2029,7 @@ class CoregFrame(HasTraits):
             renderer.vtk_window.multi_samples = 8
             renderer.vtk_window.alpha_bit_planes = 0
             if hasattr(renderer, 'use_fxaa'):
-                self.scene.renderer.use_fxaa = True
+                self.scene.renderer.use_fxaa = _get_3d_option('antialias')
         self.scene.render()
 
     @on_trait_change('lock_fiducials')

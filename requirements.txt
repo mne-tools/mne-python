@@ -14,15 +14,16 @@ python-picard
 statsmodels
 pytest!=4.6.0,<5.4
 pytest-cov
-pytest-faulthandler
 pytest-mock
 pytest-sugar
 pytest-timeout
+pytest-xdist
 joblib
 psutil
 dipy
+vtk -f "https://vtk.org/download"
 https://github.com/numpy/numpydoc/archive/master.zip
-mayavi
+https://github.com/enthought/mayavi/archive/master.zip
 PySurfer[save_movie]
 nilearn
 neo
@@ -32,5 +33,5 @@ flake8
 https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
-pyvista>=0.24
+pyvista==0.24
 tqdm

@@ -21,28 +21,29 @@ dependencies:
 - pytest-cov
 - pytest-mock
 - pytest-timeout
+- pytest-xdist
 - joblib
 - psutil
 - flake8
-- spyder
 - numexpr
 - traits>=4.6.0
 - pyface>=6
 - traitsui>=6
-- vtk
 - imageio>=2.6.1
 - pip:
+  - -i "https://pypi.org/simple/"
+  - -f "https://vtk.org/download"
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
-  - pyvista>=0.24
-  - mayavi
+  - vtk
+  - pyvista==0.24
+  - https://github.com/enthought/mayavi/archive/master.zip
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
   - nilearn
   - neo
-  - pytest-faulthandler
   - pytest-sugar
   - pydocstyle
   - codespell

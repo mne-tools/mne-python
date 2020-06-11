@@ -10,7 +10,7 @@ from numpy.testing import assert_equal, assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, read_cov, pick_types
+from mne import read_events, Epochs, read_cov, pick_types, Annotations
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import run_tests_if_main, requires_sklearn
@@ -93,8 +93,8 @@ def test_plot_ica_components():
     c_fig = plt.gcf()
     labels = [ax.get_label() for ax in c_fig.axes]
 
-    for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
-        assert (l in labels)
+    for label in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
+        assert label in labels
 
     topomap_ax = c_fig.axes[labels.index('topomap')]
     title = topomap_ax.get_title()
@@ -176,7 +176,7 @@ def test_plot_ica_properties():
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
     epochs._data[0] = 0
-    with pytest.warns(UserWarning, match='Infinite value .* for epoch 0'):
+    with pytest.warns(None):  # Usually UserWarning: Infinite value .* for epo
         ica.plot_properties(epochs)
     plt.close('all')
 
@@ -209,6 +209,14 @@ def test_plot_ica_sources():
     assert len(plt.get_fignums()) == 2
     ica.exclude = [1]
     ica.plot_sources(raw)
+
+    # test with annotations
+    orig_annot = raw.annotations
+    raw.set_annotations(Annotations([0.2], [0.1], 'Test'))
+    fig = ica.plot_sources(raw)
+    assert len(fig.axes[0].collections) == 1
+    assert len(fig.axes[1].collections) == 1
+    raw.set_annotations(orig_annot)
 
     raw.info['bads'] = ['MEG 0113']
     with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
@@ -283,14 +291,33 @@ def test_plot_ica_scores():
               max_pca_components=3, n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
+    ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1])
+
+    # check labels
     ica.labels_ = dict()
-    ica.labels_['eog/0/foo'] = 0
     ica.labels_['eog'] = 0
     ica.labels_['ecg'] = 1
-    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+    ica.labels_['eog/0/foo'] = 0
+    ica.labels_['ecg/1/bar'] = 0
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='foo')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+
+    # check setting number of columns
+    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2], [0.3, 0.2]],
+                          axhline=[0.1, -0.1])
+    assert 2 == fig.get_axes()[0].get_geometry()[1]
+    fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1],
+                          n_cols=1)
+    assert 1 == fig.get_axes()[0].get_geometry()[1]
+
+    # only use 1 column (even though 2 were requested)
+    fig = ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], n_cols=2)
+    assert 1 == fig.get_axes()[0].get_geometry()[1]
+
     pytest.raises(
         ValueError,
         ica.plot_scores,

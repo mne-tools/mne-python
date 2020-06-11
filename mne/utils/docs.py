@@ -37,6 +37,16 @@ preload : bool or str (default False)
     large amount of memory). If preload is a string, preload is the
     file name of a memory-mapped file which is used to store the data
     on the hard drive (slower, requires less memory)."""
+docdict['preload_concatenate'] = """
+preload : bool, str, or None (default None)
+    Preload data into memory for data manipulation and faster indexing.
+    If True, the data will be preloaded into memory (fast, requires
+    large amount of memory). If preload is a string, preload is the
+    file name of a memory-mapped file which is used to store the data
+    on the hard drive (slower, requires less memory). If preload is
+    None, preload=True or False is inferred using the preload status
+    of the instances passed in.
+"""
 
 # Cropping
 docdict['include_tmax'] = """
@@ -133,6 +143,14 @@ ch_type : str
 
     .. versionadded:: 0.21
 """
+docdict['topomap_show_names'] = """
+show_names : bool | callable
+    If True, show channel names on top of the map. If a callable is
+    passed, channel names will be formatted using the callable; e.g., to
+    delete the prefix 'MEG ' from all channel names, pass the function
+    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not None, only
+    significant sensors will be shown.
+"""
 
 # PSD topomaps
 docdict["psd_topo_vlim_joint"] = """
@@ -228,7 +246,7 @@ picks : list | slice | None
 # Filtering
 docdict['l_freq'] = """
 l_freq : float | None
-    For FIR filters, the lower pass-band edge; for IIR filters, the upper
+    For FIR filters, the lower pass-band edge; for IIR filters, the lower
     cutoff frequency. If None the data are only low-passed.
 """
 docdict['h_freq'] = """
@@ -460,7 +478,7 @@ bad_condition : str
 head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
-    parameters as returned by e.g. `read_head_pos`.
+    parameters as returned by e.g. ``read_head_pos``.
 """
 docdict['maxwell_st_fixed_only'] = """
 st_fixed : bool
@@ -512,6 +530,32 @@ rank : None | dict | 'info' | 'full'
     of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+docdict['rank_tol'] = """
+tol : float | 'auto'
+    Tolerance for singular values to consider non-zero in
+    calculating the rank. The singular values are calculated
+    in this method such that independent data are expected to
+    have singular value around one. Can be 'auto' to use the
+    same thresholding as :func:`scipy.linalg.orth`.
+"""
+docdict['rank_tol_kind'] = """
+tol_kind : str
+    Can be: "absolute" (default) or "relative". Only used if ``tol`` is a
+    float, because when ``tol`` is a string the mode is implicitly relative.
+    After applying the chosen scale factors / normalization to the data,
+    the singular values are computed, and the rank is then taken as:
+
+    - ``'absolute'``
+        The number of singular values ``s`` greater than ``tol``.
+        This mode can fail if your data do not adhere to typical
+        data scalings.
+    - ``'relative'``
+        The number of singular values ``s`` greater than ``tol * s.max()``.
+        This mode can fail if you have one or more large components in the
+        data (e.g., artifacts).
+
+    .. versionadded:: 0.21.0
+"""
 
 # Inverses
 docdict['depth'] = """
@@ -519,10 +563,10 @@ depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
     to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a `dict` containing
-    keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
-    (see docstring for details and defaults). This is effectively ignored
-    when ``method='eLORETA'``.
+    no depth weighting is performed. It can also be a :class:`dict`
+    containing keyword arguments to pass to
+    :func:`mne.forward.compute_depth_prior` (see docstring for details and
+    defaults). This is effectively ignored when ``method='eLORETA'``.
 
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
@@ -588,15 +632,22 @@ exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
+_trans_base = """\
+If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+    during coregistration. Can also be ``'fsaverage'`` to use the built-in
+    fsaverage transformation."""
+docdict['trans_not_none'] = """
+trans : str | dict | instance of Transform
+    %s
+""" % (_trans_base,)
 docdict['trans'] = """
 trans : str | dict | instance of Transform | None
-    If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
-    during coregistration. Can also be ``'fsaverage'`` to use the built-in
-    fsaverage transformation. If trans is None, an identity matrix is assumed.
+    %s
+    If trans is None, an identity matrix is assumed.
 
     .. versionchanged:: 0.19
        Support for 'fsaverage' argument.
-"""
+""" % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | None
     The path to the freesurfer subjects reconstructions.
@@ -617,7 +668,7 @@ head_pos : None | str | dict | tuple | array
     be the time points and entries should be 4x4 ``dev_head_t``
     matrices. If None, the original head position (from
     ``info['dev_head_t']``) will be used. If tuple, should have the
-    same format as data returned by `head_pos_to_trans_rot_t`.
+    same format as data returned by ``head_pos_to_trans_rot_t``.
     If array, should be of the form returned by
     :func:`mne.chpi.read_head_pos`.
 """
@@ -673,9 +724,9 @@ indicate the boundaries of the filter (--). The line noise frequency is
 also indicated with a dashed line (-.)
 """
 docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
-    Cannot be None if `ax` is supplied.If both `picks` and `ax` are None
+    Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
     separate subplots will be created for each standard channel type
-    (`mag`, `grad`, and `eeg`).
+    (``mag``, ``grad``, and ``eeg``).
 """
 docdict["plot_psd_color"] = """
 color : str | tuple
@@ -794,6 +845,23 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict['on_missing_montage'] = """
+on_missing : str
+    Either 'raise', or 'warn' to raise an error/warning when
+    channels have missing coordinates,
+    or 'ignore' to set channels to np.nan and set montage.
+
+    .. versionadded:: 0.20.1
+"""
+docdict['rename_channels_mapping'] = """
+mapping : dict | callable
+    A dictionary mapping the old channel to a new channel name
+    e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+    that takes and returns a string.
+
+    .. versionchanged:: 0.10.0
+       Support for a callable function.
+"""
 
 # Brain plotting
 docdict["clim"] = """
@@ -863,24 +931,64 @@ time_label : str | callable | None
     is more than one time point.
 """
 
+
 # STC label time course
 docdict['eltc_labels'] = """
-labels : Label | BiHemiLabel | list of Label or BiHemiLabel
-    The labels for which to extract the time course.
+labels : Label | BiHemiLabel | list | tuple | str
+    If using a surface or mixed source space, this should be the
+    :class:`~mne.Label`'s for which to extract the time course.
+    If working with whole-brain volume source estimates, this must be one of:
+
+    - a string path to a FreeSurfer atlas for the subject (e.g., their
+      'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+      atlas
+    - a two-element list or tuple, the first element being a path to an atlas,
+      and the second being a list or dict of ``volume_labels`` to extract
+      (see :func:`mne.setup_volume_source_space` for details).
+
+    .. versionchanged:: 0.21.0
+       Support for volume source estimates.
 """
 docdict['eltc_src'] = """
-src : list
-    Source spaces for left and right hemisphere.
+src : instance of SourceSpaces
+    The source spaces for the source time courses.
 """
 docdict['eltc_mode'] = """
 mode : str
     Extraction mode, see Notes.
 """
 docdict['eltc_allow_empty'] = """
-allow_empty : bool
-    Instead of emitting an error, return all-zero time courses for labels
-    that do not have any vertices in the source estimate. Default is ``False``.
+allow_empty : bool | str
+    ``False`` (default) will emit an error if there are labels that have no
+    vertices in the source estimate. ``True`` and ``'ignore'`` will return
+    all-zero time courses for labels that do not have any vertices in the
+    source estimate, and True will emit a warning while and "ignore" will
+    just log a message.
+
+    .. versionchanged:: 0.21.0
+       Support for "ignore".
 """
+docdict
+docdict['eltc_trans'] = """%s
+    Only needed when using a volume atlas and
+    ``src`` is in head coordinates (i.e., comes from a forward or inverse).
+
+    .. versionadded:: 0.21.0
+""" % (docdict['trans_not_none'],)
+docdict['eltc_mri_resolution'] = """
+mri_resolution : bool
+    If True (default), the volume source space will be upsampled to the
+    original MRI resolution via trilinear interpolation before the atlas values
+    are extracted. This ensnures that each atlas label will contain source
+    activations. When False, only the original source space points are used,
+    and some atlas labels thus may not contain any source space vertices.
+
+    .. versionadded:: 0.21.0
+"""
+docdict['eltc_returns'] = """
+label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
+    Extracted time course for each label and source estimate.
+"""  # noqa: E501
 docdict['eltc_mode_notes'] = """
 Valid values for ``mode`` are:
 
@@ -911,10 +1019,27 @@ Valid values for ``mode`` are:
     ``'mean'`` when a vector source estimate is supplied.
 
     .. versionadded:: 0.21
-       Support for ``'auto'`` and vector source estimates.
+       Support for ``'auto'``, vector, and volume source estimates.
 
-The only modes that work for vector source estimates are ``'mean'``,
+The only modes that work for vector and volume source estimates are ``'mean'``,
 ``'max'``, and ``'auto'``.
+"""
+docdict['get_peak_parameters'] = """
+tmin : float | None
+    The minimum point in time to be considered for peak getting.
+tmax : float | None
+    The maximum point in time to be considered for peak getting.
+mode : {'pos', 'neg', 'abs'}
+    How to deal with the sign of the data. If 'pos' only positive
+    values will be considered. If 'neg' only negative values will
+    be considered. If 'abs' absolute values will be considered.
+    Defaults to 'abs'.
+vert_as_index : bool
+    Whether to return the vertex index (True) instead of of its ID
+    (False, default).
+time_as_index : bool
+    Whether to return the time index (True) instead of the latency
+    (False, default).
 """
 
 # Clustering
@@ -1011,7 +1136,17 @@ out_type : 'mask' | 'indices'
     part of a cluster. If ``'indices'``, returns a list of lists, where each
     sublist contains the indices of locations that together form a cluster.
     Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``.
+    ``'mask'``. Default is ``'indices'``.
+"""
+docdict['clust_out_none'] = """
+out_type : 'mask' | 'indices'
+    Output format of clusters. If ``'mask'``, returns boolean arrays the same
+    shape as the input data, with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of lists, where each
+    sublist contains the indices of locations that together form a cluster.
+    Note that for large datasets, ``'indices'`` may use far less memory than
+    ``'mask'``. The default translates to ``'mask'`` in version 0.21 but will
+    change to ``'indices'`` in version 0.22.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool
@@ -1389,8 +1524,8 @@ def linkcode_resolve(domain, info):
         kind = 'master'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
-    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
-       kind, fn, linespec)
+    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
+        kind, fn, linespec)
 
 
 def open_docs(kind=None, version=None):

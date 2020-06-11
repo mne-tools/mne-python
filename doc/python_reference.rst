@@ -53,6 +53,7 @@ Reading raw data
    :toctree: generated/
 
    anonymize_info
+   read_raw
    read_raw_artemis123
    read_raw_bti
    read_raw_cnt
@@ -118,6 +119,7 @@ File I/O
    read_events
    read_evokeds
    read_evoked_fieldtrip
+   read_freesurfer_lut
    read_forward_solution
    read_label
    read_morph_map
@@ -203,6 +205,7 @@ Datasets
    spm_face.data_path
    visual_92_categories.data_path
    phantom_4dbti.data_path
+   refmeg_noise.data_path
 
 
 Visualization
@@ -223,6 +226,7 @@ Visualization
    add_background_image
    compare_fiff
    circular_layout
+   iter_topography
    mne_analyze_colormap
    plot_bem
    plot_brain_colorbar
@@ -274,9 +278,11 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   set_3d_options
    set_3d_view
    set_3d_title
    create_3d_figure
+   get_brain_class
 
 
 Preprocessing
@@ -314,7 +320,7 @@ Projections:
    get_builtin_montages
    make_dig_montage
    read_dig_polhemus_isotrak
-   read_dig_captrack
+   read_dig_captrak
    read_dig_dat
    read_dig_egi
    read_dig_fif
@@ -893,6 +899,7 @@ options):
    :toctree: generated/
 
    ttest_1samp_no_p
+   ttest_ind_no_p
    f_oneway
    f_mway_rm
    f_threshold_mway_rm

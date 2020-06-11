@@ -558,23 +558,32 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
 def test_inverse_residual(evoked, method):
     """Test MNE inverse application."""
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
-    evoked = evoked.pick_types()
+    evoked = evoked.pick_types(meg=True)
     inv = read_inverse_operator(fname_inv_fixed_depth)
     fwd = read_forward_solution(fname_fwd)
     pick_channels_forward(fwd, evoked.ch_names, copy=False)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     matcher = re.compile(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*')
 
+    # make it complex to ensure we handle it properly
+    evoked.data = 1j * evoked.data
     with catch_logging() as log:
         stc, residual = apply_inverse(
             evoked, inv, method=method, return_residual=True, verbose=True)
+    # revert the complex-ification (except STC, allow that to be complex still)
+    assert_array_equal(residual.data.real, 0)
+    residual.data = (-1j * residual.data).real
+    evoked.data = (-1j * evoked.data).real
+    # continue testing
     log = log.getvalue()
     match = matcher.match(log.replace('\n', ' '))
     assert match is not None
     match = float(match.group(1))
     assert 45 < match < 50
     if method not in ('dSPM', 'sLORETA'):
+        # revert effects of STC being forced to be complex
         recon = apply_forward(fwd, stc, evoked.info)
+        recon.data = (-1j * recon.data).real
         proj_op = make_projector(evoked.info['projs'], evoked.ch_names)[0]
         recon.data[:] = np.dot(proj_op, recon.data)
         residual_fwd = evoked.copy()

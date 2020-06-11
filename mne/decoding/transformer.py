@@ -13,7 +13,7 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import fill_doc, _check_option
+from ..utils import fill_doc, _check_option, _validate_type
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -56,7 +56,6 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     """Reshape epochs and apply function."""
     if not isinstance(X, np.ndarray):
         raise ValueError("data should be an np.ndarray, got %s." % type(X))
-    X = np.atleast_3d(X)
     orig_shape = X.shape
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
@@ -123,10 +122,12 @@ class Scaler(TransformerMixin, BaseEstimator):
             self._scaler = _ConstantScaler(info, scalings, self.with_std)
         elif scalings == 'mean':
             from sklearn.preprocessing import StandardScaler
-            self._scaler = StandardScaler(self.with_mean, self.with_std)
+            self._scaler = StandardScaler(
+                with_mean=self.with_mean, with_std=self.with_std)
         else:  # scalings == 'median':
             from sklearn.preprocessing import RobustScaler
-            self._scaler = RobustScaler(self.with_mean, self.with_std)
+            self._scaler = RobustScaler(
+                with_centering=self.with_mean, with_scaling=self.with_std)
 
     def fit(self, epochs_data, y=None):
         """Standardize data across channels.
@@ -143,6 +144,10 @@ class Scaler(TransformerMixin, BaseEstimator):
         self : instance of Scaler
             The modified instance.
         """
+        _validate_type(epochs_data, np.ndarray, 'epochs_data')
+        if epochs_data.ndim == 2:
+            epochs_data = epochs_data[..., np.newaxis]
+        assert epochs_data.ndim == 3, epochs_data.shape
         _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
 
@@ -151,7 +156,7 @@ class Scaler(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels[, n_times])
             The data.
 
         Returns
@@ -164,6 +169,12 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        _validate_type(epochs_data, np.ndarray, 'epochs_data')
+        if epochs_data.ndim == 2:  # can happen with SlidingEstimator
+            if self.info is not None:
+                assert len(self.info['ch_names']) == epochs_data.shape[1]
+            epochs_data = epochs_data[..., np.newaxis]
+        assert epochs_data.ndim == 3, epochs_data.shape
         return _sklearn_reshape_apply(self._scaler.transform, True,
                                       epochs_data)
 
@@ -211,6 +222,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        assert epochs_data.ndim == 3, epochs_data.shape
         return _sklearn_reshape_apply(self._scaler.inverse_transform, True,
                                       epochs_data)
 
@@ -311,10 +323,10 @@ class Vectorizer(TransformerMixin):
             dimension is of length n_samples.
         """
         X = np.asarray(X)
-        if X.ndim != 2:
-            raise ValueError("X should be of 2 dimensions but given has %s "
-                             "dimension(s)" % X.ndim)
-        return X.reshape((len(X),) + self.features_shape_)
+        if X.ndim not in (2, 3):
+            raise ValueError("X should be of 2 or 3 dimensions but has shape "
+                             "%s" % (X.shape,))
+        return X.reshape(X.shape[:-1] + self.features_shape_)
 
 
 @fill_doc

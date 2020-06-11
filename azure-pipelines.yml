@@ -26,6 +26,7 @@ jobs:
       versionSpec: $(PYTHON_VERSION)
       architecture: $(PYTHON_ARCH)
       addToPath: true
+    displayName: 'Get Python'
   - bash: |
       python -m pip install --upgrade pip setuptools
       python -m pip install numpy scipy matplotlib sphinx pytest pytest-cov pytest-timeout pytest-sugar flake8
@@ -79,6 +80,62 @@ jobs:
     displayName: make check-readme
     condition: always()
 
+
+- job: Ultraslow
+  pool:
+    vmImage: 'ubuntu-18.04'
+  variables:
+    DISPLAY: ':99'
+    OPENBLAS_NUM_THREADS: '1'
+  steps:
+  - bash: |
+      sudo apt install libxkbcommon-x11-0 xvfb tcsh
+    displayName: 'Install Ubuntu dependencies'
+  - bash: |
+      source tools/get_minimal_commands.sh
+      echo "##vso[task.setvariable variable=MNE_ROOT]${MNE_ROOT}"
+      echo "##vso[task.setvariable variable=PATH]${PATH}"
+      echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
+      echo "##vso[task.setvariable variable=NEUROMAG2FT_ROOT]${NEUROMAG2FT_ROOT}"
+      echo "##vso[task.setvariable variable=FREESURFER_HOME]${FREESURFER_HOME}"
+      echo "##vso[task.setvariable variable=MNE_SKIP_FS_FLASH_CALL]${MNE_SKIP_FS_FLASH_CALL}"
+    displayName: 'Install minimal commands'
+  - bash: |
+      echo $PATH
+      mne_surf2bem --version
+      fsl_rigid_register --version
+    displayName: 'Test minimal commands'
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      architecture: 'x64'
+      addToPath: true
+    displayName: 'Get Python'
+  - bash: |
+      /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+    displayName: 'Spin up Xvfb'
+  - bash: |
+      set -e
+      pip install --upgrade numpy scipy vtk
+      pip install --upgrade -r requirements.txt
+      pip install codecov
+    displayName: 'Install dependencies with pip'
+  - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+    displayName: 'Get test data'
+  - script: pytest -m "ultraslowtest" --tb=short --cov=mne -n 1 mne
+    displayName: 'Run ultraslow tests'
+  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+    displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
+    condition: always()
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: 'junit-*.xml'
+      testRunTitle: 'Publish test results for Python $(python.version)'
+    condition: always()
+
+
 - job: Windows
   pool:
     vmImage: 'VS2017-Win2016'
@@ -92,20 +149,17 @@ jobs:
   strategy:
     maxParallel: 4
     matrix:
-      # Eventually we should test x86 (32-bit), but it was a nightmare
-      # to get it to download 32-bit Anaconda properly, and VTK does not ship
-      # 32-bit Windows binaries via pip.
-      Python37-64bit-full-conda:
+      3.7 conda:
         PLATFORM: 'x86-64'
         TEST_MODE: 'conda'
         CONDA_ENV: 'environment.yml'
         PIP_NO_UPGRADE: 'True'
         PYTHON_VERSION: '3.7'
-      Python37-64bit-full-pip:
+      3.7 pip:
         PYTHON_ARCH: 'x64'
         TEST_MODE: 'pip'
         PYTHON_VERSION: '3.7'
-      Python38-64bit-pre-pip:
+      3.8 pip pre:
         PYTHON_ARCH: 'x64'
         TEST_MODE: 'pre-pip'
         PYTHON_VERSION: '3.8'
@@ -116,6 +170,7 @@ jobs:
       architecture: $(PYTHON_ARCH)
       addToPath: true
     condition: in(variables['TEST_MODE'], 'pip', 'pre-pip')
+    displayName: 'Get Python'
   - bash: |
       set -e
       git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
@@ -129,14 +184,14 @@ jobs:
       pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
-  # VTK does not have wheels (scheduled Q1 2020):
-  # https://github.com/KitwareMedical/VTKPythonPackage/issues/39
-  # Missing: vtk, mayavi, PySurfer, pyvista, numexpr, python-picard, numba, dipy, statsmodels (doesn't work on pre as of 2019/12/04)
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
-      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" numpy scipy scikit-learn matplotlib h5py pandas Pillow
-      python -m pip install --upgrade nilearn "pyqt5<5.14" pyqt5-sip nibabel pytest pytest-cov pytest-faulthandler pytest-mock pytest-sugar pytest-timeout joblib psutil https://github.com/numpy/numpydoc/archive/master.zip neo xlrd codecov
+      python -m pip install --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
+      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
+      python -m pip install --upgrade --only-binary vtk vtk;
+      python -m pip install https://github.com/enthought/mayavi/zipball/master
+      python -m pip install -r requirements.txt
       python -m pip install codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'
@@ -165,7 +220,7 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne mne
+  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'

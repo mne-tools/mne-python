@@ -29,7 +29,7 @@ def _reload_backend(backend_name):
 
 
 def _get_renderer(*args, **kwargs):
-    set_3d_backend(get_3d_backend(), verbose=False)
+    set_3d_backend(_get_3d_backend(), verbose=False)
     return backend._Renderer(*args, **kwargs)
 
 
@@ -58,7 +58,7 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
        | 3D function:                         | mayavi | pyvista |
        +======================================+========+=========+
-       | :func:`plot_vector_source_estimates` | ✓      | -       |
+       | :func:`plot_vector_source_estimates` | ✓      | ✓       |
        +--------------------------------------+--------+---------+
        | :func:`plot_source_estimates`        | ✓      | ✓       |
        +--------------------------------------+--------+---------+
@@ -95,10 +95,6 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
        | Point picking                        |        | ✓       |
        +--------------------------------------+--------+---------+
-       | Linked cameras                       |        |         |
-       +--------------------------------------+--------+---------+
-       | Eye-dome lighting                    |        |         |
-       +--------------------------------------+--------+---------+
 
     .. note::
         In the case of `plot_vector_source_estimates` with PyVista, the glyph
@@ -121,20 +117,30 @@ def get_3d_backend():
 
     Returns
     -------
-    backend_used : str
-        The 3d backend currently in use.
+    backend_used : str | None
+        The 3d backend currently in use. If no backend is found,
+        returns ``None``.
     """
+    try:
+        backend = _get_3d_backend()
+    except RuntimeError:
+        return None
+    return backend
+
+
+def _get_3d_backend():
+    """Load and return the current 3d backend."""
     global MNE_3D_BACKEND
     if MNE_3D_BACKEND is None:
         MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
         if MNE_3D_BACKEND is None:  # try them in order
             for name in VALID_3D_BACKENDS:
-                MNE_3D_BACKEND = name
                 try:
                     _reload_backend(name)
                 except ImportError:
-                    pass
+                    continue
                 else:
+                    MNE_3D_BACKEND = name
                     break
             else:
                 raise RuntimeError('Could not load any valid 3D backend: %s'
@@ -156,7 +162,7 @@ def use_3d_backend(backend_name):
     backend_name : str
         The 3d backend to use in the context.
     """
-    old_backend = get_3d_backend()
+    old_backend = _get_3d_backend()
     set_3d_backend(backend_name)
     try:
         yield
@@ -245,3 +251,18 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
     """
     renderer = _get_renderer(fig=handle, size=size, bgcolor=bgcolor)
     return renderer.scene()
+
+
+def get_brain_class():
+    """Return the proper Brain class based on the current 3d backend.
+
+    Returns
+    -------
+    brain : object
+        The Brain class corresponding to the current 3d backend.
+    """
+    if get_3d_backend() == "mayavi":
+        from surfer import Brain
+    else:  # PyVista
+        from ...viz._brain import _Brain as Brain
+    return Brain

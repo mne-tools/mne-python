@@ -70,8 +70,39 @@ def test_plot_filter():
                            iir_params=dict(output='ba'))
     plot_filter(iir_ba, sfreq, freq, gain)
     plt.close('all')
-    plot_filter(h, sfreq, freq, gain, fscale='linear')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear')
+    assert len(fig.axes) == 3
     plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=('time', 'delay'))
+    assert len(fig.axes) == 2
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=['magnitude', 'delay'])
+    assert len(fig.axes) == 2
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot='magnitude')
+    assert len(fig.axes) == 1
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=('magnitude'))
+    assert len(fig.axes) == 1
+    plt.close('all')
+    with pytest.raises(ValueError, match='Invalid value for the .plot'):
+        plot_filter(h, sfreq, freq, gain, plot=('turtles'))
+    _, axes = plt.subplots(1)
+    fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude'), axes=axes)
+    assert len(fig.axes) == 1
+    _, axes = plt.subplots(2)
+    fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude', 'delay'),
+                      axes=axes)
+    assert len(fig.axes) == 2
+    plt.close('all')
+    _, axes = plt.subplots(1)
+    with pytest.raises(ValueError, match='Length of axes'):
+        plot_filter(h, sfreq, freq, gain,
+                    plot=('magnitude', 'delay'), axes=axes)
 
 
 def test_plot_cov():
@@ -87,7 +118,7 @@ def test_plot_cov():
 @requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
-    with pytest.raises(IOError, match='MRI file .* does not exist'):
+    with pytest.raises(IOError, match='MRI file .* not found'):
         plot_bem(subject='bad-subject', subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match="Invalid value for the 'orientation"):
         plot_bem(subject='sample', subjects_dir=subjects_dir,

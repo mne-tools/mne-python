@@ -56,6 +56,7 @@ bdf_multiple_annotations_path = op.join(data_path, 'BDF',
                                         'multiple_annotation_chans.bdf')
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
+edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -385,3 +386,10 @@ def test_edf_lowpass_zero():
     with pytest.warns(RuntimeWarning, match='too long.*truncated'):
         raw = read_raw_edf(edf_stim_resamp_path)
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
+
+
+@testing.requires_testing_data
+def test_edf_annot_sub_s_onset():
+    """Test reading of sub-second annotation onsets."""
+    raw = read_raw_edf(edf_annot_sub_s_path)
+    assert_allclose(raw.annotations.onset, [1.951172, 3.492188])

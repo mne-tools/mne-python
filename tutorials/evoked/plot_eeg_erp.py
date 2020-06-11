@@ -125,27 +125,29 @@ print(epochs)
 
 ###############################################################################
 # Next, we create averages of stimulation-left vs stimulation-right trials.
-# We can use basic arithmetic to, for example, construct and plot
-# difference ERPs.
+# We can use negative weights in `mne.combine_evoked` to construct difference
+# ERPs.
 
 left, right = epochs["left"].average(), epochs["right"].average()
 
 # create and plot difference ERP
 joint_kwargs = dict(ts_args=dict(time_unit='s'),
                     topomap_args=dict(time_unit='s'))
-mne.combine_evoked([left, -right], weights='equal').plot_joint(**joint_kwargs)
+mne.combine_evoked([left, right], weights=[1, -1]).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # This is an equal-weighting difference. If you have imbalanced trial numbers,
 # you could also consider either equalizing the number of events per
 # condition (using
-# :meth:`epochs.equalize_event_counts <mne.Epochs.equalize_event_counts>`).
+# `epochs.equalize_event_counts <mne.Epochs.equalize_event_counts>`) or
+# use weights proportional to the number of trials averaged together to create
+# each `~mne.Evoked` (by passing ``weights='nave'`` to `~mne.combine_evoked`).
 # As an example, first, we create individual ERPs for each condition.
 
-aud_l = epochs["auditory", "left"].average()
-aud_r = epochs["auditory", "right"].average()
-vis_l = epochs["visual", "left"].average()
-vis_r = epochs["visual", "right"].average()
+aud_l = epochs["auditory/left"].average()
+aud_r = epochs["auditory/right"].average()
+vis_l = epochs["visual/left"].average()
+vis_r = epochs["visual/right"].average()
 
 all_evokeds = [aud_l, aud_r, vis_l, vis_r]
 print(all_evokeds)
@@ -155,10 +157,10 @@ print(all_evokeds)
 all_evokeds = [epochs[cond].average() for cond in sorted(event_id.keys())]
 print(all_evokeds)
 
-# Then, we construct and plot an unweighted average of left vs. right trials
-# this way, too:
+# Then, we can construct and plot an unweighted average of left vs. right
+# trials this way, too:
 mne.combine_evoked(
-    [aud_l, -aud_r, vis_l, -vis_r], weights='equal').plot_joint(**joint_kwargs)
+    all_evokeds, weights=[0.5, 0.5, -0.5, -0.5]).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -

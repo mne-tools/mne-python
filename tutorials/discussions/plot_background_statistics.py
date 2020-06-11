@@ -451,7 +451,7 @@ X.shape = (n_subjects, width, width)
 threshold = stats.distributions.t.ppf(1 - alpha, n_subjects - 1)
 t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
     X, n_jobs=1, threshold=threshold, connectivity=None,
-    n_permutations=n_permutations)
+    n_permutations=n_permutations, out_type='mask')
 # Put the cluster data in a viewable format
 p_clust = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
@@ -469,7 +469,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 titles.append(r'$\mathbf{C_{hat}}$')
 stat_fun_hat = partial(ttest_1samp_no_p, sigma=sigma)
 t_hat, clusters, p_values, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold, connectivity=None,
+    X, n_jobs=1, threshold=threshold, connectivity=None, out_type='mask',
     n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 p_hat = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
@@ -505,7 +505,7 @@ titles.append(r'$\mathbf{C_{TFCE}}$')
 threshold_tfce = dict(start=0, step=0.2)
 t_tfce, _, p_tfce, H0 = permutation_cluster_1samp_test(
     X, n_jobs=1, threshold=threshold_tfce, connectivity=None,
-    n_permutations=n_permutations)
+    n_permutations=n_permutations, out_type='mask')
 ts.append(t_tfce)
 ps.append(p_tfce)
 mccs.append(True)
@@ -515,7 +515,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # We can also combine TFCE and the "hat" correction:
 titles.append(r'$\mathbf{C_{hat,TFCE}}$')
 t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold_tfce, connectivity=None,
+    X, n_jobs=1, threshold=threshold_tfce, connectivity=None, out_type='mask',
     n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 ts.append(t_tfce_hat)
 ps.append(p_tfce_hat)

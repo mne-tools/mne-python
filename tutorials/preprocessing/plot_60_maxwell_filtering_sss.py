@@ -104,7 +104,8 @@ crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 # we just low-pass filter these data:
 
 raw.info['bads'] = []
-raw_check = raw.copy().pick_types(exclude=()).load_data().filter(None, 40)
+raw_check = raw.copy()
+raw_check.pick_types(meg=True, exclude=()).load_data().filter(None, 40)
 auto_noisy_chs, auto_flat_chs = mne.preprocessing.find_bad_channels_maxwell(
     raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
     verbose=True)

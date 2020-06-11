@@ -4,6 +4,7 @@
 
 from copy import deepcopy
 import os.path as op
+import re
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -23,13 +24,16 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward)
 from mne.datasets import testing
+from mne.externals.h5io import write_hdf5
 from mne.fixes import fft, _get_img_fdata
+from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
+from mne.transforms import apply_trans, invert_transform
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
-from mne.utils import (requires_pandas, requires_sklearn,
+from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
                        requires_h5py, run_tests_if_main, requires_nibabel)
 from mne.io import read_raw_fif
 
@@ -48,12 +52,15 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+fname_fs_t1 = op.join(data_path, 'subjects', 'fsaverage', 'mri', 'T1.mgz')
+fname_aseg = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                        'fsaverage-ico-5-src.fif')
-fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-oct-4-src.fif')
+bem_path = op.join(data_path, 'subjects', 'sample', 'bem')
+fname_src_3 = op.join(bem_path, 'sample-oct-4-src.fif')
+fname_src_vol = op.join(bem_path, 'sample-volume-7mm-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
 fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
@@ -93,8 +100,8 @@ def test_spatial_inter_hemi_connectivity():
                                                           axis=1 - hi))[0]]
         labels = read_labels_from_annot('sample', 'aparc.a2009s', hemi,
                                         subjects_dir=subjects_dir)
-        use_labels = [l.name[:-3] for l in labels
-                      if np.in1d(l.vertices, has_neighbors).any()]
+        use_labels = [label.name[:-3] for label in labels
+                      if np.in1d(label.vertices, has_neighbors).any()]
         assert (set(use_labels) - set(good_labels) == set())
 
 
@@ -127,8 +134,19 @@ def test_volume_stc(tmpdir):
             klass = VolVectorSourceEstimate
         fname_temp = tmpdir.join('temp-vl.' + ext)
         stc_new = stc
-        for _ in range(2):
-            stc_new.save(fname_temp)
+        n = 3 if ext == 'h5' else 2
+        for ii in range(n):
+            if ii < 2:
+                stc_new.save(fname_temp)
+            else:
+                # Pass stc.vertices[0], an ndarray, to ensure support for
+                # the way we used to write volume STCs
+                write_hdf5(
+                    str(fname_temp), dict(
+                        vertices=stc.vertices[0], data=stc.data,
+                        tmin=stc.tmin, tstep=stc.tstep,
+                        subject=stc.subject, src_type=stc._src_type),
+                    title='mnepython', overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, klass)
             assert_array_equal(vertno_read, stc_new.vertices[0])
@@ -353,6 +371,10 @@ def test_io_stc(tmpdir):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    # test warning for complex data
+    stc2.data = stc2.data.astype(np.complex128)
+    with pytest.raises(ValueError, match='Cannot save complex-valued STC'):
+        stc2.save(tmpdir.join('complex.stc'))
 
 
 @requires_h5py
@@ -640,6 +662,160 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
+@pytest.mark.parametrize('label_type, mri_res, vector, test_label, cf, call', [
+    (str, False, False, False, 'head', 'meth'),  # head frame
+    (str, False, False, str, 'mri', 'func'),  # fastest, default for testing
+    (str, False, True, int, 'mri', 'func'),  # vector
+    (str, True, False, False, 'mri', 'func'),  # mri_resolution
+    (list, True, False, False, 'mri', 'func'),  # volume label as list
+    (dict, True, False, False, 'mri', 'func'),  # volume label as dict
+])
+def test_extract_label_time_course_volume(
+        src_volume_labels, label_type, mri_res, vector, test_label, cf, call):
+    """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
+    src_labels, volume_labels, lut = src_volume_labels
+    n_tot = 46
+    assert n_tot == len(src_labels)
+    inv = read_inverse_operator(fname_inv_vol)
+    trans = inv['mri_head_t']
+    if cf == 'head':
+        src = inv['src']
+        assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        rr = apply_trans(invert_transform(inv['mri_head_t']), src[0]['rr'])
+    else:
+        assert cf == 'mri'
+        src = read_source_spaces(fname_src_vol)
+        assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        rr = src[0]['rr']
+    for s in src_labels:
+        assert_allclose(s['rr'], rr, atol=1e-7)
+    assert len(src) == 1 and src.kind == 'volume'
+    klass = VolVectorSourceEstimate
+    if not vector:
+        klass = klass._scalar_class
+    vertices = [src[0]['vertno']]
+    n_verts = len(src[0]['vertno'])
+    n_times = 50
+    data = vertex_values = np.arange(1, n_verts + 1)
+    end_shape = (n_times,)
+    if vector:
+        end_shape = (3,) + end_shape
+        data = np.pad(data[:, np.newaxis], ((0, 0), (2, 0)), 'constant')
+    data = np.repeat(data[..., np.newaxis], n_times, -1)
+    stcs = [klass(data.astype(float), vertices, 0, 1)]
+
+    def eltc(*args, **kwargs):
+        if call == 'func':
+            return extract_label_time_course(stcs, *args, **kwargs)
+        else:
+            assert call == 'meth'
+            return [stcs[0].extract_label_time_course(*args, **kwargs)]
+
+    with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
+        eltc(fname_fs_t1, src, trans=trans, mri_resolution=mri_res)
+    assert len(src_labels) == 46  # includes unknown
+    assert_array_equal(
+        src[0]['vertno'],  # src includes some in "unknown" space
+        np.sort(np.concatenate([s['vertno'] for s in src_labels])))
+    # spot check
+    assert src_labels[-1]['seg_name'] == 'CC_Anterior'
+    assert src[0]['nuse'] == 4157
+    assert len(src[0]['vertno']) == 4157
+    assert sum(s['nuse'] for s in src_labels) == 4157
+    assert_array_equal(src_labels[-1]['vertno'], [8011, 8032, 8557])
+    assert_array_equal(
+        np.where(np.in1d(src[0]['vertno'], [8011, 8032, 8557]))[0],
+        [2672, 2688, 2995])
+    # triage "labels" argument
+    if mri_res:
+        # All should be there
+        missing = []
+    else:
+        # Nearest misses these
+        missing = ['Left-vessel', 'Right-vessel', '5th-Ventricle',
+                   'non-WM-hypointensities']
+    n_want = len(src_labels)
+    if label_type is str:
+        labels = fname_aseg
+    elif label_type is list:
+        labels = (fname_aseg, volume_labels)
+    else:
+        assert label_type is dict
+        labels = (fname_aseg, {k: lut[k] for k in volume_labels})
+        assert mri_res
+        assert len(missing) == 0
+        # we're going to add one that won't exist
+        missing = ['intentionally_bad']
+        labels[1][missing[0]] = 10000
+        n_want += 1
+        n_tot += 1
+    n_want -= len(missing)
+
+    # actually do the testing
+    if cf == 'head' and not mri_res:  # no trans is an error
+        with pytest.raises(TypeError, match='trans must be .* Transform'):
+            eltc(labels, src, mri_resolution=mri_res)
+    for mode in ('mean', 'max'):
+        with catch_logging() as log:
+            label_tc = eltc(labels, src, mode=mode, allow_empty='ignore',
+                            trans=trans, mri_resolution=mri_res, verbose=True)
+        log = log.getvalue()
+        assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
+        if len(missing):
+            # assert that the missing ones get logged
+            assert 'does not contain' in log
+            assert repr(missing) in log
+        else:
+            assert 'does not contain' not in log
+        assert '\n%d/%d atlas regions had at least' % (n_want, n_tot) in log
+        assert len(label_tc) == 1
+        label_tc = label_tc[0]
+        assert label_tc.shape == (n_tot,) + end_shape
+        if vector:
+            assert_array_equal(label_tc[:, :2], 0.)
+            label_tc = label_tc[:, 2]
+        assert label_tc.shape == (n_tot, n_times)
+        # let's test some actual values by trusting the masks provided by
+        # setup_volume_source_space. mri_resolution=True does some
+        # interpolation so we should not expect equivalence, False does
+        # nearest so we should.
+        if mri_res:
+            rtol = 0.2 if mode == 'mean' else 0.8  # max much more sensitive
+        else:
+            rtol = 0.
+        for si, s in enumerate(src_labels):
+            func = dict(mean=np.mean, max=np.max)[mode]
+            these = vertex_values[np.in1d(src[0]['vertno'], s['vertno'])]
+            assert len(these) == s['nuse']
+            if si == 0 and s['seg_name'] == 'Unknown':
+                continue  # unknown is crappy
+            if s['nuse'] == 0:
+                want = 0.
+                if mri_res:
+                    # this one is totally due to interpolation, so no easy
+                    # test here
+                    continue
+            else:
+                want = func(these)
+            assert_allclose(label_tc[si], want, atol=1e-6, rtol=rtol)
+            # compare with in_label, only on every fourth for speed
+            if test_label is not False and si % 4 == 0:
+                label = s['seg_name']
+                if test_label is int:
+                    label = lut[label]
+                in_label = stcs[0].in_label(
+                    label, fname_aseg, src, trans).data
+                assert in_label.shape == (s['nuse'],) + end_shape
+                if vector:
+                    assert_array_equal(in_label[:, :2], 0.)
+                    in_label = in_label[:, 2]
+                if want == 0:
+                    assert in_label.shape[0] == 0
+                else:
+                    in_label = func(in_label)
+                    assert_allclose(in_label, want, atol=1e-6, rtol=rtol)
+
+
 @testing.requires_testing_data
 def test_extract_label_time_course_equiv():
     """Test extraction of label time courses from stc equivalences."""
@@ -849,36 +1025,58 @@ def test_to_data_frame_index(index):
         assert all(np.in1d(non_index, df.columns))
 
 
-def test_get_peak():
+@pytest.mark.parametrize('kind', ('surface', 'mixed', 'volume'))
+@pytest.mark.parametrize('vector', (False, True))
+@pytest.mark.parametrize('n_times', (5, 1))
+def test_get_peak(kind, vector, n_times):
     """Test peak getter."""
-    n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = rng.randn(n_vert, n_times)
-    stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
-                              subject='sample')
-    stc_vol = VolSourceEstimate(data, vertices=vertices[:1], tmin=0, tstep=1,
-                                subject='sample')
+    n_vert = 10
+    vertices = [np.arange(n_vert)]
+    if kind == 'surface':
+        klass = VectorSourceEstimate
+        vertices += [np.empty(0, int)]
+    elif kind == 'mixed':
+        klass = MixedVectorSourceEstimate
+        vertices += [np.empty(0, int), np.empty(0, int)]
+    else:
+        assert kind == 'volume'
+        klass = VolVectorSourceEstimate
+    data = np.zeros((n_vert, n_times))
+    data[1, -1] = 1
+    if vector:
+        data = np.repeat(data[:, np.newaxis], 3, 1)
+    else:
+        klass = klass._scalar_class
+    stc = klass(data, vertices, 0, 1)
 
-    # Versions with only one time point
-    stc_surf_1 = SourceEstimate(data[:, :1], vertices=vertices, tmin=0,
-                                tstep=1, subject='sample')
-    stc_vol_1 = VolSourceEstimate(data[:, :1], vertices=vertices[:1], tmin=0,
-                                  tstep=1, subject='sample')
+    with pytest.raises(ValueError, match='out of bounds'):
+        stc.get_peak(tmin=-100)
+    with pytest.raises(ValueError, match='out of bounds'):
+        stc.get_peak(tmax=90)
+    with pytest.raises(ValueError,
+                       match='smaller or equal' if n_times > 1 else 'out of'):
+        stc.get_peak(tmin=0.002, tmax=0.001)
 
-    for ii, stc in enumerate([stc_surf, stc_vol, stc_surf_1, stc_vol_1]):
-        pytest.raises(ValueError, stc.get_peak, tmin=-100)
-        pytest.raises(ValueError, stc.get_peak, tmax=90)
-        pytest.raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
-
-        vert_idx, time_idx = stc.get_peak()
-        vertno = np.concatenate(stc.vertices)
-        assert (vert_idx in vertno)
-        assert (time_idx in stc.times)
-
-        data_idx, time_idx = stc.get_peak(vert_as_index=True,
-                                          time_as_index=True)
-        assert_equal(data_idx, np.argmax(np.abs(stc.data[:, time_idx])))
-        assert_equal(time_idx, np.argmax(np.abs(stc.data[data_idx, :])))
+    vert_idx, time_idx = stc.get_peak()
+    vertno = np.concatenate(stc.vertices)
+    assert vert_idx in vertno
+    assert time_idx in stc.times
+    data_idx, time_idx = stc.get_peak(vert_as_index=True, time_as_index=True)
+    if vector:
+        use_data = stc.magnitude().data
+    else:
+        use_data = stc.data
+    assert data_idx == 1
+    assert time_idx == n_times - 1
+    assert data_idx == np.argmax(np.abs(use_data[:, time_idx]))
+    assert time_idx == np.argmax(np.abs(use_data[data_idx, :]))
+    if kind == 'surface':
+        data_idx_2, time_idx_2 = stc.get_peak(
+            vert_as_index=True, time_as_index=True, hemi='lh')
+        assert data_idx_2 == data_idx
+        assert time_idx_2 == time_idx
+        with pytest.raises(RuntimeError, match='no vertices'):
+            stc.get_peak(hemi='rh')
 
 
 @requires_h5py

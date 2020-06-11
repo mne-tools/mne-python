@@ -26,7 +26,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
-                       _get_split_size)
+                       _get_split_size, _NEXT_FILE_BUFFER)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -57,7 +57,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
-                    _scale_dataframe_data, _check_time_format)
+                    _scale_dataframe_data, _check_time_format, object_size)
 from .utils.docs import fill_doc
 
 
@@ -71,7 +71,11 @@ def _pack_reject_params(epochs):
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
-    """Split epochs."""
+    """Split epochs.
+
+    Anything new added to this function also needs to be added to
+    BaseEpochs.save to account for new file sizes.
+    """
     # insert index in filename
     path, base = op.split(fname)
     idx = base.find('.')
@@ -120,10 +124,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
-    mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                         epochs.event_id.items()])
-
-    write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
+    write_string(fid, FIFF.FIFF_DESCRIPTION, _event_id_string(epochs.event_id))
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # Metadata
@@ -185,6 +186,10 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
+
+
+def _event_id_string(event_id):
+    return ';'.join([k + ':' + str(v) for k, v in event_id.items()])
 
 
 def _merge_events(events, event_id, selection):
@@ -410,8 +415,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     else:  # on_missing == 'ignore':
                         pass
 
+            # ensure metadata matches original events size
+            self.selection = np.arange(len(events))
+            self.events = events
+            self.metadata = metadata
+            del events
+
             values = list(self.event_id.values())
-            selected = np.where(np.in1d(events[:, 2], values))[0]
+            selected = np.where(np.in1d(self.events[:, 2], values))[0]
             if selection is None:
                 selection = selected
             else:
@@ -422,20 +433,30 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self.selection = selection
             if drop_log is None:
                 self.drop_log = [list() if k in self.selection else ['IGNORED']
-                                 for k in range(max(len(events),
+                                 for k in range(max(len(self.events),
                                                     max(self.selection) + 1))]
             else:
                 self.drop_log = drop_log
 
-            events = events[selected]
+            self.events = self.events[selected]
 
-            events, self.event_id, self.selection, self.drop_log = \
-                _handle_event_repeated(events, self.event_id, event_repeated,
-                                       self.selection, self.drop_log)
+            self.events, self.event_id, self.selection, self.drop_log = \
+                _handle_event_repeated(
+                    self.events, self.event_id, event_repeated,
+                    self.selection, self.drop_log)
 
-            n_events = len(events)
+            # then subselect
+            sub = np.where(np.in1d(selection, self.selection))[0]
+            if isinstance(metadata, list):
+                metadata = [metadata[s] for s in sub]
+            elif metadata is not None:
+                metadata = metadata.iloc[sub]
+            self.metadata = metadata
+            del metadata
+
+            n_events = len(self.events)
             if n_events > 1:
-                if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
+                if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
                     warn('The events passed to the Epochs constructor are not '
                          'chronologically ordered.', RuntimeWarning)
 
@@ -443,11 +464,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 logger.info('%d matching events found' % n_events)
             else:
                 raise ValueError('No desired events found.')
-            self.events = events
-            del events
         else:
             self.drop_log = list()
             self.selection = np.array([], int)
+            self.metadata = metadata
             # do not set self.events here, let subclass do it
 
         # check reject_tmin and reject_tmax
@@ -476,7 +496,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                    allow_empty=False)
         self.info = pick_info(info, self.picks)
         del info
-        self.metadata = metadata
         self._current = 0
 
         if data is None:
@@ -601,7 +620,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Decimation can be done multiple times. For example,
         ``epochs.decimate(2).decimate(2)`` will be the same as
         ``epochs.decimate(4)``.
-        If `decim` is 1, this method does not copy the underlying data.
+        If ``decim`` is 1, this method does not copy the underlying data.
 
         .. versionadded:: 0.10.0
         """
@@ -780,12 +799,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                copy=False, verbose=False)
 
+        # Decimate if necessary (i.e., epoch not preloaded)
+        epoch = epoch[:, self._decim_slice]
+
         # handle offset
         if self._offset is not None:
             epoch += self._offset
 
-        # Decimate if necessary (i.e., epoch not preloaded)
-        epoch = epoch[:, self._decim_slice]
         return epoch
 
     def iter_evoked(self, copy=False):
@@ -922,7 +942,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
 
-        The `method` parameter allows e.g. robust averaging.
+        The ``method`` parameter allows e.g. robust averaging.
         For example, one could do:
 
             >>> from scipy.stats import trim_mean  # doctest:+SKIP
@@ -1459,7 +1479,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             s += ',' + '\n '.join([''] + counts)
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
-        return '<%s  |  %s>' % (class_name, s)
+        return '<%s | %s>' % (class_name, s)
 
     @fill_doc
     def crop(self, tmin=None, tmax=None, include_tmax=True):
@@ -1595,7 +1615,34 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._check_consistency()
         if fmt == "single":
             total_size //= 2  # 64bit data converted to 32bit before writing.
-        n_parts = max(int(np.ceil(total_size / float(split_size))), 1)
+        total_size += 32  # FIF tags
+        # Account for all the other things we write, too
+        # 1. meas_id block plus main epochs block
+        total_size += 132
+        # 2. measurement info (likely slight overestimate, but okay)
+        total_size += object_size(self.info)
+        # 3. events and event_id in its own block
+        total_size += (self.events.size * 4 +
+                       len(_event_id_string(self.event_id)) + 72)
+        # 4. Metadata in a block of its own
+        if self.metadata is not None:
+            total_size += len(_prepare_write_metadata(self.metadata)) + 56
+        # 5. first sample, last sample, baseline
+        total_size += 40 + 40 * (self.baseline is not None)
+        # 6. drop log
+        total_size += len(json.dumps(self.drop_log)) + 16
+        # 7. reject params
+        reject_params = _pack_reject_params(self)
+        if reject_params:
+            total_size += len(json.dumps(reject_params)) + 16
+        # 8. selection
+        total_size += self.selection.size * 4 + 16
+        # 9. end of file tags
+        total_size += _NEXT_FILE_BUFFER
+
+        # This is like max(int(ceil(total_size / split_size)), 1) but cleaner
+        n_parts = (total_size - 1) // split_size + 1
+        assert n_parts >= 1
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
@@ -1626,7 +1673,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             the entries is a list of str, event_ids in that list will be
             grouped together before equalizing trial counts across conditions.
             In the case where partial matching is used (using '/' in
-            `event_ids`), `event_ids` will be matched according to the
+            ``event_ids``), ``event_ids`` will be matched according to the
             provided tags, that is, processing works as if the event_ids
             matched by the provided tags had been supplied instead.
             The event_ids must identify nonoverlapping subsets of the epochs.
@@ -1778,7 +1825,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """Compute virtual epochs using interpolated fields.
 
         .. Warning:: Using virtual epochs to compute inverse can yield
-            unexpected results. The virtual channels have `'_v'` appended
+            unexpected results. The virtual channels have ``'_v'`` appended
             at the end of the names to emphasize that the data contained in
             them are interpolated.
 
@@ -1787,8 +1834,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         ch_type : str
             The destination channel type. It can be 'mag' or 'grad'.
         mode : str
-            Either `'accurate'` or `'fast'`, determines the quality of the
-            Legendre polynomial expansion used. `'fast'` should be sufficient
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
+            Legendre polynomial expansion used. ``'fast'`` should be sufficient
             for most applications.
 
         Returns
@@ -1799,7 +1846,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Notes
         -----
         This method returns a copy and does not modify the data it
-        operates on. It also returns an EpochsArraw instance.
+        operates on. It also returns an EpochsArray instance.
 
         .. versionadded:: 0.20.0
         """
@@ -1967,10 +2014,10 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     event_repeated : str
-        How to handle duplicates in `events[:, 0]`. Can be 'error' (default),
-        to raise an error, 'drop' to only retain the row occurring first in the
-        `events`, or 'merge' to combine the coinciding events (=duplicates)
-        into a new event (see Notes for details).
+        How to handle duplicates in ``events[:, 0]``. Can be ``'error'``
+        (default), to raise an error, 'drop' to only retain the row occurring
+        first in the ``events``, or ``'merge'`` to combine the coinciding
+        events (=duplicates) into a new event (see Notes for details).
 
         .. versionadded:: 0.19
     %(verbose)s
@@ -2003,7 +2050,7 @@ class Epochs(BaseEpochs):
     filename : str
         The filename of the object.
     times :  ndarray
-        Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
+        Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
     %(verbose)s
@@ -2025,12 +2072,15 @@ class Epochs(BaseEpochs):
     :meth:`mne.Epochs.iter_evoked` or :meth:`mne.Epochs.next`) use the same
     internal state.
 
-    If `event_repeated` is set to "merge", the coinciding events (duplicates)
-    will be merged into a single event_id and assigned a new id_number as
-    follows: `event_id['{event_id_1}/{event_id_2}/...'] = new_id_number`.
-    For example with the event_id {'aud': 1, 'vis': 2} and the events
-    [[0, 0, 1], [0, 0, 2]], the "merge" behavior will update both event_id and
-    events to be: {'aud/vis': 3} and [[0, 0, 3], ] respectively.
+    If ``event_repeated`` is set to ``'merge'``, the coinciding events
+    (duplicates) will be merged into a single event_id and assigned a new
+    id_number as::
+
+        event_id['{event_id_1}/{event_id_2}/...'] = new_id_number
+
+    For example with the event_id ``{'aud': 1, 'vis': 2}`` and the events
+    ``[[0, 0, 1], [0, 0, 2]]``, the "merge" behavior will update both event_id
+    and events to be: ``{'aud/vis': 3}`` and ``[[0, 0, 3]]`` respectively.
     """
 
     @verbose
@@ -3009,9 +3059,9 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         The epochs to operate on.
     head_pos : array | tuple | None
         The array should be of shape ``(N, 10)``, holding the position
-        parameters as returned by e.g. `read_head_pos`. For backward
+        parameters as returned by e.g. ``read_head_pos``. For backward
         compatibility, this can also be a tuple of ``(trans, rot t)``
-        as returned by `head_pos_to_trans_rot_t`.
+        as returned by ``head_pos_to_trans_rot_t``.
     orig_sfreq : float | None
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
@@ -3143,6 +3193,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     decomp_coil_scale = coil_scale[good_mask]
     exp = dict(int_order=int_order, ext_order=ext_order, head_frame=True,
                origin=origin)
+    n_in = _get_n_moments(int_order)
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
@@ -3166,8 +3217,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         if not reuse:
             S = _trans_sss_basis(exp, all_coils, trans,
                                  coil_scale=decomp_coil_scale)
-            # Get the weight from the un-regularized version
-            weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
+            # Get the weight from the un-regularized version (eq. 44)
+            weight = np.linalg.norm(S[:, :n_in])
             # XXX Eventually we could do cross-talk and fine-cal here
             S *= weight
         S_decomp += S  # eq. 41

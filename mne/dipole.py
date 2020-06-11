@@ -112,7 +112,7 @@ class Dipole(object):
         s = "n_times : %s" % len(self.times)
         s += ", tmin : %0.3f" % np.min(self.times)
         s += ", tmax : %0.3f" % np.max(self.times)
-        return "<Dipole  |  %s>" % s
+        return "<Dipole | %s>" % s
 
     def save(self, fname, overwrite=False):
         """Save dipole in a .dip or .bdip file.
@@ -396,7 +396,7 @@ class DipoleFixed(ShiftTimeMixin):
         s = "n_times : %s" % len(self.times)
         s += ", tmin : %s" % np.min(self.times)
         s += ", tmax : %s" % np.max(self.times)
-        return "<DipoleFixed  |  %s>" % s
+        return "<DipoleFixed | %s>" % s
 
     def copy(self):
         """Copy the DipoleFixed object.
@@ -736,7 +736,7 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
                     % (1000 * surf['R']))
     logger.info('Filtering (grid = %6.f mm)...' % (1000 * grid))
     src = _make_volume_source_space(surf, grid, exclude, 1000 * mindist,
-                                    do_neighbors=False, n_jobs=n_jobs)
+                                    do_neighbors=False, n_jobs=n_jobs)[0]
     assert 'vertno' in src
     # simplify the result to make things easier later
     src = dict(rr=src['rr'][src['vertno']], nn=src['nn'][src['vertno']],

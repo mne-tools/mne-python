@@ -95,7 +95,7 @@ epochs_power_2 = tfr_epochs_2.data[:, 0, :, :]  # only 1 channel as 3D matrix
 # -----------------
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
-    permutation_cluster_test([epochs_power_1, epochs_power_2],
+    permutation_cluster_test([epochs_power_1, epochs_power_2], out_type='mask',
                              n_permutations=100, threshold=threshold, tail=0)
 
 ###############################################################################

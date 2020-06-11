@@ -56,7 +56,7 @@ Changelog
 
 - :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
 
-- Add support for FIR filtering in :meth:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` by passing ``filtorder=0`` or ``--filtorder 0``, respectively, by `Eric Larson`_
+- Add support for FIR filtering in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw` by passing ``filtorder=0`` or ``--filtorder 0``, respectively, by `Eric Larson`_
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
 
@@ -88,7 +88,7 @@ Changelog
 
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
-- Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_
+- Add option to improve rendering in :ref:`mne coreg` for modern graphics cards by `Eric Larson`_
 
 - Add :func:`mne.preprocessing.mark_flat` to automate marking of flat channels and segments of raw data by `Eric Larson`_
 
@@ -143,7 +143,7 @@ Bug
 
 - Fix :meth:`mne.Epochs.plot` with ``scalings='auto'`` to properly compute channel-wise scalings by `Stefan Repplinger`_
 
-- Fix :func:`mne.gui.coregistration` and :ref:`mne coreg <gen_mne_coreg>` crashing with segmentation fault when switching subjects by `Eric Larson`_
+- Fix :func:`mne.gui.coregistration` and :ref:`mne coreg` crashing with segmentation fault when switching subjects by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
 
@@ -151,7 +151,7 @@ Bug
 
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
-- Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
+- Fix ``feature_names`` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
 
 - Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
 
@@ -172,15 +172,15 @@ Bug
 - Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
-- Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used, and to properly deal with non-standard acquisition affines by `Eric Larson`_
+- Fix :ref:`mne flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used, and to properly deal with non-standard acquisition affines by `Eric Larson`_
 
 - Fix :meth:`mne.io.Raw.set_annotations` with ``annotations=None`` to create an empty annotations object with ``orig_time`` that matches the :class:`mne.io.Raw` instance by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
-- Fix boundaries during plotting of raw data with :func:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` on scaled displays (e.g., macOS with HiDPI/Retina screens) by `Clemens Brunner`_
+- Fix boundaries during plotting of raw data with :func:`mne.io.Raw.plot` and :ref:`mne browse_raw` on scaled displays (e.g., macOS with HiDPI/Retina screens) by `Clemens Brunner`_
 
-- Fix bug where filtering was not performed with ``lowpass`` or ``highpass`` in :meth:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` by `Eric Larson`_
+- Fix bug where filtering was not performed with ``lowpass`` or ``highpass`` in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw` by `Eric Larson`_
 
 - Fix :func:`mne.simulation.simulate_evoked` that was failing to simulate the noise with heterogeneous sensor types due to poor conditioning of the noise covariance and make sure the projections from the noise covariance are taken into account `Alex Gramfort`_
 
@@ -204,7 +204,7 @@ Bug
 
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` when ``evoked.times[0] >= 0`` would cause a problem with ``vlines='auto'`` mode by `Eric Larson`_
 
-- Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
+- Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`mne flash_bem` by `Eric Larson`_
 
 - Fix :meth:`mne.time_frequency.AverageTFR.plot_joint` mishandling bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
 
@@ -214,7 +214,7 @@ Bug
 
 - Fix :func:`mne.compute_proj_raw` when ``duration != None`` not to apply existing proj and to avoid using duplicate raw data samples by `Eric Larson`_
 
-- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <gen_mne_clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
+- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_edf` failing when EDF header fields (such as patient name) contained special characters, by `Clemens Brunner`_
 
@@ -265,4 +265,4 @@ API
 
 - The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
 
-- Deprecate ``mne.realtime`` module to make a standalone module `mne-realtime` that will live outside of this package by `Teon Brooks`_
+- Deprecate ``mne.realtime`` module to make a standalone module ``mne-realtime`` that will live outside of this package by `Teon Brooks`_

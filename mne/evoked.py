@@ -101,7 +101,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     data : array of shape (n_channels, n_times)
         Evoked response.
     times :  array
-        Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
+        Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
     %(verbose)s
@@ -198,7 +198,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
-        return "<Evoked  |  %s>" % s
+        return "<Evoked | %s>" % s
 
     @property
     def ch_names(self):
@@ -357,10 +357,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
-                   sphere=None, verbose=None):
+                   sphere=None, axes=None, verbose=None):
         return plot_evoked_white(
             self, noise_cov=noise_cov, rank=rank, show=show,
-            time_unit=time_unit, sphere=sphere, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, axes=axes, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
@@ -430,7 +430,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Compute virtual evoked using interpolated fields.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
-            unexpected results. The virtual channels have `'_v'` appended
+            unexpected results. The virtual channels have ``'_v'`` appended
             at the end of the names to emphasize that the data contained in
             them are interpolated.
 
@@ -439,8 +439,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ch_type : str
             The destination channel type. It can be 'mag' or 'grad'.
         mode : str
-            Either `'accurate'` or `'fast'`, determines the quality of the
-            Legendre polynomial expansion used. `'fast'` should be sufficient
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
+            Legendre polynomial expansion used. ``'fast'`` should be sufficient
             for most applications.
 
         Returns
@@ -451,7 +451,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Notes
         -----
         This method returns a copy and does not modify the data it
-        operates on. It also returns an EvokedArraw instance.
+        operates on. It also returns an EvokedArray instance.
 
         .. versionadded:: 0.9.0
         """
@@ -729,7 +729,7 @@ class EvokedArray(Evoked):
     @verbose
     def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
                  verbose=None):  # noqa: D102
-        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+        dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
         if data.ndim != 2:
@@ -837,23 +837,26 @@ def _check_evokeds_ch_names_times(all_evoked):
 def combine_evoked(all_evoked, weights):
     """Merge evoked data by weighted addition or subtraction.
 
-    Data should have the same channels and the same time instants.
-    Subtraction can be performed by calling
-    ``combine_evoked([evoked1, -evoked2], 'equal')``
+    Each `~mne.Evoked` in ``all_evoked`` should have the same channels and the
+    same time instants. Subtraction can be performed by passing
+    ``weights=[1, -1]``.
 
     .. Warning::
-        If you provide an array of weights instead of using `'equal'` or
-        `'nave'`, strange things may happen with your resulting signal
-        amplitude and/or `.nave` attribute.
+        Other than cases like simple subtraction mentioned above (where all
+        weights are -1 or 1), if you provide numeric weights instead of using
+        ``'equal'`` or ``'nave'``, the resulting `~mne.Evoked` object's
+        ``.nave`` attribute (which is used to scale noise covariance when
+        applying the inverse operator) may not be suitable for inverse imaging.
 
     Parameters
     ----------
     all_evoked : list of Evoked
         The evoked datasets.
-    weights : list of float | str
-        The weights to apply to the data of each evoked instance.
-        Can also be ``'nave'`` to weight according to evoked.nave,
-        or ``"equal"`` to use equal weighting (each weighted as ``1/N``).
+    weights : list of float | 'equal' | 'nave'
+        The weights to apply to the data of each evoked instance, or a string
+        describing the weighting strategy to apply: ``'nave'`` computes
+        sum-to-one weights proportional to each object's ``nave`` attribute;
+        ``'equal'`` weights each `~mne.Evoked` by ``1 / len(all_evoked)``.
 
     Returns
     -------
@@ -870,7 +873,7 @@ def combine_evoked(all_evoked, weights):
         if weights == 'nave':
             weights = naves / naves.sum()
         else:
-            weights = np.ones_like(naves)
+            weights = np.ones_like(naves) / len(naves)
     else:
         weights = np.array(weights, float)
 
@@ -878,8 +881,7 @@ def combine_evoked(all_evoked, weights):
         raise ValueError('weights must be the same size as all_evoked')
 
     # cf. https://en.wikipedia.org/wiki/Weighted_arithmetic_mean, section on
-    # how variances change when summing Gaussian random variables. The variance
-    # of a weighted sample mean is:
+    # "weighted sample variance". The variance of a weighted sample mean is:
     #
     #    σ² = w₁² σ₁² + w₂² σ₂² + ... + wₙ² σₙ²
     #
@@ -892,18 +894,17 @@ def combine_evoked(all_evoked, weights):
     # This general formula is equivalent to formulae in Matti's manual
     # (pp 128-129), where:
     # new_nave = sum(naves) when weights='nave' and
-    # new_nave = 1. / sum(1. / naves) when weights='equal'
+    # new_nave = 1. / sum(1. / naves) when weights are all 1.
 
     all_evoked = _check_evokeds_ch_names_times(all_evoked)
     evoked = all_evoked[0].copy()
 
     # use union of bad channels
-    bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
-                                                 for ev in all_evoked[1:])))
+    bads = list(set(b for e in all_evoked for b in e.info['bads']))
     evoked.info['bads'] = bads
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
     evoked.nave = new_nave
-    evoked.comment = ' + '.join('%0.3f * %s' % (w, e.comment or 'unknown')
+    evoked.comment = ' + '.join(f'{w:0.3f} × {e.comment or "unknown"}'
                                 for w, e in zip(weights, all_evoked))
     return evoked
 

@@ -17,7 +17,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version)
+                     _pl, _check_src_normal, check_version, _pos_semidef_inv)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -101,20 +101,6 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
             orient_std)
 
 
-def _sym_inv(x, reduce_rank):
-    """Symmetric inversion with optional rank reduction."""
-    s, u = np.linalg.eigh(x)
-    # mimic default np.linalg.pinv behavior
-    cutoff = 1e-15 * s[:, -1:]
-    s[s <= cutoff] = np.inf
-    if reduce_rank:
-        # These are ordered smallest to largest, so we set the first one
-        # to inf -- then the 1. / s below will turn this to zero, as needed.
-        s[:, 0] = np.inf
-    s = 1. / s
-    return np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
-
-
 def _reduce_leadfield_rank(G):
     """Reduce the rank of the leadfield."""
     # decompose lead field
@@ -157,7 +143,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
                          np.matmul(Cm_inv_sq[np.newaxis], Gk))
 
     # invert this using an eigenvalue decomposition
-    norm = _sym_inv(norm_inv, reduce_rank)
+    norm = _pos_semidef_inv(norm_inv, reduce_rank)
 
     # Reapply source covariance after inversion
     norm *= sk[:, :, np.newaxis]
@@ -300,7 +286,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 assert Ck.shape[1:] == (3, 3)
                 # Invert for all dipoles simultaneously using matrix
                 # inversion.
-                norm = _sym_inv(Ck, reduce_rank)
+                norm = _pos_semidef_inv(Ck, reduce_rank)
             # Reapply source covariance after inversion
             norm *= sk[:, :, np.newaxis]
             norm *= sk[:, np.newaxis, :]
@@ -321,12 +307,12 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 # cov matrix to compute power.
                 Wk_norm = Wk / np.linalg.norm(Wk, axis=2, keepdims=True)
                 power = np.matmul(np.matmul(Wk_norm, Cm),
-                                  Wk_norm.transpose(0, 2, 1))
+                                  Wk_norm.conjugate().transpose(0, 2, 1))
             elif weight_norm is None:
                 # Compute power by applying the spatial filters to
                 # the cov matrix.
                 power = np.matmul(np.matmul(Wk, Cm),
-                                  Wk.transpose(0, 2, 1))
+                                  Wk.conjugate().transpose(0, 2, 1))
             assert power.shape == (n_sources, 3, 3)
             _, u_ = np.linalg.eigh(power.real)
             max_power_ori = u_[:, :, -1]
@@ -353,10 +339,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         if pick_ori in [None, 'vector'] and n_orient > 1:
             # Rescale each set of 3 filters
             W = W.reshape(-1, 3, W.shape[1])
-            noise_norm = np.sqrt(np.sum(W ** 2, axis=(1, 2), keepdims=True))
+            noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
         else:
             # Rescale each filter separately
-            noise_norm = np.sqrt(np.sum(W ** 2, axis=1, keepdims=True))
+            noise_norm = np.linalg.norm(W, axis=1, keepdims=True)
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the
@@ -410,12 +396,12 @@ def _compute_power(Cm, W, n_orient):
     source_power = np.zeros(n_sources)
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
-        power = Wk.dot(Cm).dot(Wk.T)
+        power = Wk.dot(Cm).dot(Wk.conj().T)
 
         if n_orient > 1:  # Pool the orientations
-            source_power[k] = np.abs(power.trace())
+            source_power[k] = power.trace().real
         else:
-            source_power[k] = np.abs(power)
+            source_power[k] = power.real
 
     return source_power
 
@@ -445,7 +431,7 @@ class Beamformer(dict):
             subject = 'unknown'
         else:
             subject = '"%s"' % (self['subject'],)
-        out = ('<Beamformer  |  %s, subject %s, %s vert, %s ch'
+        out = ('<Beamformer | %s, subject %s, %s vert, %s ch'
                % (self['kind'], subject, n_verts, n_channels))
         if self['pick_ori'] is not None:
             out += ', %s ori' % (self['pick_ori'],)

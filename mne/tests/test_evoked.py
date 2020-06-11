@@ -325,7 +325,7 @@ def test_evoked_resample():
 def test_evoked_filter():
     """Test filtering evoked data."""
     # this is mostly a smoke test as the Epochs and raw tests are more complete
-    ave = read_evokeds(fname, 0).pick_types('grad')
+    ave = read_evokeds(fname, 0).pick_types(meg='grad')
     ave.data[:] = 1.
     assert round(ave.info['lowpass']) == 172
     ave_filt = ave.copy().filter(None, 40., fir_design='firwin')
@@ -528,64 +528,48 @@ def test_equalize_channels():
 def test_arithmetic():
     """Test evoked arithmetic."""
     ev = read_evokeds(fname, condition=0)
-    ev1 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
-    ev2 = EvokedArray(-np.ones_like(ev.data), ev.info, ev.times[0], nave=10)
+    ev20 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
+    ev30 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=30)
 
-    # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
-    # data should be added according to their `nave` weights
-    # nave = ev1.nave + ev2.nave
-    ev = combine_evoked([ev1, ev2], weights='nave')
-    assert_allclose(ev.nave, ev1.nave + ev2.nave)
-    assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
-
-    # with same trial counts, a bunch of things should be equivalent
-    for weights in ('nave', [0.5, 0.5]):
-        ev = combine_evoked([ev1, ev1], weights=weights)
-        assert_allclose(ev.data, ev1.data)
-        assert_allclose(ev.nave, 2 * ev1.nave)
-        ev = combine_evoked([ev1, -ev1], weights=weights)
-        assert_allclose(ev.data, 0., atol=1e-20)
-        assert_allclose(ev.nave, 2 * ev1.nave)
-    # adding evoked to itself
-    ev = combine_evoked([ev1, ev1], weights='equal')
-    assert_allclose(ev.data, 2 * ev1.data)
-    assert_allclose(ev.nave, ev1.nave / 2)
-    # subtracting evoked from itself
-    ev = combine_evoked([ev1, -ev1], weights='equal')
-    assert_allclose(ev.data, 0., atol=1e-20)
-    assert_allclose(ev.nave, ev1.nave / 2)
-    # subtracting different evokeds
-    ev = combine_evoked([ev1, -ev2], weights='equal')
-    assert_allclose(ev.data, 2., atol=1e-20)
-    expected_nave = 1. / (1. / ev1.nave + 1. / ev2.nave)
-    assert_allclose(ev.nave, expected_nave)
+    tol = dict(rtol=1e-9, atol=0)
+    # test subtraction
+    sub1 = combine_evoked([ev, ev], weights=[1, -1])
+    sub2 = combine_evoked([ev, -ev], weights=[1, 1])
+    assert np.allclose(sub1.data, np.zeros_like(sub1.data), atol=1e-20)
+    assert np.allclose(sub2.data, np.zeros_like(sub2.data), atol=1e-20)
+    # test nave weighting. Expect signal ampl.: 1*(20/50) + 1*(30/50) == 1
+    # and expect nave == ev1.nave + ev2.nave
+    ev = combine_evoked([ev20, ev30], weights='nave')
+    assert np.allclose(ev.nave, ev20.nave + ev30.nave)
+    assert np.allclose(ev.data, np.ones_like(ev.data), **tol)
+    # test equal-weighted sum. Expect signal ampl. == 2
+    # and expect nave == 1/sum(1/naves) == 1/(1/20 + 1/30) == 12
+    ev = combine_evoked([ev20, ev30], weights=[1, 1])
+    assert np.allclose(ev.nave, 12.)
+    assert np.allclose(ev.data, ev20.data + ev30.data, **tol)
+    # test equal-weighted average. Expect signal ampl. == 1
+    # and expect nave == 1/sum(weights²/naves) == 1/(0.5²/20 + 0.5²/30) == 48
+    ev = combine_evoked([ev20, ev30], weights='equal')
+    assert np.allclose(ev.nave, 48.)
+    assert np.allclose(ev.data, np.mean([ev20.data, ev30.data], axis=0), **tol)
+    # test zero weights
+    ev = combine_evoked([ev20, ev30], weights=[1, 0])
+    assert ev.nave == ev20.nave
+    assert np.allclose(ev.data, ev20.data, **tol)
 
     # default comment behavior if evoked.comment is None
-    old_comment1 = ev1.comment
-    old_comment2 = ev2.comment
-    ev1.comment = None
-    ev = combine_evoked([ev1, -ev2], weights=[1, -1])
+    old_comment1 = ev20.comment
+    ev20.comment = None
+    ev = combine_evoked([ev20, -ev30], weights=[1, -1])
     assert_equal(ev.comment.count('unknown'), 2)
     assert ('-unknown' in ev.comment)
     assert (' + ' in ev.comment)
-    ev1.comment = old_comment1
-    ev2.comment = old_comment2
+    ev20.comment = old_comment1
 
-    # equal weighting
-    ev = combine_evoked([ev1, ev2], weights='equal')
-    assert_allclose(ev.data, np.zeros_like(ev1.data))
-
-    # combine_evoked([ev1, ev2], weights=[1, 0]) should yield the same as ev1
-    ev = combine_evoked([ev1, ev2], weights=[1, 0])
-    assert_allclose(ev.nave, ev1.nave)
-    assert_allclose(ev.data, ev1.data)
-
-    # simple subtraction (like in oddball)
-    ev = combine_evoked([ev1, ev2], weights=[1, -1])
-    assert_allclose(ev.data, 2 * np.ones_like(ev1.data))
-
-    pytest.raises(ValueError, combine_evoked, [ev1, ev2], weights='foo')
-    pytest.raises(ValueError, combine_evoked, [ev1, ev2], weights=[1])
+    with pytest.raises(ValueError, match="Invalid value for the 'weights'"):
+        combine_evoked([ev20, ev30], weights='foo')
+    with pytest.raises(ValueError, match='weights must be the same size as'):
+        combine_evoked([ev20, ev30], weights=[1])
 
     # grand average
     evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
@@ -597,8 +581,9 @@ def test_arithmetic():
     assert_equal(gave.data.shape, [len(ch_names), evoked1.data.shape[1]])
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
-    pytest.raises(TypeError, grand_average, [1, evoked1])
-    gave = grand_average([ev1, ev1, ev2])  # (1 + 1 + -1) / 3  =  1/3
+    with pytest.raises(TypeError, match='All elements must be an instance of'):
+        grand_average([1, evoked1])
+    gave = grand_average([ev20, ev20, -ev30])  # (1 + 1 + -1) / 3  =  1/3
     assert_allclose(gave.data, np.full_like(gave.data, 1. / 3.))
 
     # test channel (re)ordering
@@ -608,10 +593,10 @@ def test_arithmetic():
     evoked2.reorder_channels(evoked2.ch_names[::-1])
     assert not np.allclose(data2, evoked2.data)
     with pytest.warns(RuntimeWarning, match='reordering'):
-        ev3 = combine_evoked([evoked1, evoked2], weights=[0.5, 0.5])
-    assert np.allclose(ev3.data, data)
+        evoked3 = combine_evoked([evoked1, evoked2], weights=[0.5, 0.5])
+    assert np.allclose(evoked3.data, data)
     assert evoked1.ch_names != evoked2.ch_names
-    assert evoked1.ch_names == ev3.ch_names
+    assert evoked1.ch_names == evoked3.ch_names
 
 
 def test_array_epochs():
