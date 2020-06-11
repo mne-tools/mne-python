@@ -422,7 +422,7 @@ class RawBOXY(BaseRaw):
             
             for file_num, i_file in enumerate(event_files[key]):
                 event_data.append(scipy.io.loadmat(
-                    event_files[key][0])['event'])
+                    event_files[key][file_num])['event'])
             if event_data != []: print('Event file found!')
             else: print('No event file found. Using digaux!')
                 
