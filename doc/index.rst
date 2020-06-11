@@ -53,7 +53,7 @@
           <li style="background: url('_static/funding/cds.png') no-repeat left top; background-size: 24px 24px;"><b>Paris-Saclay Center for Data Science:</b> <a href="http://www.datascience-paris-saclay.fr"/>PARIS-SACLAY</a></li>
           <li style="background: url('_static/funding/google.svg') no-repeat left top; background-size: 24px 24px;"><b>Google:</b> Summer of code (×6)</li>
           <li style="background: url('_static/funding/amazon.svg') no-repeat left top; background-size: 24px 24px;"><b>Amazon:</b> - AWS Research Grants</li>
-          <li style="background: url('_static/funding/czi.svg') no-repeat left top; background-size: 24px 24px;"><b>Chan Zuckerberg Initiative:</b> - <a href="https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python/">Essential Open Source Software for Science</a></li>
+          <li style="background: url('_static/funding/czi.svg') no-repeat left top; background-size: 24px 24px;"><b>Chan Zuckerberg Initiative:</b> <a href="https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python/">Essential Open Source Software for Science</a></li>
         </ul>
       </div>
     </div>
