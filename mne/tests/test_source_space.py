@@ -19,6 +19,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, read_trans, compute_source_morph,
                  read_bem_solution, read_freesurfer_lut)
+from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, run_tests_if_main,
                        check_version)
@@ -682,13 +683,15 @@ def test_read_volume_from_src():
 @requires_nibabel()
 def test_combine_source_spaces(tmpdir):
     """Test combining source spaces."""
-    rng = np.random.RandomState(0)
+    import nibabel as nib
+    rng = np.random.RandomState(2)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
-    volume_labels = rng.choice(label_names, 2)
+    volume_labels = ['Brain-Stem', 'Right-Hippocampus']  # two fairly large
 
-    # get a surface source space (no need to test creation here)
-    srf = read_source_spaces(fname, patch_stats=False)
+    # create a sparse surface source space to ensure all get mapped
+    # when mri_resolution=False
+    srf = setup_source_space('sample', 'oct3', add_dist=False,
+                             subjects_dir=subjects_dir)
 
     # setup 2 volume source spaces
     vol = setup_volume_source_space('sample', subjects_dir=subjects_dir,
@@ -696,7 +699,7 @@ def test_combine_source_spaces(tmpdir):
                                     mri=aseg_fname, add_interpolator=False)
 
     # setup a discrete source space
-    rr = rng.randint(0, 20, (100, 3)) * 1e-3
+    rr = rng.randint(0, 11, (20, 3)) * 5e-3
     nn = np.zeros(rr.shape)
     nn[:, -1] = 1
     pos = {'rr': rr, 'nn': nn}
@@ -753,6 +756,22 @@ def test_combine_source_spaces(tmpdir):
     src_mixed_coord = src + disc3
     pytest.raises(ValueError, src_mixed_coord.export_volume, image_fname,
                   verbose='error')
+
+    # now actually write it
+    fname_img = tmpdir.join('img.nii')
+    for mri_resolution in (False, 'sparse', True):
+        for src, up in ((vol, 705),
+                        (srf + vol, 27272),
+                        (disc + vol, 705)):
+            src.export_volume(
+                fname_img, use_lut=False,
+                mri_resolution=mri_resolution, overwrite=True)
+            img_data = _get_img_fdata(nib.load(str(fname_img)))
+            n_src = img_data.astype(bool).sum()
+            n_want = sum(s['nuse'] for s in src)
+            if mri_resolution is True:
+                n_want += up
+            assert n_src == n_want, src
 
 
 @testing.requires_testing_data
