@@ -122,7 +122,7 @@ jobs:
     displayName: 'Install dependencies with pip'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "ultraslowtest" --tb=short --cov=mne -n 1 mne
+  - script: pytest -v -m "ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run ultraslow tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
