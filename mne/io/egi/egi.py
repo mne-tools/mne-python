@@ -63,7 +63,6 @@ def _read_header(fid):
         for event in range(info['n_events']):
             event_codes = ''.join(np.fromfile(fid, 'S1', 4).astype('U1'))
             info['event_codes'].append(event_codes)
-        info['event_codes'] = np.array(info['event_codes'])
     else:
         raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
