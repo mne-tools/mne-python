@@ -8,12 +8,12 @@ from ._pyvista import _Renderer as _PyVistaRenderer
 
 
 class _Renderer(_PyVistaRenderer):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         from IPython import get_ipython
         ipython = get_ipython()
         ipython.magic('matplotlib widget')
         kwargs["notebook"] = True
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
 
     def show(self):
         self.figure.display = _NotebookInteractor(self)
