@@ -21,7 +21,8 @@ from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
 from .tag import read_tag, find_tag, _coord_dict
-from .proj import _read_proj, _write_proj, _uniquify_projs, _normalize_proj
+from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
+                   Projection)
 from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
@@ -31,7 +32,7 @@ from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric)
-from ._digitization import (_format_dig_points, _dig_kind_proper,
+from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
@@ -188,6 +189,16 @@ class MontageMixin(object):
         info = self if isinstance(self, Info) else self.info
         _set_montage(info, montage, raise_if_subset, match_case)
         return self
+
+
+def _format_trans(obj, key):
+    try:
+        t = obj[key]
+    except KeyError:
+        pass
+    else:
+        if t is not None:
+            obj[key] = Transform(t['from'], t['to'], t['trans'])
 
 
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
@@ -528,9 +539,24 @@ class Info(dict, MontageMixin):
 
     def __init__(self, *args, **kwargs):
         super(Info, self).__init__(*args, **kwargs)
-        t = self.get('dev_head_t', None)
-        if t is not None and not isinstance(t, Transform):
-            self['dev_head_t'] = Transform(t['from'], t['to'], t['trans'])
+        # Deal with h5io writing things as dict
+        for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
+            _format_trans(self, key)
+        for res in self.get('hpi_results', []):
+            _format_trans(res, 'coord_trans')
+        if self.get('dig', None) is not None and len(self['dig']) and \
+                not isinstance(self['dig'][0], DigPoint):
+            self['dig'] = _format_dig_points(self['dig'])
+        for pi, proj in enumerate(self.get('projs', [])):
+            if not isinstance(proj, Projection):
+                self['projs'][pi] = Projection(proj)
+        # Old files could have meas_date as tuple instead of datetime
+        try:
+            meas_date = self['meas_date']
+        except KeyError:
+            pass
+        else:
+            self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
 
     def copy(self):
         """Copy the instance.
@@ -1362,11 +1388,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['proj_name'] = proj_name
     if meas_date is None:
         meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
-    if np.array_equal(meas_date, DATE_NONE):
-        meas_date = None
-    else:
-        meas_date = _stamp_to_dt(meas_date)
-    info['meas_date'] = meas_date
+    info['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
     info['utc_offset'] = utc_offset
 
     info['sfreq'] = sfreq
@@ -1406,6 +1428,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['kit_system_id'] = kit_system_id
     info._check_consistency()
     return info, meas
+
+
+def _ensure_meas_date_none_or_dt(meas_date):
+    if meas_date is None or np.array_equal(meas_date, DATE_NONE):
+        meas_date = None
+    elif not isinstance(meas_date, datetime.datetime):
+        meas_date = _stamp_to_dt(meas_date)
+    return meas_date
 
 
 def _check_dates(info, prepend_error=''):
