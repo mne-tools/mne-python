@@ -16,7 +16,7 @@ This tutorial is based on https://github.com/ezemikulan/blender_freesurfer
 #
 # License: BSD (3-clause)
 
-# sphinx_gallery_thumbnail_path = '_static/blender_import_obj/blender_imort_obj2.png'  # noqa
+# sphinx_gallery_thumbnail_path = '_static/blender_import_obj/blender_import_obj2.png'  # noqa
 
 import os
 import os.path as op
@@ -63,9 +63,9 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # ------------------
 #
 # We can now open Blender and import the surfaces. Go to *File > Import >
-# Wavefront (.obj)*. Navigate to the ``conv`` folder and select the file you want
-# to import. Make sure to select the *Keep Vert Order* option. You can also
-# select the *Y Forward* option to load the axes in the correct direction
+# Wavefront (.obj)*. Navigate to the ``conv`` folder and select the file you
+# want to import. Make sure to select the *Keep Vert Order* option. You can
+# also select the *Y Forward* option to load the axes in the correct direction
 # (RAS):
 #
 # .. image:: ../../_static/blender_import_obj/blender_import_obj1.png
