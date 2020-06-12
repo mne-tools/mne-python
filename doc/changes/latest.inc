@@ -93,7 +93,7 @@ Changelog
 
 - Add ``'auto'`` option to :meth:`mne.preprocessing.ICA.find_bads_ecg` to automatically determine the threshold for CTPS method by `Yu-Han Luo`_
 
-- Add support for reading and writing surfaces in Wavefront .obj format by `Marijn van Vliet`_
+- Add support for reading and writing surfaces in Wavefront .obj format to the :func:`mne.read_surface` and :func:`mne_write_surface` by `Marijn van Vliet`_
 
 - Add tutorial on how to manually fix BEM meshes in Blender by `Marijn van Vliet`_
 
@@ -228,5 +228,3 @@ API
 - The ``threshold`` argument in :meth:`mne.preprocessing.ICA.find_bads_ecg` defaults to ``None`` in version 0.21 but will change to ``'auto'`` in 0.22 by `Yu-Han Luo`_
 
 - The default argument ``meg=True`` in :func:`mne.pick_types` will change to ``meg=False`` in version 0.22 by `Clemens Brunner`_
-
-- Add ``file_format`` parameter to :func:`mne.read_surface` and :func:`mne.write_surface` by `Marijn van Vliet`_
