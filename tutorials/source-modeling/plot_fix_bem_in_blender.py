@@ -32,9 +32,11 @@ bem_dir = op.join(subjects_dir, 'sample', 'bem')
 # In this tutorial, we are working with the MNE-Sample set, for which the
 # surfaces have no issues. To demonstrate how to fix problematic surfaces, we
 # are going to manually place one of the inner-skull vertices outside the
-# outer-skill mesh. We then convert the surfaces to `.obj
-# <https://https://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ files to
-# examine them in `Blender <https://blender.org>`_.
+# outer-skill mesh.
+#
+# We then convert the surfaces to `.obj
+# <https://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ files and create a new
+# folder called `conv` inside the FreeSurfer subject folder to keep them in.
 
 # Put the converted surfaces in a separate 'conv' folder
 conv_dir = op.join(subjects_dir, 'sample', 'conv')
@@ -59,12 +61,12 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # ------------------
 #
 # We can now open Blender and import the surfaces. Go to *File > Import >
-# Wavefront (.obj)*. Navigate to the *conv* folder and select the file you want
+# Wavefront (.obj)*. Navigate to the `conv` folder and select the file you want
 # to import. Make sure to select the *Keep Vert Order* option. You can also
 # select the *Y Forward* option to load the axes in the correct direction
 # (RAS):
 #
-# .. image:: blender_import_obj1.png
+# .. image:: ../_static/blender_import_obj/blender_import_obj1.png
 #    :width: 800
 #    :alt: Importing .obj files in Blender
 #
@@ -81,7 +83,7 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # <http://www.youtube.com/watch?v=RaT-uG5wgUw&t=5m30s>`_ will teach you how to
 # use the basic editing tools you need to fix the surface.
 #
-# .. image:: blender_import_obj2.png
+# .. image:: ../_static/blender_import_obj/blender_import_obj2.png
 #    :width: 800
 #    :alt: Editing surfaces in Blender
 #
@@ -92,7 +94,7 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # to *File > Export > Wavefront (.obj)*. You need to again select the *Y
 # Forward* option and check the *Keep Vertex Order* box.
 #
-# .. image:: blender_import_obj3.png
+# .. image:: ../_static/blender_import_obj/blender_import_obj3.png
 #    :width: 200
 #    :alt: Exporting .obj files in Blender
 #
