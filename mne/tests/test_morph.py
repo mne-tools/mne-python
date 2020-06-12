@@ -460,8 +460,8 @@ def test_volume_source_morph_round_trip(
         # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
         #               'fsaverage-inner_skull-bem.fif')
         # src_fsaverage = mne.setup_volume_source_space(
-        #     'fsaverage', pos=7., bem=bem, mindist=0, subjects_dir=subjects_dir,
-        #     add_interpolator=False)
+        #     'fsaverage', pos=7., bem=bem, mindist=0,
+        #     subjects_dir=subjects_dir, add_interpolator=False)
         # mne.write_source_spaces(fname_fs_vol, src_fsaverage, overwrite=True)
         #
         # For speed we do it without the interpolator because it's huge.
