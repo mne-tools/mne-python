@@ -476,11 +476,9 @@ def test_volume_source_morph_round_trip(
     kwargs = dict(niter_sdr=(2, 1, 1), niter_affine=(1,),
                   subjects_dir=subjects_dir)
     morph_from_to = compute_source_morph(
-        src=src_from, src_to=src_to, subject_to=subject_to,
-        **kwargs)
+        src=src_from, src_to=src_to, subject_to=subject_to, **kwargs)
     morph_to_from = compute_source_morph(
-        src=src_to, src_to=src_from, subject_to=subject_from,
-        **kwargs)
+        src=src_to, src_to=src_from, subject_to=subject_from, **kwargs)
     use = np.linspace(0, src_from[0]['nuse'] - 1, 10).round().astype(int)
     stc_from = VolSourceEstimate(
         np.eye(src_from[0]['nuse'])[:, use], [src_from[0]['vertno']], 0, 1)
