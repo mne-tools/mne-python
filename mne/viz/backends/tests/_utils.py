@@ -24,7 +24,16 @@ def has_mayavi():
     """Check that mayavi is installed."""
     try:
         with warnings.catch_warnings(record=True):  # traits
-            from mayavi import mlab  # noqa F401
+            from mayavi import mlab  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def has_ipywidgets():
+    """Check if ipywidgets is installed."""
+    try:
+        import ipywidgets  # noqa: F401
         return True
     except ImportError:
         return False
@@ -34,3 +43,5 @@ skips_if_not_mayavi = pytest.mark.skipif(
     not has_mayavi(), reason='requires mayavi')
 skips_if_not_pyvista = pytest.mark.skipif(
     not has_pyvista(), reason='requires pyvista')
+skips_if_not_ipywidgets = pytest.mark.skipif(
+    not has_ipywidgets(), reason='requires ipywidgets')
