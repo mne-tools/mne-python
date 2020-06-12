@@ -441,43 +441,56 @@ def test_volume_source_morph(tmpdir):
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_volume_source_morph_round_trip(tmpdir):
+@pytest.mark.parametrize('subject_from, subject_to, lower, upper', [
+    ('sample', 'fsaverage', 7, 9),
+    ('fsaverage', 'fsaverage', 23, 25),  # indicative of a bug
+    ('sample', 'sample', 8, 10),  # indicative of a bug
+])
+def test_volume_source_morph_round_trip(
+        tmpdir, subject_from, subject_to, lower, upper):
     """Test volume source estimate morph round-trips well."""
-    src_sample = mne.read_source_spaces(fname_vol)
-    src_sample[0]['subject_his_id'] = 'sample'
-    assert src_sample[0]['nuse'] == 4157
-    use = np.linspace(0, src_sample[0]['nuse'] - 1, 10).round().astype(int)
-    # Created to save space with:
-    #
-    # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
-    #               'fsaverage-inner_skull-bem.fif')
-    # src_fsaverage = mne.setup_volume_source_space(
-    #     'fsaverage', pos=7., bem=bem, mindist=0, subjects_dir=subjects_dir,
-    #     add_interpolator=False)
-    # mne.write_source_spaces(fname_fs_vol, src_fsaverage, overwrite=True)
-    #
-    # For speed we do it without the interpolator because it's huge.
-    src_fsaverage = mne.read_source_spaces(fname_fs_vol)
-    src_fsaverage[0].update(vol_dims=np.array([23, 29, 25]), seg_name='brain')
-    _add_interpolator(src_fsaverage, True)
-    assert src_fsaverage[0]['nuse'] == 6379
+    src = dict()
+    if 'sample' in (subject_from, subject_to):
+        src['sample'] = mne.read_source_spaces(fname_vol)
+        src['sample'][0]['subject_his_id'] = 'sample'
+        assert src['sample'][0]['nuse'] == 4157
+    if 'fsaverage' in (subject_from, subject_to):
+        # Created to save space with:
+        #
+        # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
+        #               'fsaverage-inner_skull-bem.fif')
+        # src_fsaverage = mne.setup_volume_source_space(
+        #     'fsaverage', pos=7., bem=bem, mindist=0, subjects_dir=subjects_dir,
+        #     add_interpolator=False)
+        # mne.write_source_spaces(fname_fs_vol, src_fsaverage, overwrite=True)
+        #
+        # For speed we do it without the interpolator because it's huge.
+        src['fsaverage'] = mne.read_source_spaces(fname_fs_vol)
+        src['fsaverage'][0].update(
+            vol_dims=np.array([23, 29, 25]), seg_name='brain')
+        _add_interpolator(src['fsaverage'], True)
+        assert src['fsaverage'][0]['nuse'] == 6379
+    src_to, src_from = src[subject_to], src[subject_from]
+    del src
+    # XXX: Change to no SDR for speed once everything works
     kwargs = dict(niter_sdr=(2, 1, 1), niter_affine=(1,),
                   subjects_dir=subjects_dir)
-    sample_to_fs = compute_source_morph(
-        src=src_sample, src_to=src_fsaverage, subject_to='fsaverage',
+    morph_from_to = compute_source_morph(
+        src=src_from, src_to=src_to, subject_to=subject_to,
         **kwargs)
-    fs_to_sample = compute_source_morph(
-        src=src_fsaverage, src_to=src_sample, subject_to='sample',
+    morph_to_from = compute_source_morph(
+        src=src_to, src_to=src_from, subject_to=subject_from,
         **kwargs)
-    stc_sample = VolSourceEstimate(
-        np.eye(src_sample[0]['nuse'])[:, use], [src_sample[0]['vertno']], 0, 1)
-    stc_fsaverage = sample_to_fs.apply(stc_sample)
-    stc_sample_rt = fs_to_sample.apply(stc_fsaverage)
-    maxs = np.argmax(stc_sample_rt.data, axis=0)
-    src_rr = src_sample[0]['rr'][src_sample[0]['vertno']]
+    use = np.linspace(0, src_from[0]['nuse'] - 1, 10).round().astype(int)
+    stc_from = VolSourceEstimate(
+        np.eye(src_from[0]['nuse'])[:, use], [src_from[0]['vertno']], 0, 1)
+    stc_to = morph_from_to.apply(stc_from)
+    stc_from_rt = morph_to_from.apply(stc_to)
+    maxs = np.argmax(stc_from_rt.data, axis=0)
+    src_rr = src_from[0]['rr'][src_from[0]['vertno']]
     dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
     mu = np.mean(dists)
-    assert 7 < mu < 9  # 7.97; 25.4 without the src_ras_t fix
+    assert lower <= mu < upper  # fsaverage=7.97; 25.4 without src_ras_t fix
 
 
 @pytest.mark.slowtest

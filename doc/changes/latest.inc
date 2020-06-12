@@ -33,6 +33,8 @@ Changelog
 
 - Add support for mixed source spaces to :func:`mne.compute_source_morph` by `Eric Larson`_
 
+- Add support for omitting the SDR step in volumetric morphing by passing ``n_iter_sdr=()`` to `mne.compute_source_morph` by `Eric Larson`_
+
 - Add support for providing the destination surface source space in the ``src_to`` argument of :func:`mne.compute_source_morph` by `Eric Larson`_
 
 - Add ``tol_kind`` option to :func:`mne.compute_rank` by `Eric Larson`_

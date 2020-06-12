@@ -468,7 +468,9 @@ class SourceMorph(object):
             img_to, self.affine, _get_zooms_orig(self), self.zooms)
 
         # morph data
-        img_to = self.sdr_morph.transform(self.pre_affine.transform(img_to))
+        img_to = self.pre_affine.transform(img_to)
+        if self.sdr_morph is not None:
+            img_to = self.sdr_morph.transform(img_to)
 
         # subselect the correct cube if src_to is provided
         if self.src_data['to_vox_map'] is not None:
@@ -927,14 +929,17 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
             affine, mri_from_affine, starting_affine=rigid.affine)
 
     # compute mapping
-    sdr = imwarp.SymmetricDiffeomorphicRegistration(
-        metrics.CCMetric(3), list(niter_sdr))
-    logger.info('Optimizing SDR:')
-    with wrapped_stdout(indent='    '):
-        sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
-    shape = tuple(sdr_morph.domain_shape)  # should be tuple of int
+    mri_from_to = pre_affine.transform(mri_from)
+    shape = tuple(pre_affine.domain_shape)
+    if len(niter_sdr):
+        sdr = imwarp.SymmetricDiffeomorphicRegistration(
+            metrics.CCMetric(3), list(niter_sdr))
+        logger.info('Optimizing SDR:')
+        with wrapped_stdout(indent='    '):
+            sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
+        assert shape == tuple(sdr_morph.domain_shape)  # should be tuple of int
+        mri_from_to = sdr_morph.transform(mri_from_to)
 
-    mri_from_to = sdr_morph.transform(pre_affine.transform(mri_from))
     mri_to, mri_from_to = mri_to.ravel(), mri_from_to.ravel()
     mri_from_to /= np.linalg.norm(mri_from_to)
     mri_to /= np.linalg.norm(mri_to)

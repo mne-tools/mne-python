@@ -149,4 +149,4 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 #
 # References
 # ----------
-# .. footbibligraphy::
+# .. footbibliography::
