@@ -8,13 +8,15 @@ Here, we will see how this can be achieved by exporting the surfaces to the 3D
 modeling program `Blender <https://blender.org>`_, editing them, and creating
 the BEM using the fixed surfaces.
 
-This tutorial is based on https://github.com/ezemikulan/blender_freesurfer 
+This tutorial is based on https://github.com/ezemikulan/blender_freesurfer
 """
 
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          @ezemikulan
 #
 # License: BSD (3-clause)
+
+# sphinx_gallery_thumbnail_path = '_static/blender_import_obj/blender_imort_obj2.png'  # noqa
 
 import os
 import os.path as op
@@ -36,7 +38,7 @@ bem_dir = op.join(subjects_dir, 'sample', 'bem')
 #
 # We then convert the surfaces to `.obj
 # <https://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ files and create a new
-# folder called `conv` inside the FreeSurfer subject folder to keep them in.
+# folder called ``conv`` inside the FreeSurfer subject folder to keep them in.
 
 # Put the converted surfaces in a separate 'conv' folder
 conv_dir = op.join(subjects_dir, 'sample', 'conv')
@@ -61,7 +63,7 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # ------------------
 #
 # We can now open Blender and import the surfaces. Go to *File > Import >
-# Wavefront (.obj)*. Navigate to the `conv` folder and select the file you want
+# Wavefront (.obj)*. Navigate to the ``conv`` folder and select the file you want
 # to import. Make sure to select the *Keep Vert Order* option. You can also
 # select the *Y Forward* option to load the axes in the correct direction
 # (RAS):
@@ -70,8 +72,8 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 #    :width: 800
 #    :alt: Importing .obj files in Blender
 #
-# For convenience, you can save these settings by pressing the `+` button next
-# to *Operator Presets*.
+# For convenience, you can save these settings by pressing the ``+`` button
+# next to *Operator Presets*.
 #
 # Repeat the procedure for all surfaces you want to import (e.g. inner_skull
 # and outer_skull).
@@ -100,7 +102,7 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 #
 #
 # Each surface needs to be exported as a separate file. We recommend saving
-# them in the `conv` folder and ending the file name with ``_fixed.obj``,
+# them in the ``conv`` folder and ending the file name with ``_fixed.obj``,
 # although this is not strictly necessary.
 #
 # In order to be able to run this tutorial script top to bottom, we here
@@ -114,9 +116,9 @@ mne.write_surface(op.join(conv_dir, 'inner_skull_fixed.obj'), coords, faces,
 ###############################################################################
 # Back in Python, you can read the fixed .obj files and save them as
 # FreeSurfer .surf files. For the :func:`mne.make_bem_model` function to find
-# them, they need to be saved using their original names in the `surf` folder,
-# e.g. `surf/inner_skull.surf`. Be sure to first backup the original surfaces
-# in case you make a mistake!
+# them, they need to be saved using their original names in the ``surf``
+# folder, e.g. ``surf/inner_skull.surf``. Be sure to first backup the original
+# surfaces in case you make a mistake!
 
 # Read the fixed surface
 coords, faces = mne.read_surface(op.join(conv_dir, 'inner_skull_fixed.obj'))
