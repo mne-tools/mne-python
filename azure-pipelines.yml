@@ -155,7 +155,7 @@ jobs:
         CONDA_ENV: 'environment.yml'
         PIP_NO_UPGRADE: 'True'
         PYTHON_VERSION: '3.7'
-      3.7 conda:
+      3.7 notebook:
         PLATFORM: 'x86-64'
         TEST_MODE: 'conda'
         CONDA_ENV: 'server_environment.yml'
