@@ -39,6 +39,24 @@ def has_ipywidgets():
         return False
 
 
+def has_pyqt5():
+    """Check if PyQt5 is installed."""
+    try:
+        import PyQt5  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def has_imageio_ffmpeg():
+    """Check if imageio-ffmpeg is installed."""
+    try:
+        import imageio_ffmpeg  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 skips_if_not_mayavi = pytest.mark.skipif(
     not has_mayavi(), reason='requires mayavi')
 skips_if_not_pyvista = pytest.mark.skipif(

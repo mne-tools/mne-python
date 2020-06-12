@@ -11,6 +11,7 @@ dependencies:
 - vtk
 - numpy
 - scipy
+- traits
 - pip:
   - mne
   - matplotlib

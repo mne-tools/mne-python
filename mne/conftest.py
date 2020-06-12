@@ -273,13 +273,18 @@ def renderer_interactive(backend_name_interactive):
 
 
 def _check_skip_backend(name):
-    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
+    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
+                                               has_pyqt5, has_imageio_ffmpeg)
     if name == 'mayavi':
         if not has_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
     elif name == 'pyvista':
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
+        if not has_imageio_ffmpeg():
+            pytest.skip("Test skipped, requires imageio-ffmpeg")
+    if not has_pyqt5():
+        pytest.skip("Test skipped, requires PyQt5.")
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
