@@ -719,25 +719,8 @@ def read_surface(fname, read_metadata=False, return_dict=False,
 
     if file_format == 'freesurfer':
         ret = _get_read_geometry()(fname, read_metadata=read_metadata)
-
     elif file_format == 'obj':
-        coords = []
-        faces = []
-        with open(fname) as f:
-            for line in f:
-                line = line.strip()
-                if len(line) == 0 or line[0] == "#":
-                    continue
-                split = line.split()
-                if split[0] == "v":  # vertex
-                    coords.append([float(item) for item in split[1:]])
-                elif split[0] == "f":  # face
-                    dat = [int(item.split("/")[0]) for item in split[1:]]
-                    if len(dat) != 3:
-                        raise RuntimeError('Only triangle faces allowed.')
-                    # In .obj files, indexing starts at 1
-                    faces.append([d - 1 for d in dat])
-        ret = (np.array(coords), np.array(faces))
+        ret = _read_wavefront_obj(fname)
         if read_metadata:
             ret += (dict(),)
 
@@ -745,6 +728,41 @@ def read_surface(fname, read_metadata=False, return_dict=False,
         ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
                      np=len(ret[0])),)
     return ret
+
+
+def _read_wavefront_obj(fname):
+    """Read a surface form a Wavefront .obj file.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the .obj file to read.
+
+    Returns
+    -------
+    coords : ndarray, shape (n_points, 3)
+        The XYZ coordinates of each vertex.
+    faces : ndarray, shape (n_faces, 3)
+        For each face of the mesh, the integer indices of the vertices that
+        make up the face.
+    """
+    coords = []
+    faces = []
+    with open(fname) as f:
+        for line in f:
+            line = line.strip()
+            if len(line) == 0 or line[0] == "#":
+                continue
+            split = line.split()
+            if split[0] == "v":  # vertex
+                coords.append([float(item) for item in split[1:]])
+            elif split[0] == "f":  # face
+                dat = [int(item.split("/")[0]) for item in split[1:]]
+                if len(dat) != 3:
+                    raise RuntimeError('Only triangle faces allowed.')
+                # In .obj files, indexing starts at 1
+                faces.append([d - 1 for d in dat])
+    return np.array(coords), np.array(faces)
 
 
 ##############################################################################
