@@ -66,7 +66,7 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # select the *Y Forward* option to load the axes in the correct direction
 # (RAS):
 #
-# .. image:: ../_static/blender_import_obj/blender_import_obj1.png
+# .. image:: ../../_static/blender_import_obj/blender_import_obj1.png
 #    :width: 800
 #    :alt: Importing .obj files in Blender
 #
@@ -83,7 +83,7 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # <http://www.youtube.com/watch?v=RaT-uG5wgUw&t=5m30s>`_ will teach you how to
 # use the basic editing tools you need to fix the surface.
 #
-# .. image:: ../_static/blender_import_obj/blender_import_obj2.png
+# .. image:: ../../_static/blender_import_obj/blender_import_obj2.png
 #    :width: 800
 #    :alt: Editing surfaces in Blender
 #
@@ -94,7 +94,7 @@ mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
 # to *File > Export > Wavefront (.obj)*. You need to again select the *Y
 # Forward* option and check the *Keep Vertex Order* box.
 #
-# .. image:: ../_static/blender_import_obj/blender_import_obj3.png
+# .. image:: ../../_static/blender_import_obj/blender_import_obj3.png
 #    :width: 200
 #    :alt: Exporting .obj files in Blender
 #
