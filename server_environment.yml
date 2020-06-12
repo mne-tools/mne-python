@@ -13,7 +13,6 @@ dependencies:
 - scipy
 - pip:
   - mne
-  - https://github.com/GuillaumeFavelier/mne-python/archive/notebook_screencast.zip
   - matplotlib
   - ipympl
   - jupyter
