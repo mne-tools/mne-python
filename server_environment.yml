@@ -17,3 +17,5 @@ dependencies:
   - ipympl
   - jupyter
   - pyvista
+  - nbformat
+  - pytest-notebook
