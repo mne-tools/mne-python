@@ -46,6 +46,7 @@ exclude .coveragerc
 exclude *.yml
 exclude ignore_words.txt
 exclude .mailmap
+exclude mne/viz/_brain/tests/test.ipynb
 recursive-exclude mne *.pyc
 
 recursive-exclude doc *
