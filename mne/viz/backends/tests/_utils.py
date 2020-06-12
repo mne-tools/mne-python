@@ -30,15 +30,6 @@ def has_mayavi():
         return False
 
 
-def has_ipywidgets():
-    """Check if ipywidgets is installed."""
-    try:
-        import ipywidgets  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
 def has_pyqt5():
     """Check if PyQt5 is installed."""
     try:
@@ -61,5 +52,3 @@ skips_if_not_mayavi = pytest.mark.skipif(
     not has_mayavi(), reason='requires mayavi')
 skips_if_not_pyvista = pytest.mark.skipif(
     not has_pyvista(), reason='requires pyvista')
-skips_if_not_ipywidgets = pytest.mark.skipif(
-    not has_ipywidgets(), reason='requires ipywidgets')
