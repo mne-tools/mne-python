@@ -6,7 +6,7 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 @skips_if_not_ipywidgets()
-def test_execute_notebook():
+def test_notebook_3d_backend():
     """Test executing a notebook that should not fail."""
     import nbformat
     from pytest_notebook.execution import execute_notebook
