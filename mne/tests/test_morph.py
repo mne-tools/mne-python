@@ -23,7 +23,7 @@ from mne.fixes import _get_img_fdata
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
 from mne.source_space import (get_volume_labels_from_aseg, _get_mri_info_data,
-                              _get_atlas_values)
+                              _get_atlas_values, _add_interpolator)
 from mne.utils import (run_tests_if_main, requires_nibabel, check_version,
                        requires_dipy, requires_h5py)
 from mne.fixes import _get_args
@@ -39,16 +39,19 @@ fname_inv_vol = op.join(sample_dir,
                         'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 fname_fwd_vol = op.join(sample_dir,
                         'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_vol = op.join(sample_dir,
-                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
+fname_vol_w = op.join(sample_dir,
+                      'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_inv_surf = op.join(sample_dir,
                          'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_fmorph = op.join(data_path, 'MEG', 'sample',
                        'fsaverage_audvis_trunc-meg')
 fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
 fname_t1 = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
+fname_vol = op.join(subjects_dir, 'sample', 'bem', 'sample-volume-7mm-src.fif')
 fname_brain = op.join(subjects_dir, 'sample', 'mri', 'brain.mgz')
 fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+fname_fs_vol = op.join(subjects_dir, 'fsaverage', 'bem',
+                       'fsaverage-vol7-nointerp-src.fif.gz')
 fname_aseg_fs = op.join(subjects_dir, 'fsaverage', 'mri', 'aseg.mgz')
 fname_stc = op.join(sample_dir, 'fsaverage_audvis_trunc-meg')
 
@@ -245,7 +248,7 @@ def test_surface_vector_source_morph(tmpdir):
     assert isinstance(source_morph_surf.apply(stc_surf), SourceEstimate)
 
     # degenerate
-    stc_vol = read_source_estimate(fname_vol, 'sample')
+    stc_vol = read_source_estimate(fname_vol_w, 'sample')
     with pytest.raises(TypeError, match='stc_from must be an instance'):
         source_morph_surf.apply(stc_vol)
 
@@ -259,7 +262,7 @@ def test_volume_source_morph(tmpdir):
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
-    stc_vol = read_source_estimate(fname_vol, 'sample')
+    stc_vol = read_source_estimate(fname_vol_w, 'sample')
 
     # check for invalid input type
     with pytest.raises(TypeError, match='src must be'):
@@ -284,7 +287,7 @@ def test_volume_source_morph(tmpdir):
     with pytest.raises(ValueError, match='Only surface.*sparse morph'):
         compute_source_morph(src=src, sparse=True, subjects_dir=subjects_dir)
 
-    # terrible quality buts fast
+    # terrible quality but fast
     zooms = 20
     kwargs = dict(zooms=zooms, niter_sdr=(1,), niter_affine=(1,))
     source_morph_vol = compute_source_morph(
@@ -431,6 +434,50 @@ def test_volume_source_morph(tmpdir):
     )
     with pytest.raises(ValueError, match=match):
         source_morph_vol.apply(stc_vol_bad)
+
+
+@requires_h5py
+@requires_nibabel()
+@requires_dipy()
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_volume_source_morph_round_trip(tmpdir):
+    """Test volume source estimate morph round-trips well."""
+    src_sample = mne.read_source_spaces(fname_vol)
+    src_sample[0]['subject_his_id'] = 'sample'
+    assert src_sample[0]['nuse'] == 4157
+    use = np.linspace(0, src_sample[0]['nuse'] - 1, 10).round().astype(int)
+    # Created to save space with:
+    #
+    # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
+    #               'fsaverage-inner_skull-bem.fif')
+    # src_fsaverage = mne.setup_volume_source_space(
+    #     'fsaverage', pos=7., bem=bem, mindist=0, subjects_dir=subjects_dir,
+    #     add_interpolator=False)
+    # mne.write_source_spaces(fname_fs_vol, src_fsaverage, overwrite=True)
+    #
+    # For speed we do it without the interpolator because it's huge.
+    src_fsaverage = mne.read_source_spaces(fname_fs_vol)
+    src_fsaverage[0].update(vol_dims=np.array([23, 29, 25]), seg_name='brain')
+    _add_interpolator(src_fsaverage, True)
+    assert src_fsaverage[0]['nuse'] == 6379
+    kwargs = dict(niter_sdr=(2, 1, 1), niter_affine=(1,),
+                  subjects_dir=subjects_dir)
+    sample_to_fs = compute_source_morph(
+        src=src_sample, src_to=src_fsaverage, subject_to='fsaverage',
+        **kwargs)
+    fs_to_sample = compute_source_morph(
+        src=src_fsaverage, src_to=src_sample, subject_to='sample',
+        **kwargs)
+    stc_sample = VolSourceEstimate(
+        np.eye(src_sample[0]['nuse'])[:, use], [src_sample[0]['vertno']], 0, 1)
+    stc_fsaverage = sample_to_fs.apply(stc_sample)
+    stc_sample_rt = fs_to_sample.apply(stc_fsaverage)
+    maxs = np.argmax(stc_sample_rt.data, axis=0)
+    src_rr = src_sample[0]['rr'][src_sample[0]['vertno']]
+    dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
+    mu = np.mean(dists)
+    assert 7 < mu < 9  # 7.97; 25.4 without the src_ras_t fix
 
 
 @pytest.mark.slowtest
