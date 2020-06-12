@@ -5,8 +5,8 @@ Editing BEM surfaces in Blender
 Sometimes when creating a BEM model the surfaces need manual correction because
 of a series of problems that can arise (e.g. intersection between surfaces).
 Here, we will see how this can be achieved by exporting the surfaces to the 3D
-modeling program `Blender <https://blender.org>`_, editing them, and creating
-the BEM using the fixed surfaces.
+modeling program `Blender <https://blender.org>`_, editing them, and
+re-importing them.
 
 This tutorial is based on https://github.com/ezemikulan/blender_freesurfer
 """
@@ -133,4 +133,4 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 
 ###############################################################################
 # That's it! You are ready to continue with your analysis pipeline (e.g.
-# running :func:`mne.make_bem_model`.
+# running :func:`mne.make_bem_model`).
