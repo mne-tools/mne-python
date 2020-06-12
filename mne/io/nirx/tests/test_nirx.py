@@ -79,6 +79,12 @@ def test_nirx_15_2_short():
     # Test data import
     assert raw._data.shape == (26, 145)
     assert raw.info['sfreq'] == 12.5
+    assert raw.info['meas_date'].month == 8
+    assert raw.info['meas_date'].day == 23
+    assert raw.info['meas_date'].year == 2019
+    assert raw.info['meas_date'].hour == 7
+    assert raw.info['meas_date'].minute == 37
+    assert raw.info['meas_date'].second == 4
 
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
@@ -92,7 +98,8 @@ def test_nirx_15_2_short():
     # Test info import
     assert raw.info['subject_info'] == dict(sex=1, first_name="MNE",
                                             middle_name="Test",
-                                            last_name="Recording")
+                                            last_name="Recording",
+                                            birthday=(2014, 8, 23))
 
     # Test distance between optodes matches values from
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
@@ -179,8 +186,10 @@ def test_nirx_15_3_short():
     assert raw.info['chs'][1]['loc'][9] == 850
 
     # Test info import
-    assert raw.info['subject_info'] == dict(
-        sex=0, first_name="testMontage\\0ATestMontage")
+    assert raw.info['subject_info'] == dict(birthday=(2020, 8, 18),
+                                            sex=0,
+                                            first_name="testMontage\\0A"
+                                                       "TestMontage")
 
     # Test distance between optodes matches values from
     # https://github.com/mne-tools/mne-testing-data/pull/72
@@ -257,7 +266,8 @@ def test_encoding(tmpdir):
         for line in hdr:
             fid.write(line)
     # smoke test
-    read_raw_nirx(fname)
+    with pytest.raises(RuntimeWarning, match='Extraction of measurement date'):
+        read_raw_nirx(fname)
 
 
 @requires_testing_data
@@ -268,16 +278,24 @@ def test_nirx_15_2():
     # Test data import
     assert raw._data.shape == (64, 67)
     assert raw.info['sfreq'] == 3.90625
+    assert raw.info['meas_date'].month == 10
+    assert raw.info['meas_date'].day == 2
+    assert raw.info['meas_date'].year == 2019
+    assert raw.info['meas_date'].hour == 9
+    assert raw.info['meas_date'].minute == 8
+    assert raw.info['meas_date'].second == 47
 
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
                                         "S1_D10 760", "S1_D10 850"]
 
     # Test info import
-    assert raw.info['subject_info'] == dict(sex=1, first_name="TestRecording")
+    assert raw.info['subject_info'] == dict(sex=1, first_name="TestRecording",
+                                            birthday=(1989, 10, 2))
 
     # Test trigger events
     assert_array_equal(raw.annotations.description, ['4.0', '6.0', '2.0'])
+    print(raw.annotations.onset)
 
     # Test location of detectors
     allowed_dist_error = 0.0002
@@ -312,6 +330,12 @@ def test_nirx_15_0():
     # Test data import
     assert raw._data.shape == (20, 92)
     assert raw.info['sfreq'] == 6.25
+    assert raw.info['meas_date'].month == 10
+    assert raw.info['meas_date'].day == 27
+    assert raw.info['meas_date'].year == 2019
+    assert raw.info['meas_date'].hour == 13
+    assert raw.info['meas_date'].minute == 53
+    assert raw.info['meas_date'].second == 34
 
     # Test channel naming
     assert raw.info['ch_names'][:12] == ["S1_D1 760", "S1_D1 850",
@@ -322,7 +346,8 @@ def test_nirx_15_0():
                                          "S6_D6 760", "S6_D6 850"]
 
     # Test info import
-    assert raw.info['subject_info'] == {'first_name': 'NIRX',
+    assert raw.info['subject_info'] == {'birthday': (2004, 10, 27),
+                                        'first_name': 'NIRX',
                                         'last_name': 'Test',
                                         'sex': FIFF.FIFFV_SUBJ_SEX_UNKNOWN}
 
