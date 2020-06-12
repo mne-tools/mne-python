@@ -7,6 +7,23 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
+.. _changes_0_20_6:
+
+Version 0.20.6
+--------------
+
+Bug
+~~~
+
+- Fix bug with :func:`mne.time_frequency.read_tfrs` where ``info['meas_date']`` was not parsed correctly, by `Eric Larson`_
+
+- Fix bug with :meth:`mne.io.Raw.get_channel_types` and related methods where the ordering of ``picks`` was not preserved, by `Eric Larson`_
+
+- Fix bug with :meth:`mne.io.Raw.plot_psd` with ``average=False`` and multiple channel types where channel locations were not shown properly by `Eric Larson`_
+
+- Fix bug with writing EGI and CTF `mne.Info` to H5 format, e.g., with `mne.time_frequency.AverageTFR.save` by `Eric Larson`_
+
+
 .. _changes_0_20_5:
 
 Version 0.20.5
