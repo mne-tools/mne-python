@@ -93,6 +93,8 @@ Changelog
 
 - Add ``'auto'`` option to :meth:`mne.preprocessing.ICA.find_bads_ecg` to automatically determine the threshold for CTPS method by `Yu-Han Luo`_
 
+- Add a ``notebook`` 3d backend for visualization in jupyter notebook with :func:`mne.viz.set_3d_backend` by`Guillaume Favelier`_
+
 Bug
 ~~~
 
