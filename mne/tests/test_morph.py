@@ -199,6 +199,16 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn):
     stc_back = morph_back.apply(stc_fs)
     corr = np.corrcoef(stc.data.ravel(), stc_back.data.ravel())[0, 1]
     assert lower <= corr <= upper
+    # check the round-trip power
+    assert_power_preserved(stc, stc_back)
+
+
+def assert_power_preserved(orig, new, limits=(1., 1.05)):
+    """Assert that the power is preserved during a round-trip morph."""
+    __tracebackhide__ = True
+    power_ratio = np.linalg.norm(orig.data) / np.linalg.norm(new.data)
+    min_, max_ = limits
+    assert min_ < power_ratio < max_, 'Power ratio'
 
 
 @requires_h5py
@@ -489,6 +499,8 @@ def test_volume_source_morph_round_trip(
     dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
     mu = np.mean(dists)
     assert lower <= mu < upper  # fsaverage=7.97; 25.4 without src_ras_t fix
+    # XXX The surface version has limits (1, 1.05), which is reasonable...
+    assert_power_preserved(stc_from, stc_from_rt, limits=(7, 8))
 
 
 @pytest.mark.slowtest

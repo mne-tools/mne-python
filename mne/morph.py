@@ -939,6 +939,8 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
             sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
         assert shape == tuple(sdr_morph.domain_shape)  # should be tuple of int
         mri_from_to = sdr_morph.transform(mri_from_to)
+    else:
+        sdr_morph = None
 
     mri_to, mri_from_to = mri_to.ravel(), mri_from_to.ravel()
     mri_from_to /= np.linalg.norm(mri_from_to)
