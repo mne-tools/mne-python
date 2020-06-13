@@ -7,6 +7,18 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
+
+.. _changes_0_20_7:
+
+Version 0.20.7
+--------------
+
+Bug
+~~~
+
+- Fix bug with :meth:`mne.Epochs.save` where the file splitting calculations did not account for the sizes of non-data writes by `Eric Larson`_
+
+
 .. _changes_0_20_6:
 
 Version 0.20.6
