@@ -501,6 +501,11 @@ def test_volume_source_morph_round_trip(
     assert lower <= mu < upper  # fsaverage=7.97; 25.4 without src_ras_t fix
     # XXX The surface version has limits (1, 1.05), which is reasonable...
     assert_power_preserved(stc_from, stc_from_rt, limits=(7, 8))
+    # XXX need to add: before and after morph, check the proportion of vertices
+    # that are in the brainmask.mgz, and the proportion of brainmask vertices
+    # that are occupied (these should not change a lot)
+    # XXX check that the `pre_affine` is close to identity when
+    # subject_from==subject_to
 
 
 @pytest.mark.slowtest
