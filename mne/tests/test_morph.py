@@ -452,13 +452,15 @@ def test_volume_source_morph(tmpdir):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize('subject_from, subject_to, lower, upper', [
-    ('sample', 'fsaverage', 7, 9),
-    ('fsaverage', 'fsaverage', 23, 25),  # indicative of a bug
-    ('sample', 'sample', 8, 10),  # indicative of a bug
+    ('sample', 'fsaverage', 13.5, 14.5),
+    ('fsaverage', 'fsaverage', 11.5, 12.5),
+    ('sample', 'sample', 10, 11),
 ])
 def test_volume_source_morph_round_trip(
         tmpdir, subject_from, subject_to, lower, upper):
     """Test volume source estimate morph round-trips well."""
+    import nibabel as nib
+    from nibabel.processing import resample_from_to
     src = dict()
     if 'sample' in (subject_from, subject_to):
         src['sample'] = mne.read_source_spaces(fname_vol)
@@ -482,9 +484,9 @@ def test_volume_source_morph_round_trip(
         assert src['fsaverage'][0]['nuse'] == 6379
     src_to, src_from = src[subject_to], src[subject_from]
     del src
-    # XXX: Change to no SDR for speed once everything works
-    kwargs = dict(niter_sdr=(2, 1, 1), niter_affine=(1,),
-                  subjects_dir=subjects_dir)
+    # No SDR just for speed once everything works
+    kwargs = dict(niter_sdr=(), niter_affine=(1,),
+                  subjects_dir=subjects_dir, verbose=True)
     morph_from_to = compute_source_morph(
         src=src_from, src_to=src_to, subject_to=subject_to, **kwargs)
     morph_to_from = compute_source_morph(
@@ -492,20 +494,37 @@ def test_volume_source_morph_round_trip(
     use = np.linspace(0, src_from[0]['nuse'] - 1, 10).round().astype(int)
     stc_from = VolSourceEstimate(
         np.eye(src_from[0]['nuse'])[:, use], [src_from[0]['vertno']], 0, 1)
-    stc_to = morph_from_to.apply(stc_from)
-    stc_from_rt = morph_to_from.apply(stc_to)
+    stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
     maxs = np.argmax(stc_from_rt.data, axis=0)
     src_rr = src_from[0]['rr'][src_from[0]['vertno']]
     dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
     mu = np.mean(dists)
     assert lower <= mu < upper  # fsaverage=7.97; 25.4 without src_ras_t fix
-    # XXX The surface version has limits (1, 1.05), which is reasonable...
-    assert_power_preserved(stc_from, stc_from_rt, limits=(7, 8))
-    # XXX need to add: before and after morph, check the proportion of vertices
-    # that are in the brainmask.mgz, and the proportion of brainmask vertices
-    # that are occupied (these should not change a lot)
-    # XXX check that the `pre_affine` is close to identity when
-    # subject_from==subject_to
+    # check that pre_affine is close to identity when subject_to==subject_from
+    if subject_to == subject_from:
+        for morph in (morph_to_from, morph_from_to):
+            assert_allclose(
+                morph.pre_affine.affine, np.eye(4), atol=1e-2)
+    # check that power is more or less preserved
+    ratio = stc_from.data.size / stc_from_rt.data.size
+    limits = ratio * np.array([1, 1.2])
+    stc_from.crop(0, 0)._data.fill(1.)
+    stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
+    assert_power_preserved(stc_from, stc_from_rt, limits=limits)
+    # before and after morph, check the proportion of vertices
+    # that are inside and outside the brainmask.mgz
+    brain = nib.load(op.join(subjects_dir, subject_from, 'mri', 'brain.mgz'))
+    mask = _get_img_fdata(brain) > 0
+    if subject_from == subject_to == 'sample':
+        for stc in [stc_from, stc_from_rt]:
+            img = stc.as_volume(src_from, mri_resolution=True)
+            img = nib.Nifti1Image(_get_img_fdata(img)[:, :, :, 0], img.affine)
+            img = _get_img_fdata(resample_from_to(img, brain, order=1))
+            assert img.shape == mask.shape
+            in_ = img[mask].astype(bool).mean()
+            out = img[~mask].astype(bool).mean()
+            assert 0.97 < in_ < 0.98
+            assert out < 0.02
 
 
 @pytest.mark.slowtest
