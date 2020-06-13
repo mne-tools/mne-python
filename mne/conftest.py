@@ -289,6 +289,7 @@ def _check_skip_backend(name):
 
 @pytest.yield_fixture
 def renderer_notebook():
+    """Verify that pytest_notebook is installed."""
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
