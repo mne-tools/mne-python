@@ -124,6 +124,7 @@ Once you have Anaconda installed, the easiest way to install
 MNE-Python with all dependencies is update your base Anaconda environment:
 
 .. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/server_environment.yml
 
 .. collapse:: |linux| Linux
 
@@ -179,6 +180,11 @@ you can create a new dedicated environment (here called "mne") with
 .. collapse:: |hand-stop-o| If you are installing on a headless server...
     :class: danger
 
+    With `pyvista`_:
+    Follow the steps described in :ref:`Installing MNE-Python and its dependencies`
+    but use `server_environment file`_ instead of `environment file`_.
+
+    With `mayavi`_:
     Installing `mayavi`_ requires a running `X server`_. If you are
     installing MNE-Python into a computer with no display connected to it, you
     can try removing `mayavi`_ from the :file:`environment.yml` file before
