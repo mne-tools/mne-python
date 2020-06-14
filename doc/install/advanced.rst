@@ -71,7 +71,7 @@ the notebook 3d backend:
 
 
 The notebook 3d backend requires PyVista to be installed along with other packages,
-please follow :ref:`Installing MNE-Python and its dependencies`
+please follow :doc:`mne_python`
 
 
 .. _installing_master:

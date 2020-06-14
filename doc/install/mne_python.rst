@@ -181,8 +181,8 @@ you can create a new dedicated environment (here called "mne") with
     :class: danger
 
     With `pyvista`_:
-    Follow the steps described in :ref:`Installing MNE-Python and its dependencies`
-    but use `server_environment file`_ instead of `environment file`_.
+    Follow the steps described in :ref:`_standard_instructions`
+    but use `server environment file`_ instead of `environment file`_.
 
     With `mayavi`_:
     Installing `mayavi`_ requires a running `X server`_. If you are
@@ -300,6 +300,7 @@ Python development are:
 .. LINKS
 
 .. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
+.. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
 .. _`off-screen rendering`: https://docs.enthought.com/mayavi/mayavi/tips.html#off-screen-rendering
