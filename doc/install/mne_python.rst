@@ -181,7 +181,7 @@ you can create a new dedicated environment (here called "mne") with
     :class: danger
 
     With `pyvista`_:
-    Follow the steps described in :ref:`_standard_instructions`
+    Follow the steps described in :ref:`standard_instructions`
     but use `server environment file`_ instead of `environment file`_.
 
     With `mayavi`_:
