@@ -33,5 +33,5 @@ flake8
 https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
-pyvista==0.24.3
+https://github.com/pyvista/pyvista/archive/2651cdd04c7327182cda39084172de53d957e750.zip
 tqdm
