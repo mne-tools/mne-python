@@ -17,7 +17,7 @@ dependencies:
   - matplotlib
   - ipympl
   - jupyter
-  - pyvista==0.24.3
+  - pyvista==0.24
   - ipywidgets
   - nbformat
   - pytest-notebook
