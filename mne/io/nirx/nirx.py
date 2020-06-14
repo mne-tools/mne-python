@@ -15,6 +15,7 @@ from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
 from ...utils import logger, verbose, fill_doc
+from ...utils import warn
 
 
 @fill_doc
@@ -71,7 +72,7 @@ class RawNIRX(BaseRaw):
 
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('dat', 'evt', 'hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
+        keys = ('evt', 'hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
                 'config.txt', 'probeInfo.mat')
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
@@ -79,6 +80,11 @@ class RawNIRX(BaseRaw):
                 raise RuntimeError('Expect one %s file, got %d' %
                                    (key, len(files[key]),))
             files[key] = files[key][0]
+        if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
+            warn("A single dat file was expected in the specified path, but "
+                 "got %d. This may indicate that the file structure has been "
+                 "modified since the measurement was saved." %
+                 (len(glob.glob('%s/*%s' % (fname, 'dat')))))
 
         # Read number of rows/samples of wavelength data
         last_sample = -1
