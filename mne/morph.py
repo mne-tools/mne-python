@@ -476,7 +476,7 @@ class SourceMorph(object):
         if self.src_data['to_vox_map'] is not None:
             # order=0 (nearest) should be fine since it's just subselecting
             img_to = SpatialImage(img_to, self.affine)
-            img_to = resample_from_to(img_to, self.src_data['to_vox_map'], 0)
+            img_to = resample_from_to(img_to, self.src_data['to_vox_map'], 1)
             img_to = _get_img_fdata(img_to)
 
         # reshape to nvoxel x nvol:

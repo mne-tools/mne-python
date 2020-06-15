@@ -452,9 +452,9 @@ def test_volume_source_morph(tmpdir):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize('subject_from, subject_to, lower, upper', [
-    ('sample', 'fsaverage', 13.5, 14.5),
-    ('fsaverage', 'fsaverage', 11.5, 12.5),
-    ('sample', 'sample', 10, 11),
+    ('sample', 'fsaverage', 8.5, 9),
+    ('fsaverage', 'fsaverage', 7, 7.5),
+    ('sample', 'sample', 6, 7),
 ])
 def test_volume_source_morph_round_trip(
         tmpdir, subject_from, subject_to, lower, upper):

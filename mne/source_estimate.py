@@ -1822,7 +1822,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
-             bg_img=None, colorbar=True, colormap='auto', clim='auto',
+             bg_img='T1.mgz', colorbar=True, colormap='auto', clim='auto',
              transparent='auto', show=True, initial_time=None,
              initial_pos=None, verbose=None):
         data = self.magnitude() if self._data_ndim == 3 else self
