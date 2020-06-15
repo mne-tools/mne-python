@@ -39,7 +39,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
-                     _ensure_int, _validate_type, _check_option, _check_fname)
+                     _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from .misc import _check_mri
