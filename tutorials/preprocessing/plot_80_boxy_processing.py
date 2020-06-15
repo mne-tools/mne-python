@@ -1,18 +1,18 @@
 """
 .. _tut-fnirs-processing:
 
-Preprocessing functional near-infrared spectroscopy (fNIRS) data
+Preprocessing optical imaging data from the Imagent hardware/boxy software
 ================================================================
 
-This tutorial covers how to convert functional near-infrared spectroscopy
-(fNIRS) data from raw measurements to relative oxyhaemoglobin (HbO) and
-deoxyhaemoglobin (HbR) concentration.
+This tutorial covers how to convert optical imaging data from raw measurements
+to relative oxyhaemoglobin (HbO) and deoxyhaemoglobin (HbR) concentration.
+Phase data from the recording is also processed and plotted in several ways.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
+ .. contents:: Page contents
+    :local:
+    :depth: 2
 
-Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
+ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
 # sphinx_gallery_thumbnail_number = 1
 
@@ -24,11 +24,14 @@ import re as re
 
 import mne
 
-# load AC and Phase data
+# get our data
 boxy_data_folder = mne.datasets.boxy_example.data_path()
 boxy_raw_dir = os.path.join(boxy_data_folder, 'Participant-1')
+
+# load AC and Phase data
 raw_intensity_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC',
                                         verbose=True).load_data()
+
 raw_intensity_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph',
                                         verbose=True).load_data()
 
@@ -36,22 +39,33 @@ raw_intensity_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph',
 mtg_a = [raw_intensity_ac.ch_names[i_index] for i_index, i_label
          in enumerate(raw_intensity_ac.info['ch_names'])
          if re.search(r'S[1-5]_', i_label)]
+
 mtg_b = [raw_intensity_ac.ch_names[i_index] for i_index, i_label
          in enumerate(raw_intensity_ac.info['ch_names'])
          if re.search(r'S([6-9]|10)_', i_label)]
+
+# plot the raw data for each data type
+# AC
+scalings = dict(fnirs_raw=1e2)
+raw_intensity_ac.plot(n_channels=5, duration=20, scalings=scalings,
+                      show_scrollbars=True)
+
+# Phase
+scalings = dict(fnirs_ph=1e4)
+raw_intensity_ph.plot(n_channels=5, duration=20, scalings=scalings,
+                      show_scrollbars=True)
 
 # ###############################################################################
 # # View location of sensors over brain surface
 # # -------------------------------------------
 # #
 # # Here we validate that the location of sources-detector pairs and channels
-# # are in the expected locations. Source-detector pairs are shown as lines
-# # between the optodes, channels (the mid point of source-detector pairs) are
-# # shown as dots.
+# # are in the expected locations. Sources are bright red dots, detectors are
+# # dark red dots, with source-detector pairs connected by white lines.
 
 subjects_dir = os.path.dirname(mne.datasets.fetch_fsaverage())
 
-# plot all montages
+# plot both montages together
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity_ac.info,
                              show_axes=True,
@@ -65,7 +79,7 @@ fig = mne.viz.plot_alignment(raw_intensity_ac.info,
                              fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
-# montage A
+# plot montage A only
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity_ac.copy().pick_channels(mtg_a).info,
                              show_axes=True,
@@ -79,7 +93,7 @@ fig = mne.viz.plot_alignment(raw_intensity_ac.copy().pick_channels(mtg_a).info,
                              fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 
-# montage B
+# plot montage B only
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity_ac.copy().pick_channels(mtg_b).info,
                              show_axes=True,
@@ -98,7 +112,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # -------------------------------------------------------------
 # #
 # # First we remove channels that are too close together (short channels) to
-# # detect a neural response (less than 1 cm distance between optodes).
+# # detect a neural response (less than 3 cm distance between optodes).
 # # These short channels can be seen in the figure above.
 # # To achieve this we pick all the channels that are not considered to be short.
 
@@ -107,24 +121,16 @@ picks = mne.pick_types(raw_intensity_ac.info, meg=False, fnirs=True, stim=True)
 dists = mne.preprocessing.nirs.source_detector_distances(
     raw_intensity_ac.info, picks=picks)
 
-raw_intensity_ac.pick(picks[dists < 0.08])
+raw_intensity_ac.pick(picks[dists < 0.03])
 
-# AC
-scalings = dict(fnirs_raw=1e2)
-raw_intensity_ac.plot(n_channels=5, duration=20, scalings=scalings,
-                      show_scrollbars=True)
-
-# Phase
-scalings = dict(fnirs_ph=1e4)
-raw_intensity_ph.plot(n_channels=5, duration=20, scalings=scalings,
-                      show_scrollbars=True)
 
 # ###############################################################################
 # # Converting from raw intensity to optical density
 # # ------------------------------------------------
 # #
 # # The raw intensity values are then converted to optical density.
-# # We will only do this for either DC or AC data, since they are intensity data
+# # We will only do this for either DC or AC data since they are measures of
+# # light intensity.
 
 raw_od = mne.preprocessing.nirs.optical_density(raw_intensity_ac)
 
@@ -190,8 +196,10 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
 fig = raw_haemo.plot_psd(average=True)
 fig.suptitle('Before filtering', weight='bold', size='x-large')
 fig.subplots_adjust(top=0.88)
+
 raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
                              l_trans_bandwidth=0.02)
+
 fig = raw_haemo.plot_psd(average=True)
 fig.suptitle('After filtering', weight='bold', size='x-large')
 fig.subplots_adjust(top=0.88)
@@ -251,6 +259,9 @@ raw_intensity_ac.copy().pick_channels(mtg_b).plot(events=mtg_b_events,
 # # Next we define the range of our epochs, the rejection criteria,
 # # baseline correction, and extract the epochs. We visualise the log of which
 # # epochs were dropped.
+
+# # We will make epochs from the ac-derived heamo data and the phase data
+# # separately.
 
 # reject_criteria = dict(hbo=80e-6)
 reject_criteria = None
@@ -329,28 +340,26 @@ fig = mtg_b_epochs_ph.plot(n_epochs=5, n_channels=5, scalings='auto',
 # # View consistency of responses across trials
 # # -------------------------------------------
 # #
-# # Now we can view the haemodynamic response for our tapping condition.
-# # We visualise the response for both the oxy- and deoxyhaemoglobin, and
-# # observe the expected peak in HbO at around 6 seconds consistently across
-# # trials, and the consistent dip in HbR that is slightly delayed relative to
-# # the HbO peak.
+# # Now we can view the haemodynamic response for our different events.
 
 # haemo plots
 # Montage A
-hbo = [i_index for i_index, i_label
-       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
-       if re.search(r'S[1-5]_D[0-9] hbo', i_label)]
+hbo_a = [i_index for i_index, i_label
+         in enumerate(mtg_a_haemo_epochs.info['ch_names'])
+         if re.search(r'S[1-5]_D[0-9] hbo', i_label)]
 
-hbr = [i_index for i_index, i_label
-       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
-       if re.search(r'S[1-5]_D[0-9] hbr', i_label)]
+hbr_a = [i_index for i_index, i_label
+         in enumerate(mtg_a_haemo_epochs.info['ch_names'])
+         if re.search(r'S[1-5]_D[0-9] hbr', i_label)]
 
 mtg_a_haemo_epochs['Montage_A/Event_1'].plot_image(
-    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    combine='mean', vmin=-30, vmax=30,
+    group_by={'Mtg A, Event 1, Oxy': hbo_a, 'Mtg A, Event 1, De-Oxy': hbr_a},
     ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 mtg_a_haemo_epochs['Montage_A/Event_2'].plot_image(
-    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    combine='mean', vmin=-30, vmax=30,
+    group_by={'Mtg A, Event 2, Oxy': hbo_a, 'Mtg A, Event 2, De-Oxy': hbr_a},
     ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 # ph epochs
@@ -364,20 +373,22 @@ fig = mtg_a_epochs_ph['Montage_A/Event_2'].plot_image(
 
 
 # Montage B
-hbo = [i_index for i_index, i_label
-       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
-       if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbo', i_label)]
+hbo_b = [i_index for i_index, i_label
+         in enumerate(mtg_a_haemo_epochs.info['ch_names'])
+         if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbo', i_label)]
 
-hbr = [i_index for i_index, i_label
-       in enumerate(mtg_a_haemo_epochs.info['ch_names'])
-       if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbr', i_label)]
+hbr_b = [i_index for i_index, i_label
+         in enumerate(mtg_a_haemo_epochs.info['ch_names'])
+         if re.search(r'S([6-9]|10)_D([0-9]|1[0-6]) hbr', i_label)]
 
 mtg_b_haemo_epochs['Montage_B/Event_1'].plot_image(
-    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    combine='mean', vmin=-30, vmax=30,
+    group_by={'Mtg B, Event 1, Oxy': hbo_b, 'Mtg B, Event 1, De-Oxy': hbr_b},
     ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 mtg_b_haemo_epochs['Montage_B/Event_2'].plot_image(
-    combine='mean', vmin=-30, vmax=30, group_by={'Oxy': hbo, 'De-Oxy': hbr},
+    combine='mean', vmin=-30, vmax=30,
+    group_by={'Mtg B, Event 2, Oxy': hbo_b, 'Mtg B, Event 2, De-Oxy': hbr_b},
     ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])))
 
 # ph epochs
@@ -397,7 +408,7 @@ fig = mtg_b_epochs_ph['Montage_B/Event_2'].plot_image(
 # # pairs that we selected. All the channels in this data are located over the
 # # motor cortex, and all channels show a similar pattern in the data.
 
-# ac evoked
+# haemo evoked
 fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(15, 6))
 clim = dict(hbo=[-10, 10], hbr=[-10, 10])
 
@@ -406,21 +417,21 @@ mtg_a_2_evoked_ac = mtg_a_haemo_epochs['Montage_A/Event_2'].average()
 mtg_b_1_evoked_ac = mtg_b_haemo_epochs['Montage_B/Event_1'].average()
 mtg_b_2_evoked_ac = mtg_b_haemo_epochs['Montage_B/Event_2'].average()
 
-mtg_a_1_evoked_ac.plot_image(axes=axes[0, 0], picks=hbo,
+mtg_a_1_evoked_ac.plot_image(axes=axes[0, 0], picks=hbo_a,
                              titles='HBO Montage A Event 1', clim=clim)
-mtg_a_1_evoked_ac.plot_image(axes=axes[0, 1], picks=hbr,
+mtg_a_1_evoked_ac.plot_image(axes=axes[0, 1], picks=hbr_a,
                              titles='HBR Montage A Event 1', clim=clim)
-mtg_a_2_evoked_ac.plot_image(axes=axes[1, 0], picks=hbo,
+mtg_a_2_evoked_ac.plot_image(axes=axes[1, 0], picks=hbo_a,
                              titles='HBO Montage A Event 2', clim=clim)
-mtg_a_2_evoked_ac.plot_image(axes=axes[1, 1], picks=hbr,
+mtg_a_2_evoked_ac.plot_image(axes=axes[1, 1], picks=hbr_a,
                              titles='HBR Montage A Event 2', clim=clim)
-mtg_b_1_evoked_ac.plot_image(axes=axes[2, 0], picks=hbo,
+mtg_b_1_evoked_ac.plot_image(axes=axes[2, 0], picks=hbo_b,
                              titles='HBO Montage B Event 1', clim=clim)
-mtg_b_1_evoked_ac.plot_image(axes=axes[2, 1], picks=hbr,
+mtg_b_1_evoked_ac.plot_image(axes=axes[2, 1], picks=hbr_b,
                              titles='HBR Montage B Event 1', clim=clim)
-mtg_b_2_evoked_ac.plot_image(axes=axes[3, 0], picks=hbo,
+mtg_b_2_evoked_ac.plot_image(axes=axes[3, 0], picks=hbo_b,
                              titles='HBO Montage B Event 2', clim=clim)
-mtg_b_2_evoked_ac.plot_image(axes=axes[3, 1], picks=hbr,
+mtg_b_2_evoked_ac.plot_image(axes=axes[3, 1], picks=hbr_b,
                              titles='HBR Montage B Event 2', clim=clim)
 
 # Combine Montages
@@ -432,6 +443,7 @@ mtg_b_channels_ac = [i_index for i_index, i_label
                      in enumerate(mtg_b_1_evoked_ac.info['ch_names'])
                      if re.search(r'S([6-9]|10)_', i_label)]
 
+# zero channels that don't correspond to montage A/B
 mtg_a_1_evoked_ac._data[mtg_b_channels_ac, :] = 0
 mtg_a_2_evoked_ac._data[mtg_b_channels_ac, :] = 0
 mtg_b_1_evoked_ac._data[mtg_a_channels_ac, :] = 0
@@ -479,6 +491,7 @@ mtg_b_channels_ph = [i_index for i_index, i_label
                      in enumerate(mtg_b_1_evoked_ph.info['ch_names'])
                      if re.search(r'S([6-9]|10)_', i_label)]
 
+# zero channels that don't correspond to montage A/B
 mtg_a_1_evoked_ph._data[mtg_b_channels_ph, :] = 0
 mtg_a_2_evoked_ph._data[mtg_b_channels_ph, :] = 0
 mtg_b_1_evoked_ph._data[mtg_a_channels_ph, :] = 0
@@ -496,14 +509,15 @@ evoked_event_1_ph.plot_image(axes=axes[0], titles='Event_1', clim=clim)
 evoked_event_2_ph.plot_image(axes=axes[1], titles='Event_2', clim=clim)
 
 # ###############################################################################
-# # Plot standard fNIRS response image
+# # Plot standard haemodynamic response image
 # # ----------------------------------
 # #
-# # Next we generate the most common visualisation of fNIRS data: plotting
-# # both the HbO and HbR on the same figure to illustrate the relation between
-# # the two signals.
+# # Plot both the HbO and HbR on the same figure to illustrate the relation
+# # between the two signals.
 
-# ac
+# # We can also plot a similat figure for phase data.
+
+# haemo
 evoked_dict_ac = {'Event_1': evoked_event_1_ac, 'Event_2': evoked_event_2_ac}
 
 color_dict = {'Event_1': 'r', 'Event_2': 'b'}
@@ -523,7 +537,8 @@ mne.viz.plot_compare_evokeds(evoked_dict_ph, combine="mean", ci=0.95,
 # # View topographic representation of activity
 # # -------------------------------------------
 # #
-# # Next we view how the topographic activity changes throughout the response.
+# # Next we view how the topographic activity changes throughout the
+# # haemodynamic and phase response.
 
 # ac
 times = np.arange(0.0, 10.0, 2.0)
@@ -536,15 +551,17 @@ fig = evoked_event_2_ac.plot_joint(times=times, topomap_args=topomap_args)
 times = np.arange(0.0, 2.0, 0.5)
 topomap_args = dict(extrapolate='local')
 
-fig = evoked_event_1_ph.plot_joint(times=times, topomap_args=topomap_args)
-fig = evoked_event_2_ph.plot_joint(times=times, topomap_args=topomap_args)
+fig = evoked_event_1_ph.plot_joint(times=times, topomap_args=topomap_args,
+                                   title='Event 1 Phase')
+fig = evoked_event_2_ph.plot_joint(times=times, topomap_args=topomap_args,
+                                   title='Event 2 Phase')
 
 # ###############################################################################
-# # Compare tapping of left and right hands
+# # Compare Events 1 and 2
 # # ---------------------------------------
 # #
-# # Finally we generate topo maps for the left and right conditions to view
-# # the location of activity. First we visualise the HbO activity.
+# # We generate topo maps for events 1 and 2 to view the location of activity.
+# # First we visualise the HbO activity.
 
 # ac HBO
 fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
@@ -748,8 +765,8 @@ fig.tight_layout()
 fig, axes = plt.subplots(nrows=1, ncols=4, figsize=(9, 5),
                          gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
 vmin, vmax, ts = -0.192, 0.992, 0.1
-vmin = -20
-vmax = 20
+vmin = -180
+vmax = 180
 
 evoked_event_1_ph.plot_topomap(times=ts, axes=axes[0], vmin=vmin, vmax=vmax,
                                colorbar=False, **topomap_args)
@@ -805,4 +822,4 @@ mne.viz.plot_evoked_topo(evoked_event_2_ph, color='r', axes=axes, legend=False)
 # Tidy the legend
 leg_lines = [line for line in axes.lines if line.get_c() == 'b'][:1]
 leg_lines.append([line for line in axes.lines if line.get_c() == 'r'][0])
-fig.legend(leg_lines, ['Event 1', 'Event 2'], loc='lower right')
+fig.legend(leg_lines, ['Phase Event 1', 'Phase Event 2'], loc='lower right')
