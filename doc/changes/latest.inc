@@ -35,7 +35,7 @@ Changelog
 
 - Add support for omitting the SDR step in volumetric morphing by passing ``n_iter_sdr=()`` to `mne.compute_source_morph` by `Eric Larson`_
 
-- Add support for passing a string argument to ``bg_img`` in `mne.viz.plot_volume_source_stimates` by `Eric Larson`_
+- Add support for passing a string argument to ``bg_img`` in `mne.viz.plot_volume_source_estimates` by `Eric Larson`_
 
 - Add support for providing the destination surface source space in the ``src_to`` argument of :func:`mne.compute_source_morph` by `Eric Larson`_
 
