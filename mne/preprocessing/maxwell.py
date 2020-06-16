@@ -1888,7 +1888,7 @@ def find_bad_channels_maxwell(
 
         .. warning:: This feature is experimental and may change in a future
                      version of MNE-Python without prior notice. Please
-                     report any problems and improvement proposals to the
+                     report any problems and enhancement proposals to the
                      developers.
     %(maxwell_origin_int_ext_calibration_cross)s
     %(maxwell_coord)s
