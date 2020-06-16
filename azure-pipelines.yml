@@ -139,15 +139,22 @@ jobs:
     vmImage: 'ubuntu-18.04'
   variables:
     CONDA_ENV: 'server_environment.yml'
-    PYTHON_VERSION: '3.8'
   steps:
   - bash: |
+      set -e
       git clone https://github.com/astropy/ci-helpers.git
       source ci-helpers/travis/setup_conda.sh
+      echo PATH="$PATH"
+      conda init bash
+      echo PATH="$PATH"
       conda activate base
+      echo PATH="$PATH"
       conda env update --file $CONDA_ENV
+      echo PATH="$PATH"
       which python
+      echo PATH="$PATH"
       conda activate base
+      echo PATH="$PATH"
       which python
       pip uninstall -yq mne
       pip install -ve .
