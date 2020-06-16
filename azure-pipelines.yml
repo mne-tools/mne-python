@@ -139,20 +139,14 @@ jobs:
   pool:
     vmImage: 'ubuntu-18.04'
   variables:
-    CONDA_ENVIRONMENT: 'server_environment.yml'
-    CONDA_VERSION: '>=4.3.27'
-    TRAVIS_OS_NAME: 'linux'
+    CONDA_ENV: 'server_environment.yml'
   steps:
-  # ci-helpers sources ~/.bash_profile, but setup_conda modifies
-  # ~/.bashrc, so let's link the two temporarily
   - bash: |
       set -e
-      mv ~/.bash_profile ~/.bash_profile.bak
-      ln -s ~/.bashrc ~/.bash_profile
-      git clone https://github.com/astropy/ci-helpers.git
-      source ci-helpers/travis/setup_conda.sh
-      rm ~/.bash_profile
-      mv ~/.bash_profile.bak ~/.bash_profile
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
+      bash miniconda.sh -b -p ~/miniconda
+      ~/miniconda/bin/conda init bash
+      source ~/.bashrc
       conda activate base
       conda env update --file $CONDA_ENV
       pip uninstall -yq mne
