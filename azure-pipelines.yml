@@ -141,9 +141,9 @@ jobs:
     CONDA_ENV: 'server_environment.yml'
   steps:
   - bash: |
-      set -e
       git clone https://github.com/astropy/ci-helpers.git
       source ci-helpers/travis/setup_conda.sh
+      set -e
       echo PATH="$PATH"
       conda init bash
       echo PATH="$PATH"
