@@ -166,7 +166,6 @@ class _Renderer(_BaseRenderer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
-                self.figure.plotter_class = Plotter
                 self.figure.smooth_shading = False
                 self.tube_n_sides = 3
             with _disabled_depth_peeling():
