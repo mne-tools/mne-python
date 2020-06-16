@@ -117,7 +117,6 @@ jobs:
       set -e
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
-      pip install codecov
     displayName: 'Install dependencies with pip'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
@@ -216,7 +215,6 @@ jobs:
       set -e
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
-      pip install codecov
       pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
@@ -228,7 +226,6 @@ jobs:
       python -m pip install --upgrade --only-binary vtk vtk;
       python -m pip install https://github.com/enthought/mayavi/zipball/master
       python -m pip install -r requirements.txt
-      python -m pip install codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'
   - powershell: |
@@ -243,7 +240,6 @@ jobs:
       conda install numpy scipy matplotlib scikit-learn
       conda env update --file $env:CONDA_ENV
       pip uninstall -yq mne
-      pip install codecov
       pip uninstall -yq pysurfer mayavi
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
@@ -256,10 +252,11 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne -n 1 mne
+  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne -n 1 mne/tests/test_surface.py
     displayName: 'Run tests'
-  - script:
-      bash <(curl -s https://codecov.io/bash)
+  - powershell:
+      Invoke-WebRequest -Uri https://codecov.io/bash -OutFile codecov.sh
+      bash codecov.sh
     displayName: 'Codecov'
     condition: succeededOrFailed()
   - task: PublishTestResults@2
