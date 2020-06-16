@@ -325,7 +325,7 @@ intersphinx_mapping = {
     # There are some problems with dipy's redirect:
     # https://github.com/nipy/dipy/issues/1955
     'dipy': ('https://dipy.org/documentation/latest',
-             'https://dipy.org/documentation/1.0.0./objects.inv/'),
+             'https://dipy.org/documentation/1.1.1./objects.inv/'),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
