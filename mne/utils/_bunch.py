@@ -14,6 +14,7 @@ from copy import deepcopy
 
 class Bunch(dict):
     """Dictionary-like object that exposes its keys as attributes."""
+
     def __init__(self, **kwargs):  # noqa: D102
         dict.__init__(self, kwargs)
         self.__dict__ = self
@@ -24,6 +25,7 @@ class Bunch(dict):
 
 class BunchConst(Bunch):
     """Class to prevent us from re-defining constants (DRY)."""
+
     def __setattr__(self, attr, val):  # noqa: D105
         if attr != '__dict__' and hasattr(self, attr):
             raise AttributeError('Attribute "%s" already set' % attr)
@@ -38,6 +40,7 @@ class BunchConstNamed(BunchConst):
 
     Only supports string keys and int or float values.
     """
+
     def __setattr__(self, attr, val):  # noqa: D105
         assert isinstance(attr, str)
         if isinstance(val, int):

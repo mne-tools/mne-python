@@ -20,7 +20,8 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
 
 
 data_path.__doc__ = _data_path_doc.format(name='boxy_example',
-                                          conf='MNE_DATASETS_BOXY_EXAMPLE_PATH')
+                                          conf='MNE_DATASETS_BOXY_EXAMPLE_PATH'
+                                          )
 
 
 def get_version():  # noqa: D103
