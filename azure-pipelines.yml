@@ -26,6 +26,7 @@ jobs:
       addToPath: true
     displayName: 'Get Python'
   - bash: |
+      set -e
       python -m pip install --upgrade pip setuptools
       python -m pip install numpy scipy matplotlib sphinx pytest pytest-cov pytest-timeout pytest-sugar flake8
     displayName: Install dependencies
@@ -139,9 +140,9 @@ jobs:
     vmImage: 'ubuntu-18.04'
   variables:
     CONDA_ENV: 'server_environment.yml'
+    CONDA_VERSION: '>=4.3.27'
   steps:
   - bash: |
-      set -e
       git clone https://github.com/astropy/ci-helpers.git
       source ci-helpers/travis/setup_conda_linux.sh
       conda activate base
