@@ -97,7 +97,7 @@ Changelog
 
 - Add support for reading and writing surfaces in Wavefront .obj format to the :func:`mne.read_surface` and :func:`mne.write_surface` by `Marijn van Vliet`_
 
-- Add tutorial on how to manually fix BEM meshes in Blender by `Marijn van Vliet`_
+- Add tutorial on how to manually fix BEM meshes in Blender by `Marijn van Vliet`_ and `Ezequiel Mikulan`_
 
 Bug
 ~~~

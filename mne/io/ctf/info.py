@@ -239,7 +239,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 nmeg += 1
                 ch['logno'] = nmeg
             # Encode the software gradiometer order
-            ch['coil_type'] = ch['coil_type'] | (cch['grad_order_no'] << 16)
+            ch['coil_type'] = int(
+                ch['coil_type'] | (cch['grad_order_no'] << 16))
             ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
         elif cch['sensor_type_index'] == CTF.CTFV_EEG_CH:
             coord_frame = FIFF.FIFFV_COORD_HEAD

@@ -336,6 +336,9 @@ def test_montage_readers(
         assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
     for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
         assert d1['coord_frame'] == d2['coord_frame']
+        for key in ('coord_frame', 'ident', 'kind'):
+            assert isinstance(d1[key], int)
+            assert isinstance(d2[key], int)
 
 
 @testing.requires_testing_data
