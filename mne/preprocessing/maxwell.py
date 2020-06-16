@@ -1933,7 +1933,6 @@ def find_bad_channels_maxwell(
         .. note:: The scores and limits for channels marked as ``bad`` in the
                   input data will will be set to ``np.nan``.
 
-
     See Also
     --------
     mark_flat
