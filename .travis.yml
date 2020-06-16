@@ -25,10 +25,6 @@ matrix:
         - os: linux
           env: CONDA_ENV="environment.yml"
 
-        # Notebook
-        - os: linux
-          env: CONDA_ENV="server_environment.yml"
-
         # OSX conda
         - os: osx
           env: CONDA_ENV="environment.yml"

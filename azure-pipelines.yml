@@ -139,12 +139,13 @@ jobs:
   pool:
     vmImage: 'ubuntu-18.04'
   variables:
-    CONDA_ENV: 'server_environment.yml'
+    CONDA_ENVIRONMENT: 'server_environment.yml'
     CONDA_VERSION: '>=4.3.27'
     TRAVIS_OS_NAME: 'linux'
   steps:
   - bash: |
       set -e
+      ln -s ~/.bashrc ~/.bash_profile
       git clone https://github.com/astropy/ci-helpers.git
       source ci-helpers/travis/setup_conda.sh
       conda activate base
