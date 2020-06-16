@@ -1925,11 +1925,16 @@ def find_bad_channels_maxwell(
             The score thresholds above which a segment was claffified as
             "noisy".
 
+<<<<<<< HEAD
         .. note:: The scores and limits for channels marked as ``bad`` in the
                   input data will either be set to ``np.inf`` or ``-np.inf``,
                   such that the comparison between the scores and their
                   corresponding limits via the "greater than" and "less than"
                   operators will not yield the channel as auto-detected bad.
+=======
+        The scores and limits for channels marked as ``bad`` in the input data
+        will will be set to ``np.nan``.
+>>>>>>> parent of 5f36bd168... Use inf, -inf instead of nan
 
     See Also
     --------
@@ -2021,11 +2026,11 @@ def find_bad_channels_maxwell(
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
 
-    scores_flat = np.full((len(ch_names), len(starts)), np.inf)
-    scores_noisy = np.full_like(scores_flat, fill_value=-np.inf)
+    scores_flat = np.full((len(ch_names), len(starts)), np.nan)
+    scores_noisy = np.full_like(scores_flat, fill_value=np.nan)
 
-    thresh_flat = np.full((len(ch_names), 1), -np.inf)
-    thresh_noisy = np.full_like(thresh_flat, fill_value=np.inf)
+    thresh_flat = np.full((len(ch_names), 1), np.nan)
+    thresh_noisy = np.full_like(thresh_flat, fill_value=np.nan)
 
     for si, (start, stop) in enumerate(zip(starts, stops)):
         n_iter = 0
