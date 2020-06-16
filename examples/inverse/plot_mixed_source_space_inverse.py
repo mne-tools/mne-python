@@ -3,7 +3,7 @@
 Compute MNE inverse solution on evoked data in a mixed source space
 ===================================================================
 
-Create a mixed source space and compute MNE inverse solution on an
+Create a mixed source space and compute an MNE inverse solution on an
 evoked dataset.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
@@ -79,6 +79,8 @@ n = sum(src[i]['nuse'] for i in range(len(src)))
 print('the src space contains %d spaces and %d points' % (len(src), n))
 
 ###############################################################################
+# Viewing the source space
+# ------------------------
 # We could write the mixed source space with::
 #
 #    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
@@ -87,7 +89,6 @@ print('the src space contains %d spaces and %d points' % (len(src), n))
 
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
 src.export_volume(nii_fname, mri_resolution=True, overwrite=True)
-
 plotting.plot_img(nii_fname, cmap='nipy_spectral')
 
 ###############################################################################
