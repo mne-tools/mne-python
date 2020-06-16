@@ -117,14 +117,16 @@ jobs:
       set -e
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
+      pip install codecov
     displayName: 'Install dependencies with pip'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
   - script: pytest -m "ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run ultraslow tests'
-  - script:
-      bash <(curl -s https://codecov.io/bash)
+  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
     displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
     condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
@@ -149,7 +151,7 @@ jobs:
       conda env update --file $CONDA_ENV
       pip uninstall -yq mne
       pip install -ve .
-      pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8
+      pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8 codecov
       echo "##vso[task.setvariable variable=PATH]${PATH}"
       echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
     displayName: 'Install dependencies'
@@ -159,9 +161,10 @@ jobs:
     displayName: 'Get test data'
   - script: pytest --tb=short --cov=mne mne/viz
     displayName: 'Run viz tests'
-  - script:
-      bash <(curl -s https://codecov.io/bash)
+  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
     displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
     condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
@@ -215,6 +218,7 @@ jobs:
       set -e
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
+      pip install codecov
       pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
@@ -226,6 +230,7 @@ jobs:
       python -m pip install --upgrade --only-binary vtk vtk;
       python -m pip install https://github.com/enthought/mayavi/zipball/master
       python -m pip install -r requirements.txt
+      python -m pip install codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'
   - powershell: |
@@ -240,6 +245,7 @@ jobs:
       conda install numpy scipy matplotlib scikit-learn
       conda env update --file $env:CONDA_ENV
       pip uninstall -yq mne
+      pip install codecov
       pip uninstall -yq pysurfer mayavi
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
@@ -254,10 +260,10 @@ jobs:
     displayName: 'Get test data'
   - script: pytest -m "not slowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run tests'
-  - powershell: |
-      Invoke-WebRequest -Uri "https://codecov.io/bash" -OutFile "codecov.sh"
-      bash codecov.sh
+  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
     condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
