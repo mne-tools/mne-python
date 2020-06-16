@@ -15,11 +15,9 @@ jobs:
 - job: Style
   pool:
     vmImage: 'ubuntu-18.04'
-  strategy:
-    matrix:
-      Python37-64bit-fast:
-        PYTHON_VERSION: '3.7'
-        PYTHON_ARCH: 'x64'
+  variables:
+    PYTHON_VERSION: '3.8'
+    PYTHON_ARCH: 'x64'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -124,16 +122,54 @@ jobs:
     displayName: 'Get test data'
   - script: pytest -m "ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run ultraslow tests'
-  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+  - script:
+      bash <(curl -s https://codecov.io/bash)
     displayName: 'Codecov'
-    env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
-    condition: always()
+    condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for Python $(python.version)'
-    condition: always()
+      testRunTitle: 'Publish test results for ultraslow tests'
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()
+
+
+- job: Notebook
+  pool:
+    vmImage: 'ubuntu-18.04'
+  variables:
+    CONDA_ENV: 'server_environment.yml'
+    PYTHON_VERSION: '3.8'
+  steps:
+  - bash: |
+      git clone https://github.com/astropy/ci-helpers.git
+      source ci-helpers/travis/setup_conda.sh
+      conda activate base
+      conda env update --file $CONDA_ENV
+      pip uninstall -yq mne
+      pip install -ve .
+      pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8
+      echo "##vso[task.setvariable variable=PATH]${PATH}"
+      echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
+    displayName: 'Install dependencies'
+  - script: mne sys_info
+    displayName: 'Print config and test access to commands'
+  - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+    displayName: 'Get test data'
+  - script: pytest --tb=short --cov=mne -n 1 mne/viz
+    displayName: 'Run viz tests'
+  - script:
+      bash <(curl -s https://codecov.io/bash)
+    displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
+    condition: succeededOrFailed()
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: 'junit-*.xml'
+      testRunTitle: 'Publish test results for Notebook'
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()
 
 
 - job: Windows
@@ -226,9 +262,10 @@ jobs:
     displayName: 'Codecov'
     env:
       CODECOV_TOKEN: $(CODECOV_TOKEN)
-    condition: always()
+    condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for Python $(python.version)'
-    condition: always()
+      testRunTitle: 'Publish test results for Windows $(TEST_MODE) $(PYTHON_VERSION)'
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()
