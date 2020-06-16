@@ -254,8 +254,8 @@ jobs:
     displayName: 'Get test data'
   - script: pytest -m "not slowtest" --tb=short --cov=mne -n 1 mne/tests/test_surface.py
     displayName: 'Run tests'
-  - powershell:
-      Invoke-WebRequest -Uri https://codecov.io/bash -OutFile codecov.sh
+  - powershell: |
+      Invoke-WebRequest -Uri "https://codecov.io/bash" -OutFile "codecov.sh"
       bash codecov.sh
     displayName: 'Codecov'
     condition: succeededOrFailed()
