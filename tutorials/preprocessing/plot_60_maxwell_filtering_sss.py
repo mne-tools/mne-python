@@ -19,6 +19,7 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 import mne
 from mne.preprocessing import find_bad_channels_maxwell
 
@@ -117,11 +118,9 @@ print(auto_noisy_chs)  # we should find them!
 print(auto_flat_chs)  # none for this dataset
 
 ###############################################################################
-# Now we can update the list of bad channels in the dataset. We first create a
-# set (a collection of unique values) to ensure no channel appears more than
-# once; we then sort the channels alphabetically.
+# Now we can update the list of bad channels in the dataset.
 
-bads = set([*raw.info['bads'], *auto_noisy_chs, *auto_flat_chs])
+bads = [*raw.info['bads'], *auto_noisy_chs, *auto_flat_chs]
 bads = sorted(bads)
 raw.info['bads'] = bads
 
@@ -163,11 +162,9 @@ sns.heatmap(data=data_to_plot, cmap='Reds', cbar_kws=dict(label='Score'),
     for x in range(1, len(bins))]
 ax[0].set_title('All Scores', fontweight='bold')
 
-# Now, only plot scores that exceeded the limits. We do this by placing a mask
-# on all data points less than or equal to the limits.
-mask = scores <= limits
-sns.heatmap(data=data_to_plot, mask=mask,
-            vmin=limits.min(), vmax=scores.max(),  # May be omitted.
+# Now, adjust the color range to highlight segments that exceeded the limit.
+sns.heatmap(data=data_to_plot,
+            vmin=np.nanmin(limits),  # bads in input data have NaN limits
             cmap='Reds', cbar_kws=dict(label='Score'), ax=ax[1])
 [ax[1].axvline(x, ls='dashed', lw=0.25, dashes=(25, 15), color='gray')
     for x in range(1, len(bins))]
@@ -180,9 +177,8 @@ fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 #
 # .. note:: You can use the very same code as above to produce figures for
 #           *flat* channel detection. Simply replace the word "noisy" with
-#           "flat", and invert the ``mask``, such that it reads:
-#           ``mask = scores >= limits``. Lastly, in the second plot command,
-#           set ``vmin=scores.min()`` and ``vmax=limits.max()``.
+#           "flat", and replace ``vmin=np.nanmin(limits)`` with
+#           ``vmax=np.nanmax(limits)``.
 #
 # You can see the un-altered scores for each channel and time segment in the
 # left subplots, and thresholded scores – those which exceeded a certain limit
