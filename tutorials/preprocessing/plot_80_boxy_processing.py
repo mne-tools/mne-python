@@ -114,7 +114,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # First we remove channels that are too close together (short channels) to
 # # detect a neural response (less than 3 cm distance between optodes).
 # # These short channels can be seen in the figure above.
-# # To achieve this we pick all the channels that are not considered to be short.
+# # To achieve this we pick all the channels not considered to be short.
 
 picks = mne.pick_types(raw_intensity_ac.info, meg=False, fnirs=True, stim=True)
 
@@ -598,15 +598,15 @@ evoked_event_2_ac.copy().pick(hbo_b).plot_topomap(times=times,
                                                   colorbar=False,
                                                   **topomap_args)
 
-evoked_event_1_ac.copy().pick(hbo_a+hbo_b).plot_topomap(times=times,
-                                                        axes=axes[0, 2:],
-                                                        colorbar=True,
-                                                        **topomap_args)
+evoked_event_1_ac.copy().pick(hbo_a + hbo_b).plot_topomap(times=times,
+                                                          axes=axes[0, 2:],
+                                                          colorbar=True,
+                                                          **topomap_args)
 
-evoked_event_2_ac.copy().pick(hbo_a+hbo_b).plot_topomap(times=times,
-                                                        axes=axes[1, 2:],
-                                                        colorbar=True,
-                                                        **topomap_args)
+evoked_event_2_ac.copy().pick(hbo_a + hbo_b).plot_topomap(times=times,
+                                                          axes=axes[1, 2:],
+                                                          colorbar=True,
+                                                          **topomap_args)
 
 for column, condition in enumerate(['Montage A', 'Montage B', 'Combined']):
     for row, chroma in enumerate(['HBO Event 1', 'HBO Event 2']):
@@ -650,14 +650,14 @@ evoked_event_2_ac.copy().pick(hbr_b).plot_topomap(times=times,
                                                   colorbar=False,
                                                   **topomap_args)
 
-evoked_event_1_ac.copy().pick(hbr_a+hbr_b).plot_topomap(times=times,
-                                                        axes=axes[0, 2:],
-                                                        colorbar=True,
-                                                        **topomap_args)
-evoked_event_2_ac.copy().pick(hbr_a+hbr_b).plot_topomap(times=times,
-                                                        axes=axes[1, 2:],
-                                                        colorbar=True,
-                                                        **topomap_args)
+evoked_event_1_ac.copy().pick(hbr_a + hbr_b).plot_topomap(times=times,
+                                                          axes=axes[0, 2:],
+                                                          colorbar=True,
+                                                          **topomap_args)
+evoked_event_2_ac.copy().pick(hbr_a + hbr_b).plot_topomap(times=times,
+                                                          axes=axes[1, 2:],
+                                                          colorbar=True,
+                                                          **topomap_args)
 
 for column, condition in enumerate(['Montage A', 'Montage B', 'Combined']):
     for row, chroma in enumerate(['HBR Event 1', 'HBR Event 2']):
