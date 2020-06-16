@@ -143,11 +143,15 @@ jobs:
     CONDA_VERSION: '>=4.3.27'
     TRAVIS_OS_NAME: 'linux'
   steps:
+  # ci-helpers sources ~/.bash_profile, but setup_conda modifies
+  # ~/.bashrc, so let's link the two temporarily
   - bash: |
       set -e
+      rm ~/.bash_profile
       ln -s ~/.bashrc ~/.bash_profile
       git clone https://github.com/astropy/ci-helpers.git
       source ci-helpers/travis/setup_conda.sh
+      rm ~/.bash_profile
       conda activate base
       conda env update --file $CONDA_ENV
       pip uninstall -yq mne
