@@ -64,14 +64,12 @@ class _Figure(object):
         self.store['off_screen'] = off_screen
         self.store['border'] = False
         self.store['auto_update'] = False
-        self.store['notebook'] = False
 
     def build(self):
         if self.plotter_class is None:
             self.plotter_class = BackgroundPlotter
         if self.notebook:
             self.plotter_class = Plotter
-            self.store['off_screen'] = True
 
         if self.plotter_class == Plotter:
             self.store.pop('show', None)
