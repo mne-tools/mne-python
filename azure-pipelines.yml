@@ -158,7 +158,7 @@ jobs:
     displayName: 'Print config and test access to commands'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest --tb=short --cov=mne -n 1 mne/viz
+  - script: pytest --tb=short --cov=mne mne/viz
     displayName: 'Run viz tests'
   - script:
       bash <(curl -s https://codecov.io/bash)
