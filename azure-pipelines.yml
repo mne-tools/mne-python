@@ -143,9 +143,6 @@ jobs:
   - bash: |
       git clone https://github.com/astropy/ci-helpers.git
       source ci-helpers/travis/setup_conda.sh
-      set -e
-      echo PATH="$PATH"
-      conda init bash
       echo PATH="$PATH"
       conda activate base
       echo PATH="$PATH"
