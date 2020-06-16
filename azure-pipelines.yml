@@ -252,7 +252,7 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not slowtest" --tb=short --cov=mne -n 1 mne/tests/test_surface.py
+  - script: pytest -m "not slowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run tests'
   - powershell: |
       Invoke-WebRequest -Uri "https://codecov.io/bash" -OutFile "codecov.sh"
