@@ -1885,6 +1885,11 @@ def find_bad_channels_maxwell(
     return_scores : bool
         If ``True``, return a dictionary with scoring information for each
         evaluated segment of the data. Default is ``False``.
+
+        .. warning:: This feature is experimental and may change in a future
+                     version of MNE-Python without prior notice. Please
+                     report any problems and improvement proposals to the
+                     developers.
     %(maxwell_origin_int_ext_calibration_cross)s
     %(maxwell_coord)s
     %(maxwell_reg_ref_cond_pos)s
