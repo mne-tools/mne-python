@@ -1925,16 +1925,9 @@ def find_bad_channels_maxwell(
             The score thresholds above which a segment was claffified as
             "noisy".
 
-<<<<<<< HEAD
         .. note:: The scores and limits for channels marked as ``bad`` in the
-                  input data will either be set to ``np.inf`` or ``-np.inf``,
-                  such that the comparison between the scores and their
-                  corresponding limits via the "greater than" and "less than"
-                  operators will not yield the channel as auto-detected bad.
-=======
-        The scores and limits for channels marked as ``bad`` in the input data
-        will will be set to ``np.nan``.
->>>>>>> parent of 5f36bd168... Use inf, -inf instead of nan
+                  input data will will be set to ``np.nan``.
+
 
     See Also
     --------
