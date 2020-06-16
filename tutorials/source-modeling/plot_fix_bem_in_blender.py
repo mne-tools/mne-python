@@ -8,11 +8,12 @@ Here, we will see how this can be achieved by exporting the surfaces to the 3D
 modeling program `Blender <https://blender.org>`_, editing them, and
 re-importing them.
 
-This tutorial is based on https://github.com/ezemikulan/blender_freesurfer
+This tutorial is based on https://github.com/ezemikulan/blender_freesurfer by
+Ezequiel Mikulan.
 """
 
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          @ezemikulan
+#          Ezequiel Mikulan <e.mikulan@gmail.com>
 #
 # License: BSD (3-clause)
 
