@@ -163,8 +163,6 @@ jobs:
   - script:
       bash <(curl -s https://codecov.io/bash)
     displayName: 'Codecov'
-    env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
     condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
@@ -260,10 +258,9 @@ jobs:
     displayName: 'Get test data'
   - script: pytest -m "not ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run tests'
-  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+  - script:
+      bash <(curl -s https://codecov.io/bash)
     displayName: 'Codecov'
-    env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
     condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
