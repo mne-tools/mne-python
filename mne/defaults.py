@@ -42,7 +42,7 @@ DEFAULTS = dict(
                 dipole='Dipole', ecog='ECoG', hbo='Oxyhemoglobin',
                 ref_meg='Reference Magnetometers', fnirs_raw='fNIRS (raw)',
                 fnirs_od='fNIRS (OD)', fnirs_ph='fNIRS (Ph)',
-                hbr='Deoxyhemoglobin', gof='Goodness of fit', 
+                hbr='Deoxyhemoglobin', gof='Goodness of fit',
                 csd='Current source density'),
     mask_params=dict(marker='o',
                      markerfacecolor='w',
