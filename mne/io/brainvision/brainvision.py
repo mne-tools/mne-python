@@ -764,7 +764,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
             scanno=idx + 1, cal=cals[idx], range=ranges[idx],
             loc=np.full(12, np.nan),
-            unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
+            unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()

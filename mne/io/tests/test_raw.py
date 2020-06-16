@@ -17,7 +17,7 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
 from mne import concatenate_raws, create_info, Annotations
 from mne.datasets import testing
 from mne.externals.h5io import read_hdf5, write_hdf5
-from mne.io import read_raw_fif, RawArray, BaseRaw, Info
+from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
                        object_diff, check_version)
 from mne.io.meas_info import _get_valid_units
@@ -207,7 +207,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     # (all fields should be compatible)
     if check_version('h5py'):
         fname_h5 = op.join(tempdir, 'info.h5')
-        write_hdf5(fname_h5, raw.info)
+        with _writing_info_hdf5(raw.info):
+            write_hdf5(fname_h5, raw.info)
         new_info = Info(read_hdf5(fname_h5))
         assert object_diff(new_info, raw.info) == ''
     return raw
