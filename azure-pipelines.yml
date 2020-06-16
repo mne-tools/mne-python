@@ -129,7 +129,7 @@ jobs:
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for ultraslow tests'
+      testRunTitle: 'Publish test results for $(Agent.JobName)'
       failTaskOnFailedTests: true
     condition: succeededOrFailed()
 
@@ -145,10 +145,12 @@ jobs:
       git clone https://github.com/astropy/ci-helpers.git
       source ci-helpers/travis/setup_conda.sh
       conda activate base
-      conda env update --file $CONDA_ENV
-      pip uninstall -yq mne
-      pip install -ve .
-      pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8
+      conda env update -n base --file $CONDA_ENV
+      which python
+      which pip
+      python -m pip uninstall -yq mne
+      python -m pip install -ve .
+      python -m pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8
       echo "##vso[task.setvariable variable=PATH]${PATH}"
       echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
     displayName: 'Install dependencies'
@@ -167,7 +169,7 @@ jobs:
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for Notebook'
+      testRunTitle: 'Publish test results for $(Agent.JobName)'
       failTaskOnFailedTests: true
     condition: succeededOrFailed()
 
@@ -266,6 +268,6 @@ jobs:
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for Windows $(TEST_MODE) $(PYTHON_VERSION)'
+      testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
       failTaskOnFailedTests: true
     condition: succeededOrFailed()
