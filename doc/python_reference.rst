@@ -278,6 +278,7 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   set_3d_options
    set_3d_view
    set_3d_title
    create_3d_figure

@@ -799,12 +799,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                copy=False, verbose=False)
 
+        # Decimate if necessary (i.e., epoch not preloaded)
+        epoch = epoch[:, self._decim_slice]
+
         # handle offset
         if self._offset is not None:
             epoch += self._offset
 
-        # Decimate if necessary (i.e., epoch not preloaded)
-        epoch = epoch[:, self._decim_slice]
         return epoch
 
     def iter_evoked(self, copy=False):
@@ -3192,6 +3193,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     decomp_coil_scale = coil_scale[good_mask]
     exp = dict(int_order=int_order, ext_order=ext_order, head_frame=True,
                origin=origin)
+    n_in = _get_n_moments(int_order)
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
@@ -3215,8 +3217,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         if not reuse:
             S = _trans_sss_basis(exp, all_coils, trans,
                                  coil_scale=decomp_coil_scale)
-            # Get the weight from the un-regularized version
-            weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
+            # Get the weight from the un-regularized version (eq. 44)
+            weight = np.linalg.norm(S[:, :n_in])
             # XXX Eventually we could do cross-talk and fine-cal here
             S *= weight
         S_decomp += S  # eq. 41

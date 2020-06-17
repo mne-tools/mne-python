@@ -137,12 +137,17 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
-                 name="PyVista Scene", show=False, shape=(1, 1)):
+                 name="PyVista Scene", show=False, shape=(1, 1),
+                 notebook=None):
         from .renderer import MNE_3D_BACKEND_TESTING
+        from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=None)
+                         background_color=bgcolor, notebook=notebook)
         self.font_family = "arial"
         self.tube_n_sides = 20
+        self.shape = shape
+        antialias = _get_3d_option('antialias')
+        self.antialias = antialias and not MNE_3D_BACKEND_TESTING
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -173,15 +178,16 @@ class _Renderer(_BaseRenderer):
                 self.plotter.default_camera_tool_bar.close()
             if hasattr(self.plotter, "saved_cameras_tool_bar"):
                 self.plotter.saved_cameras_tool_bar.close()
-            if not MNE_3D_BACKEND_TESTING:
+            if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
     def subplot(self, x, y):
-        from .renderer import MNE_3D_BACKEND_TESTING
+        x = np.max([0, np.min([x, self.shape[0] - 1])])
+        y = np.max([0, np.min([y, self.shape[1] - 1])])
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
-            if not MNE_3D_BACKEND_TESTING:
+            if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
     def scene(self):
@@ -571,10 +577,13 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         r = distance
     else:
         r = max(bounds[1::2] - bounds[::2]) * 2.0
+        distance = r
 
-    cen = (bounds[1::2] + bounds[::2]) * 0.5
     if focalpoint is not None:
         cen = np.asarray(focalpoint)
+    else:
+        cen = (bounds[1::2] + bounds[::2]) * 0.5
+        focalpoint = cen
 
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the
@@ -590,6 +599,10 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         r * np.cos(theta)]
     figure.plotter.camera_position = [
         position, cen, view_up]
+
+    figure.plotter.renderer._azimuth = azimuth
+    figure.plotter.renderer._elevation = elevation
+    figure.plotter.renderer._distance = distance
 
 
 def _set_3d_title(figure, title, size=16):

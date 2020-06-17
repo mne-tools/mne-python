@@ -56,6 +56,7 @@ def _check_h5(fname):
 
 @requires_h5py
 @testing.requires_testing_data
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     'fname', [raw_fname_mat, raw_fname_h5], ids=op.basename
 )

@@ -1858,7 +1858,7 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
 # st_only
 @verbose
 def find_bad_channels_maxwell(
-        raw, limit=7., duration=5., min_count=5,
+        raw, limit=7., duration=5., min_count=5, return_scores=False,
         origin='auto', int_order=8, ext_order=3, calibration=None,
         cross_talk=None, coord_frame='head', regularize='in', ignore_ref=False,
         bad_condition='error', head_pos=None, mag_scale=100.,
@@ -1877,10 +1877,19 @@ def find_bad_channels_maxwell(
         Detection limit (default is 7.). Smaller values will find more bad
         channels at increased risk of including good ones.
     duration : float
-        Duration into which to window the data for processing. Default is 5.
+        Duration of the segments into which to slice the data for processing,
+        in seconds. Default is 5.
     min_count : int
         Minimum number of times a channel must show up as bad in a chunk.
         Default is 5.
+    return_scores : bool
+        If ``True``, return a dictionary with scoring information for each
+        evaluated segment of the data. Default is ``False``.
+
+        .. warning:: This feature is experimental and may change in a future
+                     version of MNE-Python without prior notice. Please
+                     report any problems and enhancement proposals to the
+                     developers.
     %(maxwell_origin_int_ext_calibration_cross)s
     %(maxwell_coord)s
     %(maxwell_reg_ref_cond_pos)s
@@ -1896,6 +1905,33 @@ def find_bad_channels_maxwell(
     flat_chs : list
         List of MEG channels that were detected as being flat in at least
         ``min_count`` segments.
+    scores : dict
+        A dictionary with information produced by the scoring algorithms.
+        Only returned when ``return_scores`` is ``True``. It contains the
+        following keys:
+
+        - ``ch_names`` : ndarray, shape (n_meg,)
+            The names of the MEG channels. Their order corresponds to the
+            order of rows in the ``scores`` and ``limits`` arrays.
+        - ``ch_types`` : ndarray, shape (n_meg,)
+            The types of the MEG channels in ``ch_names`` (``'mag'``,
+            ``'grad'``).
+        - ``bins`` : ndarray, shape (n_windows, 2)
+            The inclusive window boundaries (start and stop; in seconds) used
+            to calculate the scores.
+        - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
+            The scores for testing whether MEG channels are flat.
+        - ``limits_flat`` : ndarray, shape (n_meg, 1)
+            The score thresholds above which a segment was claffified as
+            "flat".
+        - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
+            The scores for testing whether MEG channels are noisy.
+        - ``limits_noisy`` : ndarray, shape (n_meg, 1)
+            The score thresholds above which a segment was claffified as
+            "noisy".
+
+        .. note:: The scores and limits for channels marked as ``bad`` in the
+                  input data will will be set to ``np.nan``.
 
     See Also
     --------
@@ -1904,10 +1940,11 @@ def find_bad_channels_maxwell(
 
     Notes
     -----
-    All arguments after ``raw``, ``limit``, ``duration``, and ``min_count``
-    are the same as :func:`~maxwell_filter`, except that the following are
-    not allowed in this function because they are unused: ``st_duration``,
-    ``st_correlation``, ``destination``, ``st_fixed``, and ``st_only``.
+    All arguments after ``raw``, ``limit``, ``duration``, ``min_count``, and
+    ``return_scores`` are the same as :func:`~maxwell_filter`, except that the
+    following are not allowed in this function because they are unused:
+    ``st_duration``, ``st_correlation``, ``destination``, ``st_fixed``, and
+    ``st_only``.
 
     This algorithm, for a given chunk of data:
 
@@ -1973,20 +2010,48 @@ def find_bad_channels_maxwell(
         if pick in params['grad_picks'] else
         flat_limits['mag']
         for pick in good_meg_picks])
+
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
+
+    # Prepare variables to return if `return_scores=True`.
+    bins = np.empty((len(starts), 2))  # To store start, stop of each segment
+    # We create ndarrays with one row per channel, regardless of channel type
+    # and whether the channel has been marked as "bad" in info or not. This
+    # makes indexing in the loop easier. We only filter this down to the subset
+    # of MEG channels after all processing is done.
+    ch_names = np.array(raw.ch_names)
+    ch_types = np.array(raw.get_channel_types())
+
+    scores_flat = np.full((len(ch_names), len(starts)), np.nan)
+    scores_noisy = np.full_like(scores_flat, fill_value=np.nan)
+
+    thresh_flat = np.full((len(ch_names), 1), np.nan)
+    thresh_noisy = np.full_like(thresh_flat, fill_value=np.nan)
+
     for si, (start, stop) in enumerate(zip(starts, stops)):
         n_iter = 0
         orig_data = raw.get_data(None, start, stop, verbose=False)
         chunk_raw = RawArray(
             orig_data, params['info'],
             first_samp=raw.first_samp + start, copy='data', verbose=False)
+
+        t = chunk_raw.times[[0, -1]] + start / raw.info['sfreq']
+        logger.info('        Interval %3d: %8.3f - %8.3f'
+                    % ((si + 1,) + tuple(t[[0, -1]])))
+
         # Flat pass: var < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
         flat_stop = n - (n % flat_step)
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
         data.shape = (data.shape[0], -1, flat_step)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
+
+        # We may want to return this later if `return_scores=True`.
+        bins[si, :] = t[0], t[-1]
+        scores_flat[good_meg_picks, si] = delta
+        thresh_flat[good_meg_picks] = these_limits.reshape(-1, 1)
+
         chunk_flats = delta < these_limits
         chunk_flats = np.where(chunk_flats)[0]
         chunk_flats = [raw.ch_names[good_meg_picks[chunk_flat]]
@@ -2000,9 +2065,6 @@ def find_bad_channels_maxwell(
         chunk_noisy = list()
         params['st_duration'] = int(round(
             chunk_raw.times[-1] * raw.info['sfreq']))
-        t = chunk_raw.times[[0, -1]] + start / raw.info['sfreq']
-        logger.info('        Interval %3d: %8.3f - %8.3f'
-                    % ((si + 1,) + tuple(t[[0, -1]])))
         for n_iter in range(1, 101):  # iteratively exclude the worst ones
             assert set(raw.info['bads']) & set(chunk_noisy) == set()
             params['good_mask'][:] = [
@@ -2028,8 +2090,14 @@ def find_bad_channels_maxwell(
             z = (range_ - mean) / std
             idx = np.argmax(z)
             max_ = z[idx]
+
+            # We may want to return this later if `return_scores=True`.
+            scores_noisy[these_picks, si] = z
+            thresh_noisy[these_picks] = limit
+
             if max_ < limit:
                 break
+
             name = raw.ch_names[these_picks[idx]]
             logger.debug('            Bad:       %s %0.1f'
                          % (name, max_))
@@ -2040,7 +2108,27 @@ def find_bad_channels_maxwell(
                        key=lambda x: raw.ch_names.index(x))
     flat_chs = sorted((f for f, c in flat_chs.items() if c >= min_count),
                       key=lambda x: raw.ch_names.index(x))
+
+    # Only include MEG channels.
+    ch_names = ch_names[params['meg_picks']]
+    ch_types = ch_types[params['meg_picks']]
+    scores_flat = scores_flat[params['meg_picks']]
+    thresh_flat = thresh_flat[params['meg_picks']]
+    scores_noisy = scores_noisy[params['meg_picks']]
+    thresh_noisy = thresh_noisy[params['meg_picks']]
+
     logger.info('    Static bad channels:  %s' % (noisy_chs,))
     logger.info('    Static flat channels: %s' % (flat_chs,))
     logger.info('[done]')
-    return noisy_chs, flat_chs
+
+    if return_scores:
+        scores = dict(ch_names=ch_names,
+                      ch_types=ch_types,
+                      bins=bins,
+                      scores_flat=scores_flat,
+                      limits_flat=thresh_flat,
+                      scores_noisy=scores_noisy,
+                      limits_noisy=thresh_noisy)
+        return noisy_chs, flat_chs, scores
+    else:
+        return noisy_chs, flat_chs

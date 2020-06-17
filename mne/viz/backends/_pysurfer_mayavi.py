@@ -316,9 +316,11 @@ class _Renderer(_BaseRenderer):
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""
+    from .._3d import _get_3d_option
     fig = _import_mlab().figure(**kwargs)
     # If using modern VTK/Mayavi, improve rendering with FXAA
-    if hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
+    antialias = _get_3d_option('antialias')
+    if antialias and hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
         fig.scene.renderer.use_fxaa = True
     return fig
 

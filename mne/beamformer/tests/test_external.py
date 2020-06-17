@@ -12,6 +12,7 @@ import mne
 from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
+from mne.externals.pymatreader import read_mat
 from mne.utils import run_tests_if_main
 
 
@@ -88,11 +89,15 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
         stc_mne.data[:, :] = np.abs(stc_mne.data)
 
     # load the FieldTrip output
-    ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.stc')
-    stc_ft = mne.read_source_estimate(ft_fname)
+    ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.mat')
+    stc_ft_data = read_mat(ft_fname)['stc']
+    if stc_ft_data.ndim == 3:
+        stc_ft_data = np.linalg.norm(stc_ft_data, axis=1)
+    else:
+        stc_ft_data = np.abs(stc_ft_data)
 
     # calculate the Pearson correlation between the source solutions:
-    pearson = np.corrcoef(stc_mne.data.ravel(), stc_ft.data.ravel())[0, 1]
+    pearson = np.corrcoef(stc_mne.data.ravel(), stc_ft_data.ravel())[0, 1]
     assert pearson >= 0.99
 
 

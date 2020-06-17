@@ -653,7 +653,8 @@ def read_curvature(filepath, binary=True):
 
 
 @verbose
-def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
+def read_surface(fname, read_metadata=False, return_dict=False,
+                 file_format='auto', verbose=None):
     """Load a Freesurfer surface mesh in triangular format.
 
     Parameters
@@ -661,7 +662,9 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     fname : str
         The name of the file containing the surface.
     read_metadata : bool
-        Read metadata as key-value pairs.
+        Read metadata as key-value pairs. Only works when reading a FreeSurfer
+        surface file. For .obj files this dictionary will be empty.
+
         Valid keys:
 
             * 'head' : array of int
@@ -678,6 +681,13 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
 
     return_dict : bool
         If True, a dictionary with surface parameters is returned.
+    file_format : 'auto' | 'freesurfer' | 'obj'
+        File format to use. Can be 'freesurfer' to read a FreeSurfer surface
+        file, or 'obj' to read a Wavefront .obj file (common format for
+        importing in other software), or 'auto' to attempt to infer from the
+        file name. Defaults to 'auto'.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -698,11 +708,61 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     read_tri
     """
     fname = _check_fname(fname, 'read', True)
-    ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+    _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
+
+    if file_format == 'auto':
+        _, ext = op.splitext(fname)
+        if ext.lower() == '.obj':
+            file_format = 'obj'
+        else:
+            file_format = 'freesurfer'
+
+    if file_format == 'freesurfer':
+        ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+    elif file_format == 'obj':
+        ret = _read_wavefront_obj(fname)
+        if read_metadata:
+            ret += (dict(),)
+
     if return_dict:
         ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
                      np=len(ret[0])),)
     return ret
+
+
+def _read_wavefront_obj(fname):
+    """Read a surface form a Wavefront .obj file.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the .obj file to read.
+
+    Returns
+    -------
+    coords : ndarray, shape (n_points, 3)
+        The XYZ coordinates of each vertex.
+    faces : ndarray, shape (n_faces, 3)
+        For each face of the mesh, the integer indices of the vertices that
+        make up the face.
+    """
+    coords = []
+    faces = []
+    with open(fname) as f:
+        for line in f:
+            line = line.strip()
+            if len(line) == 0 or line[0] == "#":
+                continue
+            split = line.split()
+            if split[0] == "v":  # vertex
+                coords.append([float(item) for item in split[1:]])
+            elif split[0] == "f":  # face
+                dat = [int(item.split("/")[0]) for item in split[1:]]
+                if len(dat) != 3:
+                    raise RuntimeError('Only triangle faces allowed.')
+                # In .obj files, indexing starts at 1
+                faces.append([d - 1 for d in dat])
+    return np.array(coords), np.array(faces)
 
 
 ##############################################################################
@@ -918,7 +978,7 @@ def _decimate_surface_spacing(surf, spacing):
 
 
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
-                  overwrite=False):
+                  file_format='auto', overwrite=False):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -950,6 +1010,13 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
             * 'cras' : array of float, shape (3,)
 
         .. versionadded:: 0.13.0
+    file_format : 'auto' | 'freesurfer' | 'obj'
+        File format to use. Can be 'freesurfer' to write a FreeSurfer surface
+        file, or 'obj' to write a Wavefront .obj file (common format for
+        importing in other software), or 'auto' to attempt to infer from the
+        file name. Defaults to 'auto'.
+
+        .. versionadded:: 0.21.0
     overwrite : bool
         If True, overwrite the file if it exists.
 
@@ -959,33 +1026,52 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     read_tri
     """
     fname = _check_fname(fname, overwrite=overwrite)
-    try:
-        import nibabel as nib
-        has_nibabel = True
-    except ImportError:
-        has_nibabel = False
-    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
-        nib.freesurfer.io.write_geometry(fname, coords, faces,
-                                         create_stamp=create_stamp,
-                                         volume_info=volume_info)
-        return
-    if len(create_stamp.splitlines()) > 1:
-        raise ValueError("create_stamp can only contain one line")
+    _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
-    with open(fname, 'wb') as fid:
-        fid.write(pack('>3B', 255, 255, 254))
-        strs = ['%s\n' % create_stamp, '\n']
-        strs = [s.encode('utf-8') for s in strs]
-        fid.writelines(strs)
-        vnum = len(coords)
-        fnum = len(faces)
-        fid.write(pack('>2i', vnum, fnum))
-        fid.write(np.array(coords, dtype='>f4').tobytes())
-        fid.write(np.array(faces, dtype='>i4').tobytes())
+    if file_format == 'auto':
+        _, ext = op.splitext(fname)
+        if ext.lower() == '.obj':
+            file_format = 'obj'
+        else:
+            file_format = 'freesurfer'
 
-        # Add volume info, if given
-        if volume_info is not None and len(volume_info) > 0:
-            fid.write(_serialize_volume_info(volume_info))
+    if file_format == 'freesurfer':
+        try:
+            import nibabel as nib
+            has_nibabel = LooseVersion(nib.__version__) > LooseVersion('2.1.0')
+        except ImportError:
+            has_nibabel = False
+        if has_nibabel:
+            nib.freesurfer.io.write_geometry(fname, coords, faces,
+                                             create_stamp=create_stamp,
+                                             volume_info=volume_info)
+            return
+        if len(create_stamp.splitlines()) > 1:
+            raise ValueError("create_stamp can only contain one line")
+
+        with open(fname, 'wb') as fid:
+            fid.write(pack('>3B', 255, 255, 254))
+            strs = ['%s\n' % create_stamp, '\n']
+            strs = [s.encode('utf-8') for s in strs]
+            fid.writelines(strs)
+            vnum = len(coords)
+            fnum = len(faces)
+            fid.write(pack('>2i', vnum, fnum))
+            fid.write(np.array(coords, dtype='>f4').tobytes())
+            fid.write(np.array(faces, dtype='>i4').tobytes())
+
+            # Add volume info, if given
+            if volume_info is not None and len(volume_info) > 0:
+                fid.write(_serialize_volume_info(volume_info))
+
+    elif file_format == 'obj':
+        with open(fname, 'w') as fid:
+            for line in create_stamp.splitlines():
+                fid.write(f'# {line}\n')
+            for v in coords:
+                fid.write(f'v {v[0]} {v[1]} {v[2]}\n')
+            for f in faces:
+                fid.write(f'f {f[0] + 1} {f[1] + 1} {f[2] + 1}\n')
 
 
 ###############################################################################
