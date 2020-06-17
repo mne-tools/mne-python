@@ -67,6 +67,9 @@ def _count_points_by_type(dig):
     )
 
 
+_dig_keys = {'kind', 'ident', 'r', 'coord_frame'}
+
+
 class DigPoint(dict):
     """Container for a digitization point.
 
@@ -90,12 +93,11 @@ class DigPoint(dict):
 
     def __repr__(self):  # noqa: D105
         if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            id_ = _cardinal_kind_rev.get(
-                self.get('ident', -1), 'Unknown cardinal')
+            id_ = _cardinal_kind_rev.get(self['ident'], 'Unknown cardinal')
         else:
             id_ = _dig_kind_proper[
-                _dig_kind_rev.get(self.get('kind', -1), 'unknown')]
-            id_ = ('%s #%s' % (id_, self.get('ident', -1)))
+                _dig_kind_rev.get(self['kind'], 'unknown')]
+            id_ = ('%s #%s' % (id_, self['ident']))
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self['coord_frame'])
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
@@ -115,9 +117,9 @@ class DigPoint(dict):
         coordinate frame and position.
         """
         my_keys = ['kind', 'ident', 'coord_frame']
-        if sorted(self.keys()) != sorted(other.keys()):
+        if set(self.keys()) != set(other.keys()):
             return False
-        elif any([self[_] != other[_] for _ in my_keys]):
+        elif any(self[_] != other[_] for _ in my_keys):
             return False
         else:
             return np.allclose(self['r'], other['r'])
@@ -434,7 +436,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         except ValueError:  # and if any conversion fails, simply use arange
             idents = np.arange(1, len(dig_ch_pos) + 1)
         for key, ident in zip(dig_ch_pos, idents):
-            dig.append({'r': dig_ch_pos[key], 'ident': ident,
+            dig.append({'r': dig_ch_pos[key], 'ident': int(ident),
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': coord_frame})
 

@@ -46,6 +46,7 @@ coverage
 .pytest_cache/
 __pycache__/
 prof/
+mne/viz/_brain/tests/.ipynb_checkpoints
 
 dist/
 doc/_build/

@@ -38,6 +38,7 @@ no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.

@@ -32,6 +32,7 @@ recursive-include mne mne/datasets *.csv
 include mne/io/edf/gdf_encodes.txt
 include mne/datasets/sleep_physionet/SHA1SUMS
 include mne/externals/tqdm/_tqdm/tqdm.1
+include mne/viz/_brain/tests/test.ipynb
 
 ### Exclude
 

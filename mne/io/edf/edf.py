@@ -412,7 +412,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
         chan_info['range'] = physical_range
-        chan_info['unit_mul'] = 0.
+        chan_info['unit_mul'] = FIFF.FIFF_UNITM_NONE
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD

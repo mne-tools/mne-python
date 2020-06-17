@@ -45,6 +45,7 @@ def _load_data(kind):
 
 @pytest.mark.parametrize('offset', (0., 0.1))
 @pytest.mark.filterwarnings('ignore:.*than 20 mm from head frame origin.*')
+@pytest.mark.slowtest
 def test_interpolation_eeg(offset):
     """Test interpolation of EEG channels."""
     raw, epochs_eeg = _load_data('eeg')
@@ -183,13 +184,14 @@ def _this_interpol(inst, ref_meg=False):
     return inst
 
 
+@pytest.mark.slowtest
 def test_interpolate_meg_ctf():
     """Test interpolation of MEG channels from CTF system."""
     thresh = .85
     tol = .05  # assert the new interpol correlates at least .05 "better"
     bad = 'MLC22-2622'  # select a good channel to test the interpolation
 
-    raw = io.read_raw_fif(raw_fname_ctf, preload=True)  # 3 secs
+    raw = io.read_raw_fif(raw_fname_ctf).crop(0, 1.0).load_data()  # 3 secs
     raw.apply_gradient_compensation(3)
 
     # Show that we have to exclude ref_meg for interpolating CTF MEG-channels
