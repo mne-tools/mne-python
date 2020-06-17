@@ -9,7 +9,6 @@ dependencies:
 - scipy
 - matplotlib
 - numba
-- pyqt>=5.9
 - pandas>=0.18
 - xlrd
 - scikit-learn
@@ -49,4 +48,4 @@ dependencies:
   - codespell
   - python-picard
   - tqdm
-  - PyQt5>=5.10,<5.14; platform_system == "Darwin"
+  - PyQt5>=5.10

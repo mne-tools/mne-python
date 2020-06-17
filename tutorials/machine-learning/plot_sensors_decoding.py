@@ -40,6 +40,7 @@ from mne.decoding import (SlidingEstimator, GeneralizingEstimator, Scaler,
 
 data_path = sample.data_path()
 
+subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 tmin, tmax = -0.200, 0.500
 event_id = {'Auditory/Left': 1, 'Visual/Left': 3}  # just use two
@@ -393,7 +394,8 @@ cov = mne.compute_covariance(epochs, tmax=0.)
 inv = mne.minimum_norm.make_inverse_operator(
     evoked_time_gen.info, fwd, cov, loose=0.)
 stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1. / 9., 'dSPM')
-brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1)
+brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
+                 subjects_dir=subjects_dir)
 
 ###############################################################################
 # Source-space decoding
