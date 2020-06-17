@@ -585,10 +585,8 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
             all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
                         else inst for inst in all_inst]
         from ..evoked import combine_evoked as combine
-        weights = [1. / len(all_inst)] * len(all_inst)
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
-        weights = 'equal'
 
     if drop_bads:
         bads = list({b for inst in all_inst for b in inst.info['bads']})
@@ -598,7 +596,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
 
     equalize_channels(all_inst, copy=False)
     # make grand_average object using combine_[evoked/tfr]
-    grand_average = combine(all_inst, weights=weights)
+    grand_average = combine(all_inst, weights='equal')
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_inst)
     # change comment field

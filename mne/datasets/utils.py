@@ -239,7 +239,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.91', misc='0.6')
+    releases = dict(testing='0.92', misc='0.6')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -271,7 +271,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         mtrf='https://osf.io/h85s2/download?version=1',
         kiloword='https://osf.io/qkvf9/download?version=1',
         fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
-        phantom_4dbti='https://osf.io/v2brw/download?version=1',
+        phantom_4dbti='https://osf.io/v2brw/download?version=2',
         refmeg_noise='https://osf.io/drt6v/download?version=1',
     )
     # filename of the resulting downloaded archive (only needed if the URL
@@ -326,7 +326,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='ea825966c0a1e9b2f84e3826c5500161',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='f87f04fcdf56a7a55fb73b1b260b5b5b',
+        testing='42daafd1b882da2ef041de860ca6e771',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -335,7 +335,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         kiloword='3a124170795abbd2e48aae8727e719a8',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
-        phantom_4dbti='f1d96f81d46480d0cc52a7ba4f125367',
+        phantom_4dbti='938a601440f3ffa780d20a17bae039ff',
         refmeg_noise='779fecd890d98b73a4832e717d7c7c45'
     )
     assert set(md5_hashes.keys()) == set(urls.keys())

@@ -9,7 +9,6 @@ dependencies:
 - scipy
 - matplotlib
 - numba
-- pyqt>=5.9
 - pandas>=0.18
 - xlrd
 - scikit-learn
@@ -37,7 +36,7 @@ dependencies:
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
   - vtk
-  - pyvista==0.24
+  - pyvista==0.24.3
   - https://github.com/enthought/mayavi/archive/master.zip
   - PySurfer[save_movie]
   - dipy --only-binary dipy
@@ -49,4 +48,4 @@ dependencies:
   - codespell
   - python-picard
   - tqdm
-  - PyQt5>=5.10,<5.14; platform_system == "Darwin"
+  - PyQt5>=5.10

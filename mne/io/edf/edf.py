@@ -412,7 +412,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
         chan_info['range'] = physical_range
-        chan_info['unit_mul'] = 0.
+        chan_info['unit_mul'] = FIFF.FIFF_UNITM_NONE
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -1375,12 +1375,23 @@ def _read_annotations_edf(annotations):
         triggers = re.findall(pat, tals.decode('latin-1'))
 
     events = []
-    for ev in triggers:
-        onset = float(ev[0])
+    offset = 0.
+    for k, ev in enumerate(triggers):
+        onset = float(ev[0]) + offset
         duration = float(ev[2]) if ev[2] else 0
         for description in ev[3].split('\x14')[1:]:
             if description:
                 events.append([onset, duration, description])
+            elif k == 0:
+                # The startdate/time of a file is specified in the EDF+ header
+                # fields 'startdate of recording' and 'starttime of recording'.
+                # These fields must indicate the absolute second in which the
+                # start of the first data record falls. So, the first TAL in
+                # the first data record always starts with +0.X, indicating
+                # that the first data record starts a fraction, X, of a second
+                # after the startdate/time that is specified in the EDF+
+                # header. If X=0, then the .X may be omitted.
+                offset = -onset
 
     return zip(*events) if events else (list(), list(), list())
 

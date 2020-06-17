@@ -89,6 +89,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rot_to_quat, _angle_between_quats)
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
+from ..viz._3d import _get_3d_option
 from ..utils import logger, set_config, _pl
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
@@ -2028,7 +2029,7 @@ class CoregFrame(HasTraits):
             renderer.vtk_window.multi_samples = 8
             renderer.vtk_window.alpha_bit_planes = 0
             if hasattr(renderer, 'use_fxaa'):
-                self.scene.renderer.use_fxaa = True
+                self.scene.renderer.use_fxaa = _get_3d_option('antialias')
         self.scene.render()
 
     @on_trait_change('lock_fiducials')
