@@ -3,7 +3,7 @@
 # License: Simplified BSD
 
 import matplotlib.pyplot as plt
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from ._pyvista import _Renderer as _PyVistaRenderer
 
 
@@ -159,3 +159,6 @@ class _NotebookInteractor(object):
     def set_continuous_update(self, value):
         for slider in self.sliders.values():
             slider.continuous_update = value
+
+
+_testing_context = nullcontext

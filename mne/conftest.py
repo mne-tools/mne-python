@@ -287,16 +287,18 @@ def _check_skip_backend(name):
         pytest.skip("Test skipped, requires PyQt5.")
 
 
-@pytest.yield_fixture
+@pytest.fixture()
 def renderer_notebook():
     """Verify that pytest_notebook is installed."""
+    from mne.viz.backends.renderer import _use_test_3d_backend
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             from pytest_notebook import execution
-            yield execution
     except ImportError:
         pytest.skip("Test skipped, requires pytest-notebook")
+    with _use_test_3d_backend('notebook'):
+        yield execution
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])

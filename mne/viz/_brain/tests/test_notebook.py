@@ -2,12 +2,14 @@ import os
 import pytest
 
 from mne.datasets import testing
+from mne.utils import requires_version
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_version('nbformat')
 def test_notebook_3d_backend(renderer_notebook):
     """Test executing a notebook that should not fail."""
     import nbformat
