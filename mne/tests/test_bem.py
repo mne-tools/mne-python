@@ -245,28 +245,34 @@ def test_fit_sphere_to_headshape():
         # Top of the head (extra point)
         {'coord_frame': FIFF.FIFFV_COORD_HEAD,
          'kind': FIFF.FIFFV_POINT_EXTRA,
+         'ident': 0,
          'r': np.array([0.0, 0.0, 1.0])},
 
         # EEG points
         # Fz
         {'coord_frame': FIFF.FIFFV_COORD_HEAD,
          'kind': FIFF.FIFFV_POINT_EEG,
+         'ident': 0,
          'r': np.array([0, .72, .69])},
         # F3
         {'coord_frame': FIFF.FIFFV_COORD_HEAD,
          'kind': FIFF.FIFFV_POINT_EEG,
+         'ident': 1,
          'r': np.array([-.55, .67, .50])},
         # F4
         {'coord_frame': FIFF.FIFFV_COORD_HEAD,
          'kind': FIFF.FIFFV_POINT_EEG,
+         'ident': 2,
          'r': np.array([.55, .67, .50])},
         # Cz
         {'coord_frame': FIFF.FIFFV_COORD_HEAD,
          'kind': FIFF.FIFFV_POINT_EEG,
+         'ident': 3,
          'r': np.array([0.0, 0.0, 1.0])},
         # Pz
         {'coord_frame': FIFF.FIFFV_COORD_HEAD,
          'kind': FIFF.FIFFV_POINT_EEG,
+         'ident': 4,
          'r': np.array([0, -.72, .69])},
     ]
     for d in dig:

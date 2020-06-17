@@ -105,6 +105,7 @@ def test_plot_head_positions():
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
+@pytest.mark.slowtest
 def test_plot_sparse_source_estimates(renderer_interactive):
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -146,6 +147,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
 
 @testing.requires_testing_data
 @traits_test
+@pytest.mark.slowtest
 def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',

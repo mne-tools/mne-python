@@ -154,7 +154,7 @@ class _Brain(object):
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm',
                  show=True):
-        from ..backends.renderer import backend, _get_renderer
+        from ..backends.renderer import backend, _get_renderer, _get_3d_backend
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -195,6 +195,7 @@ class _Brain(object):
                              'sequence of ints.')
         fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
+        self._notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
         self._units = units
         self._subject_id = subject_id
@@ -539,6 +540,8 @@ class _Brain(object):
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 
+        self._update()
+
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
         """Add an ROI label to the image.
@@ -665,6 +668,8 @@ class _Brain(object):
                                     backface_culling=False)
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
+
+        self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -886,6 +891,8 @@ class _Brain(object):
                                     None)
                 self.resolve_coincident_topology(actor)
 
+        self._update()
+
     def resolve_coincident_topology(self, actor):
         """Resolve z-fighting of overlapping surfaces."""
         mapper = actor.GetMapper()
@@ -915,6 +922,7 @@ class _Brain(object):
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
         self._renderer.reset_camera()
+        self._update()
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.
@@ -1078,6 +1086,7 @@ class _Brain(object):
                     self.update_glyphs(hemi, vectors)
         self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
+        self._update()
 
     def update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import (_set_colormap_range,
@@ -1474,6 +1483,12 @@ class _Brain(object):
     def enable_depth_peeling(self):
         """Enable depth peeling."""
         self._renderer.enable_depth_peeling()
+
+    def _update(self):
+        from ..backends import renderer
+        if renderer.get_3d_backend() in ['pyvista', 'notebook']:
+            if self._notebook and self._renderer.figure.display is not None:
+                self._renderer.figure.display.update()
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

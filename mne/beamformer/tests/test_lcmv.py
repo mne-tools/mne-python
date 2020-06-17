@@ -428,6 +428,7 @@ def test_make_lcmv(tmpdir, reg, proj):
               noise_cov=noise_cov)
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize('weight_norm', (None, 'unit-noise-gain', 'nai'))
 @pytest.mark.parametrize('pick_ori', (None, 'max-power', 'vector'))
 def test_make_lcmv_sphere(pick_ori, weight_norm):
