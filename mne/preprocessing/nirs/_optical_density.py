@@ -27,10 +27,8 @@ def optical_density(raw):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-    try:
-        picks = _picks_to_idx(raw.info, 'fnirs_raw')
-    except:
-        picks = _picks_to_idx(raw.info, 'fnirs_ph')
+    picks = _picks_to_idx(raw.info, 'fnirs_raw')
+
     data_means = np.mean(raw.get_data(), axis=1)
 
     # The devices measure light intensity. Negative light intensities should

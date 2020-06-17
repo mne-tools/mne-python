@@ -71,6 +71,7 @@ Reading raw data
    read_raw_fif
    read_raw_eximia
    read_raw_fieldtrip
+   read_raw_boxy
 
 Base class:
 

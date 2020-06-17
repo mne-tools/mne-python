@@ -5,7 +5,7 @@
 import glob as glob
 import re as re
 import numpy as np
-import scipy.io
+import scipy.io as spio
 import os
 
 from ..base import BaseRaw
@@ -18,6 +18,7 @@ from ...channels.montage import make_dig_montage
 @fill_doc
 def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
     """Reader for a BOXY optical imaging recording.
+
     Parameters
     ----------
     fname : str
@@ -26,10 +27,12 @@ def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
         Type of data to return (AC, DC, or Ph)
     %(preload)s
     %(verbose)s
+
     Returns
     -------
     raw : instance of RawBOXY
         A Raw object containing BOXY data.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -40,6 +43,7 @@ def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
 @fill_doc
 class RawBOXY(BaseRaw):
     """Raw object from a BOXY optical imaging file.
+
     Parameters
     ----------
     fname : str
@@ -48,6 +52,7 @@ class RawBOXY(BaseRaw):
         Type of data to return (AC, DC, or Ph)
     %(preload)s
     %(verbose)s
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -376,6 +381,10 @@ class RawBOXY(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
+
+        Boxy file organises data in two ways, parsed or un-parsed.
+        Regardless of type, output has (n_montages x n_sources x n_detectors
+        + n_marker_channels) rows, and (n_timepoints x n_blocks) columns.
         """
         source_num = self._raw_extras[fi]['source_num']
         detect_num = self._raw_extras[fi]['detect_num']
@@ -401,7 +410,7 @@ class RawBOXY(BaseRaw):
             event_data = []
 
             for file_num, i_file in enumerate(event_files[key]):
-                event_data.append(scipy.io.loadmat(
+                event_data.append(spio.loadmat(
                     event_files[key][file_num])['event'])
             if event_data != []:
                 print('Event file found!')
@@ -546,7 +555,7 @@ class RawBOXY(BaseRaw):
 
                         print('Detrending phase data')
                         # Remove trends and drifts that occur over time.
-                        y = np.linspace(0, np.size(data_, axis=1)-1,
+                        y = np.linspace(0, np.size(data_, axis=1) - 1,
                                         np.size(data_, axis=1))
                         x = np.transpose(y)
                         for i_chan in range(np.size(data_, axis=0)):
@@ -574,7 +583,7 @@ class RawBOXY(BaseRaw):
 
                         for i_chan in range(np.size(data_, axis=0)):
                             outliers = np.where(np.abs(data_[i_chan, :]) >
-                                                (ph_out_thr*sdph[i_chan]))
+                                                (ph_out_thr * sdph[i_chan]))
                             outliers = outliers[0]
                             if len(outliers) > 0:
                                 if outliers[0] == 0:
@@ -587,13 +596,14 @@ class RawBOXY(BaseRaw):
                                     for i_pt in range(n_ph_out[i_chan]):
                                         j_pt = outliers[i_pt]
                                         data_[i_chan, j_pt] = (
-                                            (data_[i_chan, j_pt - 1] +
-                                             data_[i_chan, j_pt + 1]) / 2)
+                                            (data_[i_chan, j_pt - 1]
+                                             + data_[i_chan, j_pt + 1]) / 2)
 
                         # Convert phase to pico seconds.
                         for i_chan in range(np.size(data_, axis=0)):
-                            data_[i_chan, :] = ((1e12 * data_[i_chan, :]) /
-                                                (360 * mtg_mdf[i_mtg][i_chan]))
+                            data_[i_chan, :] = ((1e12 * data_[i_chan, :])
+                                                / (360
+                                                   * mtg_mdf[i_mtg][i_chan]))
 
                 # Swap channels to match new wavelength order.
                 for i_chan in range(0, len(data_), 2):
@@ -605,7 +615,7 @@ class RawBOXY(BaseRaw):
                     temp_markers = np.zeros((len(data_[0, :]),))
                     for event_num, event_info in enumerate(
                             event_data[file_num]):
-                        temp_markers[event_info[0]-1] = event_info[1]
+                        temp_markers[event_info[0] - 1] = event_info[1]
                     block_markers.append(temp_markers)
                 except Exception:
                     # Add our markers to the data array based on filetype.
