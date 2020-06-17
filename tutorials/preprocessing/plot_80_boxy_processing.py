@@ -87,7 +87,8 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # First we remove channels that are too close together (short channels) to
 # # detect a neural response (less than 3 cm distance between optodes).
 # # These short channels can be seen in the figure above.
-# # To achieve this we pick all the channels that are not considered to be short.
+# # To achieve this we pick all the channels that are not
+# # considered to be short.
 
 picks = mne.pick_types(raw_intensity_ac.info, meg=False, fnirs=True, stim=True)
 
@@ -183,15 +184,16 @@ fig.subplots_adjust(top=0.88)
 # # Extract epochs
 # # --------------
 # #
-# # Now that the signal has been converted to relative haemoglobin concentration,
-# # and the unwanted heart rate component has been removed, we can extract epochs
-# # related to each of the experimental conditions.
+# # Now that the signal has been converted to relative haemoglobin
+# # concentration, and the unwanted heart rate component has been removed,
+# # we can extract epochs related to each of the experimental conditions.
 # #
-# # First we extract the events of interest and visualise them to ensure they are
-# # correct.
+# # First we extract the events of interest and visualise them to
+# # ensure they are correct.
 
-# Since our events and timings for this data set are the same across montages,
-# we are going to find events for each montage separately and combine them later
+# # Since our events and timings for this data set are the same
+# # across montages, we are going to find events for each montage separately
+# # and combine them later
 
 # All events
 all_events = mne.find_events(raw_intensity_ac, stim_channel=['Markers a',
@@ -313,7 +315,7 @@ evoked_event_2_ph.plot_image(axes=axes[1], titles='Event_2', clim=clim)
 # # Plot both the HbO and HbR on the same figure to illustrate the relation
 # # between the two signals.
 
-# # We can also plot a similat figure for phase data.
+# # We can also plot a similar figure for phase data.
 
 # Haemo
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
