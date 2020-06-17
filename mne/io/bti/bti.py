@@ -1136,7 +1136,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         chan_info['ch_name'] = chan_neuromag if rename_channels else chan_4d
         chan_info['logno'] = idx + BTI.FIFF_LOGNO
         chan_info['scanno'] = idx + 1
-        chan_info['cal'] = bti_info['chs'][idx]['scale']
+        chan_info['cal'] = float(bti_info['chs'][idx]['scale'])
 
         if any(chan_4d.startswith(k) for k in ('A', 'M', 'G')):
             loc = bti_info['chs'][idx]['loc']

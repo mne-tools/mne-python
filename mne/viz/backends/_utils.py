@@ -10,7 +10,7 @@
 import numpy as np
 import collections.abc
 
-VALID_3D_BACKENDS = ['mayavi', 'pyvista']
+VALID_3D_BACKENDS = ['mayavi', 'pyvista', 'notebook']
 
 
 def _get_colormap_from_array(colormap=None, normalized_colormap=False,

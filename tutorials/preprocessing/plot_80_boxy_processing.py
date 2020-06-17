@@ -87,7 +87,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 # # First we remove channels that are too close together (short channels) to
 # # detect a neural response (less than 3 cm distance between optodes).
 # # These short channels can be seen in the figure above.
-# # To achieve this we pick all the channels that are not considered to be short.
+# # To achieve this we pick all the channels not considered to be short.
 
 picks = mne.pick_types(raw_intensity_ac.info, meg=False, fnirs=True, stim=True)
 
@@ -369,7 +369,6 @@ fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(9, 5),
 
 topomap_args = dict(extrapolate='local', size=3, res=256, sensors='k.')
 times = 1.0
-
 
 all_haemo_epochs['Event_1'].average(picks='hbo').plot_topomap(times=times,
                                                               axes=axes[0, 0],

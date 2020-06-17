@@ -61,6 +61,7 @@ def _assert_iter_sim(raw_sim, raw_new, new_event_id):
     assert_array_equal(data_new, data_sim)
 
 
+@pytest.mark.slowtest
 def test_iterable():
     """Test iterable support for simulate_raw."""
     raw = read_raw_fif(raw_fname_short).load_data()

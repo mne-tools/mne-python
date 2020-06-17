@@ -242,20 +242,20 @@ class RawBOXY(BaseRaw):
             mtg_det_num.append(detect_num[start_blk])
             # Get modulation frequency for each channel and montage.
             # Assuming modulation freq in MHz.
-            mtg_mdf.append([int(chan_mdf)*1e6 for chan_mdf
+            mtg_mdf.append([int(chan_mdf) * 1e6 for chan_mdf
                             in chan_modulation[start:end]])
             for i_type in data_types:
                 for i_coord in range(start, end):
                     boxy_coords.append(
                         np.mean(np.vstack((source_coords[i_coord],
                                            detect_coords[i_coord])),
-                                axis=0).tolist() + source_coords[i_coord]
-                        + detect_coords[i_coord] + [chan_wavelength[i_coord]]
-                        + [0] + [0])
+                                axis=0).tolist() + source_coords[i_coord] +
+                        detect_coords[i_coord] + [chan_wavelength[i_coord]] +
+                        [0] + [0])
                     boxy_labels.append('S' + str(unique_source_labels.index(
-                        source_label[i_coord]) + 1) + '_D'
-                        + str(unique_detect_labels.index(detect_label[i_coord])
-                              + 1) + ' ' + chan_wavelength[i_coord])
+                        source_label[i_coord]) + 1) + '_D' +
+                        str(unique_detect_labels.index(detect_label[i_coord]) +
+                            1) + ' ' + chan_wavelength[i_coord])
 
                 # Add extra column for triggers.
                 mrk_labels.append('Markers' + ' ' + mtg_names[mtg_num])
@@ -330,19 +330,25 @@ class RawBOXY(BaseRaw):
                       }
 
         # Check data start lines.
-        (print('Start lines the same!') if len(set(start_line)) == 1 else
-         print('Start lines different!'))
+        if len(set(start_line)) == 1:
+            print('Start lines the same!')
+        else:
+            print('Start lines different!')
 
         # Check data end lines.
-        (print('End lines the same!') if len(set(end_line)) == 1 else
-         print('End lines different!'))
+        if len(set(end_line)) == 1:
+            print('End lines the same!')
+        else:
+            print('End lines different!')
 
         # Make sure data lengths are the same.
         data_length = ([end_line[i_line] - start_line[i_line] for i_line,
                         line_num in enumerate(start_line)])
 
-        (print('Data sizes are the same!') if len(set(data_length)) == 1 else
-         print('Data sizes are different!'))
+        if len(set(data_length)) == 1:
+            print('Data sizes are the same!')
+        else:
+            print('Data sizes are different!')
 
         print('Start Line: ', start_line[0])
         print('End Line: ', end_line[0])
@@ -353,9 +359,9 @@ class RawBOXY(BaseRaw):
 
         # Number if rows in data file depends on data file type.
         if filetype[0] == 'non-parsed':
-            last_samps = ((diff*len(blk_names[0])) // (source_num[0]))
+            last_samps = ((diff * len(blk_names[0])) // (source_num[0]))
         elif filetype[0] == 'parsed':
-            last_samps = diff*len(blk_names[0])
+            last_samps = diff * len(blk_names[0])
 
         # First sample is technically sample 0, not the start line in the file.
         first_samps = 0
@@ -365,7 +371,7 @@ class RawBOXY(BaseRaw):
 
         super(RawBOXY, self).__init__(
             info, preload, filenames=[fname], first_samps=[first_samps],
-            last_samps=[last_samps-1],
+            last_samps=[last_samps - 1],
             raw_extras=[raw_extras], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -418,7 +424,7 @@ class RawBOXY(BaseRaw):
             all_blocks = []
             block_markers = []
             for i_blk, blk_name in enumerate(blocks[i_mtg]):
-                file_num = i_blk + (i_mtg*len(blocks[i_mtg]))
+                file_num = i_blk + (i_mtg * len(blocks[i_mtg]))
                 boxy_file = boxy_files[file_num]
                 boxy_data = []
                 with open(boxy_file, 'r') as data_file:
@@ -464,15 +470,15 @@ class RawBOXY(BaseRaw):
 
                 # Make some empty variables to store our data.
                 if filetype[file_num] == 'non-parsed':
-                    data_ = np.zeros(((((detect_num[file_num]
-                                         * source_num[file_num])
-                                        * len(data_types))),
-                                      int(len(boxy_data)
-                                          / source_num[file_num])))
+                    data_ = np.zeros(((((detect_num[file_num] *
+                                        source_num[file_num]) *
+                                        len(data_types))),
+                                      int(len(boxy_data) /
+                                          source_num[file_num])))
                 elif filetype[file_num] == 'parsed':
-                    data_ = np.zeros(((((detect_num[file_num]
-                                         * source_num[file_num])
-                                        * len(data_types))),
+                    data_ = np.zeros(((((detect_num[file_num] *
+                                         source_num[file_num]) *
+                                        len(data_types))),
                                       int(len(boxy_data))))
 
                 # Loop through data types.
@@ -485,12 +491,12 @@ class RawBOXY(BaseRaw):
                         for i_source in sources:
 
                             # Determine where to store our data.
-                            index_loc = (detectors.index(i_detect)
-                                         * source_num[file_num]
-                                         + (i_source - 1)
-                                         + (data_types.index(i_data)
-                                            * (source_num[file_num]
-                                               * detect_num[file_num])))
+                            index_loc = (detectors.index(i_detect) *
+                                         source_num[file_num] +
+                                         (i_source - 1) +
+                                         (data_types.index(i_data) *
+                                         (source_num[file_num] *
+                                          detect_num[file_num])))
 
                             # Need to treat our filetypes differently.
                             if filetype[file_num] == 'non-parsed':
@@ -499,14 +505,14 @@ class RawBOXY(BaseRaw):
                                 # this should account for that.
                                 time_points = np.arange(
                                     i_source - 1,
-                                    int(meta_data['record'][-1])
-                                    * source_num[file_num],
+                                    int(meta_data['record'][-1]) *
+                                    source_num[file_num],
                                     source_num[file_num])
 
                                 # Determine which channel to
                                 # look for in boxy_array.
-                                channel = np.where(col_names == i_detect
-                                                   + '-' + i_data)[0][0]
+                                channel = np.where(col_names == i_detect +
+                                                   '-' + i_data)[0][0]
 
                                 # Save our data based on data type.
                                 data_[index_loc, :] = boxy_array[time_points,
@@ -515,9 +521,9 @@ class RawBOXY(BaseRaw):
                             elif filetype[file_num] == 'parsed':
 
                                 # Which channel to look for in boxy_array.
-                                channel = np.where(col_names == i_detect
-                                                   + '-' + i_data
-                                                   + str(i_source))[0][0]
+                                channel = np.where(col_names == i_detect +
+                                                   '-' + i_data +
+                                                   str(i_source))[0][0]
 
                                 # Save our data based on data type.
                                 data_[index_loc, :] = boxy_array[:, channel]
@@ -545,8 +551,8 @@ class RawBOXY(BaseRaw):
                         x = np.transpose(y)
                         for i_chan in range(np.size(data_, axis=0)):
                             poly_coeffs = np.polyfit(x, data_[i_chan, :], 3)
-                            tmp_ph = (data_[i_chan, :]
-                                      - np.polyval(poly_coeffs, x))
+                            tmp_ph = (data_[i_chan, :] -
+                                      np.polyval(poly_coeffs, x))
                             data_[i_chan, :] = tmp_ph
 
                         print('Removing phase mean')
@@ -554,8 +560,8 @@ class RawBOXY(BaseRaw):
 
                         mrph = np.mean(data_, axis=1)
                         for i_chan in range(np.size(data_, axis=0)):
-                            data_[i_chan, :] = (data_[i_chan, :]
-                                                - mrph[i_chan])
+                            data_[i_chan, :] = (data_[i_chan, :] -
+                                                mrph[i_chan])
 
                         print('Removing phase outliers')
                         # Remove data points that are larger than three SDs.
@@ -581,13 +587,13 @@ class RawBOXY(BaseRaw):
                                     for i_pt in range(n_ph_out[i_chan]):
                                         j_pt = outliers[i_pt]
                                         data_[i_chan, j_pt] = (
-                                            (data_[i_chan, j_pt-1]
-                                             + data_[i_chan, j_pt+1])/2)
+                                            (data_[i_chan, j_pt - 1] +
+                                             data_[i_chan, j_pt + 1]) / 2)
 
                         # Convert phase to pico seconds.
                         for i_chan in range(np.size(data_, axis=0)):
-                            data_[i_chan, :] = ((1e12*data_[i_chan, :])
-                                                / (360*mtg_mdf[i_mtg][i_chan]))
+                            data_[i_chan, :] = ((1e12 * data_[i_chan, :]) /
+                                                (360 * mtg_mdf[i_mtg][i_chan]))
 
                 # Swap channels to match new wavelength order.
                 for i_chan in range(0, len(data_), 2):
@@ -617,11 +623,11 @@ class RawBOXY(BaseRaw):
                 # Check our markers to see if anything is actually in there.
                 if (all(i_mrk == 0 for i_mrk in block_markers[i_blk]) or
                         all(i_mrk == 255 for i_mrk in block_markers[i_blk])):
-                    print('No markers for montage ' + mtg_name
-                          + ' and block ' + blk_name)
+                    print('No markers for montage ' + mtg_name +
+                          ' and block ' + blk_name)
                 else:
-                    print('Found markers for montage ' + mtg_name
-                          + ' and block ' + blk_name + '!')
+                    print('Found markers for montage ' + mtg_name +
+                          ' and block ' + blk_name + '!')
 
                 # Change marker for last timepoint to indicate end of block
                 # We'll be using digaux to send markers, a serial port,

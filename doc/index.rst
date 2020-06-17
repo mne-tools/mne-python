@@ -52,8 +52,8 @@
           <li style="background: url('_static/funding/anr.svg') no-repeat left top; background-size: 24px 10px;"><b>Agence Nationale de la Recherche:</b> 14-NEUC-0002-01<br><b>IDEX</b> Paris-Saclay, 11-IDEX-0003-02</li>
           <li style="background: url('_static/funding/cds.png') no-repeat left top; background-size: 24px 24px;"><b>Paris-Saclay Center for Data Science:</b> <a href="http://www.datascience-paris-saclay.fr"/>PARIS-SACLAY</a></li>
           <li style="background: url('_static/funding/google.svg') no-repeat left top; background-size: 24px 24px;"><b>Google:</b> Summer of code (×6)</li>
-          <li style="background: url('_static/funding/amazon.svg') no-repeat left top; background-size: 24px 24px;"><b>Amazon:</b> - AWS Research Grants</li>
-          <li style="background: url('_static/funding/czi.svg') no-repeat left top; background-size: 24px 24px;"><b>Chan Zuckerberg Initiative:</b> - <a href="https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python/">Essential Open Source Software for Science</a></li>
+          <li style="background: url('_static/funding/amazon.svg') no-repeat left top; background-size: 24px 24px;"><b>Amazon:</b> AWS Research Grants</li>
+          <li style="background: url('_static/funding/czi.svg') no-repeat left top; background-size: 24px 24px;"><b>Chan Zuckerberg Initiative:</b> <a href="https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python/">Essential Open Source Software for Science</a></li>
         </ul>
       </div>
     </div>
