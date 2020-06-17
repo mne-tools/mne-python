@@ -290,6 +290,27 @@ class _TimeViewer(object):
         from ..backends._pyvista import _require_minimum_version
         _require_minimum_version('0.24')
 
+        # shared configuration
+        self.brain = brain
+        self.orientation = [
+            'lateral',
+            'medial',
+            'rostral',
+            'caudal',
+            'dorsal',
+            'ventral',
+            'frontal',
+            'parietal'
+        ]
+
+        # detect notebook
+        if brain._notebook:
+            self.notebook = True
+            self.configure_notebook()
+            return
+        else:
+            self.notebook = False
+
         # Default configuration
         self.playback = False
         self.visibility = False
@@ -306,16 +327,6 @@ class _TimeViewer(object):
         self.icons = dict()
         self.actions = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
-        self.orientation = [
-            'lateral',
-            'medial',
-            'rostral',
-            'caudal',
-            'dorsal',
-            'ventral',
-            'frontal',
-            'parietal'
-        ]
         self.slider_length = 0.02
         self.slider_width = 0.04
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
@@ -323,7 +334,6 @@ class _TimeViewer(object):
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
 
         # Direct access parameters:
-        self.brain = brain
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
@@ -545,6 +555,10 @@ class _TimeViewer(object):
                 slider_rep.GetCapProperty().SetOpacity(0)
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
+
+    def configure_notebook(self):
+        from ._notebook import _NotebookInteractor
+        self.brain._renderer.figure.display = _NotebookInteractor(self)
 
     def configure_time_label(self):
         self.time_actor = self.brain._data.get('time_actor')

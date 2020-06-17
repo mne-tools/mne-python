@@ -154,9 +154,8 @@ def test_3d_backend(renderer):
     rend.show()
 
 
-def test_get_3d_backend():
+def test_get_3d_backend(renderer):
     """Test get_3d_backend function call for side-effects."""
-    from mne.viz.backends import renderer
     # Test twice to ensure the first call had no side-effect
     orig_backend = renderer.MNE_3D_BACKEND
     assert renderer.get_3d_backend() == orig_backend

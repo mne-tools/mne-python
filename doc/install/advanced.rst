@@ -61,6 +61,19 @@ If you use another Python setup and you encounter some difficulties please
 report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
 assistance.
 
+It is also possible to interact with the 3D plots without installing Qt by using
+the notebook 3d backend:
+
+.. code-block:: ipython
+
+   In [1]: import mne
+   In [2]: mne.viz.set_3d_backend("notebook")
+
+
+The notebook 3d backend requires PyVista to be installed along with other packages,
+please follow :doc:`mne_python`
+
+
 .. _installing_master:
 
 Using the development version of MNE-Python (latest master)
