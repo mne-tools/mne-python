@@ -17,7 +17,11 @@ MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
 
 
-_backend_name_map = dict(mayavi='._pysurfer_mayavi', pyvista='._pyvista')
+_backend_name_map = dict(
+    mayavi='._pysurfer_mayavi',
+    pyvista='._pyvista',
+    notebook='._notebook',
+)
 backend = None
 
 

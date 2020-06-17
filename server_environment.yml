@@ -1,0 +1,23 @@
+name: base
+channels:
+- conda-forge/label/vtk_dev
+- conda-forge
+- defaults
+dependencies:
+- python>=3.7
+- pip
+- mesalib
+- ffmpeg
+- vtk
+- numpy
+- scipy
+- traits
+- pip:
+  - mne
+  - matplotlib
+  - ipympl
+  - jupyter
+  - pyvista==0.24
+  - ipywidgets
+  - nbformat
+  - pytest-notebook

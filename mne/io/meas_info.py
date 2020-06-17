@@ -6,6 +6,7 @@
 #
 # License: BSD (3-clause)
 from collections import Counter
+import contextlib
 from copy import deepcopy
 import datetime
 from io import BytesIO
@@ -539,9 +540,15 @@ class Info(dict, MontageMixin):
             _format_trans(self, key)
         for res in self.get('hpi_results', []):
             _format_trans(res, 'coord_trans')
-        if self.get('dig', None) is not None and len(self['dig']) and \
-                not isinstance(self['dig'][0], DigPoint):
-            self['dig'] = _format_dig_points(self['dig'])
+        if self.get('dig', None) is not None and len(self['dig']):
+            if isinstance(self['dig'], dict):  # needs to be unpacked
+                self['dig'] = _dict_unpack(self['dig'], _dig_cast)
+            if not isinstance(self['dig'][0], DigPoint):
+                self['dig'] = _format_dig_points(self['dig'])
+        if isinstance(self.get('chs', None), dict):
+            self['chs']['ch_name'] = [str(x) for x in np.char.decode(
+                self['chs']['ch_name'], encoding='utf8')]
+            self['chs'] = _dict_unpack(self['chs'], _ch_cast)
         for pi, proj in enumerate(self.get('projs', [])):
             if not isinstance(proj, Projection):
                 self['projs'][pi] = Projection(proj)
@@ -2317,3 +2324,40 @@ def _bad_chans_comp(info, ch_names):
         return True, missing_ch_names
 
     return False, missing_ch_names
+
+
+_dig_cast = {'kind': int, 'ident': int, 'r': lambda x: x, 'coord_frame': int}
+_ch_cast = {'scanno': int, 'logno': int, 'kind': int,
+            'range': float, 'cal': float, 'coil_type': int,
+            'loc': lambda x: x, 'unit': int, 'unit_mul': int,
+            'ch_name': lambda x: x, 'coord_frame': int}
+
+
+@contextlib.contextmanager
+def _writing_info_hdf5(info):
+    # Make info writing faster by packing chs and dig into numpy arrays
+    orig_dig = info.get('dig', None)
+    orig_chs = info['chs']
+    try:
+        if orig_dig is not None and len(orig_dig) > 0:
+            info['dig'] = _dict_pack(info['dig'], _dig_cast)
+        info['chs'] = _dict_pack(info['chs'], _ch_cast)
+        info['chs']['ch_name'] = np.char.encode(
+            info['chs']['ch_name'], encoding='utf8')
+        yield
+    finally:
+        if orig_dig is not None:
+            info['dig'] = orig_dig
+        info['chs'] = orig_chs
+
+
+def _dict_pack(obj, casts):
+    # pack a list of dict into dict of array
+    return {key: np.array([o[key] for o in obj]) for key in casts}
+
+
+def _dict_unpack(obj, casts):
+    # unpack a dict of array into a list of dict
+    n = len(obj[list(casts)[0]])
+    return [{key: cast(obj[key][ii]) for key, cast in casts.items()}
+            for ii in range(n)]

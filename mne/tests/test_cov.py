@@ -160,7 +160,7 @@ def test_cov_order():
     evoked = read_evokeds(ave_fname)[0]
     evoked_white = whiten_evoked(evoked, cov)
     evoked_white_2 = whiten_evoked(evoked, cov_reorder)
-    assert_allclose(evoked_white_2.data, evoked_white.data)
+    assert_allclose(evoked_white_2.data, evoked_white.data, atol=1e-7)
 
 
 def _assert_reorder(cov_new, cov_orig, order):

@@ -270,6 +270,7 @@ def test_calculate_chpi_positions_vv():
         _calculate_chpi_positions(raw)
 
 
+@pytest.mark.slowtest
 def test_calculate_chpi_positions_artemis():
     """Test on 5k artemis data."""
     raw = read_raw_artemis123(art_fname, preload=True)
