@@ -178,7 +178,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     W : ndarray, shape (n_dipoles, n_channels)
         The beamformer filter weights.
     """
-    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
+    # XXX settle on names and fix docs
+    _check_option('weight_norm', weight_norm,
+                  ['unit-noise-gain', 'nai', 'sqrtm', None])
     assert Cm.shape == (G.shape[0],) * 2
     s, _ = np.linalg.eigh(Cm)
     if not (s >= -s.max() * 1e-7).all():
@@ -315,14 +317,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         # Three different ways to calculate the normalization factors here.
         # Only matters when in vector mode, as otherwise n_orient == 1 and
         # they are all equivalent. Sekihara 2008 says to use
-        # sqrt(diag(W_ug @ W_ug.T)), which is not rotation invariant::
-        #
-        #    noise_norm = np.matmul(W, W.swapaxes(-2, -1).conj()).real
-        #    noise_norm = np.reshape(  # np.diag operation over last two axes
-        #        noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
-        #    noise_norm *= n_orient
-        #    np.sqrt(noise_norm, out=noise_norm)
-        #    assert noise_norm.shape == (n_sources, n_orient, 1)
         #
         # In MNE < 0.21, we just used the Frobenius matrix norm:
         #
@@ -330,16 +324,29 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         #    assert noise_norm.shape == (n_sources, 1, 1)
         #    W /= noise_norm
         #
-        # Here we do what FieldTrip does, sqrtm. The shortcut:
-        #
-        #    use = W
-        #
-        # ... does not match the direct route (it is rotated!), so we'll
-        # use the direct one to match FieldTrip:
-        assert weight_norm in ('unit-noise-gain', 'nai')
-        use = bf_numer
-        inner = np.matmul(use, use.swapaxes(-2, -1).conj())
-        W = np.matmul(_sym_mat_pow(inner, -0.5), use)
+        # Sekihara 2008 says to use sqrt(diag(W_ug @ W_ug.T)), which is not
+        # rotation invariant:
+        if weight_norm in ('unit-noise-gain', 'nai'):
+            noise_norm = np.matmul(W, W.swapaxes(-2, -1).conj()).real
+            noise_norm = np.reshape(  # np.diag operation over last two axes
+                noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
+            np.sqrt(noise_norm, out=noise_norm)
+            noise_norm[noise_norm == 0] = np.inf
+            assert noise_norm.shape == (n_sources, n_orient, 1)
+            W /= noise_norm
+        else:
+            assert weight_norm == 'sqrtm'
+            # Here we use sqrtm. The shortcut:
+            #
+            #    use = W
+            #
+            # ... does not match the direct route (it is rotated!), so we'll
+            # use the direct one to match FieldTrip:
+            use = bf_numer
+            # use = W
+            inner = np.matmul(use, use.swapaxes(-2, -1).conj())
+            W = np.matmul(_sym_mat_pow(inner, -0.5), use)
+            noise_norm = 1.
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the

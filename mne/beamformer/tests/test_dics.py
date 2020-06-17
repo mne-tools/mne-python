@@ -210,6 +210,10 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     G = G.transpose(1, 2, 0)  # verts, orient, ch
 
     _assert_weight_norm(filters, G)
+    filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
+                        weight_norm='sqrtm', depth=None,
+                        noise_csd=noise_csd)
+    _assert_weight_norm(filters, G)
 
     # Test picking orientations. Also test weight norming under these different
     # conditions.
@@ -341,7 +345,8 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     power, f = apply_dics_csd(csd, filters)
     assert f == [10, 20]
     dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
-    assert dist == 0.
+    # This is 0. for sqrtm:
+    assert dist <= (0.02 if inversion == 'matrix' else 0.)
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test unit-noise-gain weighting
