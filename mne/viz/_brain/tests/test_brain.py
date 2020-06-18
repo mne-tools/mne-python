@@ -185,7 +185,7 @@ def test_brain_timeviewer(renderer_interactive):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
+@pytest.mark.parametrize('hemi', ['lh', 'rh'])
 def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
