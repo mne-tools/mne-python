@@ -544,7 +544,7 @@ class RawBOXY(BaseRaw):
                         # such as crossing over from 0/360 degrees.
                         # Estimate mean phase of first 50 points.
                         # If a point differs more than 90 degrees from the
-                        # mean, add or subtract 360 degress from that point.
+                        # mean, add or subtract 360 degrees from that point.
                         for i_chan in range(np.size(data_, axis=0)):
                             if np.mean(data_[i_chan, :50]) < 180:
                                 wrapped_points = data_[i_chan, :] > 270
@@ -596,14 +596,13 @@ class RawBOXY(BaseRaw):
                                     for i_pt in range(n_ph_out[i_chan]):
                                         j_pt = outliers[i_pt]
                                         data_[i_chan, j_pt] = (
-                                            (data_[i_chan, j_pt - 1]
-                                             + data_[i_chan, j_pt + 1]) / 2)
+                                            (data_[i_chan, j_pt - 1] +
+                                             data_[i_chan, j_pt + 1]) / 2)
 
                         # Convert phase to pico seconds.
                         for i_chan in range(np.size(data_, axis=0)):
-                            data_[i_chan, :] = ((1e12 * data_[i_chan, :])
-                                                / (360
-                                                   * mtg_mdf[i_mtg][i_chan]))
+                            data_[i_chan, :] = ((1e12 * data_[i_chan, :]) /
+                                                (360 * mtg_mdf[i_mtg][i_chan]))
 
                 # Swap channels to match new wavelength order.
                 for i_chan in range(0, len(data_), 2):
