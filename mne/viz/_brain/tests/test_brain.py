@@ -57,7 +57,7 @@ class TstVTKPicker(object):
 
 
 @testing.requires_testing_data
-def test_brain(renderer, qapp):
+def test_brain(renderer):
     """Test initialization of the _Brain instance."""
     from mne.label import read_label
     hemi = 'lh'
@@ -148,7 +148,7 @@ def test_brain(renderer, qapp):
 
 
 @testing.requires_testing_data
-def test_brain_save_movie(tmpdir, renderer, qapp):
+def test_brain_save_movie(tmpdir, renderer):
     """Test saving a movie of a _Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip()
@@ -161,7 +161,7 @@ def test_brain_save_movie(tmpdir, renderer, qapp):
 
 
 @testing.requires_testing_data
-def test_brain_timeviewer(renderer_interactive, qapp):
+def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
@@ -186,7 +186,7 @@ def test_brain_timeviewer(renderer_interactive, qapp):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
-def test_brain_timeviewer_traces(renderer_interactive, hemi, qapp):
+def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
@@ -241,7 +241,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, qapp):
 
 
 @testing.requires_testing_data
-def test_brain_linkviewer(renderer_interactive, qapp):
+def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip()
