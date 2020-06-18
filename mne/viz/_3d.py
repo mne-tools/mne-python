@@ -1553,7 +1553,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, show_traces='auto', verbose=None):
+                          title=None, show_traces=False, verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -2239,7 +2239,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
-                                 time_unit='s', show_traces='auto',
+                                 time_unit='s', show_traces=False,
                                  verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
