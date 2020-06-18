@@ -22,31 +22,9 @@ env:
 
 matrix:
     include:
-        # Linux
-        - os: linux
-          env: CONDA_ENV="environment.yml"
-
         # OSX conda
         - os: osx
           env: CONDA_ENV="environment.yml"
-
-        # PIP + non-default stim channel + log level info
-        - os: linux
-          env: MNE_STIM_CHANNEL=STI101 MNE_LOGGING_LEVEL=info
-          language: python
-          python: "3.8"
-
-        # Old dependencies
-        - os: linux
-          env: PYTHON_VERSION=3.6
-               CONDA_DEPENDENCIES="numpy=1.13 scipy=1.0 matplotlib=2.1 pandas=0.21 scikit-learn=0.19"
-               CONDA_CHANNELS="conda-forge"
-
-        # Minimal (runs with and without testing data)
-        - os: linux
-          env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib"
-               MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
 
 # Setup anaconda
 before_install:
@@ -135,22 +113,7 @@ script:
           fi;
         done;
       fi;
-    # Test run_tests_if_main
-    - if [ "${DEPS}" == "minimal" ]; then
-        pip uninstall -yq mne;
-        pip install -e .;
-        python mne/tests/test_evoked.py;
-      fi;
-    - echo 'pytest -m "${CONDITION}" --cov=mne ${USE_DIRS}'
-    - pytest -m "${CONDITION}" --tb=short --cov=mne ${USE_DIRS}
-    # run the minimal one with the testing data
-    - if [ "${DEPS}" == "minimal" ]; then
-        export MNE_SKIP_TESTING_DATASET_TESTS=false;
-        python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-      fi;
-    - if [ "${DEPS}" == "minimal" ]; then
-        pytest -m "${CONDITION}" --tb=short --cov=mne ${USE_DIRS};
-      fi;
+    - pytest -v mne/viz
 
 after_script:
     # Need to run from source dir to exectue "git" commands
