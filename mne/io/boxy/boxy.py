@@ -5,7 +5,6 @@
 import glob as glob
 import re as re
 import numpy as np
-import scipy.io as spio
 import os
 
 from ..base import BaseRaw
@@ -386,6 +385,8 @@ class RawBOXY(BaseRaw):
         Regardless of type, output has (n_montages x n_sources x n_detectors
         + n_marker_channels) rows, and (n_timepoints x n_blocks) columns.
         """
+        import scipy.io as spio
+
         source_num = self._raw_extras[fi]['source_num']
         detect_num = self._raw_extras[fi]['detect_num']
         start_line = self._raw_extras[fi]['start_line']
