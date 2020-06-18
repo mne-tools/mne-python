@@ -56,7 +56,7 @@ jobs:
             name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
             command: |
               sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
-                  libxkbcommon-x11-0 \
+                  libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
                   graphviz \
                   optipng
 
@@ -81,7 +81,6 @@ jobs:
             command: |
               python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
               python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
-              python -m pip install --user --upgrade --progress-bar off https://github.com/enthought/mayavi/zipball/master
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
@@ -93,6 +92,10 @@ jobs:
             key: pip-cache
             paths:
               - ~/.cache/pip
+
+        - run:
+            name: Check PyQt5
+            command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
 
         # Look at what we have and fail early if there is some library conflict
         - run:
