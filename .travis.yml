@@ -66,7 +66,6 @@ before_install:
         if [ ! -z "$CONDA_ENV" ]; then
           conda activate base
           conda env update --file $CONDA_ENV
-          conda install vtk=8.2
           pip uninstall -yq mne
         fi
       fi
