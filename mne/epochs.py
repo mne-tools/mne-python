@@ -2900,35 +2900,37 @@ def add_channels_epochs(epochs_list, verbose=None):
     return epochs
 
 
-def _compare_epochs_infos(info1, info2, ind):
+def _compare_epochs_infos(info1, info2, name):
     """Compare infos."""
+    if not isinstance(name, str):  # passed epochs index
+        name = f'epochs[{name:d}]'
     info1._check_consistency()
     info2._check_consistency()
     if info1['nchan'] != info2['nchan']:
-        raise ValueError('epochs[%d][\'info\'][\'nchan\'] must match' % ind)
+        raise ValueError(f'{name}.info[\'nchan\'] must match')
     if info1['bads'] != info2['bads']:
-        raise ValueError('epochs[%d][\'info\'][\'bads\'] must match' % ind)
+        raise ValueError(f'{name}.info[\'bads\'] must match')
     if info1['sfreq'] != info2['sfreq']:
-        raise ValueError('epochs[%d][\'info\'][\'sfreq\'] must match' % ind)
+        raise ValueError(f'{name}.info[\'sfreq\'] must match')
     if set(info1['ch_names']) != set(info2['ch_names']):
-        raise ValueError('epochs[%d][\'info\'][\'ch_names\'] must match' % ind)
+        raise ValueError(f'{name}.info[\'ch_names\'] must match')
     if len(info2['projs']) != len(info1['projs']):
-        raise ValueError('SSP projectors in epochs files must be the same')
+        raise ValueError(f'SSP projectors in {name} must be the same')
     if any(not _proj_equal(p1, p2) for p1, p2 in
            zip(info2['projs'], info1['projs'])):
-        raise ValueError('SSP projectors in epochs files must be the same')
+        raise ValueError(f'SSP projectors in {name} must be the same')
     if (info1['dev_head_t'] is None) != (info2['dev_head_t'] is None) or \
             (info1['dev_head_t'] is not None and not
              np.allclose(info1['dev_head_t']['trans'],
                          info2['dev_head_t']['trans'], rtol=1e-6)):
-        raise ValueError('epochs[%d][\'info\'][\'dev_head_t\'] must match. '
-                         'The epochs probably come from different runs, and '
+        raise ValueError(f'{name}.info[\'dev_head_t\'] must match. The '
+                         'instances probably come from different runs, and '
                          'are therefore associated with different head '
                          'positions. Manually change info[\'dev_head_t\'] to '
                          'avoid this message but beware that this means the '
                          'MEG sensors will not be properly spatially aligned. '
                          'See mne.preprocessing.maxwell_filter to realign the '
-                         'runs to a common head position.' % ind)
+                         'runs to a common head position.')
 
 
 def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):

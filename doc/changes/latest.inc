@@ -87,6 +87,8 @@ Changelog
 
 - BIDS conformity: When saving FIF files to disk and the files are split into parts, the ``split_naming='bids'`` parameter now uses a "_split-%d" naming instead of the previous "_part-%d", by `Stefan Appelhoff`_
 
+- Add better error message when trying to save incompatible `~mne.Evoked` objects to the same file by `Eric Larson`_
+
 - Add support for loading complex numbers from mat files by `Thomas Hartmann`_
 
 - Add generic reader function :func:`mne.io.read_raw` that loads files based on their extensions (it wraps the underlying specific ``read_raw_xxx`` functions) by `Clemens Brunner`_
