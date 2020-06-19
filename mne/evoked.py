@@ -1163,6 +1163,7 @@ def write_evokeds(fname, evoked):
 
 def _write_evokeds(fname, evoked, check=True):
     """Write evoked data."""
+    from .epochs import _compare_epochs_infos
     if check:
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
@@ -1184,7 +1185,9 @@ def _write_evokeds(fname, evoked, check=True):
 
         # One or more evoked data sets
         start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        for e in evoked:
+        for ei, e in enumerate(evoked):
+            if ei:
+                _compare_epochs_infos(evoked[0].info, e.info, f'evoked[{ei}]')
             start_block(fid, FIFF.FIFFB_EVOKED)
 
             # Comment is optional
