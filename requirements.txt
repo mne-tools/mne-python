@@ -21,7 +21,7 @@ pytest-xdist
 joblib
 psutil
 dipy
-vtk<9; platform_system == "Darwin"
+vtk<8.2; platform_system == "Darwin"
 vtk; platform_system != "Darwin"
 https://github.com/numpy/numpydoc/archive/master.zip
 https://github.com/enthought/mayavi/archive/master.zip
