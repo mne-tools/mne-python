@@ -472,6 +472,7 @@ class _Renderer(_BaseRenderer):
         self.plotter.reset_camera()
 
     def screenshot(self, mode='rgb', filename=None):
+        self.plotter.app.processEvents()
         return _take_3d_screenshot(figure=self.figure, mode=mode,
                                    filename=filename)
 
