@@ -17,6 +17,7 @@ pytest-cov
 pytest-mock
 pytest-sugar
 pytest-timeout
+pytest-xdist
 joblib
 psutil
 dipy
