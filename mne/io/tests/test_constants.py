@@ -74,7 +74,6 @@ _aliases = dict(
 def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
-    print('ASDASDASDSADASDSADSADSADSA ' + str(tmpdir))
     dest = op.join(tmpdir, 'fiff.zip')
     _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
                 commit, dest)

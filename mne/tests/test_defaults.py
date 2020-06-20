@@ -79,8 +79,4 @@ def test_si_units():
         if key == 'csd_bad':
             assert not np.isclose(scale, want_scale, rtol=10)
         else:
-            print('DASDASDASDASDSA')
-            print(key)
-            print(scale)
-            print(want_scale)
             assert_allclose(scale, want_scale, rtol=1e-12)
