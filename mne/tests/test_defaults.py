@@ -39,7 +39,7 @@ def test_si_units():
         'n': 1e-9,
         'f': 1e-15,
     }
-    known_SI = {'V', 'T', 'Am', 'm', 'M',
+    known_SI = {'V', 'T', 'Am', 'm', 'M', u'\N{DEGREE SIGN}',
                 'AU', 'GOF'}  # not really SI but we tolerate them
     powers = '²'
 
@@ -79,4 +79,8 @@ def test_si_units():
         if key == 'csd_bad':
             assert not np.isclose(scale, want_scale, rtol=10)
         else:
+            print('DASDASDASDASDSA')
+            print(key)
+            print(scale)
+            print(want_scale)
             assert_allclose(scale, want_scale, rtol=1e-12)

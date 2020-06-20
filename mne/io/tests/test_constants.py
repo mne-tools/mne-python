@@ -47,6 +47,7 @@ _missing_coil_def = (
     301,    # FNIRS deoxyhemoglobin
     302,    # FNIRS raw data
     303,    # FNIRS optical density
+    304,    # FNIRS phase data
     1000,   # For testing the MCG software
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
@@ -73,6 +74,7 @@ _aliases = dict(
 def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
+    print('ASDASDASDSADASDSADSADSADSA ' + str(tmpdir))
     dest = op.join(tmpdir, 'fiff.zip')
     _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
                 commit, dest)
