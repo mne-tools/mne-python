@@ -3,7 +3,8 @@
 # License: Simplified BSD
 
 import matplotlib.pyplot as plt
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
+from ...fixes import nullcontext
 from ._pyvista import _Renderer as _PyVistaRenderer
 
 
