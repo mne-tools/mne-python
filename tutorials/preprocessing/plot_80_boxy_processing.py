@@ -123,7 +123,7 @@ fig = raw_haemo.plot_psd(average=True, ax=axes)
 fig.suptitle('Before filtering', weight='bold', size='x-large')
 fig.subplots_adjust(top=0.88)
 
-raw_haemo = raw_haemo.filter(0.02, 0.7)
+raw_haemo = raw_haemo.filter(0.05, 0.7)
 
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
 fig = raw_haemo.plot_psd(average=True, ax=axes)
