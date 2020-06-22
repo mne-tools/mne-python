@@ -973,6 +973,7 @@ class _TimeViewer(object):
                 self.add_point(hemi, mesh, vertex_id, line, color)
 
     def add_point(self, hemi, mesh, vertex_id, line, color):
+        from ..backends._pyvista import _sphere
         center = mesh.GetPoints().GetPoint(vertex_id)
 
         # from the picked renderer to the subplot coords
@@ -983,11 +984,11 @@ class _TimeViewer(object):
         spheres = list()
         for ri, view in enumerate(self.brain._views):
             self.plotter.subplot(ri, col)
-            actor, sphere = self.brain._renderer.sphere(
+            actor, sphere = _sphere(
+                plotter=self.plotter,
                 center=np.array(center),
                 color=color,
-                scale=1.0,
-                radius=4.0
+                radius=4.0,
             )
             actors.append(actor)
             spheres.append(sphere)

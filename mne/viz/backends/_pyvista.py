@@ -773,6 +773,18 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     return alg.GetOutput()
 
 
+def _sphere(plotter, center, color, radius):
+    sphere = vtk.vtkSphereSource()
+    sphere.SetThetaResolution(8)
+    sphere.SetPhiResolution(8)
+    sphere.SetRadius(radius)
+    sphere.SetCenter(center)
+    sphere.Update()
+    mesh = pyvista.wrap(sphere.GetOutput())
+    actor = plotter.add_mesh(mesh, color=color)
+    return actor, mesh
+
+
 def _require_minimum_version(version_required):
     from distutils.version import LooseVersion
     version = LooseVersion(pyvista.__version__)
