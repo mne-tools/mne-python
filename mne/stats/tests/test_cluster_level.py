@@ -14,7 +14,7 @@ import pytest
 
 from mne.fixes import has_numba
 from mne.parallel import _force_serial
-from mne.stats import cluster_level, ttest_ind_no_p
+from mne.stats import cluster_level, ttest_ind_no_p, combine_connectivity
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
@@ -325,6 +325,10 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
         connectivity_2 = sparse.coo_matrix(
             linalg.block_diag(connectivity.asfptype().todense(),
                               connectivity.asfptype().todense()))
+        # nesting here is time then space:
+        connectivity_2a = combine_connectivity(np.eye(2), connectivity)
+        assert_array_equal(connectivity_2.toarray().astype(bool),
+                           connectivity_2a.toarray().astype(bool))
 
         if isinstance(X1d, list):
             X1d_2 = [np.concatenate((x, x), axis=1) for x in X1d]

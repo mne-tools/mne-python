@@ -919,6 +919,7 @@ Non-parametric (clustering) resampling methods:
 .. autosummary::
    :toctree: generated/
 
+   combine_connectivity
    permutation_cluster_test
    permutation_cluster_1samp_test
    permutation_t_test
