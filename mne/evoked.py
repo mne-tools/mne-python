@@ -746,7 +746,7 @@ class EvokedArray(Evoked):
         self.first = int(round(tmin * info['sfreq']))
         self.last = self.first + np.shape(data)[-1] - 1
         self.times = np.arange(self.first, self.last + 1,
-                               dtype=np.float) / info['sfreq']
+                               dtype=np.float64) / info['sfreq']
         self.info = info.copy()  # do not modify original info
         self.nave = nave
         self.kind = kind
@@ -1111,7 +1111,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         else:
             # Put the old style epochs together
             data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
-        data = data.astype(np.float)
+        data = data.astype(np.float64)
 
         if first_time is not None and nsamp is not None:
             times = first_time + np.arange(nsamp) / info['sfreq']
@@ -1280,7 +1280,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
         raise ValueError('The tmin must be smaller or equal to tmax')
 
     time_win = (times >= tmin) & (times <= tmax)
-    mask = np.ones_like(data).astype(np.bool)
+    mask = np.ones_like(data).astype(bool)
     mask[:, time_win] = False
 
     maxfun = np.argmax

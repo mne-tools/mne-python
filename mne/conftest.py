@@ -88,6 +88,9 @@ def pytest_configure(config):
     ignore:.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
+    ignore:.*`np.bool` is a deprecated alias.*:DeprecationWarning
+    ignore:.*`np.int` is a deprecated alias.*:DeprecationWarning
+    ignore:.*`np.float` is a deprecated alias.*:DeprecationWarning
     ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
     ignore:.*sphinx\.util\.smartypants is deprecated.*:
     ignore:.*pandas\.util\.testing is deprecated.*:

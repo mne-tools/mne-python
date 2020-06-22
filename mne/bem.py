@@ -1341,7 +1341,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         raise ValueError('Vertex data not found')
 
-    res['rr'] = tag.data.astype(np.float)  # XXX : double because of mayavi bug
+    res['rr'] = tag.data.astype(np.float64)  # XXX : double because of mayavi
     if res['rr'].shape[0] != res['np']:
         raise ValueError('Vertex information is incorrect')
 

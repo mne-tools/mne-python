@@ -143,7 +143,7 @@ def istft(X, tstep=None, Tx=None):
 
     T = n_step * tstep
 
-    x = np.zeros((n_signals, T + wsize - tstep), dtype=np.float)
+    x = np.zeros((n_signals, T + wsize - tstep), dtype=np.float64)
 
     if n_signals == 0:
         return x[:, :Tx]
@@ -153,7 +153,7 @@ def istft(X, tstep=None, Tx=None):
     # win = win / norm(win);
 
     # Pre-processing for edges
-    swin = np.zeros(T + wsize - tstep, dtype=np.float)
+    swin = np.zeros(T + wsize - tstep, dtype=np.float64)
     for t in range(n_step):
         swin[t * tstep:t * tstep + wsize] += win ** 2
     swin = np.sqrt(swin / wsize)

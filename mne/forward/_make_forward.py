@@ -690,7 +690,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     # Check for omissions due to proximity to inner skull in
     # make_forward_solution, which will result in an exception
     if fwd['src'][0]['nuse'] != len(pos):
-        inuse = fwd['src'][0]['inuse'].astype(np.bool)
+        inuse = fwd['src'][0]['inuse'].astype(bool)
         head = ('The following dipoles are outside the inner skull boundary')
         msg = len(head) * '#' + '\n' + head + '\n'
         for (t, pos) in zip(times[np.logical_not(inuse)],

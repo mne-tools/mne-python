@@ -136,7 +136,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc_data = np.zeros((len(inds), n_time))
     stc_data[0, 1] = 1.
     stc_data[1, 4] = 2.
-    vertices = [vertices[inds], np.empty(0, dtype=np.int)]
+    vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)

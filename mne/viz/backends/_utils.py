@@ -36,15 +36,15 @@ def _check_color(color):
         np_color = np.array(color)
         if np_color.size % 3 != 0 and np_color.size % 4 != 0:
             raise ValueError("The expected valid format is RGB or RGBA.")
-        if np_color.dtype == np.int:
+        if np_color.dtype == np.int64:
             if (np_color < 0).any() or (np_color > 255).any():
                 raise ValueError("Values out of range [0, 255].")
-        elif np_color.dtype == np.float:
+        elif np_color.dtype == np.float64:
             if (np_color < 0.0).any() or (np_color > 1.0).any():
                 raise ValueError("Values out of range [0.0, 1.0].")
         else:
-            raise TypeError("Expected data type is `np.int` or `np.float` but "
-                            "{} was given.".format(np_color.dtype))
+            raise TypeError("Expected data type is `np.int64` or `np.float64` "
+                            "but {} was given.".format(np_color.dtype))
     else:
         raise TypeError("Expected type is `str` or iterable but "
                         "{} was given.".format(type(color)))

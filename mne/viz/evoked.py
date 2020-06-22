@@ -2317,7 +2317,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                        invert_y, vlines, tmin, tmax, units, skip_axlabel)
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
-        _validate_type(show_sensors, (np.int, bool, str, type(None)),
+        _validate_type(show_sensors, (np.int64, bool, str, type(None)),
                        'show_sensors', 'numeric, str, None or bool')
         if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
             warn('Cannot find channel coordinates in the supplied Evokeds. '

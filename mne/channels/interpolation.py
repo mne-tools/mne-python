@@ -136,8 +136,8 @@ def _interpolate_bads_eeg(inst, origin, verbose=None):
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The data to interpolate. Must be preloaded.
     """
-    bads_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
-    goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
+    bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
+    goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
     inst.info._check_consistency()
