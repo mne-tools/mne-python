@@ -868,7 +868,7 @@ class _Brain(object):
                 rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
-            ctable = cmap.astype(np.float) / 255.
+            ctable = cmap.astype(np.float64) / 255.
 
             mesh_data = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
@@ -1447,7 +1447,7 @@ class _Brain(object):
             edges = mesh_edges(self.geo[hemi].faces)
             edges = edges.tocoo()
             border_edges = label[edges.row] != label[edges.col]
-            show = np.zeros(n_vertices, dtype=np.int)
+            show = np.zeros(n_vertices, dtype=np.int64)
             keep_idx = np.unique(edges.row[border_edges])
             if isinstance(borders, int):
                 for _ in range(borders):

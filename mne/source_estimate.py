@@ -2725,7 +2725,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     n_vertices = edges.shape[0]
     logger.info("-- number of connected vertices : %d" % n_vertices)
     nnz = edges.col.size
-    aux = n_vertices * np.arange(n_times)[:, None] * np.ones((1, nnz), np.int)
+    aux = n_vertices * np.tile(np.arange(n_times)[:, None], (1, nnz))
     col = (edges.col[None, :] + aux).ravel()
     row = (edges.row[None, :] + aux).ravel()
     if n_times > 1:  # add temporal edges
@@ -2736,7 +2736,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
         row = np.concatenate((row, o, d))
         col = np.concatenate((col, d, o))
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
-                   dtype=np.int)
+                   dtype=np.int64)
     connectivity = coo_matrix((data, (row, col)),
                               shape=(n_times * n_vertices,) * 2)
     return connectivity

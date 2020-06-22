@@ -102,7 +102,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
         # Preallocate max number of maxima
         maxPeaks = int(np.ceil(length / 2.0))
-        peak_loc = np.zeros(maxPeaks, dtype=np.int)
+        peak_loc = np.zeros(maxPeaks, dtype=np.int64)
         peak_mag = np.zeros(maxPeaks)
         c_ind = 0
         # Loop through extrema which should be peaks and then valleys

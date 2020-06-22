@@ -94,7 +94,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
             if window[0] > thresh1:
                 max_time = np.argmax(window)
                 time.append(ii + max_time)
-                nx = np.sum(np.diff(((window > thresh1).astype(np.int) ==
+                nx = np.sum(np.diff(((window > thresh1).astype(np.int64) ==
                                      1).astype(int)))
                 numcross.append(nx)
                 rms.append(np.sqrt(sum_squared(window) / window.size))

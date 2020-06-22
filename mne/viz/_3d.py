@@ -1463,7 +1463,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     curv = nib.freesurfer.read_morph_data(
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
-    curv = np.clip(np.array(curv > 0, np.int), 0.33, 0.66)
+    curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
                   hemi_idx=hemi_idx, vertices=vertices, e=e,
                   smoothing_steps=smoothing_steps, n_verts=n_verts,

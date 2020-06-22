@@ -164,7 +164,7 @@ class RawKIT(BaseRaw):
 
         pick = pick_types(self.info, meg=False, ref_meg=False,
                           stim=True, exclude=[])
-        stim_ch = np.empty((1, stop), dtype=np.int)
+        stim_ch = np.empty((1, stop), dtype=np.int64)
         for b_start in range(start, stop, buffer_size):
             b_stop = b_start + buffer_size
             x = self[pick, b_start:b_stop][0]
@@ -686,7 +686,7 @@ def get_kit_info(rawfile, allow_unknown_format):
             z = cos(theta)
             vec_z = np.array([x, y, z])
             vec_z /= linalg.norm(vec_z)
-            vec_x = np.zeros(vec_z.size, dtype=np.float)
+            vec_x = np.zeros(vec_z.size, dtype=np.float64)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
                     vec_x[0] = 1.0

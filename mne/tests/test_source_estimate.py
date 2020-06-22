@@ -988,7 +988,7 @@ def test_spatio_temporal_src_connectivity():
 def test_to_data_frame():
     """Test stc Pandas exporter."""
     n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
@@ -1010,7 +1010,7 @@ def test_to_data_frame():
 def test_to_data_frame_index(index):
     """Test index creation in stc Pandas exporter."""
     n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
     stc = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                          subject='sample')

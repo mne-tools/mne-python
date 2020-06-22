@@ -809,7 +809,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
     vols = np.zeros((np.prod(shape[:3]), shape[3]), order='F')  # flatten
     n_vertices_seen = 0
     for this_inuse in inuse:
-        this_inuse = this_inuse.astype(np.bool)
+        this_inuse = this_inuse.astype(bool)
         n_vertices = np.sum(this_inuse)
         stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
         vols[this_inuse] = stc.data[stc_slice]
@@ -1232,7 +1232,7 @@ def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
 def _sparse_argmax_nnz_row(csr_mat):
     """Return index of the maximum non-zero index in each row."""
     n_rows = csr_mat.shape[0]
-    idx = np.empty(n_rows, dtype=np.int)
+    idx = np.empty(n_rows, dtype=np.int64)
     for k in range(n_rows):
         row = csr_mat[k].tocoo()
         idx[k] = row.col[np.argmax(row.data)]

@@ -1306,7 +1306,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
     # nzero = (cov['eig'] > 0)
     # n_chan = len(info_nb['ch_names'])
-    # whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+    # whitener = np.zeros((n_chan, n_chan), dtype=np.float64)
     # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
     # whitener = np.dot(whitener, cov['eigvec'])
 

@@ -191,9 +191,9 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
                      with_power, with_plv, pick_ori, decim, verbose=None):
     """Aux function for induced power and PLV."""
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
-    power = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    power = np.zeros(shape, dtype=np.float64)  # power or raw TFR
     # phase lock
-    plv = np.zeros(shape, dtype=np.complex) if with_plv else None
+    plv = np.zeros(shape, dtype=np.complex128) if with_plv else None
 
     for epoch in data:
         epoch = epoch[sel]  # keep only selected channels
@@ -215,9 +215,9 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
 def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
                       with_plv, with_power):
     """Compute single trial TFRs, either ITC, power or raw TFR."""
-    tfr_e = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    tfr_e = np.zeros(shape, dtype=np.float64)  # power or raw TFR
     # phase lock
-    plv_e = np.zeros(shape, dtype=np.complex) if with_plv else None
+    plv_e = np.zeros(shape, dtype=np.complex128) if with_plv else None
     n_sources, _, n_times = shape
     for f, w in enumerate(Ws):
         tfr_ = cwt(data, [w], use_fft=use_fft, decim=decim)
@@ -225,9 +225,9 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
         # phase lock and power at freq f
         if with_plv:
-            plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
+            plv_f = np.zeros((n_sources, n_times), dtype=np.complex128)
 
-        tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
+        tfr_f = np.zeros((n_sources, n_times), dtype=np.float64)
 
         for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
             sol = np.dot(K, t)
