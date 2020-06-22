@@ -1078,3 +1078,16 @@ else:
     @jit()
     def mean(array, axis):
         return _np_apply_along_axis(np.mean, axis, array)
+
+
+###############################################################################
+# Added in Python 3.7 (remove when we drop support for 3.6)
+
+try:
+    from contextlib import nullcontext
+except ImportError:
+    from contextlib import contextmanager
+
+    @contextmanager
+    def nullcontext(enter_result=None):
+        yield enter_result

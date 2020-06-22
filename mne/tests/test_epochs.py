@@ -1174,8 +1174,9 @@ def test_evoked_io_from_epochs(tmpdir):
                     picks=picks, decim=5)
     evoked = epochs.average()
     evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
-    evoked.save(op.join(tempdir, 'evoked-ave.fif'))
-    evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
+    fname_temp = op.join(tempdir, 'evoked-ave.fif')
+    evoked.save(fname_temp)
+    evoked2 = read_evokeds(fname_temp)[0]
     assert_equal(evoked2.info['proj_name'], None)
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
@@ -1185,8 +1186,8 @@ def test_evoked_io_from_epochs(tmpdir):
     epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
                     picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
-    evoked.save(op.join(tempdir, 'evoked-ave.fif'))
-    evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
+    evoked.save(fname_temp)
+    evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
@@ -1197,6 +1198,25 @@ def test_evoked_io_from_epochs(tmpdir):
     evoked.crop(0.099, None)
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
+
+    # should work when one channel type is changed to a non-data ch
+    picks = pick_types(raw.info, meg=True, eeg=True)
+    epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
+                    picks=picks, baseline=(0.1, 0.2), decim=5)
+    with pytest.warns(RuntimeWarning, match='unit for.*changed from'):
+        epochs.set_channel_types({epochs.ch_names[0]: 'syst'})
+    evokeds = list()
+    for picks in (None, 'all'):
+        evoked = epochs.average(picks)
+        evokeds.append(evoked)
+        evoked.save(fname_temp)
+        evoked2 = read_evokeds(fname_temp)[0]
+        start = 1 if picks is None else 0
+        for ev in (evoked, evoked2):
+            assert ev.ch_names == epochs.ch_names[start:]
+            assert_allclose(ev.data, epochs.get_data().mean(0)[start:])
+    with pytest.raises(ValueError, match='.*nchan.* must match'):
+        write_evokeds(fname_temp, evokeds)
 
 
 def test_evoked_standard_error(tmpdir):
