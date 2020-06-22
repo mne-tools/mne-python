@@ -655,7 +655,7 @@ def test_compute_tfr():
 
         # Check types
         if output in ('complex', 'avg_power_itc'):
-            assert_equal(np.complex, out.dtype)
+            assert_equal(np.complex128, out.dtype)
         else:
             assert_equal(np.float64, out.dtype)
         assert (np.all(np.isfinite(out)))

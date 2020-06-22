@@ -1322,7 +1322,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
         X = phiT(Z)
     else:
-        Z = np.zeros((0, phi.n_coefs.sum()), dtype=np.complex)
+        Z = np.zeros((0, phi.n_coefs.sum()), dtype=np.complex128)
         X = np.zeros((0, n_times))
 
     return X, Z, active_set, E, gap
@@ -1548,7 +1548,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
     E = list()
 
     active_set = np.ones(n_sources, dtype=bool)
-    Z = np.zeros((n_sources, phi.n_coefs.sum()), dtype=np.complex)
+    Z = np.zeros((n_sources, phi.n_coefs.sum()), dtype=np.complex128)
 
     for k in range(n_tfmxne_iter):
         active_set_0 = active_set.copy()

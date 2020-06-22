@@ -1112,7 +1112,7 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
     n_freqs = len(frequencies)
     csds_mean = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
-                         dtype=np.complex)
+                         dtype=np.complex128)
 
     # Prepare the function that does the actual CSD computation for parallel
     # execution.
