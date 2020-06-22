@@ -27,7 +27,7 @@ def combine_connectivity(*structure):
 
     Returns
     -------
-    connectivity : sparse matrix, shape (n_features, n_features)
+    connectivity : scipy.sparse.coo_matrix, shape (n_features, n_features)
         The adjacency matrix.
     """
     structure = list(structure)

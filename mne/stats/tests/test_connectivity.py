@@ -13,7 +13,7 @@ from mne.utils import requires_sklearn
 
 
 @requires_sklearn
-@pytest.mark.parametrize('ns', [
+@pytest.mark.parametrize('shape', [
     (1,),
     (2,),
     (1, 1),
@@ -24,13 +24,14 @@ from mne.utils import requires_sklearn
     (1, 1, 2),
     (3, 4, 5),
 ])
-def test_connectivity_equiv(ns):
+def test_connectivity_equiv(shape):
     """Test connectivity equivalence for lattice connectivity."""
     from sklearn.feature_extraction import grid_to_graph
-    sk_ns = ns if len(ns) > 1 else (ns + (1,))
-    conn_sk = grid_to_graph(*sk_ns).toarray()
-    conn = combine_connectivity(*ns)
-    want_shape = (np.prod(ns),) * 2
+    # sklearn requires at least two dimensions
+    sk_shape = shape if len(shape) > 1 else (shape + (1,))
+    conn_sk = grid_to_graph(*sk_shape).toarray()
+    conn = combine_connectivity(*shape)
+    want_shape = (np.prod(shape),) * 2
     assert conn.shape == conn_sk.shape == want_shape
     assert (conn.data == 1.).all()
     conn = conn.toarray()
