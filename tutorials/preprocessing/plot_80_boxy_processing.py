@@ -38,11 +38,11 @@ raw_intensity_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph',
 # get channel indices for our two montages
 mtg_a = [raw_intensity_ac.ch_names[i_index] for i_index, i_label
          in enumerate(raw_intensity_ac.info['ch_names'])
-         if re.search(r'S[1-5]_', i_label)]
+         if re.search(r'_D[1-8] ', i_label)]
 
 mtg_b = [raw_intensity_ac.ch_names[i_index] for i_index, i_label
          in enumerate(raw_intensity_ac.info['ch_names'])
-         if re.search(r'S([6-9]|10)_', i_label)]
+         if re.search(r'_D(9|1[0-6]) ', i_label)]
 
 # plot the raw data for each data type
 # AC
@@ -171,8 +171,7 @@ fig = raw_haemo.plot_psd(average=True, ax=axes)
 fig.suptitle('Before filtering', weight='bold', size='x-large')
 fig.subplots_adjust(top=0.88)
 
-raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
-                             l_trans_bandwidth=0.02)
+raw_haemo = raw_haemo.filter(0.05, 0.7)
 
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
 fig = raw_haemo.plot_psd(average=True, ax=axes)
@@ -195,8 +194,7 @@ fig.subplots_adjust(top=0.88)
 # # and combine them later
 
 # All events
-all_events = mne.find_events(raw_intensity_ac, stim_channel=['Markers a',
-                                                             'Markers b'])
+all_events = mne.find_events(raw_intensity_ac, stim_channel=['Markers b'])
 
 all_event_dict = {'Event_1': 1,
                   'Event_2': 2,
@@ -414,8 +412,8 @@ all_phase_epochs['Event_2'].average().plot_topomap(times=times, axes=axes[1:],
                                                    **topomap_args)
 
 for column, condition in enumerate(['Event 1', 'Event 2']):
-    axes[column].set_title('{}: {}'.format(chroma, condition))
-fig.tight_layout()
+    axes[column].set_title('Phase: {}'.format(condition))
+# fig.tight_layout()
 
 # ###############################################################################
 # # And we can plot the comparison at a single time point for two conditions.
@@ -480,7 +478,7 @@ evoked_diff_ph.plot_topomap(times=ts, axes=axes[2:], vmin=vmin, vmax=vmax,
                             colorbar=True, **topomap_args)
 
 for column, condition in enumerate(['Event 1', 'Event 2', 'Difference']):
-    axes[column].set_title('{}'.format(condition))
+    axes[column].set_title('Phase: {}'.format(condition))
 fig.tight_layout()
 
 # #############################################################################

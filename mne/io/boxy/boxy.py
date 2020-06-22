@@ -23,7 +23,7 @@ def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
     fname : str
         Path to the BOXY data folder.
     datatype : str
-        Type of data to return (AC, DC, or Ph)
+        Type of data to return (AC, DC, or Ph).
     %(preload)s
     %(verbose)s
 
@@ -48,7 +48,7 @@ class RawBOXY(BaseRaw):
     fname : str
         Path to the BOXY data folder.
     datatype : str
-        Type of data to return (AC, DC, or Ph)
+        Type of data to return (AC, DC, or Ph).
     %(preload)s
     %(verbose)s
 
