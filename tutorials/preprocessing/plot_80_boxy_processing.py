@@ -152,13 +152,6 @@ all_event_dict = {'Event_1': 1,
                   'Block 1 End': 1000,
                   'Block 2 End': 2000}
 
-fig = mne.viz.plot_events(all_events)
-fig.subplots_adjust(right=0.7)  # make room for the legend
-
-raw_intensity_ac.plot(events=all_events, start=0, duration=10, color='gray',
-                      event_color={1: 'r', 2: 'b', 1000: 'k', 2000: 'k'},
-                      scalings=scalings)
-
 # ###############################################################################
 # # Next we define the range of our epochs, the rejection criteria,
 # # baseline correction, and extract the epochs. We visualise the log of which
@@ -174,7 +167,6 @@ all_haemo_epochs = mne.Epochs(raw_haemo, all_events,
                               reject_by_annotation=False, proj=True,
                               baseline=(None, 0), preload=True, detrend=None,
                               verbose=True, event_repeated='drop')
-all_haemo_epochs.plot_drop_log()
 
 # Plot epochs
 fig = all_haemo_epochs.plot(scalings=scalings)
@@ -201,31 +193,12 @@ all_haemo_epochs['Event_2'].plot_image(combine='mean', vmin=vmin_ac,
                                        title='Haemo Event 2')
 
 # ###############################################################################
-# # View consistency of responses across channels
-# # ---------------------------------------------
-# #
-# # Similarly we can view how consistent the response is across the optode
-# # pairs that we selected. All the channels in this data are located over the
-# # motor cortex, and all channels show a similar pattern in the data.
-
-evoked_event_1_ac = all_haemo_epochs['Event_1'].average()
-evoked_event_2_ac = all_haemo_epochs['Event_2'].average()
-
-fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
-clim = dict(hbo=[-60, 60], hbr=[-60, 60])
-
-evoked_event_1_ac.plot_image(axes=axes[:, 0],
-                             titles=dict(hbo='HBO_Event_1', hbr='HBR_Event_1'),
-                             clim=clim)
-evoked_event_2_ac.plot_image(axes=axes[:, 1],
-                             titles=dict(hbo='HBO_Event_2', hbr='HBR_Event_2'),
-                             clim=clim)
-
-# ###############################################################################
 # # Compare Events 1 and 2
 # # ---------------------------------------
 
 # Evoked Activity
+evoked_event_1_ac = all_haemo_epochs['Event_1'].average()
+evoked_event_2_ac = all_haemo_epochs['Event_2'].average()
 evoked_diff_ac = mne.combine_evoked([evoked_event_1_ac, -evoked_event_2_ac],
                                     weights='equal')
 
@@ -325,13 +298,6 @@ all_event_dict = {'Event_1': 1,
                   'Block 1 End': 1000,
                   'Block 2 End': 2000}
 
-fig = mne.viz.plot_events(all_events)
-fig.subplots_adjust(right=0.7)  # make room for the legend
-
-raw_intensity_ph.plot(events=all_events, start=0, duration=10, color='gray',
-                      event_color={1: 'r', 2: 'b', 1000: 'k', 2000: 'k'},
-                      scalings=scalings)
-
 # ###############################################################################
 # # Next we define the range of our epochs, the rejection criteria,
 # # baseline correction, and extract the epochs. We visualise the log of which
@@ -347,7 +313,6 @@ all_phase_epochs = mne.Epochs(raw_intensity_ph, all_events,
                               baseline=(-0.2, 0), preload=True,
                               detrend=None, verbose=True,
                               event_repeated='drop')
-all_phase_epochs.plot_drop_log()
 
 # Plot epochs
 fig = all_phase_epochs.plot(scalings=scalings)
@@ -366,23 +331,12 @@ all_phase_epochs['Event_2'].plot_image(combine='mean', vmin=vmin_ph,
                                        vmax=vmax_ph, title='Phase Event 2')
 
 # ###############################################################################
-# # View consistency of responses across channels
-# # ---------------------------------------------
-
-evoked_event_1_ph = all_phase_epochs['Event_1'].average()
-evoked_event_2_ph = all_phase_epochs['Event_2'].average()
-
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
-clim = dict(fnirs_ph=[-180, 180])
-
-evoked_event_1_ph.plot_image(axes=axes[0], titles='Event_1', clim=clim)
-evoked_event_2_ph.plot_image(axes=axes[1], titles='Event_2', clim=clim)
-
-# ###############################################################################
 # # Compare Events 1 and 2
 # # ---------------------------------------
 
 # Evoked Activity
+evoked_event_1_ph = all_phase_epochs['Event_1'].average()
+evoked_event_2_ph = all_phase_epochs['Event_2'].average()
 evoked_diff_ph = mne.combine_evoked([evoked_event_1_ph, -evoked_event_2_ph],
                                     weights='equal')
 
