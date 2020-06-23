@@ -290,7 +290,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
         picks = np.array([pick for pick in picks if pick not in exclude])
 
-    types = np.array(_get_channel_types(info, picks), np.unicode)
+    types = np.array(_get_channel_types(info, picks), str)
     ch_types_used = list()
     for this_type in _VALID_CHANNEL_TYPES:
         if this_type in types:
@@ -2317,7 +2317,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                        invert_y, vlines, tmin, tmax, units, skip_axlabel)
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
-        _validate_type(show_sensors, (np.int, bool, str, type(None)),
+        _validate_type(show_sensors, (np.int64, bool, str, type(None)),
                        'show_sensors', 'numeric, str, None or bool')
         if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
             warn('Cannot find channel coordinates in the supplied Evokeds. '

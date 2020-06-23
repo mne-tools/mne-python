@@ -980,7 +980,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
             raise ValueError('define frequencies of interest using '
                              'cwt_freqs')
         else:
-            cwt_freqs = cwt_freqs.astype(np.float)
+            cwt_freqs = cwt_freqs.astype(np.float64)
         if any(cwt_freqs > (sfreq / 2.)):
             raise ValueError('entries in cwt_freqs cannot be '
                              'larger than Nyquist (sfreq / 2)')
@@ -1003,7 +1003,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
                                   5. / np.min(fmin), five_cycle_freq))
 
     # create a frequency mask for all bands
-    freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
+    freq_mask = np.zeros(len(freqs_all), dtype=bool)
     for f_lower, f_upper in zip(fmin, fmax):
         freq_mask |= ((freqs_all >= f_lower) & (freqs_all <= f_upper))
 

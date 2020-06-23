@@ -90,7 +90,7 @@ def test_compute_nearest():
     """Test nearest neighbor searches."""
     x = rng.randn(500, 3)
     x /= np.sqrt(np.sum(x ** 2, axis=1))[:, None]
-    nn_true = rng.permutation(np.arange(500, dtype=np.int))[:20]
+    nn_true = rng.permutation(np.arange(500, dtype=np.int64))[:20]
     y = x[nn_true]
 
     nn1 = _compute_nearest(x, y, method='BallTree')

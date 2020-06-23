@@ -151,7 +151,7 @@ class Surface(object):
         """Load in curvature values from the ?h.curv file."""
         curv_path = path.join(self.data_path, 'surf', '%s.curv' % self.hemi)
         self.curv = read_curvature(curv_path, binary=False)
-        self.bin_curv = np.array(self.curv > 0, np.int)
+        self.bin_curv = np.array(self.curv > 0, np.int64)
         # morphometry (curvature) normalization in order to get gray cortex
         # TODO: delete self.grey_curv after cortex parameter
         # will be fully supported

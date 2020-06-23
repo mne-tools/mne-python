@@ -479,8 +479,8 @@ def _annotate_bad_segments(directory, start_time, meas_date):
         for f in fid.readlines():
             tmp = f.strip().split()
             desc.append('bad_%s' % tmp[0])
-            onsets.append(np.float(tmp[1]) - start_time)
-            durations.append(np.float(tmp[2]) - np.float(tmp[1]))
+            onsets.append(np.float64(tmp[1]) - start_time)
+            durations.append(np.float64(tmp[2]) - np.float64(tmp[1]))
     # return None if there are no bad segments
     if len(onsets) == 0:
         return None
