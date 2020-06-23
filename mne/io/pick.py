@@ -383,7 +383,7 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
 
     exclude = _check_info_exclude(info, exclude)
     nchan = info['nchan']
-    pick = np.zeros(nchan, dtype=np.bool)
+    pick = np.zeros(nchan, dtype=bool)
 
     _check_meg_type(ref_meg, allow_auto=True)
     _check_meg_type(meg)

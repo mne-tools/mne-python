@@ -113,7 +113,7 @@ def test_simulate_sparse_stc(_get_fwd_labels):
     n_times = 10
     tmin = 0
     tstep = 1e-3
-    times = np.arange(n_times, dtype=np.float) * tstep + tmin
+    times = np.arange(n_times, dtype=np.float64) * tstep + tmin
 
     pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='center', subject='sample',
@@ -221,7 +221,7 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
     n_times = 10
     tmin = 0
     tstep = 1e-3
-    times = np.arange(n_times, dtype=np.float) * tstep + tmin
+    times = np.arange(n_times, dtype=np.float64) * tstep + tmin
 
     stc_1 = simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
                                 labels=labels_single_hemi, random_state=0)

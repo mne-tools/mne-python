@@ -557,7 +557,7 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi):
             # loads hpi_stim channel
             chpi_data = raw[hpi['hpi_pick'], time_sl][0]
 
-        ons = (np.round(chpi_data).astype(np.int) &
+        ons = (np.round(chpi_data).astype(np.int64) &
                hpi['on'][:, np.newaxis]).astype(bool)
         n_on = ons.all(axis=-1).sum(axis=0)
         if not (n_on >= 3).all():

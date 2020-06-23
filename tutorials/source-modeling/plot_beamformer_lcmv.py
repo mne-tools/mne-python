@@ -9,6 +9,7 @@ activity.
 .. contents:: Page contents
    :local:
    :depth: 2
+
 """
 # Author: Britta Westner <britta.wstnr@gmail.com>
 #

@@ -846,8 +846,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         # prepare mean covs
         n_epoch_types = len(epochs)
         data_mean = [0] * n_epoch_types
-        n_samples = np.zeros(n_epoch_types, dtype=np.int)
-        n_epochs = np.zeros(n_epoch_types, dtype=np.int)
+        n_samples = np.zeros(n_epoch_types, dtype=np.int64)
+        n_epochs = np.zeros(n_epoch_types, dtype=np.int64)
 
         for ii, epochs_t in enumerate(epochs):
 
@@ -1759,7 +1759,10 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     nzero = (eig > 0)
     eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
 
-    dtype = np.complex if noise_cov['eigvec'].dtype == np.complex else np.float
+    if noise_cov['eigvec'].dtype.kind == 'c':
+        dtype = np.complex128
+    else:
+        dtype = np.float64
     W = np.zeros((n_chan, 1), dtype)
     W[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
     #   Rows of eigvec are the eigenvectors
@@ -1966,7 +1969,7 @@ def _write_cov(fid, cov):
     else:
         # Store only lower part of covariance matrix
         dim = cov['dim']
-        mask = np.tril(np.ones((dim, dim), dtype=np.bool)) > 0
+        mask = np.tril(np.ones((dim, dim), dtype=bool)) > 0
         vals = cov['data'][mask].ravel()
         write_double(fid, FIFF.FIFF_MNE_COV, vals)
 

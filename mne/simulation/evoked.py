@@ -73,7 +73,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
     if nave < np.inf:
         noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
-        evoked.nave = np.int(nave)
+        evoked.nave = np.int64(nave)
     if cov is not None and cov.get('projs', None):
         evoked.add_proj(cov['projs']).apply_proj()
     return evoked

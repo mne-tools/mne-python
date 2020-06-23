@@ -175,12 +175,12 @@ def _block_diag(A, n):
     if na % n > 0:
         raise ValueError('Width of matrix must be a multiple of n')
 
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
+    tmp = np.arange(ma * bdn, dtype=np.int64).reshape(bdn, ma)
     tmp = np.tile(tmp, (1, n))
     ii = tmp.ravel()
 
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
+    jj = np.arange(na, dtype=np.int64)[None, :]
+    jj = jj * np.ones(ma, dtype=np.int64)[:, None]
     jj = jj.T.ravel()  # column indices foreach sparse bd
 
     bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
@@ -994,7 +994,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     if not (0 <= loose <= 1):
         raise ValueError('loose value should be between 0 and 1, '
                          'got %s.' % (loose,))
-    orient_prior = np.ones(n_sources, dtype=np.float)
+    orient_prior = np.ones(n_sources, dtype=np.float64)
     if loose > 0.:
         if is_fixed_ori:
             raise ValueError('loose must be 0. with forward operator '

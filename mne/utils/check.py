@@ -557,11 +557,11 @@ def _check_option(parameter, value, allowed_values, extra=''):
            '{options}, but got {value!r} instead.')
     allowed_values = list(allowed_values)  # e.g., if a dict was given
     if len(allowed_values) == 1:
-        options = 'The only allowed value is %r' % allowed_values[0]
+        options = f'The only allowed value is {repr(allowed_values[0])}'
     else:
         options = 'Allowed values are '
-        options += ', '.join(['%r' % v for v in allowed_values[:-1]])
-        options += ' and %r' % allowed_values[-1]
+        options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
+        options += f' and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value, extra=extra))
 

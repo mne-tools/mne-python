@@ -335,15 +335,28 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     ('eLORETA', 99, 100, 0.8, 0.2),
     ('eLORETA', 99, 100, 0.8, 0.001),
 ])
+@pytest.mark.parametrize('pick_ori', (None, 'vector'))
 def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
-                                 depth, loose):
+                                 depth, loose, pick_ori):
     """Test inverse localization bias for loose minimum-norm solvers."""
+    if pick_ori == 'vector' and method == 'eLORETA':  # works, but save cycles
+        return
     evoked, fwd, noise_cov, _, want = bias_params_fixed
     fwd = convert_forward_solution(fwd, surf_ori=False, force_fixed=False)
     assert not is_fixed_orient(fwd)
     inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose,
                                       depth=depth)
-    loc = apply_inverse(evoked, inv_loose, lambda2, method).data
+    loc = apply_inverse(
+        evoked, inv_loose, lambda2, method, pick_ori=pick_ori)
+    if pick_ori is not None:
+        assert loc.data.ndim == 3
+        loc, directions = loc.project('pca', src=fwd['src'])
+        abs_cos_sim = np.abs(np.sum(
+            directions * inv_loose['source_nn'][2::3], axis=1))
+        assert np.percentile(abs_cos_sim, 10) > 0.9  # most very aligned
+        loc = abs(loc).data
+    else:
+        loc = loc.data
     assert (loc >= 0).all()
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -535,7 +548,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
         [_get_src_nn(s) for s in inv['src']]))
     vec_stc_surf = np.matmul(rot, vec_stc.data)
     if 0. in looses:
-        vec_stc_normal = vec_stc.normal(inv['src'])
+        vec_stc_normal, _ = vec_stc.project('normal', inv['src'])
         assert_allclose(stcs[1].data, vec_stc_normal.data)
         del vec_stc
         assert_allclose(vec_stc_normal.data, vec_stc_surf[:, 2])
@@ -1065,8 +1078,9 @@ def test_inverse_mixed(all_src_types_inv_evoked):
                         stcs[kind].magnitude().data)
         assert_allclose(getattr(stcs['mixed'], kind)().magnitude().data,
                         stcs[kind].magnitude().data)
-    assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
-                    stcs['surface'].normal(surf_src).data)
+    with pytest.deprecated_call():
+        assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
+                        stcs['surface'].normal(surf_src).data)
 
 
 run_tests_if_main()
