@@ -56,7 +56,7 @@ brain = stc.plot(
 ###############################################################################
 # Plot the activation in the direction of maximal power for this data:
 
-stc_max, directions = stc.project_onto(directions=None, src=inv['src'])
+stc_max, directions = stc.project('pca', src=inv['src'])
 # These directions must by design be close to the normals because this
 # inverse was computed with loose=0.2:
 print('Absolute cosine similarity between source normals and directions: '
@@ -64,7 +64,7 @@ print('Absolute cosine similarity between source normals and directions: '
 brain_max = stc_max.plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
     time_label='Max power')
-brain_normal = stc.normal(inv['src']).plot(
+brain_normal = stc.project('normal', inv['src'])[0].plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
     time_label='Normal')
 
