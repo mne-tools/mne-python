@@ -984,6 +984,12 @@ class _TimeViewer(object):
         spheres = list()
         for ri, view in enumerate(self.brain._views):
             self.plotter.subplot(ri, col)
+            # Using _sphere() instead of renderer.sphere() for 2 reasons:
+            # 1) renderer.sphere() fails on Windows in a scenario where a lot
+            #    of picking requests are done in a short span of time (could be
+            #    mitigated with synchronization/delay?)
+            # 2) the glyph filter is used in renderer.sphere() but only one
+            #    sphere is required in this function.
             actor, sphere = _sphere(
                 plotter=self.plotter,
                 center=np.array(center),
