@@ -6,6 +6,10 @@
 #
 # License: Simplified BSD
 
+'''This version is special for effective network analysis. Please use this file replate mne/viz/circle.py
+   Modified by Qunxi Dong
+   6/22/2020
+'''
 
 from itertools import cycle
 from functools import partial
@@ -50,7 +54,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
         raise ValueError('node_order has to be the same length as node_names')
 
     if group_boundaries is not None:
-        boundaries = np.array(group_boundaries, dtype=np.int64)
+        boundaries = np.array(group_boundaries, dtype=np.int)
         if np.any(boundaries >= n_nodes) or np.any(boundaries < 0):
             raise ValueError('"group_boundaries" has to be between 0 and '
                              'n_nodes - 1.')
@@ -78,7 +82,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
             start_pos += group_sep / 2
             boundaries = boundaries[1:] if n_group_sep > 1 else None
 
-    node_angles = np.ones(n_nodes, dtype=np.float64) * node_sep
+    node_angles = np.ones(n_nodes, dtype=np.float) * node_sep
     node_angles[0] = start_pos
     if boundaries is not None:
         node_angles[boundaries] += group_sep
@@ -128,7 +132,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
                              fig=None, subplot=111, interactive=True,
-                             node_linewidth=2., show=True):
+                             node_linewidth=2., show=True, arrow=False,
+                             arrowstyle='->,head_length=3,head_width=3'):
     """Visualize connectivity as a circular graph.
 
     Parameters
@@ -199,6 +204,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Line with for nodes.
     show : bool
         Show figure if True.
+    arrow: bool
+        Include arrows at end of connection.
+    arrowstyle: str
+        The style params of the arrow head to be drawn.
 
     Returns
     -------
@@ -264,8 +273,11 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
             raise ValueError('con has to be 1D or a square matrix')
         # we use the lower-triangular part
-        indices = np.tril_indices(n_nodes, -1)
-        con = con[indices]
+        # indices = np.tril_indices(n_nodes, -1)
+        # con = con[indices]
+        indices = np.indices((n_nodes,n_nodes))
+        indices=indices.reshape((2,n_nodes*n_nodes))
+        con = con.flatten() 
     else:
         raise ValueError('con has to be 1D or a square matrix')
 
@@ -325,7 +337,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # edges: We modulate the noise with the number of connections of the
     # node and the connection strength, such that the strongest connections
     # are closer to the node center
-    nodes_n_con = np.zeros((n_nodes), dtype=np.int64)
+    nodes_n_con = np.zeros((n_nodes), dtype=np.int)
     for i, j in zip(indices[0], indices[1]):
         nodes_n_con[i] += 1
         nodes_n_con[j] += 1
@@ -357,7 +369,12 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         t0, r0 = node_angles[i], 10
 
         # End point
-        t1, r1 = node_angles[j], 10
+        if arrow:
+            # make shorter to accomodate arrowhead
+            t1, r1 = node_angles[j], 9
+        else:
+            t1, r1 = node_angles[j], 10
+        #t1, r1 = node_angles[j], 10
 
         # Some noise in start and end point
         t0 += start_noise[pos]
@@ -369,11 +386,23 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         path = m_path.Path(verts, codes)
 
         color = colormap(con_val_scaled[pos])
+        if arrow:
+            # add an arrow to the patch
+            patch = m_patches.FancyArrowPatch(path=path,
+                                              arrowstyle=arrowstyle,
+                                              fill=False, edgecolor=color,
+                                              mutation_scale=10,
+                                              linewidth=linewidth, alpha=1.)
+        else:
+            patch = m_patches.PathPatch(path, fill=False, edgecolor=color,
+                                        linewidth=linewidth, alpha=1.)
+
+        axes.add_patch(patch)
 
         # Actual line
-        patch = m_patches.PathPatch(path, fill=False, edgecolor=color,
-                                    linewidth=linewidth, alpha=1.)
-        axes.add_patch(patch)
+        # patch = m_patches.PathPatch(path, fill=False, edgecolor=color,
+        #                             linewidth=linewidth, alpha=1.)
+        # axes.add_patch(patch)
 
     # Draw ring with colored nodes
     height = np.ones(n_nodes) * 1.0
