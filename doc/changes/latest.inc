@@ -27,7 +27,7 @@ Changelog
 
 - Add :meth:`mne.MixedSourceEstimate.surface` and :meth:`mne.MixedSourceEstimate.volume` methods to allow surface and volume extraction by `Eric Larson`_
 
-- Add :meth:`mne.VectorSourceEstimate.project_onto` to project vector source estimates onto the direction of maximum source power by `Eric Larson`_
+- Add :meth:`mne.VectorSourceEstimate.project` to project vector source estimates onto the direction of maximum source power by `Eric Larson`_
 
 - Add support to :func:`mne.extract_label_time_course` for vector-valued and volumetric source estimates by `Eric Larson`_
 
