@@ -133,7 +133,7 @@ def test_brain(renderer):
     brain.show_view(view=dict(azimuth=180., elevation=90.))
     img = brain.screenshot(mode='rgb')
     assert_allclose(img.shape, (size[0], size[1], 3),
-                    atol=40)  # XXX undo once size is fixed
+                    atol=50)  # XXX undo once size is fixed
 
     # add annotation
     annots = ['aparc', 'PALS_B12_Lobes']
