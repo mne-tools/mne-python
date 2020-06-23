@@ -17,7 +17,6 @@ from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
-from .fixes import einsum
 from .io.constants import FIFF
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
@@ -1786,6 +1785,8 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             data_mag, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
 
+    @deprecated('stc.normal(src) is deprecated and will be removed in 0.22, '
+                'use stc.project("normal", src)[0] instead')
     @fill_doc
     def normal(self, src, use_cps=True):
         """Compute activity orthogonal to the cortex.
@@ -1806,13 +1807,97 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             The source estimate only retaining the activity orthogonal to the
             cortex.
         """
-        _check_src_normal('normal', src)
+        return self.project('normal', src, use_cps)[0]
+
+    def _get_src_normals(self, src, use_cps):
         normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
-                             zip(src, self.vertices)])
-        data_norm = einsum('ijk,ij->ik', self.data, normals)
-        return self._scalar_class(
+                            zip(src, self.vertices)])
+        return normals
+
+    @fill_doc
+    def project(self, directions, src=None, use_cps=True):
+        """Project the data for each vertex in a given direction.
+
+        Parameters
+        ----------
+        directions : ndarray, shape (n_vertices, 3) | str
+            Can be:
+
+            - ``'normal'``
+                Project onto the source space normals.
+            - ``'pca'``
+                SVD will be used to project onto the direction of maximal
+                power for each source.
+            - :class:`~numpy.ndarray`, shape (n_vertices, 3)
+                Projection directions for each source.
+        src : instance of SourceSpaces | None
+            The source spaces corresponding to the source estimate.
+            Not used when ``directions`` is an array, optional when
+            ``directions='pca'``.
+        %(use_cps)s
+            Should be the same value that was used when the forward model
+            was computed (typically True).
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The projected source estimate.
+        directions : ndarray, shape (n_vertices, 3)
+            The directions that were computed (or just used).
+
+        Notes
+        -----
+        When using SVD, there is a sign ambiguity for the direction of maximal
+        power. When ``src is None``, the direction is chosen that makes the
+        resulting time waveform sum positive (i.e., have positive amplitudes).
+        When ``src`` is provided, the directions are flipped in the direction
+        of the source normals, i.e., outward from cortex for surface source
+        spaces and in the +Z / superior direction for volume source spaces.
+
+        .. versionadded:: 0.21
+        """
+        _validate_type(directions, (str, np.ndarray), 'directions')
+        _validate_type(src, (None, SourceSpaces), 'src')
+        if isinstance(directions, str):
+            _check_option('directions', directions, ('normal', 'pca'),
+                          extra='when str')
+
+            if directions == 'normal':
+                if src is None:
+                    raise ValueError(
+                        'If directions="normal", src cannot be None')
+                _check_src_normal('normal', src)
+                directions = self._get_src_normals(src, use_cps)
+            else:
+                assert directions == 'pca'
+                x = self.data
+                if not np.isrealobj(self.data):
+                    _check_option('stc.data.dtype', self.data.dtype,
+                                  (np.complex64, np.complex128))
+                    dtype = \
+                        np.float32 if x.dtype == np.complex64 else np.float64
+                    x = x.view(dtype)
+                    assert x.shape[-1] == 2 * self.data.shape[-1]
+                u, _, v = np.linalg.svd(x, full_matrices=False)
+                directions = u[:, :, 0]
+                # The sign is arbitrary, so let's flip it in the direction that
+                # makes the resulting time series the most positive:
+                if src is None:
+                    signs = np.sum(v[:, 0].real, axis=1, keepdims=True)
+                else:
+                    normals = self._get_src_normals(src, use_cps)
+                    signs = np.sum(directions * normals, axis=1, keepdims=True)
+                assert signs.shape == (self.data.shape[0], 1)
+                signs = np.sign(signs)
+                signs[signs == 0] = 1.
+                directions *= signs
+        _check_option(
+            'directions.shape', directions.shape, [(self.data.shape[0], 3)])
+        data_norm = np.matmul(directions[:, np.newaxis], self.data)[:, 0]
+        stc = self._scalar_class(
             data_norm, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
+        return stc, directions
 
 
 class _BaseVolSourceEstimate(_BaseSourceEstimate):
