@@ -472,7 +472,6 @@ class _Renderer(_BaseRenderer):
         self.plotter.reset_camera()
 
     def screenshot(self, mode='rgb', filename=None):
-        self.plotter.app.processEvents()
         return _take_3d_screenshot(figure=self.figure, mode=mode,
                                    filename=filename)
 
@@ -629,6 +628,7 @@ def _close_3d_figure(figure):
 def _take_3d_screenshot(figure, mode='rgb', filename=None):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
+        figure.plotter.app.processEvents()
         return figure.plotter.screenshot(
             transparent_background=(mode == 'rgba'),
             filename=filename)
