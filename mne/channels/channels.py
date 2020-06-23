@@ -452,7 +452,7 @@ class SetChannelsMixin(MontageMixin):
             elif ch_type == 'hbr':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
             elif ch_type == 'fnirs_raw':
-                coil_type = FIFF.FIFFV_COIL_FNIRS_RAW
+                coil_type = FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE
             elif ch_type == 'fnirs_od':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_OD
             else:

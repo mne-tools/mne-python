@@ -50,7 +50,7 @@ def get_channel_type_constants():
                 gof=dict(kind=FIFF.FIFFV_GOODNESS_FIT),
                 ecog=dict(kind=FIFF.FIFFV_ECOG_CH),
                 fnirs_raw=dict(kind=FIFF.FIFFV_FNIRS_CH,
-                               coil_type=FIFF.FIFFV_COIL_FNIRS_RAW),
+                               coil_type=FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE),
                 fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH,
                               coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
@@ -97,7 +97,7 @@ _second_rules = {
                      FIFF.FIFF_UNIT_T: 'mag'}),
     'fnirs': ('coil_type', {FIFF.FIFFV_COIL_FNIRS_HBO: 'hbo',
                             FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr',
-                            FIFF.FIFFV_COIL_FNIRS_RAW: 'fnirs_raw',
+                            FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE: 'fnirs_raw',
                             FIFF.FIFFV_COIL_FNIRS_OD: 'fnirs_od',
                             }),
     'eeg': ('coil_type', {FIFF.FIFFV_COIL_EEG: 'eeg',
@@ -267,7 +267,8 @@ def _triage_fnirs_pick(ch, fnirs):
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_RAW and fnirs == 'fnirs_raw':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE and \
+            fnirs == 'fnirs_raw':
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
         return True
