@@ -457,6 +457,7 @@ class _Renderer(_BaseRenderer):
     def show(self):
         self.figure.display = self.plotter.show()
         if hasattr(self.plotter, "app_window"):
+            self.plotter.app.processEvents()
             self.plotter.app_window.show()
         return self.scene()
 
