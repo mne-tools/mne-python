@@ -437,7 +437,8 @@ def test_plot_raw_psd():
     raw.plot_psd(picks=picks, average=True)
     plt.close('all')
     raw.set_channel_types({'MEG 0113': 'hbo', 'MEG 0112': 'hbr',
-                           'MEG 0122': 'fnirs_raw', 'MEG 0123': 'fnirs_od'},
+                           'MEG 0122': 'fnirs_cw_amplitude',
+                           'MEG 0123': 'fnirs_od'},
                           verbose='error')
     fig = raw.plot_psd()
     assert len(fig.axes) == 10
