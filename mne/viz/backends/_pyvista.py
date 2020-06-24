@@ -46,7 +46,7 @@ class _Figure(object):
                  size=(600, 600),
                  shape=(1, 1),
                  background_color='black',
-                 smooth_shading=True,
+                 smooth_shading=False,
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
