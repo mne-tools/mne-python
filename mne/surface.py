@@ -1602,8 +1602,8 @@ def mesh_edges(tris):
         The adjacency matrix.
     """
     if np.max(tris) > len(np.unique(tris)):
-        raise ValueError('Cannot compute connectivity on a selection of '
-                         'triangles.')
+        raise ValueError(
+            'Cannot compute adjacency on a selection of triangles.')
 
     npoints = np.max(tris) + 1
     ones_ntris = np.ones(3 * len(tris))
