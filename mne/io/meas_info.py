@@ -1996,7 +1996,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     nchan = len(ch_names)
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
-    ch_types = np.atleast_1d(np.array(ch_types, np.str))
+    ch_types = np.atleast_1d(np.array(ch_types, np.str_))
     if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length '
                          '(%s != %s) for ch_types=%s'

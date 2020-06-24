@@ -124,11 +124,11 @@ class _Renderer(_BaseRenderer):
                 l_m = surface.module_manager.scalar_lut_manager
                 if colormap.dtype == np.uint8:
                     l_m.lut.table = colormap
-                elif colormap.dtype == np.float:
+                elif colormap.dtype == np.float64:
                     l_m.load_lut_from_list(colormap)
                 else:
                     raise TypeError('Expected type for colormap values are'
-                                    ' np.float or np.uint8: '
+                                    ' np.float64 or np.uint8: '
                                     '{} was given'.format(colormap.dtype))
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling

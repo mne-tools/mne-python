@@ -143,7 +143,7 @@ def data_fun(times, latency, duration):
 # event, the second is not used. The third one is the event id, which is
 # different for each of the 4 areas.
 
-times = np.arange(150, dtype=np.float) / info['sfreq']
+times = np.arange(150, dtype=np.float64) / info['sfreq']
 duration = 0.03
 rng = np.random.RandomState(7)
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)

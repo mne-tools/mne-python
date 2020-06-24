@@ -12,7 +12,7 @@ def create_lut(cmap, n_colors=256, center=None):
     """Return a colormap suitable for setting as a LUT."""
     from matplotlib import cm
     cmap = cm.get_cmap(cmap)
-    lut = np.round(cmap(np.linspace(0, 1, n_colors)) * 255.0).astype(np.int)
+    lut = np.round(cmap(np.linspace(0, 1, n_colors)) * 255.0).astype(np.int64)
     return lut
 
 
@@ -169,5 +169,5 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
                                      lut_table[:, chan])
         lut_table = lut
 
-    lut_table = lut_table.astype(np.float) / 255.0
+    lut_table = lut_table.astype(np.float64) / 255.0
     return lut_table

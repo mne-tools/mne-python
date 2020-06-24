@@ -67,7 +67,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
 
     Examples
     --------
-    >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float), (2, 1))
+    >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float64), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
     >>> print(Y)  # doctest:+SKIP
     [[ 0.  4.  3.  0.  0.]
@@ -82,7 +82,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     [ True  True False False]
     """
     if len(Y) == 0:
-        return np.zeros_like(Y), np.zeros((0,), dtype=np.bool)
+        return np.zeros_like(Y), np.zeros((0,), dtype=bool)
     if shape is not None:
         shape_init = Y.shape
         Y = Y.reshape(*shape)
@@ -141,7 +141,7 @@ def prox_l1(Y, alpha, n_orient):
 
     Examples
     --------
-    >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float), (2, 1))
+    >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float64), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
     >>> print(Y)  # doctest:+SKIP
     [[ 1.  2.  3.  2.  0.]
@@ -252,7 +252,7 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
     Y = np.zeros((n_sources, n_times))  # FISTA aux variable
     E = []  # track primal objective function
     highest_d_obj = - np.inf
-    active_set = np.ones(n_sources, dtype=np.bool)  # start with full AS
+    active_set = np.ones(n_sources, dtype=bool)  # start with full AS
 
     for i in range(maxit):
         X0, active_set_0 = X, active_set  # store previous values
@@ -332,7 +332,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     E = []  # track primal objective function
     highest_d_obj = - np.inf
-    active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
+    active_set = np.zeros(n_sources, dtype=bool)  # start with full AS
 
     alpha_lc = alpha / lipschitz_constant
 
@@ -544,7 +544,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         E = list()
         highest_d_obj = - np.inf
         X_init = None
-        active_set = np.zeros(n_dipoles, dtype=np.bool)
+        active_set = np.zeros(n_dipoles, dtype=bool)
         idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, M), n_orient))
         new_active_idx = idx_large_corr[-active_set_size:]
         if n_orient > 1:
@@ -673,7 +673,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
     E = list()
 
-    active_set = np.ones(G.shape[1], dtype=np.bool)
+    active_set = np.ones(G.shape[1], dtype=bool)
     weights = np.ones(G.shape[1])
     X = np.zeros((G.shape[1], M.shape[1]))
 
@@ -740,7 +740,7 @@ def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3, verbose=None):
     """
     n_times = M.shape[1]
     n_points = G.shape[1]
-    iv = np.ones((n_points, n_times), dtype=np.float)
+    iv = np.ones((n_points, n_times), dtype=np.float64)
     v = phi(iv)
     L = 1e100
     for it in range(100):
@@ -1251,7 +1251,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     n_positions = n_sources // n_orient
 
     Z = dict.fromkeys(np.arange(n_positions), 0.0)
-    active_set = np.zeros(n_sources, dtype=np.bool)
+    active_set = np.zeros(n_sources, dtype=bool)
     active = []
     if Z_init is not None:
         if Z_init.shape != (n_sources, phi.n_coefs.sum()):
@@ -1295,7 +1295,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
 
         Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
             M, G[:, active_set], Z_init,
-            np.ones(len(active) * n_orient, dtype=np.bool),
+            np.ones(len(active) * n_orient, dtype=bool),
             candidates_, alpha_space, alpha_time,
             lipschitz_constant[active_set[::n_orient]], phi, phiT,
             w_space=w_space_as, w_time=w_time_as,
@@ -1322,7 +1322,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
         X = phiT(Z)
     else:
-        Z = np.zeros((0, phi.n_coefs.sum()), dtype=np.complex)
+        Z = np.zeros((0, phi.n_coefs.sum()), dtype=np.complex128)
         X = np.zeros((0, n_times))
 
     return X, Z, active_set, E, gap
@@ -1547,8 +1547,8 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
 
     E = list()
 
-    active_set = np.ones(n_sources, dtype=np.bool)
-    Z = np.zeros((n_sources, phi.n_coefs.sum()), dtype=np.complex)
+    active_set = np.ones(n_sources, dtype=bool)
+    Z = np.zeros((n_sources, phi.n_coefs.sum()), dtype=np.complex128)
 
     for k in range(n_tfmxne_iter):
         active_set_0 = active_set.copy()

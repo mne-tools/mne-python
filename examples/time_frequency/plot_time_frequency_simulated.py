@@ -43,7 +43,7 @@ rng = np.random.RandomState(seed)
 noise = rng.randn(n_epochs, len(ch_names), n_times)
 
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
-t = np.arange(n_times, dtype=np.float) / sfreq
+t = np.arange(n_times, dtype=np.float64) / sfreq
 signal = np.sin(np.pi * 2. * 50. * t)  # 50 Hz sinusoid signal
 signal[np.logical_or(t < 0.45, t > 0.55)] = 0.  # Hard windowing
 on_time = np.logical_and(t >= 0.45, t <= 0.55)

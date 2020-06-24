@@ -126,7 +126,7 @@ def _read_lout(fname):
                 name = chkind + ' ' + nb
             else:
                 cid, x, y, dx, dy, name = splits
-            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            pos.append(np.array([x, y, dx, dy], dtype=np.float64))
             names.append(name)
             ids.append(int(cid))
 
@@ -147,7 +147,7 @@ def _read_lay(fname):
                 name = chkind + ' ' + nb
             else:
                 cid, x, y, dx, dy, name = splits
-            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            pos.append(np.array([x, y, dx, dy], dtype=np.float64))
             names.append(name)
             ids.append(int(cid))
 

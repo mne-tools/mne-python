@@ -9,7 +9,8 @@ This example demonstrates how to morph an individual subject's
 :class:`mne.VolSourceEstimate` to a common reference space. We achieve this
 using :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
 an affine transformation and a nonlinear registration method
-known as Symmetric Diffeomorphic Registration (SDR) by Avants et al. [1]_.
+known as Symmetric Diffeomorphic Registration (SDR) by
+:footcite:`AvantsEtAl2008`.
 
 Transformation is estimated from the subject's anatomical T1 weighted MRI
 (brain) to `FreeSurfer's 'fsaverage' T1 weighted MRI (brain)
@@ -18,13 +19,6 @@ Transformation is estimated from the subject's anatomical T1 weighted MRI
 Afterwards the transformation will be applied to the volumetric source
 estimate. The result will be plotted, showing the fsaverage T1 weighted
 anatomical MRI, overlaid with the morphed volumetric source estimate.
-
-References
-----------
-.. [1] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
-       Symmetric Diffeomorphic Image Registration with Cross- Correlation:
-       Evaluating Automated Labeling of Elderly and Neurodegenerative
-       Brain, 12(1), 26-41.
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
@@ -153,3 +147,6 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 #
 #     >>> morph.apply(stc)
 #
+# References
+# ----------
+# .. footbibliography::

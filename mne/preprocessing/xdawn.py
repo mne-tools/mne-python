@@ -630,7 +630,7 @@ class Xdawn(_XdawnTransformer):
         sources = np.dot(self.filters_[eid], data)
 
         if include not in (None, list()):
-            mask = np.ones(len(sources), dtype=np.bool)
+            mask = np.ones(len(sources), dtype=bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.
             logger.info('Zeroing out %i Xdawn components' % mask.sum())
