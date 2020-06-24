@@ -229,6 +229,13 @@ API
 
 - Python 3.5 is no longer supported, Python 3.6+ is required, by `Eric Larson`_
 
+- ``adjacency`` has replaced ``connectivity`` in the names of:
+
+  1. Arguments to clustering functions, such as `mne.stats.permutation_cluster_test`, and
+  2. Function names for defining adjacency, such as `mne.spatio_temporal_src_adjacency` replacing ``mne.spatio_temporal_src_connectivity``.
+
+  "connectivity" is now reserved for discussions of functional and effective connectivity of the brain, and "adjacency" for source or sensor neighbor definitions for cluster-based analyses, by `Eric Larson`_.
+
 - Add ``n_cols`` parameter to :meth:`mne.preprocessing.ICA.plot_scores` to allow plotting scores in multiple columns, by `Luke Bloy`_
 
 - In :func:`mne.stats.permutation_cluster_test` and :func:`mne.stats.permutation_cluster_1samp_test` the default parameter value ``out_type='mask'`` has changed to ``None``, which in 0.21 means ``'mask'`` but will change to mean ``'indices'`` in the next version, by `Daniel McCloy`_

@@ -11,23 +11,23 @@ from ..utils import _validate_type, _check_option
 from ..utils.check import int_like
 
 
-def combine_connectivity(*structure):
-    """Create a sparse binary connectivity/neighbors matrix.
+def combine_adjacency(*structure):
+    """Create a sparse binary adjacency/neighbors matrix.
 
     Parameters
     ----------
     *structure : list
-        The connectivity along each dimension. Each entry can be:
+        The adjacency along each dimension. Each entry can be:
 
         - ndarray or sparse matrix
-            A square binary connectivity matrix for the given dimension.
+            A square binary adjacency matrix for the given dimension.
         - int
             The number of elements along the given dimension. A lattice
-            connectivity will be generated.
+            adjacency will be generated.
 
     Returns
     -------
-    connectivity : scipy.sparse.coo_matrix, shape (n_features, n_features)
+    adjacency : scipy.sparse.coo_matrix, shape (n_features, n_features)
         The adjacency matrix.
     """
     structure = list(structure)
@@ -51,7 +51,7 @@ def combine_connectivity(*structure):
             dim = dim.copy()
         dim.eliminate_zeros()
         if not (dim.data == 1).all():
-            raise ValueError('All connectivity values must be 0 or 1')
+            raise ValueError('All adjacency values must be 0 or 1')
         structure[di] = dim
     # list of coo
     assert all(isinstance(dim, sparse.coo_matrix) for dim in structure)

@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from mne.stats import combine_connectivity
+from mne.stats import combine_adjacency
 from mne.utils import requires_sklearn
 
 
@@ -24,13 +24,13 @@ from mne.utils import requires_sklearn
     (1, 1, 2),
     (3, 4, 5),
 ])
-def test_connectivity_equiv(shape):
-    """Test connectivity equivalence for lattice connectivity."""
+def test_adjacency_equiv(shape):
+    """Test adjacency equivalence for lattice adjacency."""
     from sklearn.feature_extraction import grid_to_graph
     # sklearn requires at least two dimensions
     sk_shape = shape if len(shape) > 1 else (shape + (1,))
     conn_sk = grid_to_graph(*sk_shape).toarray()
-    conn = combine_connectivity(*shape)
+    conn = combine_adjacency(*shape)
     want_shape = (np.prod(shape),) * 2
     assert conn.shape == conn_sk.shape == want_shape
     assert (conn.data == 1.).all()

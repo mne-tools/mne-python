@@ -78,29 +78,29 @@ tfr_epochs.crop(-0.1, 0.4)
 epochs_power = tfr_epochs.data
 
 ###############################################################################
-# Define connectivity for statistics
-# ----------------------------------
+# Define adjacency for statistics
+# -------------------------------
 # To compute a cluster-corrected value, we need a suitable definition
-# for the connectivity/adjacency of our values. So we first compute the
-# sensor connectivity, then combine that with a grid/lattice connectivity
+# for the adjacency/adjacency of our values. So we first compute the
+# sensor adjacency, then combine that with a grid/lattice adjacency
 # assumption for the time-frequency plane:
 
-sensor_connectivity, ch_names = mne.channels.find_ch_connectivity(
+sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(
     tfr_epochs.info, 'grad')
 # Subselect the channels we are actually using
 use_idx = [ch_names.index(ch_name.replace(' ', ''))
            for ch_name in tfr_epochs.ch_names]
-sensor_connectivity = sensor_connectivity[use_idx][:, use_idx]
-assert sensor_connectivity.shape == \
+sensor_adjacency = sensor_adjacency[use_idx][:, use_idx]
+assert sensor_adjacency.shape == \
     (len(tfr_epochs.ch_names), len(tfr_epochs.ch_names))
 assert epochs_power.data.shape == (
     len(epochs), len(tfr_epochs.ch_names),
     len(tfr_epochs.freqs), len(tfr_epochs.times))
-connectivity = mne.stats.combine_connectivity(
-    sensor_connectivity, len(tfr_epochs.freqs), len(tfr_epochs.times))
+adjacency = mne.stats.combine_adjacency(
+    sensor_adjacency, len(tfr_epochs.freqs), len(tfr_epochs.times))
 
-# our connectivity is square with each dim matching the data size
-assert connectivity.shape[0] == connectivity.shape[1] == \
+# our adjacency is square with each dim matching the data size
+assert adjacency.shape[0] == adjacency.shape[1] == \
     len(tfr_epochs.ch_names) * len(tfr_epochs.freqs) * len(tfr_epochs.times)
 
 ###############################################################################
@@ -111,7 +111,7 @@ n_permutations = 50  # Warning: 50 is way too small for real-world analysis.
 T_obs, clusters, cluster_p_values, H0 = \
     permutation_cluster_1samp_test(epochs_power, n_permutations=n_permutations,
                                    threshold=threshold, tail=0,
-                                   connectivity=connectivity,
+                                   adjacency=adjacency,
                                    out_type='mask', verbose=True)
 
 ###############################################################################
