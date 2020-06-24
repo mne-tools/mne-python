@@ -46,7 +46,7 @@ class _Figure(object):
                  size=(600, 600),
                  shape=(1, 1),
                  background_color='black',
-                 smooth_shading=False,
+                 smooth_shading=True,
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
@@ -224,7 +224,8 @@ class _Renderer(_BaseRenderer):
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
 
-            actor = self.plotter.add_mesh(
+            actor = _add_mesh(
+                plotter=self.plotter,
                 mesh=mesh, color=color, scalars=scalars,
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
@@ -253,13 +254,16 @@ class _Renderer(_BaseRenderer):
             if kind == 'tube':
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
                 line_width = 1.0
-            self.plotter.add_mesh(mesh=contour,
-                                  show_scalar_bar=False,
-                                  line_width=line_width,
-                                  color=color,
-                                  cmap=colormap,
-                                  opacity=opacity,
-                                  smooth_shading=self.figure.smooth_shading)
+            _add_mesh(
+                plotter=self.plotter,
+                mesh=contour,
+                show_scalar_bar=False,
+                line_width=line_width,
+                color=color,
+                cmap=colormap,
+                opacity=opacity,
+                smooth_shading=self.figure.smooth_shading
+            )
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -275,13 +279,16 @@ class _Renderer(_BaseRenderer):
             mesh = PolyData(vertices, triangles)
             if scalars is not None:
                 mesh.point_arrays['scalars'] = scalars
-            self.plotter.add_mesh(mesh=mesh, color=color,
-                                  rng=[vmin, vmax],
-                                  show_scalar_bar=False,
-                                  opacity=opacity,
-                                  cmap=cmap,
-                                  backface_culling=backface_culling,
-                                  smooth_shading=self.figure.smooth_shading)
+            _add_mesh(
+                plotter=self.plotter,
+                mesh=mesh, color=color,
+                rng=[vmin, vmax],
+                show_scalar_bar=False,
+                opacity=opacity,
+                cmap=cmap,
+                backface_culling=backface_culling,
+                smooth_shading=self.figure.smooth_shading
+            )
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -299,7 +306,8 @@ class _Renderer(_BaseRenderer):
             mesh = PolyData(np.array(center))
             glyph = mesh.glyph(orient=False, scale=False,
                                factor=factor, geom=geom)
-            actor = self.plotter.add_mesh(
+            actor = _add_mesh(
+                self.plotter,
                 glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
                 smooth_shading=self.figure.smooth_shading
@@ -321,15 +329,18 @@ class _Renderer(_BaseRenderer):
                 else:
                     scalars = None
                 tube = line.tube(radius, n_sides=self.tube_n_sides)
-                self.plotter.add_mesh(mesh=tube,
-                                      scalars=scalars,
-                                      flip_scalars=reverse_lut,
-                                      rng=[vmin, vmax],
-                                      color=color,
-                                      show_scalar_bar=False,
-                                      cmap=cmap,
-                                      smooth_shading=self.
-                                      figure.smooth_shading)
+                _add_mesh(
+                    plotter=self.plotter,
+                    mesh=tube,
+                    scalars=scalars,
+                    flip_scalars=reverse_lut,
+                    rng=[vmin, vmax],
+                    color=color,
+                    show_scalar_bar=False,
+                    cmap=cmap,
+                    smooth_shading=self.
+                    figure.smooth_shading
+                )
         return tube
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
@@ -355,12 +366,15 @@ class _Renderer(_BaseRenderer):
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor)
             elif mode == 'arrow' or mode == '3darrow':
-                self.plotter.add_mesh(grid.glyph(orient='vec',
-                                                 scale=scale,
-                                                 factor=factor),
-                                      color=color,
-                                      opacity=opacity,
-                                      backface_culling=backface_culling)
+                _add_mesh(
+                    self.plotter,
+                    grid.glyph(orient='vec',
+                               scale=scale,
+                               factor=factor),
+                    color=color,
+                    opacity=opacity,
+                    backface_culling=backface_culling
+                )
             elif mode == 'cone':
                 cone = vtk.vtkConeSource()
                 if glyph_height is not None:
@@ -372,14 +386,16 @@ class _Renderer(_BaseRenderer):
                 cone.Update()
 
                 geom = cone.GetOutput()
-                self.plotter.add_mesh(grid.glyph(orient='vec',
-                                                 scale=scale,
-                                                 factor=factor,
-                                                 geom=geom),
-                                      color=color,
-                                      opacity=opacity,
-                                      backface_culling=backface_culling)
-
+                _add_mesh(
+                    self.plotter,
+                    grid.glyph(orient='vec',
+                               scale=scale,
+                               factor=factor,
+                               geom=geom),
+                    color=color,
+                    opacity=opacity,
+                    backface_culling=backface_culling
+                )
             elif mode == 'cylinder':
                 cylinder = vtk.vtkCylinderSource()
                 cylinder.SetHeight(glyph_height)
@@ -397,13 +413,16 @@ class _Renderer(_BaseRenderer):
                 trp.Update()
 
                 geom = trp.GetOutput()
-                self.plotter.add_mesh(grid.glyph(orient='vec',
-                                                 scale=scale,
-                                                 factor=factor,
-                                                 geom=geom),
-                                      color=color,
-                                      opacity=opacity,
-                                      backface_culling=backface_culling)
+                _add_mesh(
+                    self.plotter,
+                    grid.glyph(orient='vec',
+                               scale=scale,
+                               factor=factor,
+                               geom=geom),
+                    color=color,
+                    opacity=opacity,
+                    backface_culling=backface_culling
+                )
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
@@ -488,6 +507,12 @@ class _Renderer(_BaseRenderer):
         if not self.figure.store['off_screen']:
             for renderer in self.plotter.renderers:
                 renderer.enable_depth_peeling()
+
+
+def _add_mesh(plotter, *args, **kwargs):
+    if hasattr(plotter, "app"):
+        plotter.app.processEvents()
+    return plotter.add_mesh(*args, **kwargs)
 
 
 def _deg2rad(deg):
@@ -782,7 +807,7 @@ def _sphere(plotter, center, color, radius):
     sphere.SetCenter(center)
     sphere.Update()
     mesh = pyvista.wrap(sphere.GetOutput())
-    actor = plotter.add_mesh(mesh, color=color)
+    actor = _add_mesh(plotter, mesh, color=color)
     return actor, mesh
 
 
