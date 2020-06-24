@@ -224,7 +224,7 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     # Setup CV
     from sklearn import model_selection as models
     from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
-    if isinstance(cv, (int, np.int)):
+    if isinstance(cv, (int, np.int64)):
         XFold = StratifiedKFold if est_is_classifier else KFold
         cv = XFold(n_splits=cv)
     elif isinstance(cv, str):

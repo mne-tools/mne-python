@@ -403,7 +403,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     M_estimated = np.dot(gain[:, active_set], X)
 
     if mask is not None:
-        active_set_tmp = np.zeros(len(mask), dtype=np.bool)
+        active_set_tmp = np.zeros(len(mask), dtype=bool)
         active_set_tmp[mask] = active_set
         active_set = active_set_tmp
         del active_set_tmp
@@ -662,7 +662,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     M_estimated = np.dot(gain[:, active_set], X)
 
     if mask is not None:
-        active_set_tmp = np.zeros(len(mask), dtype=np.bool)
+        active_set_tmp = np.zeros(len(mask), dtype=bool)
         active_set_tmp[mask] = active_set
         active_set = active_set_tmp
         del active_set_tmp

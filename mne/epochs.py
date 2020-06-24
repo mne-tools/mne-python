@@ -904,7 +904,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         else:
             if self._offset is None:
                 self._offset = np.zeros((len(self.ch_names), len(self.times)),
-                                        dtype=np.float)
+                                        dtype=np.float64)
             self._offset[ep_picks] -= evoked.data[picks]
         logger.info('[done]')
 

@@ -260,7 +260,7 @@ def test_make_dics(tmpdir, _load_forward, idx, mat_tol, vol_tol):
     assert isinstance(filters, Beamformer)
     assert isinstance(filters_read, Beamformer)
     for key in ['tmin', 'tmax']:  # deal with strictness of object_diff
-        setattr(filters['csd'], key, np.float(getattr(filters['csd'], key)))
+        setattr(filters['csd'], key, np.float64(getattr(filters['csd'], key)))
     assert object_diff(filters, filters_read) == ''
 
 

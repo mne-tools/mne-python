@@ -221,7 +221,7 @@ class _Renderer(_BaseRenderer):
                 rgba = True
             if isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
-                    colormap = colormap.astype(np.float) / 255.
+                    colormap = colormap.astype(np.float64) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
 

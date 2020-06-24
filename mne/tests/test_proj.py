@@ -175,7 +175,7 @@ def test_compute_proj_epochs():
             p2_data = p2['data']['data'] * np.sign(p2['data']['data'][0, 0])
             if bad_ch in p1['data']['col_names']:
                 bad = p1['data']['col_names'].index('MEG 2443')
-                mask = np.ones(p1_data.size, dtype=np.bool)
+                mask = np.ones(p1_data.size, dtype=bool)
                 mask[bad] = False
                 p1_data = p1_data[:, mask]
                 p2_data = p2_data[:, mask]

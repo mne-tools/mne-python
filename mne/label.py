@@ -999,7 +999,7 @@ def write_label(filename, label, verbose=None):
 
     with open(filename, 'wb') as fid:
         n_vertices = len(label.vertices)
-        data = np.zeros((n_vertices, 5), dtype=np.float)
+        data = np.zeros((n_vertices, 5), dtype=np.float64)
         data[:, 0] = label.vertices
         data[:, 1:4] = 1e3 * label.pos
         data[:, 4] = label.values
@@ -1895,7 +1895,7 @@ def _read_annot(fname):
             np.fromfile(fid, '>c', length)  # discard orig_tab
 
             names = list()
-            ctab = np.zeros((n_entries, 5), np.int)
+            ctab = np.zeros((n_entries, 5), np.int64)
             for i in range(n_entries):
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
@@ -1909,7 +1909,7 @@ def _read_annot(fname):
             if ctab_version != 2:
                 raise Exception('Color table version not supported')
             n_entries = np.fromfile(fid, '>i4', 1)[0]
-            ctab = np.zeros((n_entries, 5), np.int)
+            ctab = np.zeros((n_entries, 5), np.int64)
             length = np.fromfile(fid, '>i4', 1)[0]
             np.fromfile(fid, "|S%d" % length, 1)  # Orig table path
             entries_to_read = np.fromfile(fid, '>i4', 1)[0]
@@ -2387,7 +2387,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                  'specify subject and subjects_dir parameters.')
 
         # Create annot and color table array to write
-        annot = np.empty(n_vertices, dtype=np.int)
+        annot = np.empty(n_vertices, dtype=np.int64)
         annot[:] = -1
         # create the annotation ids from the colors
         annot_id_coding = np.array((1, 2 ** 8, 2 ** 16))

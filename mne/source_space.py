@@ -803,7 +803,7 @@ def _read_one_source_space(fid, this):
     if tag is None:
         raise ValueError('Vertex data not found')
 
-    res['rr'] = tag.data.astype(np.float)  # double precision for mayavi
+    res['rr'] = tag.data.astype(np.float64)  # double precision for mayavi
     if res['rr'].shape[0] != res['np']:
         raise ValueError('Vertex information is incorrect')
 
@@ -835,7 +835,7 @@ def _read_one_source_space(fid, this):
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE)
     if tag is None:
         res['nuse'] = 0
-        res['inuse'] = np.zeros(res['nuse'], dtype=np.int)
+        res['inuse'] = np.zeros(res['nuse'], dtype=np.int64)
         res['vertno'] = None
     else:
         res['nuse'] = int(tag.data)
@@ -843,7 +843,7 @@ def _read_one_source_space(fid, this):
         if tag is None:
             raise ValueError('Source selection information missing')
 
-        res['inuse'] = tag.data.astype(np.int).T
+        res['inuse'] = tag.data.astype(np.int64).T
         if len(res['inuse']) != res['np']:
             raise ValueError('Incorrect number of entries in source space '
                              'selection')
