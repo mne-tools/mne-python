@@ -85,6 +85,19 @@ class MplCanvas(object):
                          framealpha=0.5, handlelength=1.)
         self.canvas.draw()
 
+    def set_color(self, bg_color, fg_color):
+        """Set the widget colors."""
+        self.axes.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_color(fg_color)
+        self.axes.yaxis.label.set_color(fg_color)
+        self.axes.spines['top'].set_color(fg_color)
+        self.axes.spines['bottom'].set_color(fg_color)
+        self.axes.spines['left'].set_color(fg_color)
+        self.axes.spines['right'].set_color(fg_color)
+        self.axes.tick_params(axis='x', colors=fg_color)
+        self.axes.tick_params(axis='y', colors=fg_color)
+        self.fig.patch.set_facecolor(bg_color)
+
     def show(self):
         """Show the canvas."""
         self.canvas.show()
@@ -802,6 +815,10 @@ class _TimeViewer(object):
                 vlayout.addWidget(self.mpl_canvas.canvas)
                 vlayout.setStretch(0, 2)
                 vlayout.setStretch(1, 1)
+            self.mpl_canvas.set_color(
+                bg_color=self.brain._bg_color,
+                fg_color=self.brain._fg_color,
+            )
             self.mpl_canvas.show()
 
             # get brain data
