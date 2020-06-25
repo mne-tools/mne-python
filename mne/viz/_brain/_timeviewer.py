@@ -1081,7 +1081,7 @@ class _TimeViewer(object):
                 self.time_line = self.mpl_canvas.plot_time_line(
                     x=current_time,
                     label='time',
-                    color='black',
+                    color=self.brain._fg_color,
                     lw=1,
                 )
             else:
