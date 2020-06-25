@@ -37,8 +37,8 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .dipole import _make_guesses
 from .fixes import jit
-from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils, _get_mf_picks,
-                                    _regularize_out)
+from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils,
+                                    _regularize_out, _get_mf_picks_fix_mags)
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points,
                          _quat_to_affine)
@@ -510,7 +510,7 @@ def _reorder_inv_model(inv_model, n_freqs):
 def _setup_ext_proj(info, ext_order):
     meg_picks = pick_types(info, meg=True, eeg=False, exclude='bads')
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
-    _, _, _, _, mag_or_fine = _get_mf_picks(
+    _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
         info, int_order=0, ext_order=ext_order, ignore_ref=True,
         verbose='error')
     mf_coils = _prep_mf_coils(info, verbose='error')

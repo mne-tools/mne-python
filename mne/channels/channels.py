@@ -1357,13 +1357,16 @@ def _compute_ch_connectivity(info, ch_type):
     return ch_connectivity, ch_names
 
 
-def fix_mag_coil_types(info):
+def fix_mag_coil_types(info, use_cal=False):
     """Fix magnetometer coil types.
 
     Parameters
     ----------
     info : dict
         The info dict to correct. Corrections are done in-place.
+    use_cal : bool
+        If True, further refine the check for old coil types by checking
+        ``info['chs'][ii]['cal']``.
 
     Notes
     -----
@@ -1385,16 +1388,16 @@ def fix_mag_coil_types(info):
               current estimates computed by the MNE software is very small.
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
-    old_mag_inds = _get_T1T2_mag_inds(info)
+    old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
 
     for ii in old_mag_inds:
         info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info('%d of %d T1/T2 magnetometer types replaced with T3.' %
+    logger.info('%d of %d magnetometer types replaced with T3.' %
                 (len(old_mag_inds), len(pick_types(info, meg='mag'))))
     info._check_consistency()
 
 
-def _get_T1T2_mag_inds(info):
+def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
@@ -1402,7 +1405,11 @@ def _get_T1T2_mag_inds(info):
         ch = info['chs'][ii]
         if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
                                FIFF.FIFFV_COIL_VV_MAG_T2):
-            old_mag_inds.append(ii)
+            if use_cal:
+                if np.isclose(ch['cal'], 4.14e-11, rtol=1e-5):
+                    old_mag_inds.append(ii)
+            else:
+                old_mag_inds.append(ii)
     return old_mag_inds
 
 

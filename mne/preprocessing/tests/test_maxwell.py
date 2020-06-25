@@ -20,6 +20,7 @@ from mne.datasets import testing
 from mne.forward import use_coil_def
 from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
+from mne.io.constants import FIFF
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -134,8 +135,12 @@ def test_movement_compensation(tmpdir):
     #
     # Movement compensation, no regularization, no tSSS
     #
+
+    assert raw.info['chs'][2]['coil_type'] == FIFF.FIFFV_COIL_VV_MAG_T3
+    raw.info['chs'][2]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T2
     raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
                              regularize=None, bad_condition='ignore')
+    assert raw_sss.info['chs'][2]['coil_type'] == FIFF.FIFFV_COIL_VV_MAG_T3
     assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
                    4.6, 12.4, chpi_med_tol=58)
     # IO
@@ -966,10 +971,11 @@ def test_all():
 def test_triux():
     """Test TRIUX system support."""
     raw = read_crop(tri_fname, (0, 0.999))
-    raw.fix_mag_coil_types()
+    assert raw.info['chs'][2]['coil_type'] == FIFF.FIFFV_COIL_VV_MAG_T1
     # standard
     with use_coil_def(elekta_def_fname):
         sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None)
+    assert sss_py.info['chs'][2]['coil_type'] == FIFF.FIFFV_COIL_VV_MAG_T3
     assert_meg_snr(sss_py, read_crop(tri_sss_fname), 37, 700)
     # cross-talk
     sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None,
