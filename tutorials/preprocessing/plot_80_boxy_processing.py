@@ -1,7 +1,7 @@
 """
 .. _tut-fnirs-processing:
 
-Preprocessing optical imaging data from the Imagent hardware/boxy software
+Preprocessing optical imaging data from the Imagent hardware/BOXY software
 ================================================================
 
 This tutorial covers how to convert optical imaging data from raw measurements
@@ -13,13 +13,14 @@ in the latter half.
     :local:
     :depth: 2
 
- Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
+ Here we will work with the :ref:`BOXY example data <boxy-example-dataset>`.
 """
 # sphinx_gallery_thumbnail_number = 1
 
 import os
 import matplotlib.pyplot as plt
 import re as re
+import numpy as np
 
 import mne
 
@@ -199,6 +200,63 @@ all_haemo_epochs['Event_2'].plot_image(combine='mean', vmin=vmin_ac,
 # Evoked Activity
 evoked_event_1_ac = all_haemo_epochs['Event_1'].average()
 evoked_event_2_ac = all_haemo_epochs['Event_2'].average()
+
+fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 6))
+
+axes[0].plot(evoked_event_1_ac.times,
+             np.sqrt((evoked_event_1_ac.copy().pick('hbo')
+                      ._data ** 2).mean(axis=0))*1e6, 'r',
+             evoked_event_1_ac.times,
+             np.sqrt((evoked_event_1_ac.copy().pick('hbr')
+                      ._data ** 2).mean(axis=0))*1e6, 'b',
+             evoked_event_1_ac.times,
+             ((np.sqrt((evoked_event_1_ac.copy().pick('hbo')
+                        ._data ** 2).mean(axis=0))*1e6) -
+              (np.sqrt((evoked_event_1_ac.copy().pick('hbr')
+                        ._data ** 2).mean(axis=0))*1e6)), 'g')
+axes[0].set_ylim([-40, 100])
+axes[0].set_xlabel('Time (s)')
+axes[0].set_ylabel('\u03BCM')
+axes[0].set_title('Event 1')
+axes[0].legend(['HBO', 'HBR', 'Diff'])
+
+axes[1].plot(evoked_event_2_ac.times,
+             np.sqrt((evoked_event_2_ac.copy().pick('hbo')
+                      ._data ** 2).mean(axis=0))*1e6, 'r',
+             evoked_event_1_ac.times,
+             np.sqrt((evoked_event_2_ac.copy().pick('hbr')
+                      ._data ** 2).mean(axis=0))*1e6, 'b',
+             evoked_event_1_ac.times,
+             ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
+                        ._data ** 2).mean(axis=0))*1e6) -
+              (np.sqrt((evoked_event_2_ac.copy().pick('hbr')
+                        ._data ** 2).mean(axis=0))*1e6)), 'g')
+axes[1].set_ylim([-40, 100])
+axes[1].set_xlabel('Time (s)')
+axes[1].set_ylabel('\u03BCM')
+axes[1].set_title('Event 2')
+axes[1].legend(['HBO', 'HBR', 'Diff'])
+
+axes[2].plot(evoked_event_1_ac.times,
+             ((np.sqrt((evoked_event_1_ac.copy().pick('hbo')
+                        ._data ** 2).mean(axis=0))*1e6) -
+              (np.sqrt((evoked_event_1_ac.copy().pick('hbr')
+                        ._data ** 2).mean(axis=0))*1e6)) -
+             ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
+                        ._data ** 2).mean(axis=0))*1e6) -
+              (np.sqrt((evoked_event_2_ac.copy().pick('hbr')
+                        ._data ** 2).mean(axis=0))*1e6)), 'k')
+axes[2].set_ylim([-40, 100])
+axes[2].set_xlabel('Time (s)')
+axes[2].set_ylabel('\u03BCM')
+axes[2].set_title('Event 1 Diff - Event 2 Diff')
+
+### Other ways to plot HBO and HBR (to comapre with above)
+### seems 'plot_compare_evoked' can't compare HBO and HBR because of the
+### different channel names
+### uncomment if you want to test
+
+### Method 1 (Original)
 evoked_diff_ac = mne.combine_evoked([evoked_event_1_ac, -evoked_event_2_ac],
                                     weights='equal')
 
@@ -210,7 +268,26 @@ evoked_dict_ac = {'Event_1': evoked_event_1_ac, 'Event_2': evoked_event_2_ac,
 color_dict = {'Event_1': 'r', 'Event_2': 'b', 'Difference': 'g'}
 
 mne.viz.plot_compare_evokeds(evoked_dict_ac, combine="mean", ci=0.95,
-                             colors=color_dict, axes=axes.tolist())
+                              colors=color_dict, axes=axes.tolist())
+
+### Method 2
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
+
+mne.viz.plot_compare_evokeds(
+    {'Event_1_HBO': evoked_event_1_ac.copy().pick('hbo')}, combine=None,
+    ci=0.95, colors={'Event_1_HBO': 'r'}, axes=axes[0], ylim=ylim)
+
+mne.viz.plot_compare_evokeds(
+    {'Event_1_HBR': evoked_event_1_ac.copy().pick('hbr')}, combine=None,
+    ci=0.95, colors={'Event_1_HBR': 'b'}, axes=axes[0], ylim=ylim)
+
+mne.viz.plot_compare_evokeds(
+    {'Event_2_HBO': evoked_event_2_ac.copy().pick('hbo')}, combine=None,
+    ci=0.95, colors={'Event_2_HBO': 'r'}, axes=axes[1], ylim=ylim)
+
+mne.viz.plot_compare_evokeds(
+    {'Event_2_HBR': evoked_event_2_ac.copy().pick('hbr')}, combine=None,
+    ci=0.95, colors={'Event_2_HBR': 'b'}, axes=axes[1], ylim=ylim)
 
 # Topographies
 fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(9, 5),
