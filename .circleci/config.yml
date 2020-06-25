@@ -79,8 +79,7 @@ jobs:
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
-              python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
+              python -m pip install --user --upgrade --progress-bar off pip setuptools
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user --upgrade --progress-bar off --pre sphinx

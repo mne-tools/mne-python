@@ -21,7 +21,7 @@ pytest-xdist
 joblib
 psutil
 dipy
-vtk -f "https://vtk.org/download"
+vtk
 https://github.com/numpy/numpydoc/archive/master.zip
 https://github.com/enthought/mayavi/archive/master.zip
 PySurfer[save_movie]
