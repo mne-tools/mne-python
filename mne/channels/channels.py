@@ -1401,14 +1401,15 @@ def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
-    new_mag_cals = [4.14e-11, 1.33e-10]
+    # From email exchanges, systems with the larger T2 coil only use the cal
+    # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10
+    # (Triux). So we can use a simple check for > 3e-11.
     for ii in picks:
         ch = info['chs'][ii]
         if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
                                FIFF.FIFFV_COIL_VV_MAG_T2):
             if use_cal:
-                if any(np.isclose(ch['cal'], cal, rtol=1e-5, atol=0)
-                       for cal in new_mag_cals):
+                if ch['cal'] > 3e-11:
                     old_mag_inds.append(ii)
             else:
                 old_mag_inds.append(ii)
