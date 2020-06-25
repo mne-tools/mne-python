@@ -226,7 +226,7 @@ MNE-Python and its dependencies. Typical output looks like this::
     pandas:        1.0.3
     dipy:          1.1.1
     mayavi:        4.7.2.dev0
-    pyvista:       0.24.1
+    pyvista:       0.25.2 {pyvistaqt=0.1.0}
     vtk:           9.0.0
     PyQt5:         5.14.1
 
