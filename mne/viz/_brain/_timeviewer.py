@@ -302,7 +302,7 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        self.default_smoothing_range = (0, 15)
+        self.default_smoothing_range = [0, 15]
 
         # detect notebook
         if brain._notebook:
