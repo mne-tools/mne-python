@@ -982,13 +982,8 @@ class _Brain(object):
                           transparent=transparent, **lims) *
             255).astype(np.uint8)
         # update our values
-        dt_max = self._data['fmax']
-        if self._data['center'] is None:
-            dt_min = self._data['fmin']
-        else:
-            dt_min = -1 * dt_max
+        rng = self._cmap_range
         ctable = self._data['ctable']
-        rng = [dt_min, dt_max]
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -1115,12 +1110,10 @@ class _Brain(object):
         hemi_data = self._data.get(hemi)
         if hemi_data is not None:
             vertices = hemi_data['vertices']
-            fmin = self._data['fmin']
-            fmax = self._data['fmax']
             ctable = self._data['ctable']
             vector_alpha = self._data['vector_alpha']
             scale_factor = self._data['scale_factor']
-            rng = [fmin, fmax]
+            rng = self._cmap_range
             vertices = slice(None) if vertices is None else vertices
             x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
@@ -1151,6 +1144,16 @@ class _Brain(object):
                 _set_colormap_range(glyph_actor, ctable, None, rng)
                 # the glyphs are now ready to be displayed
                 glyph_actor.VisibilityOn()
+
+    @property
+    def _cmap_range(self):
+        dt_max = self._data['fmax']
+        if self._data['center'] is None:
+            dt_min = self._data['fmin']
+        else:
+            dt_min = -1 * dt_max
+        rng = [dt_min, dt_max]
+        return rng
 
     def _update_fscale(self, fscale):
         """Scale the colorbar points."""
