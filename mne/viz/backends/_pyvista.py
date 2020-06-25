@@ -496,7 +496,7 @@ class _Renderer(_BaseRenderer):
         if hasattr(self.plotter, "app_window"):
             with self.ensure_minimum_sizes():
                 self.plotter.app_window.show()
-        _process_events(self.plotter, show=True)
+                _process_events(self.plotter, show=True)
         return self.scene()
 
     def close(self):
