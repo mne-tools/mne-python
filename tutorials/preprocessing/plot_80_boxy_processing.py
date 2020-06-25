@@ -223,10 +223,10 @@ axes[0].legend(['HBO', 'HBR', 'Diff'])
 axes[1].plot(evoked_event_2_ac.times,
              np.sqrt((evoked_event_2_ac.copy().pick('hbo')
                       ._data ** 2).mean(axis=0))*1e6, 'r',
-             evoked_event_1_ac.times,
+             evoked_event_2_ac.times,
              np.sqrt((evoked_event_2_ac.copy().pick('hbr')
                       ._data ** 2).mean(axis=0))*1e6, 'b',
-             evoked_event_1_ac.times,
+             evoked_event_2_ac.times,
              ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
                         ._data ** 2).mean(axis=0))*1e6) -
               (np.sqrt((evoked_event_2_ac.copy().pick('hbr')
@@ -241,6 +241,16 @@ axes[2].plot(evoked_event_1_ac.times,
              ((np.sqrt((evoked_event_1_ac.copy().pick('hbo')
                         ._data ** 2).mean(axis=0))*1e6) -
               (np.sqrt((evoked_event_1_ac.copy().pick('hbr')
+                        ._data ** 2).mean(axis=0))*1e6)), 'm',
+             evoked_event_1_ac.times,
+             ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
+                        ._data ** 2).mean(axis=0))*1e6) -
+              (np.sqrt((evoked_event_2_ac.copy().pick('hbr')
+                        ._data ** 2).mean(axis=0))*1e6)), 'c',
+             evoked_event_1_ac.times,
+             ((np.sqrt((evoked_event_1_ac.copy().pick('hbo')
+                        ._data ** 2).mean(axis=0))*1e6) -
+              (np.sqrt((evoked_event_1_ac.copy().pick('hbr')
                         ._data ** 2).mean(axis=0))*1e6)) -
              ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
                         ._data ** 2).mean(axis=0))*1e6) -
@@ -249,7 +259,8 @@ axes[2].plot(evoked_event_1_ac.times,
 axes[2].set_ylim([-40, 100])
 axes[2].set_xlabel('Time (s)')
 axes[2].set_ylabel('\u03BCM')
-axes[2].set_title('Event 1 Diff - Event 2 Diff')
+axes[2].set_title('HBO - HBR')
+axes[2].legend(['Event 1', 'Event 2', 'Diff'])
 
 ### Other ways to plot HBO and HBR (to comapre with above)
 ### seems 'plot_compare_evoked' can't compare HBO and HBR because of the
@@ -272,6 +283,7 @@ mne.viz.plot_compare_evokeds(evoked_dict_ac, combine="mean", ci=0.95,
 
 ### Method 2
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
+ylim=dict(hbo=[0, 100], hbr=[0, 100])
 
 mne.viz.plot_compare_evokeds(
     {'Event_1_HBO': evoked_event_1_ac.copy().pick('hbo')}, combine=None,
