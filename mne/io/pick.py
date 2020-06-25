@@ -261,7 +261,7 @@ def _triage_meg_pick(ch, meg):
     return False
 
 
-def _triage_fnirs_pick(ch, fnirs):
+def _triage_fnirs_pick(ch, fnirs, warned):
     """Triage an fNIRS pick type."""
     if fnirs is True:
         return True
@@ -271,6 +271,7 @@ def _triage_fnirs_pick(ch, fnirs):
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE and \
             fnirs in ('fnirs_cw_amplitude', 'fnirs_raw'):  # alias
+        fnirs = _fnirs_raw_dep(fnirs, warned)
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
         return True
@@ -412,6 +413,7 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     if isinstance(fnirs, bool):
         for key in ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od'):
             param_dict[key] = fnirs
+    warned = [False]
     for k in range(nchan):
         ch_type = channel_type(info, k)
         if ch_type in ('grad', 'mag') and meg_default_arg:
@@ -430,7 +432,7 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
                 if meg_default_arg:
                     deprecation_warn = True
             else:  # ch_type in ('hbo', 'hbr')
-                pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs)
+                pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs, warned)
 
     # restrict channels to selection if provided
     if selection is not None:
@@ -789,6 +791,17 @@ def _mag_grad_dependent(info):
                for ph in info.get('proc_history', []))
 
 
+def _fnirs_raw_dep(ch_type, warned):
+    if ch_type == 'fnirs_raw':  # alias
+        if not warned[0]:
+            warn('"fnirs_raw" has been deprecated in favor of the more '
+                 'explicit "fnirs_cw_amplitude" and will be removed in 0.22',
+                 DeprecationWarning)
+            warned[0] = True
+        ch_type = 'fnirs_cw_amplitude'
+    return ch_type
+
+
 def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object.
 
@@ -808,8 +821,7 @@ def _contains_ch_type(info, ch_type):
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']
-    if ch_type == 'fnirs_raw':  # alias
-        ch_type = 'fnirs_cw_amplitude'
+    ch_type = _fnirs_raw_dep(ch_type, [False])
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
                                   if key != 'meg'] + meg_extras + fnirs_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
