@@ -621,6 +621,7 @@ Forward Modeling
    setup_source_space
    setup_volume_source_space
    surface.complete_surface_info
+   surface.read_curvature
    use_coil_def
    write_bem_surfaces
    write_trans
