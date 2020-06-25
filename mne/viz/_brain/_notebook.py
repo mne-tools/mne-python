@@ -13,7 +13,7 @@ class _NotebookInteractor(_PyVistaNotebookInteractor):
         super().__init__(self.brain._renderer)
 
     def configure_controllers(self):
-        from ipywidgets import FloatSlider, interactive
+        from ipywidgets import IntSlider, FloatSlider, interactive
         super().configure_controllers()
         # time slider
         max_time = len(self.brain._data['time']) - 1
@@ -32,6 +32,17 @@ class _NotebookInteractor(_PyVistaNotebookInteractor):
         self.controllers["orientation"] = interactive(
             self.set_orientation,
             orientation=self.time_viewer.orientation,
+        )
+        # smoothing
+        self.sliders["smoothing"] = IntSlider(
+            value=self.brain._data['smoothing_steps'],
+            min=self.time_viewer.default_smoothing_range[0],
+            max=self.time_viewer.default_smoothing_range[1],
+            continuous_update=False
+        )
+        self.controllers["smoothing"] = interactive(
+            self.brain.set_data_smoothing,
+            n_steps=self.sliders["smoothing"]
         )
 
     def set_orientation(self, orientation):
