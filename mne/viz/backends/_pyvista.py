@@ -80,6 +80,8 @@ class _Figure(object):
             plotter = self.plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
+        _process_events(self.plotter)
+        _process_events(self.plotter)
         return self.plotter
 
     def is_active(self):
@@ -475,9 +477,7 @@ class _Renderer(_BaseRenderer):
 
     def show(self):
         self.figure.display = self.plotter.show()
-        if hasattr(self.plotter, "app_window"):
-            self.plotter.app.processEvents()
-            self.plotter.app_window.show()
+        _process_events(self.plotter, show=True)
         return self.scene()
 
     def close(self):
@@ -510,8 +510,7 @@ class _Renderer(_BaseRenderer):
 
 
 def _add_mesh(plotter, *args, **kwargs):
-    if hasattr(plotter, "app"):
-        plotter.app.processEvents()
+    _process_events(plotter)
     return plotter.add_mesh(*args, **kwargs)
 
 
@@ -646,19 +645,27 @@ def _close_3d_figure(figure):
         warnings.filterwarnings("ignore", category=FutureWarning)
         # close the window
         figure.plotter.close()
+        _process_events(figure.plotter)
         # free memory and deregister from the scraper
         figure.plotter.deep_clean()
         del _ALL_PLOTTERS[figure.plotter._id_name]
+        _process_events(figure.plotter)
 
 
 def _take_3d_screenshot(figure, mode='rgb', filename=None):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.plotter.app.processEvents()
+        _process_events(figure.plotter)
         return figure.plotter.screenshot(
             transparent_background=(mode == 'rgba'),
             filename=filename)
 
+
+def _process_events(plotter, show=False):
+    if hasattr(plotter, 'app'):
+        plotter.app.processEvents()
+        if show:
+            plotter.app_window.show()
 
 def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
     from vtk.util.numpy_support import numpy_to_vtk
