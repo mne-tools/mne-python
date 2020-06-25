@@ -270,7 +270,7 @@ def _triage_fnirs_pick(ch, fnirs):
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE and \
-            fnirs == 'fnirs_cw_amplitude':
+            fnirs in ('fnirs_cw_amplitude', 'fnirs_raw'):  # alias
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
         return True
@@ -808,6 +808,8 @@ def _contains_ch_type(info, ch_type):
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']
+    if ch_type == 'fnirs_raw':  # alias
+        ch_type = 'fnirs_cw_amplitude'
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
                                   if key != 'meg'] + meg_extras + fnirs_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
