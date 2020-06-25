@@ -3149,7 +3149,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     """  # noqa: E501
     from .preprocessing.maxwell import (_trans_sss_basis, _reset_meg_bads,
                                         _check_usable, _col_norm_pinv,
-                                        _get_n_moments, _get_mf_picks,
+                                        _get_n_moments, _get_mf_picks_fix_mags,
                                         _prep_mf_coils, _check_destination,
                                         _remove_meg_projs, _get_coil_scale)
     if head_pos is None:
@@ -3172,20 +3172,20 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                 % (len(epochs.events)))
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
         raise RuntimeError('Epochs must have monotonically increasing events')
+    info_to = epochs.info.copy()
     meg_picks, mag_picks, grad_picks, good_mask, _ = \
-        _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
+        _get_mf_picks_fix_mags(info_to, int_order, ext_order, ignore_ref)
     coil_scale, mag_scale = _get_coil_scale(
-        meg_picks, mag_picks, grad_picks, mag_scale, epochs.info)
+        meg_picks, mag_picks, grad_picks, mag_scale, info_to)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
     other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
     data = np.zeros((n_channels, n_times))
     count = 0
     # keep only MEG w/bad channels marked in "info_from"
-    info_from = pick_info(epochs.info, meg_picks[good_mask], copy=True)
-    all_coils_recon = _prep_mf_coils(epochs.info, ignore_ref=ignore_ref)
+    info_from = pick_info(info_to, meg_picks[good_mask], copy=True)
+    all_coils_recon = _prep_mf_coils(info_to, ignore_ref=ignore_ref)
     all_coils = _prep_mf_coils(info_from, ignore_ref=ignore_ref)
     # remove MEG bads in "to" info
-    info_to = deepcopy(epochs.info)
     _reset_meg_bads(info_to)
     # set up variables
     w_sum = 0.
@@ -3200,7 +3200,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
         if len(use_idx) == 0:
-            trans = epochs.info['dev_head_t']['trans']
+            trans = info_to['dev_head_t']['trans']
         else:
             use_idx = use_idx[-1]
             trans = np.vstack([np.hstack([rot[use_idx], trn[[use_idx]].T]),

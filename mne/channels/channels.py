@@ -1357,13 +1357,16 @@ def _compute_ch_adjacency(info, ch_type):
     return ch_adjacency, ch_names
 
 
-def fix_mag_coil_types(info):
+def fix_mag_coil_types(info, use_cal=False):
     """Fix magnetometer coil types.
 
     Parameters
     ----------
     info : dict
         The info dict to correct. Corrections are done in-place.
+    use_cal : bool
+        If True, further refine the check for old coil types by checking
+        ``info['chs'][ii]['cal']``.
 
     Notes
     -----
@@ -1385,24 +1388,31 @@ def fix_mag_coil_types(info):
               current estimates computed by the MNE software is very small.
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
-    old_mag_inds = _get_T1T2_mag_inds(info)
+    old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
 
     for ii in old_mag_inds:
         info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info('%d of %d T1/T2 magnetometer types replaced with T3.' %
+    logger.info('%d of %d magnetometer types replaced with T3.' %
                 (len(old_mag_inds), len(pick_types(info, meg='mag'))))
     info._check_consistency()
 
 
-def _get_T1T2_mag_inds(info):
+def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
+    # From email exchanges, systems with the larger T2 coil only use the cal
+    # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10
+    # (Triux). So we can use a simple check for > 3e-11.
     for ii in picks:
         ch = info['chs'][ii]
         if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
                                FIFF.FIFFV_COIL_VV_MAG_T2):
-            old_mag_inds.append(ii)
+            if use_cal:
+                if ch['cal'] > 3e-11:
+                    old_mag_inds.append(ii)
+            else:
+                old_mag_inds.append(ii)
     return old_mag_inds
 
 

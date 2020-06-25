@@ -33,7 +33,7 @@ from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
                      _check_option, _ensure_int, _validate_type, use_log_level)
 from ..fixes import _get_args, _safe_svd, einsum, bincount
-from ..channels.channels import _get_T1T2_mag_inds
+from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 
 # Note: MF uses single precision and some algorithms might use
@@ -274,7 +274,7 @@ def _prep_maxwell_filter(
     # Now we can actually get moving
     info = raw.info.copy()
     meg_picks, mag_picks, grad_picks, good_mask, mag_or_fine = \
-        _get_mf_picks(info, int_order, ext_order, ignore_ref)
+        _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref)
 
     # Magnetometers are scaled to improve numerical stability
     coil_scale, mag_scale = _get_coil_scale(
@@ -417,7 +417,8 @@ def _run_maxwell_filter(
         ctc = ctc[good_mask][:, good_mask]
 
     add_channels = (head_pos[0] is not None) and (not st_only) and copy
-    raw_sss, pos_picks = _copy_preload_add_channels(raw, add_channels, copy)
+    raw_sss, pos_picks = _copy_preload_add_channels(
+        raw, add_channels, copy, info)
     sfreq = info['sfreq']
     del raw
     if not st_only:
@@ -742,10 +743,11 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
 
 
-def _copy_preload_add_channels(raw, add_channels, copy):
+def _copy_preload_add_channels(raw, add_channels, copy, info):
     """Load data for processing and (maybe) add cHPI pos channels."""
     if copy:
         raw = raw.copy()
+    raw.info['chs'] = info['chs']  # updated coil types
     if add_channels:
         kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
                  FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
@@ -907,14 +909,13 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
 
 
 @verbose
-def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, verbose=None):
-    """Pick types for Maxwell filtering."""
+def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False,
+                           verbose=None):
+    """Pick types for Maxwell filtering and fix magnetometers."""
     # Check for T1/T2 mag types
-    mag_inds_T1T2 = _get_T1T2_mag_inds(info)
+    mag_inds_T1T2 = _get_T1T2_mag_inds(info, use_cal=True)
     if len(mag_inds_T1T2) > 0:
-        warn('%d T1/T2 magnetometer channel types found. If using SSS, it is '
-             'advised to replace coil types using "fix_mag_coil_types".'
-             % len(mag_inds_T1T2))
+        fix_mag_coil_types(info, use_cal=True)
     # Get indices of channels to use in multipolar moment calculation
     ref = not ignore_ref
     meg_picks = pick_types(info, meg=True, ref_meg=ref, exclude=[])
