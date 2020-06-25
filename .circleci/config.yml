@@ -79,8 +79,7 @@ jobs:
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
-              python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
+              python -m pip install --user --upgrade --progress-bar off pip setuptools
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
@@ -104,7 +103,7 @@ jobs:
                which python
                QT_DEBUG_PLUGINS=1 mne sys_info
                python -c "import numpy; numpy.show_config()"
-               LIBGL_DEBUG=verbose python -c "import pyvista; pyvista.BackgroundPlotter(show=True)"
+               LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"

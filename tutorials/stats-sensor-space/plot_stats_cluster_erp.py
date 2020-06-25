@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
 
 import mne
-from mne.channels import find_ch_connectivity, make_1020_channel_selections
+from mne.channels import find_ch_adjacency, make_1020_channel_selections
 from mne.stats import spatio_temporal_cluster_test
 
 np.random.seed(0)
@@ -76,7 +76,7 @@ for (tmin, tmax) in time_windows:
 # of the data. Here, we use TFCE.
 
 # Calculate statistical thresholds
-con = find_ch_connectivity(epochs.info, "eeg")
+con = find_ch_adjacency(epochs.info, "eeg")
 
 # Extract data: transpose because the cluster test requires channels to be last
 # In this case, inference is done over items. In the same manner, we could

@@ -21,7 +21,8 @@ pytest-xdist
 joblib
 psutil
 dipy
-vtk -f "https://vtk.org/download"
+vtk<8.2; platform_system == "Darwin"
+vtk; platform_system != "Darwin"
 https://github.com/numpy/numpydoc/archive/master.zip
 https://github.com/enthought/mayavi/archive/master.zip
 PySurfer[save_movie]
@@ -33,5 +34,6 @@ flake8
 https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
-pyvista==0.24.3
+pyvista>=0.24
+pyvistaqt
 tqdm

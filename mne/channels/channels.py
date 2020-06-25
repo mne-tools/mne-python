@@ -1113,7 +1113,7 @@ def _recursive_flatten(cell, dtype):
 
 
 @fill_doc
-def read_ch_connectivity(fname, picks=None):
+def read_ch_adjacency(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
     More information on these neighbor definitions can be found on the related
@@ -1130,20 +1130,20 @@ def read_ch_connectivity(fname, picks=None):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+        The adjacency matrix.
     ch_names : list
-        The list of channel names present in connectivity matrix.
+        The list of channel names present in adjacency matrix.
 
     See Also
     --------
-    find_ch_connectivity
+    find_ch_adjacency
 
     Notes
     -----
-    This function is closely related to :func:`find_ch_connectivity`. If you
+    This function is closely related to :func:`find_ch_adjacency`. If you
     don't know the correct file for the neighbor definitions,
-    :func:`find_ch_connectivity` can compute the connectivity matrix from 2d
+    :func:`find_ch_adjacency` can compute the adjacency matrix from 2d
     sensor locations.
     """
     from scipy.io import loadmat
@@ -1169,15 +1169,15 @@ def read_ch_connectivity(fname, picks=None):
     neighbors = [_recursive_flatten(c, str) for c in
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
-    connectivity = _ch_neighbor_connectivity(ch_names, neighbors)
+    adjacency = _ch_neighbor_adjacency(ch_names, neighbors)
     # picking before constructing matrix is buggy
-    connectivity = connectivity[picks][:, picks]
+    adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
-    return connectivity, ch_names
+    return adjacency, ch_names
 
 
-def _ch_neighbor_connectivity(ch_names, neighbors):
-    """Compute sensor connectivity matrix.
+def _ch_neighbor_adjacency(ch_names, neighbors):
+    """Compute sensor adjacency matrix.
 
     Parameters
     ----------
@@ -1190,8 +1190,8 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse matrix
+        The adjacency matrix.
     """
     if len(ch_names) != len(neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
@@ -1207,18 +1207,18 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
                 not all(isinstance(c, str) for c in neigh)):
             raise ValueError('`neighbors` must be a list of lists of str')
 
-    ch_connectivity = np.eye(len(ch_names), dtype=bool)
+    ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
-        ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_connectivity = sparse.csr_matrix(ch_connectivity)
-    return ch_connectivity
+        ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
+    ch_adjacency = sparse.csr_matrix(ch_adjacency)
+    return ch_adjacency
 
 
-def find_ch_connectivity(info, ch_type):
-    """Find the connectivity matrix for the given channels.
+def find_ch_adjacency(info, ch_type):
+    """Find the adjacency matrix for the given channels.
 
-    This function tries to infer the appropriate connectivity matrix template
-    for the given channels. If a template is not found, the connectivity matrix
+    This function tries to infer the appropriate adjacency matrix template
+    for the given channels. If a template is not found, the adjacency matrix
     is computed using Delaunay triangulation based on 2d sensor locations.
 
     Parameters
@@ -1226,30 +1226,30 @@ def find_ch_connectivity(info, ch_type):
     info : instance of Info
         The measurement info.
     ch_type : str | None
-        The channel type for computing the connectivity matrix. Currently
+        The channel type for computing the adjacency matrix. Currently
         supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
         only one channel type.
 
     Returns
     -------
-    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+        The adjacency matrix.
     ch_names : list
-        The list of channel names present in connectivity matrix.
+        The list of channel names present in adjacency matrix.
 
     See Also
     --------
-    read_ch_connectivity
+    read_ch_adjacency
 
     Notes
     -----
     .. versionadded:: 0.15
 
-    Automatic detection of an appropriate connectivity matrix template only
-    works for MEG data at the moment. This means that the connectivity matrix
+    Automatic detection of an appropriate adjacency matrix template only
+    works for MEG data at the moment. This means that the adjacency matrix
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
-    :func:`read_ch_connectivity` directly.
+    :func:`read_ch_adjacency` directly.
     """
     if ch_type is None:
         picks = channel_indices_by_type(info)
@@ -1295,33 +1295,33 @@ def find_ch_connectivity(info, ch_type):
         conn_name = KIT_NEIGHBORS.get(info['kit_system_id'])
 
     if conn_name is not None:
-        logger.info('Reading connectivity matrix for %s.' % conn_name)
-        return read_ch_connectivity(conn_name)
-    logger.info('Could not find a connectivity matrix for the data. '
-                'Computing connectivity based on Delaunay triangulations.')
-    return _compute_ch_connectivity(info, ch_type)
+        logger.info('Reading adjacency matrix for %s.' % conn_name)
+        return read_ch_adjacency(conn_name)
+    logger.info('Could not find a adjacency matrix for the data. '
+                'Computing adjacency based on Delaunay triangulations.')
+    return _compute_ch_adjacency(info, ch_type)
 
 
-def _compute_ch_connectivity(info, ch_type):
-    """Compute channel connectivity matrix using Delaunay triangulations.
+def _compute_ch_adjacency(info, ch_type):
+    """Compute channel adjacency matrix using Delaunay triangulations.
 
     Parameters
     ----------
     info : instance of mne.measuerment_info.Info
         The measurement info.
     ch_type : str
-        The channel type for computing the connectivity matrix. Currently
+        The channel type for computing the adjacency matrix. Currently
         supports 'mag', 'grad' and 'eeg'.
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse matrix, shape (n_channels, n_channels)
+        The adjacency matrix.
     ch_names : list
-        The list of channel names present in connectivity matrix.
+        The list of channel names present in adjacency matrix.
     """
     from scipy.spatial import Delaunay
-    from .. import spatial_tris_connectivity
+    from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                      np.unique([ch['coil_type'] for ch in info['chs']]))
@@ -1332,29 +1332,29 @@ def _compute_ch_connectivity(info, ch_type):
         pairs = _pair_grad_sensors(info, topomap_coords=False, exclude=[])
         if len(pairs) != len(picks):
             raise RuntimeError('Cannot find a pair for some of the '
-                               'gradiometers. Cannot compute connectivity '
+                               'gradiometers. Cannot compute adjacency '
                                'matrix.')
         # only for one of the pair
         xy = _find_topomap_coords(info, picks[::2], sphere=HEAD_SIZE_DEFAULT)
     else:
         xy = _find_topomap_coords(info, picks, sphere=HEAD_SIZE_DEFAULT)
     tri = Delaunay(xy)
-    neighbors = spatial_tris_connectivity(tri.simplices)
+    neighbors = spatial_tris_adjacency(tri.simplices)
 
     if combine_grads:
-        ch_connectivity = np.eye(len(picks), dtype=bool)
+        ch_adjacency = np.eye(len(picks), dtype=bool)
         for idx, neigbs in zip(neighbors.row, neighbors.col):
             for ii in range(2):  # make sure each pair is included
                 for jj in range(2):
-                    ch_connectivity[idx * 2 + ii, neigbs * 2 + jj] = True
-                    ch_connectivity[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_connectivity = sparse.csr_matrix(ch_connectivity)
+                    ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
+                    ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
+        ch_adjacency = sparse.csr_matrix(ch_adjacency)
     else:
-        ch_connectivity = sparse.lil_matrix(neighbors)
-        ch_connectivity.setdiag(np.repeat(1, ch_connectivity.shape[0]))
-        ch_connectivity = ch_connectivity.tocsr()
+        ch_adjacency = sparse.lil_matrix(neighbors)
+        ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
+        ch_adjacency = ch_adjacency.tocsr()
 
-    return ch_connectivity, ch_names
+    return ch_adjacency, ch_names
 
 
 def fix_mag_coil_types(info):

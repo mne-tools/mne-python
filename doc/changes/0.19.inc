@@ -238,4 +238,4 @@ API
 
 - Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_
 
-- :func:`channels.find_ch_connectivity` now returns pre-built neighbor maps for KIT systems when available, by `Christian Brodbeck`_
+- ``channels.find_ch_connectivity`` now returns pre-built neighbor maps for KIT systems when available, by `Christian Brodbeck`_

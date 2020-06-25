@@ -30,13 +30,13 @@ dependencies:
 - traitsui>=6
 - imageio>=2.6.1
 - pip:
-  - -i "https://pypi.org/simple/"
-  - -f "https://vtk.org/download"
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
-  - vtk
-  - pyvista==0.24.3
+  - vtk<8.2; platform_system == "Darwin"
+  - vtk; platform_system != "Darwin"
+  - pyvista>=0.24
+  - pyvistaqt
   - https://github.com/enthought/mayavi/archive/master.zip
   - PySurfer[save_movie]
   - dipy --only-binary dipy

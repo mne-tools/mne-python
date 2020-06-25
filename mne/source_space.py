@@ -2504,17 +2504,17 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
              'hemisphere) will be very slow, consider using add_dist=False'
              % (max_n,))
     for s in src:
-        connectivity = mesh_dist(s['tris'], s['rr'])
+        adjacency = mesh_dist(s['tris'], s['rr'])
         if patch_only:
             min_dist, _, min_idx = dijkstra(
-                connectivity, indices=s['vertno'],
+                adjacency, indices=s['vertno'],
                 min_only=True, return_predecessors=True)
             min_dists.append(min_dist.astype(np.float32))
             min_idxs.append(min_idx)
             for key in ('dist', 'dist_limit'):
                 s[key] = None
         else:
-            d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
+            d = parallel(p_fun(adjacency, s['vertno'], r, dist_limit)
                          for r in np.array_split(np.arange(len(s['vertno'])),
                                                  n_jobs))
             # deal with indexing so we can add patch info

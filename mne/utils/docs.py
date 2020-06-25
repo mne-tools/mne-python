@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 import inspect
 import os
 import os.path as op
@@ -1079,20 +1080,20 @@ stat_fun : callable | None
 """
 docdict['clust_stat_f'] = docdict['clust_stat'].format('f_oneway')
 docdict['clust_stat_t'] = docdict['clust_stat'].format('ttest_1samp_no_p')
-docdict['clust_con'] = """
-connectivity : scipy.sparse.spmatrix | None | False
-    Defines connectivity between locations in the data, where "locations" can
+docdict['clust_adj'] = """
+adjacency : scipy.sparse.spmatrix | None | False
+    Defines adjacency between locations in the data, where "locations" can
     be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    connectivity (each location is treated as independent and unconnected).
-    If ``None``, a regular lattice connectivity is assumed, connecting
+    adjacency (each location is treated as independent and unconnected).
+    If ``None``, a regular lattice adjacency is assumed, connecting
     each {sp} location to its neighbor(s) along the last dimension
     of {{eachgrp}} ``{{x}}``{lastdim}.
-    If ``connectivity`` is a matrix, it is assumed to be symmetric (only the
+    If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
     upper triangular half is used) and must be square with dimension equal to
     ``{{x}}.shape[-1]`` {parone} or ``{{x}}.shape[-1] * {{x}}.shape[-2]``
     {partwo}.{memory}
 """
-mem = (' If spatial connectivity is uniform in time, it is recommended to use '
+mem = (' If spatial adjacency is uniform in time, it is recommended to use '
        'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
        'memory and computation, and to use ``max_step`` to define the extent '
        'of temporal adjacency to consider when clustering.')
@@ -1102,10 +1103,14 @@ tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
           parone='', partwo='', memory='')
 nogroups = dict(eachgrp='', x='X')
 groups = dict(eachgrp='each group ', x='X[k]')
-docdict['clust_con_st1'] = docdict['clust_con'].format(**st).format(**nogroups)
-docdict['clust_con_stn'] = docdict['clust_con'].format(**st).format(**groups)
-docdict['clust_con_1'] = docdict['clust_con'].format(**tf).format(**nogroups)
-docdict['clust_con_n'] = docdict['clust_con'].format(**tf).format(**groups)
+docdict['clust_adj_st1'] = docdict['clust_adj'].format(**st).format(**nogroups)
+docdict['clust_adj_stn'] = docdict['clust_adj'].format(**st).format(**groups)
+docdict['clust_adj_1'] = docdict['clust_adj'].format(**tf).format(**nogroups)
+docdict['clust_adj_n'] = docdict['clust_adj'].format(**tf).format(**groups)
+docdict['clust_con_dep'] = """
+connectivity : None
+    Deprecated and will be removed in 0.22, use ``adjacency`` instead.
+"""
 docdict['clust_maxstep'] = """
 max_step : int
     Maximum distance along the second dimension (typically this is the "time"
@@ -1652,3 +1657,17 @@ class deprecated(object):
             newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
 
         return newdoc
+
+
+def deprecated_alias(dep_name, func, removed_in=None):
+    """Inject a deprecated alias into the namespace."""
+    if removed_in is None:
+        from .._version import __version__
+        removed_in = __version__.split('.')[:2]
+        removed_in[1] = str(int(removed_in[1]) + 1)
+        removed_in = '.'.join(removed_in)
+    # Inject a deprecated version into the namespace
+    inspect.currentframe().f_back.f_globals[dep_name] = deprecated(
+        f'{dep_name} has been deprecated in favor of {func.__name__} and will '
+        f'be removed in {removed_in}'
+    )(deepcopy(func))

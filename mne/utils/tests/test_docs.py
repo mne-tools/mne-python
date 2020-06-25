@@ -3,7 +3,7 @@ import pytest
 from mne import open_docs, grade_to_tris
 from mne.epochs import add_channels_epochs
 from mne.utils import (copy_function_doc_to_method_doc, copy_doc,
-                       linkcode_resolve, deprecated)
+                       linkcode_resolve, deprecated, deprecated_alias)
 import webbrowser
 
 
@@ -14,6 +14,18 @@ def test_doc_filling(obj):
     assert 'verbose : ' in doc
     if obj is add_channels_epochs:
         assert 'for more). Defaults to True if' in doc
+
+
+def test_deprecated_alias():
+    """Test deprecated_alias."""
+    def new_func():
+        """Do something."""
+        pass
+
+    deprecated_alias('old_func', new_func)
+    assert old_func  # noqa
+    assert 'has been deprecated in favor of new_func' in old_func.__doc__  # noqa
+    assert 'deprecated' not in new_func.__doc__
 
 
 @deprecated('message')
