@@ -302,6 +302,7 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
+        self.default_smoothing_range = (0, 15)
 
         # detect notebook
         if brain._notebook:
@@ -316,7 +317,6 @@ class _TimeViewer(object):
         self.visibility = False
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
-        self.default_smoothing_range = [0, 15]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"

@@ -33,6 +33,11 @@ class _NotebookInteractor(_PyVistaNotebookInteractor):
             self.set_orientation,
             orientation=self.time_viewer.orientation,
         )
+        # smoothing
+        self.controllers["smoothing"] = interactive(
+            self.brain.set_data_smoothing,
+            n_steps=self.time_viewer.default_smoothing_range,
+        )
 
     def set_orientation(self, orientation):
         row, col = self.plotter.index_to_loc(
