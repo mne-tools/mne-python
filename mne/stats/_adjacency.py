@@ -84,11 +84,10 @@ def combine_adjacency(*structure):
         offset += n_each[di]
         assert not used[sl].any()
         used[sl] = True
-    # Add the diagonal
+    assert used.all()
+    # Handle the diagonal separately at the end to avoid duplicate entries
     edges[:, n_off:] = vertices.ravel()
     weights[n_off:] = 1.
-    # Handle the diagonal separately at the end to avoid duplicate entries
-    assert used.all()
     graph = sparse.coo_matrix((weights, edges),
                               (vertices.size, vertices.size))
     return graph
