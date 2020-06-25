@@ -41,4 +41,4 @@ def test_adjacency_equiv(shape):
     # for now
     assert np.in1d(conn, [0, 1, 2, 3]).all()
     assert conn.shape == conn_sk.shape
-    assert_array_equal(conn, conn)
+    assert_array_equal(conn, conn_sk)

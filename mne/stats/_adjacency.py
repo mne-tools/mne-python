@@ -36,10 +36,14 @@ def combine_adjacency(*structure):
         _validate_type(dim, ('int-like', np.ndarray, sparse.spmatrix), name)
         if isinstance(dim, int_like):
             dim = int(dim)
-            dim = sparse.eye(dim, format='coo')
-            if dim.shape[0] > 1:
-                dim += sparse.eye(dim.shape[0], k=1, format='coo')
-                dim += sparse.eye(dim.shape[0], k=-1, format='coo')
+            # Don't add the diagonal, because we explicitly remove it later:
+            # dim = sparse.eye(dim, format='coo')
+            # dim += sparse.eye(dim.shape[0], k=1, format='coo')
+            # dim += sparse.eye(dim.shape[0], k=-1, format='coo')
+            ii, jj = np.arange(0, dim - 1), np.arange(1, dim)
+            edges = np.vstack([np.hstack([ii, jj]), np.hstack([jj, ii])])
+            dim = sparse.coo_matrix(
+                (np.ones(edges.shape[1]), edges), (dim, dim), float)
         else:
             _check_option(f'{name}.ndim', dim.ndim, [2])
             if dim.shape[0] != dim.shape[1]:
@@ -49,6 +53,7 @@ def combine_adjacency(*structure):
             dim = sparse.coo_matrix(dim)
         else:
             dim = dim.copy()
+        dim.data[dim.row == dim.col] = 0.  # remove diagonal, will add later
         dim.eliminate_zeros()
         if not (dim.data == 1).all():
             raise ValueError('All adjacency values must be 0 or 1')
@@ -59,11 +64,12 @@ def combine_adjacency(*structure):
     n_others = np.array([np.prod(np.concatenate([shape[:di], shape[di + 1:]]))
                          for di in range(len(structure))], int)
     n_each = np.array([dim.data.size for dim in structure], int) * n_others
-    nnz = n_each.sum()
-    vertices = np.arange(np.prod(shape)).reshape(shape)
-    edges = np.empty((2, nnz), int)
-    used = np.zeros(nnz, bool)
-    weights = np.empty(nnz, float)  # even though just 0/1
+    n_off = n_each.sum()  # off-diagonal terms
+    n_diag = np.prod(shape)
+    vertices = np.arange(n_diag).reshape(shape)
+    edges = np.empty((2, n_off + n_diag), int)
+    used = np.zeros(n_off, bool)
+    weights = np.empty(n_off + n_diag, float)  # even though just 0/1
     offset = 0
     for di, dim in enumerate(structure):
         s_l = [slice(None)] * len(shape)
@@ -78,9 +84,11 @@ def combine_adjacency(*structure):
         offset += n_each[di]
         assert not used[sl].any()
         used[sl] = True
+    # Add the diagonal
+    edges[:, n_off:] = vertices.ravel()
+    weights[n_off:] = 1.
+    # Handle the diagonal separately at the end to avoid duplicate entries
     assert used.all()
-    assert weights.shape == (nnz,)
-    assert edges.shape == (2,) + (nnz,)
     graph = sparse.coo_matrix((weights, edges),
                               (vertices.size, vertices.size))
     return graph
