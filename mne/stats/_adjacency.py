@@ -49,10 +49,10 @@ def combine_adjacency(*structure):
             if dim.shape[0] != dim.shape[1]:
                 raise ValueError(
                     f'{name} must be square, got shape {dim.shape}')
-        if not isinstance(dim, sparse.coo_matrix):
-            dim = sparse.coo_matrix(dim)
-        else:
-            dim = dim.copy()
+            if not isinstance(dim, sparse.coo_matrix):
+                dim = sparse.coo_matrix(dim)
+            else:
+                dim = dim.copy()
         dim.data[dim.row == dim.col] = 0.  # remove diagonal, will add later
         dim.eliminate_zeros()
         if not (dim.data == 1).all():
