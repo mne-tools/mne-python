@@ -36,6 +36,7 @@ public_modules = [
     'mne.simulation',
     'mne.source_estimate',
     'mne.source_space',
+    'mne.surface',
     'mne.stats',
     'mne.time_frequency',
     'mne.time_frequency.tfr',

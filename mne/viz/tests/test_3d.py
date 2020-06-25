@@ -105,6 +105,7 @@ def test_plot_head_positions():
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
+@pytest.mark.slowtest
 def test_plot_sparse_source_estimates(renderer_interactive):
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -135,7 +136,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc_data = np.zeros((len(inds), n_time))
     stc_data[0, 1] = 1.
     stc_data[1, 4] = 2.
-    vertices = [vertices[inds], np.empty(0, dtype=np.int)]
+    vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)
@@ -146,6 +147,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
 
 @testing.requires_testing_data
 @traits_test
+@pytest.mark.slowtest
 def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -603,13 +605,14 @@ def test_snapshot_brain_montage(renderer):
 @requires_dipy()
 @requires_nibabel()
 @requires_version('nilearn', '0.4')
-@pytest.mark.parametrize('mode, stype, init_t, want_t, init_p, want_p', [
-    ('glass_brain', 's', None, 2, None, (-30.9, 18.4, 56.7)),
-    ('stat_map', 'vec', 1, 1, None, (15.7, 16.0, -6.3)),
-    ('glass_brain', 'vec', None, 1, (10, -10, 20), (6.6, -9.0, 19.9)),
-    ('stat_map', 's', 1, 1, (-10, 5, 10), (-12.3, 2.0, 7.7))])
+@pytest.mark.parametrize(
+    'mode, stype, init_t, want_t, init_p, want_p, bg_img', [
+        ('glass_brain', 's', None, 2, None, (-30.9, 18.4, 56.7), None),
+        ('stat_map', 'vec', 1, 1, None, (15.7, 16.0, -6.3), None),
+        ('glass_brain', 'vec', None, 1, (10, -10, 20), (6.6, -9., 19.9), None),
+        ('stat_map', 's', 1, 1, (-10, 5, 10), (-12.3, 2.0, 7.7), 'brain.mgz')])
 def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
-                                      init_p, want_p):
+                                      init_p, want_p, bg_img):
     """Test interactive plotting of volume source estimates."""
     forward = read_forward_solution(fwd_fname)
     sample_src = forward['src']
@@ -632,7 +635,7 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
             fig = stc.plot(
                 sample_src, subject='sample', subjects_dir=subjects_dir,
                 mode=mode, initial_time=init_t, initial_pos=init_p,
-                verbose=True)
+                bg_img=bg_img, verbose=True)
     log = log.getvalue()
     want_str = 't = %0.3f s' % want_t
     assert want_str in log, (want_str, init_t)
@@ -642,6 +645,10 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
         _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('shift+right')
+    if bg_img is not None:
+        with pytest.raises(FileNotFoundError, match='MRI file .* not found'):
+            stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir,
+                     mode='stat_map', bg_img='junk.mgz')
 
 
 @pytest.mark.slowtest  # can be slow on OSX

@@ -383,8 +383,8 @@ order of difficulty):
    :ref:`mne watershed_bem`.
 2. Changing the ``--atlas`` and ``--gcaatlas`` options of
    :ref:`mne watershed_bem`.
-3. Manually editing the meshes (see `this tutorial
-   <https://github.com/ezemikulan/blender_freesurfer>`__.
+3. Manually editing the meshes (see :ref:`this tutorial
+   <sphx_glr_auto_tutorials_source-modeling_plot_fix_bem_in_blender.py>`).
 4. Manually running mri_watershed_ with various FreeSurfer flags (e.g.,
    ``-less`` to fix the output).
 5. Going farther back in your Freesurfer pipeline to fix the problem.

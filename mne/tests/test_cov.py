@@ -147,7 +147,7 @@ def test_cov_order():
     whitener_2, w_ch_names_2, n_nzero_2 = compute_whitener(
         cov_reorder, info, return_rank=True)
     assert_array_equal(w_ch_names_2, w_ch_names)
-    assert_allclose(whitener_2, whitener)
+    assert_allclose(whitener_2, whitener, rtol=1e-6)
     assert n_nzero == n_nzero_2
     # with pca
     assert n_nzero < whitener.shape[0]
@@ -160,7 +160,7 @@ def test_cov_order():
     evoked = read_evokeds(ave_fname)[0]
     evoked_white = whiten_evoked(evoked, cov)
     evoked_white_2 = whiten_evoked(evoked, cov_reorder)
-    assert_allclose(evoked_white_2.data, evoked_white.data)
+    assert_allclose(evoked_white_2.data, evoked_white.data, atol=1e-7)
 
 
 def _assert_reorder(cov_new, cov_orig, order):

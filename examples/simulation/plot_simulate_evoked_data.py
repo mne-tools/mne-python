@@ -46,7 +46,7 @@ labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
 ###############################################################################
 # Generate source time courses from 2 dipoles and the correspond evoked data
 
-times = np.arange(300, dtype=np.float) / raw.info['sfreq'] - 0.1
+times = np.arange(300, dtype=np.float64) / raw.info['sfreq'] - 0.1
 rng = np.random.RandomState(42)
 
 

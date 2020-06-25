@@ -93,14 +93,14 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
             (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
-            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
+            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float64) / div
             coords = coords.reshape(-1, 3)
             quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
             #
             #   Face splitting follows
             #
-            faces = np.zeros((2 * nquad, 3), dtype=np.int)
+            faces = np.zeros((2 * nquad, 3), dtype=np.int64)
             nface = 0
             for quad in quads:
                 if (quad[0] % 2) == 0:
@@ -127,7 +127,7 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
         else:
             raise ValueError("File does not appear to be a Freesurfer surface")
 
-    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
+    coords = coords.astype(np.float64)  # XXX: due to mayavi bug on mac 32bits
 
     ret = (coords, faces)
     if read_metadata:
@@ -1078,3 +1078,16 @@ else:
     @jit()
     def mean(array, axis):
         return _np_apply_along_axis(np.mean, axis, array)
+
+
+###############################################################################
+# Added in Python 3.7 (remove when we drop support for 3.6)
+
+try:
+    from contextlib import nullcontext
+except ImportError:
+    from contextlib import contextmanager
+
+    @contextmanager
+    def nullcontext(enter_result=None):
+        yield enter_result

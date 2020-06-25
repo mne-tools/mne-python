@@ -119,7 +119,7 @@ def _get_clusters_spatial(s, neighbors):
     # s is a vector of spatial indices that are significant, like:
     #     s = np.where(x_in)[0]
     # for x_in representing a single time-instant
-    r = np.ones(s.shape, np.bool)
+    r = np.ones(s.shape, bool)
     clusters = list()
     next_ind = 0 if s.size > 0 else -1
     while next_ind >= 0:

@@ -647,7 +647,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # highpass relaxed / no filters
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else np.Inf for filt in highpass]
-                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float64))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
@@ -662,7 +662,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             else:
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else 0.0 for filt in highpass]
-                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float64))
                 if info['highpass'] == 0.0 and len(set(highpass)) == 1:
                     # not actually heterogeneous in effect
                     # ... just heterogeneously disabled
@@ -691,7 +691,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else 0.0 for filt in lowpass]
-                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float64))
                 try:
                     # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
@@ -713,7 +713,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else np.Inf for filt in lowpass]
-                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float64))
 
                 if np.isinf(info['lowpass']):
                     # No lowpass actually set for the weakest setting
@@ -764,7 +764,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
             scanno=idx + 1, cal=cals[idx], range=ranges[idx],
             loc=np.full(12, np.nan),
-            unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
+            unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()

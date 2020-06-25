@@ -5,6 +5,7 @@
 
 import os.path as op
 import shutil
+import os
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -34,6 +35,24 @@ def test_nirx_hdr_load():
     # Test data import
     assert raw._data.shape == (26, 145)
     assert raw.info['sfreq'] == 12.5
+
+
+@requires_testing_data
+def test_nirx_missing_warn():
+    """Test reading NIRX files when missing data."""
+    with pytest.raises(RuntimeError, match='The path you'):
+        read_raw_nirx(fname_nirx_15_2_short + "1", preload=True)
+
+
+@requires_testing_data
+def test_nirx_dat_warn(tmpdir):
+    """Test reading NIRX files when missing data."""
+    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
+    os.rename(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.dat",
+              str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.tmp")
+    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    with pytest.raises(RuntimeWarning, match='A single dat'):
+        read_raw_nirx(fname, preload=True)
 
 
 @requires_testing_data

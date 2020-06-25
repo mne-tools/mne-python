@@ -90,7 +90,7 @@ def test_compute_nearest():
     """Test nearest neighbor searches."""
     x = rng.randn(500, 3)
     x /= np.sqrt(np.sum(x ** 2, axis=1))[:, None]
-    nn_true = rng.permutation(np.arange(500, dtype=np.int))[:20]
+    nn_true = rng.permutation(np.arange(500, dtype=np.int64))[:20]
     y = x[nn_true]
 
     nn1 = _compute_nearest(x, y, method='BallTree')
@@ -159,8 +159,8 @@ def test_io_surface():
     tempdir = _TempDir()
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
-    fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
-                        'lh.inflated')
+    fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'inner_skull.surf')
     for fname in (fname_quad, fname_tri):
         with pytest.warns(None):  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
@@ -172,6 +172,16 @@ def test_io_surface():
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
         assert_equal(object_diff(vol_info, c_vol_info), '')
+        if fname != fname_tri:  # don't bother testing wavefront for the bigger
+            continue
+
+        # Test writing/reading a Wavefront .obj file
+        write_surface(op.join(tempdir, 'tmp.obj'), pts, tri, volume_info=None,
+                      overwrite=True)
+        c_pts, c_tri = read_surface(op.join(tempdir, 'tmp.obj'),
+                                    read_metadata=False)
+        assert_array_equal(pts, c_pts)
+        assert_array_equal(tri, c_tri)
 
 
 @testing.requires_testing_data

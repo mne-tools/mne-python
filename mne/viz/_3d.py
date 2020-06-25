@@ -42,6 +42,7 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
+from .misc import _check_mri
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
@@ -1463,7 +1464,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     curv = nib.freesurfer.read_morph_data(
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
-    curv = np.clip(np.array(curv > 0, np.int), 0.33, 0.66)
+    curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
                   hemi_idx=hemi_idx, vertices=vertices, e=e,
                   smoothing_steps=smoothing_steps, n_verts=n_verts,
@@ -1717,7 +1718,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         "figure": figure, "subjects_dir": subjects_dir,
         "views": views,
     }
-    if _get_3d_backend() == "pyvista":
+    if _get_3d_backend() in ['pyvista', 'notebook']:
         kwargs["show"] = not time_viewer
     else:
         kwargs.update(_check_pysurfer_antialias(Brain))
@@ -1811,10 +1812,20 @@ def _ijk_to_cut_coords(ijk, img):
     return apply_trans(img.affine, ijk)
 
 
+def _load_subject_mri(mri, stc, subject, subjects_dir, name):
+    import nibabel as nib
+    from nibabel.spatialimages import SpatialImage
+    _validate_type(mri, ('path-like', SpatialImage), name)
+    if isinstance(mri, str):
+        subject = _check_subject(stc.subject, subject, True)
+        mri = nib.load(_check_mri(mri, subject, subjects_dir))
+    return mri
+
+
 @verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
-                                 mode='stat_map', bg_img=None, colorbar=True,
-                                 colormap='auto', clim='auto',
+                                 mode='stat_map', bg_img='T1.mgz',
+                                 colorbar=True, colormap='auto', clim='auto',
                                  transparent=None, show=True,
                                  initial_time=None, initial_pos=None,
                                  verbose=None):
@@ -1839,9 +1850,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
         For "glass_brain", activation absolute values are displayed
         after being transformed to a standard MNI brain.
-    bg_img : instance of SpatialImage | None
+    bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
-        If None, it is the T1.mgz file that is found in the subjects_dir.
+        Can also be a string to use the ``bg_img`` file in the subject's
+        MRI directory (default is ``'T1.mgz'``).
         Not used in "glass brain" plotting.
     colorbar : bool, optional
         If True, display a colorbar on the right of the plots.
@@ -2071,11 +2083,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         bg_img = None  # not used
     else:  # stat_map
         if bg_img is None:
-            subject = _check_subject(stc.subject, subject, True)
-            subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                            raise_error=True)
-            t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-            bg_img = nib.load(t1_fname)
+            bg_img = 'T1.mgz'
+        bg_img = _load_subject_mri(
+            bg_img, stc, subject, subjects_dir, 'bg_img')
 
     if initial_time is None:
         time_sl = slice(0, None)
@@ -2333,10 +2343,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     if _get_3d_backend() == "mayavi":
         from surfer import Brain
         from surfer import __version__ as surfer_version
-        kwargs = _check_pysurfer_antialias(Brain)
     else:  # PyVista
         from ._brain import _Brain as Brain
-        kwargs = dict()
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
@@ -2365,12 +2373,20 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         smoothing_steps = 1  # Disable smoothing to save time.
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    kwargs = {
+        "subject_id": subject, "hemi": hemi, "surf": 'white',
+        "title": title, "cortex": cortex, "size": size,
+        "background": background, "foreground": foreground,
+        "figure": figure, "subjects_dir": subjects_dir,
+        "views": views, "alpha": brain_alpha,
+    }
+    if _get_3d_backend() in ['pyvista', 'notebook']:
+        kwargs["show"] = not time_viewer
+    else:
+        kwargs.update(_check_pysurfer_antialias(Brain))
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf='white',
-                      title=title, cortex=cortex, size=size,
-                      background=background, foreground=foreground,
-                      figure=figure, subjects_dir=subjects_dir,
-                      views=views, alpha=brain_alpha, **kwargs)
+        brain = Brain(**kwargs)
+    del kwargs
     if scale_factor is None:
         # Configure the glyphs scale directly
         width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])

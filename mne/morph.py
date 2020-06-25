@@ -17,6 +17,7 @@ from .source_estimate import (
     _BaseVolSourceEstimate, _BaseSourceEstimate, _get_ico_tris)
 from .source_space import SourceSpaces, _ensure_src
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
+from .transforms import _angle_between_quats, rot_to_quat
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, wrapped_stdout, _check_fname, warn,
@@ -33,8 +34,9 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     """Create a SourceMorph from one subject to another.
 
     Method is based on spherical morphing by FreeSurfer for surface
-    cortical estimates [1]_ and Symmetric Diffeomorphic Registration
-    for volumic data [2]_.
+    cortical estimates :footcite:`GreveEtAl2013` and
+    Symmetric Diffeomorphic Registration for volumic data
+    :footcite:`AvantsEtAl2008`.
 
     Parameters
     ----------
@@ -134,7 +136,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     obtained as described `here
     <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
     comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
-    model is recommended to minimize bias [1]_.
+    model is recommended to minimize bias :footcite:`GreveEtAl2013`.
 
     .. versionadded:: 0.17.0
 
@@ -143,14 +145,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
     References
     ----------
-    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
-           R., Fischl B., Brysbaert M.
-           A Surface-based Analysis of Language Lateralization and Cortical
-           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
-    .. [2] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
-           Symmetric Diffeomorphic Image Registration with Cross- Correlation:
-           Evaluating Automated Labeling of Elderly and Neurodegenerative
-           Brain, 12(1), 26-41.
+    .. footbibliography::
     """
     src_data, kind, src_subject = _get_src_data(src)
     subject_from = _check_subject_src(subject_from, src_subject)
@@ -179,13 +174,13 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         _check_dep(nibabel='2.1.0', dipy='0.10.1')
         import nibabel as nib
 
-        logger.info('volume source space(s) present...')
+        logger.info('Volume source space(s) present...')
 
         # load moving MRI
         mri_subpath = op.join('mri', 'brain.mgz')
         mri_path_from = op.join(subjects_dir, subject_from, mri_subpath)
 
-        logger.info('loading %s as "from" volume' % mri_path_from)
+        logger.info('    Loading %s as "from" volume' % mri_path_from)
         with warnings.catch_warnings():
             mri_from = nib.load(mri_path_from)
 
@@ -194,7 +189,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
         if not op.isfile(mri_path_to):
             raise IOError('cannot read file: %s' % mri_path_to)
-        logger.info('loading %s as "to" volume' % mri_path_to)
+        logger.info('    Loading %s as "to" volume' % mri_path_to)
         with warnings.catch_warnings():
             mri_to = nib.load(mri_path_to)
 
@@ -206,11 +201,15 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                                  'mixed source space')
         else:
             surf_offset = 2 if src_to.kind == 'mixed' else 0
-            src_data['to_vox_map'] = (
-                src_to[-1]['shape'], src_to[-1]['src_mri_t']['trans'] *
-                np.array([[1e3, 1e3, 1e3, 1]]).T)
+            # All of our computations are in RAS (like img.affine), so we need
+            # to get the transformation from RAS to the source space
+            # subsampling of vox (src), not MRI (FreeSurfer surface RAS) to src
+            src_ras_t = np.dot(src_to[-1]['mri_ras_t']['trans'],
+                               src_to[-1]['src_mri_t']['trans'])
+            src_ras_t[:3] *= 1e3
+            src_data['to_vox_map'] = (src_to[-1]['shape'], src_ras_t)
             vertices_to_vol = [s['vertno'] for s in src_to[surf_offset:]]
-            zooms_src_to = np.diag(src_data['to_vox_map'][1])[:3]
+            zooms_src_to = np.diag(src_to[-1]['src_mri_t']['trans'])[:3] * 1000
             assert (zooms_src_to[0] == zooms_src_to).all()
             zooms_src_to = tuple(zooms_src_to)
 
@@ -312,7 +311,7 @@ class SourceMorph(object):
         Number of levels (``len(niter_sdr)``) and number of
         iterations per level - for each successive stage of iterative
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform [2]_.
+        transform :footcite:`AvantsEtAl2008`.
     spacing : int | list | None
         See :func:`mne.compute_source_morph`.
     smooth : int | str | None
@@ -321,7 +320,7 @@ class SourceMorph(object):
         Morph across hemisphere.
     morph_mat : scipy.sparse.csr_matrix
         The sparse surface morphing matrix for spherical surface
-        based morphing [1]_.
+        based morphing :footcite:`GreveEtAl2013`.
     vertices_to : list of ndarray
         The destination surface vertices.
     shape : tuple
@@ -344,14 +343,7 @@ class SourceMorph(object):
 
     References
     ----------
-    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
-           R., Fischl B., Brysbaert M.
-           A Surface-based Analysis of Language Lateralization and Cortical
-           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
-    .. [2] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
-           Symmetric Diffeomorphic Image Registration with Cross- Correlation:
-           Evaluating Automated Labeling of Elderly and Neurodegenerative
-           Brain, 12(1), 26-41.
+    .. footbibliography::
     """
 
     def __init__(self, subject_from, subject_to, kind, zooms,
@@ -476,14 +468,16 @@ class SourceMorph(object):
             img_to, self.affine, _get_zooms_orig(self), self.zooms)
 
         # morph data
-        img_to = self.sdr_morph.transform(self.pre_affine.transform(img_to))
+        img_to = self.pre_affine.transform(img_to)
+        if self.sdr_morph is not None:
+            img_to = self.sdr_morph.transform(img_to)
 
         # subselect the correct cube if src_to is provided
         if self.src_data['to_vox_map'] is not None:
             # order=0 (nearest) should be fine since it's just subselecting
-            img_to = _get_img_fdata(resample_from_to(
-                SpatialImage(img_to, self.affine),
-                self.src_data['to_vox_map'], order=0))
+            img_to = SpatialImage(img_to, self.affine)
+            img_to = resample_from_to(img_to, self.src_data['to_vox_map'], 1)
+            img_to = _get_img_fdata(img_to)
 
         # reshape to nvoxel x nvol:
         # in the MNE definition of volume source spaces,
@@ -809,7 +803,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
     vols = np.zeros((np.prod(shape[:3]), shape[3]), order='F')  # flatten
     n_vertices_seen = 0
     for this_inuse in inuse:
-        this_inuse = this_inuse.astype(np.bool)
+        this_inuse = this_inuse.astype(bool)
         n_vertices = np.sum(this_inuse)
         stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
         vols[this_inuse] = stc.data[stc_slice]
@@ -889,7 +883,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
         mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
 
     affine = mri_to.affine
-    mri_to = _get_img_fdata(mri_to)  # to ndarray
+    mri_to = _get_img_fdata(mri_to).copy()  # to ndarray
     mri_to /= mri_to.max()
     mri_from_affine = mri_from.affine  # get mri_from to world transform
     mri_from = _get_img_fdata(mri_from)  # to ndarray
@@ -919,6 +913,13 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
         rigid = affreg.optimize(
             mri_to, mri_from, transforms.RigidTransform3D(), None,
             affine, mri_from_affine, starting_affine=translation.affine)
+    dist = np.linalg.norm(rigid.affine[:3, 3])
+    angle = np.rad2deg(_angle_between_quats(
+        np.zeros(3), rot_to_quat(rigid.affine[:3, :3])))
+
+    logger.info(f'Translation: {dist:5.1f} mm')
+    logger.info(f'Rotation:    {angle:5.1f}°')
+    logger.info('')
 
     # affine transform (translation + rotation + scaling)
     logger.info('Optimizing full affine:')
@@ -928,12 +929,33 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
             affine, mri_from_affine, starting_affine=rigid.affine)
 
     # compute mapping
-    sdr = imwarp.SymmetricDiffeomorphicRegistration(
-        metrics.CCMetric(3), list(niter_sdr))
-    logger.info('Optimizing SDR:')
-    with wrapped_stdout(indent='    '):
-        sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
-    shape = tuple(sdr_morph.domain_shape)  # should be tuple of int
+    mri_from_to = pre_affine.transform(mri_from)
+    shape = tuple(pre_affine.domain_shape)
+    if len(niter_sdr):
+        sdr = imwarp.SymmetricDiffeomorphicRegistration(
+            metrics.CCMetric(3), list(niter_sdr))
+        logger.info('Optimizing SDR:')
+        with wrapped_stdout(indent='    '):
+            sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
+        assert shape == tuple(sdr_morph.domain_shape)  # should be tuple of int
+        mri_from_to = sdr_morph.transform(mri_from_to)
+    else:
+        sdr_morph = None
+
+    mri_to, mri_from_to = mri_to.ravel(), mri_from_to.ravel()
+    mri_from_to /= np.linalg.norm(mri_from_to)
+    mri_to /= np.linalg.norm(mri_to)
+    r2 = 100 * (mri_to @ mri_from_to)
+    logger.info(f'Variance explained by morph: {r2:0.1f}%')
+
+    # To debug to_vox_map, this can be used:
+    # from nibabel.processing import resample_from_to
+    # mri_from_to = sdr_morph.transform(pre_affine.transform(mri_from))
+    # mri_from_to = nib.Nifti1Image(mri_from_to, affine)
+    # fig1 = mri_from_to.orthoview()
+    # mri_from_to_cut = resample_from_to(mri_from_to, to_vox_map, 1)
+    # fig2 = mri_from_to_cut.orthoview()
+
     return shape, zooms, affine, pre_affine, sdr_morph
 
 
@@ -1232,7 +1254,7 @@ def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
 def _sparse_argmax_nnz_row(csr_mat):
     """Return index of the maximum non-zero index in each row."""
     n_rows = csr_mat.shape[0]
-    idx = np.empty(n_rows, dtype=np.int)
+    idx = np.empty(n_rows, dtype=np.int64)
     for k in range(n_rows):
         row = csr_mat[k].tocoo()
         idx[k] = row.col[np.argmax(row.data)]

@@ -11,6 +11,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 from scipy import sparse
+from scipy.optimize import fmin_cobyla
 
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
@@ -988,7 +989,7 @@ def test_spatio_temporal_src_connectivity():
 def test_to_data_frame():
     """Test stc Pandas exporter."""
     n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
@@ -1010,7 +1011,7 @@ def test_to_data_frame():
 def test_to_data_frame_index(index):
     """Test index creation in stc Pandas exporter."""
     n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
     stc = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                          subject='sample')
@@ -1119,23 +1120,32 @@ def test_mixed_stc(tmpdir):
     (VolVectorSourceEstimate, 'discrete'),
     (MixedVectorSourceEstimate, 'mixed'),
 ])
-def test_vec_stc_basic(tmpdir, klass, kind):
+@pytest.mark.parametrize('dtype', [
+    np.float32, np.float64, np.complex64, np.complex128])
+def test_vec_stc_basic(tmpdir, klass, kind, dtype):
     """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1],
+        [np.sqrt(1. / 2.), 0, np.sqrt(1. / 2.)],
         [np.sqrt(1 / 3.)] * 3
-    ])
+    ], np.float32)
 
     data = np.array([
         [1, 0, 0],
         [0, 2, 0],
-        [3, 0, 0],
+        [-3, 0, 0],
         [1, 1, 1],
-    ])[:, :, np.newaxis]
-    magnitudes = np.linalg.norm(data, axis=1)[:, 0]
-    normals = np.array([1, 2, 0, np.sqrt(3)])
+    ], dtype)[:, :, np.newaxis]
+    amplitudes = np.array([1, 2, 3, np.sqrt(3)], dtype)
+    magnitudes = amplitudes.copy()
+    normals = np.array([1, 2, -3. / np.sqrt(2), np.sqrt(3)], dtype)
+    if dtype in (np.complex64, np.complex128):
+        data *= 1j
+        amplitudes *= 1j
+        normals *= 1j
+    directions = np.array(
+        [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [1. / np.sqrt(3)] * 3])
     vol_kind = kind if kind in ('discrete', 'vol') else 'vol'
     vol_src = SourceSpaces([dict(nn=nn, type=vol_kind)])
     assert vol_src.kind == dict(vol='volume').get(vol_kind, vol_kind)
@@ -1155,20 +1165,35 @@ def test_vec_stc_basic(tmpdir, klass, kind):
         verts = surf_verts + vol_verts
         assert src.kind == 'mixed'
         data = np.tile(data, (2, 1, 1))
+        amplitudes = np.tile(amplitudes, 2)
         magnitudes = np.tile(magnitudes, 2)
         normals = np.tile(normals, 2)
+        directions = np.tile(directions, (2, 1))
     stc = klass(data, verts, 0, 1, 'foo')
+    amplitudes = amplitudes[:, np.newaxis]
+    magnitudes = magnitudes[:, np.newaxis]
 
     # Magnitude of the vectors
-    assert_array_equal(stc.magnitude().data[:, 0], magnitudes)
+    assert_array_equal(stc.magnitude().data, magnitudes)
 
     # Vector components projected onto the vertex normals
     if kind in ('vol', 'mixed'):
         with pytest.raises(RuntimeError, match='surface or discrete'):
-            stc.normal(src)
+            stc.project('normal', src)[0]
     else:
-        normal = stc.normal(src)
-        assert_array_equal(normal.data[:, 0], normals)
+        normal = stc.project('normal', src)[0]
+        assert_allclose(normal.data[:, 0], normals)
+
+    # Maximal-variance component, either to keep amps pos or to align to src-nn
+    projected, got_directions = stc.project('pca')
+    assert_allclose(got_directions, directions)
+    assert_allclose(projected.data, amplitudes)
+    projected, got_directions = stc.project('pca', src)
+    flips = np.array([[1], [1], [-1.], [1]])
+    if klass is MixedVectorSourceEstimate:
+        flips = np.tile(flips, (2, 1))
+    assert_allclose(got_directions, directions * flips)
+    assert_allclose(projected.data, amplitudes * flips)
 
     out_name = tmpdir.join('temp.h5')
     stc.save(out_name)
@@ -1186,6 +1211,37 @@ def test_vec_stc_basic(tmpdir, klass, kind):
     data = data[:, :, np.newaxis]
     with pytest.raises(ValueError, match='3 dimensions for .*VectorSource'):
         klass(data, verts, 0, 1)
+
+
+@pytest.mark.parametrize('real', (True, False))
+def test_source_estime_project(real):
+    """Test projecting a source estimate onto direction of max power."""
+    n_src, n_times = 4, 100
+    rng = np.random.RandomState(0)
+    data = rng.randn(n_src, 3, n_times)
+    if not real:
+        data = data + 1j * rng.randn(n_src, 3, n_times)
+        assert data.dtype == np.complex128
+    else:
+        assert data.dtype == np.float64
+
+    # Make sure that the normal we get maximizes the power
+    # (i.e., minimizes the negative power)
+    want_nn = np.empty((n_src, 3))
+    for ii in range(n_src):
+        x0 = np.ones(3)
+
+        def objective(x):
+            x = x / np.linalg.norm(x)
+            return -np.linalg.norm(np.dot(x, data[ii]))
+        want_nn[ii] = fmin_cobyla(objective, x0, (), rhobeg=0.1, rhoend=1e-6)
+    want_nn /= np.linalg.norm(want_nn, axis=1, keepdims=True)
+
+    stc = VolVectorSourceEstimate(data, [np.arange(n_src)], 0, 1)
+    stc_max, directions = stc.project('pca')
+    flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
+    directions *= flips
+    assert_allclose(directions, want_nn, atol=1e-6)
 
 
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
@@ -1251,7 +1307,8 @@ def test_vec_stc_inv_fixed(invs, pick_ori):
     evoked, _, _, _, fixed, fixedish = invs
     stc_fixed = apply_inverse(evoked, fixed)
     stc_fixed_vector = apply_inverse(evoked, fixed, pick_ori='vector')
-    assert_allclose(stc_fixed.data, stc_fixed_vector.normal(fixed['src']).data)
+    assert_allclose(stc_fixed.data,
+                    stc_fixed_vector.project('normal', fixed['src'])[0].data)
     stc_fixedish = apply_inverse(evoked, fixedish, pick_ori=pick_ori)
     if pick_ori == 'vector':
         assert_allclose(stc_fixed_vector.data, stc_fixedish.data, atol=1e-2)
@@ -1259,7 +1316,7 @@ def test_vec_stc_inv_fixed(invs, pick_ori):
         assert_allclose(
             abs(stc_fixed).data, stc_fixedish.magnitude().data, atol=1e-2)
         # ... and when picking the normal (signed)
-        stc_fixedish = stc_fixedish.normal(fixedish['src'])
+        stc_fixedish = stc_fixedish.project('normal', fixedish['src'])[0]
     elif pick_ori is None:
         stc_fixed = abs(stc_fixed)
     else:

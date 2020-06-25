@@ -126,7 +126,7 @@ def _read_lout(fname):
                 name = chkind + ' ' + nb
             else:
                 cid, x, y, dx, dy, name = splits
-            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            pos.append(np.array([x, y, dx, dy], dtype=np.float64))
             names.append(name)
             ids.append(int(cid))
 
@@ -147,7 +147,7 @@ def _read_lay(fname):
                 name = chkind + ' ' + nb
             else:
                 cid, x, y, dx, dy, name = splits
-            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            pos.append(np.array([x, y, dx, dy], dtype=np.float64))
             names.append(name)
             ids.append(int(cid))
 
@@ -637,7 +637,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         positions overlap, an error is thrown.
     to_sphere : bool
         If True, the radial distance of spherical coordinates is ignored, in
-        effect fitting the xyz-coordinates to a sphere. Defaults to True.
+        effect fitting the xyz-coordinates to a sphere.
     sphere : array-like | str
         The head sphere definition.
 

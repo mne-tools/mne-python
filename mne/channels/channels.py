@@ -373,7 +373,7 @@ class SetChannelsMixin(MontageMixin):
         if len(pos) != len(names):
             raise ValueError('Number of channel positions not equal to '
                              'the number of names given.')
-        pos = np.asarray(pos, dtype=np.float)
+        pos = np.asarray(pos, dtype=np.float64)
         if pos.shape[-1] != 3 or pos.ndim != 2:
             msg = ('Channel positions must have the shape (n_points, 3) '
                    'not %s.' % (pos.shape,))

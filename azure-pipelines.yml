@@ -15,11 +15,9 @@ jobs:
 - job: Style
   pool:
     vmImage: 'ubuntu-18.04'
-  strategy:
-    matrix:
-      Python37-64bit-fast:
-        PYTHON_VERSION: '3.7'
-        PYTHON_ARCH: 'x64'
+  variables:
+    PYTHON_VERSION: '3.8'
+    PYTHON_ARCH: 'x64'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -28,6 +26,7 @@ jobs:
       addToPath: true
     displayName: 'Get Python'
   - bash: |
+      set -e
       python -m pip install --upgrade pip setuptools
       python -m pip install numpy scipy matplotlib sphinx pytest pytest-cov pytest-timeout pytest-sugar flake8
     displayName: Install dependencies
@@ -89,7 +88,7 @@ jobs:
     OPENBLAS_NUM_THREADS: '1'
   steps:
   - bash: |
-      sudo apt install libxkbcommon-x11-0 xvfb tcsh
+      sudo apt install libxkbcommon-x11-0 xvfb tcsh libxcb*
     displayName: 'Install Ubuntu dependencies'
   - bash: |
       source tools/get_minimal_commands.sh
@@ -124,16 +123,55 @@ jobs:
     displayName: 'Get test data'
   - script: pytest -m "ultraslowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run ultraslow tests'
-  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
     displayName: 'Codecov'
     env:
       CODECOV_TOKEN: $(CODECOV_TOKEN)
-    condition: always()
+    condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for Python $(python.version)'
-    condition: always()
+      testRunTitle: 'Publish test results for $(Agent.JobName)'
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()
+
+
+- job: Notebook
+  pool:
+    vmImage: 'ubuntu-18.04'
+  variables:
+    CONDA_ENV: 'server_environment.yml'
+  steps:
+  - bash: |
+      set -e
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
+      bash miniconda.sh -b -p ~/miniconda
+      source ~/miniconda/etc/profile.d/conda.sh
+      conda activate base
+      conda env update --file $CONDA_ENV
+      pip uninstall -yq mne
+      pip install -ve .
+      pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8 codecov
+      echo "##vso[task.setvariable variable=PATH]${PATH}"
+      echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
+    displayName: 'Install dependencies'
+  - script: mne sys_info
+    displayName: 'Print config and test access to commands'
+  - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+    displayName: 'Get test data'
+  - script: pytest --tb=short --cov=mne mne/viz
+    displayName: 'Run viz tests'
+  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
+    displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
+    condition: succeededOrFailed()
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: 'junit-*.xml'
+      testRunTitle: 'Publish test results for $(Agent.JobName)'
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()
 
 
 - job: Windows
@@ -220,15 +258,16 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not ultraslowtest" --tb=short --cov=mne -n 1 mne
+  - script: pytest -m "not slowtest" --tb=short --cov=mne -n 1 mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
     env:
       CODECOV_TOKEN: $(CODECOV_TOKEN)
-    condition: always()
+    condition: succeededOrFailed()
   - task: PublishTestResults@2
     inputs:
       testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for Python $(python.version)'
-    condition: always()
+      testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()

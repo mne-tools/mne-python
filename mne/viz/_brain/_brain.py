@@ -22,7 +22,8 @@ from .._3d import _process_clim, _handle_time
 from ...surface import mesh_edges
 from ...morph import _hemi_morph
 from ...label import read_label, _read_annot
-from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
+from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
+                      use_log_level)
 
 
 class _Brain(object):
@@ -154,7 +155,7 @@ class _Brain(object):
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm',
                  show=True):
-        from ..backends.renderer import backend, _get_renderer
+        from ..backends.renderer import backend, _get_renderer, _get_3d_backend
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -195,6 +196,7 @@ class _Brain(object):
                              'sequence of ints.')
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
+        self._notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
         self._units = units
         self._subject_id = subject_id
@@ -539,6 +541,8 @@ class _Brain(object):
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 
+        self._update()
+
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
         """Add an ROI label to the image.
@@ -665,6 +669,8 @@ class _Brain(object):
                                     backface_culling=False)
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
+
+        self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -863,7 +869,7 @@ class _Brain(object):
                 rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
-            ctable = cmap.astype(np.float) / 255.
+            ctable = cmap.astype(np.float64) / 255.
 
             mesh_data = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
@@ -885,6 +891,8 @@ class _Brain(object):
                 _set_colormap_range(actor, cmap.astype(np.uint8),
                                     None)
                 self.resolve_coincident_topology(actor)
+
+        self._update()
 
     def resolve_coincident_topology(self, actor):
         """Resolve z-fighting of overlapping surfaces."""
@@ -915,6 +923,7 @@ class _Brain(object):
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
         self._renderer.reset_camera()
+        self._update()
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.
@@ -995,10 +1004,11 @@ class _Brain(object):
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
                 morph_n_steps = 'nearest' if n_steps == 0 else n_steps
                 maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
-                smooth_mat = _hemi_morph(
-                    self.geo[hemi].faces,
-                    np.arange(len(self.geo[hemi].coords)),
-                    vertices, morph_n_steps, maps, warn=False)
+                with use_log_level(False):
+                    smooth_mat = _hemi_morph(
+                        self.geo[hemi].faces,
+                        np.arange(len(self.geo[hemi].coords)),
+                        vertices, morph_n_steps, maps, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
         self._data['smoothing_steps'] = n_steps
@@ -1078,6 +1088,7 @@ class _Brain(object):
                     self.update_glyphs(hemi, vectors)
         self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
+        self._update()
 
     def update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import (_set_colormap_range,
@@ -1438,7 +1449,7 @@ class _Brain(object):
             edges = mesh_edges(self.geo[hemi].faces)
             edges = edges.tocoo()
             border_edges = label[edges.row] != label[edges.col]
-            show = np.zeros(n_vertices, dtype=np.int)
+            show = np.zeros(n_vertices, dtype=np.int64)
             keep_idx = np.unique(edges.row[border_edges])
             if isinstance(borders, int):
                 for _ in range(borders):
@@ -1474,6 +1485,12 @@ class _Brain(object):
     def enable_depth_peeling(self):
         """Enable depth peeling."""
         self._renderer.enable_depth_peeling()
+
+    def _update(self):
+        from ..backends import renderer
+        if renderer.get_3d_backend() in ['pyvista', 'notebook']:
+            if self._notebook and self._renderer.figure.display is not None:
+                self._renderer.figure.display.update()
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

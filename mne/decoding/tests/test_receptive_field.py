@@ -108,7 +108,7 @@ def test_time_delay():
             _delay_time_series(X, tmin, tmax, sfreq=[1])
         # Delays must be int/float
         with pytest.raises(TypeError, match='.*complex.*'):
-            _delay_time_series(X, np.complex(tmin), tmax, 1)
+            _delay_time_series(X, np.complex128(tmin), tmax, 1)
         # Make sure swapaxes works
         start, stop = int(round(tmin * isfreq)), int(round(tmax * isfreq)) + 1
         n_delays = stop - start

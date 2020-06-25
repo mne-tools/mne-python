@@ -106,6 +106,7 @@ def test_plot_ica_components():
     plt.close('all')
 
 
+@pytest.mark.slowtest
 @requires_sklearn
 def test_plot_ica_properties():
     """Test plotting of ICA properties."""
@@ -199,7 +200,7 @@ def test_plot_ica_sources():
     assert_array_equal(ica.exclude, [1])
     plt.close('all')
 
-    # dtype can change int->np.int after load, test it explicitly
+    # dtype can change int->np.int64 after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)
     fig = ica.plot_sources(raw)
     # also test mouse clicks
@@ -247,6 +248,7 @@ def test_plot_ica_sources():
     plt.close('all')
 
 
+@pytest.mark.slowtest
 @requires_sklearn
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""

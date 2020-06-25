@@ -6,6 +6,7 @@ addons:
   apt:
     packages:
       - libxkbcommon-x11-0
+      - libxcb*
       - libosmesa6
       - libglx-mesa0
       - libopengl0
@@ -52,22 +53,21 @@ before_install:
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
-    - if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
-        pip uninstall -yq numpy;
-        pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy;
-        pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow;
-        pip install -f "https://vtk.org/download" "vtk>=9";
-        pip install https://github.com/enthought/mayavi/zipball/master;
-        pip install $PIP_DEPENDENCIES;
-        pip install --upgrade -r requirements.txt;
+    - |
+      if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
+        pip uninstall -yq numpy
+        pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy
+        pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
+        pip install -f "https://vtk.org/download" "vtk>=9"
+        pip install --upgrade -r requirements.txt
       else
-        git clone https://github.com/astropy/ci-helpers.git;
-        source ci-helpers/travis/setup_conda.sh;
+        git clone https://github.com/astropy/ci-helpers.git
+        source ci-helpers/travis/setup_conda.sh
         if [ ! -z "$CONDA_ENV" ]; then
-          conda activate base;
-          conda env update --file $CONDA_ENV;
-          pip uninstall -yq mne;
-        fi;
+          conda activate base
+          conda env update --file $CONDA_ENV
+          pip uninstall -yq mne
+        fi
       fi
     # Always install these via pip so we get the latest possible versions (testing bugfixes)
     - pip install --upgrade "pytest<5.4" pytest-sugar pytest-cov pytest-mock pytest-timeout pytest-xdist codecov
@@ -141,7 +141,7 @@ script:
         pip install -e .;
         python mne/tests/test_evoked.py;
       fi;
-    - echo pytest -m "${CONDITION}" --cov=mne -n 1 ${USE_DIRS}
+    - echo 'pytest -m "${CONDITION}" --cov=mne -n 1 ${USE_DIRS}'
     - pytest -m "${CONDITION}" --tb=short --cov=mne -n 1 ${USE_DIRS}
     # run the minimal one with the testing data
     - if [ "${DEPS}" == "minimal" ]; then
