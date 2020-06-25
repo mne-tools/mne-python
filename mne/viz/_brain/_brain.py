@@ -269,6 +269,7 @@ class _Brain(object):
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
+        self._closed = False
         if show:
             self._renderer.show()
 
@@ -925,6 +926,7 @@ class _Brain(object):
 
     def close(self):
         """Close all figures and cleanup data structure."""
+        self._closed = True
         self._renderer.close()
 
     def show(self):

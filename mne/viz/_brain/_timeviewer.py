@@ -339,7 +339,7 @@ class _TimeViewer(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
-        self.act_data = {'lh': None, 'rh': None}
+        self.act_data_smooth = {'lh': None, 'rh': None}
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
         self._mouse_no_mvt = -1
@@ -819,6 +819,8 @@ class _TimeViewer(object):
 
     def configure_point_picking(self):
         from ..backends._pyvista import _update_picking_callback
+        # XXX we should change this to be if not self.show_traces: return
+        # and dedent...
         if self.show_traces:
             # use a matplotlib canvas
             self.color_cycle = _ReuseCycle(_get_color_list())
@@ -851,9 +853,7 @@ class _TimeViewer(object):
                     if act_data.ndim == 3:
                         act_data = np.linalg.norm(act_data, axis=1)
                     smooth_mat = hemi_data['smooth_mat']
-                    if smooth_mat is not None:
-                        act_data = smooth_mat.dot(act_data)
-                    self.act_data[hemi] = act_data
+                    self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
                     # simulate a picked renderer
                     if self.brain._hemi == 'split':
@@ -864,10 +864,10 @@ class _TimeViewer(object):
                     # initialize the default point
                     color = next(self.color_cycle)
                     ind = np.unravel_index(
-                        np.argmax(self.act_data[hemi], axis=None),
-                        self.act_data[hemi].shape
+                        np.argmax(self.act_data_smooth[hemi][0], axis=None),
+                        self.act_data_smooth[hemi][0].shape
                     )
-                    vertex_id = ind[0]
+                    vertex_id = hemi_data['vertices'][ind[0]]
                     mesh = hemi_data['mesh'][-1]
                     line = self.plot_time_course(hemi, vertex_id, color)
                     self.add_point(hemi, mesh, vertex_id, line, color)
@@ -1079,7 +1079,7 @@ class _TimeViewer(object):
     def plot_time_course(self, hemi, vertex_id, color):
         if not hasattr(self, "mpl_canvas"):
             return
-        time = self.brain._data['time']
+        time = self.brain._data['time'].copy()  # avoid circular ref
         hemi_str = 'L' if hemi == 'lh' else 'R'
         hemi_int = 0 if hemi == 'lh' else 1
         mni = vertex_to_mni(
@@ -1091,9 +1091,14 @@ class _TimeViewer(object):
         label = "{}:{} MNI: {}".format(
             hemi_str, str(vertex_id).ljust(6),
             ', '.join('%5.1f' % m for m in mni))
+        act_data, smooth = self.act_data_smooth[hemi]
+        if smooth is not None:
+            act_data = smooth[vertex_id].dot(act_data)[0]
+        else:
+            act_data = act_data[vertex_id].copy()
         line = self.mpl_canvas.plot(
             time,
-            self.act_data[hemi][vertex_id, :],
+            act_data,
             label=label,
             lw=1.,
             color=color
@@ -1177,14 +1182,16 @@ class _TimeViewer(object):
         self.interactor = None
         if hasattr(self, "mpl_canvas"):
             self.mpl_canvas.close()
+            self.mpl_canvas.axes.clear()
+            self.mpl_canvas.fig.clear()
             self.mpl_canvas.time_viewer = None
             self.mpl_canvas.canvas = None
             self.mpl_canvas = None
         self.time_actor = None
         self.picked_renderer = None
-        self.act_data["lh"] = None
-        self.act_data["rh"] = None
-        self.act_data = None
+        self.act_data_smooth["lh"] = None
+        self.act_data_smooth["rh"] = None
+        self.act_data_smooth = None
 
 
 class _LinkViewer(object):

@@ -383,6 +383,11 @@ if any(x in scrapers for x in ('pyvista', 'mayavi')):
     scrapers += (report_scraper,)
 else:
     report_scraper = None
+if 'pyvista' in scrapers:
+    brain_scraper = mne.viz._3d._BrainScraper()
+    scrapers = list(scrapers)
+    scrapers.insert(scrapers.index('pyvista'), brain_scraper)
+    scrapers = tuple(scrapers)
 
 
 def append_attr_meth_examples(app, what, name, obj, options, lines):
