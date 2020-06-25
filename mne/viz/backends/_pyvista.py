@@ -667,6 +667,7 @@ def _process_events(plotter, show=False):
         if show:
             plotter.app_window.show()
 
+
 def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
     from vtk.util.numpy_support import numpy_to_vtk
     mapper = actor.GetMapper()
