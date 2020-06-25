@@ -182,6 +182,22 @@ class _Renderer(_BaseRenderer):
             if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
+    @contextmanager
+    def ensure_minimum_sizes(self):
+        sz = self.figure.store['window_size']
+        # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
+        # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
+        # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
+        # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
+        # plotter.ren_win:    vtkXOpenGLRenderWindow
+        self.plotter.interactor.setMinimumSize(*sz)
+        try:
+            yield
+        finally:
+            for _ in range(2):
+                self.plotter.app.processEvents()
+            self.plotter.interactor.setMinimumSize(0, 0)
+
     def subplot(self, x, y):
         x = np.max([0, np.min([x, self.shape[0] - 1])])
         y = np.max([0, np.min([y, self.shape[1] - 1])])
@@ -477,7 +493,10 @@ class _Renderer(_BaseRenderer):
 
     def show(self):
         self.figure.display = self.plotter.show()
-        _process_events(self.plotter, show=True)
+        if hasattr(self.plotter, "app_window"):
+            with self.ensure_minimum_sizes():
+                self.plotter.app_window.show()
+                _process_events(self.plotter, show=True)
         return self.scene()
 
     def close(self):

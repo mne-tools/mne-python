@@ -4,12 +4,13 @@
 #
 # License: Simplified BSD
 
-import warnings
+import contextlib
 from functools import partial
 import os
+import sys
 import time
 import traceback
-import sys
+import warnings
 
 import numpy as np
 
@@ -367,6 +368,7 @@ class _TimeViewer(object):
             self.separate_canvas = False
 
         self.load_icons()
+        self.interactor_stretch = 3
         self.configure_time_label()
         self.configure_sliders()
         self.configure_scalar_bar()
@@ -378,7 +380,22 @@ class _TimeViewer(object):
 
         # show everything at the end
         self.toggle_interface()
-        self.brain.show()
+        with self.ensure_minimum_sizes():
+            self.brain.show()
+
+    @contextlib.contextmanager
+    def ensure_minimum_sizes(self):
+        sz = self.brain._size
+        adjust_mpl = self.show_traces and not self.separate_canvas
+        if not adjust_mpl:
+            yield
+        else:
+            self.mpl_canvas.canvas.setMinimumSize(
+                sz[0], int(round(sz[1] / self.interactor_stretch)))
+            try:
+                yield
+            finally:
+                self.mpl_canvas.canvas.setMinimumSize(0, 0)
 
     def toggle_interface(self, value=None):
         if value is None:
@@ -813,7 +830,7 @@ class _TimeViewer(object):
             vlayout = self.plotter.frame.layout()
             if not self.separate_canvas:
                 vlayout.addWidget(self.mpl_canvas.canvas)
-                vlayout.setStretch(0, 2)
+                vlayout.setStretch(0, self.interactor_stretch)
                 vlayout.setStretch(1, 1)
             self.mpl_canvas.set_color(
                 bg_color=self.brain._bg_color,

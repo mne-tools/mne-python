@@ -194,7 +194,7 @@ class _Brain(object):
         if len(size) not in (1, 2):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
-        fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
+        self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
         self._notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
@@ -221,7 +221,7 @@ class _Brain(object):
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
 
-        self._renderer = _get_renderer(name=self._title, size=fig_size,
+        self._renderer = _get_renderer(name=self._title, size=self._size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
                                        fig=figure)
