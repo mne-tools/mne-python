@@ -85,6 +85,19 @@ class MplCanvas(object):
                          framealpha=0.5, handlelength=1.)
         self.canvas.draw()
 
+    def set_color(self, bg_color, fg_color):
+        """Set the widget colors."""
+        self.axes.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_color(fg_color)
+        self.axes.yaxis.label.set_color(fg_color)
+        self.axes.spines['top'].set_color(fg_color)
+        self.axes.spines['bottom'].set_color(fg_color)
+        self.axes.spines['left'].set_color(fg_color)
+        self.axes.spines['right'].set_color(fg_color)
+        self.axes.tick_params(axis='x', colors=fg_color)
+        self.axes.tick_params(axis='y', colors=fg_color)
+        self.fig.patch.set_facecolor(bg_color)
+
     def show(self):
         """Show the canvas."""
         self.canvas.show()
@@ -302,6 +315,7 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
+        self.default_smoothing_range = [0, 15]
 
         # detect notebook
         if brain._notebook:
@@ -316,7 +330,6 @@ class _TimeViewer(object):
         self.visibility = False
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
-        self.default_smoothing_range = [0, 15]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
@@ -802,6 +815,10 @@ class _TimeViewer(object):
                 vlayout.addWidget(self.mpl_canvas.canvas)
                 vlayout.setStretch(0, 2)
                 vlayout.setStretch(1, 1)
+            self.mpl_canvas.set_color(
+                bg_color=self.brain._bg_color,
+                fg_color=self.brain._fg_color,
+            )
             self.mpl_canvas.show()
 
             # get brain data
@@ -1071,7 +1088,7 @@ class _TimeViewer(object):
                 self.time_line = self.mpl_canvas.plot_time_line(
                     x=current_time,
                     label='time',
-                    color='black',
+                    color=self.brain._fg_color,
                     lw=1,
                 )
             else:

@@ -114,7 +114,7 @@ def _get_clusters_spatial(s, neighbors):
     """Form spatial clusters using neighbor lists.
 
     This is equivalent to _get_components with n_times = 1, with a properly
-    reconfigured connectivity matrix (formed as "neighbors" list)
+    reconfigured adjacency matrix (formed as "neighbors" list)
     """
     # s is a vector of spatial indices that are significant, like:
     #     s = np.where(x_in)[0]
@@ -149,10 +149,10 @@ def _reassign(check, clusters, base, num):
 
 
 def _get_clusters_st_1step(keepers, neighbors):
-    """Directly calculate connectivity.
+    """Directly calculate clusters.
 
     This uses knowledge that time points are
-    only connected to adjacent neighbors for data organized as time x space.
+    only adjacent to immediate neighbors for data organized as time x space.
 
     This algorithm time increases linearly with the number of time points,
     compared to with the square for the standard (graph) algorithm.
@@ -197,10 +197,10 @@ def _get_clusters_st_1step(keepers, neighbors):
 
 
 def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
-    """Directly calculate connectivity.
+    """Directly calculate clusters.
 
     This uses knowledge that time points are
-    only connected to adjacent neighbors for data organized as time x space.
+    only adjacent to immediate neighbors for data organized as time x space.
 
     This algorithm time increases linearly with the number of time points,
     compared to with the square for the standard (graph) algorithm.
@@ -274,23 +274,23 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
         return []
 
 
-def _get_components(x_in, connectivity, return_list=True):
-    """Get connected components from a mask and a connectivity matrix."""
-    if connectivity is False:
+def _get_components(x_in, adjacency, return_list=True):
+    """Get connected components from a mask and a adjacency matrix."""
+    if adjacency is False:
         components = np.arange(len(x_in))
     else:
         from scipy.sparse.csgraph import connected_components
-        mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
-        data = connectivity.data[mask]
-        row = connectivity.row[mask]
-        col = connectivity.col[mask]
-        shape = connectivity.shape
+        mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
+        data = adjacency.data[mask]
+        row = adjacency.row[mask]
+        col = adjacency.col[mask]
+        shape = adjacency.shape
         idx = np.where(x_in)[0]
         row = np.concatenate((row, idx))
         col = np.concatenate((col, idx))
         data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
-        connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
-        _, components = connected_components(connectivity)
+        adjacency = sparse.coo_matrix((data, (row, col)), shape=shape)
+        _, components = connected_components(adjacency)
     if return_list:
         start = np.min(components)
         stop = np.max(components)
@@ -305,7 +305,7 @@ def _get_components(x_in, connectivity, return_list=True):
         return components
 
 
-def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
+def _find_clusters(x, threshold, tail=0, adjacency=None, max_step=1,
                    include=None, partitions=None, t_power=1, show_info=False):
     """Find all clusters which are above/below a certain threshold.
 
@@ -322,17 +322,17 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    connectivity : scipy.sparse.coo_matrix, None, or list
-        Defines connectivity between features. The matrix is assumed to
+    adjacency : scipy.sparse.coo_matrix, None, or list
+        Defines adjacency between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
-        If connectivity is a list, it is assumed that each entry stores the
+        If adjacency is a list, it is assumed that each entry stores the
         indices of the spatial neighbors in a spatio-temporal dataset x.
-        Default is None, i.e, a regular lattice connectivity.
-        False means no connectivity.
+        Default is None, i.e, a regular lattice adjacency.
+        False means no adjacency.
     max_step : int
-        If connectivity is a list, this defines the maximal number of steps
+        If adjacency is a list, this defines the maximal number of steps
         between vertices along the second dimension (typically time) to be
-        considered connected.
+        considered adjacent.
     include : 1D bool array or None
         Mask to apply to the data of points to cluster. If None, all points
         are used.
@@ -430,7 +430,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         # loop over tails
         for x_in in x_ins:
             if np.any(x_in):
-                out = _find_clusters_1dir_parts(x, x_in, connectivity,
+                out = _find_clusters_1dir_parts(x, x_in, adjacency,
                                                 max_step, partitions, t_power,
                                                 ndimage)
                 clusters += out[0]
@@ -459,7 +459,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     if tfce:
         # each point gets treated independently
         clusters = np.arange(x.size)
-        if connectivity is None or connectivity is False:
+        if adjacency is None or adjacency is False:
             if x.ndim == 1:
                 # slices
                 clusters = [slice(c, c + 1) for c in clusters]
@@ -473,11 +473,11 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     return clusters, sums
 
 
-def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
+def _find_clusters_1dir_parts(x, x_in, adjacency, max_step, partitions,
                               t_power, ndimage):
     """Deal with partitions, and pass the work to _find_clusters_1dir."""
     if partitions is None:
-        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
+        clusters, sums = _find_clusters_1dir(x, x_in, adjacency, max_step,
                                              t_power, ndimage)
     else:
         # cluster each partition separately
@@ -485,7 +485,7 @@ def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power,
+            out = _find_clusters_1dir(x, x_i, adjacency, max_step, t_power,
                                       ndimage)
             clusters += out[0]
             sums.append(out[1])
@@ -493,9 +493,9 @@ def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
+def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     """Actually call the clustering algorithm."""
-    if connectivity is None:
+    if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
 
         if x.ndim == 1:
@@ -526,14 +526,14 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
                                          np.abs(x[c]) ** t_power)
     else:
         if x.ndim > 1:
-            raise Exception("Data should be 1D when using a connectivity "
+            raise Exception("Data should be 1D when using a adjacency "
                             "to define clusters.")
-        if isinstance(connectivity, sparse.spmatrix) or connectivity is False:
-            clusters = _get_components(x_in, connectivity)
-        elif isinstance(connectivity, list):  # use temporal adjacency
-            clusters = _get_clusters_st(x_in, connectivity, max_step)
+        if isinstance(adjacency, sparse.spmatrix) or adjacency is False:
+            clusters = _get_components(x_in, adjacency)
+        elif isinstance(adjacency, list):  # use temporal adjacency
+            clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
-            raise ValueError('Connectivity must be a sparse matrix or list')
+            raise ValueError('adjacency must be a sparse matrix or list')
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
         else:
@@ -575,31 +575,31 @@ def _pval_from_histogram(T, H0, tail):
     return pval
 
 
-def _setup_connectivity(connectivity, n_tests, n_times):
-    if not sparse.issparse(connectivity):
-        raise ValueError("If connectivity matrix is given, it must be a "
+def _setup_adjacency(adjacency, n_tests, n_times):
+    if not sparse.issparse(adjacency):
+        raise ValueError("If adjacency matrix is given, it must be a "
                          "SciPy sparse matrix.")
-    if connectivity.shape[0] == n_tests:  # use global algorithm
-        connectivity = connectivity.tocoo()
+    if adjacency.shape[0] == n_tests:  # use global algorithm
+        adjacency = adjacency.tocoo()
     else:  # use temporal adjacency algorithm
-        got_times, mod = divmod(n_tests, connectivity.shape[0])
+        got_times, mod = divmod(n_tests, adjacency.shape[0])
         if got_times != n_times or mod != 0:
             raise ValueError(
-                'connectivity (len %d) must be of the correct size, i.e. be '
+                'adjacency (len %d) must be of the correct size, i.e. be '
                 'equal to or evenly divide the number of tests (%d).\n\n'
-                'If connectivity was computed for a source space, try using '
+                'If adjacency was computed for a source space, try using '
                 'the fwd["src"] or inv["src"] as some original source space '
                 'vertices can be excluded during forward computation'
-                % (connectivity.shape[0], n_tests))
+                % (adjacency.shape[0], n_tests))
         # we claim to only use upper triangular part... not true here
-        connectivity = (connectivity + connectivity.transpose()).tocsr()
-        connectivity = [connectivity.indices[connectivity.indptr[i]:
-                                             connectivity.indptr[i + 1]]
-                        for i in range(len(connectivity.indptr) - 1)]
-    return connectivity
+        adjacency = (adjacency + adjacency.transpose()).tocsr()
+        adjacency = [
+            adjacency.indices[adjacency.indptr[i]:adjacency.indptr[i + 1]]
+            for i in range(len(adjacency.indptr) - 1)]
+    return adjacency
 
 
-def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
+def _do_permutations(X_full, slices, threshold, tail, adjacency, stat_fun,
                      max_step, include, partitions, t_power, orders,
                      sample_shape, buffer_size, progress_bar):
     n_samp, n_vars = X_full.shape
@@ -641,13 +641,13 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                 tmp = stat_fun(*X_buffer)
                 t_obs_surr[pos: pos + n_var_loop] = tmp[:n_var_loop]
 
-        # The stat should have the same shape as the samples for no conn.
-        if connectivity is None:
+        # The stat should have the same shape as the samples for no adj.
+        if adjacency is None:
             t_obs_surr.shape = sample_shape
 
         # Find cluster on randomized stats
         out = _find_clusters(t_obs_surr, threshold=threshold, tail=tail,
-                             max_step=max_step, connectivity=connectivity,
+                             max_step=max_step, adjacency=adjacency,
                              partitions=partitions, include=include,
                              t_power=t_power)
         perm_clusters_sums = out[1]
@@ -662,7 +662,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
     return max_cluster_sums
 
 
-def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
+def _do_1samp_permutations(X, slices, threshold, tail, adjacency, stat_fun,
                            max_step, include, partitions, t_power, orders,
                            sample_shape, buffer_size, progress_bar):
     n_samp, n_vars = X.shape
@@ -711,13 +711,13 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
                 tmp = stat_fun(X_flip_buffer)
                 t_obs_surr[pos: pos + n_var_loop] = tmp[:n_var_loop]
 
-        # The stat should have the same shape as the samples for no conn.
-        if connectivity is None:
+        # The stat should have the same shape as the samples for no adj.
+        if adjacency is None:
             t_obs_surr.shape = sample_shape
 
         # Find cluster on randomized stats
         out = _find_clusters(t_obs_surr, threshold=threshold, tail=tail,
-                             max_step=max_step, connectivity=connectivity,
+                             max_step=max_step, adjacency=adjacency,
                              partitions=partitions, include=include,
                              t_power=t_power)
         perm_clusters_sums = out[1]
@@ -811,7 +811,7 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
 
 
 def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
-                              connectivity, n_jobs, seed, max_step,
+                              adjacency, n_jobs, seed, max_step,
                               exclude, step_down_p, t_power, out_type,
                               check_disjoint, buffer_size):
     n_jobs = check_n_jobs(n_jobs)
@@ -844,8 +844,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     X = [np.reshape(x, (x.shape[0], -1)) for x in X]
     n_tests = X[0].shape[1]
 
-    if connectivity is not None and connectivity is not False:
-        connectivity = _setup_connectivity(connectivity, n_tests, n_times)
+    if adjacency is not None and adjacency is not False:
+        adjacency = _setup_adjacency(adjacency, n_tests, n_times)
 
     if (exclude is not None) and not exclude.size == n_tests:
         raise ValueError('exclude must be the same shape as X[0]')
@@ -868,12 +868,12 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                  'Setting buffer_size to None.')
             buffer_size = None
 
-    # The stat should have the same shape as the samples for no conn.
+    # The stat should have the same shape as the samples for no adj.
     if t_obs.size != np.prod(sample_shape):
         raise ValueError('t_obs.shape %s provided by stat_fun %s is not '
                          'compatible with the sample shape %s'
                          % (t_obs.shape, stat_fun, sample_shape))
-    if connectivity is None or connectivity is False:
+    if adjacency is None or adjacency is False:
         t_obs.shape = sample_shape
 
     if exclude is not None:
@@ -881,14 +881,14 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     else:
         include = None
 
-    # determine if connectivity itself can be separated into disjoint sets
-    if check_disjoint is True and (connectivity is not None and
-                                   connectivity is not False):
-        partitions = _get_partitions_from_connectivity(connectivity, n_times)
+    # determine if adjacency itself can be separated into disjoint sets
+    if check_disjoint is True and (adjacency is not None and
+                                   adjacency is not False):
+        partitions = _get_partitions_from_adjacency(adjacency, n_times)
     else:
         partitions = None
     logger.info('Running initial clustering')
-    out = _find_clusters(t_obs, threshold, tail, connectivity,
+    out = _find_clusters(t_obs, threshold, tail, adjacency,
                          max_step=max_step, include=include,
                          partitions=partitions, t_power=t_power,
                          show_info=True)
@@ -904,7 +904,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     logger.info('Found %d clusters' % len(clusters))
 
     # convert clusters to old format
-    if connectivity is not None and connectivity is not False:
+    if adjacency is not None and adjacency is not False:
         # our algorithms output lists of indices by default
         if out_type == 'mask':
             clusters = _cluster_indices_to_mask(clusters, n_tests)
@@ -963,7 +963,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         logger.info('Permuting %d times%s...' % (len(orders), extra))
         with ProgressBar(len(orders)) as progress_bar:
             H0 = parallel(
-                my_do_perm_func(X_full, slices, threshold, tail, connectivity,
+                my_do_perm_func(X_full, slices, threshold, tail, adjacency,
                                 stat_fun, max_step, this_include, partitions,
                                 t_power, order, sample_shape, buffer_size,
                                 progress_bar.subset(idx))
@@ -987,7 +987,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         step_down_include = np.ones(n_tests, dtype=bool)
         for ti in to_remove:
             step_down_include[clusters[ti]] = False
-        if connectivity is None and connectivity is not False:
+        if adjacency is None and adjacency is not False:
             step_down_include.shape = sample_shape
         n_step_downs += 1
         if step_down_p > 0:
@@ -1039,9 +1039,9 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
 @verbose
 def permutation_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
-        connectivity=None, n_jobs=1, seed=None, max_step=1, exclude=None,
+        adjacency=None, n_jobs=1, seed=None, max_step=1, exclude=None,
         step_down_p=0, t_power=1, out_type=None, check_disjoint=False,
-        buffer_size=1000, verbose=None):
+        buffer_size=1000, connectivity=None, verbose=None):
     """Cluster-level statistical permutation test.
 
     For a list of :class:`NumPy arrays <numpy.ndarray>` of data,
@@ -1063,14 +1063,14 @@ def permutation_cluster_test(
         ``X`` has 2 groups with respectively 20 and 17 observations in each,
         and each data point is of shape ``(50, 4)``. Note: that the
         *last dimension* of each element of ``X`` should correspond to the
-        dimension represented in the ``connectivity`` parameter
+        dimension represented in the ``adjacency`` parameter
         (e.g., spectral data should be provided as
         ``(observations, frequencies, channels/vertices)``).
     %(clust_thresh_f)s
     %(clust_nperm_int)s
     %(clust_tail)s
     %(clust_stat_f)s
-    %(clust_con_n)s
+    %(clust_adj_n)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1083,6 +1083,7 @@ def permutation_cluster_test(
     %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
+    %(clust_con_dep)s
     %(verbose)s
 
     Returns
@@ -1100,6 +1101,7 @@ def permutation_cluster_test(
     ----------
     .. footbibliography::
     """
+    adjacency = _dep_con(adjacency, connectivity)
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, 'between')
     if out_type is None:
         warn('The default for "out_type" will change from "mask" to "indices" '
@@ -1108,7 +1110,7 @@ def permutation_cluster_test(
         out_type = 'mask'
     return _permutation_cluster_test(
         X=X, threshold=threshold, n_permutations=n_permutations, tail=tail,
-        stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
+        stat_fun=stat_fun, adjacency=adjacency, n_jobs=n_jobs, seed=seed,
         max_step=max_step, exclude=exclude, step_down_p=step_down_p,
         t_power=t_power, out_type=out_type, check_disjoint=check_disjoint,
         buffer_size=buffer_size)
@@ -1117,9 +1119,10 @@ def permutation_cluster_test(
 @verbose
 def permutation_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
-        connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
+        adjacency=None, n_jobs=1, seed=None, max_step=1,
         exclude=None, step_down_p=0, t_power=1, out_type=None,
-        check_disjoint=False, buffer_size=1000):
+        check_disjoint=False, buffer_size=1000, connectivity=None,
+        verbose=None):
     """Non-parametric cluster-level paired t-test.
 
     Parameters
@@ -1135,8 +1138,7 @@ def permutation_cluster_1samp_test(
     %(clust_nperm_all)s
     %(clust_tail)s
     %(clust_stat_t)s
-    %(clust_con_1)s
-    %(verbose)s
+    %(clust_adj_1)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1149,6 +1151,7 @@ def permutation_cluster_1samp_test(
     %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
+    %(clust_con_dep)s
     %(verbose)s
 
     Returns
@@ -1190,6 +1193,7 @@ def permutation_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
+    adjacency = _dep_con(adjacency, connectivity)
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
     if out_type is None:
         warn('The default for "out_type" will change from "mask" to "indices" '
@@ -1198,7 +1202,7 @@ def permutation_cluster_1samp_test(
         out_type = 'mask'
     return _permutation_cluster_test(
         X=[X], threshold=threshold, n_permutations=n_permutations, tail=tail,
-        stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
+        stat_fun=stat_fun, adjacency=adjacency, n_jobs=n_jobs, seed=seed,
         max_step=max_step, exclude=exclude, step_down_p=step_down_p,
         t_power=t_power, out_type=out_type, check_disjoint=check_disjoint,
         buffer_size=buffer_size)
@@ -1207,10 +1211,10 @@ def permutation_cluster_1samp_test(
 @verbose
 def spatio_temporal_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0,
-        stat_fun=None, connectivity=None, n_jobs=1, seed=None,
+        stat_fun=None, adjacency=None, n_jobs=1, seed=None,
         max_step=1, spatial_exclude=None, step_down_p=0, t_power=1,
         out_type='indices', check_disjoint=False, buffer_size=1000,
-        verbose=None):
+        connectivity=None, verbose=None):
     """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
     This function provides a convenient wrapper for
@@ -1227,7 +1231,7 @@ def spatio_temporal_cluster_1samp_test(
     %(clust_nperm_all)s
     %(clust_tail)s
     %(clust_stat_t)s
-    %(clust_con_st1)s
+    %(clust_adj_st1)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1238,7 +1242,7 @@ def spatio_temporal_cluster_1samp_test(
     %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
-    %(verbose)s
+    %(clust_con_dep)s
     %(verbose)s
 
     Returns
@@ -1256,6 +1260,7 @@ def spatio_temporal_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
+    adjacency = _dep_con(adjacency, connectivity)
     n_samples, n_times, n_vertices = X.shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
@@ -1265,18 +1270,27 @@ def spatio_temporal_cluster_1samp_test(
         exclude = None
     return permutation_cluster_1samp_test(
         X, threshold=threshold, stat_fun=stat_fun, tail=tail,
-        n_permutations=n_permutations, connectivity=connectivity,
+        n_permutations=n_permutations, adjacency=adjacency,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
 
 
+def _dep_con(adjacency, connectivity):
+    if connectivity is not None:
+        warn('connectivity is deprecated and will be removed in 0.22, use '
+             'adjacency instead', DeprecationWarning)
+        adjacency = connectivity
+    return adjacency
+
+
 @verbose
 def spatio_temporal_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
-        connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
+        adjacency=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False, buffer_size=1000):
+        check_disjoint=False, buffer_size=1000, connectivity=None,
+        verbose=None):
     """Non-parametric cluster-level test for spatio-temporal data.
 
     This function provides a convenient wrapper for
@@ -1296,8 +1310,7 @@ def spatio_temporal_cluster_test(
     %(clust_nperm_int)s
     %(clust_tail)s
     %(clust_stat_f)s
-    %(clust_con_stn)s
-    %(verbose)s
+    %(clust_adj_stn)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1308,6 +1321,8 @@ def spatio_temporal_cluster_test(
     %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
+    %(clust_con_dep)s
+    %(verbose)s
 
     Returns
     -------
@@ -1324,6 +1339,7 @@ def spatio_temporal_cluster_test(
     ----------
     .. footbibliography::
     """
+    adjacency = _dep_con(adjacency, connectivity)
     n_samples, n_times, n_vertices = X[0].shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
@@ -1333,14 +1349,14 @@ def spatio_temporal_cluster_test(
         exclude = None
     return permutation_cluster_test(
         X, threshold=threshold, stat_fun=stat_fun, tail=tail,
-        n_permutations=n_permutations, connectivity=connectivity,
+        n_permutations=n_permutations, adjacency=adjacency,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
-    """Compute mask to apply to a spatio-temporal connectivity matrix.
+    """Compute mask to apply to a spatio-temporal adjacency matrix.
 
     This can be used to include (or exclude) certain spatial coordinates.
     This is useful for excluding certain regions from analysis (e.g.,
@@ -1372,30 +1388,29 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
 
 
 @verbose
-def _get_partitions_from_connectivity(connectivity, n_times, verbose=None):
-    """Specify disjoint subsets (e.g., hemispheres) based on connectivity."""
-    if isinstance(connectivity, list):
-        test = np.ones(len(connectivity))
-        test_conn = np.zeros((len(connectivity), len(connectivity)),
-                             dtype='bool')
-        for vi in range(len(connectivity)):
-            test_conn[connectivity[vi], vi] = True
-        test_conn = sparse.coo_matrix(test_conn, dtype='float')
+def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
+    """Specify disjoint subsets (e.g., hemispheres) based on adjacency."""
+    if isinstance(adjacency, list):
+        test = np.ones(len(adjacency))
+        test_adj = np.zeros((len(adjacency), len(adjacency)), dtype='bool')
+        for vi in range(len(adjacency)):
+            test_adj[adjacency[vi], vi] = True
+        test_adj = sparse.coo_matrix(test_adj, dtype='float')
     else:
-        test = np.ones(connectivity.shape[0])
-        test_conn = connectivity
+        test = np.ones(adjacency.shape[0])
+        test_adj = adjacency
 
-    part_clusts = _find_clusters(test, 0, 1, test_conn)[0]
+    part_clusts = _find_clusters(test, 0, 1, test_adj)[0]
     if len(part_clusts) > 1:
-        logger.info('%i disjoint connectivity sets found'
+        logger.info('%i disjoint adjacency sets found'
                     % len(part_clusts))
         partitions = np.zeros(len(test), dtype='int')
         for ii, pc in enumerate(part_clusts):
             partitions[pc] = ii
-        if isinstance(connectivity, list):
+        if isinstance(adjacency, list):
             partitions = np.tile(partitions, n_times)
     else:
-        logger.info('No disjoint connectivity sets found')
+        logger.info('No disjoint adjacency sets found')
         partitions = None
 
     return partitions

@@ -52,7 +52,7 @@ Changelog
 
 - Add :func:`mne.inverse_sparse.make_stc_from_dipoles` to generate stc objects from lists of dipoles by `Daniel Strohmeier`_
 
-- Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
+- Add ``mne.channels.find_ch_connectivity`` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
 
 - Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
 
@@ -88,7 +88,7 @@ Changelog
 
 - Add example on how to plot ERDS maps (also known as ERSP) by `Clemens Brunner`_
 
-- Add support for volume source spaces to :func:`spatial_src_connectivity` and :func:`spatio_temporal_src_connectivity` by `Alex Gramfort`_
+- Add support for volume source spaces to ``spatial_src_connectivity`` and ``spatio_temporal_src_connectivity`` by `Alex Gramfort`_
 
 - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
 

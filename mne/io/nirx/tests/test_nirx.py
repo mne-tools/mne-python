@@ -38,6 +38,13 @@ def test_nirx_hdr_load():
 
 
 @requires_testing_data
+def test_nirx_missing_warn():
+    """Test reading NIRX files when missing data."""
+    with pytest.raises(RuntimeError, match='The path you'):
+        read_raw_nirx(fname_nirx_15_2_short + "1", preload=True)
+
+
+@requires_testing_data
 def test_nirx_dat_warn(tmpdir):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
