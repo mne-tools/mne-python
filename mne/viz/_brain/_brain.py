@@ -476,9 +476,7 @@ class _Brain(object):
 
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
-
-        ctable = self.update_lut()
-        self._data['ctable'] = ctable
+        self.update_lut()
 
         # 1) add the surfaces first
         for ri, v in enumerate(self._views):
@@ -495,9 +493,10 @@ class _Brain(object):
                 z=self.geo[hemi].coords[:, 2],
                 triangles=self.geo[hemi].faces,
                 color=None,
-                colormap=ctable,
+                colormap=self._data['ctable'],
                 vmin=dt_min,
                 vmax=dt_max,
+                opacity=alpha,
                 scalars=np.zeros(len(self.geo[hemi].coords)),
             )
             if isinstance(mesh_data, tuple):
@@ -952,7 +951,7 @@ class _Brain(object):
         """
         return self._renderer.screenshot(mode)
 
-    def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
+    def update_lut(self, fmin=None, fmid=None, fmax=None):
         """Update color map.
 
         Parameters
@@ -965,7 +964,7 @@ class _Brain(object):
         fmax : float | None
             Maximum value in colormap.
         """
-        alpha = alpha if alpha is not None else self._data['alpha']
+        from ..backends._pyvista import _set_colormap_range
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
@@ -978,10 +977,30 @@ class _Brain(object):
         if lims['fmax'] < lims['fmid']:
             lims['fmax'] = lims['fmid']
         self._data.update(lims)
-        self._data['ctable'] = \
-            calculate_lut(colormap, alpha=alpha, center=center,
-                          transparent=transparent, **lims)
-        return self._data['ctable']
+        self._data['ctable'] = np.round(
+            calculate_lut(colormap, alpha=1., center=center,
+                          transparent=transparent, **lims) *
+            255).astype(np.uint8)
+        # update our values
+        dt_max = self._data['fmax']
+        if self._data['center'] is None:
+            dt_min = self._data['fmin']
+        else:
+            dt_min = -1 * dt_max
+        ctable = self._data['ctable']
+        rng = [dt_min, dt_max]
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
+                    if self._colorbar_added:
+                        scalar_bar = self._renderer.plotter.scalar_bar
+                    else:
+                        scalar_bar = None
+                    _set_colormap_range(actor, ctable, scalar_bar, rng)
+                glyph_actor = hemi_data['glyph_actor']
+                if glyph_actor is not None:
+                    _set_colormap_range(glyph_actor, ctable, None, rng)
 
     def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps.
@@ -1097,10 +1116,8 @@ class _Brain(object):
         if hemi_data is not None:
             vertices = hemi_data['vertices']
             fmin = self._data['fmin']
-            fmid = self._data['fmid']
             fmax = self._data['fmax']
-            ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax, alpha=1)
-            ctable = (ctable * 255).astype(np.uint8)
+            ctable = self._data['ctable']
             vector_alpha = self._data['vector_alpha']
             scale_factor = self._data['scale_factor']
             rng = [fmin, fmax]
@@ -1135,95 +1152,14 @@ class _Brain(object):
                 # the glyphs are now ready to be displayed
                 glyph_actor.VisibilityOn()
 
-    def update_fmax(self, fmax):
-        """Set the colorbar max point."""
-        from ..backends._pyvista import _set_colormap_range
-        ctable = self.update_lut(fmax=fmax)
-        ctable = (ctable * 255).astype(np.uint8)
-        center = self._data['center']
-        fmin = self._data['fmin']
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                for actor in hemi_data['actor']:
-                    dt_max = fmax
-                    dt_min = fmin if center is None else -1 * fmax
-                    rng = [dt_min, dt_max]
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar, rng)
-                    self._data['fmax'] = fmax
-                    self._data['ctable'] = ctable
-
-    def update_fmid(self, fmid):
-        """Set the colorbar mid point."""
-        from ..backends._pyvista import _set_colormap_range
-        ctable = self.update_lut(fmid=fmid)
-        ctable = (ctable * 255).astype(np.uint8)
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                for actor in hemi_data['actor']:
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar)
-                    self._data['fmid'] = fmid
-                    self._data['ctable'] = ctable
-
-    def update_fmin(self, fmin):
-        """Set the colorbar min point."""
-        from ..backends._pyvista import _set_colormap_range
-        ctable = self.update_lut(fmin=fmin)
-        ctable = (ctable * 255).astype(np.uint8)
-        center = self._data['center']
-        fmax = self._data['fmax']
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                for actor in hemi_data['actor']:
-                    dt_max = fmax
-                    dt_min = fmin if center is None else -1 * fmax
-                    rng = [dt_min, dt_max]
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar, rng)
-                    self._data['fmin'] = fmin
-                    self._data['ctable'] = ctable
-
-    def update_fscale(self, fscale):
+    def _update_fscale(self, fscale):
         """Scale the colorbar points."""
-        from ..backends._pyvista import _set_colormap_range
-        center = self._data['center']
         fmin = self._data['fmin'] * fscale
         fmid = self._data['fmid'] * fscale
         fmax = self._data['fmax'] * fscale
-        ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
-        ctable = (ctable * 255).astype(np.uint8)
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                for actor in hemi_data['actor']:
-                    dt_max = fmax
-                    dt_min = fmin if center is None else -1 * fmax
-                    rng = [dt_min, dt_max]
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar, rng)
-                    self._data['ctable'] = ctable
-                    self._data['fmin'] = fmin
-                    self._data['fmid'] = fmid
-                    self._data['fmax'] = fmax
+        self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
 
     def update_auto_scaling(self, restore=False):
-        from ..backends._pyvista import _set_colormap_range
         user_clim = self._data['clim']
         if user_clim is not None and 'lims' in user_clim:
             allow_pos_lims = False
@@ -1248,21 +1184,7 @@ class _Brain(object):
         self._data['center'] = center
         self._data['colormap'] = colormap
         self._data['transparent'] = transparent
-        ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
-        ctable = (ctable * 255).astype(np.uint8)
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                for actor in hemi_data['actor']:
-                    dt_max = fmax
-                    dt_min = fmin if center is None else -1 * fmax
-                    rng = [dt_min, dt_max]
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar, rng)
-                    self._data['ctable'] = ctable
+        self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
 
     def _to_time_index(self, value):
         """Return the interpolated time index of the given time value."""
@@ -1480,7 +1402,7 @@ class _Brain(object):
                     for i in range(0, n_col):
                         lt = lut_lst[i]
                         vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
-        self.update_fscale(1.0)
+        self._update_fscale(1.0)
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""
