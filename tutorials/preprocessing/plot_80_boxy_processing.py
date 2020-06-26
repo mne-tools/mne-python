@@ -262,45 +262,6 @@ axes[2].set_ylabel('\u03BCM')
 axes[2].set_title('HBO - HBR')
 axes[2].legend(['Event 1', 'Event 2', 'Diff'])
 
-### Other ways to plot HBO and HBR (to comapre with above)
-### seems 'plot_compare_evoked' can't compare HBO and HBR because of the
-### different channel names
-### uncomment if you want to test
-
-### Method 1 (Original)
-evoked_diff_ac = mne.combine_evoked([evoked_event_1_ac, -evoked_event_2_ac],
-                                    weights='equal')
-
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
-
-evoked_dict_ac = {'Event_1': evoked_event_1_ac, 'Event_2': evoked_event_2_ac,
-                  'Difference': evoked_diff_ac}
-
-color_dict = {'Event_1': 'r', 'Event_2': 'b', 'Difference': 'g'}
-
-mne.viz.plot_compare_evokeds(evoked_dict_ac, combine="mean", ci=0.95,
-                              colors=color_dict, axes=axes.tolist())
-
-### Method 2
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 6))
-ylim=dict(hbo=[0, 100], hbr=[0, 100])
-
-mne.viz.plot_compare_evokeds(
-    {'Event_1_HBO': evoked_event_1_ac.copy().pick('hbo')}, combine=None,
-    ci=0.95, colors={'Event_1_HBO': 'r'}, axes=axes[0], ylim=ylim)
-
-mne.viz.plot_compare_evokeds(
-    {'Event_1_HBR': evoked_event_1_ac.copy().pick('hbr')}, combine=None,
-    ci=0.95, colors={'Event_1_HBR': 'b'}, axes=axes[0], ylim=ylim)
-
-mne.viz.plot_compare_evokeds(
-    {'Event_2_HBO': evoked_event_2_ac.copy().pick('hbo')}, combine=None,
-    ci=0.95, colors={'Event_2_HBO': 'r'}, axes=axes[1], ylim=ylim)
-
-mne.viz.plot_compare_evokeds(
-    {'Event_2_HBR': evoked_event_2_ac.copy().pick('hbr')}, combine=None,
-    ci=0.95, colors={'Event_2_HBR': 'b'}, axes=axes[1], ylim=ylim)
-
 # Topographies
 fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(9, 5),
                          gridspec_kw=dict(width_ratios=[1, 1, 0.1]))
