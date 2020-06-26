@@ -1262,7 +1262,7 @@ def find_ch_adjacency(info, ch_type):
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
      has_eeg_coils_and_meg, has_eeg_coils_only,
-     has_neuromag_122_grad) = _get_ch_info(info)
+     has_neuromag_122_grad, has_csd_coils) = _get_ch_info(info)
     conn_name = None
     if has_vv_mag and ch_type == 'mag':
         conn_name = 'neuromag306mag'
@@ -1452,10 +1452,13 @@ def _get_ch_info(info):
                      FIFF.FIFFV_EEG_CH in channel_types)
     has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
     has_eeg_coils_only = has_eeg_coils and not has_any_meg
+    has_csd_coils = (FIFF.FIFFV_COIL_EEG_CSD in coil_types and
+                     FIFF.FIFFV_EEG_CH in channel_types)
 
     return (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
             has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
-            has_eeg_coils_and_meg, has_eeg_coils_only, has_neuromag_122_grad)
+            has_eeg_coils_and_meg, has_eeg_coils_only, has_neuromag_122_grad,
+            has_csd_coils)
 
 
 def make_1020_channel_selections(info, midline="z"):
