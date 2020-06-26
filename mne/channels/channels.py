@@ -73,7 +73,8 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     """
     if ch_type is None:
         allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd',
-                         'fnirs_raw', 'fnirs_od', 'hbo', 'hbr', 'ecog', 'seeg']
+                         'fnirs_cw_amplitude', 'fnirs_od', 'hbo', 'hbr',
+                         'ecog', 'seeg']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
         for type_ in allowed_types:
             if isinstance(inst, Info):
@@ -244,7 +245,7 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'syst': FIFF.FIFFV_SYST_CH,
                'bio': FIFF.FIFFV_BIO_CH,
                'ecog': FIFF.FIFFV_ECOG_CH,
-               'fnirs_raw': FIFF.FIFFV_FNIRS_CH,
+               'fnirs_cw_amplitude': FIFF.FIFFV_FNIRS_CH,
                'fnirs_od': FIFF.FIFFV_FNIRS_CH,
                'hbo': FIFF.FIFFV_FNIRS_CH,
                'hbr': FIFF.FIFFV_FNIRS_CH}
@@ -261,7 +262,7 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'syst': FIFF.FIFF_UNIT_NONE,
                'bio': FIFF.FIFF_UNIT_V,
                'ecog': FIFF.FIFF_UNIT_V,
-               'fnirs_raw': FIFF.FIFF_UNIT_V,
+               'fnirs_cw_amplitude': FIFF.FIFF_UNIT_V,
                'fnirs_od': FIFF.FIFF_UNIT_NONE,
                'hbo': FIFF.FIFF_UNIT_MOL,
                'hbr': FIFF.FIFF_UNIT_MOL}
@@ -411,7 +412,7 @@ class SetChannelsMixin(MontageMixin):
         The following sensor types are accepted:
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
-            hbo, hbr, fnirs_raw, fnirs_od
+            hbo, hbr, fnirs_cw_amplitude, fnirs_od
 
         .. versionadded:: 0.9.0
         """
@@ -451,8 +452,8 @@ class SetChannelsMixin(MontageMixin):
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
             elif ch_type == 'hbr':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
-            elif ch_type == 'fnirs_raw':
-                coil_type = FIFF.FIFFV_COIL_FNIRS_RAW
+            elif ch_type == 'fnirs_cw_amplitude':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE
             elif ch_type == 'fnirs_od':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_OD
             else:
