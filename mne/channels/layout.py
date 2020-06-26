@@ -214,7 +214,8 @@ def read_layout(kind, path=None, scale=True):
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
-def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
+def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads',
+                    ch_types=['eeg']):
     """Create .lout file from EEG electrode digitization.
 
     Parameters
@@ -232,6 +233,9 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).
+    ch_types : list of str
+        Which channel types will be included. Currently the only supported
+        options are ``'eeg'`` and ``'csd'``.
 
     Returns
     -------
@@ -249,8 +253,14 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     if height is not None and not (0 <= height <= 1.0):
         raise ValueError('The height parameter should be between 0 and 1.')
 
-    picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                       exclude=exclude)
+    # check for CSD
+    kwargs = dict(meg=False, ref_meg=False, exclude=exclude)
+    ch_types = [ch_types] if isinstance(ch_types, str) else ch_types
+    for ch_type in ch_types:
+        if ch_type is not None:
+            kwargs.update({ch_type: True})
+
+    picks = pick_types(info, **kwargs)
     loc2d = _find_topomap_coords(info, picks)
     names = [info['chs'][i]['ch_name'] for i in picks]
 
@@ -383,7 +393,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
     layout : Layout instance | None
         None if layout not found.
     """
-    _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg'])
+    _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg',
+                                       'csd'])
 
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
@@ -411,19 +422,18 @@ def find_layout(info, ch_type=None, exclude='bads'):
             layout_name = 'Vectorview-grad'
     elif has_neuromag_122_grad:
         layout_name = 'Neuromag_122'
-    elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
+    elif ((has_eeg_coils_only and ch_type in [None, 'eeg', 'csd']) or
           (has_eeg_coils_and_meg and ch_type == 'eeg')):
         if not isinstance(info, (dict, Info)):
             raise RuntimeError('Cannot make EEG layout, no measurement info '
                                'was passed to `find_layout`')
-        return make_eeg_layout(info, exclude=exclude)
+        return make_eeg_layout(info, exclude=exclude, ch_types=[ch_type])
     elif has_4D_mag:
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
     elif n_kit_grads > 0:
         layout_name = _find_kit_layout(info, n_kit_grads)
-
     # If no known layout is found, fall back on automatic layout
     if layout_name is None:
         xy = _find_topomap_coords(info, picks=range(info['nchan']),
