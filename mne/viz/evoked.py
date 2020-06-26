@@ -2250,7 +2250,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                 picks=picks[pick_], combine=combine, axes=ax_, show=True,
                 sphere=sphere)
 
-        layout = find_layout(info, ch_type=ch_type)
+        layout = find_layout(info)
         # shift everything to the right by 15% of one axes width
         layout.pos[:, 0] += layout.pos[0, 2] * .15
         layout.pos[:, 1] += layout.pos[0, 3] * .15

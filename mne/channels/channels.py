@@ -1448,8 +1448,7 @@ def _get_ch_info(info):
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
                        n_kit_grads])
-    has_eeg_coils = ((FIFF.FIFFV_COIL_EEG in coil_types or
-                      FIFF.FIFFV_COIL_EEG_CSD in coil_types) and
+    has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
                      FIFF.FIFFV_EEG_CH in channel_types)
     has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
     has_eeg_coils_only = has_eeg_coils and not has_any_meg
