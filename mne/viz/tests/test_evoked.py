@@ -326,8 +326,8 @@ def test_plot_compare_evokeds():
     # test with (fake) CSD data
     csd = _get_epochs(picks=np.arange(315, 320)).average()  # 5 EEG chs
     for entry in csd.info['chs']:
-        entry['coil_type'] = 6
-        entry['unit'] = 117
+        entry['coil_type'] = FIFF.FIFFV_COIL_EEG_CSD
+        entry['unit'] = FIFF.FIFF_UNIT_V_M2
     plot_compare_evokeds(csd, picks='csd', axes='topo')
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
