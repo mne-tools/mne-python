@@ -53,10 +53,10 @@ _kind_dict = dict(
     seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
-    fnirs_raw=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_RAW,
-               FIFF.FIFF_UNIT_V),
-    fnirs_ph=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_PH,
-              FIFF.FIFF_UNIT_V),
+    fnirs_cw_amplitude=(FIFF.FIFFV_FNIRS_CH,
+                        FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE, FIFF.FIFF_UNIT_V),
+    fnirs_fd_phase=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_FD_PHASE,
+                    FIFF.FIFF_UNIT_V),
     fnirs_od=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_OD,
               FIFF.FIFF_UNIT_NONE),
     hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_MOL),
@@ -817,7 +817,7 @@ class Info(dict, MontageMixin):
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
     chs = [{key: ch[key]
-            for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc')}
+            for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc', 'cal')}
            for ch in info['chs']]
     sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'],
                     projs=info['projs'],

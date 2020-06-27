@@ -480,7 +480,7 @@ def sys_info(fid=None, show_paths=False):
         pandas:        1.0.3
         dipy:          1.1.1
         mayavi:        4.7.2.dev0
-        pyvista:       0.24.1
+        pyvista:       0.25.2 {pyvistaqt=0.1.0}
         vtk:           9.0.0
         PyQt5:         5.14.1
     """  # noqa: E501
@@ -525,9 +525,16 @@ def sys_info(fid=None, show_paths=False):
         else:
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
-                extra = ' {%s}%s' % (libs, extra)
+                extra += ' {%s}%s' % (libs, extra)
             elif mod_name == 'matplotlib':
-                extra = ' {backend=%s}%s' % (mod.get_backend(), extra)
+                extra += ' {backend=%s}%s' % (mod.get_backend(), extra)
+            elif mod_name == 'pyvista':
+                try:
+                    from pyvistaqt import __version__
+                except Exception:
+                    pass
+                else:
+                    extra += f' {{pyvistaqt={__version__}}}'
             elif mod_name in ('mayavi', 'vtk'):
                 has_3d = True
             if mod_name == 'vtk':

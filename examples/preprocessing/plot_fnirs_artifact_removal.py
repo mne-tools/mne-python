@@ -29,9 +29,9 @@ from mne.preprocessing.nirs import (optical_density,
 # and plot these signals.
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-fnirs_raw_dir = os.path.join(fnirs_data_folder, 'Participant-1')
-raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
-raw_intensity.resample(3, npad="auto")
+fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
+raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
+raw_intensity.load_data().resample(3, npad="auto")
 raw_od = optical_density(raw_intensity)
 new_annotations = mne.Annotations([31, 187, 317], [8, 8, 8],
                                   ["Movement", "Movement", "Movement"])

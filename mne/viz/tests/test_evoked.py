@@ -42,7 +42,7 @@ picks = [0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305]
 sel = [0, 7]
 
 
-def _get_epochs():
+def _get_epochs(picks=picks):
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     raw.add_proj([], remove_existing=True)
@@ -323,6 +323,12 @@ def test_plot_compare_evokeds():
     figs = plot_compare_evokeds(evoked_dict, axes='topo', legend=True)
     for fig in figs:
         assert len(fig.axes[0].lines) == len(evoked_dict)
+    # test with (fake) CSD data
+    csd = _get_epochs(picks=np.arange(315, 320)).average()  # 5 EEG chs
+    for entry in csd.info['chs']:
+        entry['coil_type'] = FIFF.FIFFV_COIL_EEG_CSD
+        entry['unit'] = FIFF.FIFF_UNIT_V_M2
+    plot_compare_evokeds(csd, picks='csd', axes='topo')
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
     plot_compare_evokeds([red, blue], picks=[0],

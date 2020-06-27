@@ -36,15 +36,22 @@ def test_beer_lambert(fname, fmt, tmpdir):
     if fmt == 'fif':
         raw.save(tmpdir.join('test_raw.fif'))
         raw = read_raw_fif(tmpdir.join('test_raw.fif'))
-    assert 'fnirs_raw' in raw
+    assert 'fnirs_cw_amplitude' in raw
+    with pytest.deprecated_call():
+        assert 'fnirs_raw' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)
     _validate_type(raw, BaseRaw, 'raw')
-    assert 'fnirs_raw' not in raw
+    assert 'fnirs_cw_amplitude' not in raw
+    with pytest.deprecated_call():
+        assert 'fnirs_raw' not in raw
     assert 'fnirs_od' in raw
+    assert 'hbo' not in raw
     raw = beer_lambert_law(raw)
     _validate_type(raw, BaseRaw, 'raw')
-    assert 'fnirs_raw' not in raw
+    assert 'fnirs_cw_amplitude' not in raw
+    with pytest.deprecated_call():
+        assert 'fnirs_raw' not in raw
     assert 'fnirs_od' not in raw
     assert 'hbo' in raw
     assert 'hbr' in raw

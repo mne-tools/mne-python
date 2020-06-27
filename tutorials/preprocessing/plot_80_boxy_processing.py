@@ -32,7 +32,7 @@ raw_intensity_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC',
                                         verbose=True).load_data()
 
 # Plot the raw data
-scalings = dict(fnirs_raw=2e2, fnirs_ph=4e3, fnirs_od=2,
+scalings = dict(fnirs_cw_amplitude=2e2, fnirs_fd_phase=4e3, fnirs_od=2,
                 hbo=2e-3, hbr=2e-3)
 
 raw_intensity_ac.plot(n_channels=10, duration=20, scalings=scalings,

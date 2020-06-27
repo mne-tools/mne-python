@@ -16,7 +16,7 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.21.dev0'
+from ._version import __version__
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
@@ -53,13 +53,13 @@ from .source_estimate import (read_source_estimate,
                               VolSourceEstimate, VolVectorSourceEstimate,
                               MixedSourceEstimate, MixedVectorSourceEstimate,
                               grade_to_tris,
-                              spatial_src_connectivity,
-                              spatial_tris_connectivity,
-                              spatial_dist_connectivity,
-                              spatial_inter_hemi_connectivity,
-                              spatio_temporal_src_connectivity,
-                              spatio_temporal_tris_connectivity,
-                              spatio_temporal_dist_connectivity,
+                              spatial_src_adjacency,
+                              spatial_tris_adjacency,
+                              spatial_dist_adjacency,
+                              spatial_inter_hemi_adjacency,
+                              spatio_temporal_src_adjacency,
+                              spatio_temporal_tris_adjacency,
+                              spatio_temporal_dist_adjacency,
                               extract_label_time_course)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf,
@@ -120,6 +120,23 @@ from . import stats
 from . import time_frequency
 from . import viz
 from . import decoding
+
+from .utils import deprecated_alias
+deprecated_alias(
+    'spatial_src_connectivity', spatial_src_adjacency)
+deprecated_alias(
+    'spatial_tris_connectivity', spatial_tris_adjacency)
+deprecated_alias(
+    'spatial_dist_connectivity', spatial_dist_adjacency)
+deprecated_alias(
+    'spatial_inter_hemi_connectivity', spatial_inter_hemi_adjacency)
+deprecated_alias(
+    'spatio_temporal_src_connectivity', spatio_temporal_src_adjacency)
+deprecated_alias(
+    'spatio_temporal_tris_connectivity', spatio_temporal_tris_adjacency)
+deprecated_alias(
+    'spatio_temporal_dist_connectivity', spatio_temporal_dist_adjacency)
+del deprecated_alias
 
 # initialize logging
 set_log_level(None, False)

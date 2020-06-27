@@ -65,6 +65,8 @@ Changelog
 
 - Add :func:`mne.stats.ttest_ind_no_p` to mirror :func:`mne.stats.ttest_1samp_no_p` with hat correction by `Eric Larson`_
 
+- Add `mne.stats.combine_adjacency` to combine adjacency matrices for independent data dimensions to enable things like spatio-temporal-time-frequency clustering in `mne.stats.permutation_cluster_test` by `Eric Larson`_
+
 - Speed up raw data reading without preload in :func:`mne.io.read_raw_nirx` by `Eric Larson`_
 
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
@@ -98,6 +100,8 @@ Changelog
 - Add support for loading complex numbers from mat files by `Thomas Hartmann`_
 
 - Add generic reader function :func:`mne.io.read_raw` that loads files based on their extensions (it wraps the underlying specific ``read_raw_xxx`` functions) by `Clemens Brunner`_
+
+- Add automatic T3 magnetometer detection and application of :meth:`mne.io.Raw.fix_mag_coil_types` to :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
 - Add ``'auto'`` option to :meth:`mne.preprocessing.ICA.find_bads_ecg` to automatically determine the threshold for CTPS method by `Yu-Han Luo`_
 
@@ -226,6 +230,13 @@ API
 ~~~
 
 - Python 3.5 is no longer supported, Python 3.6+ is required, by `Eric Larson`_
+
+- ``adjacency`` has replaced ``connectivity`` in the names of:
+
+  1. Arguments to clustering functions, such as `mne.stats.permutation_cluster_test`, and
+  2. Function names for defining adjacency, such as `mne.spatio_temporal_src_adjacency` replacing ``mne.spatio_temporal_src_connectivity``.
+
+  "connectivity" is now reserved for discussions of functional and effective connectivity of the brain, and "adjacency" for source or sensor neighbor definitions for cluster-based analyses, by `Eric Larson`_.
 
 - Add ``n_cols`` parameter to :meth:`mne.preprocessing.ICA.plot_scores` to allow plotting scores in multiple columns, by `Luke Bloy`_
 

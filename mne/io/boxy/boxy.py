@@ -285,9 +285,9 @@ class RawBOXY(BaseRaw):
 
         # Create info structure.
         if datatype == 'Ph':
-            chan_type = 'fnirs_ph'
+            chan_type = 'fnirs_fd_phase'
         else:
-            chan_type = 'fnirs_raw'
+            chan_type = 'fnirs_cw_amplitude'
 
         ch_types = ([chan_type if i_chan < np.sum(mtg_chan_num) else 'stim'
                      for i_chan, _ in enumerate(boxy_labels)])
