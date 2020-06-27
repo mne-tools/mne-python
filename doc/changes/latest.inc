@@ -142,6 +142,8 @@ Bug
 
 - Fix plotting with :func:`mne.viz.plot_evoked_topomap` to pre-existing axes by `Daniel McCloy`_
 
+- Fix bug with :func:`mne.viz.plot_vector_source_estimates` using the PyVista backend with ``time_viewer=True`` when updating the arrow colormaps by `Eric Larson`_
+
 - The default plotting mode for :func:`mne.io.Raw.plot` and :ref:`mne browse_raw` has been changed to ``clipping=3.`` to facilitate data analysis with large deflections, by `Eric Larson`_
 
 - PSD plots will now show non-data channels (e.g., ``misc``) if those channels are explicitly passed to ``picks``, by `Daniel McCloy`_.
