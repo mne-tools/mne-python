@@ -73,7 +73,8 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     """
     if ch_type is None:
         allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd',
-                         'fnirs_raw', 'fnirs_od', 'hbo', 'hbr', 'ecog', 'seeg']
+                         'fnirs_cw_amplitude', 'fnirs_od', 'hbo', 'hbr',
+                         'ecog', 'seeg']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
         for type_ in allowed_types:
             if isinstance(inst, Info):
@@ -244,7 +245,7 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'syst': FIFF.FIFFV_SYST_CH,
                'bio': FIFF.FIFFV_BIO_CH,
                'ecog': FIFF.FIFFV_ECOG_CH,
-               'fnirs_raw': FIFF.FIFFV_FNIRS_CH,
+               'fnirs_cw_amplitude': FIFF.FIFFV_FNIRS_CH,
                'fnirs_od': FIFF.FIFFV_FNIRS_CH,
                'hbo': FIFF.FIFFV_FNIRS_CH,
                'hbr': FIFF.FIFFV_FNIRS_CH}
@@ -261,7 +262,7 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'syst': FIFF.FIFF_UNIT_NONE,
                'bio': FIFF.FIFF_UNIT_V,
                'ecog': FIFF.FIFF_UNIT_V,
-               'fnirs_raw': FIFF.FIFF_UNIT_V,
+               'fnirs_cw_amplitude': FIFF.FIFF_UNIT_V,
                'fnirs_od': FIFF.FIFF_UNIT_NONE,
                'hbo': FIFF.FIFF_UNIT_MOL,
                'hbr': FIFF.FIFF_UNIT_MOL}
@@ -411,7 +412,7 @@ class SetChannelsMixin(MontageMixin):
         The following sensor types are accepted:
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
-            hbo, hbr, fnirs_raw, fnirs_od
+            hbo, hbr, fnirs_cw_amplitude, fnirs_od
 
         .. versionadded:: 0.9.0
         """
@@ -451,8 +452,8 @@ class SetChannelsMixin(MontageMixin):
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
             elif ch_type == 'hbr':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
-            elif ch_type == 'fnirs_raw':
-                coil_type = FIFF.FIFFV_COIL_FNIRS_RAW
+            elif ch_type == 'fnirs_cw_amplitude':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE
             elif ch_type == 'fnirs_od':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_OD
             else:
@@ -1113,7 +1114,7 @@ def _recursive_flatten(cell, dtype):
 
 
 @fill_doc
-def read_ch_connectivity(fname, picks=None):
+def read_ch_adjacency(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
     More information on these neighbor definitions can be found on the related
@@ -1130,20 +1131,20 @@ def read_ch_connectivity(fname, picks=None):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+        The adjacency matrix.
     ch_names : list
-        The list of channel names present in connectivity matrix.
+        The list of channel names present in adjacency matrix.
 
     See Also
     --------
-    find_ch_connectivity
+    find_ch_adjacency
 
     Notes
     -----
-    This function is closely related to :func:`find_ch_connectivity`. If you
+    This function is closely related to :func:`find_ch_adjacency`. If you
     don't know the correct file for the neighbor definitions,
-    :func:`find_ch_connectivity` can compute the connectivity matrix from 2d
+    :func:`find_ch_adjacency` can compute the adjacency matrix from 2d
     sensor locations.
     """
     from scipy.io import loadmat
@@ -1169,15 +1170,15 @@ def read_ch_connectivity(fname, picks=None):
     neighbors = [_recursive_flatten(c, str) for c in
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
-    connectivity = _ch_neighbor_connectivity(ch_names, neighbors)
+    adjacency = _ch_neighbor_adjacency(ch_names, neighbors)
     # picking before constructing matrix is buggy
-    connectivity = connectivity[picks][:, picks]
+    adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
-    return connectivity, ch_names
+    return adjacency, ch_names
 
 
-def _ch_neighbor_connectivity(ch_names, neighbors):
-    """Compute sensor connectivity matrix.
+def _ch_neighbor_adjacency(ch_names, neighbors):
+    """Compute sensor adjacency matrix.
 
     Parameters
     ----------
@@ -1190,8 +1191,8 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse matrix
+        The adjacency matrix.
     """
     if len(ch_names) != len(neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
@@ -1207,18 +1208,18 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
                 not all(isinstance(c, str) for c in neigh)):
             raise ValueError('`neighbors` must be a list of lists of str')
 
-    ch_connectivity = np.eye(len(ch_names), dtype=bool)
+    ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
-        ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_connectivity = sparse.csr_matrix(ch_connectivity)
-    return ch_connectivity
+        ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
+    ch_adjacency = sparse.csr_matrix(ch_adjacency)
+    return ch_adjacency
 
 
-def find_ch_connectivity(info, ch_type):
-    """Find the connectivity matrix for the given channels.
+def find_ch_adjacency(info, ch_type):
+    """Find the adjacency matrix for the given channels.
 
-    This function tries to infer the appropriate connectivity matrix template
-    for the given channels. If a template is not found, the connectivity matrix
+    This function tries to infer the appropriate adjacency matrix template
+    for the given channels. If a template is not found, the adjacency matrix
     is computed using Delaunay triangulation based on 2d sensor locations.
 
     Parameters
@@ -1226,30 +1227,30 @@ def find_ch_connectivity(info, ch_type):
     info : instance of Info
         The measurement info.
     ch_type : str | None
-        The channel type for computing the connectivity matrix. Currently
+        The channel type for computing the adjacency matrix. Currently
         supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
         only one channel type.
 
     Returns
     -------
-    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+        The adjacency matrix.
     ch_names : list
-        The list of channel names present in connectivity matrix.
+        The list of channel names present in adjacency matrix.
 
     See Also
     --------
-    read_ch_connectivity
+    read_ch_adjacency
 
     Notes
     -----
     .. versionadded:: 0.15
 
-    Automatic detection of an appropriate connectivity matrix template only
-    works for MEG data at the moment. This means that the connectivity matrix
+    Automatic detection of an appropriate adjacency matrix template only
+    works for MEG data at the moment. This means that the adjacency matrix
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
-    :func:`read_ch_connectivity` directly.
+    :func:`read_ch_adjacency` directly.
     """
     if ch_type is None:
         picks = channel_indices_by_type(info)
@@ -1262,7 +1263,7 @@ def find_ch_connectivity(info, ch_type):
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
      has_eeg_coils_and_meg, has_eeg_coils_only,
-     has_neuromag_122_grad) = _get_ch_info(info)
+     has_neuromag_122_grad, has_csd_coils) = _get_ch_info(info)
     conn_name = None
     if has_vv_mag and ch_type == 'mag':
         conn_name = 'neuromag306mag'
@@ -1295,33 +1296,33 @@ def find_ch_connectivity(info, ch_type):
         conn_name = KIT_NEIGHBORS.get(info['kit_system_id'])
 
     if conn_name is not None:
-        logger.info('Reading connectivity matrix for %s.' % conn_name)
-        return read_ch_connectivity(conn_name)
-    logger.info('Could not find a connectivity matrix for the data. '
-                'Computing connectivity based on Delaunay triangulations.')
-    return _compute_ch_connectivity(info, ch_type)
+        logger.info('Reading adjacency matrix for %s.' % conn_name)
+        return read_ch_adjacency(conn_name)
+    logger.info('Could not find a adjacency matrix for the data. '
+                'Computing adjacency based on Delaunay triangulations.')
+    return _compute_ch_adjacency(info, ch_type)
 
 
-def _compute_ch_connectivity(info, ch_type):
-    """Compute channel connectivity matrix using Delaunay triangulations.
+def _compute_ch_adjacency(info, ch_type):
+    """Compute channel adjacency matrix using Delaunay triangulations.
 
     Parameters
     ----------
     info : instance of mne.measuerment_info.Info
         The measurement info.
     ch_type : str
-        The channel type for computing the connectivity matrix. Currently
+        The channel type for computing the adjacency matrix. Currently
         supports 'mag', 'grad' and 'eeg'.
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
-        The connectivity matrix.
+    ch_adjacency : scipy.sparse matrix, shape (n_channels, n_channels)
+        The adjacency matrix.
     ch_names : list
-        The list of channel names present in connectivity matrix.
+        The list of channel names present in adjacency matrix.
     """
     from scipy.spatial import Delaunay
-    from .. import spatial_tris_connectivity
+    from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                      np.unique([ch['coil_type'] for ch in info['chs']]))
@@ -1332,38 +1333,41 @@ def _compute_ch_connectivity(info, ch_type):
         pairs = _pair_grad_sensors(info, topomap_coords=False, exclude=[])
         if len(pairs) != len(picks):
             raise RuntimeError('Cannot find a pair for some of the '
-                               'gradiometers. Cannot compute connectivity '
+                               'gradiometers. Cannot compute adjacency '
                                'matrix.')
         # only for one of the pair
         xy = _find_topomap_coords(info, picks[::2], sphere=HEAD_SIZE_DEFAULT)
     else:
         xy = _find_topomap_coords(info, picks, sphere=HEAD_SIZE_DEFAULT)
     tri = Delaunay(xy)
-    neighbors = spatial_tris_connectivity(tri.simplices)
+    neighbors = spatial_tris_adjacency(tri.simplices)
 
     if combine_grads:
-        ch_connectivity = np.eye(len(picks), dtype=bool)
+        ch_adjacency = np.eye(len(picks), dtype=bool)
         for idx, neigbs in zip(neighbors.row, neighbors.col):
             for ii in range(2):  # make sure each pair is included
                 for jj in range(2):
-                    ch_connectivity[idx * 2 + ii, neigbs * 2 + jj] = True
-                    ch_connectivity[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_connectivity = sparse.csr_matrix(ch_connectivity)
+                    ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
+                    ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
+        ch_adjacency = sparse.csr_matrix(ch_adjacency)
     else:
-        ch_connectivity = sparse.lil_matrix(neighbors)
-        ch_connectivity.setdiag(np.repeat(1, ch_connectivity.shape[0]))
-        ch_connectivity = ch_connectivity.tocsr()
+        ch_adjacency = sparse.lil_matrix(neighbors)
+        ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
+        ch_adjacency = ch_adjacency.tocsr()
 
-    return ch_connectivity, ch_names
+    return ch_adjacency, ch_names
 
 
-def fix_mag_coil_types(info):
+def fix_mag_coil_types(info, use_cal=False):
     """Fix magnetometer coil types.
 
     Parameters
     ----------
     info : dict
         The info dict to correct. Corrections are done in-place.
+    use_cal : bool
+        If True, further refine the check for old coil types by checking
+        ``info['chs'][ii]['cal']``.
 
     Notes
     -----
@@ -1385,24 +1389,31 @@ def fix_mag_coil_types(info):
               current estimates computed by the MNE software is very small.
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
-    old_mag_inds = _get_T1T2_mag_inds(info)
+    old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
 
     for ii in old_mag_inds:
         info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info('%d of %d T1/T2 magnetometer types replaced with T3.' %
+    logger.info('%d of %d magnetometer types replaced with T3.' %
                 (len(old_mag_inds), len(pick_types(info, meg='mag'))))
     info._check_consistency()
 
 
-def _get_T1T2_mag_inds(info):
+def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
+    # From email exchanges, systems with the larger T2 coil only use the cal
+    # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10
+    # (Triux). So we can use a simple check for > 3e-11.
     for ii in picks:
         ch = info['chs'][ii]
         if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
                                FIFF.FIFFV_COIL_VV_MAG_T2):
-            old_mag_inds.append(ii)
+            if use_cal:
+                if ch['cal'] > 3e-11:
+                    old_mag_inds.append(ii)
+            else:
+                old_mag_inds.append(ii)
     return old_mag_inds
 
 
@@ -1442,10 +1453,13 @@ def _get_ch_info(info):
                      FIFF.FIFFV_EEG_CH in channel_types)
     has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
     has_eeg_coils_only = has_eeg_coils and not has_any_meg
+    has_csd_coils = (FIFF.FIFFV_COIL_EEG_CSD in coil_types and
+                     FIFF.FIFFV_EEG_CH in channel_types)
 
     return (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
             has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
-            has_eeg_coils_and_meg, has_eeg_coils_only, has_neuromag_122_grad)
+            has_eeg_coils_and_meg, has_eeg_coils_only, has_neuromag_122_grad,
+            has_csd_coils)
 
 
 def make_1020_channel_selections(info, midline="z"):

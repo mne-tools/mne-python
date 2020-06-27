@@ -4,12 +4,13 @@
 #
 # License: Simplified BSD
 
-import warnings
+import contextlib
 from functools import partial
 import os
+import sys
 import time
 import traceback
-import sys
+import warnings
 
 import numpy as np
 
@@ -84,6 +85,19 @@ class MplCanvas(object):
         self.axes.legend(prop={'family': 'monospace', 'size': 'small'},
                          framealpha=0.5, handlelength=1.)
         self.canvas.draw()
+
+    def set_color(self, bg_color, fg_color):
+        """Set the widget colors."""
+        self.axes.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_color(fg_color)
+        self.axes.yaxis.label.set_color(fg_color)
+        self.axes.spines['top'].set_color(fg_color)
+        self.axes.spines['bottom'].set_color(fg_color)
+        self.axes.spines['left'].set_color(fg_color)
+        self.axes.spines['right'].set_color(fg_color)
+        self.axes.tick_params(axis='x', colors=fg_color)
+        self.axes.tick_params(axis='y', colors=fg_color)
+        self.fig.patch.set_facecolor(bg_color)
 
     def show(self):
         """Show the canvas."""
@@ -302,6 +316,7 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
+        self.default_smoothing_range = [0, 15]
 
         # detect notebook
         if brain._notebook:
@@ -316,7 +331,6 @@ class _TimeViewer(object):
         self.visibility = False
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
-        self.default_smoothing_range = [0, 15]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
@@ -354,6 +368,7 @@ class _TimeViewer(object):
             self.separate_canvas = False
 
         self.load_icons()
+        self.interactor_stretch = 3
         self.configure_time_label()
         self.configure_sliders()
         self.configure_scalar_bar()
@@ -365,7 +380,22 @@ class _TimeViewer(object):
 
         # show everything at the end
         self.toggle_interface()
-        self.brain.show()
+        with self.ensure_minimum_sizes():
+            self.brain.show()
+
+    @contextlib.contextmanager
+    def ensure_minimum_sizes(self):
+        sz = self.brain._size
+        adjust_mpl = self.show_traces and not self.separate_canvas
+        if not adjust_mpl:
+            yield
+        else:
+            self.mpl_canvas.canvas.setMinimumSize(
+                sz[0], int(round(sz[1] / self.interactor_stretch)))
+            try:
+                yield
+            finally:
+                self.mpl_canvas.canvas.setMinimumSize(0, 0)
 
     def toggle_interface(self, value=None):
         if value is None:
@@ -800,8 +830,12 @@ class _TimeViewer(object):
             vlayout = self.plotter.frame.layout()
             if not self.separate_canvas:
                 vlayout.addWidget(self.mpl_canvas.canvas)
-                vlayout.setStretch(0, 2)
+                vlayout.setStretch(0, self.interactor_stretch)
                 vlayout.setStretch(1, 1)
+            self.mpl_canvas.set_color(
+                bg_color=self.brain._bg_color,
+                fg_color=self.brain._fg_color,
+            )
             self.mpl_canvas.show()
 
             # get brain data
@@ -973,6 +1007,7 @@ class _TimeViewer(object):
                 self.add_point(hemi, mesh, vertex_id, line, color)
 
     def add_point(self, hemi, mesh, vertex_id, line, color):
+        from ..backends._pyvista import _sphere
         center = mesh.GetPoints().GetPoint(vertex_id)
 
         # from the picked renderer to the subplot coords
@@ -983,11 +1018,17 @@ class _TimeViewer(object):
         spheres = list()
         for ri, view in enumerate(self.brain._views):
             self.plotter.subplot(ri, col)
-            actor, sphere = self.brain._renderer.sphere(
+            # Using _sphere() instead of renderer.sphere() for 2 reasons:
+            # 1) renderer.sphere() fails on Windows in a scenario where a lot
+            #    of picking requests are done in a short span of time (could be
+            #    mitigated with synchronization/delay?)
+            # 2) the glyph filter is used in renderer.sphere() but only one
+            #    sphere is required in this function.
+            actor, sphere = _sphere(
+                plotter=self.plotter,
                 center=np.array(center),
                 color=color,
-                scale=1.0,
-                radius=4.0
+                radius=4.0,
             )
             actors.append(actor)
             spheres.append(sphere)
@@ -1064,7 +1105,7 @@ class _TimeViewer(object):
                 self.time_line = self.mpl_canvas.plot_time_line(
                     x=current_time,
                     label='time',
-                    color='black',
+                    color=self.brain._fg_color,
                     lw=1,
                 )
             else:

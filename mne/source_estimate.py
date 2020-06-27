@@ -2525,52 +2525,52 @@ def _get_vol_mask(src):
     return mask
 
 
-def _spatio_temporal_src_connectivity_vol(src, n_times):
+def _spatio_temporal_src_adjacency_vol(src, n_times):
     from sklearn.feature_extraction import grid_to_graph
     mask = _get_vol_mask(src)
     edges = grid_to_graph(*mask.shape, mask=mask)
-    connectivity = _get_connectivity_from_edges(edges, n_times)
-    return connectivity
+    adjacency = _get_adjacency_from_edges(edges, n_times)
+    return adjacency
 
 
-def _spatio_temporal_src_connectivity_surf(src, n_times):
+def _spatio_temporal_src_adjacency_surf(src, n_times):
     if src[0]['use_tris'] is None:
         # XXX It would be nice to support non oct source spaces too...
         raise RuntimeError("The source space does not appear to be an ico "
-                           "surface. Connectivity cannot be extracted from"
+                           "surface. adjacency cannot be extracted from"
                            " non-ico source spaces.")
     used_verts = [np.unique(s['use_tris']) for s in src]
     offs = np.cumsum([0] + [len(u_v) for u_v in used_verts])[:-1]
     tris = np.concatenate([np.searchsorted(u_v, s['use_tris']) + off
                            for u_v, s, off in zip(used_verts, src, offs)])
-    connectivity = spatio_temporal_tris_connectivity(tris, n_times)
+    adjacency = spatio_temporal_tris_adjacency(tris, n_times)
 
     # deal with source space only using a subset of vertices
     masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
-    if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
-        raise ValueError('Used vertices do not match connectivity shape')
+    if sum(u.size for u in used_verts) != adjacency.shape[0] / n_times:
+        raise ValueError('Used vertices do not match adjacency shape')
     if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:
         raise ValueError('Vertex mask does not match number of vertices')
     masks = np.concatenate(masks)
     missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
     if missing:
         warn('%0.1f%% of original source space vertices have been'
-             ' omitted, tri-based connectivity will have holes.\n'
-             'Consider using distance-based connectivity or '
+             ' omitted, tri-based adjacency will have holes.\n'
+             'Consider using distance-based adjacency or '
              'morphing data to all source space vertices.' % missing)
         masks = np.tile(masks, n_times)
         masks = np.where(masks)[0]
-        connectivity = connectivity.tocsr()
-        connectivity = connectivity[masks]
-        connectivity = connectivity[:, masks]
+        adjacency = adjacency.tocsr()
+        adjacency = adjacency[masks]
+        adjacency = adjacency[:, masks]
         # return to original format
-        connectivity = connectivity.tocoo()
-    return connectivity
+        adjacency = adjacency.tocoo()
+    return adjacency
 
 
 @verbose
-def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
-    """Compute connectivity for a source space activation over time.
+def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
+    """Compute adjacency for a source space activation over time.
 
     Parameters
     ----------
@@ -2587,27 +2587,27 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
 
     Returns
     -------
-    connectivity : ~scipy.sparse.coo_matrix
-        The connectivity matrix describing the spatio-temporal
+    adjacency : ~scipy.sparse.coo_matrix
+        The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    # XXX we should compute connectivity for each source space and then
+    # XXX we should compute adjacency for each source space and then
     # use scipy.sparse.block_diag to concatenate them
     if src[0]['type'] == 'vol':
         if dist is not None:
             raise ValueError('dist must be None for a volume '
                              'source space. Got %s.' % dist)
 
-        connectivity = _spatio_temporal_src_connectivity_vol(src, n_times)
+        adjacency = _spatio_temporal_src_adjacency_vol(src, n_times)
     elif dist is not None:
         # use distances computed and saved in the source space file
-        connectivity = spatio_temporal_dist_connectivity(src, n_times, dist)
+        adjacency = spatio_temporal_dist_adjacency(src, n_times, dist)
     else:
-        connectivity = _spatio_temporal_src_connectivity_surf(src, n_times)
-    return connectivity
+        adjacency = _spatio_temporal_src_adjacency_surf(src, n_times)
+    return adjacency
 
 
 @verbose
@@ -2624,7 +2624,7 @@ def grade_to_tris(grade, verbose=None):
     -------
     tris : list
         2-element list containing Nx3 arrays of tris, suitable for use in
-        spatio_temporal_tris_connectivity.
+        spatio_temporal_tris_adjacency.
     """
     a = _get_ico_tris(grade, None, False)
     tris = np.concatenate((a, a + (np.max(a) + 1)))
@@ -2632,9 +2632,9 @@ def grade_to_tris(grade, verbose=None):
 
 
 @verbose
-def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
-                                      verbose=None):
-    """Compute connectivity from triangles and time instants.
+def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False,
+                                   verbose=None):
+    """Compute adjacency from triangles and time instants.
 
     Parameters
     ----------
@@ -2649,8 +2649,8 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
 
     Returns
     -------
-    connectivity : ~scipy.sparse.coo_matrix
-        The connectivity matrix describing the spatio-temporal
+    adjacency : ~scipy.sparse.coo_matrix
+        The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
         vertices are time 1, the nodes from 2 to 2N are the vertices
@@ -2661,12 +2661,12 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
         tris = np.searchsorted(np.unique(tris), tris)
 
     edges = mesh_edges(tris).tocoo()
-    return _get_connectivity_from_edges(edges, n_times)
+    return _get_adjacency_from_edges(edges, n_times)
 
 
 @verbose
-def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
-    """Compute connectivity from distances in a source space and time instants.
+def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
+    """Compute adjacency from distances in a source space and time instants.
 
     Parameters
     ----------
@@ -2684,8 +2684,8 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
 
     Returns
     -------
-    connectivity : ~scipy.sparse.coo_matrix
-        The connectivity matrix describing the spatio-temporal
+    adjacency : ~scipy.sparse.coo_matrix
+        The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
         vertices are time 1, the nodes from 2 to 2N are the vertices
@@ -2701,12 +2701,12 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
     edges = edges.tocsr()
     edges.eliminate_zeros()
     edges = edges.tocoo()
-    return _get_connectivity_from_edges(edges, n_times)
+    return _get_adjacency_from_edges(edges, n_times)
 
 
 @verbose
-def spatial_src_connectivity(src, dist=None, verbose=None):
-    """Compute connectivity for a source space activation.
+def spatial_src_adjacency(src, dist=None, verbose=None):
+    """Compute adjacency for a source space activation.
 
     Parameters
     ----------
@@ -2721,15 +2721,15 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
     Returns
     -------
-    connectivity : ~scipy.sparse.coo_matrix
-        The connectivity matrix describing the spatial graph structure.
+    adjacency : ~scipy.sparse.coo_matrix
+        The adjacency matrix describing the spatial graph structure.
     """
-    return spatio_temporal_src_connectivity(src, 1, dist)
+    return spatio_temporal_src_adjacency(src, 1, dist)
 
 
 @verbose
-def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
-    """Compute connectivity from triangles.
+def spatial_tris_adjacency(tris, remap_vertices=False, verbose=None):
+    """Compute adjacency from triangles.
 
     Parameters
     ----------
@@ -2742,15 +2742,15 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
 
     Returns
     -------
-    connectivity : ~scipy.sparse.coo_matrix
-        The connectivity matrix describing the spatial graph structure.
+    adjacency : ~scipy.sparse.coo_matrix
+        The adjacency matrix describing the spatial graph structure.
     """
-    return spatio_temporal_tris_connectivity(tris, 1, remap_vertices)
+    return spatio_temporal_tris_adjacency(tris, 1, remap_vertices)
 
 
 @verbose
-def spatial_dist_connectivity(src, dist, verbose=None):
-    """Compute connectivity from distances in a source space.
+def spatial_dist_adjacency(src, dist, verbose=None):
+    """Compute adjacency from distances in a source space.
 
     Parameters
     ----------
@@ -2766,14 +2766,14 @@ def spatial_dist_connectivity(src, dist, verbose=None):
 
     Returns
     -------
-    connectivity : ~scipy.sparse.coo_matrix
-        The connectivity matrix describing the spatial graph structure.
+    adjacency : ~scipy.sparse.coo_matrix
+        The adjacency matrix describing the spatial graph structure.
     """
-    return spatio_temporal_dist_connectivity(src, 1, dist)
+    return spatio_temporal_dist_adjacency(src, 1, dist)
 
 
 @verbose
-def spatial_inter_hemi_connectivity(src, dist, verbose=None):
+def spatial_inter_hemi_adjacency(src, dist, verbose=None):
     """Get vertices on each hemisphere that are close to the other hemisphere.
 
     Parameters
@@ -2787,28 +2787,28 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
 
     Returns
     -------
-    connectivity : ~scipy.sparse.coo_matrix
-        The connectivity matrix describing the spatial graph structure.
+    adjacency : ~scipy.sparse.coo_matrix
+        The adjacency matrix describing the spatial graph structure.
         Typically this should be combined (addititively) with another
-        existing intra-hemispheric connectivity matrix, e.g. computed
+        existing intra-hemispheric adjacency matrix, e.g. computed
         using geodesic distances.
     """
     from scipy.spatial.distance import cdist
     src = _ensure_src(src, kind='surface')
-    conn = cdist(src[0]['rr'][src[0]['vertno']],
-                 src[1]['rr'][src[1]['vertno']])
-    conn = sparse.csr_matrix(conn <= dist, dtype=int)
-    empties = [sparse.csr_matrix((nv, nv), dtype=int) for nv in conn.shape]
-    conn = sparse.vstack([sparse.hstack([empties[0], conn]),
-                          sparse.hstack([conn.T, empties[1]])])
-    return conn
+    adj = cdist(src[0]['rr'][src[0]['vertno']],
+                src[1]['rr'][src[1]['vertno']])
+    adj = sparse.csr_matrix(adj <= dist, dtype=int)
+    empties = [sparse.csr_matrix((nv, nv), dtype=int) for nv in adj.shape]
+    adj = sparse.vstack([sparse.hstack([empties[0], adj]),
+                         sparse.hstack([adj.T, empties[1]])])
+    return adj
 
 
 @verbose
-def _get_connectivity_from_edges(edges, n_times, verbose=None):
-    """Given edges sparse matrix, create connectivity matrix."""
+def _get_adjacency_from_edges(edges, n_times, verbose=None):
+    """Given edges sparse matrix, create adjacency matrix."""
     n_vertices = edges.shape[0]
-    logger.info("-- number of connected vertices : %d" % n_vertices)
+    logger.info("-- number of adjacent vertices : %d" % n_vertices)
     nnz = edges.col.size
     aux = n_vertices * np.tile(np.arange(n_times)[:, None], (1, nnz))
     col = (edges.col[None, :] + aux).ravel()
@@ -2822,9 +2822,9 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
         col = np.concatenate((col, d, o))
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
                    dtype=np.int64)
-    connectivity = coo_matrix((data, (row, col)),
-                              shape=(n_times * n_vertices,) * 2)
-    return connectivity
+    adjacency = coo_matrix((data, (row, col)),
+                           shape=(n_times * n_vertices,) * 2)
+    return adjacency
 
 
 @verbose

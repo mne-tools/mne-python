@@ -13,11 +13,11 @@ import numpy as np
 from scipy.io import savemat
 from numpy.testing import assert_array_equal, assert_equal
 
-from mne.channels import (rename_channels, read_ch_connectivity,
-                          find_ch_connectivity, make_1020_channel_selections,
+from mne.channels import (rename_channels, read_ch_adjacency,
+                          find_ch_adjacency, make_1020_channel_selections,
                           read_custom_montage, equalize_channels)
-from mne.channels.channels import (_ch_neighbor_connectivity,
-                                   _compute_ch_connectivity)
+from mne.channels.channels import (_ch_neighbor_adjacency,
+                                   _compute_ch_adjacency)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
                     read_raw_eeglab, read_raw_kit, RawArray)
 from mne.io.constants import FIFF
@@ -139,8 +139,8 @@ def test_set_channel_types():
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
 
 
-def test_read_ch_connectivity():
-    """Test reading channel connectivity templates."""
+def test_read_ch_adjacency():
+    """Test reading channel adjacency templates."""
     tempdir = _TempDir()
     a = partial(np.array, dtype='<U7')
     # no pep8
@@ -154,30 +154,30 @@ def test_read_ch_connectivity():
     mat_fname = op.join(tempdir, 'test_mat.mat')
     savemat(mat_fname, mat, oned_as='row')
 
-    ch_connectivity, ch_names = read_ch_connectivity(mat_fname)
-    x = ch_connectivity
+    ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
+    x = ch_adjacency
     assert_equal(x.shape[0], len(ch_names))
     assert_equal(x.shape, (3, 3))
     assert_equal(x[0, 1], False)
     assert_equal(x[0, 2], True)
     assert np.all(x.diagonal())
-    pytest.raises(ValueError, read_ch_connectivity, mat_fname, [0, 3])
-    ch_connectivity, ch_names = read_ch_connectivity(mat_fname, picks=[0, 2])
-    assert_equal(ch_connectivity.shape[0], 2)
+    pytest.raises(ValueError, read_ch_adjacency, mat_fname, [0, 3])
+    ch_adjacency, ch_names = read_ch_adjacency(mat_fname, picks=[0, 2])
+    assert_equal(ch_adjacency.shape[0], 2)
     assert_equal(len(ch_names), 2)
 
     ch_names = ['EEG01', 'EEG02', 'EEG03']
     neighbors = [['EEG02'], ['EEG04'], ['EEG02']]
-    pytest.raises(ValueError, _ch_neighbor_connectivity, ch_names, neighbors)
+    pytest.raises(ValueError, _ch_neighbor_adjacency, ch_names, neighbors)
     neighbors = [['EEG02'], ['EEG01', 'EEG03'], ['EEG 02']]
-    pytest.raises(ValueError, _ch_neighbor_connectivity, ch_names[:2],
+    pytest.raises(ValueError, _ch_neighbor_adjacency, ch_names[:2],
                   neighbors)
     neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
-    pytest.raises(ValueError, _ch_neighbor_connectivity, ch_names, neighbors)
-    connectivity, ch_names = read_ch_connectivity('neuromag306mag')
-    assert_equal(connectivity.shape, (102, 102))
+    pytest.raises(ValueError, _ch_neighbor_adjacency, ch_names, neighbors)
+    adjacency, ch_names = read_ch_adjacency('neuromag306mag')
+    assert_equal(adjacency.shape, (102, 102))
     assert_equal(len(ch_names), 102)
-    pytest.raises(ValueError, read_ch_connectivity, 'bananas!')
+    pytest.raises(ValueError, read_ch_adjacency, 'bananas!')
 
     # In EGI 256, E31 sensor has no neighbour
     a = partial(np.array)
@@ -192,8 +192,8 @@ def test_read_ch_connectivity():
     mat = dict(neighbours=nbh)
     mat_fname = op.join(tempdir, 'test_isolated_mat.mat')
     savemat(mat_fname, mat, oned_as='row')
-    ch_connectivity, ch_names = read_ch_connectivity(mat_fname)
-    x = ch_connectivity.todense()
+    ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
+    x = ch_adjacency.todense()
     assert_equal(x.shape[0], len(ch_names))
     assert_equal(x.shape, (4, 4))
     assert np.all(x.diagonal())
@@ -214,7 +214,7 @@ def test_read_ch_connectivity():
     mat = dict(neighbours=nbh)
     mat_fname = op.join(tempdir, 'test_error_mat.mat')
     savemat(mat_fname, mat, oned_as='row')
-    pytest.raises(ValueError, read_ch_connectivity, mat_fname)
+    pytest.raises(ValueError, read_ch_adjacency, mat_fname)
 
 
 def test_get_set_sensor_positions():
@@ -264,43 +264,43 @@ def test_1020_selection():
 
 
 @testing.requires_testing_data
-def test_find_ch_connectivity():
-    """Test computing the connectivity matrix."""
+def test_find_ch_adjacency():
+    """Test computing the adjacency matrix."""
     data_path = testing.data_path()
 
     raw = read_raw_fif(raw_fname, preload=True)
     sizes = {'mag': 828, 'grad': 1700, 'eeg': 386}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
     for ch_type in ['mag', 'grad', 'eeg']:
-        conn, ch_names = find_ch_connectivity(raw.info, ch_type)
+        conn, ch_names = find_ch_adjacency(raw.info, ch_type)
         # Silly test for checking the number of neighbors.
         assert_equal(conn.getnnz(), sizes[ch_type])
         assert_equal(len(ch_names), nchans[ch_type])
-    pytest.raises(ValueError, find_ch_connectivity, raw.info, None)
+    pytest.raises(ValueError, find_ch_adjacency, raw.info, None)
 
     # Test computing the conn matrix with gradiometers.
-    conn, ch_names = _compute_ch_connectivity(raw.info, 'grad')
+    conn, ch_names = _compute_ch_adjacency(raw.info, 'grad')
     assert_equal(conn.getnnz(), 2680)
 
     # Test ch_type=None.
     raw.pick_types(meg='mag')
-    find_ch_connectivity(raw.info, None)
+    find_ch_adjacency(raw.info, None)
 
     bti_fname = op.join(data_path, 'BTi', 'erm_HFH', 'c,rfDC')
     bti_config_name = op.join(data_path, 'BTi', 'erm_HFH', 'config')
     raw = read_raw_bti(bti_fname, bti_config_name, None)
-    _, ch_names = find_ch_connectivity(raw.info, 'mag')
+    _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'A1' in ch_names
 
     ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
     raw = read_raw_ctf(ctf_fname)
-    _, ch_names = find_ch_connectivity(raw.info, 'mag')
+    _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'MLC11' in ch_names
 
-    pytest.raises(ValueError, find_ch_connectivity, raw.info, 'eog')
+    pytest.raises(ValueError, find_ch_adjacency, raw.info, 'eog')
 
     raw_kit = read_raw_kit(fname_kit_157)
-    neighb, ch_names = find_ch_connectivity(raw_kit.info, 'mag')
+    neighb, ch_names = find_ch_adjacency(raw_kit.info, 'mag')
     assert neighb.data.size == 1329
     assert ch_names[0] == 'MEG 001'
 

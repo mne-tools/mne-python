@@ -97,6 +97,7 @@ def pytest_configure(config):
     ignore:.*sphinx\.util\.smartypants is deprecated.*:
     ignore:.*pandas\.util\.testing is deprecated.*:
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
+    ignore:VTK 9 no longer accepts an offset array:UserWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):

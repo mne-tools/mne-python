@@ -231,7 +231,7 @@ class RawNIRX(BaseRaw):
         # Create mne structure
         info = create_info(chnames,
                            samplingrate,
-                           ch_types='fnirs_raw')
+                           ch_types='fnirs_cw_amplitude')
         info.update(subject_info=subject_info, dig=dig)
 
         # Store channel, source, and detector locations

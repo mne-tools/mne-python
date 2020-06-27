@@ -214,7 +214,8 @@ def read_layout(kind, path=None, scale=True):
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
-def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
+def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads',
+                    csd=False):
     """Create .lout file from EEG electrode digitization.
 
     Parameters
@@ -232,6 +233,8 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).
+    csd : bool
+        Whether the channels contain current-source-density-transformed data.
 
     Returns
     -------
@@ -249,8 +252,10 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     if height is not None and not (0 <= height <= 1.0):
         raise ValueError('The height parameter should be between 0 and 1.')
 
-    picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                       exclude=exclude)
+    pick_kwargs = dict(meg=False, eeg=True, ref_meg=False, exclude=exclude)
+    if csd:
+        pick_kwargs.update(csd=True, eeg=False)
+    picks = pick_types(info, **pick_kwargs)
     loc2d = _find_topomap_coords(info, picks)
     names = [info['chs'][i]['ch_name'] for i in picks]
 
@@ -383,12 +388,13 @@ def find_layout(info, ch_type=None, exclude='bads'):
     layout : Layout instance | None
         None if layout not found.
     """
-    _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg'])
+    _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg',
+                                       'csd'])
 
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
      has_eeg_coils_and_meg, has_eeg_coils_only,
-     has_neuromag_122_grad) = _get_ch_info(info)
+     has_neuromag_122_grad, has_csd_coils) = _get_ch_info(info)
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
@@ -417,6 +423,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
             raise RuntimeError('Cannot make EEG layout, no measurement info '
                                'was passed to `find_layout`')
         return make_eeg_layout(info, exclude=exclude)
+    elif has_csd_coils and ch_type in [None, 'csd']:
+        return make_eeg_layout(info, exclude=exclude, csd=True)
     elif has_4D_mag:
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
@@ -792,8 +800,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
     pairs = defaultdict(list)
     grad_picks = pick_types(info, meg='grad', ref_meg=False, exclude=exclude)
 
-    (_, has_vv_grad, _, _, _, _, _, _, _, _, _, has_neuromag_122_grad) = \
-        _get_ch_info(info)
+    _, has_vv_grad, *_, has_neuromag_122_grad, _ = _get_ch_info(info)
 
     for i in grad_picks:
         ch = info['chs'][i]
@@ -907,7 +914,7 @@ def _merge_ch_data(data, ch_type, names, method='rms'):
     if ch_type == 'grad':
         data = _merge_grad_data(data, method)
     else:
-        assert ch_type in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
+        assert ch_type in ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
         data, names = _merge_nirs_data(data, names)
     return data, names
 

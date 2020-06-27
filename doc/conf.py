@@ -451,6 +451,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*semaphore_tracker: process died unexpectedly.*')
     warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
         'ignore', '.*will be interpreted as an array index.*', module='scipy')
+    warnings.filterwarnings(  # PyVista needs to be updated (?)
+        'ignore', '.*VTK 9 no longer accepts an offset array.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -461,6 +463,7 @@ def reset_warnings(gallery_conf, fname):
                 'scipy.* is deprecated and will be removed in',  # dipy
                 r'Converting `np\.character` to a dtype is deprecated',  # vtk
                 r'sphinx\.util\.smartypants is deprecated',
+               'is a deprecated alias for the builtin',  # NumPy
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)

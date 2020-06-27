@@ -25,8 +25,9 @@ import mne
 
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-fnirs_raw_dir = os.path.join(fnirs_data_folder, 'Participant-1')
-raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
+fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
+raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
+raw_intensity.load_data()
 
 
 ###############################################################################

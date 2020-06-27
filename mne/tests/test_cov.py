@@ -147,7 +147,7 @@ def test_cov_order():
     whitener_2, w_ch_names_2, n_nzero_2 = compute_whitener(
         cov_reorder, info, return_rank=True)
     assert_array_equal(w_ch_names_2, w_ch_names)
-    assert_allclose(whitener_2, whitener)
+    assert_allclose(whitener_2, whitener, rtol=1e-6)
     assert n_nzero == n_nzero_2
     # with pca
     assert n_nzero < whitener.shape[0]

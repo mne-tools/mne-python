@@ -22,7 +22,8 @@ from .._3d import _process_clim, _handle_time
 from ...surface import mesh_edges
 from ...morph import _hemi_morph
 from ...label import read_label, _read_annot
-from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
+from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
+                      use_log_level)
 
 
 class _Brain(object):
@@ -193,7 +194,7 @@ class _Brain(object):
         if len(size) not in (1, 2):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
-        fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
+        self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
         self._notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
@@ -220,7 +221,7 @@ class _Brain(object):
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
 
-        self._renderer = _get_renderer(name=self._title, size=fig_size,
+        self._renderer = _get_renderer(name=self._title, size=self._size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
                                        fig=figure)
@@ -1003,10 +1004,11 @@ class _Brain(object):
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
                 morph_n_steps = 'nearest' if n_steps == 0 else n_steps
                 maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
-                smooth_mat = _hemi_morph(
-                    self.geo[hemi].faces,
-                    np.arange(len(self.geo[hemi].coords)),
-                    vertices, morph_n_steps, maps, warn=False)
+                with use_log_level(False):
+                    smooth_mat = _hemi_morph(
+                        self.geo[hemi].faces,
+                        np.arange(len(self.geo[hemi].coords)),
+                        vertices, morph_n_steps, maps, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
         self._data['smoothing_steps'] = n_steps

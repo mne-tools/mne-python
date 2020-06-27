@@ -332,8 +332,8 @@ Projections:
    find_layout
    make_eeg_layout
    make_grid_layout
-   find_ch_connectivity
-   read_ch_connectivity
+   find_ch_adjacency
+   read_ch_adjacency
    equalize_channels
    rename_channels
    generate_2d_layout
@@ -621,6 +621,7 @@ Forward Modeling
    setup_source_space
    setup_volume_source_space
    surface.complete_surface_info
+   surface.read_curvature
    use_coil_def
    write_bem_surfaces
    write_trans
@@ -919,6 +920,7 @@ Non-parametric (clustering) resampling methods:
 .. autosummary::
    :toctree: generated/
 
+   combine_adjacency
    permutation_cluster_test
    permutation_cluster_1samp_test
    permutation_t_test
@@ -927,22 +929,22 @@ Non-parametric (clustering) resampling methods:
    summarize_clusters_stc
    bootstrap_confidence_interval
 
-Compute ``connectivity`` matrices for cluster-level statistics:
+Compute ``adjacency`` matrices for cluster-level statistics:
 
 .. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
 
-   channels.find_ch_connectivity
-   channels.read_ch_connectivity
-   spatial_dist_connectivity
-   spatial_src_connectivity
-   spatial_tris_connectivity
-   spatial_inter_hemi_connectivity
-   spatio_temporal_src_connectivity
-   spatio_temporal_tris_connectivity
-   spatio_temporal_dist_connectivity
+   channels.find_ch_adjacency
+   channels.read_ch_adjacency
+   spatial_dist_adjacency
+   spatial_src_adjacency
+   spatial_tris_adjacency
+   spatial_inter_hemi_adjacency
+   spatio_temporal_src_adjacency
+   spatio_temporal_tris_adjacency
+   spatio_temporal_dist_adjacency
 
 
 Simulation
