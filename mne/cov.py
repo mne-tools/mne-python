@@ -40,7 +40,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
-                    empirical_covariance, log_likelihood)
+                    empirical_covariance, log_likelihood, dict_)
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -63,8 +63,8 @@ def _get_tslice(epochs, tmin, tmax):
     return tslice
 
 
-class Covariance(dict):
-    """Noise covariance matrix.
+class Covariance(dict_):
+    """Noise covariance matrixx.
 
     .. warning:: This class should not be instantiated directly, but
                  instead should be created using a covariance reading or
