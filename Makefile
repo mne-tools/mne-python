@@ -97,7 +97,7 @@ upload-pipy:
 flake:
 	@if command -v flake8 > /dev/null; then \
 		echo "Running flake8"; \
-		flake8 --count mne examples tutorials setup.py; \
+		flake8 --count; \
 	else \
 		echo "flake8 not found, please install it!"; \
 		exit 1; \
