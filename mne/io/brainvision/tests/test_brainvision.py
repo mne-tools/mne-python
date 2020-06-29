@@ -44,6 +44,8 @@ vhdr_lowpass_path = op.join(data_dir, 'test_highpass.vhdr')
 vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
 vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
 vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
+vhdr_segmentation_impedance = op.join(data_dir,
+                                      'test_segmentation_impedance.vhdr')
 
 # VHDR exported with neuroone
 data_path = testing.data_path(download=False)
@@ -648,6 +650,33 @@ def test_event_id_stability_when_save_and_fif_reload(tmpdir):
 
     assert event_id == original_event_id
     assert_array_equal(events, original_events)
+
+
+def test_parse_segmentation():
+    """Test case for the segmentation section parsing."""
+    expected_segmentation = {
+        'type': 'MARKERBASED',
+        'data_points': 1100,
+        'averaged': 'YES',
+        'averaged_segments': 80,
+        'artifact_rejection': {
+            'Gradient': ['Disabled'],
+            'Max. Difference': ['Disabled'],
+            'Amplitude': ['Disabled'], 'Low Activity': ['Disabled'],
+            'Test Interval': ['Whole Segment'],
+            'Untested Channels': ['C3', ' C4', ' F3', ' F4', ' F7', ' F8',
+                                  ' Fp1', ' Fp2', ' O1', ' O2', ' P3', ' P4',
+                                  ' T3', ' T4', ' T5', 'T6']
+        },
+        'intervals': {'Prestimulus': {'unit': 'ms', 'duration': '100'},
+                      'Poststimulus': {'unit': 'ms', 'duration': '1000'}},
+        'averaging': {'Averaging': ['On'], 'Baseline Correction': ['On']},
+        'miscellaneous': {'Max. Segments': ['unlimited']}
+    }
+
+    with pytest.warns(RuntimeWarning, match='software filter'):
+        raw = read_raw_brainvision(vhdr_segmentation_impedance, eog=eog)
+    assert_array_equal(expected_segmentation, raw.segmentation)
 
 
 run_tests_if_main()

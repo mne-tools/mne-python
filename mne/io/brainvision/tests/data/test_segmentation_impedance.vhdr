@@ -1,0 +1,143 @@
+Brain Vision Data Exchange Header File Version 1.0
+; Data created by the Vision Recorder
+
+[Common Infos]
+Codepage=UTF-8
+DataFile=test.eeg
+MarkerFile=test.vmrk
+DataFormat=BINARY
+; Data orientation: MULTIPLEXED=ch1,pt1, ch2,pt1 ...
+DataOrientation=MULTIPLEXED
+NumberOfChannels=19
+; Sampling interval in microseconds
+SamplingInterval=1000
+SegmentationType=MARKERBASED
+SegmentDataPoints=1100
+Averaged=YES
+AveragedSegments=80
+
+[Binary Infos]
+BinaryFormat=IEEE_FLOAT_32
+
+[Channel Infos]
+; Each entry: Ch<Channel number>=<Name>,<Reference channel name>,
+; <Resolution in "Unit">,<Unit>, Future extensions..
+; Fields are delimited by commas, some fields might be omitted (empty).
+; Commas in channel names are coded as "\1".
+Ch1=Fp1,,1,µV
+Ch2=Fp2,,1,µV
+Ch3=F3,,1,µV
+Ch4=F4,,1,µV
+Ch5=C3,,1,µV
+Ch6=C4,,1,µV
+Ch7=P3,,1,µV
+Ch8=P4,,1,µV
+Ch9=O1,,1,µV
+Ch10=O2,,1,µV
+Ch11=F7,,1,µV
+Ch12=F8,,1,µV
+Ch13=T3,,1,µV
+Ch14=T4,,1,µV
+Ch15=T5,,1,µV
+Ch16=T6,,1,µV
+Ch17=Fz,,1,µV
+Ch18=Cz,,1,µV
+Ch19=Pz,,1,µV
+
+[Comment]
+
+A m p l i f i e r  S e t u p
+============================
+Number of channels: 19
+Sampling Rate [Hz]: 1000
+Sampling Interval [µS]: 1000
+
+Channels
+--------
+#     Name      Phys. Chn.    Resolution / Unit   Low Cutoff [s]   High Cutoff [Hz]   Notch [Hz]    Series Res. [kOhm] Gradient         Offset
+1     Fp1         1                0.1 µV             10              250              Off                0                 
+2     Fp2         2                0.1 µV             10              250              Off                0                 
+3     F3          3                0.1 µV             10              250              Off                0                 
+4     F4          4                0.1 µV             10              250              Off                0                 
+5     C3          5                0.1 µV             10              250              Off                0                 
+6     C4          6                0.1 µV             10              250              Off                0                 
+7     P3          7                0.1 µV             10              250              Off                0                 
+8     P4          8                0.1 µV             10              250              Off                0                 
+9     O1          9                0.1 µV             10              250              Off                0                 
+10    O2          10               0.1 µV             10              250              Off                0                 
+11    F7          11               0.1 µV             10              250              Off                0                 
+12    F8          12               0.1 µV             10              250              Off                0                 
+13    T3          13               0.1 µV             10              250              Off                0                 
+14    T4          14               0.1 µV             10              250              Off                0                 
+15    T5          15               0.1 µV             10              250              Off                0                 
+16    T6          16               0.1 µV             10              250              Off                0                 
+17    Fz          17               0.1 µV             10              250              Off                0                 
+18    Cz          18               0.1 µV             10              250              Off                0                 
+19    Pz          19               0.1 µV             10              250              Off                0                 
+
+S o f t w a r e  F i l t e r s
+==============================
+#     Low Cutoff [s]   High Cutoff [Hz]   Notch [Hz]
+1      1.59155          30                 Off
+2      1.59155          30                 Off
+3      1.59155          30                 Off
+4      1.59155          30                 Off
+5      1.59155          30                 Off
+6      1.59155          30                 Off
+7      1.59155          30                 Off
+8      1.59155          30                 Off
+9      1.59155          30                 Off
+10     1.59155          30                 Off
+11     1.59155          30                 Off
+12     1.59155          30                 Off
+13     1.59155          30                 Off
+14     1.59155          30                 Off
+15     1.59155          30                 Off
+16     1.59155          30                 Off
+17     1.59155          30                 Off
+18     1.59155          30                 Off
+19     1.59155          30                 Off
+
+
+
+S e g m e n t a t i o n  /  A v e r a g i n g
+=============================================
+Markers
+-------
+Stimulus    S  2        
+
+Interval
+--------
+Prestimulus [ms]: 100
+Poststimulus [ms]: 1000
+
+Artifact Rejection
+------------------
+	Gradient:        Disabled
+	Max. Difference: Disabled
+	Amplitude:       Disabled
+	Low Activity:    Disabled
+	Test Interval:   Whole Segment
+	Untested Channels:
+		C3, C4, F3, F4, F7, F8, Fp1, Fp2, O1, O2, P3, P4, T3, T4, T5, 
+		T6
+
+Averaging
+---------
+	Averaging is On
+	Baseline Correction is On
+
+Miscellaneous
+-------------
+	Max. Segments: unlimited
+
+
+Data Electrodes Selected Impedance Measurement Range: 0 - 5 kOhm
+Ground Electrode Selected Impedance Measurement Range: 0 - 10 kOhm
+Reference Electrode Selected Impedance Measurement Range: 0 - 10 kOhm
+Impedance [kOhm] at 17:25:01 :
+Fp1:         13
+Fp2:         13
+C3:           1
+Ref:          0
+Gnd:         19
