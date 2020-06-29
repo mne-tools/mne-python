@@ -28,9 +28,9 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - imageio>=2.6.1
-- vtk
 - pip:
   - mne
+  - vtk
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
   - pyvista>=0.24
