@@ -73,6 +73,17 @@ class _NotebookInteractor(object):
     def configure_controllers(self):
         from ipywidgets import (interactive, Label, VBox, FloatSlider,
                                 IntSlider, Checkbox)
+        # continuous update
+        self.continuous_update_button = Checkbox(
+            value=False,
+            description='Continuous update',
+            disabled=False,
+            indent=False,
+        )
+        self.controllers["continuous_update"] = interactive(
+            self.set_continuous_update,
+            value=self.continuous_update_button
+        )
         # subplot
         number_of_plots = len(self.plotter.renderers)
         if number_of_plots > 1:
@@ -128,17 +139,6 @@ class _NotebookInteractor(object):
                 distance=self.sliders["distance"],
             )
         ])
-        # continuous update
-        self.continuous_update_button = Checkbox(
-            value=False,
-            description='Continuous update',
-            disabled=False,
-            indent=False,
-        )
-        self.controllers["continuous_update"] = interactive(
-            self.set_continuous_update,
-            value=self.continuous_update_button
-        )
 
     def set_camera(self, azimuth, elevation, distance):
         focalpoint = self.plotter.camera.GetFocalPoint()
