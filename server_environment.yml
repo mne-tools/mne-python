@@ -21,4 +21,4 @@ dependencies:
   - ipywidgets
   - nbformat
   - nbclient
-  - https://github.com/jupyter/nbconvert/archive/6.0.0a3.zip
+  - jupyter_client<6.1.5
