@@ -148,6 +148,7 @@ def test_brain(renderer):
 
 
 @testing.requires_testing_data
+@pytest.mark.slowtest
 def test_brain_save_movie(tmpdir, renderer):
     """Test saving a movie of a _Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
@@ -190,7 +191,12 @@ def test_brain_timeviewer(renderer_interactive):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
+@pytest.mark.parametrize('hemi', [
+    'lh',
+    pytest.param('rh', marks=pytest.mark.slowtest),
+    pytest.param('split', marks=pytest.mark.slowtest),
+    pytest.param('both', marks=pytest.mark.slowtest),
+])
 def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
