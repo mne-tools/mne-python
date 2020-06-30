@@ -23,6 +23,7 @@ dependencies:
 - joblib
 - psutil
 - flake8
+- numpydoc>=1.0
 - numexpr
 - traits>=4.6.0
 - pyface>=6
@@ -43,6 +44,5 @@ dependencies:
 - pysurfer
 - pip:
   - mne
-  - https://github.com/numpy/numpydoc/archive/master.zip
   - https://github.com/enthought/mayavi/archive/master.zip
   - pyvistaqt
