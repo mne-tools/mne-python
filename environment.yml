@@ -1,6 +1,6 @@
 name: base
 channels:
-- defaults
+- conda-forge
 dependencies:
 - python>=3.5
 - pip
@@ -28,22 +28,21 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - imageio>=2.6.1
+- imageio-ffmpeg>=0.4.1
+- vtk>=9.0.1
+- pyvista>=0.24
+- nibabel
+- nilearn
+- pytest-sugar
+- pydocstyle
+- codespell
+- python-picard
+- tqdm
+- python-neo
+- dipy
+- pysurfer
 - pip:
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
-  - imageio-ffmpeg>=0.4.1
-  - vtk>=9.0.1
-  - pyvista>=0.24
-  - pyvistaqt
   - https://github.com/enthought/mayavi/archive/master.zip
-  - PySurfer[save_movie]
-  - dipy --only-binary dipy
-  - nibabel
-  - nilearn
-  - neo
-  - pytest-sugar
-  - pydocstyle
-  - codespell
-  - python-picard
-  - tqdm
-  - PyQt5>=5.10
+  - pyvistaqt
