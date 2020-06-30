@@ -476,6 +476,7 @@ def pytest_sessionfinish(session, exitstatus):
     n = session.config.option.durations
     if n is None:
         return
+    print('\n')
     try:
         import pytest_harvest
     except ImportError:

@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 from os import path
+from collections import OrderedDict
 
 import numpy as np
 
@@ -168,9 +169,10 @@ def _divide_to_regions(info, add_stim=True):
         if len(stim_ch) > 0:
             for region in [lf, rf, lo, ro, lp, rp, lt, rt]:
                 region.append(info['ch_names'].index(stim_ch[0]))
-    return {'Left-frontal': lf, 'Right-frontal': rf, 'Left-parietal': lp,
-            'Right-parietal': rp, 'Left-occipital': lo, 'Right-occipital': ro,
-            'Left-temporal': lt, 'Right-temporal': rt}
+    return OrderedDict([('Left-frontal', lf), ('Right-frontal', rf),
+                        ('Left-parietal', lp), ('Right-parietal', rp),
+                        ('Left-occipital', lo), ('Right-occipital', ro),
+                        ('Left-temporal', lt), ('Right-temporal', rt)])
 
 
 def _divide_side(lobe, x):

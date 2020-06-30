@@ -6,98 +6,26 @@
 #
 # License: Simplified BSD
 
-import copy
 from functools import partial
+from collections import OrderedDict, defaultdict
 
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
-from ..filter import create_filter, _overlap_add_filter, _filtfilt
+from ..filter import create_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels)
+                       pick_channels, _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..utils import verbose, _ensure_int, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
-                    _plot_raw_onkey, figure_nobar, plt_show,
-                    _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _select_bads, _get_figsize_from_config,
-                    _setup_browser_offsets, _compute_scalings, plot_sensors,
-                    _radio_clicked, _set_radio_button, _handle_topomap_bads,
-                    _change_channel_group, _plot_annotations, _setup_butterfly,
-                    _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line, _simplify_float,
-                    _check_psd_fmax, _set_window_title)
+from .utils import (_prepare_mne_browse, figure_nobar, plt_show,
+                    _get_figsize_from_config, _setup_browser_offsets,
+                    _compute_scalings, _handle_decim, _check_cov,
+                    _set_ax_label_style, _simplify_float, _check_psd_fmax,
+                    _set_window_title, _shorten_path_from_middle)
 
-
-def _plot_update_raw_proj(params, bools):
-    """Deal with changed proj."""
-    if bools is not None:
-        inds = np.where(bools)[0]
-        params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
-                                   for ii in inds]
-        params['proj_bools'] = bools
-    params['projector'], params['whitened_ch_names'] = _setup_plot_projector(
-        params['info'], params['noise_cov'], True, params['use_noise_cov'])
-    params['update_fun']()
-    params['plot_fun']()
-
-
-def _update_raw_data(params):
-    """Deal with time or proj changed."""
-    start = params['t_start']
-    start -= params['first_time']
-    stop = params['raw'].time_as_index(start + params['duration'])[0]
-    start = params['raw'].time_as_index(start)[0]
-    data_picks = _pick_data_channels(params['raw'].info)
-    data, times = params['raw'][:, start:stop]
-    if params['projector'] is not None:
-        data = np.dot(params['projector'], data)
-    # remove DC
-    if params['remove_dc'] is True:
-        data -= np.mean(data, axis=1)[:, np.newaxis]
-    if params['ba'] is not None:
-        # filter with the same defaults as `raw.filter`
-        starts, stops = params['filt_bounds']
-        mask = (starts < stop) & (stops > start)
-        starts = np.maximum(starts[mask], start) - start
-        stops = np.minimum(stops[mask], stop) - start
-        for start_, stop_ in zip(starts, stops):
-            this_data = data[data_picks, start_:stop_]
-            if isinstance(params['ba'], np.ndarray):  # FIR
-                this_data = _overlap_add_filter(
-                    this_data, params['ba'], copy=False)
-            else:  # IIR
-                this_data = _filtfilt(this_data, params['ba'], None, 1, False)
-            data[data_picks, start_:stop_] = this_data
-    # scale
-    for di in range(data.shape[0]):
-        ch_name = params['info']['ch_names'][di]
-        # stim channels should be hard limited
-        if params['types'][di] == 'stim':
-            norm = float(max(data[di]))
-        elif ch_name in params['whitened_ch_names'] and \
-                ch_name not in params['info']['bads']:
-            norm = params['scalings']['whitened']
-        else:
-            norm = params['scalings'][params['types'][di]]
-        data[di] /= norm if norm != 0 else 1.
-    params['data'] = data
-    params['times'] = times
-
-
-def _pick_bad_channels(event, params):
-    """Select or drop bad channels onpick."""
-    # Both bad lists are updated. params['info'] used for colors.
-    if params['fig_annotation'] is not None:
-        return
-    bads = params['raw'].info['bads']
-    params['info']['bads'] = _select_bads(event, params, bads)
-    _plot_update_raw_proj(params, None)
-
-
-_RAW_CLIP_DEF = 3.
+_RAW_CLIP_DEF = 1.5
 
 
 @verbose
@@ -105,7 +33,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
+             highpass=None, lowpass=None, filtorder=4,
+             clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):
@@ -140,10 +69,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     bad_color : color object
         Color to make bad channels.
     event_color : color object | dict
-        Color to use for events. Can also be a dict with
-        ``{event_number: color}`` pairings. Use ``event_number==-1`` for
-        any event numbers in the events list that are not in the dictionary.
-    scalings : dict | None
+        Color(s) to use for events. For all events in the same color, pass any
+        matplotlib-compatible color. Can also be a `dict` mapping event numbers
+        to colors, but if so it must include all events or include a "fallback"
+        entry with key ``-1``.
+    scalings : 'auto' | dict | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
         the scaling factor is set to match the 99.5th percentile of a subset of
         the corresponding data. If scalings == 'auto', all scalings fields are
@@ -212,10 +142,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Elekta's channel groupings (only works for Neuromag data),
         ``'position'`` groups the channels by the positions of the sensors.
         ``'selection'`` and ``'position'`` modes allow custom selections by
-        using lasso selector on the topomap. Pressing ``ctrl`` key while
+        using a lasso selector on the topomap. Pressing ``ctrl`` key while
         selecting allows appending to the current selection. Channels marked as
-        bad appear with red edges on the topomap. ``'type'`` and ``'original'``
-        groups the channels by type in butterfly mode whereas ``'selection'``
+        bad appear with red edges on the topomap. In butterfly mode, ``'type'``
+        and ``'original'`` group the channels by type, whereas ``'selection'``
         and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
         modes are overridden with ``order`` keyword.
     butterfly : bool
@@ -265,11 +195,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     shift+left/shift+right will scroll by 100%% of ``duration``. The scaling
     can be adjusted with - and + (or =) keys. The viewport dimensions can be
     adjusted with page up/page down and home/end keys. Full screen mode can be
-    toggled with the F11 key. To mark or un-mark a channel as bad, click on a
-    channel label or a channel trace. The changes will be reflected immediately
-    in the raw object's ``raw.info['bads']`` entry.
+    toggled with the F11 key, and scrollbars can be hidden/shown by pressing
+    'z'. Right-click a channel label to view its location. To mark or un-mark a
+    channel as bad, click on a channel label or a channel trace. The changes
+    will be reflected immediately in the raw object's ``raw.info['bads']``
+    entry.
 
-    If projectors are present, a button labelled "Proj" in the lower right
+    If projectors are present, a button labelled "Prj" in the lower right
     corner of the plot window opens a secondary control window, which allows
     enabling/disabling specific projectors individually. This provides a means
     of interactively observing how each projector would affect the raw data if
@@ -280,30 +212,50 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
     """
-    import matplotlib as mpl
     from ..io.base import BaseRaw
+    from ._figure import _browse_figure
+
+    info = raw.info.copy()
+    sfreq = info['sfreq']
+    projs = info['projs']
+    # this will be an attr for which projectors are currently "on" in the plot
+    projs_on = np.full_like(projs, proj, dtype=bool)
+    # disable projs in info if user doesn't want to see them right away
+    if not proj:
+        info['projs'] = list()
+
+    # handle defaults / check arg validity
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
                                  duration=duration)
+    if scalings['whitened'] == 'auto':
+        scalings['whitened'] = 1.
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
-    n_channels = min(len(raw.info['chs']), n_channels)
+    decim, picks_data = _handle_decim(info, decim, lowpass)
+    noise_cov = _check_cov(noise_cov, info)
+    units = _handle_default('units', None)
+    unit_scalings = _handle_default('scalings', None)
+    _check_option('group_by', group_by,
+                  ('selection', 'position', 'original', 'type'))
+
+    # clipping
     _validate_type(clipping, (None, 'numeric', str), 'clipping')
     if isinstance(clipping, str):
-        _check_option('clipping', clipping, ['clamp', 'transparent'],
+        _check_option('clipping', clipping, ('clamp', 'transparent'),
                       extra='when a string')
         clipping = 1. if clipping == 'transparent' else clipping
     elif clipping is not None:
         clipping = float(clipping)
+
+    # be forgiving if user asks for too much time
     duration = min(raw.times[-1], float(duration))
 
-    # figure out the IIR filtering parameters
-    sfreq = raw.info['sfreq']
+    # determine IIR filtering parameters
     if highpass is not None and highpass <= 0:
-        raise ValueError('highpass must be > 0, got %s' % (highpass,))
+        raise ValueError(f'highpass must be > 0, got {highpass}')
     if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
-
         filtorder = int(filtorder)
         if filtorder == 0:
             method = 'fir'
@@ -317,261 +269,144 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         filt_bounds = _annotations_starts_stops(
             raw, ('edge', 'bad_acq_skip'), invert=True)
 
-    # make a copy of info, remove projection (for now)
-    info = raw.info.copy()
-    projs = info['projs']
-    info['projs'] = []
-    n_times = raw.n_times
-
-    # allow for raw objects without filename, e.g., ICA
-    if title is None:
-        title = raw._filenames
-        if len(title) == 0:  # empty list or absent key
-            title = '<unknown>'
-        elif len(title) == 1:
-            title = title[0]
-        else:  # if len(title) > 1:
-            title = '%s ... (+ %d more) ' % (title[0], len(title) - 1)
-            if len(title) > 60:
-                title = '...' + title[-60:]
-    elif not isinstance(title, str):
-        raise TypeError('title must be None or a string')
+    # compute event times in seconds
     if events is not None:
-        event_times = events[:, 0].astype(float) - raw.first_samp
-        event_times /= info['sfreq']
+        event_times = (events[:, 0] - raw.first_samp).astype(float)
+        event_times /= sfreq
         event_nums = events[:, 2]
     else:
         event_times = event_nums = None
 
-    # reorganize the data in plotting order
-    # TODO Refactor this according to epochs.py
-    inds = list()
-    types = list()
-    for t in ['grad', 'mag']:
-        inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
-        types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']:
-        inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
-                            exclude=[])]
-        types += [t] * len(inds[-1])
-    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for key in _PICK_TYPES_KEYS:
-        if key not in ['meg', 'fnirs']:
-            pick_kwargs[key] = True
-            inds += [pick_types(raw.info, **pick_kwargs)]
-            types += [key] * len(inds[-1])
-            pick_kwargs[key] = False
-    inds = np.concatenate(inds).astype(int)
-    if not len(inds) == len(info['ch_names']):
-        raise RuntimeError('Some channels not classified, please report '
-                           'this problem')
+    # determine trace order
+    ch_names = np.array(raw.ch_names)
+    ch_types = np.array(raw.get_channel_types())
+    if order is None:
+        # for backward compat, we swap the first two to keep grad before mag
+        ch_type_order = list(_DATA_CH_TYPES_ORDER_DEFAULT)
+        ch_type_order = tuple(['grad', 'mag'] + ch_type_order[2:])
+        order = [pick_idx for order_type in ch_type_order
+                 for pick_idx, pick_type in enumerate(ch_types)
+                 if order_type == pick_type]
+    elif not isinstance(order, (np.ndarray, list, tuple)):
+        raise ValueError('order should be array-like; got '
+                         f'"{order}" ({type(order)}).')
+    order = np.asarray(order)
+    n_channels = min(info['nchan'], n_channels, len(order))
+    # adjust order based on channel selection, if needed
+    selections = None
+    if group_by in ('selection', 'position'):
+        selections = _setup_channel_selections(raw, group_by, order)
+        order = np.concatenate(list(selections.values()))
+        default_selection = list(selections)[0]
+        n_channels = len(selections[default_selection])
 
-    # put them back to original or modified order for natural plotting
-    reord = np.argsort(inds)
-    types = [types[ri] for ri in reord]
-    if isinstance(order, (np.ndarray, list, tuple)):
-        # put back to original order first, then use new order
-        inds = inds[reord][order]
-    elif order is not None:
-        raise ValueError('Unkown order, should be array-like. '
-                         'Got "%s" (%s).' % (order, type(order)))
+    # if event_color is a dict
+    if isinstance(event_color, dict):
+        event_color = {_ensure_int(key, 'event_color key'): value
+                       for key, value in event_color.items()}
+        default = event_color.pop(-1, None)
+        default_factory = None if default is None else lambda: default
+        event_color_dict = defaultdict(default_factory)
+        for key, value in event_color.items():
+            if key < 1:
+                raise KeyError('event_color keys must be strictly positive, '
+                               f'or -1 (cannot use {key})')
+            event_color_dict[key] = value
+    # if event_color is a string or other MPL color-like thing
+    else:
+        event_color_dict = defaultdict(lambda: event_color)
 
-    if group_by in ['selection', 'position']:
-        selections, fig_selection = _setup_browser_selection(raw, group_by)
-        selections = {k: np.intersect1d(v, inds) for k, v in
-                      selections.items()}
-    elif group_by == 'original':
-        if order is None:
-            order = np.arange(len(inds))
-            inds = inds[reord[:len(order)]]
-    elif group_by != 'type':
-        raise ValueError('Unknown group_by type %s' % group_by)
-
-    if not isinstance(event_color, dict):
-        event_color = {-1: event_color}
-    event_color = {_ensure_int(key, 'event_color key'): event_color[key]
-                   for key in event_color}
-    for key in event_color:
-        if key <= 0 and key != -1:
-            raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
-                           % key)
-    decim, data_picks = _handle_decim(info, decim, lowpass)
-    noise_cov = _check_cov(noise_cov, info)
-
-    # set up projection and data parameters
+    # handle first_samp
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
-    event_id_rev = {val: key for key, val in (event_id or {}).items()}
-    units = _handle_default('units', None)
-    unit_scalings = _handle_default('scalings', None)
+    event_id_rev = {v: k for k, v in (event_id or {}).items()}
 
-    params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
-                  info=info, projs=projs, remove_dc=remove_dc, ba=ba,
-                  n_channels=n_channels, scalings=scalings, types=types,
-                  n_times=n_times, event_times=event_times, inds=inds,
-                  event_nums=event_nums, clipping=clipping, fig_proj=None,
-                  first_time=first_time, added_label=list(), butterfly=False,
-                  group_by=group_by, orig_inds=inds.copy(), decim=decim,
-                  data_picks=data_picks, event_id_rev=event_id_rev,
-                  noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
-                  filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, show_scrollbars=show_scrollbars,
-                  show_scalebars=show_scalebars)
+    # generate window title; allow instances without a filename (e.g., ICA)
+    if title is None:
+        title = '<unknown>'
+        fnames = raw._filenames.copy()
+        if len(fnames):
+            title = fnames.pop(0)
+            extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
+            title = f'{title}{extra}'
+            if len(title) > 60:
+                title = _shorten_path_from_middle(title)
+    elif not isinstance(title, str):
+        raise TypeError(f'title must be None or a string, got a {type(title)}')
 
-    if group_by in ['selection', 'position']:
-        params['fig_selection'] = fig_selection
-        params['selections'] = selections
-        params['radio_clicked'] = partial(_radio_clicked, params=params)
-        fig_selection.radio.on_clicked(params['radio_clicked'])
-        lasso_callback = partial(_set_custom_selection, params=params)
-        fig_selection.canvas.mpl_connect('lasso_event', lasso_callback)
+    # gather parameters and initialize figure
+    params = dict(inst=raw,
+                  info=info,
+                  # channels and channel order
+                  ch_names=ch_names,
+                  ch_types=ch_types,
+                  ch_order=order,
+                  picks=order[:n_channels],
+                  n_channels=n_channels,
+                  picks_data=picks_data,
+                  group_by=group_by,
+                  ch_selections=selections,
+                  # time
+                  t_start=start,
+                  duration=duration,
+                  n_times=raw.n_times,
+                  first_time=first_time,
+                  decim=decim,
+                  # events
+                  event_color_dict=event_color_dict,
+                  event_times=event_times,
+                  event_nums=event_nums,
+                  event_id_rev=event_id_rev,
+                  # preprocessing
+                  projs=projs,
+                  projs_on=projs_on,
+                  apply_proj=proj,
+                  remove_dc=remove_dc,
+                  filter_coefs=ba,
+                  filter_bounds=filt_bounds,
+                  noise_cov=noise_cov,
+                  # scalings
+                  scalings=scalings,
+                  units=units,
+                  unit_scalings=unit_scalings,
+                  # colors
+                  ch_color_bad=bad_color,
+                  ch_color_dict=color,
+                  # display
+                  butterfly=butterfly,
+                  clipping=clipping,
+                  scrollbars_visible=show_scrollbars,
+                  scalebars_visible=show_scalebars,
+                  window_title=title)
 
-    _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
-                            n_channels)
+    fig = _browse_figure(**params)
+    fig._post_init()  # XXX fix for older matplotlib
+    fig._update_picks()
 
-    # plot event_line first so it's in the back
-    event_lines = [params['ax'].plot([np.nan], color=event_color[ev_num])[0]
-                   for ev_num in sorted(event_color.keys())]
+    # make channel selection dialog, if requested (doesn't work well in init)
+    if group_by in ('selection', 'position'):
+        fig._create_selection_fig()
 
-    params['plot_fun'] = partial(_plot_raw_traces, params=params, color=color,
-                                 bad_color=bad_color, event_lines=event_lines,
-                                 event_color=event_color)
+    # update projector and data, and plot
+    fig._update_projector()
+    fig._update_trace_offsets()
+    fig._update_data()
+    fig._draw_traces()
 
-    _plot_annotations(raw, params)
+    # plot annotations (if any)
+    fig._setup_annotation_colors()
+    fig._update_annotation_segments()
+    fig._draw_annotations()
 
-    params['update_fun'] = partial(_update_raw_data, params=params)
-    params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
-    params['label_click_fun'] = partial(_label_clicked, params=params)
-    params['scale_factor'] = 1.0
-    # set up proj button
-    opt_button = None
-    if len(raw.info['projs']) > 0 and not raw.proj:
-        ax_button = params['fig'].add_axes(params['proj_button_pos'])
-        ax_button.set_axes_locator(params['proj_button_locator'])
-        params['ax_button'] = ax_button
-        params['apply_proj'] = proj
-        opt_button = mpl.widgets.Button(ax_button, 'Proj')
-        callback_option = partial(_toggle_options, params=params)
-        opt_button.on_clicked(callback_option)
-    # set up callbacks
-    callback_key = partial(_plot_raw_onkey, params=params)
-    params['fig'].canvas.mpl_connect('key_press_event', callback_key)
-    callback_scroll = partial(_plot_raw_onscroll, params=params)
-    params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
-    callback_pick = partial(_mouse_click, params=params)
-    params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-
-    # As here code is shared with plot_evoked, some extra steps:
-    # first the actual plot update function
-    params['plot_update_proj_callback'] = _plot_update_raw_proj
-    # then the toggle handler
-    callback_proj = partial(_toggle_proj, params=params)
-    # store these for use by callbacks in the options figure
-    params['callback_proj'] = callback_proj
-    params['callback_key'] = callback_key
-    # have to store this, or it could get garbage-collected
-    params['opt_button'] = opt_button
-    params['update_vertline'] = partial(_draw_vert_line, params=params)
-
-    # do initial plots
-    callback_proj('none')
-
-    # deal with projectors
+    # start with projectors dialog open, if requested
     if show_options:
-        _toggle_options(None, params)
+        fig._toggle_proj_fig()
 
-    callback_close = partial(_close_event, params=params)
-    params['fig'].canvas.mpl_connect('close_event', callback_close)
-    # initialize the first selection set
-    if group_by in ['selection', 'position']:
-        _radio_clicked(fig_selection.radio.labels[0]._text, params)
-        callback_selection_key = partial(_selection_key_press, params=params)
-        callback_selection_scroll = partial(_selection_scroll, params=params)
-        params['fig_selection'].canvas.mpl_connect('close_event',
-                                                   callback_close)
-        params['fig_selection'].canvas.mpl_connect('key_press_event',
-                                                   callback_selection_key)
-        params['fig_selection'].canvas.mpl_connect('scroll_event',
-                                                   callback_selection_scroll)
-    if butterfly:
-        _setup_butterfly(params)
+    # for blitting
+    fig.canvas.flush_events()
+    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
 
-    try:
-        plt_show(show, block=block)
-    except TypeError:  # not all versions have this
-        plt_show(show)
-
-    # add MNE params dict to the resulting figure object so that parameters can
-    # be modified after the figure has been created; this is useful e.g. to
-    # remove the keyboard shortcut to close the figure with the 'Esc' key,
-    # which can be done with
-    #
-    # fig._mne_params['close_key'] = None
-    #
-    # (assuming that the figure object is fig)
-    params['fig']._mne_params = params
-
-    return params['fig']
-
-
-def _selection_scroll(event, params):
-    """Handle scroll in selection dialog."""
-    if event.step < 0:
-        _change_channel_group(-1, params)
-    elif event.step > 0:
-        _change_channel_group(1, params)
-
-
-def _selection_key_press(event, params):
-    """Handle keys in selection dialog."""
-    if event.key == 'down':
-        _change_channel_group(-1, params)
-    elif event.key == 'up':
-        _change_channel_group(1, params)
-    elif event.key == 'escape':
-        _close_event(event, params)
-
-
-def _close_event(event, params):
-    """Handle closing of raw browser with selections."""
-    import matplotlib.pyplot as plt
-    if 'fig_selection' in params:
-        plt.close(params['fig_selection'])
-    for fig in ['fig_annotation', 'fig_help', 'fig_proj']:
-        if params[fig] is not None:
-            plt.close(params[fig])
-    plt.close(params['fig'])
-
-
-def _label_clicked(pos, params):
-    """Select bad channels."""
-    if params['butterfly']:
-        return
-    labels = params['ax'].yaxis.get_ticklabels()
-    offsets = np.array(params['offsets']) + params['offsets'][0]
-    line_idx = np.searchsorted(offsets, pos[1])
-    text = labels[line_idx].get_text()
-    if len(text) == 0:
-        return
-    if 'fig_selection' in params:
-        ch_idx = _find_channel_idx(text, params)
-        _handle_topomap_bads(text, params)
-    else:
-        ch_idx = [params['ch_start'] + line_idx]
-    bads = params['info']['bads']
-    if text in bads:
-        while text in bads:  # to make sure duplicates are removed
-            bads.remove(text)
-        color = vars(params['lines'][line_idx])['def_color']
-        for idx in ch_idx:
-            params['ax_vscroll'].patches[idx].set_color(color)
-    else:
-        bads.append(text)
-        color = params['bad_color']
-        for idx in ch_idx:
-            params['ax_vscroll'].patches[idx].set_color(color)
-    params['raw'].info['bads'] = bads
-    _plot_update_raw_proj(params, None)
+    return fig
 
 
 @verbose
@@ -1026,71 +861,40 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     return fig
 
 
-def _set_custom_selection(params):
-    """Set custom selection by lasso selector."""
-    chs = params['fig_selection'].lasso.selection
-    if len(chs) == 0:
-        return
-    labels = [label._text for label in params['fig_selection'].radio.labels]
-    inds = np.in1d(params['raw'].ch_names, chs)
-    params['selections']['Custom'] = np.where(inds)[0]
-
-    _set_radio_button(labels.index('Custom'), params=params)
-
-
-def _setup_browser_selection(raw, kind, selector=True):
-    """Organize browser selections."""
-    import matplotlib.pyplot as plt
-    from matplotlib.widgets import RadioButtons
+def _setup_channel_selections(raw, kind, order):
+    """Get dictionary of channel groupings."""
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
-    _check_option('group_by', kind, ('position, selection'))
+    _check_option('group_by', kind, ('position', 'selection'))
     if kind == 'position':
-        order = _divide_to_regions(raw.info)
-        keys = _SELECTIONS[1:]  # no 'Vertex'
-        kind = 'position'
+        selections_dict = _divide_to_regions(raw.info)
+        keys = _SELECTIONS[1:]  # omit 'Vertex'
     else:  # kind == 'selection'
         from ..io import RawFIF, RawArray
         if not isinstance(raw, (RawFIF, RawArray)):
-            raise ValueError("order='selection' only works for Neuromag data. "
-                             "Use order='position' instead.")
-        order = dict()
-        try:
-            stim_ch = _get_stim_channel(None, raw.info)
-        except ValueError:
-            stim_ch = ['']
-        keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
+            raise ValueError("order='selection' only works for Neuromag "
+                             "data. Use order='position' instead.")
+        selections_dict = OrderedDict()
+        # get stim channel (if any)
+        stim_ch = _get_stim_channel(None, raw.info, raise_error=False)
+        stim_ch = stim_ch if len(stim_ch) else ['']
         stim_ch = pick_channels(raw.ch_names, stim_ch)
+        # loop over regions
+        keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         for key in keys:
             channels = read_selection(key, info=raw.info)
             picks = pick_channels(raw.ch_names, channels)
-            if len(picks) == 0:
+            picks = np.intersect1d(picks, order)
+            if not len(picks):
                 continue  # omit empty selections
-            order[key] = np.concatenate([picks, stim_ch])
-
+            selections_dict[key] = np.concatenate([picks, stim_ch])
+    # add misc channels
     misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
-                      ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
-                      chpi=True, exci=True, ias=True, syst=True, seeg=False,
-                      bio=True, ecog=False, fnirs=False, exclude=())
-    if len(misc) > 0:
-        order['Misc'] = misc
-    keys = np.concatenate([keys, ['Misc']])
-    if not selector:
-        return order
-    fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
-    _set_window_title(fig_selection, 'Selection')
-    rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
-    topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
-    keys = np.concatenate([keys, ['Custom']])
-    order.update({'Custom': list()})  # custom selection with lasso
-    plot_sensors(raw.info, kind='select', ch_type='all', axes=topo_ax,
-                 ch_groups=kind, title='', show=False)
-    fig_selection.radio = RadioButtons(rax, [key for key in keys
-                                             if key in order.keys()])
-
-    for circle in fig_selection.radio.circles:
-        circle.set_radius(0.02)  # make them smaller to prevent overlap
-        circle.set_edgecolor('gray')  # make sure the buttons are visible
-
-    return order, fig_selection
+                      ecg=True, emg=True, ref_meg=False, misc=True,
+                      resp=True, chpi=True, exci=True, ias=True, syst=True,
+                      seeg=False, bio=True, ecog=False, fnirs=False,
+                      exclude=())
+    if len(misc) and np.in1d(misc, order).any():
+        selections_dict['Misc'] = misc
+    return selections_dict

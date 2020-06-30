@@ -5,7 +5,6 @@
 import numpy as np
 import os.path as op
 import itertools
-from distutils.version import LooseVersion
 
 from numpy.testing import assert_allclose
 import pytest
@@ -15,8 +14,8 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import run_tests_if_main, _dt_to_stamp
-from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
+from mne.utils import run_tests_if_main, _dt_to_stamp, check_version
+from mne.viz.utils import _fake_click, _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
@@ -28,7 +27,8 @@ event_name = op.join(base_dir, 'test-eve.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
-def _get_raw():
+@pytest.fixture()
+def raw():
     """Get raw data."""
     raw = read_raw_fif(raw_fname, preload=True)
     # Throws a warning about a changed unit.
@@ -39,6 +39,12 @@ def _get_raw():
     return raw
 
 
+@pytest.fixture(scope='module')
+def new_mpl():
+    """Check matplotlib version."""
+    return check_version('matplotlib', '3.0')
+
+
 def _get_events():
     """Get events."""
     return read_events(event_name)
@@ -47,7 +53,6 @@ def _get_events():
 def _annotation_helper(raw, events=False):
     """Test interactive annotations."""
     # Some of our checks here require modern mpl to work properly
-    mpl_good_enough = LooseVersion(matplotlib.__version__) >= '2.0'
     n_anns = len(raw.annotations)
     plt.close('all')
 
@@ -60,61 +65,73 @@ def _annotation_helper(raw, events=False):
         n_events = 0
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
-    data_ax = fig.axes[0]
+    data_ax = fig.mne.ax_main
     fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
     # +2 from the scale bars
     n_scale = 2
-    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
-    # modify description
-    ann_fig = plt.gcf()
-    for key in ' test':
+    assert len(data_ax.texts) == n_anns + n_events + n_scale
+    # modify description to create label "BAD test"
+    ann_fig = fig.mne.fig_annotation
+    for key in ['backspace'] + list(' test;'):  # semicolon is ignored
         ann_fig.canvas.key_press_event(key)
     ann_fig.canvas.key_press_event('enter')
 
-    ann_fig = plt.gcf()
-    # XXX: _fake_click raises an error on Agg backend
-    _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
+    # change annotation label
+    for ix in (-1, 0):
+        xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
+        _fake_click(ann_fig, ann_fig.mne.radio_ax, xy, xform='data')
 
     # draw annotation
-    fig.canvas.key_press_event('p')  # use snap mode
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
-    assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
+    assert raw.annotations.description[n_anns] == 'BAD test'
+    assert len(data_ax.texts) == n_anns + 1 + n_events + n_scale
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
     assert_allclose(onset, want_onset)
     assert_allclose(raw.annotations.duration[n_anns], 4.)
-    # hover event
-    _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
-                kind='motion')
-    _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
-                kind='motion')
-    # modify annotation from end
+    # test hover event
+    fig.canvas.key_press_event('p')  # first turn on draggable mode
+    assert fig.mne.draggable_annotations
+    hover_kwargs = dict(xform='data', button=None, kind='motion')
+    _fake_click(fig, data_ax, [4.6, 1.], **hover_kwargs)  # well inside ann.
+    _fake_click(fig, data_ax, [4.9, 1.], **hover_kwargs)  # almost at edge
+    assert fig.mne.annotation_hover_line is not None
+    _fake_click(fig, data_ax, [5.5, 1.], **hover_kwargs)  # well outside ann.
+    assert fig.mne.annotation_hover_line is None
+    # more tests of hover line
+    _fake_click(fig, data_ax, [4.6, 1.], **hover_kwargs)  # well inside ann.
+    _fake_click(fig, data_ax, [4.9, 1.], **hover_kwargs)  # almost at edge
+    assert fig.mne.annotation_hover_line is not None
+    fig.canvas.key_press_event('p')  # turn off draggable mode, then move a bit
+    _fake_click(fig, data_ax, [4.95, 1.], **hover_kwargs)
+    assert fig.mne.annotation_hover_line is None
+    fig.canvas.key_press_event('p')  # turn draggable mode back on
+    # modify annotation from end (duration 4 → 1.5)
+    _fake_click(fig, data_ax, [4.9, 1.], xform='data', button=None,
+                kind='motion')  # ease up to it
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
                 kind='release')
-    if mpl_good_enough:
-        assert raw.annotations.onset[n_anns] == onset
-        assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4->1.5
-    # modify annotation from beginning
+    assert raw.annotations.onset[n_anns] == onset
+    assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4 → 1.5
+    # modify annotation from beginning (duration 1.5 → 2.0)
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1,
                 kind='release')
-    if mpl_good_enough:
-        assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
-        assert_allclose(raw.annotations.duration[n_anns], 2.0)
+    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
+    assert_allclose(raw.annotations.duration[n_anns], 2.0)  # 1.5 → 2.0
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
-    assert raw.annotations.description[n_anns] == 'BAD_ test'
+    assert raw.annotations.description[n_anns] == 'BAD test'
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     fig.canvas.key_press_event('shift+right')
     assert len(fig.axes[0].texts) == n_scale
@@ -129,14 +146,15 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
-    if mpl_good_enough:
-        assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
-        assert_allclose(raw.annotations.duration[n_anns], 5.0)
+    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
+    assert_allclose(raw.annotations.duration[n_anns], 5.0)
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
-    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
-                kind='press')
-    fig.canvas.key_press_event('a')  # exit annotation mode
+    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
+    # exit, re-enter, then exit a different way
+    fig.canvas.key_press_event('a')  # exit
+    fig.canvas.key_press_event('a')  # enter
+    fig.mne.fig_annotation.canvas.key_press_event('escape')  # exit again
     assert len(raw.annotations.onset) == n_anns
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     fig.canvas.key_press_event('shift+right')
@@ -151,22 +169,60 @@ def _proj_status(ax):
             for line in ax.findobj(matplotlib.lines.Line2D)][::2]
 
 
+def _click_ch_name_helper(fig, ch_index=0, button=1):
+    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
+    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
+    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
+                xform='data', button=button)
+
+
+def _child_fig_helper(fig, key, attr, new_mpl):
+    # Spawn and close child figs of raw.plot()
+    num_figs = len(plt.get_fignums())
+    assert getattr(fig.mne, attr) is None
+    # spawn
+    fig.canvas.key_press_event(key)
+    assert len(fig.mne.child_figs) == 1
+    assert len(plt.get_fignums()) == num_figs + 1
+    child_fig = getattr(fig.mne, attr)
+    assert child_fig is not None
+    # close via main window toggle
+    fig.canvas.key_press_event(key)
+    _close_event(child_fig)
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == num_figs
+    assert getattr(fig.mne, attr) is None
+    # spawn again
+    fig.canvas.key_press_event(key)
+    assert len(fig.mne.child_figs) == 1
+    assert len(plt.get_fignums()) == num_figs + 1
+    child_fig = getattr(fig.mne, attr)
+    assert child_fig is not None
+    # close via child window
+    child_fig.canvas.key_press_event(child_fig.mne.close_key)
+    _close_event(child_fig)
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == num_figs
+    assert getattr(fig.mne, attr) is None
+
+
 def test_scale_bar():
     """Test scale bar for raw."""
     sfreq = 1000.
     t = np.arange(10000) / sfreq
     data = np.sin(2 * np.pi * 10. * t)
-    # +/- 1000 fT, 400 fT/cm, 20 µV
+    # ± 1000 fT, 400 fT/cm, 20 µV
     data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
     info = create_info(3, sfreq, ('mag', 'grad', 'eeg'))
     raw = RawArray(data, info)
     fig = raw.plot()
-    ax = fig.axes[0]
+    ax = fig.mne.ax_main
     assert len(ax.texts) == 3  # our labels
-    for text, want in zip(ax.texts, ('800.0 fT/cm', '2000.0 fT', '40.0 µV')):
-        assert text.get_text().strip() == want
-    assert len(ax.lines) == 8  # green, data, nan, bars
-    for data, bar in zip(ax.lines[1:4], ax.lines[5:8]):
+    texts = tuple(t.get_text().strip() for t in ax.texts)
+    wants = ('800.0 fT/cm', '2000.0 fT', '40.0 µV')
+    assert texts == wants
+    assert len(ax.lines) == 7  # 1 green vline, 3 data, 3 scalebars
+    for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
         y = data.get_ydata()
         y_lims = [y.min(), y.max()]
         bar_lims = bar.get_ydata()
@@ -174,86 +230,214 @@ def test_scale_bar():
     plt.close('all')
 
 
-def test_plot_raw_traces():
+def _close_event(fig):
+    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
+    try:
+        fig.canvas.close_event()
+    except ValueError:  # old mpl with Qt
+        pass  # pragma: no cover
+
+
+def test_plot_raw_selection(raw, new_mpl):
+    """Test selection mode of plot_raw()."""
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
+    plt.close('all')           # ensure all are closed
+    assert len(plt.get_fignums()) == 0
+    fig = raw.plot(group_by='selection', proj=False)
+    assert len(plt.get_fignums()) == 2
+    sel_fig = fig.mne.fig_selection
+    buttons = sel_fig.mne.radio_ax.buttons
+    assert sel_fig is not None
+    # test changing selection with arrow keys
+    sel_dict = fig.mne.ch_selections
+    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
+    sel_fig.canvas.key_press_event('down')
+    assert len(fig.mne.traces) == len(sel_dict['Left-frontal'])  # 3
+    sel_fig.canvas.key_press_event('down')
+    assert len(fig.mne.traces) == len(sel_dict['Misc'])  # 1
+    sel_fig.canvas.key_press_event('down')  # ignored; no custom sel defined
+    assert len(fig.mne.traces) == len(sel_dict['Misc'])  # 1
+    # switch to butterfly mode
+    sel_fig.canvas.key_press_event('b')
+    assert len(fig.mne.traces) == len(np.concatenate(list(sel_dict.values())))
+    assert fig.mne.butterfly
+    # test clicking on radio buttons → should cancel butterfly mode
+    xy = buttons.circles[0].center
+    _fake_click(sel_fig, sel_fig.mne.radio_ax, xy, xform='data')
+    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
+    assert not fig.mne.butterfly
+    # test clicking on "custom" when not defined: should be no-op
+    before_state = buttons.value_selected
+    xy = buttons.circles[-1].center
+    _fake_click(sel_fig, sel_fig.mne.radio_ax, xy, xform='data')
+    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
+    assert buttons.value_selected == before_state                 # unchanged
+    # test marking bad channel in selection mode → should make sensor red
+    assert sel_fig.lasso.ec[:, 0].sum() == 0  # R of RGBA zero for all chans
+    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark bad
+    assert sel_fig.lasso.ec[:, 0].sum() == 1          # one channel red
+    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark good
+    assert sel_fig.lasso.ec[:, 0].sum() == 0          # all channels black
+    # test lasso
+    sel_fig._set_custom_selection()  # lasso empty → should do nothing
+    sensor_ax = sel_fig.mne.sensor_ax
+    # Lasso with 1 mag/grad sensor unit (upper left)
+    _fake_click(sel_fig, sensor_ax, (0, 1), xform='ax')
+    _fake_click(sel_fig, sensor_ax, (0.65, 1), xform='ax', kind='motion')
+    _fake_click(sel_fig, sensor_ax, (0.65, 0.7), xform='ax', kind='motion')
+    _fake_click(sel_fig, sensor_ax, (0, 0.7), xform='ax', kind='release')
+    assert sel_fig.lasso.selection == ['MEG 0121', 'MEG 0122', 'MEG 0123']
+    # test joint closing of selection & data windows
+    sel_fig.canvas.key_press_event(sel_fig.mne.close_key)
+    _close_event(sel_fig)
+    assert len(plt.get_fignums()) == 0
+
+
+def test_plot_raw_ssp_interaction(raw):
+    """Test SSP projector UI of plot_raw()."""
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
+    # apply some (not all) projs to test our proj UI (greyed out applied projs)
+    projs = raw.info['projs'][-2:]
+    raw.del_proj([-2, -1])
+    raw.apply_proj()
+    raw.add_proj(projs)
+    fig = raw.plot()
+    # open SSP window
+    _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5])
+    assert len(plt.get_fignums()) == 2  # XXX this fails with minimal deps
+    ssp_fig = fig.mne.fig_proj
+    t = ssp_fig.mne.proj_checkboxes.labels
+    ax = ssp_fig.mne.proj_checkboxes.ax
+    assert _proj_status(ax) == [True, True, True]
+    # this should have no effect (proj 0 is already applied)
+    assert t[0].get_text().endswith('(already applied)')
+    pos = np.array(t[0].get_position()) + 0.01
+    _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')
+    assert _proj_status(ax) == [True, True, True]
+    # this should work (proj 1 not applied)
+    pos = np.array(t[1].get_position()) + 0.01
+    _fake_click(ssp_fig, ax, pos, xform='data')
+    assert _proj_status(ax) == [True, False, True]
+    # turn it back on
+    _fake_click(ssp_fig, ax, pos, xform='data')
+    assert _proj_status(ax) == [True, True, True]
+    # toggle all off (button axes need both press and release)
+    _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])
+    _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
+    assert _proj_status(ax) == [True, False, False]
+    # turn all on
+    _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])  # all on
+    _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
+    assert fig.mne.projector is not None  # on
+    assert _proj_status(ax) == [True, True, True]
+
+
+def test_plot_raw_child_figures(raw, new_mpl):
+    """Test spawning and closing of child figures."""
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
+    plt.close('all')  # make sure we start clean
+    assert len(plt.get_fignums()) == 0
+    fig = raw.plot()
+    assert len(plt.get_fignums()) == 1
+    _child_fig_helper(fig, '?', 'fig_help', new_mpl)
+    _child_fig_helper(fig, 'j', 'fig_proj', new_mpl)
+    _child_fig_helper(fig, 'a', 'fig_annotation', new_mpl)
+    # # test right-click → channel location popup
+    _click_ch_name_helper(fig, ch_index=2, button=3)  # XXX currently no-op
+    # XXX restore these lines after refactoring plot_sensors() and re-enabling
+    # XXX right-click behavior
+    # assert len(fig.mne.child_figs) == 1
+    # assert len(plt.get_fignums()) == 2
+    # fig.mne.child_figs[0].canvas.key_press_event('escape')
+    # assert len(plt.get_fignums()) == 1
+    # test resize of main window
+    width, height = fig.canvas.manager.canvas.get_width_height()
+    fig.canvas.manager.canvas.resize(width // 2, height // 2)
+    plt.close('all')
+
+
+def test_plot_raw_keypresses(raw):
+    """Test keypress interactivity of plot_raw()."""
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
+    fig = raw.plot()
+    # test twice → once in normal, once in butterfly view.
+    # NB: keys a, j, and ? are tested in test_plot_raw_child_figures()
+    keys = ('down', 'up', 'right', 'left', '-', '+', '=', 'd', 'd', 'pageup',
+            'pagedown', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
+    # test for group_by='original'
+    for key in 2 * keys + ('escape',):
+        fig.canvas.key_press_event(key)
+    # test for group_by='selection'
+    fig = plot_raw(raw, group_by='selection')
+    for key in 2 * keys + ('escape',):
+        fig.canvas.key_press_event(key)
+
+
+def test_plot_raw_traces(raw):
     """Test plotting of raw data."""
-    raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
     plt.close('all')  # ensure all are closed
-    assert len(plt.get_fignums()) == 0
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
                    group_by='original')
-    assert len(plt.get_fignums()) == 1
-
-    # make sure fig._mne_params is present
-    assert isinstance(fig._mne_params, dict)
-
-    # test mouse clicks
-    x = fig.get_axes()[0].lines[1].get_xdata().mean()
-    y = fig.get_axes()[0].lines[1].get_ydata().mean()
-    data_ax = fig.axes[0]
+    assert hasattr(fig, 'mne')  # make sure fig.mne param object is present
     assert len(fig.axes) == 5
 
-    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
-    _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
-    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
-    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-    _fake_click(fig, fig.axes[1], [0.5, 0.5])  # change time
+    # setup
+    x = fig.mne.traces[0].get_xdata()[5]
+    y = fig.mne.traces[0].get_ydata()[5]
+    data_ax = fig.mne.ax_main
+    hscroll = fig.mne.ax_hscroll
+    vscroll = fig.mne.ax_vscroll
+    # test marking bad channels
+    label = fig.mne.ax_main.get_yticklabels()[0].get_text()
+    assert label not in fig.mne.info['bads']
+    _fake_click(fig, data_ax, [x, y], xform='data')  # click data to mark bad
+    assert label in fig.mne.info['bads']
+    _fake_click(fig, data_ax, [x, y], xform='data')  # click data to unmark bad
+    assert label not in fig.mne.info['bads']
+    _click_ch_name_helper(fig, ch_index=0, button=1)  # click name to mark bad
+    assert label in fig.mne.info['bads']
+    # test other kinds of clicks
+    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere (add vline)
+    _fake_click(fig, data_ax, [0.5, 0.999], button=3)  # remove vline
+    _fake_click(fig, hscroll, [0.5, 0.5])  # change time
+    _fake_click(fig, hscroll, [0.5, 0.5])  # shouldn't change time this time
+    # test scrolling through channels
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
     assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
-    _fake_click(fig, fig.axes[2], [0.5, 0.01])  # change channels to end
+    _fake_click(fig, vscroll, [0.5, 0.01])  # change channels to end
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
-    assert labels == [raw.ch_names[2], raw.ch_names[3]]
-    _fake_click(fig, fig.axes[2], [0.5, 0.5])  # change channels to mid
-    labels = [label.get_text() for label in data_ax.get_yticklabels()]
-    assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
-    assert len(plt.get_fignums()) == 1
-    # open SSP window
-    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5])
-    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5], kind='release')
-    assert len(plt.get_fignums()) == 2
-    ssp_fig = plt.figure(plt.get_fignums()[-1])
-    fig.canvas.button_press_event(1, 1, 1)  # outside any axes
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
+    for _ in (0, 0):
+        # first click changes channels to mid; second time shouldn't change
+        _fake_click(fig, vscroll, [0.5, 0.5])
+        labels = [label.get_text() for label in data_ax.get_yticklabels()]
+        assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
+        assert len(plt.get_fignums()) == 1
 
-    ax = ssp_fig.get_axes()[0]  # only one axis is used
-    assert _proj_status(ax) == [True] * 3
-    t = [c for c in ax.get_children() if isinstance(c, matplotlib.text.Text)]
-    pos = np.array(t[0].get_position()) + 0.01
-    _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
-    assert _proj_status(ax) == [False, True, True]
-    _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-    assert _proj_status(ax) == [True] * 3
-    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all off
-    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
-    assert _proj_status(ax) == [False] * 3
-    assert fig._mne_params['projector'] is None  # actually off
-    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all on
-    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
-    assert fig._mne_params['projector'] is not None  # on
-    assert _proj_status(ax) == [True] * 3
+    # test clicking a channel name in butterfly mode
+    bads = fig.mne.info['bads'].copy()
+    fig.canvas.key_press_event('b')
+    _click_ch_name_helper(fig, ch_index=0, button=1)  # should be no-op
+    assert fig.mne.info['bads'] == bads               # unchanged
+    fig.canvas.key_press_event('b')
 
-    # test keypresses
-    # test for group_by='original'
-    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
-                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'z',
-                'escape']:
-        fig.canvas.key_press_event(key)
-
-    # test for group_by='selection'
-    fig = plot_raw(raw, events=events, group_by='selection')
-    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
-                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b', 'z',
-                'escape']:
-        fig.canvas.key_press_event(key)
-
-    # test zen mode
+    # test starting up in zen mode
     fig = plot_raw(raw, show_scrollbars=False)
+    # test order, title, & show_options kwargs
+    with pytest.raises(ValueError, match='order should be array-like; got'):
+        raw.plot(order='foo')
+    with pytest.raises(TypeError, match='title must be None or a string, got'):
+        raw.plot(title=1)
+    raw.plot(show_options=True)
+    plt.close('all')
 
     # Color setting
-    pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
-    pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
+    with pytest.raises(KeyError, match='must be strictly positive, or -1'):
+        raw.plot(event_color={0: 'r'})
+    with pytest.raises(TypeError, match='event_color key must be an int, got'):
+        raw.plot(event_color={'foo': 'r'})
     annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
                         [10, 10], ['test', 'test'], raw.info['meas_date'])
     with pytest.warns(RuntimeWarning, match='outside data range'):
@@ -316,7 +500,10 @@ def test_plot_raw_traces():
 def test_plot_raw_white():
     """Test plotting whitened raw data."""
     raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
-    raw.plot(noise_cov=cov_fname)
+    fig = raw.plot(noise_cov=cov_fname)
+    # toggle whitening
+    fig.canvas.key_press_event('w')
+    fig.canvas.key_press_event('w')
     plt.close('all')
 
 
@@ -337,9 +524,8 @@ def test_plot_misc_auto():
     plt.close('all')
 
 
-def test_plot_annotations():
+def test_plot_annotations(raw):
     """Test annotation mode of the plotter."""
-    raw = _get_raw()
     raw.info['lowpass'] = 10.
     _annotation_helper(raw)
     _annotation_helper(raw, events=True)
@@ -352,9 +538,8 @@ def test_plot_annotations():
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
-def test_plot_raw_filtered(filtorder):
+def test_plot_raw_filtered(filtorder, raw):
     """Test filtering of raw plots."""
-    raw = _get_raw()
     with pytest.raises(ValueError, match='lowpass.*Nyquist'):
         raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder)
     with pytest.raises(ValueError, match='highpass must be > 0'):
@@ -369,9 +554,9 @@ def test_plot_raw_filtered(filtorder):
     plt.close('all')
 
 
-def test_plot_raw_psd():
+def test_plot_raw_psd(raw):
     """Test plotting of raw psds."""
-    raw = _get_raw()
+    raw_orig = raw.copy()
     # normal mode
     raw.plot_psd(average=False)
     # specific mode
@@ -425,7 +610,7 @@ def test_plot_raw_psd():
         else:
             assert 'fT²/Hz' in ylabel
     # test reject_by_annotation
-    raw = _get_raw()
+    raw = raw_orig
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
@@ -462,9 +647,8 @@ def test_plot_raw_psd():
     plt.close('all')
 
 
-def test_plot_sensors():
+def test_plot_sensors(raw):
     """Test plotting of sensor array."""
-    raw = _get_raw()
     plt.close('all')
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
@@ -489,7 +673,7 @@ def test_plot_sensors():
 
     # Lasso with 1 sensor (upper left)
     _fake_click(fig, ax, (0, 1), xform='ax')
-    plt.draw()
+    fig.canvas.draw()
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(fig, ax, (0.65, 0.7), xform='ax', kind='motion')
@@ -500,8 +684,8 @@ def test_plot_sensors():
     # check that point appearance changes
     fc = fig.lasso.collection.get_facecolors()
     ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.3, 1., 0.3]).all()
-    assert (ec[:, -1] == [0.3, 1., 0.3]).all()
+    assert (fc[:, -1] == [0.5, 1., 0.5]).all()
+    assert (ec[:, -1] == [0.25, 1., 0.25]).all()
 
     _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
     xy = ax.collections[0].get_offsets()

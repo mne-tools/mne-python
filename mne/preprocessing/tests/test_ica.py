@@ -447,8 +447,8 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
 
     # test for gh-6271 (scaling of ICA traces)
     fig = raw_sources.plot()
-    assert len(fig.axes[0].lines) in (5, 9)
-    for line in fig.axes[0].lines:
+    assert len(fig.mne.ax_main.lines) in (4, 8)
+    for line in fig.mne.ax_main.lines:
         y = line.get_ydata()
         if len(y) > 2:  # actual data, not markers
             assert np.ptp(y) < 15

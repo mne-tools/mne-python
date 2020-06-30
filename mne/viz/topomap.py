@@ -448,12 +448,14 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
 
 def _draw_outlines(ax, outlines):
     """Draw the outlines for a topomap."""
+    from matplotlib import rcParams
     outlines_ = {k: v for k, v in outlines.items()
                  if k not in ['patch']}
     for key, (x_coord, y_coord) in outlines_.items():
         if 'mask' in key or key in ('clip_radius', 'clip_origin'):
             continue
-        ax.plot(x_coord, y_coord, color='k', linewidth=1, clip_on=False)
+        ax.plot(x_coord, y_coord, color=rcParams['axes.edgecolor'],
+                linewidth=1, clip_on=False)
     return outlines_
 
 
