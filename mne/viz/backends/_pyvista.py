@@ -13,6 +13,7 @@ Actual implementation of _Renderer and _Projection classes.
 
 from contextlib import contextmanager
 import os
+import sys
 import warnings
 
 import numpy as np
@@ -122,7 +123,8 @@ def _enable_aa(figure, plotter):
     if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
         return
     if figure.is_active():
-        plotter.enable_anti_aliasing()
+        if sys.platform != 'darwin':
+            plotter.enable_anti_aliasing()
         plotter.ren_win.LineSmoothingOn()
 
 

@@ -19,10 +19,11 @@ from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
+from ..fixes import dict_
 from ..utils import logger, verbose, warn, fill_doc
 
 
-class Projection(dict):
+class Projection(dict_):
     """Projection vector.
 
     A basic class to proj a meaningful print for projection vectors.
