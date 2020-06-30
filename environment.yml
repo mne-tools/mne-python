@@ -30,11 +30,10 @@ dependencies:
 - imageio>=2.6.1
 - pip:
   - mne
-  - vtk
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
-  - vtk; platform_system != "Darwin"		
   - vtk>=9.0.1; platform_system == "Darwin"		
+  - vtk; platform_system != "Darwin"
   - pyvista>=0.24
   - pyvistaqt
   - https://github.com/enthought/mayavi/archive/master.zip
