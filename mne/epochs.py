@@ -2908,7 +2908,7 @@ def _compare_epochs_infos(info1, info2, name):
     info2._check_consistency()
     if info1['nchan'] != info2['nchan']:
         raise ValueError(f'{name}.info[\'nchan\'] must match')
-    if info1['bads'] != info2['bads']:
+    if set(info1['bads']) != set(info2['bads']):
         raise ValueError(f'{name}.info[\'bads\'] must match')
     if info1['sfreq'] != info2['sfreq']:
         raise ValueError(f'{name}.info[\'sfreq\'] must match')
