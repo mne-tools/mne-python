@@ -12,6 +12,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from distutils.version import LooseVersion
 import os
 import sys
 import warnings
@@ -33,6 +34,7 @@ with warnings.catch_warnings():
         from pyvista import BackgroundPlotter
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
+VTK9 = LooseVersion(vtk.VTK_VERSION) >= LooseVersion('9.0')
 
 
 _FIGURES = dict()
@@ -373,10 +375,12 @@ class _Renderer(_BaseRenderer):
             vectors = np.c_[u, v, w]
             points = np.vstack(np.c_[x, y, z])
             n_points = len(points)
-            offset = np.arange(n_points) * 3
             cell_type = np.full(n_points, vtk.VTK_VERTEX)
             cells = np.c_[np.full(n_points, 1), range(n_points)]
-            grid = UnstructuredGrid(offset, cells, cell_type, points)
+            args = (cells, cell_type, points)
+            if not VTK9:
+                args = (np.arange(n_points) * 3,) + args
+            grid = UnstructuredGrid(*args)
             grid.point_arrays['vec'] = vectors
             if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
