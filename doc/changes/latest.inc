@@ -105,11 +105,13 @@ Changelog
 
 - Add ``'auto'`` option to :meth:`mne.preprocessing.ICA.find_bads_ecg` to automatically determine the threshold for CTPS method by `Yu-Han Luo`_
 
-- Add a ``notebook`` 3d backend for visualization in jupyter notebook with :func:`mne.viz.set_3d_backend` by`Guillaume Favelier`_
+- Add a ``notebook`` 3d backend for visualization in jupyter notebook with :func:`mne.viz.set_3d_backend` by `Guillaume Favelier`_
 
 - Add support for reading and writing surfaces in Wavefront .obj format to the :func:`mne.read_surface` and :func:`mne.write_surface` by `Marijn van Vliet`_
 
 - Add tutorial on how to manually fix BEM meshes in Blender by `Marijn van Vliet`_ and `Ezequiel Mikulan`_
+
+- :func:`mne.write_evokeds` will now accept :class:`mne.Evoked` objects with differing channel orders in ``info['bads']``, which would previously raise an exception by `Richard Höchenberger`_
 
 Bug
 ~~~
