@@ -46,6 +46,17 @@ def test_nirx_missing_warn():
 
 
 @requires_testing_data
+def test_nirx_missing_evt(tmpdir):
+    """Test reading NIRX files when missing data."""
+    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
+    os.rename(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.evt",
+              str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.xxx")
+    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    raw = read_raw_nirx(fname, preload=True)
+    assert raw.annotations.onset.shape == (0, )
+
+
+@requires_testing_data
 def test_nirx_dat_warn(tmpdir):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
