@@ -4,7 +4,6 @@ channels:
 dependencies:
 - python>=3.5
 - pip
-- mkl
 - numpy
 - scipy
 - matplotlib
@@ -33,8 +32,7 @@ dependencies:
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
-  - vtk<8.2; platform_system == "Darwin"
-  - vtk; platform_system != "Darwin"
+  - vtk>=9.0.1
   - pyvista>=0.24
   - pyvistaqt
   - https://github.com/enthought/mayavi/archive/master.zip

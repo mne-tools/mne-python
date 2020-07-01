@@ -455,6 +455,7 @@ def _check_dists(info, cHPI_digs, n_bad=0, bad_low=0.02, bad_high=0.04):
         assert_array_less(bads, bad_high)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_calculate_chpi_coil_locs_artemis():
     """Test computing just cHPI locations."""

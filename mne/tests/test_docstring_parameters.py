@@ -9,6 +9,7 @@ from unittest import SkipTest
 import pytest
 
 import mne
+from mne.fixes import dict_
 from mne.utils import run_tests_if_main, requires_numpydoc, _pl
 
 public_modules = [
@@ -86,8 +87,8 @@ error_ignores = {
     # XXX should maybe also restore the parameter-desc-length < 800 char check
 }
 subclass_name_ignores = (
-    (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
-            'copy', 'popitem', 'get', 'items', 'fromkeys'}),
+    (dict_, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
+             'copy', 'popitem', 'get', 'items', 'fromkeys', 'clear'}),
     (list, {'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove',
             'sort'}),
     (mne.fixes.BaseEstimator, {'get_params', 'set_params', 'fit_transform'}),

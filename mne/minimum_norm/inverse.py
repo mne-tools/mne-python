@@ -11,7 +11,7 @@ import numpy as np
 from scipy import linalg
 
 from ._eloreta import _compute_eloreta
-from ..fixes import _safe_svd
+from ..fixes import _safe_svd, dict_
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
@@ -46,7 +46,7 @@ from ..utils import (check_fname, logger, verbose, warn, _validate_type,
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
 
 
-class InverseOperator(dict):
+class InverseOperator(dict_):
     """InverseOperator class to represent info from inverse operator."""
 
     def copy(self):
