@@ -1934,7 +1934,7 @@ def find_bad_channels_maxwell(
             "noisy".
 
         .. note:: The scores and limits for channels marked as ``bad`` in the
-                  input data will will be set to ``np.nan``.
+                  input data will be set to ``np.nan``.
 
     See Also
     --------
