@@ -920,7 +920,6 @@ def read_info(fname, verbose=None):
     info : instance of Info
        Measurement information for the dataset.
     """
-    print('###############################################################')
     f, tree, _ = fiff_open(fname)
     with f as fid:
         info = read_meas_info(fid, tree)[0]
