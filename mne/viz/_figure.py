@@ -61,6 +61,7 @@ class MNEFigure(Figure):
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
     def __init__(self, *args, xlabel='Time (s)', **kwargs):
+        from matplotlib.pyplot import figure
         from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
@@ -132,10 +133,10 @@ class MNEBrowseFigure(MNEFigure):
         help_width = scroll_width * 2
 
         # MAIN AXES: default borders (figure-relative coordinates)
-        left = self._inch_to_rel(self, l_border - vscroll_dist - help_width)
-        bottom = self._inch_to_rel(self, b_border, horiz=False)
-        width = 1 - self._inch_to_rel(self, r_border) - left
-        height = 1 - self._inch_to_rel(self, t_border, horiz=False) - bottom
+        left = self._inch_to_rel(l_border - vscroll_dist - help_width)
+        bottom = self._inch_to_rel(b_border, horiz=False)
+        width = 1 - self._inch_to_rel(r_border) - left
+        height = 1 - self._inch_to_rel(t_border, horiz=False) - bottom
         position = [left, bottom, width, height]
 
         # Main axes must be a subplot for subplots_adjust to work (so user can
@@ -167,20 +168,20 @@ class MNEBrowseFigure(MNEFigure):
 
         # PROJ BUTTON: (optionally) added later, easier to compute position now
         proj_button_pos = [
-            1 - self._inch_to_rel(self, r_border + scroll_width),  # left
-            self._inch_to_rel(self, b_border, horiz=False),        # bottom
-            self._inch_to_rel(self, scroll_width),                 # width
-            self._inch_to_rel(self, scroll_width, horiz=False)     # height
+            1 - self._inch_to_rel(r_border + scroll_width),  # left
+            self._inch_to_rel(b_border, horiz=False),        # bottom
+            self._inch_to_rel(scroll_width),                 # width
+            self._inch_to_rel(scroll_width, horiz=False)     # height
         ]
         self.mne.proj_button_pos = proj_button_pos
         self.mne.proj_button_locator = div.new_locator(nx=2, ny=0)
 
         # ZEN MODE: (show/hide scrollbars)
         self.canvas.draw()  # otherwise the get_position() calls are inaccurate
-        self.mne.zen_w_delta = (ax_vscroll.get_position().xmax -
-                                ax.get_position().xmax)
-        self.mne.zen_h_delta = (ax.get_position().ymin -
-                                ax_hscroll.get_position().ymin)
+        self.mne.zen_w = (ax_vscroll.get_position().xmax -
+                          ax.get_position().xmax)
+        self.mne.zen_h = (ax.get_position().ymin -
+                          ax_hscroll.get_position().ymin)
         if not getattr(self.mne, 'show_scrollbars', True):
             self.mne.show_scrollbars = True
             self._toggle_scrollbars()
@@ -216,8 +217,8 @@ class MNEBrowseFigure(MNEFigure):
             else:
                 new_borders[side] = ratio * rel_dim
         # zen mode adjustment
-        self.mne.zen_w_delta *= old_width / new_width
-        self.mne.zen_h_delta *= old_height / new_height
+        self.mne.zen_w *= old_width / new_width
+        self.mne.zen_h *= old_height / new_height
         # apply the update
         self.subplots_adjust(**new_borders)
 
