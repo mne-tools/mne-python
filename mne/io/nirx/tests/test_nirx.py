@@ -73,6 +73,22 @@ def test_nirx_dat_warn(tmpdir):
 
 
 @requires_testing_data
+def test_nirx_nosatflags_v1_warn(tmpdir):
+    """Test reading NIRSportv1 files with saturated data."""
+    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
+    shutil.copyfile(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.wl1",
+                    str(tmpdir) + "/data" +
+                                  "/NIRS-2019-08-23_001.nosatflags_wl1")
+    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    with pytest.raises(RuntimeWarning, match='specified to use the standard'):
+        read_raw_nirx(fname, saturated='nan', preload=True)
+    with pytest.raises(RuntimeWarning, match='You chose to ignore them'):
+        read_raw_nirx(fname, saturated='ignore', preload=True)
+    with pytest.raises(RuntimeWarning, match='Falling back to default'):
+        read_raw_nirx(fname, saturated='foobar', preload=True)
+
+
+@requires_testing_data
 def test_nirx_15_2_short():
     """Test reading NIRX files."""
     raw = read_raw_nirx(fname_nirx_15_2_short, preload=True)
