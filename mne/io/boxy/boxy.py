@@ -68,6 +68,8 @@ class RawBOXY(BaseRaw):
         for key in keys:
             if key == '*.[000-999]*':
                 files[key] = [glob.glob('%s/*%s' % (fname, key))]
+                # make sure filenames are in order
+                files[key][0].sort()
             else:
                 files[key] = glob.glob('%s/*%s' % (fname, key))
             if len(files[key]) != 1:
