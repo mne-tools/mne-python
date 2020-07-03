@@ -11,29 +11,19 @@ from ..utils import set_config
 
 class MNEFigParams:
     """Container for MNE figure parameters."""
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         # default key to close window
         self.close_key = 'escape'
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
 
 class MNEFigure(Figure):
     """Wrapper of matplotlib.figure.Figure; adds MNE-Python figure params."""
     def __init__(self, *args, **kwargs):
-        from matplotlib import rc_context
-        # pop the one constructor kwarg used by MNE-Python
-        toolbar = kwargs.pop('toolbar', True)
-        if toolbar:
-            super().__init__(*args, **kwargs)
-        else:
-            with rc_context(toolbar='none'):
-                super().__init__(*args, **kwargs)
-                # remove button press catchers (for toolbar)
-                cbs = list(self.canvas.callbacks.callbacks['key_press_event'])
-                for callback in cbs:
-                    self.canvas.callbacks.disconnect(callback)
+        super().__init__(*args, **kwargs)
         # add our param object
-        self.mne = MNEFigParams()
-        return self
+        self.mne = MNEFigParams(fig_size_px=self._get_size_px())
 
     def _get_dpi_ratio(self):
         """Get DPI ratio (to handle hi-DPI screens)."""
@@ -44,7 +34,7 @@ class MNEFigure(Figure):
 
     def _get_size_px(self):
         """Get figure size in pixels."""
-        dpi_ratio = self._get_dpi_ratio(self)
+        dpi_ratio = self._get_dpi_ratio()
         size = self.get_size_inches() * self.dpi / dpi_ratio
         return size
 
@@ -60,83 +50,81 @@ class MNEFigure(Figure):
 
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
-    def __init__(self, *args, xlabel='Time (s)', **kwargs):
-        from matplotlib.pyplot import figure
+    def __init__(self, *args, xlabel='Time (s)', show_scrollbars=True,
+                 **kwargs):
         from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         from mne.viz.utils import _get_figsize_from_config
 
         # figsize is the first arg of Figure()
-        figsize = args[0] if len(args) else kwargs.pop('figsize', None)
+        figsize = args.pop(0) if len(args) else kwargs.pop('figsize', None)
         if figsize is None:
             figsize = _get_figsize_from_config()
-        if len(args):
-            args[0] = figsize
-        else:
-            kwargs['figsize'] = figsize
+        kwargs['figsize'] = figsize
 
         # init Figure
         super().__init__(*args, **kwargs)
 
         # additional params for browse figures (comments indicate name changes)
-        self.data = None              # raw
-        self.info = None
-        self.proj = None
-        self.noise_cov = None
-        self.rev_event_id = None      # event_id_rev
-        # channel
-        self.n_channels = None
-        self.ch_types = None          # types
-        self.group_by = None
-        self.picks = None             # data_picks
-        # time
-        self.n_times = None
-        self.first_time = None
-        self.event_times = None
-        self.event_nums = None
-        self.duration = None
-        self.decim = None
-        # annotations
-        self.annotations = None
-        self.snap_annotations = None
-        self.added_label = None
-        # traces
-        self.trace_indices = None     # inds
-        self.orig_indices = None      # orig_inds
-        self.clipping = None
-        self.butterfly = None
-        # filters
-        self.remove_dc = None
-        self.filter_coefs_ba = None   # ba
-        self.filter_bounds = None     # filt_bounds
-        # scalings
-        self.units = None
-        self.scalings = None
-        self.unit_scalings = None
-        # ancillary figures
-        self.fig_proj = None
-        self.fig_help = None
-        # UI state variables
-        self.ch_start = None
-        self.t_start = None
-        self.show_scalebars = None
+        # self.mne.data = None              # raw
+        # self.mne.info = None
+        # self.mne.proj = None
+        # self.mne.noise_cov = None
+        # self.mne.rev_event_id = None      # event_id_rev
+        # # channel
+        # self.mne.n_channels = None
+        # self.mne.ch_types = None          # types
+        # self.mne.group_by = None
+        # self.mne.picks = None             # data_picks
+        # # time
+        # self.mne.n_times = None
+        # self.mne.first_time = None
+        # self.mne.event_times = None
+        # self.mne.event_nums = None
+        # self.mne.duration = None
+        # self.mne.decim = None
+        # # annotations
+        # self.mne.annotations = None
+        # self.mne.snap_annotations = None
+        # self.mne.added_label = None
+        # # traces
+        # self.mne.trace_indices = None     # inds
+        # self.mne.orig_indices = None      # orig_inds
+        # self.mne.clipping = None
+        # self.mne.butterfly = None
+        # # filters
+        # self.mne.remove_dc = None
+        # self.mne.filter_coefs_ba = None   # ba
+        # self.mne.filter_bounds = None     # filt_bounds
+        # # scalings
+        # self.mne.units = None
+        # self.mne.scalings = None
+        # self.mne.unit_scalings = None
+        # # ancillary figures
+        # self.mne.fig_proj = None
+        # self.mne.fig_help = None
+        # # UI state variables
+        # self.mne.ch_start = None
+        # self.mne.t_start = None
+        # self.mne.show_scalebars = None
+        self.mne.show_scrollbars = show_scrollbars
 
         # MAIN AXES: default sizes (inches)
-        l_border = 1.
-        r_border = 0.1
-        b_border = 0.45
-        t_border = 0.25
+        l_margin = 1.
+        r_margin = 0.1
+        b_margin = 0.45
+        t_margin = 0.25
         scroll_width = 0.25
         hscroll_dist = 0.25
         vscroll_dist = 0.1
         help_width = scroll_width * 2
 
-        # MAIN AXES: default borders (figure-relative coordinates)
-        left = self._inch_to_rel(l_border - vscroll_dist - help_width)
-        bottom = self._inch_to_rel(b_border, horiz=False)
-        width = 1 - self._inch_to_rel(r_border) - left
-        height = 1 - self._inch_to_rel(t_border, horiz=False) - bottom
+        # MAIN AXES: default margins (figure-relative coordinates)
+        left = self._inch_to_rel(l_margin - vscroll_dist - help_width)
+        bottom = self._inch_to_rel(b_margin, horiz=False)
+        width = 1 - self._inch_to_rel(r_margin) - left
+        height = 1 - self._inch_to_rel(t_margin, horiz=False) - bottom
         position = [left, bottom, width, height]
 
         # Main axes must be a subplot for subplots_adjust to work (so user can
@@ -168,13 +156,13 @@ class MNEBrowseFigure(MNEFigure):
 
         # PROJ BUTTON: (optionally) added later, easier to compute position now
         proj_button_pos = [
-            1 - self._inch_to_rel(r_border + scroll_width),  # left
-            self._inch_to_rel(b_border, horiz=False),        # bottom
+            1 - self._inch_to_rel(r_margin + scroll_width),  # left
+            self._inch_to_rel(b_margin, horiz=False),        # bottom
             self._inch_to_rel(scroll_width),                 # width
             self._inch_to_rel(scroll_width, horiz=False)     # height
         ]
-        self.mne.proj_button_pos = proj_button_pos
-        self.mne.proj_button_locator = div.new_locator(nx=2, ny=0)
+        self.mne.button_proj_position = proj_button_pos
+        self.mne.button_proj_locator = div.new_locator(nx=2, ny=0)
 
         # ZEN MODE: (show/hide scrollbars)
         self.canvas.draw()  # otherwise the get_position() calls are inaccurate
@@ -182,45 +170,42 @@ class MNEBrowseFigure(MNEFigure):
                           ax.get_position().xmax)
         self.mne.zen_h = (ax.get_position().ymin -
                           ax_hscroll.get_position().ymin)
-        if not getattr(self.mne, 'show_scrollbars', True):
+        if not self.mne.show_scrollbars:
             self.mne.show_scrollbars = True
             self._toggle_scrollbars()
 
-        # add resize callback (it's the same for Raw/Epochs/ICA)
-        self.canvas.mpl_connect('resize_event', self._resize_event)
-
         # SAVE PARAMS
+        self.mne.ax_main = ax
+        self.mne.ax_help = ax_help
         self.mne.ax_hscroll = ax_hscroll
         self.mne.ax_vscroll = ax_vscroll
-        self.mne.ax_help = ax_help
-        self.mne.help_button = help_button
+        self.mne.button_help = help_button
 
-    def _resize_event(self, event):
+    def _resize(self, event):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
-        size = ','.join([str(s) for s in self.get_size_inches()])
+        size = ','.join(self.get_size_inches().astype(str))
         set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
         new_width, new_height = self._get_size_px()
-        self._update_borders(new_width, new_height)
+        self._update_margins(new_width, new_height)
         self.mne.fig_size_px = (new_width, new_height)
 
-    def _update_borders(self, new_width, new_height):
-        """Update figure borders to maintain fixed size in inches/pixels."""
+    def _update_margins(self, new_width, new_height):
+        """Update figure margins to maintain fixed size in inches/pixels."""
         old_width, old_height = self.mne.fig_size_px
-        new_borders = dict()
+        new_margins = dict()
         for side in ('left', 'right', 'bottom', 'top'):
-            horiz = side in ('left', 'right')
-            ratio = ((old_width / new_width) if horiz else
+            ratio = ((old_width / new_width) if side in ('left', 'right') else
                      (old_height / new_height))
             rel_dim = getattr(self.subplotpars, side)
             if side in ('right', 'top'):
-                new_borders[side] = 1 - ratio * (1 - rel_dim)
+                new_margins[side] = 1 - ratio * (1 - rel_dim)
             else:
-                new_borders[side] = ratio * rel_dim
+                new_margins[side] = ratio * rel_dim
         # zen mode adjustment
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
         # apply the update
-        self.subplots_adjust(**new_borders)
+        self.subplots_adjust(**new_margins)
 
     def _toggle_scrollbars(self):
         """Show or hide scrollbars (A.K.A. zen mode)."""
@@ -229,15 +214,15 @@ class MNEBrowseFigure(MNEFigure):
             # scrollbars. We  can't use ax.set_position() because axes are
             # locatable, so we have to fake it with subplots_adjust
             should_show = not self.mne.show_scrollbars
-            borders = {side: getattr(self.subplotpars, side)
+            margins = {side: getattr(self.subplotpars, side)
                        for side in ('left', 'bottom', 'right', 'top')}
             # if should_show, bottom margin moves up; right margin moves left
-            borders['bottom'] += (1 if should_show else -1) * self.mne.zen_h
-            borders['right'] += (-1 if should_show else 1) * self.mne.zen_w
+            margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
+            margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
             # squeeze a bit more because we don't need space for "Time (s)" now
             v_delta = self._inch_to_rel(0.16, horiz=False)
-            borders['bottom'] += (1 if should_show else -1) * v_delta
-            self.subplots_adjust(**borders)
+            margins['bottom'] += (1 if should_show else -1) * v_delta
+            self.subplots_adjust(**margins)
             # show/hide
             for elem in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
                 butterfly = getattr(self.mne, 'butterfly', False)
@@ -248,3 +233,36 @@ class MNEBrowseFigure(MNEFigure):
                     getattr(self.mne, elem).set_visible(should_show)
             self.mne.show_scrollbars = should_show
             self.canvas.draw()
+
+    def _keypress(self, event):
+        """Triage keypress events."""
+        from matplotlib.pyplot import close
+        key = event.key
+        if key == self.mne.close_key:
+            close(self)
+        elif key == 'z':  # zen mode: remove scrollbars and buttons
+            self._toggle_scrollbars()
+
+
+def mne_figure(*args, toolbar=False, FigureClass=MNEBrowseFigure, **kwargs):
+    """Instantiate a new MNE browse-style figure."""
+    from matplotlib import rc_context
+    from matplotlib.pyplot import figure
+    if toolbar:
+        fig = figure(*args, FigureClass=FigureClass, **kwargs)
+    else:
+        with rc_context(rc=dict(toolbar='none')):
+            fig = figure(*args, FigureClass=FigureClass, **kwargs)
+    # remove MPL default keypress catchers
+    default_cbs = list(fig.canvas.callbacks.callbacks['key_press_event'])
+    for callback in default_cbs:
+        fig.canvas.callbacks.disconnect(callback)
+    # now add our custom ones
+    callbacks = dict(resize_event=fig._resize,
+                     key_press_event=fig._keypress)
+    callback_ids = dict()
+    for event, callback in callbacks.items():
+        callback_ids[event] = fig.canvas.mpl_connect(event, callback)
+    # store references so they aren't garbage-collected
+    fig.mne.callback_ids = callback_ids
+    return fig
