@@ -104,6 +104,8 @@ class MNEBrowseFigure(MNEFigure):
         # # ancillary figures
         # self.mne.fig_proj = None
         # self.mne.fig_help = None
+        self.mne.fig_selection = None
+        self.mne.fig_annotation = None
         # # UI state variables
         # self.mne.ch_start = None
         # self.mne.t_start = None
@@ -240,8 +242,109 @@ class MNEBrowseFigure(MNEFigure):
         key = event.key
         if key == self.mne.close_key:
             close(self)
+            if self.mne.fig_annotation is not None:
+                close(self.mne.fig_annotation)
+        elif key in ('down', 'up'):
+            if self.mne.butterfly:
+                return
+            elif self.mne.fig_selection is not None:
+                pass  # TODO: change channel group
+            else:
+                pass  # TODO: change visible channels
+        elif key == ('right', 'left', 'shift+right', 'shift+left'):
+            direction = 1 if key.endswith('right') else -1
+            denom = 1 if key.startswith('shift') else 4
+            shift = direction * self.mne.duration / denom
+            # TODO: redraw traces after shifting t_start
+        elif key in ('=', '+', '-'):
+            scaler = 1 / 1.1 if key == '-' else 1.1
+            # self.mne.scale_factor *= scaler
+            # TODO: redraw
+        elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
+            n_ch_delta = 1 if key == 'pageup' else -1
+            pass  # TODO: increment the number of traces and redraw
+        elif key == 'home':
+            pass
+        elif key == 'end':
+            pass
+        elif key == '?':
+            pass
+        elif key == 'f11':
+            pass
+        elif key == 'a':
+            pass
+        elif key == 'b':
+            pass
+        elif key == 'd':
+            pass
+        elif key == 'p':
+            pass
+        elif key == 's':
+            pass
+        elif key == 'w':
+            pass
         elif key == 'z':  # zen mode: remove scrollbars and buttons
             self._toggle_scrollbars()
+
+    # elif event.key == 'pageup' and 'fig_selection' not in params:
+    #     n_channels = min(params['n_channels'] + 1, len(params['info']['chs']))
+    #     _setup_browser_offsets(params, n_channels)
+    #     _channels_changed(params, len(params['inds']))
+    # elif event.key == 'pagedown' and 'fig_selection' not in params:
+    #     n_channels = params['n_channels'] - 1
+    #     if n_channels == 0:
+    #         return
+    #     _setup_browser_offsets(params, n_channels)
+    #     if len(params['lines']) > n_channels:  # remove line from view
+    #         params['lines'][n_channels].set_xdata([])
+    #         params['lines'][n_channels].set_ydata([])
+    #     _channels_changed(params, len(params['inds']))
+    # elif event.key == 'home':
+    #     duration = params['duration'] - 1.0
+    #     if duration <= 0:
+    #         return
+    #     params['duration'] = duration
+    #     params['hsel_patch'].set_width(params['duration'])
+    #     params['update_fun']()
+    #     params['plot_fun']()
+    # elif event.key == 'end':
+    #     duration = params['duration'] + 1.0
+    #     if duration > params['raw'].times[-1]:
+    #         duration = params['raw'].times[-1]
+    #     params['duration'] = duration
+    #     params['hsel_patch'].set_width(params['duration'])
+    #     params['update_fun']()
+    #     params['plot_fun']()
+    # elif event.key == '?':
+    #     _onclick_help(event, params)
+    # elif event.key == 'f11':
+    #     mng = plt.get_current_fig_manager()
+    #     mng.full_screen_toggle()
+    # elif event.key == 'a':
+    #     if 'ica' in params.keys():
+    #         return
+    #     if params['fig_annotation'] is None:
+    #         _setup_annotation_fig(params)
+    #     else:
+    #         params['fig_annotation'].canvas.close_event()
+    # elif event.key == 'b':
+    #     _setup_butterfly(params)
+    # elif event.key == 'w':
+    #     params['use_noise_cov'] = not params['use_noise_cov']
+    #     params['plot_update_proj_callback'](params, None)
+    # elif event.key == 'd':
+    #     params['remove_dc'] = not params['remove_dc']
+    #     params['update_fun']()
+    #     params['plot_fun']()
+    # elif event.key == 's':
+    #     params['show_scalebars'] = not params['show_scalebars']
+    #     params['plot_fun']()
+    # elif event.key == 'p':
+    #     params['snap_annotations'] = not params['snap_annotations']
+    #     # remove the line if present
+    #     if not params['snap_annotations']:
+    #         _on_hover(None, params)
+    #     params['plot_fun']()
 
 
 def mne_figure(*args, toolbar=False, FigureClass=MNEBrowseFigure, **kwargs):
