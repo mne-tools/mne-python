@@ -297,11 +297,11 @@ jobs:
       pip uninstall -y mne
       pip install --no-deps -e .
     displayName: 'Install MNE-Python'
-  - bash: |
-      source ~/miniforge/etc/profile.d/conda.sh
-      conda activate mne
-      python -c 'import mne; print(mne.sys_info())'
-    displayName: 'Print sys_info'
+  # - bash: |
+  #     source ~/miniforge/etc/profile.d/conda.sh
+  #     conda activate mne
+  #     python -c 'import mne; print(mne.sys_info())'
+  #   displayName: 'Print sys_info'
   - bash: |
       source ~/miniforge/etc/profile.d/conda.sh
       conda activate mne
