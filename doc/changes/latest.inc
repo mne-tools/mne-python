@@ -113,6 +113,8 @@ Changelog
 
 - :func:`mne.write_evokeds` will now accept :class:`mne.Evoked` objects with differing channel orders in ``info['bads']``, which would previously raise an exception by `Richard Höchenberger`_
 
+- The ``reject_tmin`` and ``reject_tmax`` parameters of :class:`mne.Epochs` are now taken into account when using the ``reject_by_annotation`` parameter by `Stefan Appelhoff`_
+
 Bug
 ~~~
 
