@@ -1,6 +1,7 @@
 name: mne
 channels:
 - conda-forge
+- defaults
 dependencies:
 - python>=3.5
 - pip
@@ -15,14 +16,8 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
-- pytest<5.4
-- pytest-cov
-- pytest-mock
-- pytest-timeout
-- pytest-xdist
 - joblib
 - psutil
-- flake8
 - numpydoc>=1.0
 - numexpr
 - traits>=4.6.0
@@ -35,14 +30,21 @@ dependencies:
 - pyvistaqt
 - nibabel
 - nilearn
-- pytest-sugar
-- pydocstyle
-- codespell
 - python-picard
 - tqdm
 - python-neo
 - dipy
-- pysurfer
+# FIXME - pysurfer
+# For unit testing
+- pytest<5.4
+- pytest-cov
+- pytest-mock
+- pytest-timeout
+- pytest-xdist
+- pytest-sugar
+- pydocstyle
+- codespell
+- flake8
 - pip:
   - mne
   - https://github.com/enthought/mayavi/archive/master.zip
