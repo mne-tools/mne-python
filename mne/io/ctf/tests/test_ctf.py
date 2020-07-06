@@ -393,9 +393,18 @@ def _read_res4_mag_comp(dsdir):
     return res
 
 
+def _bad_res4_grad_comp(dsdir):
+    res = mne.io.ctf.res4._read_res4(dsdir)
+    for ch in res['chs']:
+        if ch['sensor_type_index'] == CTF.CTFV_MEG_CH:
+            ch['grad_order_no'] = 1
+            break
+    return res
+
+
 @testing.requires_testing_data
-def test_read_ctf_mag_comp(tmpdir, monkeypatch):
-    """Test CTF reader."""
+def test_read_ctf_mag_bad_comp(tmpdir, monkeypatch):
+    """Test CTF reader with mag comps and bad comps."""
     path = op.join(ctf_dir, ctf_fname_continuous)
     raw_orig = read_raw_ctf(path)
     assert raw_orig.compensation_grade == 0
@@ -412,6 +421,9 @@ def test_read_ctf_mag_comp(tmpdir, monkeypatch):
         fwd_orig = make_forward_solution(raw_orig.info, *args)
         fwd_mag_comp = make_forward_solution(raw_mag_comp.info, *args)
         assert_allclose(fwd_orig['sol']['data'], fwd_mag_comp['sol']['data'])
+    monkeypatch.setattr(mne.io.ctf.ctf, '_read_res4', _bad_res4_grad_comp)
+    with pytest.raises(RuntimeError, match='inconsistent compensation grade'):
+        read_raw_ctf(path)
 
 
 run_tests_if_main()
