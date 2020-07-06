@@ -271,3 +271,37 @@ jobs:
       testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
       failTaskOnFailedTests: true
     condition: succeededOrFailed()
+
+
+- job: conda-forge
+  pool:
+    vmImage: 'ubuntu-18.04'
+  variables:
+    CONDA_ENV: 'environment_conda-forge.yml'
+  steps:
+  - bash: |
+      set -e
+      wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O miniforge.sh --progress=dot:mega
+      bash miniforge.sh -b -p ~/miniforge
+      source ~/miniforge/etc/profile.d/conda.sh
+      conda activate base
+      conda env create -n mne -f $CONDA_ENV
+      conda activate mne
+      pip uninstall -y mne
+      pip install -e .
+    displayName: 'Install conda-forge dependencies'
+  - script: mne sys_info
+    displayName: 'Print sys_info'
+  - script: pytest --cov=mne mne
+    displayName: 'Run tests'
+  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
+    displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
+    condition: succeededOrFailed()
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: 'junit-*.xml'
+      testRunTitle: 'Publish test results for $(Agent.JobName)'
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()
