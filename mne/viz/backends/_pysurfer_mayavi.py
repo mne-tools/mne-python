@@ -143,6 +143,7 @@ class _Renderer(_BaseRenderer):
                 mesh, contours=contours, line_width=width, vmin=vmin,
                 vmax=vmax, opacity=opacity, figure=self.fig)
             cont.module_manager.scalar_lut_manager.lut.table = colormap
+            return cont
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,

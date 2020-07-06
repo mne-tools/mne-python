@@ -663,7 +663,7 @@ class _Brain(object):
                     'rr': self.geo[hemi].coords,
                     'tris': self.geo[hemi].faces,
                 }
-                actor = self._renderer.contour(
+                mesh_data = self._renderer.contour(
                     surface=surface,
                     scalars=label,
                     contours=[1.0],
