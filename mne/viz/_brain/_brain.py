@@ -134,7 +134,7 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | remove_foci               | ✓            |                       |
        +---------------------------+--------------+-----------------------+
-       | remove_labels             | ✓            |                       |
+       | remove_labels             | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | save_image                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
@@ -203,6 +203,7 @@ class _Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
+        self._label_actors = list()
         self._hemi_actors = {}
         self._hemi_meshes = {}
         # for now only one color bar can be added
@@ -542,6 +543,13 @@ class _Brain(object):
 
         self._update()
 
+    def remove_labels(self):
+        """Removes all the ROI labels from the image."""
+        for actor in self._label_actors:
+            self._renderer.remove_actor(actor)
+        self._label_actors.clear()
+        self._update()
+
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
         """Add an ROI label to the image.
@@ -655,17 +663,26 @@ class _Brain(object):
                     'rr': self.geo[hemi].coords,
                     'tris': self.geo[hemi].faces,
                 }
-                self._renderer.contour(surface, label, [1.0], color=color,
-                                       kind='tube')
+                actor = self._renderer.contour(
+                    surface=surface,
+                    scalars=label,
+                    contours=[1.0],
+                    color=color,
+                    kind='tube',
+                )
             else:
-                self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                    y=self.geo[hemi].coords[:, 1],
-                                    z=self.geo[hemi].coords[:, 2],
-                                    triangles=self.geo[hemi].faces,
-                                    scalars=label,
-                                    color=None,
-                                    colormap=ctable,
-                                    backface_culling=False)
+                actor, _ = self._renderer.mesh(
+                    x=self.geo[hemi].coords[:, 0],
+                    y=self.geo[hemi].coords[:, 1],
+                    z=self.geo[hemi].coords[:, 2],
+                    triangles=self.geo[hemi].faces,
+                    scalars=label,
+                    color=None,
+                    colormap=ctable,
+                    backface_culling=False,
+                )
+                self.resolve_coincident_topology(actor)
+            self._label_actors.append(actor)
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 

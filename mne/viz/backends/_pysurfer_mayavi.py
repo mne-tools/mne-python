@@ -313,6 +313,9 @@ class _Renderer(_BaseRenderer):
         if self.fig.scene is not None:
             self.fig.scene.renderer.use_depth_peeling = True
 
+    def remove_actor(self, actor):
+        self.fig.scene.remove_actor(actor)
+
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""
