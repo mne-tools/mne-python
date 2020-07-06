@@ -7,7 +7,7 @@ dependencies:
 - pip
 - numpy
 - scipy
-- matplotlib
+- matplotlib-base
 - numba
 - pandas>=0.18
 - xlrd
@@ -20,6 +20,7 @@ dependencies:
 - psutil
 - numpydoc>=1.0
 - numexpr
+- pyqt>=5.10,<5.14
 - traits>=4.6.0
 - pyface>=6
 - traitsui>=6
