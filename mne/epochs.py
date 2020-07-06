@@ -1919,8 +1919,10 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     perc : float
         Total percentage of epochs dropped.
     """
-    if not isinstance(drop_log, tuple) or not isinstance(drop_log[0], tuple):
-        raise ValueError('drop_log must be a tuple of tuples')
+    if not isinstance(drop_log, tuple) or \
+            not all(isinstance(d, tuple) for d in drop_log) or \
+            not all(isinstance(s, str) for d in drop_log for s in d):
+        raise TypeError('drop_log must be a tuple of tuple of str')
     perc = 100 * np.mean([len(d) > 0 for d in drop_log
                           if not any(r in ignore for r in d)])
     return perc
