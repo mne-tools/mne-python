@@ -544,7 +544,7 @@ class _Brain(object):
         self._update()
 
     def remove_labels(self):
-        """Removes all the ROI labels from the image."""
+        """Remove all the ROI labels from the image."""
         for actor in self._label_actors:
             self._renderer.remove_actor(actor)
         self._label_actors.clear()

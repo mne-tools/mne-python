@@ -410,3 +410,19 @@ class _BaseRenderer(metaclass=ABCMeta):
             Names of the channels.
         """
         pass
+
+    @abstractclassmethod
+    def enable_depth_peeling(self):
+        """Enable depth peeling."""
+        pass
+
+    @abstractclassmethod
+    def remove_actor(self, actor):
+        """Remove the given actor from the scene.
+
+        Parameters
+        ----------
+        actor : vtkActor
+            The actor to remove.
+        """
+        pass
