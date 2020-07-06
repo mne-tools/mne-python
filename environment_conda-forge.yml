@@ -47,4 +47,4 @@ dependencies:
 - flake8
 - pip:
   - mne
-  - https://github.com/enthought/mayavi/archive/master.zip
+  # - https://github.com/enthought/mayavi/archive/master.zip
