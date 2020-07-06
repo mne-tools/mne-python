@@ -419,6 +419,12 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
                         preload=True, reject_by_annotation=True)
     assert len(epochs) == 1
 
+    # Same check but bad segment overlapping from 2.5s to 3s: use `reject_tmax`
+    raw.set_annotations(mne.Annotations(2.5, 0.5, 'BAD'))
+    epochs = mne.Epochs(raw, events, tmin=-1, tmax=1, reject_tmax=0.4,
+                        preload=True, reject_by_annotation=True)
+    assert len(epochs) == 1
+
 
 def test_own_data():
     """Test for epochs data ownership (gh-5346)."""

@@ -2115,23 +2115,40 @@ class Epochs(BaseEpochs):
         Returns
         -------
         data : array | str | None
-            If string it's details on rejection reason.
-            If None it means no data.
+            If string, it's details on rejection reason.
+            If array, it's the data in the desired range (good segment)
+            If None, it means no data is available.
         """
         if self._raw is None:
             # This should never happen, as raw=None only if preload=True
-            raise ValueError('An error has occurred, no valid raw file found.'
-                             ' Please report this to the mne-python '
+            raise ValueError('An error has occurred, no valid raw file found. '
+                             'Please report this to the mne-python '
                              'developers.')
         sfreq = self._raw.info['sfreq']
         event_samp = self.events[idx, 0]
-        # Read a data segment
+        # Read a data segment from "start" to "stop" in samples
         first_samp = self._raw.first_samp
         start = int(round(event_samp + self._raw_times[0] * sfreq))
         start -= first_samp
         stop = start + len(self._raw_times)
+
+        # reject_tmin, and reject_tmax need to be converted to samples to
+        # check the reject_by_annotation boundaries: reject_start, reject_stop
+        reject_tmin = self.reject_tmin
+        if reject_tmin is None:
+            reject_tmin = self._raw_times[0]
+        reject_start = int(round(event_samp + reject_tmin * sfreq))
+        reject_start -= first_samp
+
+        reject_tmax = self.reject_tmax
+        if reject_tmax is None:
+            reject_tmax = self._raw_times[-1]
+        diff = int(round((self._raw_times[-1] - reject_tmax) * sfreq))
+        reject_stop = stop - diff
+
         logger.debug('    Getting epoch for %d-%d' % (start, stop))
         data = self._raw._check_bad_segment(start, stop, self.picks,
+                                            reject_start, reject_stop,
                                             self.reject_by_annotation)
         return data
 
