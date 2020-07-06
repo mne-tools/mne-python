@@ -286,11 +286,13 @@ jobs:
       source ~/miniforge/etc/profile.d/conda.sh
       conda activate base
       conda env create -n mne -f $CONDA_ENV
+    displayName: 'Install MNE-Python dependencies from conda-forge'
+  - bash: |
       conda activate mne
       pip uninstall -y mne
       pip install --no-deps -e .
-    displayName: 'Install conda-forge dependencies'
-  - script: mne sys_info
+    displayName: 'Install MNE-Python'
+  - script: python -c 'import mne; print(mne.sys_info())'
     displayName: 'Print sys_info'
   - script: pytest --cov=mne mne
     displayName: 'Run tests'
