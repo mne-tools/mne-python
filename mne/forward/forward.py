@@ -47,10 +47,10 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt)
 from ..label import Label
-from ..fixes import einsum, dict_
+from ..fixes import einsum
 
 
-class Forward(dict_):
+class Forward(dict):
     """Forward class to represent info from forward solution.
 
     Attributes

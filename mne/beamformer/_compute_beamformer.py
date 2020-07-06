@@ -12,7 +12,6 @@ import numpy as np
 from scipy import linalg
 
 from ..cov import Covariance, make_ad_hoc_cov
-from ..fixes import dict_
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
 from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
@@ -407,7 +406,7 @@ def _compute_power(Cm, W, n_orient):
     return source_power
 
 
-class Beamformer(dict_):
+class Beamformer(dict):
     """A computed beamformer.
 
     Notes

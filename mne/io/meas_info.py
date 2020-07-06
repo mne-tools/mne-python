@@ -17,7 +17,6 @@ from textwrap import shorten
 import numpy as np
 from scipy import linalg
 
-from ..fixes import dict_
 from .pick import channel_type, pick_channels, pick_info
 from .constants import FIFF
 from .open import fiff_open
@@ -193,7 +192,7 @@ def _format_trans(obj, key):
 
 
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
-class Info(dict_, MontageMixin):
+class Info(dict, MontageMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
