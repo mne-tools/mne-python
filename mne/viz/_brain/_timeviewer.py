@@ -1223,8 +1223,8 @@ class _LinkViewer(object):
             time_viewer.playback_speed_call(value, update_widget=True)
 
     def toggle_playback(self):
-        master = self.time_viewers[0]  # select a master time_viewer
-        value = master.time_call.slider_rep.GetValue()
+        leader = self.time_viewers[0]  # select a time_viewer as leader
+        value = leader.time_call.slider_rep.GetValue()
         # synchronize starting points before playback
         self.set_time_point(value)
         for time_viewer in self.time_viewers:
@@ -1242,8 +1242,8 @@ class _LinkViewer(object):
                 )
 
     def link_cameras(self):
-        master = self.time_viewers[0]  # select a master time_viewer
-        camera = master.plotter.camera
+        leader = self.time_viewers[0]  # select a time_viewer as leader
+        camera = leader.plotter.camera
         print(camera)
         for time_viewer in self.time_viewers:
             for renderer in time_viewer.plotter.renderers:
