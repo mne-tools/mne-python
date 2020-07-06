@@ -533,7 +533,8 @@ class _Renderer(_BaseRenderer):
             for renderer in self.plotter.renderers:
                 renderer.enable_depth_peeling()
 
-    def remove_actor(self, actor):
+    def remove_mesh(self, mesh_data):
+        actor, _ = mesh_data
         self.plotter.renderer.remove_actor(actor)
 
 

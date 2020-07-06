@@ -203,7 +203,7 @@ class _Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._label_actors = list()
+        self._label_data = list()
         self._hemi_actors = {}
         self._hemi_meshes = {}
         # for now only one color bar can be added
@@ -545,9 +545,9 @@ class _Brain(object):
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for actor in self._label_actors:
-            self._renderer.remove_actor(actor)
-        self._label_actors.clear()
+        for data in self._label_data:
+            self._renderer.remove_mesh(data)
+        self._label_data.clear()
         self._update()
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
@@ -671,7 +671,7 @@ class _Brain(object):
                     kind='tube',
                 )
             else:
-                actor, _ = self._renderer.mesh(
+                mesh_data = self._renderer.mesh(
                     x=self.geo[hemi].coords[:, 0],
                     y=self.geo[hemi].coords[:, 1],
                     z=self.geo[hemi].coords[:, 2],
@@ -681,8 +681,10 @@ class _Brain(object):
                     colormap=ctable,
                     backface_culling=False,
                 )
-                self.resolve_coincident_topology(actor)
-            self._label_actors.append(actor)
+                if isinstance(mesh_data, tuple):
+                    actor, _ = mesh_data
+                    self.resolve_coincident_topology(actor)
+            self._label_data.append(mesh_data)
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 

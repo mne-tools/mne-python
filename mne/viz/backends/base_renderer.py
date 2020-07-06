@@ -417,12 +417,12 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def remove_actor(self, actor):
-        """Remove the given actor from the scene.
+    def remove_mesh(self, mesh_data):
+        """Remove the given mesh from the scene.
 
         Parameters
         ----------
-        actor : vtkActor
-            The actor to remove.
+        mesh_data : tuple | Surface
+            The mesh to remove.
         """
         pass
