@@ -288,7 +288,7 @@ jobs:
       conda env create -n mne -f $CONDA_ENV
       conda activate mne
       pip uninstall -y mne
-      pip install -e .
+      pip install --no-deps -e .
     displayName: 'Install conda-forge dependencies'
   - script: mne sys_info
     displayName: 'Print sys_info'
