@@ -406,7 +406,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
     info = mne.create_info(ch_names=['test_a'], sfreq=1000, ch_types='eeg')
     raw = mne.io.RawArray(np.atleast_2d(np.arange(0, 10, 1 / 1000)), info=info)
     events = np.array([[2000, 0, 1]])
-    raw.set_annotations(mne.Annotations(1, 1.5, 'BAD'))
+    raw.set_annotations(mne.Annotations(1, 0.5, 'BAD'))
 
     # Make the epoch based on the event at 2s, so from 1s to 3s ... assert it
     # is rejected due to bad segment overlap from 1s to 1.5s
