@@ -1517,13 +1517,17 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
-def link_brains(brains):
+def link_brains(brains, time=True, camera=False):
     """Plot multiple SourceEstimate objects with PyVista.
 
     Parameters
     ----------
     brains : list, tuple or np.ndarray
         The collection of brains to plot.
+    time : bool
+        If True, link the time controllers. Defaults to True.
+    camera : bool
+        If True, link the camera controls. Defaults to True.
     """
     from .backends.renderer import _get_3d_backend
     if _get_3d_backend() != 'pyvista':
@@ -1543,7 +1547,7 @@ def link_brains(brains):
             raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
     # link brains properties
-    _LinkViewer(brains)
+    _LinkViewer(brains, time, camera)
 
 
 @verbose

@@ -1186,28 +1186,33 @@ class _TimeViewer(object):
 class _LinkViewer(object):
     """Class to link multiple _TimeViewer objects."""
 
-    def __init__(self, brains):
+    def __init__(self, brains, time=True, camera=False):
         self.brains = brains
         self.time_viewers = [brain.time_viewer for brain in brains]
 
-        # link time sliders
-        self.link_sliders(
-            name="_time_slider",
-            callback=self.set_time_point,
-            event_type="always"
-        )
+        if camera:
+            self.link_cameras()
 
-        # link playback speed sliders
-        self.link_sliders(
-            name="_playback_speed_slider",
-            callback=self.set_playback_speed,
-            event_type="always"
-        )
+        if time:
+            # link time sliders
+            self.link_sliders(
+                name="_time_slider",
+                callback=self.set_time_point,
+                event_type="always"
+            )
 
-        # link toggle to start/pause playback
-        for time_viewer in self.time_viewers:
-            time_viewer.actions["play"].triggered.disconnect()
-            time_viewer.actions["play"].triggered.connect(self.toggle_playback)
+            # link playback speed sliders
+            self.link_sliders(
+                name="_playback_speed_slider",
+                callback=self.set_playback_speed,
+                event_type="always"
+            )
+
+            # link toggle to start/pause playback
+            for time_viewer in self.time_viewers:
+                time_viewer.actions["play"].triggered.disconnect()
+                time_viewer.actions["play"].triggered.connect(
+                    self.toggle_playback)
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
@@ -1235,6 +1240,14 @@ class _LinkViewer(object):
                     callback=callback,
                     event_type=event_type
                 )
+
+    def link_cameras(self):
+        master = self.time_viewers[0]  # select a master time_viewer
+        camera = master.plotter.camera
+        print(camera)
+        for time_viewer in self.time_viewers:
+            for renderer in time_viewer.plotter.renderers:
+                renderer.camera = camera
 
 
 def _get_range(brain):
