@@ -285,11 +285,11 @@ jobs:
       bash miniforge.sh -b -p ~/miniforge
       source ~/miniforge/etc/profile.d/conda.sh
       conda init
-    displayName: 'Install miniforge'
+    displayName: 'Install Miniforge'
     - bash: |
       conda activate base
       conda env create -n mne -f $CONDA_ENV
-    displayName: 'Install MNE-Python dependencies from conda-forge'
+    displayName: 'Install dependencies from conda-forge'
   - bash: |
       conda activate mne
       pip uninstall -y mne
