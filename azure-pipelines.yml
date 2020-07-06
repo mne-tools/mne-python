@@ -290,7 +290,7 @@ jobs:
       source ~/miniforge/etc/profile.d/conda.sh
       conda activate base
       conda env create -n mne -f $CONDA_ENV
-      displayName: 'Install dependencies from conda-forge'
+    displayName: 'Install dependencies from conda-forge'
   - bash: |
       source ~/miniforge/etc/profile.d/conda.sh
       conda activate mne
