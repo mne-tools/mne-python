@@ -273,7 +273,7 @@ jobs:
     condition: succeededOrFailed()
 
 
-- job: conda-forge
+- job: conda_forge
   pool:
     vmImage: 'ubuntu-18.04'
   variables:
