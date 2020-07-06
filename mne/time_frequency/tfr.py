@@ -1931,18 +1931,12 @@ class AverageTFR(_BaseTFR):
         return self
 
     def __truediv__(self, a):  # noqa: D105
-        return self.__div__(a)
-
-    def __div__(self, a):  # noqa: D105
         """Divide instances."""
         out = self.copy()
         out /= a
         return out
 
     def __itruediv__(self, a):  # noqa: D105
-        return self.__idiv__(a)
-
-    def __idiv__(self, a):  # noqa: D105
         self.data /= a
         return self
 
