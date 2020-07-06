@@ -297,11 +297,20 @@ jobs:
       pip uninstall -y mne
       pip install --no-deps -e .
     displayName: 'Install MNE-Python'
-  - script: python -c 'import mne; print(mne.sys_info())'
+  - bash: |
+      source ~/miniforge/etc/profile.d/conda.sh
+      conda activate mne
+      python -c 'import mne; print(mne.sys_info())'
     displayName: 'Print sys_info'
-  - script: pytest --cov=mne mne
+  - bash: |
+      source ~/miniforge/etc/profile.d/conda.sh
+      conda activate mne
+      pytest --cov=mne mne
     displayName: 'Run tests'
-  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
+  - bash: |
+      source ~/miniforge/etc/profile.d/conda.sh
+      conda activate mne
+      codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
     displayName: 'Codecov'
     env:
       CODECOV_TOKEN: $(CODECOV_TOKEN)
