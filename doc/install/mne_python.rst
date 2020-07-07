@@ -264,13 +264,15 @@ MNE-Python and its dependencies. Typical output looks like this::
           File "<string>", line 1, in <module>
         ModuleNotFoundError: No module named 'mne'
 
-    This suggests that your environment containing ``mne`` is not active.
+    This suggests that your environment containing MNE-Python is not active.
     If you followed the setup for 3D plotting/source analysis (i.e., you
     installed to a new ``mne`` environment instead of the ``base`` environment)
-    try running ``conda activate mne`` first, and try again.
-    If this works, you might want to run
-    ``echo conda activate mne >> ~/.bashrc`` to automatically activate the
-    ``mne`` environment each time you open a ``bash`` terminal.
+    try running ``conda activate mne`` first, and try again. If this works,
+    you might want to set your terminal to automatically activate the
+    ``mne`` environment each time you open a terminal::
+
+        $ echo conda activate mne >> ~/.bashrc    # for bash shells
+        $ echo conda activate mne >> ~/.zprofile  # for zsh shells
 
 If something else went wrong during installation and you can't figure it out,
 check out the :doc:`advanced` page to see if your problem is discussed there.
@@ -286,21 +288,23 @@ Development Environment`_ (IDE). Some popular choices for scientific
 Python development are:
 
 - `Spyder`_ is a free and open-source IDE developed by and for scientists who
-  use Python. It is included by default when you install Anaconda and can be
-  started from a terminal with the command ``spyder``. If you installed
-  MNE-Python into a separate ``mne`` environment (not the ``base`` Anaconda
-  environment), you can set up Spyder to use the ``mne`` environment
-  automatically, by opening Spyder and navigating to
+  use Python. It is included by default in the ``base`` environment when you
+  install Anaconda, and can be started from a terminal with the command
+  ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
+  If you installed MNE-Python into a separate ``mne`` environment (not the
+  ``base`` Anaconda environment), you can set up Spyder to use the ``mne``
+  environment automatically, by opening Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal command::
 
       $ conda activate mne && python -c "import sys; print(sys.executable)"
 
-  It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``.
+  It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
+  (Windows) or ``/Users/user/anaconda3/envs/mne/bin/python`` (macOS).
 - `Visual Studio Code`_ (often shortened to "vscode") is a development-focused
   text editor that supports many programming languages in addition to Python,
-  and has a rich ecosystem of packages to extend its capabilities. Installing
-  `Microsoft's Python Extension
+  includes an integrated terminal console, and has a rich ecosystem of packages
+  to extend its capabilities. Installing `Microsoft's Python Extension
   <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
   enough to get most Python users up and running. Visual Studio Code is free
   and open-source.
@@ -310,7 +314,7 @@ Python development are:
   `packages <https://atom.io/packages/atom-terminal-panel>`__
   `for <https://atom.io/packages/terminal-plus>`__
   `integrated <https://atom.io/packages/platformio-ide-terminal>`__
-  `terminals <https://atom.io/packages/term3>`__.
+  `terminals <https://atom.io/packages/term3>`__. Atom is free and open-source.
 - `SublimeText`_ is a general-purpose text editor that is fast and lightweight,
   and also has a rich package ecosystem. There is a package called `Terminus`_
   that provides an integrated terminal console, and a (confusingly named)
