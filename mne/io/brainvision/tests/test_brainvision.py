@@ -12,7 +12,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 
-from datetime import datetime
+import datetime
 from mne.utils import run_tests_if_main, _stamp_to_dt
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
@@ -655,25 +655,27 @@ def test_event_id_stability_when_save_and_fif_reload(tmpdir):
 
 def test_parse_impedance():
     """Test case for parsing the impedances from header."""
+    expected_imp_meas_time = datetime.datetime(2013, 11, 13, 17, 25, 1,
+                                               tzinfo=datetime.timezone.utc)
     expected_impedances = {
         'Fp1': {'imp': 13.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
+                'imp_meas_time': expected_imp_meas_time,
                 'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0,
                 'imp_range_unit': 'kOhm'},
         'Fp2': {'imp': 13.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
+                'imp_meas_time': expected_imp_meas_time,
                 'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0,
                 'imp_range_unit': 'kOhm'},
         'C3': {'imp': 1.0, 'imp_unit': 'kOhm',
-               'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
+               'imp_meas_time': expected_imp_meas_time,
                'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0,
                'imp_range_unit': 'kOhm'},
         'Ref': {'imp': 0.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
+                'imp_meas_time': expected_imp_meas_time,
                 'imp_lower_bound': 0.0, 'imp_upper_bound': 10.0,
                 'imp_range_unit': 'kOhm'},
         'Gnd': {'imp': 19.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': datetime(1900, 1, 1, 17, 25, 1),
+                'imp_meas_time': expected_imp_meas_time,
                 'imp_lower_bound': 0.0, 'imp_upper_bound': 10.0,
                 'imp_range_unit': 'kOhm'}}
     with pytest.warns(RuntimeWarning, match='software filter'):
