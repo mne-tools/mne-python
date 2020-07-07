@@ -145,12 +145,9 @@ your operating system.
 
 .. collapse:: |linux| Linux
 
-   First, update the base environment to include the ``nb_conda_kernels``
-   package, so that it's easier to use MNE-Python in Jupyter Notebooks. Next,
-   download the MNE-Python `environment file`_ and use it to create a new
-   environment (named ``mne`` by default)::
+   Download the MNE-Python `environment file`_ (done here with ``curl``) and
+   use it to create a new environment (named ``mne`` by default)::
 
-       $ conda install --name base nb_conda_kernels  # makes it easier to use MNE-Python in notebooks
        $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
        $ conda env update --file environment.yml
 
@@ -162,9 +159,13 @@ your operating system.
 
 .. collapse:: |apple| macOS
 
-   Use the base `environment file`_, e.g.::
+   Update the ``base`` conda environment to include the ``nb_conda_kernels``
+   package, so you can use MNE-Python in Jupyter Notebooks launched from the
+   Anaconda GUI. Then download the MNE-Python `environment file`_ (done here
+   with ``curl``) and use it to create a new environment (named ``mne`` by
+   default)::
 
-       $ conda install --name base nb_conda_kernels  # makes it easier to use MNE-Python in notebooks
+       $ conda install --name base nb_conda_kernels
        $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
        $ conda env update --file environment.yml
 
