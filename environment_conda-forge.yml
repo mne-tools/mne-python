@@ -17,8 +17,12 @@ dependencies:
 - jupyter
 - joblib
 - psutil
+- numpydoc>=1.0
 - numexpr
 - pyqt>=5.10,<5.14
+- traits>=4.6.0
+# FIXME - pyface>=6
+- traitsui>=6
 - imageio>=2.6.1
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
@@ -41,7 +45,6 @@ dependencies:
 - pydocstyle
 - codespell
 - flake8
-- numpydoc>=1.0
 - pip:
   - mne
   # - https://github.com/enthought/mayavi/archive/master.zip
