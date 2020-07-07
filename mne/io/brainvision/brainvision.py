@@ -95,7 +95,8 @@ class RawBrainVision(BaseRaw):
 
         settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
         split_settings = settings.splitlines()
-        self.impedances = _parse_impedance(split_settings)
+        self.impedances = _parse_impedance(split_settings,
+                                           self.info['meas_date'])
 
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
@@ -849,40 +850,54 @@ def _check_bv_annot(descriptions):
     return len(markers_basename - bv_markers) == 0
 
 
-def _parse_impedance(settings):
+def _parse_impedance(settings, recording_date=None):
     """Parse impedances from the header file.
 
     Parameters
     ----------
     settings : list
-        the header settings lines
+        The header settings lines.
+    recording_date : datetime.datetime | None
+        The date of the recording as extracted from the VMRK file.
 
     Returns
     -------
-    dict : A dictionary of all the channels and their impedances
+    dict : A dictionary of all the channels and their impedances.
     """
     ranges = _parse_impedance_ranges(settings)
     impedance_setting_lines = [i for i in settings if
-                               i.startswith('Impedance')]
+                               i.startswith('Impedance [') and
+                               i.endswith(' :')]
     impedances = dict()
     if len(impedance_setting_lines) > 0:
         idx = settings.index(impedance_setting_lines[0])
         impedance_setting = impedance_setting_lines[0].split()
         impedance_unit = impedance_setting[1].lstrip('[').rstrip(']')
-        impedance_time = impedance_setting[3]
+        impedance_time = None
+
+        # If we have a recording date, we can update it with the time of
+        # impedance measurement
+        if recording_date is not None:
+            meas_time = [int(i) for i in impedance_setting[3].split(':')]
+            impedance_time = recording_date.replace(hour=meas_time[0],
+                                                    minute=meas_time[1],
+                                                    second=meas_time[2],
+                                                    microsecond=0)
         for setting in settings[idx + 1:]:
-            # Parse channel impedances until a line that doesn't start
-            # with a word (channel name) delimited by ':' is found
-            if re.match(r'\w+:', setting):
+            # Parse channel impedances until we find a line that doesn't start
+            # with a channel name and optional +/- polarity for passive elecs
+            if re.match(r'[a-zA-Z0-9_+-]+:', setting):
                 channel_imp_line = setting.split()
                 channel_name = channel_imp_line[0].rstrip(':')
                 imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
                                            channel_imp_line[1])
+                print(channel_imp_line[1], imp_as_number)
                 channel_impedance = dict(
-                    imp=float(imp_as_number[0] if imp_as_number else 0),
+                    imp=float(imp_as_number[0] if imp_as_number else np.nan),
                     imp_unit=impedance_unit,
-                    imp_meas_time=datetime.strptime(impedance_time, "%H:%M:%S")
                 )
+                if impedance_time is not None:
+                    channel_impedance.update({'imp_meas_time': impedance_time})
 
                 if channel_name == 'Ref' and 'Reference' in ranges:
                     channel_impedance.update(ranges['Reference'])
