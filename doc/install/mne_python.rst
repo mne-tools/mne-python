@@ -54,14 +54,16 @@ conda to ``/home/user/anaconda3``)::
     .. rubric:: If you are on a |windows| Windows command prompt:
 
     Most of our instructions start with ``$``, which indicates
-    that the commands are designed to be run from a Bash command prompt.
+    that the commands are designed to be run from a ``bash`` command prompt.
 
-    Windows command prompts do not expose the same command-line tools as Bash
-    shells, so things like ``which`` will not work, and you need to use
-    alternatives, such as::
+    Windows command prompts do not expose the same command-line tools as
+    ``bash`` shells, so commands like ``which`` will not work. You can test
+    your installation with ``where`` instead::
 
-        > where mne
-        C:\Users\mneuser\Anaconda3\Scripts\mne
+        > where python
+        C:\Users\user\anaconda3\python.exe
+        > where pip
+        C:\Users\user\anaconda3\Scripts\pip.exe
 
     .. rubric:: If you see something like:
 
@@ -79,13 +81,16 @@ conda to ``/home/user/anaconda3``)::
     (probably at or near the beginning), but the ``command not found`` error
     suggests that it is missing.
 
-    On Linux or OSX, the installer should have put something
+    On Linux or macOS, the installer should have put something
     like the following in your ``~/.bashrc`` or ``~/.bash_profile``
     (or somewhere else if you are using a non-bash terminal):
 
     .. code-block:: bash
 
-        . ~/anaconda3/etc/profile.d/conda.sh
+        # >>> conda initialize >>>
+        # !! Contents within this block are managed by 'conda init' !!
+        __conda_setup= ...
+        # <<< conda initialize <<<
 
     If this is missing, it is possible that you are not on the same shell that
     was used during the installation. You can verify which shell you are on by
@@ -103,13 +108,14 @@ conda to ``/home/user/anaconda3``)::
 
         CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
 
-    It means that you have used an old method to set up Anaconda. This
-    means that you have something like::
+    It means that you have used an old method to set up Anaconda. Try running::
 
-        PATH=~/anaconda3/bin:$PATH
+        conda init
 
-    in your ``~/.bash_profile``. You should update this line to use
-    the modern way using ``anaconda3/etc/profile.d/conda.sh`` above.
+    in your command shell. If your shell is not ``cmd.exe`` (Windows) or
+    ``bash`` (Linux, macOS) you will need to pass the name of the shell to the
+    ``conda init`` command. See ``conda init --help`` for more info and
+    supported shells.
 
     You can also consult the Anaconda documentation and search for
     Anaconda install tips (`Stack Overflow`_ results are often helpful)
@@ -120,16 +126,38 @@ conda to ``/home/user/anaconda3``)::
 Installing MNE-Python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once you have Anaconda installed, the easiest way to install
-MNE-Python with all dependencies is update your base Anaconda environment:
+Once you have Python/Anaconda installed, you have a few choices for how to
+install MNE-Python.
 
-.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/server_environment.yml
+For sensor-level analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you only need 2D plotting capabilities with MNE-Python (i.e., most EEG/ERP
+or other sensor-level analyses), you can install all you need by running
+``pip install mne`` in a terminal window (on Windows, use the "Anaconda Prompt"
+from the Start menu, or the "CMD.exe prompt" from within the Anaconda Navigator
+GUI). This will install MNE-Python into the "base" conda environment, which
+should be active by default and should already have the necessary dependencies
+(``numpy``, ``scipy``, and ``matplotlib``).
+
+For 3D plotting and source analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you need MNE-Python's 3D plotting capabilities (e.g., plotting estimated
+source activity on a cortical surface) it is a good idea to install
+MNE-Python into its own virtual environment, so that the extra dependencies
+needed for 3D plotting stay in sync (i.e., they only get updated to versions
+that are compatible with MNE-Python). See the detailed instructions below for
+your operating system.
 
 .. collapse:: |linux| Linux
 
-   Use the base `environment file`_, e.g.::
+   First, update the base environment to include the ``nb_conda_kernels``
+   package, so that it's easier to use MNE-Python in Jupyter Notebooks. Next,
+   download the MNE-Python `environment file`_ and use it to create a new
+   environment (named ``mne`` by default)::
 
+       $ conda install --name base nb_conda_kernels  # makes it easier to use MNE-Python in notebooks
        $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
        $ conda env update --file environment.yml
 
@@ -143,24 +171,21 @@ MNE-Python with all dependencies is update your base Anaconda environment:
 
    Use the base `environment file`_, e.g.::
 
+       $ conda install --name base nb_conda_kernels  # makes it easier to use MNE-Python in notebooks
        $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
        $ conda env update --file environment.yml
 
 .. collapse:: |windows| Windows
 
-   - Download the base `environment file`_
+   - Download the `environment file`_
    - Open an Anaconda command prompt
+   - Run :samp:`conda install --name base nb_conda_kernels`
    - :samp:`cd` to the directory where you downloaded the file
    - Run :samp:`conda env update --file environment.yml`
 
 .. raw:: html
 
    <div width="100%" height="0 px" style="margin: 0 0 15px;"></div>
-
-If you prefer an isolated Anaconda environment, instead of using\
-:samp:`conda env update` to modify your "base" environment,
-you can create a new dedicated environment (here called "mne") with
-:samp:`conda env create --name mne --file environment.yml`.
 
 .. javascript below adapted from nilearn
 
@@ -177,12 +202,15 @@ you can create a new dedicated environment (here called "mne") with
     });
     </script>
 
-.. collapse:: |hand-stop-o| If you are installing on a headless server...
+Installing to a headless server
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. collapse:: |server| If you are installing on a headless server...
     :class: danger
 
     With `pyvista`_:
     Follow the steps described in :ref:`standard_instructions`
-    but use `server environment file`_ instead of `environment file`_.
+    but use the `server environment file`_ instead of the `environment file`_.
 
     With `mayavi`_:
     Installing `mayavi`_ requires a running `X server`_. If you are
@@ -203,7 +231,7 @@ Testing MNE-Python installation
 To make sure MNE-Python installed itself and its dependencies correctly,
 type the following command in a terminal::
 
-    $ mne sys_info
+    $ python -c "import mne; mne.sys_info()"
 
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::
@@ -243,10 +271,12 @@ MNE-Python and its dependencies. Typical output looks like this::
         ModuleNotFoundError: No module named 'mne'
 
     This suggests that your environment containing ``mne`` is not active.
-    If you installed to the ``mne`` instead of ``base`` environment, try doing
-    ``conda activate mne`` and try again. If this works, you might want to
-    add ``conda activate mne`` to the end of your ``~/.bashrc`` or
-    ``~/.bash_profile`` files so that it gets executed automatically.
+    If you followed the setup for 3D plotting/source analysis (i.e., you
+    installed to a new ``mne`` environment instead of the ``base`` environment)
+    try running ``conda activate mne`` first, and try again.
+    If this works, you might want to run
+    ``echo conda activate mne >> ~/.bashrc`` to automatically activate the
+    ``mne`` environment each time you open a ``bash`` terminal.
 
 If something else went wrong during installation and you can't figure it out,
 check out the :doc:`advanced` page to see if your problem is discussed there.
@@ -261,12 +291,18 @@ Most users find it convenient to write and run their code in an `Integrated
 Development Environment`_ (IDE). Some popular choices for scientific
 Python development are:
 
-- `Spyder`_ is an IDE developed by and for scientists who use Python. It is
-  included by default when you install anaconda and can be started from a
-  terminal with the command ``spyder``. If you installed MNE-Python into a
-  separate environment from the ``base`` anaconda environment, you can add
-  Spyder to your MNE-Python environment by running ``conda install spyder``
-  while your MNE-Python environment is active. Spyder is free and open-source.
+- `Spyder`_ is a free and open-source IDE developed by and for scientists who
+  use Python. It is included by default when you install anaconda and can be
+  started from a terminal with the command ``spyder``. If you installed
+  MNE-Python into a separate ``mne`` environment (not the ``base`` anaconda
+  environment), you can set up Spyder to use the ``mne`` environment
+  automatically, by opening Spyder and navigating to
+  :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
+  There, paste the output of the following terminal command::
+
+      $ conda activate mne && python -c "import sys; print(sys.executable)"
+
+  It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``.
 - `Visual Studio Code`_ (often shortened to "vscode") is a development-focused
   text editor that supports many programming languages in addition to Python,
   and has a rich ecosystem of packages to extend its capabilities. Installing
@@ -299,6 +335,8 @@ Python development are:
 
 .. LINKS
 
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/server_environment.yml
 .. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
