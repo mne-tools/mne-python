@@ -886,11 +886,12 @@ def _parse_impedance(settings, recording_date=None):
         for setting in settings[idx + 1:]:
             # Parse channel impedances until we find a line that doesn't start
             # with a channel name and optional +/- polarity for passive elecs
-            if re.match(r'[a-zA-Z0-9_+-]+:', setting):
+            match = re.match(r'[ a-zA-Z0-9_+-]+:', setting)
+            if match:
+                channel_name = match.group().rstrip(':')
                 channel_imp_line = setting.split()
-                channel_name = channel_imp_line[0].rstrip(':')
                 imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
-                                           channel_imp_line[1])
+                                           channel_imp_line[-1])
                 channel_impedance = dict(
                     imp=float(imp_as_number[0] if imp_as_number else np.nan),
                     imp_unit=impedance_unit,
