@@ -209,7 +209,7 @@ evoked_dict_ac = {'Event_1': evoked_event_1_ac, 'Event_2': evoked_event_2_ac,
 
 color_dict = {'Event_1': 'r', 'Event_2': 'b', 'Difference': 'g'}
 
-mne.viz.plot_compare_evokeds(evoked_dict_ac, combine="mean", ci=0.95,
+mne.viz.plot_compare_evokeds(evoked_dict_ac, combine='mean', ci=0.95,
                              colors=color_dict, axes=axes.tolist())
 
 # Topographies
@@ -345,7 +345,7 @@ evoked_dict_ph = {'Event_1': evoked_event_1_ph, 'Event_2': evoked_event_2_ph,
 
 color_dict = {'Event_1': 'r', 'Event_2': 'b', 'Difference': 'g'}
 
-mne.viz.plot_compare_evokeds(evoked_dict_ph, combine="mean", ci=0.95,
+mne.viz.plot_compare_evokeds(evoked_dict_ph, combine='mean', ci=0.95,
                              colors=color_dict, title='Phase')
 
 # Topographies

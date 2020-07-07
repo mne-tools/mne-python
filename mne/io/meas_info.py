@@ -5,6 +5,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+
 from collections import Counter
 import contextlib
 from copy import deepcopy

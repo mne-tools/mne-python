@@ -1392,6 +1392,7 @@ def _plot_update_epochs_proj(params, bools=None):
     else:
         # this is faster than epochs.get_data()[start:end] when not preloaded
         data = np.concatenate(epochs[start:end].get_data(), axis=1)
+
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     types = params['types']
