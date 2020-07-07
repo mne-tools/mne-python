@@ -33,7 +33,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel)
-from .fixes import einsum, dict_
+from .fixes import einsum
 
 
 # ############################################################################
@@ -47,7 +47,7 @@ from .fixes import einsum, dict_
 #
 
 
-class ConductorModel(dict_):
+class ConductorModel(dict):
     """BEM or sphere model."""
 
     def __repr__(self):  # noqa: D105
