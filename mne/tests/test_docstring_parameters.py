@@ -87,7 +87,7 @@ error_ignores = {
 }
 subclass_name_ignores = (
     (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
-             'copy', 'popitem', 'get', 'items', 'fromkeys', 'clear'}),
+            'copy', 'popitem', 'get', 'items', 'fromkeys', 'clear'}),
     (list, {'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove',
             'sort'}),
     (mne.fixes.BaseEstimator, {'get_params', 'set_params', 'fit_transform'}),
