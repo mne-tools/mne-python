@@ -677,7 +677,7 @@ def test_parse_impedance():
     } for i, elec in enumerate(expected_electrodes)}
 
     raw = read_raw_brainvision(vhdr_path, eog=eog)
-    object_diff(expected_impedances, raw.impedances)
+    assert object_diff(expected_impedances, raw.impedances) == ''
 
     # Test "Impedances Imported from actiCAP Control Software"
     expected_imp_meas_time = expected_imp_meas_time.replace(hour=10,
@@ -701,7 +701,7 @@ def test_parse_impedance():
     with pytest.warns(RuntimeWarning, match='different .*pass filters'):
         raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
                                    eog=['HEOG', 'VEOG'], misc=['ECG'])
-    object_diff(expected_impedances, raw.impedances)
+    assert object_diff(expected_impedances, raw.impedances) == ''
 
 
 run_tests_if_main()
