@@ -856,13 +856,14 @@ def _parse_impedance(settings, recording_date=None):
     Parameters
     ----------
     settings : list
-        The header settings lines.
+        The header settings lines fom the VHDR file.
     recording_date : datetime.datetime | None
         The date of the recording as extracted from the VMRK file.
 
     Returns
     -------
-    dict : A dictionary of all the channels and their impedances.
+    impedances : dict
+        A dictionary of all the channels and their impedances.
     """
     ranges = _parse_impedance_ranges(settings)
     impedance_setting_lines = [i for i in settings if
@@ -917,11 +918,12 @@ def _parse_impedance_ranges(settings):
     Parameters
     ----------
     settings : list
-        the header settings lines
+        The header settings lines fom the VHDR file.
 
     Returns
     -------
-    dict : A dictionary of impedance ranges for each type of electrode
+    electrode_imp_ranges : dict
+        A dictionary of impedance ranges for each type of electrode.
     """
     impedance_ranges = [item for item in settings if
                         "Selected Impedance Measurement Range" in item]

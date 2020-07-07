@@ -13,7 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 
 import datetime
-from mne.utils import run_tests_if_main, _stamp_to_dt
+from mne.utils import run_tests_if_main, _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -677,7 +677,7 @@ def test_parse_impedance():
     } for i, elec in enumerate(expected_electrodes)}
 
     raw = read_raw_brainvision(vhdr_path, eog=eog)
-    assert_array_equal(expected_impedances, raw.impedances)
+    object_diff(expected_impedances, raw.impedances)
 
     # Test "Impedances Imported from actiCAP Control Software"
     expected_imp_meas_time = expected_imp_meas_time.replace(hour=10,
@@ -701,7 +701,7 @@ def test_parse_impedance():
     with pytest.warns(RuntimeWarning, match='different .*pass filters'):
         raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
                                    eog=['HEOG', 'VEOG'], misc=['ECG'])
-    assert_array_equal(expected_impedances, raw.impedances)
+    object_diff(expected_impedances, raw.impedances)
 
 
 run_tests_if_main()
