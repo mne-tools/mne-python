@@ -1,19 +1,19 @@
 """
-.. _tut-fnirs-processing:
+.. _tut-boxy-processing:
 
 Preprocessing optical imaging data from the Imagent hardware/BOXY software
-================================================================
+==========================================================================
 
 This tutorial covers how to convert optical imaging data from raw measurements
 to relative oxyhaemoglobin (HbO) and deoxyhaemoglobin (HbR) concentration.
 Phase data from the recording is also processed and plotted in several ways
 in the latter half.
 
- .. contents:: Page contents
-    :local:
-    :depth: 2
+.. contents:: Page contents
+   :local:
+   :depth: 2
 
- Here we will work with the :ref:`BOXY example data <boxy-example-dataset>`.
+Here we will work with the :ref:`BOXY example data <boxy-example-dataset>`.
 """
 # sphinx_gallery_thumbnail_number = 1
 
@@ -195,7 +195,7 @@ all_haemo_epochs['Event_2'].plot_image(combine='mean', vmin=vmin_ac,
 
 ###############################################################################
 # Compare Events 1 and 2
-# ---------------------------------------
+# ----------------------
 
 # Evoked Activity
 evoked_event_1_ac = all_haemo_epochs['Event_1'].average()
@@ -296,7 +296,7 @@ fig.tight_layout()
 
 ###############################################################################
 # Extracting and Plotting Phase Data
-# -------------------------------------------------------------
+# ----------------------------------
 # Now we can extract phase data from the boxy file and generate similar
 # plots as done above with the AC data.
 
@@ -382,7 +382,7 @@ all_phase_epochs['Event_2'].plot_image(combine='mean', vmin=vmin_ph,
 
 ###############################################################################
 # Compare Events 1 and 2
-# ---------------------------------------
+# ----------------------
 
 # Evoked Activity
 evoked_event_1_ph = all_phase_epochs['Event_1'].average()
