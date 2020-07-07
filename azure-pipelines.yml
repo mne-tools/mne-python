@@ -277,8 +277,15 @@ jobs:
   pool:
     vmImage: 'ubuntu-18.04'
   variables:
+    DISPLAY: ':99'
     CONDA_ENV: 'environment_conda-forge.yml'
   steps:
+  - bash: |
+      sudo apt install libxkbcommon-x11-0 xvfb tcsh libxcb*
+    displayName: 'Install Ubuntu dependencies'
+  - bash: |
+      /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+    displayName: 'Spin up Xvfb'
   - bash: |
       set -e
       wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O miniforge.sh --progress=dot:mega
