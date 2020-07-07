@@ -242,8 +242,8 @@ jobs:
       powershell ci-helpers/appveyor/install-miniconda.ps1
       $env:PATH = $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PYTHON + "\Library\bin;" + $env:PATH
       conda env list
-      conda install numpy scipy matplotlib scikit-learn
       conda env update --file $env:CONDA_ENV
+      conda activate mne
       pip uninstall -yq mne
       pip install codecov
       pip uninstall -yq pysurfer mayavi
