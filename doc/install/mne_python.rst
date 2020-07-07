@@ -36,7 +36,7 @@ To get started, follow the `installation instructions for Anaconda`_.
    (indeed, preferable) to leave ``PYTHONPATH`` and ``PYTHONHOME`` permanently
    unset.
 
-When you are done, if you type the following commands in a ``bash`` terminal,
+When you are done, if you type the following commands in a command shell,
 you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``)::
 
@@ -54,11 +54,11 @@ conda to ``/home/user/anaconda3``)::
     .. rubric:: If you are on a |windows| Windows command prompt:
 
     Most of our instructions start with ``$``, which indicates
-    that the commands are designed to be run from a ``bash`` command prompt.
+    that the commands are designed to be run from a ``bash`` command shell.
 
     Windows command prompts do not expose the same command-line tools as
     ``bash`` shells, so commands like ``which`` will not work. You can test
-    your installation with ``where`` instead::
+    your installation in Windows ``cmd.exe`` shells with ``where`` instead::
 
         > where python
         C:\Users\user\anaconda3\python.exe
@@ -82,14 +82,16 @@ conda to ``/home/user/anaconda3``)::
     suggests that it is missing.
 
     On Linux or macOS, the installer should have put something
-    like the following in your ``~/.bashrc`` or ``~/.bash_profile``
-    (or somewhere else if you are using a non-bash terminal):
+    like the following in your ``~/.bashrc`` or ``~/.bash_profile`` (or your
+    ``.zprofile`` if you're using macOS Catalina or later, where the default
+    shell is ``zsh``):
 
     .. code-block:: bash
 
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
         __conda_setup= ...
+        ...
         # <<< conda initialize <<<
 
     If this is missing, it is possible that you are not on the same shell that
@@ -99,16 +101,7 @@ conda to ``/home/user/anaconda3``)::
         $ echo $SHELL
 
     If you do not find this line in the configuration file for the shell you
-    are using (bash, tcsh, etc.), add the line to that shell's ``rc`` or
-    ``profile`` file to fix the problem.
-
-    .. rubric:: If you see an error like:
-
-    ::
-
-        CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
-
-    It means that you have used an old method to set up Anaconda. Try running::
+    are using (bash, zsh, tcsh, etc.), try running::
 
         conda init
 
@@ -292,9 +285,9 @@ Development Environment`_ (IDE). Some popular choices for scientific
 Python development are:
 
 - `Spyder`_ is a free and open-source IDE developed by and for scientists who
-  use Python. It is included by default when you install anaconda and can be
+  use Python. It is included by default when you install Anaconda and can be
   started from a terminal with the command ``spyder``. If you installed
-  MNE-Python into a separate ``mne`` environment (not the ``base`` anaconda
+  MNE-Python into a separate ``mne`` environment (not the ``base`` Anaconda
   environment), you can set up Spyder to use the ``mne`` environment
   automatically, by opening Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
