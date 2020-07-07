@@ -269,9 +269,12 @@ def test_plot_drop_log():
     pytest.raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad()
     epochs.plot_drop_log()
-    plot_drop_log([['One'], [], []])
-    plot_drop_log([['One'], ['Two'], []])
-    plot_drop_log([['One'], ['One', 'Two'], []])
+    plot_drop_log((('One',), (), ()))
+    plot_drop_log((('One',), ('Two',), ()))
+    plot_drop_log((('One',), ('One', 'Two'), ()))
+    for arg in ([], ([],), (1,)):
+        with pytest.raises(TypeError, match='tuple of tuple of str'):
+            plot_drop_log(arg)
     plt.close('all')
 
 
