@@ -243,6 +243,7 @@ jobs:
       $env:PATH = $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PYTHON + "\Library\bin;" + $env:PATH
       conda env list
       conda env update --file $env:CONDA_ENV
+      conda init powershell
       conda activate mne
       pip uninstall -yq mne
       pip install codecov
