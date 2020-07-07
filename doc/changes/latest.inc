@@ -121,6 +121,8 @@ Changelog
 
 - :func:`mne.preprocessing.find_bad_channels_maxwell` now automatically applies a low-pass filter before running bad channel detection. This can be disabled, restoring previous behavior by `Richard Höchenberger`_
 
+- BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` by `Stefan Appelhoff`_ and `Jan Sedivy`_
+
 Bug
 ~~~
 
