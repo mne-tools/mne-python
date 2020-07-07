@@ -354,9 +354,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     selection : iterable | None
         Iterable of indices of selected epochs. If ``None``, will be
         automatically generated, corresponding to all non-zero events.
-    drop_log : list | None
-        List of tuple of strings indicating which epochs have been marked to be
-        ignored.
+    drop_log : tuple | None
+        Tuple of tuple of strings indicating which epochs have been marked to
+        be ignored.
     filename : str | None
         The filename (if the epochs are read from disk).
     metadata : instance of pandas.DataFrame | None
