@@ -126,6 +126,8 @@ def test_time_frequency():
     print(itc.ch_names)  # test property
     itc += power  # test add
     itc -= power  # test sub
+    ret = itc * 23  # test mult
+    itc = ret / 23  # test dic
 
     power = power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
 
