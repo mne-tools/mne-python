@@ -45,8 +45,6 @@ vhdr_lowpass_path = op.join(data_dir, 'test_highpass.vhdr')
 vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
 vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
 vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
-vhdr_segmentation_impedance = op.join(data_dir,
-                                      'test_segmentation_impedance.vhdr')
 
 # VHDR exported with neuroone
 data_path = testing.data_path(download=False)
@@ -655,31 +653,30 @@ def test_event_id_stability_when_save_and_fif_reload(tmpdir):
 
 def test_parse_impedance():
     """Test case for parsing the impedances from header."""
-    expected_imp_meas_time = datetime.datetime(2013, 11, 13, 17, 25, 1,
+    expected_imp_meas_time = datetime.datetime(2013, 11, 13, 16, 12, 27,
                                                tzinfo=datetime.timezone.utc)
-    expected_impedances = {
-        'Fp1': {'imp': 13.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': expected_imp_meas_time,
-                'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0,
-                'imp_range_unit': 'kOhm'},
-        'Fp2': {'imp': 13.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': expected_imp_meas_time,
-                'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0,
-                'imp_range_unit': 'kOhm'},
-        'C3': {'imp': 1.0, 'imp_unit': 'kOhm',
-               'imp_meas_time': expected_imp_meas_time,
-               'imp_lower_bound': 0.0, 'imp_upper_bound': 5.0,
-               'imp_range_unit': 'kOhm'},
-        'Ref': {'imp': 0.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': expected_imp_meas_time,
-                'imp_lower_bound': 0.0, 'imp_upper_bound': 10.0,
-                'imp_range_unit': 'kOhm'},
-        'Gnd': {'imp': 19.0, 'imp_unit': 'kOhm',
-                'imp_meas_time': expected_imp_meas_time,
-                'imp_lower_bound': 0.0, 'imp_upper_bound': 10.0,
-                'imp_range_unit': 'kOhm'}}
-    with pytest.warns(RuntimeWarning, match='software filter'):
-        raw = read_raw_brainvision(vhdr_segmentation_impedance, eog=eog)
+    expected_imp_unit = 'kOhm'
+    expected_electrodes = [
+        'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
+        'F8', 'P7', 'P8', 'Fz', 'FCz', 'Cz', 'CPz', 'Pz', 'POz', 'FC1', 'FC2',
+        'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'HL', 'HR', 'Vb', 'ReRef',
+        'Ref', 'Gnd'
+    ]
+    n_electrodes = len(expected_electrodes)
+    expected_imps = [np.nan] * (n_electrodes - 2) + [0, 4]
+    expected_imp_lower_bound = 0
+    expected_imp_upper_bound = [100] * (n_electrodes - 2) + [10, 10]
+
+    expected_impedances = {elec: {
+        'imp': expected_imps[i],
+        'imp_unit': expected_imp_unit,
+        'imp_meas_time': expected_imp_meas_time,
+        'imp_lower_bound': expected_imp_lower_bound,
+        'imp_upper_bound': expected_imp_upper_bound[i],
+        'imp_range_unit': expected_imp_unit,
+    } for i, elec in enumerate(expected_electrodes)}
+
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
     assert_array_equal(expected_impedances, raw.impedances)
 
 

@@ -891,7 +891,6 @@ def _parse_impedance(settings, recording_date=None):
                 channel_name = channel_imp_line[0].rstrip(':')
                 imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
                                            channel_imp_line[1])
-                print(channel_imp_line[1], imp_as_number)
                 channel_impedance = dict(
                     imp=float(imp_as_number[0] if imp_as_number else np.nan),
                     imp_unit=impedance_unit,
