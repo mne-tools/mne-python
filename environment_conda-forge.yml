@@ -21,7 +21,7 @@ dependencies:
 - numexpr
 - pyqt>=5.10,<5.14
 - traits>=4.6.0
-- pyface>=6
+# FIXME - pyface>=6
 - traitsui>=6
 - imageio>=2.6.1
 - imageio-ffmpeg>=0.4.1
