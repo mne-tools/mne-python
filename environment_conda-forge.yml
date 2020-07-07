@@ -19,9 +19,6 @@ dependencies:
 - psutil
 - numexpr
 - pyqt>=5.10,<5.14
-- traits>=4.6.0
-# FIXME - pyface>=6
-- traitsui>=6
 - imageio>=2.6.1
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
@@ -33,7 +30,11 @@ dependencies:
 - tqdm
 - python-neo
 - dipy
-# FIXME - pysurfer
+# FIXME - Mayavi stuff!
+# - pysurfer
+# - pyface>=6
+- traits>=4.6.0
+- traitsui>=6
 # For unit testing
 - pytest
 - pytest-cov
