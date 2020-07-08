@@ -212,6 +212,24 @@ The tapping lasts 5 seconds, and there are 30 trials of each condition.
 .. topic:: Examples
 
     * :ref:`tut-fnirs-processing`
+    
+.. _boxy-example-dataset:
+
+BOXY Example
+============
+:func:`mne.datasets.boxy_example.data_path`
+
+This dataset was used for an optical imaging workshop.
+Sources and detectors are placed over the occipital lobe.
+This set contains data for two montages, each with two blocks.
+Each montage and block contains two conditions:
+
+- 1
+- 2
+
+.. topic:: Examples
+
+    * :ref:`tut-boxy-processing`
 
 High frequency SEF
 ==================
