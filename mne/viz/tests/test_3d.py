@@ -720,6 +720,7 @@ def test_plot_vector_source_estimates(renderer_interactive):
                  clim=dict(pos_lims=[1, 2, 3]))
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_sensors_connectivity(renderer):
     """Test plotting of sensors connectivity."""

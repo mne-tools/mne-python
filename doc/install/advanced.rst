@@ -57,6 +57,13 @@ interactivity within the scene is limited in non-blocking plot calls.
      In [1]: from mayavi import mlab
      In [2]: %gui qt
 
+If you installed the ``nb_conda_kernels`` package into your ``base``
+environment (as recommended), you should be able to launch ``mne``-capable
+notebooks from within the Anaconda Navigator GUI without having to explicitly
+switch to the ``mne`` environment first; look for ``Python [conda env:mne]``
+when choosing which notebook kernel to use. Otherwise, be sure to activate the
+``mne`` environment before launching the notebook.
+
 If you use another Python setup and you encounter some difficulties please
 report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
 assistance.

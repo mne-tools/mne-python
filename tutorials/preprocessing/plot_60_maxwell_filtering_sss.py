@@ -120,8 +120,7 @@ print(auto_flat_chs)  # none for this dataset
 ###############################################################################
 # Now we can update the list of bad channels in the dataset.
 
-bads = [*raw.info['bads'], *auto_noisy_chs, *auto_flat_chs]
-bads = sorted(bads)
+bads = raw.info['bads'] + auto_noisy_chs + auto_flat_chs
 raw.info['bads'] = bads
 
 ###############################################################################

@@ -12,7 +12,9 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from distutils.version import LooseVersion
 import os
+import sys
 import warnings
 
 import numpy as np
@@ -32,6 +34,7 @@ with warnings.catch_warnings():
         from pyvista import BackgroundPlotter
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
+VTK9 = LooseVersion(vtk.VTK_VERSION) >= LooseVersion('9.0')
 
 
 _FIGURES = dict()
@@ -122,7 +125,8 @@ def _enable_aa(figure, plotter):
     if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
         return
     if figure.is_active():
-        plotter.enable_anti_aliasing()
+        if sys.platform != 'darwin':
+            plotter.enable_anti_aliasing()
         plotter.ren_win.LineSmoothingOn()
 
 
@@ -272,7 +276,7 @@ class _Renderer(_BaseRenderer):
             if kind == 'tube':
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
                 line_width = 1.0
-            _add_mesh(
+            actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=contour,
                 show_scalar_bar=False,
@@ -282,6 +286,7 @@ class _Renderer(_BaseRenderer):
                 opacity=opacity,
                 smooth_shading=self.figure.smooth_shading
             )
+            return actor, contour
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -371,10 +376,12 @@ class _Renderer(_BaseRenderer):
             vectors = np.c_[u, v, w]
             points = np.vstack(np.c_[x, y, z])
             n_points = len(points)
-            offset = np.arange(n_points) * 3
             cell_type = np.full(n_points, vtk.VTK_VERTEX)
             cells = np.c_[np.full(n_points, 1), range(n_points)]
-            grid = UnstructuredGrid(offset, cells, cell_type, points)
+            args = (cells, cell_type, points)
+            if not VTK9:
+                args = (np.arange(n_points) * 3,) + args
+            grid = UnstructuredGrid(*args)
             grid.point_arrays['vec'] = vectors
             if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
@@ -526,6 +533,10 @@ class _Renderer(_BaseRenderer):
         if not self.figure.store['off_screen']:
             for renderer in self.plotter.renderers:
                 renderer.enable_depth_peeling()
+
+    def remove_mesh(self, mesh_data):
+        actor, _ = mesh_data
+        self.plotter.renderer.remove_actor(actor)
 
 
 def _add_mesh(plotter, *args, **kwargs):

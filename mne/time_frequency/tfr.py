@@ -1930,6 +1930,26 @@ class AverageTFR(_BaseTFR):
         self.data -= tfr.data
         return self
 
+    def __truediv__(self, a):  # noqa: D105
+        """Divide instances."""
+        out = self.copy()
+        out /= a
+        return out
+
+    def __itruediv__(self, a):  # noqa: D105
+        self.data /= a
+        return self
+
+    def __mul__(self, a):
+        """Multiply source instances."""
+        out = self.copy()
+        out *= a
+        return out
+
+    def __imul__(self, a):  # noqa: D105
+        self.data *= a
+        return self
+
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])

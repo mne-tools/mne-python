@@ -97,7 +97,7 @@ raw_train.plot(duration=60, scalings='auto')
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # The Sleep Physionet dataset is annotated using
-# `8 labels <physionet_labels>`_:
+# `8 labels <physionet_labels_>`_:
 # Wake (W), Stage 1, Stage 2, Stage 3, Stage 4 corresponding to the range from
 # light sleep to deep sleep, REM sleep (R) where REM is the abbreviation for
 # Rapid Eye Movement sleep, movement (M), and Stage (?) for any none scored
