@@ -205,15 +205,15 @@ fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 6))
 
 axes[0].plot(evoked_event_1_ac.times,
              np.sqrt((evoked_event_1_ac.copy().pick('hbo')
-                      ._data ** 2).mean(axis=0))*1e6, 'r',
+                      ._data ** 2).mean(axis=0)) * 1e6, 'r',
              evoked_event_1_ac.times,
              np.sqrt((evoked_event_1_ac.copy().pick('hbr')
-                      ._data ** 2).mean(axis=0))*1e6, 'b',
+                      ._data ** 2).mean(axis=0)) * 1e6, 'b',
              evoked_event_1_ac.times,
              ((np.sqrt((evoked_event_1_ac.copy().pick('hbo')
-                        ._data ** 2).mean(axis=0))*1e6) -
+                        ._data ** 2).mean(axis=0)) * 1e6) -
               (np.sqrt((evoked_event_1_ac.copy().pick('hbr')
-                        ._data ** 2).mean(axis=0))*1e6)), 'g')
+                        ._data ** 2).mean(axis=0)) * 1e6)), 'g')
 axes[0].set_ylim([-40, 100])
 axes[0].set_xlabel('Time (s)')
 axes[0].set_ylabel('\u03BCM')
@@ -222,15 +222,15 @@ axes[0].legend(['HBO', 'HBR', 'Diff'])
 
 axes[1].plot(evoked_event_2_ac.times,
              np.sqrt((evoked_event_2_ac.copy().pick('hbo')
-                      ._data ** 2).mean(axis=0))*1e6, 'r',
+                      ._data ** 2).mean(axis=0)) * 1e6, 'r',
              evoked_event_2_ac.times,
              np.sqrt((evoked_event_2_ac.copy().pick('hbr')
-                      ._data ** 2).mean(axis=0))*1e6, 'b',
+                      ._data ** 2).mean(axis=0)) * 1e6, 'b',
              evoked_event_2_ac.times,
              ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
-                        ._data ** 2).mean(axis=0))*1e6) -
+                        ._data ** 2).mean(axis=0)) * 1e6) -
               (np.sqrt((evoked_event_2_ac.copy().pick('hbr')
-                        ._data ** 2).mean(axis=0))*1e6)), 'g')
+                        ._data ** 2).mean(axis=0)) * 1e6)), 'g')
 axes[1].set_ylim([-40, 100])
 axes[1].set_xlabel('Time (s)')
 axes[1].set_ylabel('\u03BCM')
@@ -239,23 +239,23 @@ axes[1].legend(['HBO', 'HBR', 'Diff'])
 
 axes[2].plot(evoked_event_1_ac.times,
              ((np.sqrt((evoked_event_1_ac.copy().pick('hbo')
-                        ._data ** 2).mean(axis=0))*1e6) -
+                        ._data ** 2).mean(axis=0)) * 1e6) -
               (np.sqrt((evoked_event_1_ac.copy().pick('hbr')
-                        ._data ** 2).mean(axis=0))*1e6)), 'm',
+                        ._data ** 2).mean(axis=0)) * 1e6)), 'm',
              evoked_event_1_ac.times,
              ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
-                        ._data ** 2).mean(axis=0))*1e6) -
+                        ._data ** 2).mean(axis=0)) * 1e6) -
               (np.sqrt((evoked_event_2_ac.copy().pick('hbr')
-                        ._data ** 2).mean(axis=0))*1e6)), 'c',
+                        ._data ** 2).mean(axis=0)) * 1e6)), 'c',
              evoked_event_1_ac.times,
              ((np.sqrt((evoked_event_1_ac.copy().pick('hbo')
-                        ._data ** 2).mean(axis=0))*1e6) -
+                        ._data ** 2).mean(axis=0)) * 1e6) -
               (np.sqrt((evoked_event_1_ac.copy().pick('hbr')
-                        ._data ** 2).mean(axis=0))*1e6)) -
+                        ._data ** 2).mean(axis=0)) * 1e6)) -
              ((np.sqrt((evoked_event_2_ac.copy().pick('hbo')
-                        ._data ** 2).mean(axis=0))*1e6) -
+                        ._data ** 2).mean(axis=0)) * 1e6) -
               (np.sqrt((evoked_event_2_ac.copy().pick('hbr')
-                        ._data ** 2).mean(axis=0))*1e6)), 'k')
+                        ._data ** 2).mean(axis=0)) * 1e6)), 'k')
 axes[2].set_ylim([-40, 100])
 axes[2].set_xlabel('Time (s)')
 axes[2].set_ylabel('\u03BCM')
