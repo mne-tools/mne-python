@@ -14,6 +14,7 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import os
 import os.path as op
+import sys
 import warnings
 from collections.abc import Iterable
 from functools import partial
@@ -2441,10 +2442,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         if brain_alpha < 1.0:
             for ff in brain._figures:
                 for f in ff:
-                    if f.scene is not None:
+                    if f.scene is not None and sys.platform != 'darwin':
                         f.scene.renderer.use_depth_peeling = True
     else:
-        if brain_alpha < 1.0:
+        if brain_alpha < 1.0 and sys.platform != 'darwin':
             brain.enable_depth_peeling()
 
     _check_time_viewer_compatibility(brain, time_viewer, show_traces)

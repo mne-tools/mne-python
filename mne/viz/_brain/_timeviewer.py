@@ -189,7 +189,7 @@ class UpdateColorbarScale(object):
 
     def __call__(self, value):
         """Update the colorbar sliders."""
-        self.brain.update_fscale(value)
+        self.brain._update_fscale(value)
         for key in self.keys:
             if self.reps[key] is not None:
                 self.reps[key].SetValue(self.brain._data[key])
@@ -206,9 +206,9 @@ class BumpColorbarPoints(object):
         self.brain = brain
         self.name = name
         self.callback = {
-            "fmin": brain.update_fmin,
-            "fmid": brain.update_fmid,
-            "fmax": brain.update_fmax
+            "fmin": lambda fmin: brain.update_lut(fmin=fmin),
+            "fmid": lambda fmid: brain.update_lut(fmid=fmid),
+            "fmax": lambda fmax: brain.update_lut(fmax=fmax),
         }
         self.keys = ('fmin', 'fmid', 'fmax')
         self.reps = {key: None for key in self.keys}
@@ -219,28 +219,29 @@ class BumpColorbarPoints(object):
         vals = {key: self.brain._data[key] for key in self.keys}
         if self.name == "fmin" and self.reps["fmin"] is not None:
             if vals['fmax'] < value:
-                self.brain.update_fmax(value)
+                vals['fmax'] = value
                 self.reps['fmax'].SetValue(value)
             if vals['fmid'] < value:
-                self.brain.update_fmid(value)
+                vals['fmid'] = value
                 self.reps['fmid'].SetValue(value)
             self.reps['fmin'].SetValue(value)
         elif self.name == "fmid" and self.reps['fmid'] is not None:
             if vals['fmin'] > value:
-                self.brain.update_fmin(value)
+                vals['fmin'] = value
                 self.reps['fmin'].SetValue(value)
             if vals['fmax'] < value:
-                self.brain.update_fmax(value)
+                vals['fmax'] = value
                 self.reps['fmax'].SetValue(value)
             self.reps['fmid'].SetValue(value)
         elif self.name == "fmax" and self.reps['fmax'] is not None:
             if vals['fmin'] > value:
-                self.brain.update_fmin(value)
+                vals['fmin'] = value
                 self.reps['fmin'].SetValue(value)
             if vals['fmid'] > value:
-                self.brain.update_fmid(value)
+                vals['fmid'] = value
                 self.reps['fmid'].SetValue(value)
             self.reps['fmax'].SetValue(value)
+        self.brain.update_lut(**vals)
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
             self.last_update = time.time()
