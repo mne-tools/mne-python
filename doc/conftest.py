@@ -1,1 +1,1 @@
-from mne.conftest import *
+from mne.conftest import *  # noqa

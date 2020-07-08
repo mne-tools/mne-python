@@ -127,6 +127,7 @@ def test_interpolation_eeg(offset):
     assert np.corrcoef(new_data, orig_data)[0, 1] > 0.2
 
 
+@pytest.mark.slowtest
 def test_interpolation_meg():
     """Test interpolation of MEG channels."""
     # speed accuracy tradeoff: channel subselection is faster but the

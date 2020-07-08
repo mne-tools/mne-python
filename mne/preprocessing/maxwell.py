@@ -1891,6 +1891,8 @@ def find_bad_channels_maxwell(
                      version of MNE-Python without prior notice. Please
                      report any problems and enhancement proposals to the
                      developers.
+
+        .. versionadded:: 0.21
     %(maxwell_origin_int_ext_calibration_cross)s
     %(maxwell_coord)s
     %(maxwell_reg_ref_cond_pos)s
@@ -1932,7 +1934,7 @@ def find_bad_channels_maxwell(
             "noisy".
 
         .. note:: The scores and limits for channels marked as ``bad`` in the
-                  input data will will be set to ``np.nan``.
+                  input data will be set to ``np.nan``.
 
     See Also
     --------
