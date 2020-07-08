@@ -33,10 +33,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     Parameters
     ----------
-    info : dict
+    info : instance of Info
         The measurement info to specify the channels to include.
         Bad channels in info['bads'] are not used.
-    forward : dict
+    forward : instance of Forward
         Forward operator.
     data_cov : instance of Covariance
         The data covariance.
@@ -60,17 +60,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     %(depth)s
 
         .. versionadded:: 0.18
-    inversion : 'single' | 'matrix'
-        This determines how the beamformer deals with source spaces in "free"
-        orientation. Such source spaces define three orthogonal dipoles at each
-        source point. When ``inversion='single'``, each dipole is considered
-        as an individual source and the corresponding spatial filter is
-        computed for each dipole separately. When ``inversion='matrix'``, all
-        three dipoles at a source vertex are considered as a group and the
-        spatial filters are computed jointly using a matrix inversion. While
-        ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of :footcite:`vanVlietEtAl2018`.
-        Defaults to 'matrix'.
+    %(bf_inversion)s
+        Defaults to ``'matrix'``.
     %(verbose)s
 
     Returns

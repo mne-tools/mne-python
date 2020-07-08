@@ -624,8 +624,8 @@ weight_norm : str | None
         which simply scales all values from ``'unit-noise-gain'`` by a fixed
         value.
     - ``'sqrtm'``
-        Use a matrix square root. This differs from ``'unit-noise-gain'`` when
-        only ``pick_ori='vector'``, creating a solution that:
+        Use a matrix square root. This differs from ``'unit-noise-gain'`` only
+        when ``pick_ori='vector'``, creating a solution that:
 
         1. Is rotation invariant (``'unit-noise-gain'`` is not);
         2. Satisfies the first requirement from
@@ -648,6 +648,18 @@ pick_ori : None | str
         cortical surface.
     - ``'max-power'``
         Filters are computed for the orientation that maximizes power.
+"""
+docdict['bf_inversion'] = """
+inversion : 'single' | 'matrix'
+    This determines how the beamformer deals with source spaces in "free"
+    orientation. Such source spaces define three orthogonal dipoles at each
+    source point. When ``inversion='single'``, each dipole is considered
+    as an individual source and the corresponding spatial filter is
+    computed for each dipole separately. When ``inversion='matrix'``, all
+    three dipoles at a source vertex are considered as a group and the
+    spatial filters are computed jointly using a matrix inversion. While
+    ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
+    precise. See section 5 of :footcite:`vanVlietEtAl2018`.
 """
 docdict['use_cps'] = """
 use_cps : bool

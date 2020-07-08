@@ -72,17 +72,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         The default is None.
 
         .. versionadded:: 0.17
-    inversion : 'single' | 'matrix'
-        This determines how the beamformer deals with source spaces in "free"
-        orientation. Such source spaces define three orthogonal dipoles at each
-        source point. When ``inversion='single'``, each dipole is considered
-        as an individual source and the corresponding spatial filter is
-        computed for each dipole separately. When ``inversion='matrix'``, all
-        three dipoles at a source vertex are considered as a group and the
-        spatial filters are computed jointly using a matrix inversion. While
-        ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of :footcite:`vanVlietEtAl2018`. Defaults to
-        'single'.
+    %(bf_inversion)s
+        Defaults to ``'single'``.
     %(weight_norm)s
 
         Defaults to ``None``, in which case no normalization is performed.
