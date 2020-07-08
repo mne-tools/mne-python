@@ -121,6 +121,7 @@ def test_brain(renderer):
     # add label
     label = read_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
+    brain.remove_labels()
 
     # add foci
     brain.add_foci([0], coords_as_verts=True,

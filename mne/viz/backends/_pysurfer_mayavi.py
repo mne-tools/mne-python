@@ -143,6 +143,7 @@ class _Renderer(_BaseRenderer):
                 mesh, contours=contours, line_width=width, vmin=vmin,
                 vmax=vmax, opacity=opacity, figure=self.fig)
             cont.module_manager.scalar_lut_manager.lut.table = colormap
+            return cont
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -312,6 +313,10 @@ class _Renderer(_BaseRenderer):
     def enable_depth_peeling(self):
         if self.fig.scene is not None:
             self.fig.scene.renderer.use_depth_peeling = True
+
+    def remove_mesh(self, surface):
+        if self.fig.scene is not None:
+            self.fig.scene.renderer.remove_actor(surface.actor)
 
 
 def _mlab_figure(**kwargs):

@@ -276,7 +276,7 @@ class _Renderer(_BaseRenderer):
             if kind == 'tube':
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
                 line_width = 1.0
-            _add_mesh(
+            actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=contour,
                 show_scalar_bar=False,
@@ -286,6 +286,7 @@ class _Renderer(_BaseRenderer):
                 opacity=opacity,
                 smooth_shading=self.figure.smooth_shading
             )
+            return actor, contour
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -532,6 +533,10 @@ class _Renderer(_BaseRenderer):
         if not self.figure.store['off_screen']:
             for renderer in self.plotter.renderers:
                 renderer.enable_depth_peeling()
+
+    def remove_mesh(self, mesh_data):
+        actor, _ = mesh_data
+        self.plotter.renderer.remove_actor(actor)
 
 
 def _add_mesh(plotter, *args, **kwargs):
