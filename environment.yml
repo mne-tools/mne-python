@@ -28,7 +28,6 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - imageio>=2.6.1
-- spyder-kernels
 - pip:
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
