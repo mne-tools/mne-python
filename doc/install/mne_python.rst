@@ -301,13 +301,14 @@ Python development are:
 
   It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
   (Windows) or ``/Users/user/anaconda3/envs/mne/bin/python`` (macOS).
-- `Visual Studio Code`_ (often shortened to "vscode") is a development-focused
-  text editor that supports many programming languages in addition to Python,
-  includes an integrated terminal console, and has a rich ecosystem of packages
-  to extend its capabilities. Installing `Microsoft's Python Extension
+- `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
+  development-focused text editor that supports many programming languages in
+  addition to Python, includes an integrated terminal console, and has a rich
+  ecosystem of packages to extend its capabilities. Installing
+  `Microsoft's Python Extension
   <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
-  enough to get most Python users up and running. Visual Studio Code is free
-  and open-source.
+  enough to get most Python users up and running. VS Code is free and
+  open-source.
 - `Atom`_ is a text editor similar to vscode, with a package ecosystem that
   includes a `Python IDE package <https://atom.io/packages/ide-python>`__ as
   well as `several <https://atom.io/packages/atom-terminal>`__
