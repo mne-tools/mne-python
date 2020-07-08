@@ -146,6 +146,10 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | TimeViewer                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
+       | enable_depth_peeling      |              | ✓                     |
+       +---------------------------+--------------+-----------------------+
+       | get_picked_points         |              | ✓                     |
+       +---------------------------+--------------+-----------------------+
 
     """
 
@@ -1416,6 +1420,11 @@ class _Brain(object):
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self._notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
+
+    def get_picked_points(self):
+        """Return the vertices of the picked points."""
+        if hasattr(self, "time_viewer"):
+            return self.time_viewer.picked_points
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
