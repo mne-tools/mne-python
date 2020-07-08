@@ -17,10 +17,10 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
                  read_source_estimate, extract_label_time_course,
-                 spatio_temporal_tris_connectivity,
-                 spatio_temporal_src_connectivity, read_cov,
-                 spatial_inter_hemi_connectivity, read_forward_solution,
-                 spatial_src_connectivity, spatial_tris_connectivity,
+                 spatio_temporal_tris_adjacency,
+                 spatio_temporal_src_adjacency, read_cov,
+                 spatial_inter_hemi_adjacency, read_forward_solution,
+                 spatial_src_adjacency, spatial_tris_adjacency,
                  SourceSpaces, VolVectorSourceEstimate,
                  MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward)
@@ -73,16 +73,16 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-def test_spatial_inter_hemi_connectivity():
-    """Test spatial connectivity between hemispheres."""
+def test_spatial_inter_hemi_adjacency():
+    """Test spatial adjacency between hemispheres."""
     # trivial cases
-    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e-6)
+    conn = spatial_inter_hemi_adjacency(fname_src_3, 5e-6)
     assert_equal(conn.data.size, 0)
-    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e6)
+    conn = spatial_inter_hemi_adjacency(fname_src_3, 5e6)
     assert_equal(conn.data.size, np.prod(conn.shape) // 2)
     # actually interesting case (1cm), should be between 2 and 10% of verts
     src = read_source_spaces(fname_src_3)
-    conn = spatial_inter_hemi_connectivity(src, 10e-3)
+    conn = spatial_inter_hemi_adjacency(src, 10e-3)
     conn = conn.tocsr()
     n_src = conn.shape[0]
     assert (n_src * 0.02 < conn.data.size < n_src * 0.10)
@@ -934,12 +934,12 @@ def test_transform():
 
 
 @requires_sklearn
-def test_spatio_temporal_tris_connectivity():
-    """Test spatio-temporal connectivity from triangles."""
+def test_spatio_temporal_tris_adjacency():
+    """Test spatio-temporal adjacency from triangles."""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
-    connectivity = spatio_temporal_tris_connectivity(tris, 2)
+    adjacency = spatio_temporal_tris_adjacency(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
-    components = stats.cluster_level._get_components(np.array(x), connectivity)
+    components = stats.cluster_level._get_components(np.array(x), adjacency)
     # _get_components works differently now...
     old_fmt = [0, 0, -2, -2, -2, -2, 0, -2, -2, -2, -2, 1]
     new_fmt = np.array(old_fmt)
@@ -951,34 +951,34 @@ def test_spatio_temporal_tris_connectivity():
 
 
 @testing.requires_testing_data
-def test_spatio_temporal_src_connectivity():
-    """Test spatio-temporal connectivity from source spaces."""
+def test_spatio_temporal_src_adjacency():
+    """Test spatio-temporal adjacency from source spaces."""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
-    connectivity = spatio_temporal_tris_connectivity(tris, 2)
+    adjacency = spatio_temporal_tris_adjacency(tris, 2)
     src[0]['use_tris'] = np.array([[0, 1, 2]])
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     src[0]['vertno'] = np.array([0, 1, 2])
     src[1]['vertno'] = np.array([0, 1, 2])
     src[0]['type'] = 'surf'
     src[1]['type'] = 'surf'
-    connectivity2 = spatio_temporal_src_connectivity(src, 2)
-    assert_array_equal(connectivity.todense(), connectivity2.todense())
-    # add test for dist connectivity
+    adjacency2 = spatio_temporal_src_adjacency(src, 2)
+    assert_array_equal(adjacency.todense(), adjacency2.todense())
+    # add test for dist adjacency
     src[0]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[1]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[0]['vertno'] = [0, 1, 2]
     src[1]['vertno'] = [0, 1, 2]
     src[0]['type'] = 'surf'
     src[1]['type'] = 'surf'
-    connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
-    assert_array_equal(connectivity.todense(), connectivity3.todense())
-    # add test for source space connectivity with omitted vertices
+    adjacency3 = spatio_temporal_src_adjacency(src, 2, dist=2)
+    assert_array_equal(adjacency.todense(), adjacency3.todense())
+    # add test for source space adjacency with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
     src_ = inverse_operator['src']
     with pytest.warns(RuntimeWarning, match='will have holes'):
-        connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
-    a = connectivity.shape[0] / 2
+        adjacency = spatio_temporal_src_adjacency(src_, n_times=2)
+    a = adjacency.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert (a == b)
 
@@ -1244,6 +1244,30 @@ def test_source_estime_project(real):
     assert_allclose(directions, want_nn, atol=1e-6)
 
 
+def test_source_estime_project_label():
+    """Test projecting a source estimate onto direction of max power."""
+    fwd = read_forward_solution(fname_fwd)
+    fwd = pick_types_forward(fwd, meg=True, eeg=False)
+
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
+    noise_cov = read_cov(fname_cov)
+    free = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=1.)
+    stc_free = apply_inverse(evoked, free, pick_ori='vector')
+
+    stc_pca = stc_free.project('pca', fwd['src'])[0]
+
+    labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                       subjects_dir=subjects_dir)
+    new_label = labels_lh[0] + labels_lh[1]
+
+    stc_in_label = stc_free.in_label(new_label)
+    stc_pca_in_label = stc_pca.in_label(new_label)
+
+    stc_in_label_pca = stc_in_label.project('pca', fwd['src'])[0]
+    assert_array_equal(stc_pca_in_label.data, stc_in_label_pca.data)
+
+
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
 def invs():
     """Inverses of various amounts of loose."""
@@ -1356,44 +1380,44 @@ def test_epochs_vector_inverse():
 
 @requires_sklearn
 @testing.requires_testing_data
-def test_vol_connectivity():
-    """Test volume connectivity."""
+def test_vol_adjacency():
+    """Test volume adjacency."""
     vol = read_source_spaces(fname_vsrc)
 
-    pytest.raises(ValueError, spatial_src_connectivity, vol, dist=1.)
+    pytest.raises(ValueError, spatial_src_adjacency, vol, dist=1.)
 
-    connectivity = spatial_src_connectivity(vol)
+    adjacency = spatial_src_adjacency(vol)
     n_vertices = vol[0]['inuse'].sum()
-    assert_equal(connectivity.shape, (n_vertices, n_vertices))
-    assert (np.all(connectivity.data == 1))
-    assert (isinstance(connectivity, sparse.coo_matrix))
+    assert_equal(adjacency.shape, (n_vertices, n_vertices))
+    assert (np.all(adjacency.data == 1))
+    assert (isinstance(adjacency, sparse.coo_matrix))
 
-    connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
-    assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
-    assert (np.all(connectivity2.data == 1))
+    adjacency2 = spatio_temporal_src_adjacency(vol, n_times=2)
+    assert_equal(adjacency2.shape, (2 * n_vertices, 2 * n_vertices))
+    assert (np.all(adjacency2.data == 1))
 
 
 @testing.requires_testing_data
-def test_spatial_src_connectivity():
-    """Test spatial connectivity functionality."""
+def test_spatial_src_adjacency():
+    """Test spatial adjacency functionality."""
     # oct
     src = read_source_spaces(fname_src)
     assert src[0]['dist'] is not None  # distance info
     with pytest.warns(RuntimeWarning, match='will have holes'):
-        con = spatial_src_connectivity(src).toarray()
-    con_dist = spatial_src_connectivity(src, dist=0.01).toarray()
+        con = spatial_src_adjacency(src).toarray()
+    con_dist = spatial_src_adjacency(src, dist=0.01).toarray()
     assert (con == con_dist).mean() > 0.75
     # ico
     src = read_source_spaces(fname_src_fs)
-    con = spatial_src_connectivity(src).tocsr()
-    con_tris = spatial_tris_connectivity(grade_to_tris(5)).tocsr()
+    con = spatial_src_adjacency(src).tocsr()
+    con_tris = spatial_tris_adjacency(grade_to_tris(5)).tocsr()
     assert con.shape == con_tris.shape
     assert_array_equal(con.data, con_tris.data)
     assert_array_equal(con.indptr, con_tris.indptr)
     assert_array_equal(con.indices, con_tris.indices)
     # one hemi
-    con_lh = spatial_src_connectivity(src[:1]).tocsr()
-    con_lh_tris = spatial_tris_connectivity(grade_to_tris(5)).tocsr()
+    con_lh = spatial_src_adjacency(src[:1]).tocsr()
+    con_lh_tris = spatial_tris_adjacency(grade_to_tris(5)).tocsr()
     con_lh_tris = con_lh_tris[:10242, :10242].tocsr()
     assert_array_equal(con_lh.data, con_lh_tris.data)
     assert_array_equal(con_lh.indptr, con_lh_tris.indptr)

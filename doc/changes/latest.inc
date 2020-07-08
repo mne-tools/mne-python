@@ -19,6 +19,8 @@ Changelog
 
 - :meth:`mne.preprocessing.ICA.plot_sources` now plots annotation markers similar to :meth:`mne.io.Raw.plot` by `Luke Bloy`_
 
+- Add support for scalar multiplication and division of :class:`mne.time_frequency.AverageTFR` instances by `Luke Bloy`_
+
 - Add support for signals in mV for :func:`mne.io.read_raw_brainvision` by `Clemens Brunner`_
 
 - :meth:`mne.Epochs.plot_psd_topomap` and :func:`mne.viz.plot_epochs_psd_topomap` now allow joint colorbar limits across subplots, by `Daniel McCloy`_.
@@ -65,7 +67,11 @@ Changelog
 
 - Add :func:`mne.stats.ttest_ind_no_p` to mirror :func:`mne.stats.ttest_1samp_no_p` with hat correction by `Eric Larson`_
 
+- Add `mne.stats.combine_adjacency` to combine adjacency matrices for independent data dimensions to enable things like spatio-temporal-time-frequency clustering in `mne.stats.permutation_cluster_test` by `Eric Larson`_
+
 - Speed up raw data reading without preload in :func:`mne.io.read_raw_nirx` by `Eric Larson`_
+
+- Speed up :meth:`mne.Epochs.copy` and :meth:`mne.Epochs.__getitem__` by avoiding copying immutable attributes by `Eric Larson`_
 
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
@@ -101,22 +107,32 @@ Changelog
 
 - Add generic reader function :func:`mne.io.read_raw` that loads files based on their extensions (it wraps the underlying specific ``read_raw_xxx`` functions) by `Clemens Brunner`_
 
+- Add automatic T3 magnetometer detection and application of :meth:`mne.io.Raw.fix_mag_coil_types` to :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
 - Add ``'auto'`` option to :meth:`mne.preprocessing.ICA.find_bads_ecg` to automatically determine the threshold for CTPS method by `Yu-Han Luo`_
 
-- Add a ``notebook`` 3d backend for visualization in jupyter notebook with :func:`mne.viz.set_3d_backend` by`Guillaume Favelier`_
+- Add a ``notebook`` 3d backend for visualization in jupyter notebook with :func:`mne.viz.set_3d_backend` by `Guillaume Favelier`_
 
 - Add support for reading and writing surfaces in Wavefront .obj format to the :func:`mne.read_surface` and :func:`mne.write_surface` by `Marijn van Vliet`_
 
 - Add tutorial on how to manually fix BEM meshes in Blender by `Marijn van Vliet`_ and `Ezequiel Mikulan`_
+
+- :func:`mne.write_evokeds` will now accept :class:`mne.Evoked` objects with differing channel orders in ``info['bads']``, which would previously raise an exception by `Richard Höchenberger`_
+
+- The ``reject_tmin`` and ``reject_tmax`` parameters of :class:`mne.Epochs` are now taken into account when using the ``reject_by_annotation`` parameter by `Stefan Appelhoff`_
 
 Bug
 ~~~
 
 - Fix bug with :func:`mne.preprocessing.ICA.find_bads_eog` when more than one EOG components are present by `Christian O'Reilly`_
 
+- Fix bug to permit :meth:`stc.project('nn', src) <mne.VectorSourceEstimate.project>` to be applied after ``stc`` was restricted to an :class:`mne.Label` by `Luke Bloy`_
+
 - Fix bug with :func:`mne.io.Raw.set_meas_date` to support setting ``meas_date`` to ``None``, by `Luke Bloy`_
 
 - Fix bug with :func:`mne.setup_volume_source_space` when ``volume_label`` was supplied where voxels slightly (in a worst case, about 37% times ``pos`` in distance) outside the voxel-grid-based bounds of regions were errantly included, by `Eric Larson`_
+
+- Fix bug with :func:`mne.io.read_raw_ctf` when reference magnetometers have the compensation grade marked by `Eric Larson`_
 
 - Fix bug with `mne.SourceSpaces.export_volume` with ``use_lut=False`` where no values were written by `Eric Larson`_
 
@@ -139,6 +155,8 @@ Bug
 - Fix to enable interactive plotting with no colorbar with :func:`mne.viz.plot_evoked_topomap` by `Daniel McCloy`_
 
 - Fix plotting with :func:`mne.viz.plot_evoked_topomap` to pre-existing axes by `Daniel McCloy`_
+
+- Fix bug with :func:`mne.viz.plot_vector_source_estimates` using the PyVista backend with ``time_viewer=True`` when updating the arrow colormaps by `Eric Larson`_
 
 - The default plotting mode for :func:`mne.io.Raw.plot` and :ref:`mne browse_raw` has been changed to ``clipping=3.`` to facilitate data analysis with large deflections, by `Eric Larson`_
 
@@ -165,6 +183,8 @@ Bug
 - Fix bug with :meth:`mne.Epochs.save` where the file splitting calculations did not account for the sizes of non-data writes by `Eric Larson`_
 
 - Fix bug with :class:`mne.Epochs` when metadata was not subselected properly when ``event_repeated='drop'`` by `Eric Larson`_
+
+- Fix bug with :class:`mne.Epochs` where ``epochs.drop_log`` was a list of list of str rather than an immutable tuple of tuple of str (not meant to be changed by the user) by `Eric Larson`_
 
 - Fix bug with :class:`mne.Report` where the BEM section could not be toggled by `Eric Larson`_
 
@@ -235,6 +255,13 @@ API
 ~~~
 
 - Python 3.5 is no longer supported, Python 3.6+ is required, by `Eric Larson`_
+
+- ``adjacency`` has replaced ``connectivity`` in the names of:
+
+  1. Arguments to clustering functions, such as `mne.stats.permutation_cluster_test`, and
+  2. Function names for defining adjacency, such as `mne.spatio_temporal_src_adjacency` replacing ``mne.spatio_temporal_src_connectivity``.
+
+  "connectivity" is now reserved for discussions of functional and effective connectivity of the brain, and "adjacency" for source or sensor neighbor definitions for cluster-based analyses, by `Eric Larson`_.
 
 - The ``normalize_fwd`` argument of :func:`mne.beamformer.make_dics` has been deprecated in favor of ``depth``, by `Eric Larson`_
 

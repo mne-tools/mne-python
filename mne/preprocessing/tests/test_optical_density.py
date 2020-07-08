@@ -24,11 +24,11 @@ fname_nirx = op.join(data_path(download=False),
 def test_optical_density():
     """Test return type for optical density."""
     raw = read_raw_nirx(fname_nirx, preload=False)
-    assert 'fnirs_raw' in raw
+    assert 'fnirs_cw_amplitude' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)
     _validate_type(raw, BaseRaw, 'raw')
-    assert 'fnirs_raw' not in raw
+    assert 'fnirs_cw_amplitude' not in raw
     assert 'fnirs_od' in raw
 
 

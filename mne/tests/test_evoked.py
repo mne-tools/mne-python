@@ -208,6 +208,15 @@ def test_io_evoked(tmpdir):
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
         read_evokeds(fname2)
 
+    # test writing when order of bads doesn't match
+    fname3 = tmpdir.join('test-bad-order-ave.fif')
+    condition = 'Left Auditory'
+    ave4 = read_evokeds(fname, condition)
+    ave4.info['bads'] = ave4.ch_names[:3]
+    ave5 = ave4.copy()
+    ave5.info['bads'] = ave4.info['bads'][::-1]
+    write_evokeds(fname3, [ave4, ave5])
+
     # constructor
     pytest.raises(TypeError, Evoked, fname)
 

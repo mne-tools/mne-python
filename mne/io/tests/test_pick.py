@@ -273,11 +273,12 @@ def test_pick_bio():
 def test_pick_fnirs():
     """Test picking fNIRS channels."""
     names = 'A1 A2 Fz O hbo1 hbo2 hbr1 fnirsRaw1 fnirsRaw2 fnirsOD1'.split()
-    types = 'mag mag eeg eeg hbo hbo hbr fnirs_raw fnirs_raw fnirs_od'.split()
+    types = 'mag mag eeg eeg hbo hbo hbr fnirs_cw_' \
+            'amplitude fnirs_cw_amplitude fnirs_od'.split()
     info = create_info(names, 1024., types)
     picks_by_type = [('mag', [0, 1]), ('eeg', [2, 3]),
                      ('hbo', [4, 5]), ('hbr', [6]),
-                     ('fnirs_raw', [7, 8]), ('fnirs_od', [9])]
+                     ('fnirs_cw_amplitude', [7, 8]), ('fnirs_od', [9])]
     assert_indexing(info, picks_by_type)
 
 
@@ -506,11 +507,11 @@ def test_picks_to_idx():
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
-    info = create_info(['a', 'b'], 1000., ['fnirs_raw', 'fnirs_od'])
+    info = create_info(['a', 'b'], 1000., ['fnirs_cw_amplitude', 'fnirs_od'])
     assert_array_equal(np.arange(2), _picks_to_idx(info, 'fnirs'))
-    assert_array_equal([0], _picks_to_idx(info, 'fnirs_raw'))
+    assert_array_equal([0], _picks_to_idx(info, 'fnirs_cw_amplitude'))
     assert_array_equal([1], _picks_to_idx(info, 'fnirs_od'))
-    info = create_info(['a', 'b'], 1000., ['fnirs_raw', 'misc'])
+    info = create_info(['a', 'b'], 1000., ['fnirs_cw_amplitude', 'misc'])
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))

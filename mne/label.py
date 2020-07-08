@@ -16,7 +16,7 @@ from scipy import linalg, sparse
 
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, _center_of_mass,
-                              spatial_src_connectivity)
+                              spatial_src_adjacency)
 from .source_space import add_source_space_distances, SourceSpaces
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
@@ -1362,7 +1362,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             raise ValueError('source space should contain the 2 hemispheres')
         rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
         tris = [src[0]['tris'], src[1]['tris']]
-        src_conn = spatial_src_connectivity(src).tocsr()
+        src_conn = spatial_src_adjacency(src).tocsr()
 
     labels = []
     cnt = 0
@@ -1381,10 +1381,10 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             tmp[this_vertno_idx] = this_data
             this_data = tmp
             offset = cnt_full + len(this_data)
-            this_src_conn = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
+            this_src_adj = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
             this_data_abs_max = np.abs(this_data).max(axis=1)
             clusters, _ = _find_clusters(this_data_abs_max, 0.,
-                                         connectivity=this_src_conn)
+                                         adjacency=this_src_adj)
             cnt_full += len(this_data)
             # Then order clusters in descending order based on maximum value
             clusters_max = np.argsort([np.max(this_data_abs_max[c])
@@ -1804,7 +1804,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
                 rest -= 1
 
         # merging small labels
-        # label connectivity matrix
+        # label adjacency matrix
         n_labels = label_idx + 1
         label_sizes = np.empty(n_labels, dtype=int)
         label_conn = np.zeros([n_labels, n_labels], dtype='bool')

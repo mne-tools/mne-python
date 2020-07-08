@@ -22,7 +22,8 @@ from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      sys_info, _get_extra_data_path, _get_root_dir,
                      _get_numpy_libs)
 from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
-                   open_docs, deprecated, fill_doc, copy_base_doc_to_subclass_doc)
+                   open_docs, deprecated, fill_doc, deprecated_alias,
+                   copy_base_doc_to_subclass_doc)
 from .fetching import _fetch_file, _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,

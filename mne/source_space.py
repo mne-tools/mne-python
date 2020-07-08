@@ -2504,17 +2504,17 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
              'hemisphere) will be very slow, consider using add_dist=False'
              % (max_n,))
     for s in src:
-        connectivity = mesh_dist(s['tris'], s['rr'])
+        adjacency = mesh_dist(s['tris'], s['rr'])
         if patch_only:
             min_dist, _, min_idx = dijkstra(
-                connectivity, indices=s['vertno'],
+                adjacency, indices=s['vertno'],
                 min_only=True, return_predecessors=True)
             min_dists.append(min_dist.astype(np.float32))
             min_idxs.append(min_idx)
             for key in ('dist', 'dist_limit'):
                 s[key] = None
         else:
-            d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
+            d = parallel(p_fun(adjacency, s['vertno'], r, dist_limit)
                          for r in np.array_split(np.arange(len(s['vertno'])),
                                                  n_jobs))
             # deal with indexing so we can add patch info
@@ -3010,9 +3010,10 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     vertices = s['vertno'] if vertices is None else vertices
     if use_cps and s.get('patch_inds') is not None:
         nn = np.empty((len(vertices), 3))
-        for p in np.searchsorted(s['vertno'], vertices):
+        for vp, p in enumerate(np.searchsorted(s['vertno'], vertices)):
+            assert(s['vertno'][p] == vertices[vp])
             #  Project out the surface normal and compute SVD
-            nn[p] = np.sum(
+            nn[vp] = np.sum(
                 s['nn'][s['pinfo'][s['patch_inds'][p]], :], axis=0)
         nn /= linalg.norm(nn, axis=-1, keepdims=True)
     else:

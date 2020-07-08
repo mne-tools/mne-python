@@ -10,6 +10,7 @@ import os
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
+from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
@@ -42,6 +43,17 @@ def test_nirx_missing_warn():
     """Test reading NIRX files when missing data."""
     with pytest.raises(RuntimeError, match='The path you'):
         read_raw_nirx(fname_nirx_15_2_short + "1", preload=True)
+
+
+@requires_testing_data
+def test_nirx_missing_evt(tmpdir):
+    """Test reading NIRX files when missing data."""
+    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
+    os.rename(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.evt",
+              str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.xxx")
+    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    raw = read_raw_nirx(fname, preload=True)
+    assert raw.annotations.onset.shape == (0, )
 
 
 @requires_testing_data
@@ -193,6 +205,16 @@ def test_nirx_15_2():
     assert raw.info['ch_names'][15][3:5] == 'D4'
     assert_allclose(
         mni_locs[15], [-0.0739, -0.0756, -0.0075], atol=allowed_dist_error)
+
+    # Old name aliases for backward compat
+    assert 'fnirs_cw_amplitude' in raw
+    with pytest.deprecated_call():
+        assert 'fnirs_raw' in raw
+    assert 'fnirs_od' not in raw
+    picks = pick_types(raw.info, fnirs='fnirs_cw_amplitude')
+    with pytest.deprecated_call():
+        picks_alias = pick_types(raw.info, fnirs='fnirs_raw')
+    assert_array_equal(picks, picks_alias)
 
 
 @requires_testing_data

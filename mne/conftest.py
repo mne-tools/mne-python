@@ -296,14 +296,8 @@ def _check_skip_backend(name):
 def renderer_notebook():
     """Verify that pytest_notebook is installed."""
     from mne.viz.backends.renderer import _use_test_3d_backend
-    try:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            from pytest_notebook import execution
-    except ImportError:
-        pytest.skip("Test skipped, requires pytest-notebook")
     with _use_test_3d_backend('notebook'):
-        yield execution
+        yield
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])

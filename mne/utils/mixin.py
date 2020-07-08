@@ -182,10 +182,13 @@ class GetEpochsMixin(object):
         has_selection = hasattr(inst, 'selection')
         if has_selection:
             key_selection = inst.selection[select]
+            drop_log = list(inst.drop_log)
             if reason is not None:
                 for k in np.setdiff1d(inst.selection, key_selection):
-                    inst.drop_log[k] = [reason]
+                    drop_log[k] = (reason,)
+            inst.drop_log = tuple(drop_log)
             inst.selection = key_selection
+            del drop_log
 
         inst.events = np.atleast_2d(inst.events[select])
         if inst.metadata is not None:

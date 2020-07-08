@@ -16,7 +16,7 @@ import pytest
 from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
-                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 write_labels_to_annot, split_label, spatial_tris_adjacency,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
@@ -716,10 +716,10 @@ def test_stc_to_label():
 
     # test getting tris
     tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
-    pytest.raises(ValueError, spatial_tris_connectivity, tris,
+    pytest.raises(ValueError, spatial_tris_adjacency, tris,
                   remap_vertices=False)
-    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
-    assert (connectivity.shape[0] == len(stc.vertices[0]))
+    adjacency = spatial_tris_adjacency(tris, remap_vertices=True)
+    assert (adjacency.shape[0] == len(stc.vertices[0]))
 
     # "src" as a subject name
     pytest.raises(TypeError, stc_to_label, stc, src=1, smooth=False,

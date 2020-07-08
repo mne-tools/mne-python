@@ -77,7 +77,7 @@ class RawNIRX(BaseRaw):
 
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('evt', 'hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
+        keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
                 'config.txt', 'probeInfo.mat')
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
@@ -231,7 +231,7 @@ class RawNIRX(BaseRaw):
         # Create mne structure
         info = create_info(chnames,
                            samplingrate,
-                           ch_types='fnirs_raw')
+                           ch_types='fnirs_cw_amplitude')
         info.update(subject_info=subject_info, dig=dig)
 
         # Store channel, source, and detector locations
@@ -288,19 +288,20 @@ class RawNIRX(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # Read triggers from event file
-        with _open(files['evt']) as fid:
-            t = [re.findall(r'(\d+)', line) for line in fid]
-        onset = np.zeros(len(t), float)
-        duration = np.zeros(len(t), float)
-        description = [''] * len(t)
-        for t_idx in range(len(t)):
-            binary_value = ''.join(t[t_idx][1:])[::-1]
-            trigger_frame = float(t[t_idx][0])
-            onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
-            duration[t_idx] = 1.0  # No duration info stored in files
-            description[t_idx] = int(binary_value, 2) * 1.
-        annot = Annotations(onset, duration, description)
-        self.set_annotations(annot)
+        if op.isfile(files['hdr'][:-3] + 'evt'):
+            with _open(files['hdr'][:-3] + 'evt') as fid:
+                t = [re.findall(r'(\d+)', line) for line in fid]
+            onset = np.zeros(len(t), float)
+            duration = np.zeros(len(t), float)
+            description = [''] * len(t)
+            for t_idx in range(len(t)):
+                binary_value = ''.join(t[t_idx][1:])[::-1]
+                trigger_frame = float(t[t_idx][0])
+                onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
+                duration[t_idx] = 1.0  # No duration info stored in files
+                description[t_idx] = int(binary_value, 2) * 1.
+            annot = Annotations(onset, duration, description)
+            self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.

@@ -36,6 +36,7 @@ public_modules = [
     'mne.simulation',
     'mne.source_estimate',
     'mne.source_space',
+    'mne.surface',
     'mne.stats',
     'mne.time_frequency',
     'mne.time_frequency.tfr',
@@ -86,7 +87,7 @@ error_ignores = {
 }
 subclass_name_ignores = (
     (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
-            'copy', 'popitem', 'get', 'items', 'fromkeys'}),
+            'copy', 'popitem', 'get', 'items', 'fromkeys', 'clear'}),
     (list, {'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove',
             'sort'}),
     (mne.fixes.BaseEstimator, {'get_params', 'set_params', 'fit_transform'}),
