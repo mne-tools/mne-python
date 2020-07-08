@@ -663,9 +663,9 @@ def test_parse_impedance():
         'Ref', 'Gnd'
     ]
     n_electrodes = len(expected_electrodes)
-    expected_imps = [np.nan] * (n_electrodes - 2) + [0, 4]
-    expected_imp_lower_bound = 0
-    expected_imp_upper_bound = [100] * (n_electrodes - 2) + [10, 10]
+    expected_imps = [np.nan] * (n_electrodes - 2) + [0., 4.]
+    expected_imp_lower_bound = 0.
+    expected_imp_upper_bound = [100.] * (n_electrodes - 2) + [10., 10.]
 
     expected_impedances = {elec: {
         'imp': expected_imps[i],
@@ -690,7 +690,7 @@ def test_parse_impedance():
     ]
     n_electrodes = len(expected_electrodes)
     expected_imps = [np.nan] * (n_electrodes - 9) + [
-        35, 46, 6, 8, 3, 4, 0, 8, 2.5
+        35., 46., 6., 8., 3., 4., 0., 8., 2.5
     ]
     expected_impedances = {elec: {
         'imp': expected_imps[i],

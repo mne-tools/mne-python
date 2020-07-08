@@ -894,7 +894,7 @@ def _parse_impedance(settings, recording_date=None):
                 imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
                                            channel_imp_line[-1])
                 channel_impedance = dict(
-                    imp=float(imp_as_number[0] if imp_as_number else np.nan),
+                    imp=float(imp_as_number[0]) if imp_as_number else np.nan,
                     imp_unit=impedance_unit,
                 )
                 if impedance_time is not None:
