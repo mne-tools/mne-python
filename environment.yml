@@ -1,4 +1,4 @@
-name: base
+name: mne
 channels:
 - defaults
 dependencies:
@@ -47,3 +47,4 @@ dependencies:
   - python-picard
   - tqdm
   - PyQt5>=5.10
+  - spyder-kernels
