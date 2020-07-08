@@ -614,9 +614,26 @@ weight_norm : str | None
         computed.
     - ``'unit-noise-gain'``
         The unit-noise gain minimum variance beamformer will be computed
-        (Borgiotti-Kaplan beamformer) :footcite:`SekiharaNagarajan2008`.
+        (Borgiotti-Kaplan beamformer) :footcite:`SekiharaNagarajan2008`,
+        which is not rotation invariant when ``pick_ori='vector'``.
+        This should be combined with
+        :meth:`stc.project('pca') <mne.VectorSourceEstimate.project>` to follow
+        the definition in :footcite:`SekiharaNagarajan2008`.
     - ``'nai'``
-        The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed.
+        The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed,
+        which simply scales all values from ``'unit-noise-gain'`` by a fixed
+        value.
+    - ``'sqrtm'``
+        Use a matrix square root. This differs from ``'unit-noise-gain'`` when
+        only ``pick_ori='vector'``, creating a solution that:
+
+        1. Is rotation invariant (``'unit-noise-gain'`` is not);
+        2. Satisfies the first requirement from
+           :footcite:`SekiharaNagarajan2008` that ``w @ w.conj().T == I``,
+           whereas ``'unit-noise-gain'`` has non-zero off-diagonals; but
+        3. Does not satisfy the second requirement that ``w @ G.T = θI``,
+           which arguably does not make sense for a rotation-invariant
+           solution.
 """
 docdict['bf_pick_ori'] = """
 pick_ori : None | str

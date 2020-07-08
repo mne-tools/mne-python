@@ -178,7 +178,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     W : ndarray, shape (n_dipoles, n_channels)
         The beamformer filter weights.
     """
-    # XXX settle on names and fix docs
     _check_option('weight_norm', weight_norm,
                   ['unit-noise-gain', 'nai', 'sqrtm', None])
     assert Cm.shape == (G.shape[0],) * 2

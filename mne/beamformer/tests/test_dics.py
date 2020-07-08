@@ -16,6 +16,7 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
                             apply_dics_csd, tf_dics, read_beamformer,
                             Beamformer)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
+from mne.beamformer._dics import _prepare_noise_csd
 from mne.time_frequency import csd_morlet
 from mne.utils import run_tests_if_main, object_diff, requires_h5py
 from mne.proj import compute_proj_evoked, make_projector
@@ -183,9 +184,11 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
 
     n_channels = len(epochs.ch_names)
     # Test return values
+    weight_norm = 'unit-noise-gain'
+    inversion = 'single'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                        weight_norm='unit-noise-gain', depth=None,
-                        noise_csd=noise_csd)
+                        weight_norm=weight_norm, depth=None,
+                        noise_csd=noise_csd, inversion=inversion)
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert np.iscomplexobj(filters['weights'])
     assert filters['csd'].ch_names == epochs.ch_names
@@ -197,41 +200,52 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     assert filters['subject'] == fwd_free['src']._subject
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
-    assert filters['inversion'] == 'single'
-    assert filters['weight_norm'] == 'unit-noise-gain'
+    assert filters['inversion'] == inversion
+    assert filters['weight_norm'] == weight_norm
     assert 'DICS' in repr(filters)
     assert 'subject "sample"' in repr(filters)
     assert str(len(vertices)) in repr(filters)
     assert str(n_channels) in repr(filters)
     assert 'rank' not in repr(filters)
+    _, noise_cov = _prepare_noise_csd(csd, noise_csd, real_filter=False)
     _, _, _, _, G, _, _, _ = _prepare_beamformer_input(
-        epochs.info, fwd_surf, label, 'vector', combine_xyz=False, exp=None)
+        epochs.info, fwd_surf, label, 'vector', combine_xyz=False, exp=None,
+        noise_cov=noise_cov)
     G.shape = (n_channels, n_verts, n_orient)
-    G = G.transpose(1, 2, 0)  # verts, orient, ch
+    G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
+    _assert_weight_norm(filters, G, weight_norm, inversion)
 
-    _assert_weight_norm(filters, G)
+    inversion = 'matrix'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                        weight_norm='sqrtm', depth=None,
-                        noise_csd=noise_csd)
-    _assert_weight_norm(filters, G)
+                        weight_norm=weight_norm, depth=None,
+                        noise_csd=noise_csd, inversion=inversion)
+    _assert_weight_norm(filters, G, weight_norm, inversion)
+
+    weight_norm = 'sqrtm'
+    inversion = 'single'
+    filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
+                        weight_norm=weight_norm, depth=None,
+                        noise_csd=noise_csd, inversion=inversion)
+    _assert_weight_norm(filters, G, weight_norm, inversion)
 
     # Test picking orientations. Also test weight norming under these different
     # conditions.
+    weight_norm = 'unit-noise-gain'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='normal', weight_norm='unit-noise-gain',
-                        depth=None, noise_csd=noise_csd)
+                        pick_ori='normal', weight_norm=weight_norm,
+                        depth=None, noise_csd=noise_csd, inversion=inversion)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
-    _assert_weight_norm(filters, G)
+    _assert_weight_norm(filters, G, weight_norm, inversion)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='max-power', weight_norm='unit-noise-gain',
-                        depth=None, noise_csd=noise_csd)
+                        pick_ori='max-power', weight_norm=weight_norm,
+                        depth=None, noise_csd=noise_csd, inversion=inversion)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
-    _assert_weight_norm(filters, G)
+    _assert_weight_norm(filters, G, weight_norm, inversion)
 
     # From here on, only work on a single frequency
     csd = csd[0]

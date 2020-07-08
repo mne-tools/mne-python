@@ -13,12 +13,13 @@ import mne
 from mne import (convert_forward_solution, read_forward_solution, compute_rank,
                  VolVectorSourceEstimate, VolSourceEstimate, EvokedArray,
                  pick_channels_cov)
-from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv, Beamformer,
                             read_beamformer, apply_lcmv_cov)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._lcmv import _lcmv_source_power
+from mne.datasets import testing
+from mne.fixes import nullcontext
 from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
@@ -914,7 +915,7 @@ def test_lcmv_maxfiltered():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('pick_ori', ['vector', 'max-power', 'normal'])
-@pytest.mark.parametrize('weight_norm', ['unit-noise-gain'])  # , 'sqrtm'])
+@pytest.mark.parametrize('weight_norm', ['unit-noise-gain', 'nai', 'sqrtm'])
 @pytest.mark.parametrize('reg', (0.05, 0.))
 def test_unit_noise_gain_formula(pick_ori, weight_norm, reg):
     """Test unit-noise-gain filter against formula."""
@@ -942,7 +943,8 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg):
     _assert_weight_norm(filters, G, weight_norm)
 
 
-def _assert_weight_norm(filters, G, weight_norm='unit-noise-gain'):
+def _assert_weight_norm(filters, G, weight_norm='unit-noise-gain',
+                        inversion='matrix'):
     weights, max_power_ori = filters['weights'], filters['max_power_ori']
     if weights.ndim == 2:  # LCMV
         weights = weights[np.newaxis]
@@ -970,15 +972,28 @@ def _assert_weight_norm(filters, G, weight_norm='unit-noise-gain'):
         assert w.shape == use_G.shape == (n_sources, n_orient, n_channels)
         got = np.matmul(w, w.conj().swapaxes(-2, -1))
         desired = np.repeat(np.eye(n_orient)[np.newaxis], w.shape[0], axis=0)
-        if n_orient == 3 and weight_norm == 'unit-noise-gain':
-            # only the diagonal is correct
+        if n_orient == 3 and weight_norm in ('unit-noise-gain', 'nai'):
+            # only the diagonal is correct!
+            assert not np.allclose(got, desired, atol=1e-7)
             got = got.reshape(n_sources, -1)[:, ::n_orient + 1]
             desired = np.ones_like(got)
-        assert_allclose(got, desired, atol=1e-7, err_msg='w @ w.conj().T')
+        if weight_norm == 'nai':  # additional scale factor, should be fixed
+            atol = 1e-7 * got.flat[0]
+            desired *= got.flat[0]
+        else:
+            atol = 1e-7
+        assert_allclose(got, desired, atol=atol, err_msg='w @ w.conj().T = I')
         # Check that the result here is a diagonal matrix for Sekihara
-        if weight_norm == 'unit-noise-gain' and n_orient > 1:
+        if n_orient > 1 and weight_norm != 'sqrtm':
             got = w @ use_G.swapaxes(-2, -1)
             diags = np.diagonal(got, 0, -2, -1)
             want = np.apply_along_axis(np.diagflat, 1, diags)
-            atol = np.mean(diags) * 1e-12
-            assert_allclose(got, want, atol=atol, err_msg='G.T @ w = θI')
+            atol = np.mean(diags).real * 1e-12
+            if inversion == 'matrix':
+                ctx = nullcontext()
+            else:
+                # inversion == 'single' breaks it
+                assert inversion == 'single'
+                ctx = pytest.raises(AssertionError)  # fails
+            with ctx:
+                assert_allclose(got, want, atol=atol, err_msg='G.T @ w = θI')

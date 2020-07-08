@@ -176,14 +176,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     _check_one_ch_type('dics', info, forward, csd, noise_csd)
     info, fwd, csd = equalize_channels([info, forward, csd])
 
-    if noise_csd is not None:
-        csd, noise_csd = equalize_channels([csd, noise_csd])
-        # Use the same noise CSD for all frequencies
-        if len(noise_csd.frequencies) > 1:
-            noise_csd = noise_csd.mean()
-        noise_csd = noise_csd.get_data(as_cov=True)
-        if real_filter:
-            noise_csd['data'] = noise_csd['data'].real
+    csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)
 
     depth = _check_depth(depth, 'depth_sparse')
     if inversion == 'single':
@@ -193,6 +186,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         _prepare_beamformer_input(
             info, forward, label, pick_ori, noise_cov=noise_csd, rank=rank,
             pca=False, **depth)
+    del noise_csd
     ch_names = list(info['ch_names'])
 
     logger.info('Computing DICS spatial filters...')
@@ -234,6 +228,18 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         whitener=whitener, max_power_ori=max_oris)
 
     return filters
+
+
+def _prepare_noise_csd(csd, noise_csd, real_filter):
+    if noise_csd is not None:
+        csd, noise_csd = equalize_channels([csd, noise_csd])
+        # Use the same noise CSD for all frequencies
+        if len(noise_csd.frequencies) > 1:
+            noise_csd = noise_csd.mean()
+        noise_csd = noise_csd.get_data(as_cov=True)
+        if real_filter:
+            noise_csd['data'] = noise_csd['data'].real
+    return csd, noise_csd
 
 
 def _apply_dics(data, filters, info, tmin):
