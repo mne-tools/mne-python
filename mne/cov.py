@@ -1442,7 +1442,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
     if proj_subspace and sum(rank.values()) == C.shape[0]:
         return np.ones(n_chan), np.eye(n_chan), np.ones(n_chan, bool)
 
-    dtype = np.complex if C.dtype == np.complex else np.float
+    dtype = complex if C.dtype == np.complex_ else float
     eig = np.zeros(n_chan, dtype)
     eigvec = np.zeros((n_chan, n_chan), dtype)
     mask = np.zeros(n_chan, bool)

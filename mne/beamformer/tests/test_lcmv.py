@@ -974,9 +974,10 @@ def _assert_weight_norm(filters, G, weight_norm='unit-noise-gain'):
             got = got.reshape(n_sources, -1)[:, ::n_orient + 1]
             desired = np.ones_like(got)
         assert_allclose(got, desired, atol=1e-7, err_msg='w @ w.conj().T')
-        # Check that the result here is a constant times a diagonal matrix
-        # (for Sekihara) or a rotated version of that (for sqrtm)
-        # got = w @ use_G.swapaxes(-2, -1)
-        # s = np.linalg.svd(got, compute_uv=False)
-        # theta = np.repeat(s[..., :1], s.shape[-1], axis=-1)
-        # assert_allclose(s, theta, rtol=1e-1, err_msg='G.T @ w = θI')
+        # Check that the result here is a diagonal matrix for Sekihara
+        if weight_norm == 'unit-noise-gain' and n_orient > 1:
+            got = w @ use_G.swapaxes(-2, -1)
+            diags = np.diagonal(got, 0, -2, -1)
+            want = np.apply_along_axis(np.diagflat, 1, diags)
+            atol = np.mean(diags) * 1e-12
+            assert_allclose(got, want, atol=atol, err_msg='G.T @ w = θI')
