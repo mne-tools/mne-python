@@ -19,7 +19,6 @@ from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.datasets import testing
-from mne.fixes import nullcontext
 from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
