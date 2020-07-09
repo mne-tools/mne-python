@@ -1975,7 +1975,7 @@ def find_bad_channels_maxwell(
        to roughly match the scale of the gradiometer data using ``mag_scale``).
     5. Marks channels as bad for the chunk when
        :math:`d_k > \mu_d + \textrm{limit} \times \sigma_d`. Note that this
-       expression can be easily transformed into 
+       expression can be easily transformed into
        :math:`(d_k - \mu_d) / \sigma_d > \textrm{limit}`, which is equivalent
        to :math:`z(d_k) > \textrm{limit}`, with :math:`z(d_k)` being the
        standard or z-score of the difference.
