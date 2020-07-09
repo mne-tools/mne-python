@@ -124,14 +124,17 @@ class MNEBrowseFigure(MNEFigure):
 
         # MAIN AXES: default margins (figure-relative coordinates)
         left = self._inch_to_rel(l_margin - vscroll_dist - help_width)
+        right = 1 - self._inch_to_rel(r_margin)
         bottom = self._inch_to_rel(b_margin, horiz=False)
-        width = 1 - self._inch_to_rel(r_margin) - left
-        height = 1 - self._inch_to_rel(t_margin, horiz=False) - bottom
+        top = 1 - self._inch_to_rel(t_margin, horiz=False)
+        width = right - left
+        height = top - bottom
         position = [left, bottom, width, height]
 
         # Main axes must be a subplot for subplots_adjust to work (so user can
         # adjust margins). That's why we don't use the Divider class directly.
         ax = self.add_subplot(1, 1, 1, position=position)
+        self.subplotpars.update(left=left, bottom=bottom, top=top, right=right)
         div = make_axes_locatable(ax)
 
         # SCROLLBARS
@@ -144,7 +147,6 @@ class MNEBrowseFigure(MNEFigure):
         ax_hscroll.get_yaxis().set_visible(False)
         ax_hscroll.set_xlabel(xlabel)
         ax_vscroll.set_axis_off()
-
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
                                   size=Fixed(help_width),
@@ -165,16 +167,6 @@ class MNEBrowseFigure(MNEFigure):
         ]
         self.mne.button_proj_position = proj_button_pos
         self.mne.button_proj_locator = div.new_locator(nx=2, ny=0)
-
-        # ZEN MODE: (show/hide scrollbars)
-        self.canvas.draw()  # otherwise the get_position() calls are inaccurate
-        self.mne.zen_w = (ax_vscroll.get_position().xmax -
-                          ax.get_position().xmax)
-        self.mne.zen_h = (ax.get_position().ymin -
-                          ax_hscroll.get_position().ymin)
-        if not self.mne.show_scrollbars:
-            self.mne.show_scrollbars = True
-            self._toggle_scrollbars()
 
         # SAVE PARAMS
         self.mne.ax_main = ax
@@ -356,6 +348,15 @@ def mne_figure(*args, toolbar=False, FigureClass=MNEBrowseFigure, **kwargs):
     else:
         with rc_context(rc=dict(toolbar='none')):
             fig = figure(*args, FigureClass=FigureClass, **kwargs)
+    # initialize zen mode (can't do in __init__ due to get_position() calls)
+    fig.canvas.draw()
+    fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
+                     fig.mne.ax_main.get_position().xmax)
+    fig.mne.zen_h = (fig.mne.ax_main.get_position().ymin -
+                     fig.mne.ax_hscroll.get_position().ymin)
+    if not fig.mne.show_scrollbars:
+        fig.mne.show_scrollbars = True
+        fig._toggle_scrollbars()
     # remove MPL default keypress catchers
     default_cbs = list(fig.canvas.callbacks.callbacks['key_press_event'])
     for callback in default_cbs:
