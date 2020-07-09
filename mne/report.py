@@ -23,10 +23,11 @@ from . import read_evokeds, read_events, pick_types, read_cov
 from .fixes import _get_img_fdata
 from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
+from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
-from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces, _mri_ori
+from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
@@ -1730,7 +1731,7 @@ class Report(object):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
         nim = nib.load(mri_fname)
-        (_, _, z), _, _ = _mri_ori(nim, orientation)
+        (_, _, z), _, _ = _mri_orientation(nim, orientation)
         n_slices = nim.shape[z]
 
         name = orientation

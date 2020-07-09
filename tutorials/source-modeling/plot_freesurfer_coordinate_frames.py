@@ -59,9 +59,12 @@ print(data.shape)
 
 ###############################################################################
 # These data are voxel intensity values (unsigned integers in the range 0-255).
-# Their positions in the voxel array are related to real-world ``(x, y, z)``
-# positions (in RAS orientation) by the image's affine transformation (noting
-# here that :mod:`nibabel` processes everything in units of millimeters):
+# A value ``data[i, j, k]`` at a given index triplet ``(i, j, k)`` is located
+# at real-world ``(x, y, z)`` positions (in RAS orientation) in the scanner's
+# native coordinate frame (defined during acquisition) by the image's
+# *affine transformation* (noting here that :mod:`nibabel` processes everything
+# in units of millimeters, unlike MNE where things are always in SI units /
+# meters):
 
 print(t1.affine)
 
@@ -83,8 +86,8 @@ print('Our voxel has real-world coordinates {}, {}, {} (mm)'
       .format(*np.round(xyz_ras, 3)))
 
 ###############################################################################
-# If you have a point ``(x, y, z)`` in RAS space and you want the
-# corresponding voxel number, you can get it using the inverse of the
+# If you have a point ``(x, y, z)`` in scanner-native RAS space and you want
+# the corresponding voxel number, you can get it using the inverse of the
 # affine. This involves some rounding, so it's possible to end up off by one
 # voxel if you're not careful:
 
@@ -95,14 +98,23 @@ print('Our real-world coordinates correspond to voxel ({}, {}, {})'
       .format(i_, j_, k_))
 
 ###############################################################################
-# Let's write a short function to visualize where our voxel lies in a saggital
+# Let's write a short function to visualize where our voxel lies in an
 # image, and annotate it in RAS space (rounded to the nearest millimeter):
 
 
-def imshow_mri(data, vox, xyz, suptitle):
+def imshow_mri(data, img, vox, xyz, suptitle):
     """Show an MRI slice with a voxel annotated."""
     i, j, k = vox
     fig, ax = plt.subplots(1, figsize=(5, 5))
+    codes = nibabel.orientations.aff2axcodes(img.affine)
+    # Figure out the title based on the code of this axis
+    ori_slice = dict(P='Coronal', A='Coronal',
+                     I='Axial', S='Axial',
+                     L='Sagittal', R='Saggital')
+    ori_names = dict(P='posterior', A='anterior',
+                     I='inferior', S='superior',
+                     L='left', R='right')
+    title = ori_slice[codes[0]]
     ax.imshow(data[i], vmin=10, vmax=120, cmap='gray', origin='lower')
     ax.axvline(k, color='y')
     ax.axhline(j, color='y')
@@ -114,14 +126,19 @@ def imshow_mri(data, vox, xyz, suptitle):
         text.set_path_effects([
             path_effects.Stroke(linewidth=2, foreground='black'),
             path_effects.Normal()])
-    # reorient for our data orientation and label
-    ax.set(xlim=[0, 255], ylim=[255, 0], xlabel='k', ylabel='j',
-           title='i={}'.format(i))
+    # reorient view so that RAS is always rightward and upward
+    x_order = -1 if codes[2] in 'LIP' else 1
+    y_order = -1 if codes[1] in 'LIP' else 1
+    ax.set(xlim=[0, data.shape[2] - 1][::x_order],
+           ylim=[0, data.shape[1] - 1][::y_order],
+           xlabel=f'k ({ori_names[codes[2]]}+)',
+           ylabel=f'j ({ori_names[codes[1]]}+)',
+           title=f'{title} view: i={i} ({ori_names[codes[0]]}+)')
     fig.suptitle(suptitle)
     fig.subplots_adjust(0.1, 0.1, 0.95, 0.85)
 
 
-imshow_mri(data, vox, dict(RAS=xyz_ras), 'MRI slice')
+imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
 
 ###############################################################################
 # Notice that the axis scales (``i``, ``j``, and ``k``) are still in voxels
@@ -129,26 +146,41 @@ imshow_mri(data, vox, dict(RAS=xyz_ras), 'MRI slice')
 # into real-world RAS in millimeters.
 #
 #
-# MRI coordinates in MNE-Python are really "Freesurfer surface RAS"
-# -----------------------------------------------------------------
+# "MRI coordinates" in MNE-Python: "FreeSurfer surface RAS"
+# ---------------------------------------------------------
 #
-# While :mod:`nibabel` uses standard RAS ``(x, y, z)`` coordinates, Freesurfer
-# uses *MRI surface RAS* coordinates; the transform from voxels to Freesurfer
-# MRI surface RAS coordinate frame is known in the `Freesurfer documentation
+# While :mod:`nibabel` uses **scanner RAS** ``(x, y, z)`` coordinates,
+# FreeSurfer uses a slightly different coordinate frame: **MRI surface RAS**.
+# The transform from voxels to the FreeSurfer MRI surface RAS coordinate frame
+# is known in the `FreeSurfer documentation
 # <https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems>`_ as ``Torig``,
 # and in nibabel as :meth:`vox2ras_tkr
-# <nibabel.freesurfer.mghformat.MGHHeader.get_vox2ras_tkr>`.
-# Since MNE-Python uses Freesurfer extensively for surface computations (e.g.,
-# white matter, inner/outer skull meshes), internally MNE-Python often uses the
-# Freesurfer surface RAS coordinate system (not the :mod:`nibabel` RAS system).
-# We can do similar computations as before to figure out where the point is in
-# Freesurfer MRI coordinates:
+# <nibabel.freesurfer.mghformat.MGHHeader.get_vox2ras_tkr>`. This
+# transformation sets the center of its coordinate frame in the middle of the
+# conformed volume dimensions (``N / 2.``) with the axes oriented along the
+# axes of the volume itself. For more information, see
+# :ref:`coordinate_systems`.
+#
+# Since MNE-Python uses FreeSurfer extensively for surface computations (e.g.,
+# white matter, inner/outer skull meshes), internally MNE-Python uses the
+# Freeurfer surface RAS coordinate system (not the :mod:`nibabel` scanner RAS
+# system) for as many computations as possible, such as all source space
+# and BEM mesh vertex definitions.
+#
+# .. note::
+#       Whenever you see "MRI coordinates" or "MRI coords" in MNE-Python's
+#       documentation, you should assume that we are talking about the
+#       "FreeSurfer MRI surface RAS" coordinate frame!
+#
+# We can do similar computations as before to figure out where the given voxel
+# and RAS point is in FreeSurfer MRI coordinates (i.e., what we call just
+# "MRI coordinates" everywhere else in MNE):
 
 Torig = t1.header.get_vox2ras_tkr()
 print(t1.affine)
 print(Torig)
 xyz_mri = apply_trans(Torig, vox)
-imshow_mri(data, vox, dict(MRI=xyz_mri), 'MRI slice')
+imshow_mri(data, t1, vox, dict(MRI=xyz_mri), 'MRI slice')
 
 ###############################################################################
 # Knowing these relationships and being mindful about transformations, we
@@ -168,12 +200,22 @@ print(nasion_mri)  # note it's in MRI coords
 nasion_mri = nasion_mri['r'] * 1000  # meters → millimeters
 nasion_vox = np.round(
     apply_trans(np.linalg.inv(Torig), nasion_mri)).astype(int)
-imshow_mri(data, nasion_vox, dict(MRI=nasion_mri),
+imshow_mri(data, t1, nasion_vox, dict(MRI=nasion_mri),
            'Nasion estimated from MNI transform')
 
 ###############################################################################
 # We can also take the digitization point from the MEG data, which is in the
-# "head" coordinate frame:
+# "head" coordinate frame.
+#
+# .. note::
+#      The head coordinate frame in MNE is the "Neuromag" head coordinate
+#      frame. The origin is given by the intersection between a line connecting
+#      the LPA and RPA and the line orthogonal to it that runs through the
+#      nasion. It is also in RAS orientation, meaning that +X runs through
+#      the RPA, +Y goes through the nasion, and +Z is orthogonal to these
+#      pointing upward. See :ref:`coordinate_systems` for more information.
+#
+# Let's look at the nasion in the head coordinate frame:
 
 info = mne.io.read_info(
     os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'))
@@ -197,5 +239,5 @@ nasion_dig_mri = apply_trans(trans, nasion_head['r']) * 1000
 # ...then we can use Torig to convert MRI to RAS:
 nasion_dig_vox = np.round(
     apply_trans(np.linalg.inv(Torig), nasion_dig_mri)).astype(int)
-imshow_mri(data, nasion_dig_vox, dict(MRI=nasion_dig_mri),
+imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
            'Nasion transformed from digitization')

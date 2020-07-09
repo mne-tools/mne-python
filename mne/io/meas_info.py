@@ -17,7 +17,6 @@ from textwrap import shorten
 import numpy as np
 from scipy import linalg
 
-from ._digitization import DigPoint
 from .pick import channel_type, pick_channels, pick_info
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
