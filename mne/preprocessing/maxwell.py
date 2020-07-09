@@ -1897,7 +1897,7 @@ def find_bad_channels_maxwell(
     %(maxwell_skip)s
     h_freq : float | None
         The cutoff frequency (in Hz) of the low-pass filter that will be
-        applied before processing the data. This defaults to ``40.0``, which
+        applied before processing the data. This defaults to ``40.``, which
         should provide similar results to MaxFilter. If you do not wish to
         apply a filter, set this to ``None``.
     %(verbose)s
