@@ -51,6 +51,11 @@ class RawBrainVision(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    Attributes
+    ----------
+    impedances : dict
+        A dictionary of all electrodes and their impedances.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -863,7 +868,7 @@ def _parse_impedance(settings, recording_date=None):
     Returns
     -------
     impedances : dict
-        A dictionary of all the channels and their impedances.
+        A dictionary of all electrodes and their impedances.
     """
     ranges = _parse_impedance_ranges(settings)
     impedance_setting_lines = [i for i in settings if
