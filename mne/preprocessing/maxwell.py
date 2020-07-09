@@ -1979,7 +1979,7 @@ def find_bad_channels_maxwell(
     Data are processed in chunks of the given ``duration``, and channels that
     are bad for at least ``min_count`` chunks are returned.
 
-    Channels marked as *flat* in step 1 are excluded from all subsequent steps
+    Channels marked as *flat* in step 2 are excluded from all subsequent steps
     of noisy channel detection.
 
     This algorithm gives results similar to, but not identical with,
