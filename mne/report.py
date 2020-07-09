@@ -257,15 +257,18 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                 html = report._render_raw(fname)
                 report_fname = fname
                 report_sectionlabel = 'raw'
-            elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+            elif fname.endswith(('-fwd.fif', '-fwd.fif.gz',
+                                 '_fwd.fif', '_fwd.fif.gz')):
                 html = report._render_forward(fname)
                 report_fname = fname
                 report_sectionlabel = 'forward'
-            elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
+            elif fname.endswith(('-inv.fif', '-inv.fif.gz',
+                                 '_inv.fif', '_inv.fif.gz')):
                 html = report._render_inverse(fname)
                 report_fname = fname
                 report_sectionlabel = 'inverse'
-            elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+            elif fname.endswith(('-ave.fif', '-ave.fif.gz',
+                                 '_ave.fif', '_ave.fif.gz')):
                 if cov is not None:
                     html = report._render_whitened_evoked(fname, cov, baseline,
                                                           image_format)
@@ -276,20 +279,24 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                 html = report._render_evoked(fname, baseline, image_format)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
-            elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
+            elif fname.endswith(('-eve.fif', '-eve.fif.gz',
+                                 '_eve.fif', '_eve.fif.gz')):
                 html = report._render_eve(fname, sfreq, image_format)
                 report_fname = fname
                 report_sectionlabel = 'events'
-            elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
+            elif fname.endswith(('-epo.fif', '-epo.fif.gz',
+                                 '_epo.fif', '_epo.fif.gz')):
                 html = report._render_epochs(fname, image_format)
                 report_fname = fname
                 report_sectionlabel = 'epochs'
-            elif (fname.endswith(('-cov.fif', '-cov.fif.gz')) and
+            elif (fname.endswith(('-cov.fif', '-cov.fif.gz',
+                                  '_cov.fif', '_cov.fif.gz')) and
                   report.info_fname is not None):
                 html = report._render_cov(fname, info, image_format)
                 report_fname = fname
                 report_sectionlabel = 'covariance'
-            elif (fname.endswith(('-trans.fif', '-trans.fif.gz')) and
+            elif (fname.endswith(('-trans.fif', '-trans.fif.gz',
+                                  '_trans.fif', '_trans.fif.gz')) and
                   report.info_fname is not None and report.subjects_dir
                   is not None and report.subject is not None):
                 html = report._render_trans(fname, report.data_path, info,
