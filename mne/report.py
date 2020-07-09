@@ -623,7 +623,7 @@ div.footer {
         <div class="navbar-header navbar-left">
             <ul class="nav nav-pills"><li class="active">
                 <a class="navbar-btn" data-toggle="collapse"
-                data-target="#viewnavbar" href="javascript:void(0)">
+                data-target="#toc" href="javascript:void(0)">
                 ></a></li></ul>
     </div>
         <h3 class="navbar-text" style="color:white">{{title}}</h3>
