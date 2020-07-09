@@ -51,6 +51,11 @@ class RawBrainVision(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    Attributes
+    ----------
+    impedances : dict
+        A dictionary of all electrodes and their impedances.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -92,6 +97,11 @@ class RawBrainVision(BaseRaw):
             raw_extras=[raw_extras], orig_units=orig_units)
 
         self.set_montage(montage)
+
+        settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
+        split_settings = settings.splitlines()
+        self.impedances = _parse_impedance(split_settings,
+                                           self.info['meas_date'])
 
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
@@ -843,3 +853,101 @@ def _check_bv_annot(descriptions):
     bv_markers = (set(_BV_EVENT_IO_OFFSETS.keys())
                   .union(set(_OTHER_ACCEPTED_MARKERS.keys())))
     return len(markers_basename - bv_markers) == 0
+
+
+def _parse_impedance(settings, recording_date=None):
+    """Parse impedances from the header file.
+
+    Parameters
+    ----------
+    settings : list
+        The header settings lines fom the VHDR file.
+    recording_date : datetime.datetime | None
+        The date of the recording as extracted from the VMRK file.
+
+    Returns
+    -------
+    impedances : dict
+        A dictionary of all electrodes and their impedances.
+    """
+    ranges = _parse_impedance_ranges(settings)
+    impedance_setting_lines = [i for i in settings if
+                               i.startswith('Impedance [') and
+                               i.endswith(' :')]
+    impedances = dict()
+    if len(impedance_setting_lines) > 0:
+        idx = settings.index(impedance_setting_lines[0])
+        impedance_setting = impedance_setting_lines[0].split()
+        impedance_unit = impedance_setting[1].lstrip('[').rstrip(']')
+        impedance_time = None
+
+        # If we have a recording date, we can update it with the time of
+        # impedance measurement
+        if recording_date is not None:
+            meas_time = [int(i) for i in impedance_setting[3].split(':')]
+            impedance_time = recording_date.replace(hour=meas_time[0],
+                                                    minute=meas_time[1],
+                                                    second=meas_time[2],
+                                                    microsecond=0)
+        for setting in settings[idx + 1:]:
+            # Parse channel impedances until we find a line that doesn't start
+            # with a channel name and optional +/- polarity for passive elecs
+            match = re.match(r'[ a-zA-Z0-9_+-]+:', setting)
+            if match:
+                channel_name = match.group().rstrip(':')
+                channel_imp_line = setting.split()
+                imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
+                                           channel_imp_line[-1])
+                channel_impedance = dict(
+                    imp=float(imp_as_number[0]) if imp_as_number else np.nan,
+                    imp_unit=impedance_unit,
+                )
+                if impedance_time is not None:
+                    channel_impedance.update({'imp_meas_time': impedance_time})
+
+                if channel_name == 'Ref' and 'Reference' in ranges:
+                    channel_impedance.update(ranges['Reference'])
+                elif channel_name == 'Gnd' and 'Ground' in ranges:
+                    channel_impedance.update(ranges['Ground'])
+                elif 'Data' in ranges:
+                    channel_impedance.update(ranges['Data'])
+                impedances[channel_name] = channel_impedance
+            else:
+                break
+    return impedances
+
+
+def _parse_impedance_ranges(settings):
+    """Parse the selected electrode impedance ranges from the header.
+
+    Parameters
+    ----------
+    settings : list
+        The header settings lines fom the VHDR file.
+
+    Returns
+    -------
+    electrode_imp_ranges : dict
+        A dictionary of impedance ranges for each type of electrode.
+    """
+    impedance_ranges = [item for item in settings if
+                        "Selected Impedance Measurement Range" in item]
+    electrode_imp_ranges = dict()
+    if impedance_ranges:
+        if len(impedance_ranges) == 1:
+            img_range = impedance_ranges[0].split()
+            for electrode_type in ['Data', 'Reference', 'Ground']:
+                electrode_imp_ranges[electrode_type] = {
+                    "imp_lower_bound": float(img_range[-4]),
+                    "imp_upper_bound": float(img_range[-2]),
+                    "imp_range_unit": img_range[-1]
+                }
+        else:
+            for electrode_range in impedance_ranges:
+                electrode_range = electrode_range.split()
+                electrode_imp_ranges[electrode_range[0]] = {
+                    "imp_lower_bound": float(electrode_range[6]),
+                    "imp_upper_bound": float(electrode_range[8]),
+                    "imp_range_unit": electrode_range[9]
+                }
+    return electrode_imp_ranges
