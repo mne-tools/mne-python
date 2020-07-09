@@ -1936,7 +1936,7 @@ def find_bad_channels_maxwell(
             See the ``Notes`` section for details.
         - ``limits_flat`` : ndarray, shape (n_meg, 1)
             The score thresholds (in standard deviation) above which a segment
-            was claffified as "flat".
+            was classified as "flat".
         - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
             The scores for testing whether MEG channels are noisy. These values
             correspond to the standard score of a segment.
