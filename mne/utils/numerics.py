@@ -758,13 +758,10 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes, np.generic)):
-        # catch non-array np.nan floats
-        if isinstance(a, float):
-            if np.isnan(a):
-                if not _array_equal_nan(a, b):
-                    out += pre + ' value mismatch (%s, %s)\n' % (a, b)
-                return out
+    elif isinstance(a, float):
+        if not _array_equal_nan(a, b):
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
