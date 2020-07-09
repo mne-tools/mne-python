@@ -1987,7 +1987,7 @@ def find_bad_channels_maxwell(
         else:
             logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
                         f'frequency ...')
-            raw = raw.copy().filter(l_freq=None, h_freq=h_freq)
+            raw = raw.copy().load_data().filter(l_freq=None, h_freq=h_freq)
 
     limit = float(limit)
     onsets, ends = _annotations_starts_stops(
