@@ -1884,7 +1884,7 @@ def find_bad_channels_maxwell(
         .. note:: This setting only concerns *noisy* channel detection.
                   The limit for *flat* channel detection currently cannot be
                   controlled by the user. Flat channel detection is always run
-                  before the noisy channel detection.
+                  before noisy channel detection.
     duration : float
         Duration of the segments into which to slice the data for processing,
         in seconds. Default is 5.
