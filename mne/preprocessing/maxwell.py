@@ -1978,16 +1978,16 @@ def find_bad_channels_maxwell(
     .. versionadded:: 0.20
     """
     if h_freq is not None:
-        if 'lowpass' in raw.info:
+        if raw.info.get('lowpass') and raw.info['lowpass'] < h_freq:
             msg = (f'The input data has already been low-pass filtered with a '
-                   f'{raw.info["lowpass"]} Hz cutoff frequency. If you wish '
-                   f'to avoid filtering again in find_bad_channels_maxwell(), '
-                   f'please pass `h_freq=None`.')
-            logger.warning(msg)
-
-        logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
-                    f'frequency ...')
-        raw = raw.copy().filter(l_freq=None, h_freq=h_freq)
+                   f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
+                   f'below the requested cutoff of {h_freq} Hz. Not applying '
+                   f'low-pass filter.')
+            logger.info(msg)
+        else:
+            logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
+                        f'frequency ...')
+            raw = raw.copy().filter(l_freq=None, h_freq=h_freq)
 
     limit = float(limit)
     onsets, ends = _annotations_starts_stops(
