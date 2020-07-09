@@ -1873,7 +1873,8 @@ class Report(object):
             kwargs = dict(show=False)
             logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
-            img = _fig_to_img(ev.plot, image_format, **kwargs)
+            img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
+                              **kwargs)
             caption = self._gen_caption(prefix='Evoked',
                                         suffix=f'({ev.comment})',
                                         fname=evoked_fname,
@@ -1960,7 +1961,7 @@ class Report(object):
             ev = read_evokeds(evoked_fname, ev.comment, baseline=baseline,
                               verbose=False)
             global_id = self._get_id()
-            kwargs = dict(noise_cov=noise_cov, show=False)
+            kwargs = dict(noise_cov=noise_cov, spatial_colors=True, show=False)
             img = _fig_to_img(ev.plot_white, image_format, **kwargs)
             caption = self._gen_caption(prefix='Whitened evoked',
                                         suffix=f'({ev.comment})',
