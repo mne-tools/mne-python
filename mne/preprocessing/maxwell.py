@@ -1872,8 +1872,16 @@ def find_bad_channels_maxwell(
     raw : instance of Raw
         Raw data to process.
     limit : float
-        Detection limit (default is 7.). Smaller values will find more bad
-        channels at increased risk of including good ones.
+        Detection limit for noisy segments (default is 7.). Smaller values will
+        find more bad channels at increased risk of including good ones. This
+        value can be interpreted as the standard score of differences between
+        the original and Maxwell-filtered data. See the ``Notes`` section for
+        details.
+
+        .. note:: This setting only concerns *noisy* channel detection.
+                  The limit for *flat* channel detection currently cannot be
+                  controlled by the user. Flat channel detection is always run
+                  before noisy channel detection.
     duration : float
         Duration of the segments into which to slice the data for processing,
         in seconds. Default is 5.
@@ -1925,15 +1933,19 @@ def find_bad_channels_maxwell(
             The inclusive window boundaries (start and stop; in seconds) used
             to calculate the scores.
         - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
-            The scores for testing whether MEG channels are flat.
+            The scores for testing whether MEG channels are flat. These values
+            correspond to the standard deviation of a segment.
+            See the ``Notes`` section for details.
         - ``limits_flat`` : ndarray, shape (n_meg, 1)
-            The score thresholds above which a segment was claffified as
-            "flat".
+            The score thresholds (in standard deviation) above which a segment
+            was classified as "flat".
         - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
-            The scores for testing whether MEG channels are noisy.
+            The scores for testing whether MEG channels are noisy. These values
+            correspond to the standard score of a segment.
+            See the ``Notes`` section for details.
         - ``limits_noisy`` : ndarray, shape (n_meg, 1)
-            The score thresholds above which a segment was claffified as
-            "noisy".
+            The score thresholds (in standard scores) above which a segment was
+            classified as "noisy".
 
         .. note:: The scores and limits for channels marked as ``bad`` in the
                   input data will be set to ``np.nan``.
@@ -1954,18 +1966,27 @@ def find_bad_channels_maxwell(
     This algorithm, for a given chunk of data:
 
     1. Runs SSS on the data, without removing external components.
-    2. Exclude channels as flat that have had low variance (< 0.01 fT or fT/cm
-       in a 30 ms window) in the given or any previous chunk.
-    3. For each channel :math:`k`, computes the peak-to-peak :math:`d_k`
-       of the difference between the reconstructed and original data.
+    2. Excludes channels as *flat* that have had low variability
+       (standard deviation < 0.01 fT or fT/cm in a 30 ms window) in the given
+       or any previous chunk.
+    3. For each channel :math:`k`, computes the *range* or peak-to-peak
+       :math:`d_k` of the difference between the reconstructed and original
+       data.
     4. Computes the average :math:`\mu_d` and standard deviation
-       :math:`\sigma_d` of the deltas (after scaling magnetometer data
+       :math:`\sigma_d` of the differences (after scaling magnetometer data
        to roughly match the scale of the gradiometer data using ``mag_scale``).
-    5. Channels are marked as bad for the chunk when
-       :math:`d_k > \mu_d + \textrm{limit} \times \sigma_d`.
+    5. Marks channels as bad for the chunk when
+       :math:`d_k > \mu_d + \textrm{limit} \times \sigma_d`. Note that this
+       expression can be easily transformed into
+       :math:`(d_k - \mu_d) / \sigma_d > \textrm{limit}`, which is equivalent
+       to :math:`z(d_k) > \textrm{limit}`, with :math:`z(d_k)` being the
+       standard or z-score of the difference.
 
     Data are processed in chunks of the given ``duration``, and channels that
     are bad for at least ``min_count`` chunks are returned.
+
+    Channels marked as *flat* in step 2 are excluded from all subsequent steps
+    of noisy channel detection.
 
     This algorithm gives results similar to, but not identical with,
     MaxFilter. Differences arise because MaxFilter processes on a
@@ -2057,7 +2078,7 @@ def find_bad_channels_maxwell(
         logger.info('        Interval %3d: %8.3f - %8.3f'
                     % ((si + 1,) + tuple(t[[0, -1]])))
 
-        # Flat pass: var < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
+        # Flat pass: SD < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
         flat_stop = n - (n % flat_step)
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
