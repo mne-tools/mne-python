@@ -237,7 +237,7 @@ def _get_toc_property(fname):
 
 
 def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
-                   image_format):
+                   image_format, data_path):
     """Parallel process in batch mode."""
     htmls, report_fnames, report_sectionlabels = [], [], []
 
@@ -254,39 +254,42 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
         try:
             if fname.endswith(('raw.fif', 'raw.fif.gz',
                                'sss.fif', 'sss.fif.gz', 'meg.fif')):
-                html = report._render_raw(fname)
+                html = report._render_raw(fname, data_path)
                 report_fname = fname
                 report_sectionlabel = 'raw'
             elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
-                html = report._render_forward(fname)
+                html = report._render_forward(fname, data_path)
                 report_fname = fname
                 report_sectionlabel = 'forward'
             elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
-                html = report._render_inverse(fname)
+                html = report._render_inverse(fname, data_path)
                 report_fname = fname
                 report_sectionlabel = 'inverse'
             elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                 if cov is not None:
                     html = report._render_whitened_evoked(fname, cov, baseline,
-                                                          image_format)
+                                                          image_format,
+                                                          data_path)
                     report_fname = fname + ' (whitened)'
                     report_sectionlabel = 'evoked'
                     _update_html(html, report_fname, report_sectionlabel)
 
-                html = report._render_evoked(fname, baseline, image_format)
+                html = report._render_evoked(fname, baseline, image_format,
+                                             data_path)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
             elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
-                html = report._render_eve(fname, sfreq, image_format)
+                html = report._render_eve(fname, sfreq, image_format,
+                                          data_path)
                 report_fname = fname
                 report_sectionlabel = 'events'
             elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
-                html = report._render_epochs(fname, image_format)
+                html = report._render_epochs(fname, image_format, data_path)
                 report_fname = fname
                 report_sectionlabel = 'epochs'
             elif (fname.endswith(('-cov.fif', '-cov.fif.gz')) and
                   report.info_fname is not None):
-                html = report._render_cov(fname, info, image_format)
+                html = report._render_cov(fname, info, image_format, data_path)
                 report_fname = fname
                 report_sectionlabel = 'covariance'
             elif (fname.endswith(('-trans.fif', '-trans.fif.gz')) and
@@ -294,7 +297,8 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                   is not None and report.subject is not None):
                 html = report._render_trans(fname, report.data_path, info,
                                             report.subject,
-                                            report.subjects_dir)
+                                            report.subjects_dir,
+                                            data_path)
                 report_fname = fname
                 report_sectionlabel = 'trans'
             else:
@@ -1447,7 +1451,7 @@ class Report(object):
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
         r = parallel(p_fun(self, fname, info, cov, baseline, sfreq, on_error,
-                           image_format)
+                           image_format, self.data_path)
                      for fname in np.array_split(fnames, use_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
@@ -1601,6 +1605,14 @@ class Report(object):
         """Save the report when leaving the context block."""
         if self._fname is not None:
             self.save(self._fname, open_browser=False, overwrite=True)
+
+    @staticmethod
+    def _gen_caption(prefix, fname, data_path, suffix=''):
+        if data_path is None:
+            caption = f'{prefix}: {fname} {suffix}'
+        else:
+            caption = f'{prefix}: {fname[len(data_path)+1:]} {suffix}'
+        return caption.strip()
 
     @verbose
     def _render_toc(self, verbose=None):
@@ -1772,15 +1784,15 @@ class Report(object):
         html += u'</li>\n'
         return html
 
-    def _render_raw(self, raw_fname):
+    def _render_raw(self, raw_fname, data_path):
         """Render raw (only text)."""
         import matplotlib.pyplot as plt
         global_id = self._get_id()
 
         raw = read_raw_fif(raw_fname, allow_maxshield='yes')
-        extra = ' (MaxShield on)' if raw.info.get('maxshield', False) else ''
-        caption = u'Raw : %s%s' % (raw_fname, extra)
-
+        extra = '(MaxShield on)' if raw.info.get('maxshield', False) else ''
+        caption = self._gen_caption(prefix='Raw', suffix=extra,
+                                    fname=raw_fname, data_path=data_path)
         n_eeg = len(pick_types(raw.info, meg=False, eeg=True))
         n_grad = len(pick_types(raw.info, meg='grad'))
         n_mag = len(pick_types(raw.info, meg='mag'))
@@ -1818,10 +1830,11 @@ class Report(object):
             html += '\n\n' + new_html
         return html
 
-    def _render_forward(self, fwd_fname):
+    def _render_forward(self, fwd_fname, data_path):
         """Render forward."""
         div_klass = 'forward'
-        caption = u'Forward: %s' % fwd_fname
+        caption = self._gen_caption(prefix='Forward', fname=fwd_fname,
+                                    data_path=data_path)
         fwd = read_forward_solution(fwd_fname)
         repr_fwd = re.sub('>', '', re.sub('<', '', repr(fwd)))
         global_id = self._get_id()
@@ -1831,10 +1844,11 @@ class Report(object):
                                         repr=repr_fwd)
         return html
 
-    def _render_inverse(self, inv_fname):
+    def _render_inverse(self, inv_fname, data_path):
         """Render inverse."""
         div_klass = 'inverse'
-        caption = u'Inverse: %s' % inv_fname
+        caption = self._gen_caption(prefix='Inverse', fname=inv_fname,
+                                    data_path=data_path)
         inv = read_inverse_operator(inv_fname)
         repr_inv = re.sub('>', '', re.sub('<', '', repr(inv)))
         global_id = self._get_id()
@@ -1844,7 +1858,7 @@ class Report(object):
                                         repr=repr_inv)
         return html
 
-    def _render_evoked(self, evoked_fname, baseline, image_format):
+    def _render_evoked(self, evoked_fname, baseline, image_format, data_path):
         """Render evoked."""
         logger.debug('Evoked: Reading %s' % evoked_fname)
         evokeds = read_evokeds(evoked_fname, baseline=baseline, verbose=False)
@@ -1856,7 +1870,10 @@ class Report(object):
             logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
             img = _fig_to_img(ev.plot, image_format, **kwargs)
-            caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
+            caption = self._gen_caption(prefix='Evoked',
+                                        suffix=f'({ev.comment})',
+                                        fname=evoked_fname,
+                                        data_path=data_path)
             html.append(image_template.substitute(
                 img=img, id=global_id, div_klass='evoked',
                 img_klass='evoked', caption=caption, show=True,
@@ -1879,39 +1896,44 @@ class Report(object):
         logger.debug('Evoked: done')
         return '\n'.join(html)
 
-    def _render_eve(self, eve_fname, sfreq, image_format):
+    def _render_eve(self, eve_fname, sfreq, image_format, data_path):
         """Render events."""
         global_id = self._get_id()
         events = read_events(eve_fname)
         kwargs = dict(events=events, sfreq=sfreq, show=False)
         img = _fig_to_img(plot_events, image_format, **kwargs)
-        caption = 'Events : ' + eve_fname
+        caption = self._gen_caption(prefix='Events', fname=eve_fname,
+                                    data_path=data_path)
         html = image_template.substitute(
             img=img, id=global_id, div_klass='events', img_klass='events',
             caption=caption, show=True, image_format=image_format)
         return html
 
-    def _render_epochs(self, epo_fname, image_format):
+    def _render_epochs(self, epo_fname, image_format, data_path):
         """Render epochs."""
         global_id = self._get_id()
         epochs = read_epochs(epo_fname)
         kwargs = dict(subject=self.subject, show=False)
         img = _fig_to_img(epochs.plot_drop_log, image_format, **kwargs)
-        caption = 'Epochs : ' + epo_fname
+        caption = self._gen_caption(prefix='Epochs', fname=epo_fname,
+                                    data_path=data_path)
         show = True
         html = image_template.substitute(
             img=img, id=global_id, div_klass='epochs', img_klass='epochs',
             caption=caption, show=show, image_format=image_format)
         return html
 
-    def _render_cov(self, cov_fname, info_fname, image_format, show_svd=True):
+    def _render_cov(self, cov_fname, info_fname, image_format, data_path,
+                    show_svd=True):
         """Render cov."""
         global_id = self._get_id()
         cov = read_cov(cov_fname)
         fig, svd = plot_cov(cov, info_fname, show=False, show_svd=show_svd)
         html = []
         figs = [fig]
-        captions = ['Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)]
+        captions = [self._gen_caption(prefix='Covariance',
+                                      suffix=f'(n_samples: {cov.nfree})',
+                                      fname=cov_fname, data_path=data_path)]
         if svd is not None:
             figs.append(svd)
             captions.append('Singular values of the noise covariance')
@@ -1925,7 +1947,7 @@ class Report(object):
         return '\n'.join(html)
 
     def _render_whitened_evoked(self, evoked_fname, noise_cov, baseline,
-                                image_format):
+                                image_format, data_path):
         """Render whitened evoked."""
         evokeds = read_evokeds(evoked_fname, verbose=False)
         html = []
@@ -1935,8 +1957,10 @@ class Report(object):
             global_id = self._get_id()
             kwargs = dict(noise_cov=noise_cov, show=False)
             img = _fig_to_img(ev.plot_white, image_format, **kwargs)
-
-            caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
+            caption = self._gen_caption(prefix='Whitened evoked',
+                                        suffix=f'({ev.comment})',
+                                        fname=evoked_fname,
+                                        data_path=data_path)
             show = True
             html.append(image_template.substitute(
                 img=img, id=global_id, div_klass='evoked',
@@ -1944,7 +1968,8 @@ class Report(object):
                 image_format=image_format))
         return '\n'.join(html)
 
-    def _render_trans(self, trans, path, info, subject, subjects_dir):
+    def _render_trans(self, trans, path, info, subject, subjects_dir,
+                      data_path):
         """Render trans (only PNG)."""
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir)
@@ -1956,9 +1981,11 @@ class Report(object):
 
         if img is not None:
             global_id = self._get_id()
+            caption = self._gen_caption(prefix='Trans', fname=trans,
+                                        data_path=data_path)
             html = image_template.substitute(
                 img=img, id=global_id, div_klass='trans',
-                img_klass='trans', caption='Trans : ' + trans, width=75,
+                img_klass='trans', caption=caption, width=75,
                 show=True, image_format='png')
             return html
 
