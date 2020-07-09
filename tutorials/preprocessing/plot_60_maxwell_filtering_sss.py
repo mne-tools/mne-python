@@ -102,15 +102,10 @@ crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 #     calling :func:`~mne.preprocessing.maxwell_filter` in order to prevent
 #     bad channel noise from spreading.
 #
-# Let's see if we can automatically detect it. To do this we need to
-# operate on a signal without line noise or cHPI signals, which is most
-# easily achieved using :func:`mne.chpi.filter_chpi`,
-# :func:`mne.io.Raw.notch_filter`, or :meth:`mne.io.Raw.filter`. For simplicity
-# we just low-pass filter these data:
+# Let's see if we can automatically detect it.
 
 raw.info['bads'] = []
 raw_check = raw.copy()
-raw_check.pick_types(meg=True, exclude=()).load_data().filter(None, 40)
 auto_noisy_chs, auto_flat_chs, auto_scores = find_bad_channels_maxwell(
     raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
     return_scores=True, verbose=True)
@@ -118,6 +113,17 @@ print(auto_noisy_chs)  # we should find them!
 print(auto_flat_chs)  # none for this dataset
 
 ###############################################################################
+#
+# .. note:: `~mne.preprocessing.find_bad_channels_maxwell` needs to operate on
+#           a signal without line noise or cHPI signals. By default, it simply
+#           applies a low-pass filter with a cutoff frequency of 40 Hz to the
+#           data, which should remove these artifacts. You may also specify a
+#           different cutoff by passing the ``h_freq`` keyword argument. If you
+#           set ``h_freq=None``, no filtering will be applied. This can be
+#           useful if your data has already been preconditioned, for example
+#           using :func:`mne.chpi.filter_chpi`,
+#           :func:`mne.io.Raw.notch_filter`, or :meth:`mne.io.Raw.filter`.
+#
 # Now we can update the list of bad channels in the dataset.
 
 bads = raw.info['bads'] + auto_noisy_chs + auto_flat_chs

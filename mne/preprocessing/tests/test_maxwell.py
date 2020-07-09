@@ -1150,6 +1150,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     log = log.getvalue()
     assert 'Interval   1:    0.00' in log
     assert 'Interval   2:    5.00' in log
+    assert 'data has already been low-pass filtered' in log
 
     if return_scores:
         meg_chs = raw.copy().pick_types(meg=True, exclude=[]).ch_names
