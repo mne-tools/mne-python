@@ -199,7 +199,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     assert_array_equal(filters['vertices'][1], [])  # Label was on the LH
     assert filters['subject'] == fwd_free['src']._subject
     assert filters['pick_ori'] is None
-    assert filters['n_orient'] == n_orient
+    assert filters['is_free_ori']
     assert filters['inversion'] == inversion
     assert filters['weight_norm'] == weight_norm
     assert 'DICS' in repr(filters)
@@ -213,20 +213,20 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
         noise_cov=noise_cov)
     G.shape = (n_channels, n_verts, n_orient)
     G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
-    _assert_weight_norm(filters, G, weight_norm, inversion)
+    _assert_weight_norm(filters, G)
 
     inversion = 'matrix'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
                         weight_norm=weight_norm, depth=None,
                         noise_csd=noise_csd, inversion=inversion)
-    _assert_weight_norm(filters, G, weight_norm, inversion)
+    _assert_weight_norm(filters, G)
 
     weight_norm = 'sqrtm'
     inversion = 'single'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
                         weight_norm=weight_norm, depth=None,
                         noise_csd=noise_csd, inversion=inversion)
-    _assert_weight_norm(filters, G, weight_norm, inversion)
+    _assert_weight_norm(filters, G)
 
     # Test picking orientations. Also test weight norming under these different
     # conditions.
@@ -236,16 +236,16 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
                         depth=None, noise_csd=noise_csd, inversion=inversion)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
-    assert filters['n_orient'] == n_orient
-    _assert_weight_norm(filters, G, weight_norm, inversion)
+    assert not filters['is_free_ori']
+    _assert_weight_norm(filters, G)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         pick_ori='max-power', weight_norm=weight_norm,
                         depth=None, noise_csd=noise_csd, inversion=inversion)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
-    assert filters['n_orient'] == n_orient
-    _assert_weight_norm(filters, G, weight_norm, inversion)
+    assert not filters['is_free_ori']
+    _assert_weight_norm(filters, G)
 
     # From here on, only work on a single frequency
     csd = csd[0]

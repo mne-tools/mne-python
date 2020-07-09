@@ -92,6 +92,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         Dictionary containing filter weights from DICS beamformer.
         Contains the following keys:
 
+            'kind' : str
+                The type of beamformer, in this case 'DICS'.
             'weights' : ndarray, shape (n_frequencies, n_weights)
                 For each frequency, the filter weights of the beamformer.
             'csd' : instance of CrossSpectralDensity
@@ -103,20 +105,31 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                 Projections used to compute the beamformer.
             'vertices' : list of ndarray
                 Vertices for which the filter weights were computed.
+            'n_sources' : int
+                Number of source location for which the filter weight were
+                computed.
+            'subject' : str
+                The subject ID.
+            'pick-ori' : None | 'max-power' | 'normal' | 'vector'
+                The orientation in which the beamformer filters were computed.
             'inversion' : 'single' | 'matrix'
                 Whether the spatial filters were computed for each dipole
                 separately or jointly for all dipoles at each vertex using a
                 matrix inversion.
             'weight_norm' : None | 'unit-noise-gain'
                 The normalization of the weights.
-            'normalize_fwd' : bool
-                Whether the forward solution was normalized
-            'n_orient' : int
-                Number of source orientations defined in the forward model.
-            'subject' : str
-                The subject ID.
             'src_type' : str
                 Type of source space.
+            'is_free_ori' : bool
+                Whether the filter was computed in a fixed direction
+                (pick_ori='max-power', pick_ori='normal') or not.
+            'whitener' : None | ndarray, shape (n_channels, n_channels)
+                Whitening matrix, provided if whitening was applied to the
+                covariance matrix and leadfield during computation of the
+                beamformer weights.
+            'max-power-ori' : ndarray, shape (n_sources, 3) | None
+                When pick_ori='max-power', this fields contains the estimated
+                direction of maximum power at each source location.
 
     See Also
     --------
@@ -162,7 +175,6 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
-    n_orient = forward['sol']['ncol'] // forward['nsource']
 
     _check_one_ch_type('dics', info, forward, csd, noise_csd)
     info, fwd, csd = equalize_channels([info, forward, csd])
@@ -173,7 +185,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     if inversion == 'single':
         depth['combine_xyz'] = False
 
-    _, _, proj, vertices, G, whitener, nn, orient_std = \
+    is_free_ori, info, proj, vertices, G, whitener, nn, orient_std = \
         _prepare_beamformer_input(
             info, forward, label, pick_ori, noise_cov=noise_csd, rank=rank,
             pca=False, **depth)
@@ -196,6 +208,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
 
         # compute spatial filter
+        n_orient = 3 if is_free_ori else 1
         W, max_power_ori = _compute_beamformer(
             G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank,
             rank=rank, inversion=inversion, nn=nn, orient_std=orient_std)
@@ -210,13 +223,15 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     src_type = _get_src_type(forward['src'], vertices)
     subject = _subject_from_forward(forward)
+    is_free_ori = is_free_ori if pick_ori in [None, 'vector'] else False
+    n_sources = np.sum([len(v) for v in vertices])
 
     filters = Beamformer(
         kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
-        vertices=vertices, subject=subject, pick_ori=pick_ori,
-        inversion=inversion, weight_norm=weight_norm,
-        src_type=src_type, n_orient=n_orient if pick_ori is None else 1,
-        whitener=whitener, max_power_ori=max_oris)
+        vertices=vertices, n_sources=n_sources, subject=subject,
+        pick_ori=pick_ori, inversion=inversion, weight_norm=weight_norm,
+        src_type=src_type, is_free_ori=is_free_ori, whitener=whitener,
+        max_power_ori=max_oris)
 
     return filters
 
@@ -262,7 +277,7 @@ def _apply_dics(data, filters, info, tmin):
             # project to source space using beamformer weights
             sol = np.dot(W, M)
 
-            if filters['n_orient'] > 1:
+            if filters['is_free_ori']:
                 logger.info('combining the current components...')
                 sol = combine_xyz(sol)
 
@@ -428,10 +443,10 @@ def apply_dics_csd(csd, filters, verbose=None):
     """  # noqa: E501
     ch_names = filters['ch_names']
     vertices = filters['vertices']
-    n_orient = filters['n_orient']
+    n_orient = 3 if filters['is_free_ori'] else 1
     subject = filters['subject']
     whitener = filters['whitener']
-    n_sources = np.sum([len(v) for v in vertices])
+    n_sources = filters['n_sources']
 
     # If CSD is summed over multiple frequencies, take the average frequency
     frequencies = [np.mean(dfreq) for dfreq in csd.frequencies]

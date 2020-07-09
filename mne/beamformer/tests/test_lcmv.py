@@ -917,7 +917,8 @@ def test_lcmv_maxfiltered():
 @pytest.mark.parametrize('pick_ori', ['vector', 'max-power', 'normal'])
 @pytest.mark.parametrize('weight_norm', ['unit-noise-gain', 'nai', 'sqrtm'])
 @pytest.mark.parametrize('reg', (0.05, 0.))
-def test_unit_noise_gain_formula(pick_ori, weight_norm, reg):
+@pytest.mark.parametrize('inversion', ['matrix', 'single'])
+def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     """Test unit-noise-gain filter against formula."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
@@ -932,7 +933,8 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg):
     rank = None
     filters = make_lcmv(epochs.info, forward, data_cov, reg=reg,
                         noise_cov=noise_cov, pick_ori=pick_ori,
-                        weight_norm=weight_norm, rank=rank)
+                        weight_norm=weight_norm, rank=rank,
+                        inversion=inversion)
     _, _, _, _, G, _, _, _ = _prepare_beamformer_input(
         epochs.info, forward, None, 'vector', noise_cov=noise_cov, rank=rank,
         pca=False, exp=None)
@@ -940,36 +942,52 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg):
     n_sources //= 3
     G.shape = (n_channels, n_sources, 3)
     G = G.transpose(1, 2, 0)  # verts, orient, ch
-    _assert_weight_norm(filters, G, weight_norm)
+    _assert_weight_norm(filters, G)
 
 
-def _assert_weight_norm(filters, G, weight_norm='unit-noise-gain',
-                        inversion='matrix'):
+def _assert_weight_norm(filters, G):
+    """Check the result of the chosen weight normalization strategy."""
     weights, max_power_ori = filters['weights'], filters['max_power_ori']
-    if weights.ndim == 2:  # LCMV
+
+    # Make the dimensions of the weight matrix equal for both DICS (which
+    # defines weights for multiple frequencies) and LCMV (which does not).
+    if filters['kind'] == 'LCMV':
         weights = weights[np.newaxis]
         if max_power_ori is not None:
             max_power_ori = max_power_ori[np.newaxis]
     if max_power_ori is not None:
-        max_power_ori.shape = max_power_ori.shape + (1,)
-    if 'nsource' in filters:
-        # LCMV
-        n_sources = filters['nsource']
-        n_orient = weights.shape[1] // n_sources
-    else:
-        # DICS
-        n_orient = filters['n_orient']
-        n_sources = weights.shape[1] // n_orient
-    n_channels = weights.shape[-1]
+        max_power_ori = max_power_ori[..., np.newaxis]
+
+    weight_norm = filters['weight_norm']
+    inversion = filters['inversion']
+    n_channels = weights.shape[2]
+
+    if inversion == 'matrix':
+        # Dipoles are grouped in groups with size n_orient
+        n_sources = filters['n_sources']
+        n_orient = 3 if filters['is_free_ori'] else 1
+    elif inversion == 'single':
+        # Every dipole is treated as a unique source
+        n_sources = weights.shape[1]
+        n_orient = 1
+
     for wi, w in enumerate(weights):
         w = w.reshape(n_sources, n_orient, n_channels)
-        if filters['max_power_ori'] is not None:
+
+        # Compute leadfield in the direction chosen during the computation of
+        # the beamformer.
+        if filters['pick_ori'] == 'max-power':
             use_G = np.sum(G * max_power_ori[wi], axis=1, keepdims=True)
         elif filters['pick_ori'] == 'normal':
             use_G = G[:, -1:]
         else:
             use_G = G
+        if inversion == 'single':
+            # Every dipole is treated as a unique source
+            use_G = use_G.reshape(n_sources, 1, n_channels)
         assert w.shape == use_G.shape == (n_sources, n_orient, n_channels)
+
+        # Test weight normalization scheme
         got = np.matmul(w, w.conj().swapaxes(-2, -1))
         desired = np.repeat(np.eye(n_orient)[np.newaxis], w.shape[0], axis=0)
         if n_orient == 3 and weight_norm in ('unit-noise-gain', 'nai'):
@@ -983,17 +1001,11 @@ def _assert_weight_norm(filters, G, weight_norm='unit-noise-gain',
         else:
             atol = 1e-7
         assert_allclose(got, desired, atol=atol, err_msg='w @ w.conj().T = I')
+
         # Check that the result here is a diagonal matrix for Sekihara
         if n_orient > 1 and weight_norm != 'sqrtm':
             got = w @ use_G.swapaxes(-2, -1)
             diags = np.diagonal(got, 0, -2, -1)
             want = np.apply_along_axis(np.diagflat, 1, diags)
             atol = np.mean(diags).real * 1e-12
-            if inversion == 'matrix':
-                ctx = nullcontext()
-            else:
-                # inversion == 'single' breaks it
-                assert inversion == 'single'
-                ctx = pytest.raises(AssertionError)  # fails
-            with ctx:
-                assert_allclose(got, want, atol=atol, err_msg='G.T @ w = θI')
+            assert_allclose(got, want, atol=atol, err_msg='G.T @ w = θI')
