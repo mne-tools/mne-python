@@ -1960,8 +1960,9 @@ def find_bad_channels_maxwell(
     This algorithm, for a given chunk of data:
 
     1. Runs SSS on the data, without removing external components.
-    2. Excludes channels as *flat* that have had low variance (< 0.01 fT or
-       fT/cm in a 30 ms window) in the given or any previous chunk.
+    2. Excludes channels as *flat* that have had low variability
+       (standard deviation < 0.01 fT or fT/cm in a 30 ms window) in the given
+       or any previous chunk.
     3. For each channel :math:`k`, computes the *range* or peak-to-peak
        :math:`d_k` of the difference between the reconstructed and original
        data.
@@ -2059,7 +2060,7 @@ def find_bad_channels_maxwell(
         logger.info('        Interval %3d: %8.3f - %8.3f'
                     % ((si + 1,) + tuple(t[[0, -1]])))
 
-        # Flat pass: var < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
+        # Flat pass: SD < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
         flat_stop = n - (n % flat_step)
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
