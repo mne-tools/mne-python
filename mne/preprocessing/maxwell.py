@@ -1863,12 +1863,9 @@ def find_bad_channels_maxwell(
         origin='auto', int_order=8, ext_order=3, calibration=None,
         cross_talk=None, coord_frame='head', regularize='in', ignore_ref=False,
         bad_condition='error', head_pos=None, mag_scale=100.,
-        skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
+        skip_by_annotation=('edge', 'bad_acq_skip'), h_freq=40.0,
+        verbose=None):
     r"""Find bad channels using Maxwell filtering.
-
-    .. note:: For closer equivalence with MaxFilter, it's recommended to
-        low-pass filter your data (e.g., at 40 Hz) prior to running this
-        function.
 
     Parameters
     ----------
@@ -1898,6 +1895,11 @@ def find_bad_channels_maxwell(
     %(maxwell_reg_ref_cond_pos)s
     %(maxwell_mag)s
     %(maxwell_skip)s
+    h_freq : float | None
+        The cutoff frequency (in Hz) of the low-pass filter that will be
+        applied before processing the data. This defaults to ``40.``, which
+        should provide similar results to MaxFilter. If you do not wish to
+        apply a filter, set this to ``None``.
     %(verbose)s
 
     Returns
@@ -1975,6 +1977,18 @@ def find_bad_channels_maxwell(
 
     .. versionadded:: 0.20
     """
+    if h_freq is not None:
+        if raw.info.get('lowpass') and raw.info['lowpass'] < h_freq:
+            msg = (f'The input data has already been low-pass filtered with a '
+                   f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
+                   f'below the requested cutoff of {h_freq} Hz. Not applying '
+                   f'low-pass filter.')
+            logger.info(msg)
+        else:
+            logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
+                        f'frequency ...')
+            raw = raw.copy().load_data().filter(l_freq=None, h_freq=h_freq)
+
     limit = float(limit)
     onsets, ends = _annotations_starts_stops(
         raw, skip_by_annotation, invert=True)
