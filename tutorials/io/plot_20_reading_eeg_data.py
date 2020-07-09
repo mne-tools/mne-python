@@ -47,7 +47,7 @@ with the ``.vhdr`` header file as an input.
              for an instruction.
 
 .. note:: For *writing* BrainVision files, you can use the Python package
-          `pybv <https://pypi.org/project/pybv/>`_
+          `pybv <https://pypi.org/project/pybv/>`_.
 
 .. _import-edf:
 
