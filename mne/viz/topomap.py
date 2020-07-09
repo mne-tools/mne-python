@@ -1761,7 +1761,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
         if cn is not None:
-            cbar.set_ticks(cn.levels)
+            cbar.set_ticks(contours)
         cbar.ax.tick_params(labelsize=7)
         if cmap[1]:
             for im in images:
