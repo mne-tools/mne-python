@@ -1931,15 +1931,19 @@ def find_bad_channels_maxwell(
             The inclusive window boundaries (start and stop; in seconds) used
             to calculate the scores.
         - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
-            The scores for testing whether MEG channels are flat.
+            The scores for testing whether MEG channels are flat. These values
+            correspond to the standard deviation of a segment.
+            See the ``Notes`` section for details.
         - ``limits_flat`` : ndarray, shape (n_meg, 1)
-            The score thresholds above which a segment was claffified as
-            "flat".
+            The score thresholds (in standard deviation) above which a segment
+            was claffified as "flat".
         - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
-            The scores for testing whether MEG channels are noisy.
+            The scores for testing whether MEG channels are noisy. These values
+            correspond to the standard score of a segment.
+            See the ``Notes`` section for details.
         - ``limits_noisy`` : ndarray, shape (n_meg, 1)
-            The score thresholds above which a segment was claffified as
-            "noisy".
+            The score thresholds (in standard scores) above which a segment was
+            claffified as "noisy".
 
         .. note:: The scores and limits for channels marked as ``bad`` in the
                   input data will be set to ``np.nan``.
