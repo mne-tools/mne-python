@@ -193,7 +193,7 @@ def _endswith(fname, exts):
 
 
 def _get_toc_property(fname):
-    """Assign class names to TOC elements to allow toggling with buttons."""
+    """Assign class names to TOC elements to allow button-based toggling."""
     if _endswith(fname, 'eve'):
         div_klass = 'events'
         tooltip = fname
