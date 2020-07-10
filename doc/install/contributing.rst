@@ -230,7 +230,7 @@ MNE-Python, but are needed for locally running our test suite::
 
 And for building our documentation::
 
-    $ pip install -r doc/requirements.txt
+    $ pip install -r requirements_doc.txt
 
 You can also choose to install some optional linters for reStructuredText::
 

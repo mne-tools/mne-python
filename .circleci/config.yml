@@ -81,7 +81,7 @@ jobs:
             command: |
               python -m pip install --user --upgrade --progress-bar off pip setuptools
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r doc/requirements.txt
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user -e .
 
@@ -353,7 +353,7 @@ jobs:
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off -r doc/requirements.txt
+               python -m pip install --user --progress-bar off -r requirements_doc.txt
                python -m pip install --user -e .
         - run:
             name: make linkcheck
