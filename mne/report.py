@@ -1873,8 +1873,14 @@ class Report(object):
             kwargs = dict(show=False)
             logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
-            img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
-                              **kwargs)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    'ignore',
+                    message='Channel locations not available.*',
+                    category=RuntimeWarning)
+                img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
+                                  **kwargs)
+
             caption = self._gen_caption(prefix='Evoked',
                                         suffix=f'({ev.comment})',
                                         fname=evoked_fname,
