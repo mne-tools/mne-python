@@ -12,7 +12,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 
-from mne.utils import run_tests_if_main, _stamp_to_dt
+import datetime
+from mne.utils import run_tests_if_main, _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -648,6 +649,59 @@ def test_event_id_stability_when_save_and_fif_reload(tmpdir):
 
     assert event_id == original_event_id
     assert_array_equal(events, original_events)
+
+
+def test_parse_impedance():
+    """Test case for parsing the impedances from header."""
+    expected_imp_meas_time = datetime.datetime(2013, 11, 13, 16, 12, 27,
+                                               tzinfo=datetime.timezone.utc)
+    expected_imp_unit = 'kOhm'
+    expected_electrodes = [
+        'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
+        'F8', 'P7', 'P8', 'Fz', 'FCz', 'Cz', 'CPz', 'Pz', 'POz', 'FC1', 'FC2',
+        'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'HL', 'HR', 'Vb', 'ReRef',
+        'Ref', 'Gnd'
+    ]
+    n_electrodes = len(expected_electrodes)
+    expected_imps = [np.nan] * (n_electrodes - 2) + [0., 4.]
+    expected_imp_lower_bound = 0.
+    expected_imp_upper_bound = [100.] * (n_electrodes - 2) + [10., 10.]
+
+    expected_impedances = {elec: {
+        'imp': expected_imps[i],
+        'imp_unit': expected_imp_unit,
+        'imp_meas_time': expected_imp_meas_time,
+        'imp_lower_bound': expected_imp_lower_bound,
+        'imp_upper_bound': expected_imp_upper_bound[i],
+        'imp_range_unit': expected_imp_unit,
+    } for i, elec in enumerate(expected_electrodes)}
+
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    assert object_diff(expected_impedances, raw.impedances) == ''
+
+    # Test "Impedances Imported from actiCAP Control Software"
+    expected_imp_meas_time = expected_imp_meas_time.replace(hour=10,
+                                                            minute=17,
+                                                            second=2)
+    tmpidx = expected_electrodes.index('CP6')
+    expected_electrodes = expected_electrodes[:tmpidx] + [
+        'CP 6', 'ECG+', 'ECG-', 'HEOG+', 'HEOG-', 'VEOG+', 'VEOG-', 'ReRef',
+        'Ref', 'Gnd'
+    ]
+    n_electrodes = len(expected_electrodes)
+    expected_imps = [np.nan] * (n_electrodes - 9) + [
+        35., 46., 6., 8., 3., 4., 0., 8., 2.5
+    ]
+    expected_impedances = {elec: {
+        'imp': expected_imps[i],
+        'imp_unit': expected_imp_unit,
+        'imp_meas_time': expected_imp_meas_time,
+    } for i, elec in enumerate(expected_electrodes)}
+
+    with pytest.warns(RuntimeWarning, match='different .*pass filters'):
+        raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
+                                   eog=['HEOG', 'VEOG'], misc=['ECG'])
+    assert object_diff(expected_impedances, raw.impedances) == ''
 
 
 run_tests_if_main()
