@@ -18,7 +18,7 @@ Overview of the MNE tools suite
 
 - :doc:`MNE-Python <../python_reference>` reimplements the functionality of
   MNE-C, and extends considerably the analysis and visualization capabilities.
-  MNE-Python is collaboratively developed and has more than 150 contributors.
+  MNE-Python is collaboratively developed and has more than 200 contributors.
 
 - The :ref:`mne_matlab` provides a MATLAB interface to the .fif file
   format and other MNE data structures, and provides example MATLAB

@@ -110,6 +110,16 @@ copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
                                                               td.isoformat())
 
 nitpicky = True
+nitpick_ignore = [
+    ("py:class", "None.  Remove all items from D."),
+    ("py:class", "a set-like object providing a view on D's items"),
+    ("py:class", "a set-like object providing a view on D's keys"),
+    ("py:class", "v, remove specified key and return the corresponding value."),  # noqa: E501
+    ("py:class", "None.  Update D from dict/iterable E and F."),
+    ("py:class", "an object providing a view on D's values"),
+    ("py:class", "a shallow copy of D"),
+    ("py:class", "(k, v), remove and return some (key, value) pair as a"),
+]
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 # The version info for the project you're documenting, acts as replacement for
