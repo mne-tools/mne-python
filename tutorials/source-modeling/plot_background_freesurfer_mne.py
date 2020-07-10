@@ -326,8 +326,9 @@ fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
 # sphere, a given vertex in the source (sample) mesh can be mapped easily
 # to the same location in the destination (fsaverage) mesh, and vice-versa.
 
-renderer_kwargs = dict(size=(800, 800), bgcolor='w', smooth_shading=False)
-renderer = mne.viz.backends.renderer._get_renderer(**renderer_kwargs)
+renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
+renderer = mne.viz.backends.renderer._get_renderer(
+    size=(800, 400), **renderer_kwargs)
 curvs = [
     (mne.surface.read_curvature(os.path.join(
         subjects_dir, subj, 'surf', 'rh.curv'),
@@ -349,6 +350,7 @@ y = np.sort(y_shifts)
 y = (y[1:] + y[:-1]) / 2. - width / 2.
 renderer.quiver3d(zero, y, zero,
                   zero, [1] * 3, zero, 'k', width, 'arrow')
+view_kwargs['focalpoint'] = (0., 0., 0.)
 mne.viz.set_3d_view(figure=renderer.figure, distance=1000, **view_kwargs)
 renderer.show()
 
@@ -359,7 +361,8 @@ renderer.show()
 
 cyan = '#66CCEE'
 purple = '#AA3377'
-renderer = mne.viz.backends.renderer._get_renderer(**renderer_kwargs)
+renderer = mne.viz.backends.renderer._get_renderer(
+    size=(800, 800), **renderer_kwargs)
 fnames = [os.path.join(subjects_dir, subj, 'surf', 'rh.sphere')
           for subj in ('sample', 'fsaverage')]
 colors = [cyan, purple]
@@ -367,9 +370,7 @@ for name, color in zip(fnames, colors):
     this_rr, this_tri = mne.read_surface(name)
     renderer.mesh(*this_rr.T, triangles=this_tri, color=color,
                   representation='wireframe')
-mne.viz.set_3d_view(
-    figure=renderer.figure, distance=20, focalpoint=(0., 0., 0.),
-    **view_kwargs)
+mne.viz.set_3d_view(figure=renderer.figure, distance=20, **view_kwargs)
 renderer.show()
 
 ###############################################################################
@@ -391,22 +392,23 @@ src = mne.read_source_spaces(os.path.join(subjects_dir, 'sample', 'bem',
                                           'sample-oct-6-src.fif'))
 print(src)
 
+# sphinx_gallery_thumbnail_number = 10
 blue = '#4477AA'
-renderer = mne.viz.backends.renderer._get_renderer(**renderer_kwargs)
+renderer = mne.viz.backends.renderer._get_renderer(
+    size=(800, 800), **renderer_kwargs)
 rr_sph, _ = mne.read_surface(fnames[0])
 for tris, color in [(src[1]['tris'], cyan), (src[1]['use_tris'], blue)]:
     renderer.mesh(*rr_sph.T, triangles=tris, color=color,
                   representation='wireframe')
-mne.viz.set_3d_view(
-    figure=renderer.figure, distance=20, focalpoint=(0., 0., 0.),
-    **view_kwargs)
+mne.viz.set_3d_view(figure=renderer.figure, distance=20, **view_kwargs)
 renderer.show()
 
 ###############################################################################
 # We can also then look at how these two meshes compare by plotting the
 # original, high-density mesh as well as our decimated mesh white surfaces.
 
-renderer = mne.viz.backends.renderer._get_renderer(**renderer_kwargs)
+renderer = mne.viz.backends.renderer._get_renderer(
+    size=(800, 400), **renderer_kwargs)
 y_shifts = [-125, 125]
 tris = [src[1]['tris'], src[1]['use_tris']]
 for y_shift, tris in zip(y_shifts, tris):
