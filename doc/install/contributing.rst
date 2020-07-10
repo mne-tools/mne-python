@@ -224,11 +224,17 @@ be reflected the next time you open a Python interpreter and ``import mne``
 (the ``-e`` flag of ``pip`` stands for an "editable" installation).
 
 Finally, we'll add a few dependencies that are not needed for running
-MNE-Python, but are needed for locally running our test suite or building our
-documentation::
+MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler
-    $ conda install -c conda-forge sphinx-autobuild doc8  # linter packages for reStructuredText (optional)
+    $ pip install -r requirements_testing.txt
+
+And for building our documentation::
+
+    $ pip install -r doc/requirements.txt
+
+You can also choose to install some optional linters for reStructuredText::
+
+    $ conda install -c conda-forge sphinx-autobuild doc8
 
 
 .. _basic-git:
