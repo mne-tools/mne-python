@@ -1967,7 +1967,7 @@ class Report(object):
             ev = read_evokeds(evoked_fname, ev.comment, baseline=baseline,
                               verbose=False)
             global_id = self._get_id()
-            kwargs = dict(noise_cov=noise_cov, spatial_colors=True, show=False)
+            kwargs = dict(noise_cov=noise_cov, show=False)
             img = _fig_to_img(ev.plot_white, image_format, **kwargs)
             caption = self._gen_caption(prefix='Whitened evoked',
                                         suffix=f'({ev.comment})',
