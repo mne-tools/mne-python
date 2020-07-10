@@ -36,10 +36,10 @@ from .externals.tempita import HTMLTemplate, Template
 from .externals.h5io import read_hdf5, write_hdf5
 
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
-                    '-eve.fif', '-eve.fif.gz', '-cov.fif', '-cov.fif.gz',
-                    '-trans.fif', '-trans.fif.gz', '-fwd.fif', '-fwd.fif.gz',
-                    '-epo.fif', '-epo.fif.gz', '-inv.fif', '-inv.fif.gz',
-                    '-ave.fif', '-ave.fif.gz', 'T1.mgz', 'meg.fif']
+                    'eve.fif', 'eve.fif.gz', 'cov.fif', 'cov.fif.gz',
+                    'trans.fif', 'trans.fif.gz', 'fwd.fif', 'fwd.fif.gz',
+                    'epo.fif', 'epo.fif.gz', 'inv.fif', 'inv.fif.gz',
+                    'ave.fif', 'ave.fif.gz', 'T1.mgz', 'meg.fif']
 SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
                  'mri', 'forward', 'inverse']
 
@@ -181,38 +181,48 @@ def _get_fname(fname):
     return fname
 
 
+def _endswith(fname, exts):
+    """Aux function to test if fname ends with 'ext.fif' for any ext in exts"""
+    if isinstance(exts, str):
+        exts = [exts]
+    for ext in exts:
+        if fname.endswith((f'-{ext}.fif', f'-{ext}.fif.gz',
+                           f'_{ext}.fif', f'_{ext}.fif.gz')):
+            return True
+    return False
+
+
 def _get_toc_property(fname):
     """Assign class names to TOC elements to allow toggling with buttons."""
-    if fname.endswith(('-eve.fif', '-eve.fif.gz')):
+    if _endswith(fname, 'eve'):
         div_klass = 'events'
         tooltip = fname
         text = op.basename(fname)
-    elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+    elif _endswith(fname, 'ave'):
         div_klass = 'evoked'
         tooltip = fname
         text = op.basename(fname)
-    elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
+    elif _endswith(fname, 'cov'):
         div_klass = 'covariance'
         tooltip = fname
         text = op.basename(fname)
-    elif fname.endswith(('raw.fif', 'raw.fif.gz',
-                         'sss.fif', 'sss.fif.gz', 'meg.fif')):
+    elif _endswith(fname, ['raw', 'sss', 'meg']):
         div_klass = 'raw'
         tooltip = fname
         text = op.basename(fname)
-    elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
+    elif _endswith(fname, 'trans'):
         div_klass = 'trans'
         tooltip = fname
         text = op.basename(fname)
-    elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+    elif _endswith(fname, 'fwd'):
         div_klass = 'forward'
         tooltip = fname
         text = op.basename(fname)
-    elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
+    elif _endswith(fname, 'inv'):
         div_klass = 'inverse'
         tooltip = fname
         text = op.basename(fname)
-    elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
+    elif _endswith(fname, 'epo'):
         div_klass = 'epochs'
         tooltip = fname
         text = op.basename(fname)
@@ -252,20 +262,19 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                     % op.join('...' + report.data_path[-20:],
                               fname))
         try:
-            if fname.endswith(('raw.fif', 'raw.fif.gz',
-                               'sss.fif', 'sss.fif.gz', 'meg.fif')):
+            if _endswith(fname, ['raw', 'sss', 'meg']):
                 html = report._render_raw(fname, data_path)
                 report_fname = fname
                 report_sectionlabel = 'raw'
-            elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+            elif _endswith(fname, 'fwd'):
                 html = report._render_forward(fname, data_path)
                 report_fname = fname
                 report_sectionlabel = 'forward'
-            elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
+            elif _endswith(fname, 'inv'):
                 html = report._render_inverse(fname, data_path)
                 report_fname = fname
                 report_sectionlabel = 'inverse'
-            elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+            elif _endswith(fname, 'ave'):
                 if cov is not None:
                     html = report._render_whitened_evoked(fname, cov, baseline,
                                                           image_format,
@@ -278,21 +287,20 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                                              data_path)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
-            elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
+            elif _endswith(fname, 'eve'):
                 html = report._render_eve(fname, sfreq, image_format,
                                           data_path)
                 report_fname = fname
                 report_sectionlabel = 'events'
-            elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
+            elif _endswith(fname, 'epo'):
                 html = report._render_epochs(fname, image_format, data_path)
                 report_fname = fname
                 report_sectionlabel = 'epochs'
-            elif (fname.endswith(('-cov.fif', '-cov.fif.gz')) and
-                  report.info_fname is not None):
+            elif _endswith(fname, 'cov') and report.info_fname is not None:
                 html = report._render_cov(fname, info, image_format, data_path)
                 report_fname = fname
                 report_sectionlabel = 'covariance'
-            elif (fname.endswith(('-trans.fif', '-trans.fif.gz')) and
+            elif (_endswith(fname, 'trans') and
                   report.info_fname is not None and report.subjects_dir
                   is not None and report.subject is not None):
                 html = report._render_trans(fname, report.data_path, info,
@@ -1430,12 +1438,10 @@ class Report(object):
             sfreq = info['sfreq']
         else:
             # only warn if relevant
-            if any(fname.endswith(('-cov.fif', '-cov.fif.gz'))
-                   for fname in fnames):
+            if any(_endswith(fname, 'cov') for fname in fnames):
                 warn('`info_fname` not provided. Cannot render '
                      '-cov.fif(.gz) files.')
-            if any(fname.endswith(('-trans.fif', '-trans.fif.gz'))
-                   for fname in fnames):
+            if any(_endswith(fname, 'trans') for fname in fnames):
                 warn('`info_fname` not provided. Cannot render '
                      '-trans.fif(.gz) files.')
             info, sfreq = None, None
@@ -1648,8 +1654,7 @@ class Report(object):
                     div_klass, tooltip, text = _get_toc_property(fname)
 
                     # loop through conditions for evoked
-                    if fname.endswith(('-ave.fif', '-ave.fif.gz',
-                                      '(whitened)')):
+                    if _endswith(fname, 'ave') or fname.endswith('(whitened)'):
                         text = os.path.basename(fname)
                         if fname.endswith('(whitened)'):
                             fname = fname[:-11]
@@ -1869,7 +1874,14 @@ class Report(object):
             kwargs = dict(show=False)
             logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
-            img = _fig_to_img(ev.plot, image_format, **kwargs)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    'ignore',
+                    message='Channel locations not available.*',
+                    category=RuntimeWarning)
+                img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
+                                  **kwargs)
+
             caption = self._gen_caption(prefix='Evoked',
                                         suffix=f'({ev.comment})',
                                         fname=evoked_fname,
@@ -1881,7 +1893,8 @@ class Report(object):
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
                 has_types.append('eeg')
-            if len(pick_types(ev.info, meg='grad', eeg=False)) > 0:
+            if len(pick_types(ev.info, meg='grad', eeg=False,
+                              ref_meg=False)) > 0:
                 has_types.append('grad')
             if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
                 has_types.append('mag')
