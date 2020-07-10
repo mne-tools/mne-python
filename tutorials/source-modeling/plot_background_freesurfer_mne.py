@@ -82,12 +82,12 @@ print(data.shape)
 # it uses during acquisition, usually related to the physical orientation of
 # the scanner itself and/or the subject within it. During acquisition the
 # relationship between the voxel indices ``(i, j, k)`` and the physical
-# location ``(x, y,z)`` in the *scanner's native coordinate frame* is saved in
+# location ``(x, y, z)`` in the *scanner's native coordinate frame* is saved in
 # the image's *affine transformation*.
 #
 # We can use :mod:`nibabel` to examine this transformation, keeping in mind
 # that it processes everything in units of millimeters, unlike MNE where things
-# are always in SI units / meters:
+# are always in SI units (meters):
 
 print(t1.affine)
 
@@ -196,9 +196,10 @@ imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
 #       documentation, you should assume that we are talking about the
 #       "FreeSurfer MRI surface RAS" coordinate frame!
 #
-# We can do similar computations as before to figure out where the given voxel
-# and RAS point is in FreeSurfer MRI coordinates (i.e., what we call just
-# "MRI coordinates" everywhere else in MNE):
+# We can do similar computations as before to convert the given voxel indices
+# into FreeSurfer MRI coordinates (i.e., what we call "MRI coordinates" or
+# "surface RAS" everywhere else in MNE), just like we did above to convert
+# voxel indices to *scanner* RAS:
 
 Torig = t1.header.get_vox2ras_tkr()
 print(t1.affine)
@@ -213,7 +214,7 @@ imshow_mri(data, t1, vox, dict(MRI=xyz_mri), 'MRI slice')
 
 fiducials = mne.coreg.get_mni_fiducials(subject, subjects_dir=subjects_dir)
 nasion_mri = [d for d in fiducials if d['ident'] == FIFF.FIFFV_POINT_NASION][0]
-print(nasion_mri)  # note it's in MRI coords
+print(nasion_mri)  # note it's in Freesurfer MRI coords
 
 ###############################################################################
 # When we print the nasion, it displays as a ``DigPoint`` and shows its
@@ -225,7 +226,7 @@ nasion_mri = nasion_mri['r'] * 1000  # meters → millimeters
 nasion_vox = np.round(
     apply_trans(np.linalg.inv(Torig), nasion_mri)).astype(int)
 imshow_mri(data, t1, nasion_vox, dict(MRI=nasion_mri),
-           'Nasion estimated from MNI transform')
+           'Nasion estimated from MRI transform')
 
 ###############################################################################
 # We can also take the digitization point from the MEG data, which is in the
@@ -249,7 +250,11 @@ nasion_head = [d for d in info['dig'] if
 print(nasion_head)  # note it's in "head" coordinates
 
 ###############################################################################
-# To convert from head coordinate frame to MRI, we first apply the transform
+# Notice that in "head" coordinate frame the nasion has values of 0 for the
+# ``x`` and ``z`` directions (which makes sense given that the nasion is used
+# to define the ``y`` axis in that system).
+# To convert from head coordinate frame to voxels, we first apply the head →
+# MRI (surface RAS) transform
 # from a :file:`trans` file (typically created with the MNE-Python
 # coregistration GUI), then convert meters → millimeters, and finally apply the
 # inverse of ``Torig`` to get to voxels:
@@ -267,17 +272,18 @@ imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
            'Nasion transformed from digitization')
 
 ###############################################################################
-# Under the hood, in functions like :func:`mne.setup_source_space`,
+# Under the hood, functions like :func:`mne.setup_source_space`,
 # :func:`mne.setup_volume_source_space`, and :func:`mne.compute_source_morph`
 # make extensive use of these coordinate frames.
 #
 # Using FreeSurfer's surface reconstructions
 # ==========================================
 # An important part of what FreeSurfer does is provide cortical surface
-# reconstructions. For example, let's read in and look at the ``white`` surface
-# of the brain. This is just a 3D mesh defined by a set of vertices (rr) with
-# shape ``(n_vertices, 3)`` and tris defining the triangles connecting the
-# vertices with shape ``(n_tris, 3)``.
+# reconstructions. For example, let's load and view the ``white`` surface
+# of the brain. This is a 3D mesh defined by a set of vertices (conventionally
+# called ``rr``) with shape ``(n_vertices, 3)`` and a set of triangles
+# (``tris``) with shape ``(n_tris, 3)`` defining which vertices in ``rr`` form
+# each triangular facet of the mesh.
 
 
 fname = os.path.join(subjects_dir, subject, 'surf', 'rh.white')
@@ -300,9 +306,10 @@ mne.viz.set_3d_view(
 renderer.show()
 
 ###############################################################################
-# We can also plot this on top of the MRI from before. These surfaces are
-# in millimeters in the MRI (FreeSurfer surface RAS) coordinate frame, so
-# let's get them to voxels by applying the inverse of the Torig (vox_mri_t):
+# We can also plot the mesh on top of an MRI slice. The mesh surfaces are
+# defined in millimeters in the MRI (FreeSurfer surface RAS) coordinate frame,
+# so we can convert them to voxels by applying the inverse of the ``Torig``
+# transform:
 
 rr_vox = apply_trans(np.linalg.inv(Torig), rr_mm)
 fig = imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
@@ -375,7 +382,8 @@ renderer.show()
 
 ###############################################################################
 # You can see that the fsaverage (purple) mesh is uniformly spaced, and the
-# sample (cyan) mesh has been deformed along the spherical surface by
+# mesh for subject "sample" (in cyan) has been deformed along the spherical
+# surface by
 # FreeSurfer. This deformation is designed to optimize the sulcal-gyral
 # alignment.
 #
