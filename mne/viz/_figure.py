@@ -44,7 +44,7 @@ class MNEFigure(Figure):
         w_or_h = fig_w if horiz else fig_h
         return dim_inches / w_or_h
 
-    def _onclick_help():
+    def _onclick_help(self, event):
         pass
 
 
@@ -67,45 +67,53 @@ class MNEBrowseFigure(MNEFigure):
         super().__init__(*args, **kwargs)
 
         # additional params for browse figures (comments indicate name changes)
-        # self.mne.data = None              # raw
+        self.mne.inst = None                # raw
         # self.mne.info = None
         # self.mne.proj = None
         # self.mne.noise_cov = None
-        # self.mne.rev_event_id = None      # event_id_rev
+        # self.mne.event_id_rev = None
         # # channel
-        # self.mne.n_channels = None
+        self.mne.n_channels = None
         # self.mne.ch_types = None          # types
         # self.mne.group_by = None
         # self.mne.picks = None             # data_picks
+
         # # time
         # self.mne.n_times = None
         # self.mne.first_time = None
         # self.mne.event_times = None
         # self.mne.event_nums = None
-        # self.mne.duration = None
+        self.mne.duration = None
         # self.mne.decim = None
+        self.mne.hsel_patch = None
+
         # # annotations
         # self.mne.annotations = None
         # self.mne.snap_annotations = None
         # self.mne.added_label = None
+
         # # traces
         # self.mne.trace_indices = None     # inds
         # self.mne.orig_indices = None      # orig_inds
         # self.mne.clipping = None
         # self.mne.butterfly = None
+
         # # filters
         # self.mne.remove_dc = None
         # self.mne.filter_coefs_ba = None   # ba
         # self.mne.filter_bounds = None     # filt_bounds
+
         # # scalings
         # self.mne.units = None
         # self.mne.scalings = None
         # self.mne.unit_scalings = None
+
         # # ancillary figures
         # self.mne.fig_proj = None
         # self.mne.fig_help = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
+
         # # UI state variables
         # self.mne.ch_start = None
         # self.mne.t_start = None
@@ -213,7 +221,7 @@ class MNEBrowseFigure(MNEFigure):
             # if should_show, bottom margin moves up; right margin moves left
             margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
             margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
-            # squeeze a bit more because we don't need space for "Time (s)" now
+            # squeeze a bit more because we don't need space for xlabel now
             v_delta = self._inch_to_rel(0.16, horiz=False)
             margins['bottom'] += (1 if should_show else -1) * v_delta
             self.subplots_adjust(**margins)
@@ -228,9 +236,79 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.show_scrollbars = should_show
             self.canvas.draw()
 
+    def _setup_annotation_fig(self):
+        pass
+        #"""Initialize the annotation figure."""
+        #import matplotlib.pyplot as plt
+        #from matplotlib.widgets import RadioButtons, SpanSelector, Button
+        #if params['fig_annotation'] is not None:
+        #    params['fig_annotation'].canvas.close_event()
+        #annotations = params['raw'].annotations
+        #labels = list(set(annotations.description))
+        #labels = np.union1d(labels, params['added_label'])
+        #fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
+        #fig.patch.set_facecolor('white')
+        #len_labels = max(len(labels), 1)
+        ## can't pass fig=fig here on matplotlib 2.0.2, need to wait for an update
+        #ax = plt.subplot2grid((len_labels + 2, 2), (0, 0),
+        #                      rowspan=len_labels,
+        #                      colspan=2, frameon=False)
+        #ax.set_title('Labels')
+        #ax.set_aspect('equal')
+        #button_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels, 1),
+        #                             rowspan=1, colspan=1)
+        #label_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels, 0),
+        #                            rowspan=1, colspan=1)
+        #plt.axis('off')
+        #text_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels + 1, 0),
+        #                           rowspan=1, colspan=2)
+        #text_ax.text(0.5, 0.9, 'Left click & drag - Create/modify annotation\n'
+        #                       'Right click - Delete annotation\n'
+        #                       'Letter/number keys - Add character\n'
+        #                       'Backspace - Delete character\n'
+        #                       'Esc - Close window/exit annotation mode', va='top',
+        #             ha='center')
+        #plt.axis('off')
+        #annotations_closed = partial(_annotations_closed, params=params)
+        #fig.canvas.mpl_connect('close_event', annotations_closed)
+        #fig.canvas.set_window_title('Annotations')
+        #fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
+        #radius = 0.15
+        #circles = fig.radio.circles
+        #for circle, label in zip(circles, fig.radio.labels):
+        #    circle.set_edgecolor(params['segment_colors'][label.get_text()])
+        #    circle.set_linewidth(4)
+        #    circle.set_radius(radius / (len(labels)))
+        #    label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
+        #if len(fig.radio.circles) < 1:
+        #    col = '#ff0000'
+        #else:
+        #    col = circles[0].get_edgecolor()
+        #fig.canvas.mpl_connect('key_press_event', partial(
+        #    _change_annotation_description, params=params))
+        #fig.button = Button(button_ax, 'Add label')
+        #fig.label = label_ax.text(0.5, 0.5, '"BAD_"', va='center', ha='center')
+        #fig.button.on_clicked(partial(_onclick_new_label, params=params))
+        #plt_show(fig=fig)
+        #params['fig_annotation'] = fig
+        #ax = params['ax']
+        #cb_onselect = partial(_annotate_select, params=params)
+        #selector = SpanSelector(ax, cb_onselect, 'horizontal', minspan=.1,
+        #                        rectprops=dict(alpha=0.5, facecolor=col))
+        #if len(labels) == 0:
+        #    selector.active = False
+        #params['ax'].selector = selector
+        #hover_callback = partial(_on_hover, params=params)
+        #params['hover_callback'] = params['fig'].canvas.mpl_connect(
+        #    'motion_notify_event', hover_callback)
+        #radio_clicked = partial(_annotation_radio_clicked, radio=fig.radio,
+        #                        selector=selector)
+        #fig.radio.on_clicked(radio_clicked)
+
     def _keypress(self, event):
         """Triage keypress events."""
-        from matplotlib.pyplot import close
+        from matplotlib.pyplot import close, get_current_fig_manager
+        from ..preprocessing import ICA
         key = event.key
         if key == self.mne.close_key:
             close(self)
@@ -246,101 +324,55 @@ class MNEBrowseFigure(MNEFigure):
         elif key == ('right', 'left', 'shift+right', 'shift+left'):
             direction = 1 if key.endswith('right') else -1
             denom = 1 if key.startswith('shift') else 4
-            shift = direction * self.mne.duration / denom
-            # TODO: redraw traces after shifting t_start
+            t_shift = direction * self.mne.duration / denom
+            self.mne.t_start += t_shift
+            # TODO: redraw
         elif key in ('=', '+', '-'):
             scaler = 1 / 1.1 if key == '-' else 1.1
-            # self.mne.scale_factor *= scaler
+            self.mne.scale_factor *= scaler
             # TODO: redraw
         elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
             n_ch_delta = 1 if key == 'pageup' else -1
-            pass  # TODO: increment the number of traces and redraw
-        elif key == 'home':
-            pass
-        elif key == 'end':
-            pass
+            if self.mne.n_channels + n_ch_delta > 0:
+                self.mne.n_channels += n_ch_delta
+                # TODO: redraw
+        elif key in ('home', 'end'):
+            dur_delta = 1 if key == 'end' else -1
+            if self.mne.duration + dur_delta > 0:
+                if self.mne.duration + dur_delta > self.inst.times[-1]:
+                    self.mne.duration = self.inst.times[-1]
+                else:
+                    self.mne.duration += dur_delta
+                self.mne.hsel_patch.set_width(self.mne.duration)
+                # TODO: redraw
         elif key == '?':
-            pass
+            self._onclick_help(event)
         elif key == 'f11':
-            pass
+            fig_manager = get_current_fig_manager()
+            fig_manager.full_screen_toggle()
         elif key == 'a':
+            if isinstance(self.mne.inst, ICA):
+                return
+            if self.mne.fig_annotation is None:
+                self._setup_annotation_fig()
+            else:
+                self.mne.fig_annotation.canvas.close_event()
+        elif key == 'b':  # TODO: toggle butterfly mode
             pass
-        elif key == 'b':
+        elif key == 'd':  # TODO: toggle remove DC
             pass
-        elif key == 'd':
+        elif key == 'p':  # TODO: toggle snap annotations
             pass
-        elif key == 'p':
+        elif key == 's':  # TODO: toggle show scalebars
             pass
-        elif key == 's':
-            pass
-        elif key == 'w':
+        elif key == 'w':  # TODO: toggle noise cov / whitening
             pass
         elif key == 'z':  # zen mode: remove scrollbars and buttons
             self._toggle_scrollbars()
 
-    # elif event.key == 'pageup' and 'fig_selection' not in params:
-    #     n_channels = min(params['n_channels'] + 1, len(params['info']['chs']))
-    #     _setup_browser_offsets(params, n_channels)
-    #     _channels_changed(params, len(params['inds']))
-    # elif event.key == 'pagedown' and 'fig_selection' not in params:
-    #     n_channels = params['n_channels'] - 1
-    #     if n_channels == 0:
-    #         return
-    #     _setup_browser_offsets(params, n_channels)
-    #     if len(params['lines']) > n_channels:  # remove line from view
-    #         params['lines'][n_channels].set_xdata([])
-    #         params['lines'][n_channels].set_ydata([])
-    #     _channels_changed(params, len(params['inds']))
-    # elif event.key == 'home':
-    #     duration = params['duration'] - 1.0
-    #     if duration <= 0:
-    #         return
-    #     params['duration'] = duration
-    #     params['hsel_patch'].set_width(params['duration'])
-    #     params['update_fun']()
-    #     params['plot_fun']()
-    # elif event.key == 'end':
-    #     duration = params['duration'] + 1.0
-    #     if duration > params['raw'].times[-1]:
-    #         duration = params['raw'].times[-1]
-    #     params['duration'] = duration
-    #     params['hsel_patch'].set_width(params['duration'])
-    #     params['update_fun']()
-    #     params['plot_fun']()
-    # elif event.key == '?':
-    #     _onclick_help(event, params)
-    # elif event.key == 'f11':
-    #     mng = plt.get_current_fig_manager()
-    #     mng.full_screen_toggle()
-    # elif event.key == 'a':
-    #     if 'ica' in params.keys():
-    #         return
-    #     if params['fig_annotation'] is None:
-    #         _setup_annotation_fig(params)
-    #     else:
-    #         params['fig_annotation'].canvas.close_event()
-    # elif event.key == 'b':
-    #     _setup_butterfly(params)
-    # elif event.key == 'w':
-    #     params['use_noise_cov'] = not params['use_noise_cov']
-    #     params['plot_update_proj_callback'](params, None)
-    # elif event.key == 'd':
-    #     params['remove_dc'] = not params['remove_dc']
-    #     params['update_fun']()
-    #     params['plot_fun']()
-    # elif event.key == 's':
-    #     params['show_scalebars'] = not params['show_scalebars']
-    #     params['plot_fun']()
-    # elif event.key == 'p':
-    #     params['snap_annotations'] = not params['snap_annotations']
-    #     # remove the line if present
-    #     if not params['snap_annotations']:
-    #         _on_hover(None, params)
-    #     params['plot_fun']()
 
-
-def mne_figure(*args, toolbar=False, FigureClass=MNEBrowseFigure, **kwargs):
-    """Instantiate a new MNE browse-style figure."""
+def _figure(*args, toolbar=False, FigureClass=None, **kwargs):
+    """Instantiate a new figure."""
     from matplotlib import rc_context
     from matplotlib.pyplot import figure
     if toolbar:
@@ -348,6 +380,12 @@ def mne_figure(*args, toolbar=False, FigureClass=MNEBrowseFigure, **kwargs):
     else:
         with rc_context(rc=dict(toolbar='none')):
             fig = figure(*args, FigureClass=FigureClass, **kwargs)
+    return fig
+
+
+def browse_figure(*args, toolbar=False, FigureClass=MNEBrowseFigure, **kwargs):
+    """Instantiate a new MNE browse-style figure."""
+    fig = _figure(*args, toolbar=toolbar, FigureClass=FigureClass, **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
