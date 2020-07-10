@@ -118,6 +118,7 @@ nitpick_ignore = [
     ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
+    ("py:class", "(k, v), remove and return some (key, value) pair as a"),
 ]
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
