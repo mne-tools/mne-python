@@ -129,7 +129,7 @@ jobs:
       conda env update --file $CONDA_ENV
       pip uninstall -yq mne
       pip install -ve .
-      pip install -r requirements_testing.txt
+      pip install -r requirements_testing.txt codecov
       echo "##vso[task.setvariable variable=PATH]${PATH}"
       echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
     displayName: 'Install dependencies'

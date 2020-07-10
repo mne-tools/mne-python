@@ -80,9 +80,8 @@ jobs:
             name: Get Python running
             command: |
               python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off -r requirements_dev.txt
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r doc/requirements.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user -e .
 
