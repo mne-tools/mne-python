@@ -4,11 +4,11 @@ pytest-mock
 pytest-sugar
 pytest-timeout
 pytest-xdist
-pydocstyle
 flake8
 https://github.com/larsoner/flake8-array-spacing/archive/master.zip
 https://github.com/numpy/numpydoc/archive/master.zip
 https://github.com/codespell-project/codespell/archive/master.zip
+pydocstyle
 check-manifest
 twine
 wheel
