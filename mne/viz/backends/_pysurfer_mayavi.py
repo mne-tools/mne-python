@@ -84,7 +84,6 @@ class _Renderer(_BaseRenderer):
     def figure(self):  # cross-compat w/PyVista
         return self.fig
 
-
     def subplot(self, x, y):
         pass
 
@@ -128,7 +127,7 @@ class _Renderer(_BaseRenderer):
 
             l_m = surface.module_manager.scalar_lut_manager
             if vertex_color is not None:
-                lm.lut.table = vertex_color
+                l_m.lut.table = vertex_color
             elif isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
                     l_m.lut.table = colormap
