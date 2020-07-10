@@ -182,6 +182,7 @@ def _get_fname(fname):
 
 
 def _endswith(fname, exts):
+    """Aux function to test if fname ends with 'ext.fif' for any ext in exts"""
     if isinstance(exts, str):
         exts = [exts]
     for ext in exts:
