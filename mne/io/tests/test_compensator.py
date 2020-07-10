@@ -58,7 +58,6 @@ def test_compensation(tmpdir):
 @requires_mne
 def test_compensation_mne(tmpdir):
     """Test comensation by comparing with MNE."""
-
     def make_evoked(fname, comp):
         """Make evoked data."""
         raw = read_raw_fif(fname)

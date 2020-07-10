@@ -273,7 +273,7 @@ imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
 #
 # Using FreeSurfer's surface reconstructions
 # ==========================================
-# An import part of what FreeSurfer does is provide cortical surface
+# An important part of what FreeSurfer does is provide cortical surface
 # reconstructions. For example, let's read in and look at the ``white`` surface
 # of the brain. This is just a 3D mesh defined by a set of vertices (rr) with
 # shape ``(n_vertices, 3)`` and tris defining the triangles connecting the
