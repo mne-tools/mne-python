@@ -11,6 +11,7 @@ from io import BytesIO
 import os
 import os.path as op
 import fnmatch
+from pathlib import Path
 import re
 import codecs
 from shutil import copyfile
@@ -26,7 +27,7 @@ from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
-from .viz import plot_events, plot_alignment, plot_cov
+from .viz import plot_events, plot_alignment, plot_cov, plot_projs_topomap
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from .forward import read_forward_solution
 from .epochs import read_epochs
@@ -322,6 +323,14 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
             html = None
             report_fname = None
             report_sectionlabel = None
+
+        # Plot SSP projectors.
+        if (report.projs and report_fname is not None and
+                _endswith(fname, ['raw', 'sss', 'meg', 'epo', 'ave'])
+                and read_info(fname).get('projs')):
+            projs_html = report._render_projs(fname, data_path)
+            html += f'\n\n{projs_html}'
+
         _update_html(html, report_fname, report_sectionlabel)
 
     return htmls, report_fnames, report_sectionlabels
@@ -869,6 +878,11 @@ class Report(object):
         :meth:`mne.io.Raw.plot_psd`.
 
         .. versionadded:: 0.17
+    projs : bool
+        Whether to include topographic plots of SSP projectors, if present in
+        the data. Defaults to ``False``.
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Notes
@@ -882,7 +896,7 @@ class Report(object):
 
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', raw_psd=False, verbose=None):
+                 image_format='png', raw_psd=False, projs=False, verbose=None):
         self.info_fname = info_fname
         self.cov_fname = cov_fname
         self.baseline = baseline
@@ -890,6 +904,7 @@ class Report(object):
         self.subject = subject
         self.title = title
         self.image_format = _check_image_format(None, image_format)
+        self.projs = projs
         self.verbose = verbose
 
         self.initial_id = 0
@@ -1615,10 +1630,15 @@ class Report(object):
 
     @staticmethod
     def _gen_caption(prefix, fname, data_path, suffix=''):
-        if data_path is None:
-            caption = f'{prefix}: {fname} {suffix}'
-        else:
-            caption = f'{prefix}: {fname[len(data_path)+1:]} {suffix}'
+        if data_path is not None:
+            # Ensure we drop leading path separators from the
+            # filename before using it as a caption. We don't know whether
+            # `data_path` has a trailing separator or not; so create a Path
+            # just to be safe (trailing separators will be removed during the
+            # roundtrip).
+            fname = fname[len(str(Path(data_path))) + 1:]
+
+        caption = f'{prefix}: {fname} {suffix}'
         return caption.strip()
 
     @verbose
@@ -1834,6 +1854,22 @@ class Report(object):
                 img=img, div_klass='raw', img_klass='raw',
                 caption='PSD', show=True, image_format=self.image_format)
             html += '\n\n' + new_html
+        return html
+
+    def _render_projs(self, fname, data_path):
+        """Render SSP projectors."""
+        global_id = self._get_id()
+        div_klass = 'raw'
+        img_klass = 'ssp'
+        info = read_info(fname, verbose=False)
+        caption = 'SSP Projectors'
+        img_kws = dict(projs=info['projs'], info=info, colorbar=True,
+                       vlim='joint', show=False)
+        img = _fig_to_img(plot_projs_topomap, self.image_format, **img_kws)
+        html = image_template.substitute(
+            img=img, div_klass=div_klass, img_klass=img_klass,
+            caption=caption, show=True, image_format=self.image_format,
+            global_id=global_id)
         return html
 
     def _render_forward(self, fwd_fname, data_path):

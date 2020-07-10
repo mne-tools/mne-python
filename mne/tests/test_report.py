@@ -83,7 +83,8 @@ def test_render_report(renderer, tmpdir):
     # Also, make sure crop range is wide enough to avoid rendering bug
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
-    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
+                    projs=True)
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
     assert repr(report)

@@ -75,12 +75,13 @@ report.save('report_basic.html')
 # This report yields a textual summary of the :class:`~mne.io.Raw` files
 # selected by the pattern. For a slightly more useful report, we'll ask for the
 # power spectral density of the :class:`~mne.io.Raw` files, by passing
-# ``raw_psd=True`` to the :class:`~mne.Report` constructor. Let's also refine
-# our pattern to select only the filtered raw recording (omitting the
+# ``raw_psd=True`` to the :class:`~mne.Report` constructor. We'll also
+# visualize the SSP projectors by setting ``projs=True``. Lastly, let's also
+# refine our pattern to select only the filtered raw recording (omitting the
 # unfiltered data and the empty-room noise recordings):
 
 pattern = 'sample_audvis_filt-0-40_raw.fif'
-report = mne.Report(verbose=True, raw_psd=True)
+report = mne.Report(verbose=True, raw_psd=True, projs=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_raw_psd.html')
 
@@ -108,7 +109,7 @@ report.save('report_evoked.html')
 
 ###############################################################################
 # To render whitened :class:`~mne.Evoked` files with baseline correction, add
-# the noise covariance file. This will display ERP/F plots for both the
+# the noise covariance file. This will display ERP/ERF plots for both the
 # original and whitened :class:`~mne.Evoked` objects, but scalp topomaps only
 # for the original.
 
