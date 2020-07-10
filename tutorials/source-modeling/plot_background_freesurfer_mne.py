@@ -85,13 +85,6 @@ print(data.shape)
 # location ``(x, y, z)`` in the *scanner's native coordinate frame* is saved in
 # the image's *affine transformation*.
 #
-# We can use :mod:`nibabel` to examine this transformation, keeping in mind
-# that it processes everything in units of millimeters, unlike MNE where things
-# are always in SI units (meters):
-
-print(t1.affine)
-
-###############################################################################
 # .. sidebar:: Under the hood
 #
 #     ``mne.transforms.apply_trans`` effectively does a matrix multiplication
@@ -99,10 +92,15 @@ print(t1.affine)
 #     mismatch (the affine has shape ``(4, 4)`` because it includes a
 #     *translation*, which is applied separately).
 #
+# We can use :mod:`nibabel` to examine this transformation, keeping in mind
+# that it processes everything in units of millimeters, unlike MNE where things
+# are always in SI units (meters).
+#
 # This allows us to take an arbitrary voxel or slice of data and know where it
 # is in the scanner's native physical space ``(x, y, z)`` (in mm) by applying
 # the affine transformation to the voxel coordinates.
 
+print(t1.affine)
 vox = np.array([122, 119, 102])
 xyz_ras = apply_trans(t1.affine, vox)
 print('Our voxel has real-world coordinates {}, {}, {} (mm)'
@@ -128,7 +126,7 @@ print('Our real-world coordinates correspond to voxel ({}, {}, {})'
 def imshow_mri(data, img, vox, xyz, suptitle):
     """Show an MRI slice with a voxel annotated."""
     i, j, k = vox
-    fig, ax = plt.subplots(1, figsize=(5, 5))
+    fig, ax = plt.subplots(1, figsize=(6, 6))
     codes = nibabel.orientations.aff2axcodes(img.affine)
     # Figure out the title based on the code of this axis
     ori_slice = dict(P='Coronal', A='Coronal',
@@ -142,7 +140,7 @@ def imshow_mri(data, img, vox, xyz, suptitle):
     ax.axvline(k, color='y')
     ax.axhline(j, color='y')
     for kind, coords in xyz.items():
-        annotation = ('{}: {}, {}, {} mm ⬊'
+        annotation = ('{}: {}, {}, {} mm'
                       .format(kind, *np.round(coords).astype(int)))
         text = ax.text(k, j, annotation, va='baseline', ha='right',
                        color=(1, 1, 0.7))
@@ -170,8 +168,8 @@ imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
 # into real-world RAS in millimeters.
 #
 #
-# "MRI coordinates" in MNE-Python: "FreeSurfer surface RAS"
-# ---------------------------------------------------------
+# "MRI coordinates" in MNE-Python: FreeSurfer surface RAS
+# -------------------------------------------------------
 #
 # While :mod:`nibabel` uses **scanner RAS** ``(x, y, z)`` coordinates,
 # FreeSurfer uses a slightly different coordinate frame: **MRI surface RAS**.
@@ -191,10 +189,9 @@ imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
 # system) for as many computations as possible, such as all source space
 # and BEM mesh vertex definitions.
 #
-# .. note::
-#       Whenever you see "MRI coordinates" or "MRI coords" in MNE-Python's
-#       documentation, you should assume that we are talking about the
-#       "FreeSurfer MRI surface RAS" coordinate frame!
+# Whenever you see "MRI coordinates" or "MRI coords" in MNE-Python's
+# documentation, you should assume that we are talking about the
+# "FreeSurfer MRI surface RAS" coordinate frame!
 #
 # We can do similar computations as before to convert the given voxel indices
 # into FreeSurfer MRI coordinates (i.e., what we call "MRI coordinates" or
@@ -232,14 +229,6 @@ imshow_mri(data, t1, nasion_vox, dict(MRI=nasion_mri),
 # We can also take the digitization point from the MEG data, which is in the
 # "head" coordinate frame.
 #
-# .. note::
-#      The head coordinate frame in MNE is the "Neuromag" head coordinate
-#      frame. The origin is given by the intersection between a line connecting
-#      the LPA and RPA and the line orthogonal to it that runs through the
-#      nasion. It is also in RAS orientation, meaning that +X runs through
-#      the RPA, +Y goes through the nasion, and +Z is orthogonal to these
-#      pointing upward. See :ref:`coordinate_systems` for more information.
-#
 # Let's look at the nasion in the head coordinate frame:
 
 info = mne.io.read_info(
@@ -250,6 +239,15 @@ nasion_head = [d for d in info['dig'] if
 print(nasion_head)  # note it's in "head" coordinates
 
 ###############################################################################
+# .. sidebar:: Head coordinate frame
+#
+#      The head coordinate frame in MNE is the "Neuromag" head coordinate
+#      frame. The origin is given by the intersection between a line connecting
+#      the LPA and RPA and the line orthogonal to it that runs through the
+#      nasion. It is also in RAS orientation, meaning that +X runs through
+#      the RPA, +Y goes through the nasion, and +Z is orthogonal to these
+#      pointing upward. See :ref:`coordinate_systems` for more information.
+#
 # Notice that in "head" coordinate frame the nasion has values of 0 for the
 # ``x`` and ``z`` directions (which makes sense given that the nasion is used
 # to define the ``y`` axis in that system).
@@ -257,7 +255,11 @@ print(nasion_head)  # note it's in "head" coordinates
 # MRI (surface RAS) transform
 # from a :file:`trans` file (typically created with the MNE-Python
 # coregistration GUI), then convert meters → millimeters, and finally apply the
-# inverse of ``Torig`` to get to voxels:
+# inverse of ``Torig`` to get to voxels.
+#
+# Under the hood, functions like :func:`mne.setup_source_space`,
+# :func:`mne.setup_volume_source_space`, and :func:`mne.compute_source_morph`
+# make extensive use of these coordinate frames.
 
 trans = mne.read_trans(
     os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif'))
@@ -272,10 +274,6 @@ imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
            'Nasion transformed from digitization')
 
 ###############################################################################
-# Under the hood, functions like :func:`mne.setup_source_space`,
-# :func:`mne.setup_volume_source_space`, and :func:`mne.compute_source_morph`
-# make extensive use of these coordinate frames.
-#
 # Using FreeSurfer's surface reconstructions
 # ==========================================
 # An important part of what FreeSurfer does is provide cortical surface
