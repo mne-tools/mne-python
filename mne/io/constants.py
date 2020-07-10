@@ -5,7 +5,7 @@
 
 from ..utils._bunch import BunchConstNamed
 
-FIFF = BunchConstNamed()
+FIFF = BunchConstNamed()  # type: ignore
 
 #
 # FIFF version number in use

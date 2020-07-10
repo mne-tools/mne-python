@@ -44,7 +44,7 @@ Source estimates come in different forms:
 
     :class:`(Vector) <mne.VectorSourceEstimate>`
     :class:`SourceEstimate <mne.SourceEstimate>` are surface representations
-    mostly used together with :ref:`FreeSurfer <tut-freesurfer>`
+    mostly used together with :ref:`FreeSurfer <tut-freesurfer-mne>`
     surface representations.
 
 .. contents::
@@ -74,7 +74,7 @@ fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 #
 # This data set contains source estimation data from an audio visual task. It
 # has been mapped onto the inflated cortical surface representation obtained
-# from :ref:`FreeSurfer <tut-freesurfer>`
+# from :ref:`FreeSurfer <tut-freesurfer-mne>`
 # using the dSPM method. It highlights a noticeable peak in the auditory
 # cortices.
 #
