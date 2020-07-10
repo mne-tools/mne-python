@@ -88,13 +88,15 @@ def test_psd():
     assert (len(freqs1) == np.floor(len(freqs2) / 2.))
     assert (psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
 
-    # tests ValueError when n_per_seg=None and n_fft > signal length
     kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
-    pytest.raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
+    with pytest.raises(ValueError, match='n_fft is not allowed to be > n_tim'):
+        psd_welch(raw, proj=False, n_per_seg=None,
                   **kws_psd)
-    # ValueError when n_overlap > n_per_seg
     kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
-    pytest.raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+    with pytest.raises(ValueError, match='n_overlap cannot be greater'):
+        psd_welch(raw, proj=False, **kws_psd)
+    with pytest.raises(ValueError, match='No frequencies found'):
+        psd_array_welch(np.zeros((1, 1000)), 1000., fmin=10, fmax=1)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
