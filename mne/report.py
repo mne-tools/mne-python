@@ -8,6 +8,7 @@
 
 import base64
 from io import BytesIO
+from mne.proj import read_proj
 import os
 import os.path as op
 import fnmatch
@@ -308,7 +309,9 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                 report_fname = fname
                 report_sectionlabel = 'covariance'
             elif _endswith(fname, 'proj') and report.info_fname is not None:
-                html = report._render_projs(report.info_fname, data_path)
+                html = report._render_projs(proj_fname=fname,
+                                            info_fname=report.info_fname,
+                                            data_path=data_path)
                 report_fname = fname
                 report_sectionlabel = 'ssp'
             elif (_endswith(fname, 'trans') and
@@ -337,7 +340,8 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
         if (report.projs and report_fname is not None and
                 _endswith(fname, ['raw', 'sss', 'meg', 'epo', 'ave'])
                 and read_info(fname).get('projs')):
-            projs_html = report._render_projs(fname, data_path,
+            projs_html = report._render_projs(info_fname=fname,
+                                              data_path=data_path,
                                               div_klass=report_sectionlabel)
             html += f'\n\n{projs_html}'
 
@@ -1869,26 +1873,45 @@ class Report(object):
             html += '\n\n' + new_html
         return html
 
-    def _render_projs(self, info_fname, data_path, div_klass='ssp'):
-        """Render SSP projectors."""
+    def _render_projs(self, *, info_fname, data_path, proj_fname=None,
+                      div_klass='ssp'):
+        """Render SSP projectors.
+
+        Parameters
+        ----------
+        info_fname : str
+            Path of a file containing the `~mne.Info` structure, which is
+            required to create the topographic plots.
+        data_path : str
+            The "base" directory of the data. This path will me omitted from
+            the captions.
+        proj_fname : str | None
+            Path of projectors file to load. If ``None``, read projectors from
+            the `~mne.Info` structure in ``info_fname``.
+        div_klass : str
+            The class of the generated ``<div>`` container.
+
+        """
         global_id = self._get_id()
         div_klass = div_klass
         img_klass = 'ssp'
         info = read_info(info_fname, verbose=False)
+        projs = info['projs'] if proj_fname is None else read_proj(proj_fname)
 
-        if div_klass == 'ssp':  # "standalone"
-            caption = self._gen_caption(prefix='SSP Projectors',
-                                        fname=info_fname, data_path=data_path)
+        if div_klass == 'ssp':  # "standalone" section
+            fname = info_fname if proj_fname is None else proj_fname
+            caption = self._gen_caption(prefix='SSP Projectors', fname=fname,
+                                        data_path=data_path)
         else:  # Part of another section
             caption = 'SSP Projectors'
 
-        img_kws = dict(projs=info['projs'], info=info, colorbar=True,
-                       vlim='joint', show=False)
+        img_kws = dict(projs=projs, info=info, colorbar=True, vlim='joint',
+                       show=False)
         img = _fig_to_img(plot_projs_topomap, self.image_format, **img_kws)
         html = image_template.substitute(
             img=img, div_klass=div_klass, img_klass=img_klass,
             caption=caption, show=True, image_format=self.image_format,
-            global_id=global_id)
+            id=global_id)
         return html
 
     def _render_forward(self, fwd_fname, data_path):
