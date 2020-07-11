@@ -860,14 +860,14 @@ class Report(object):
 
     Parameters
     ----------
-    info_fname : None | str | Path
+    info_fname : None | str
         Name of the file containing the info dictionary.
     %(subjects_dir)s
     subject : str | None
         Subject name.
     title : str
         Title of the report.
-    cov_fname : None | str | Path
+    cov_fname : None | str
         Name of the file containing the noise covariance.
     baseline : None or tuple of length 2 (default (None, 0))
         The time interval to apply baseline correction for evokeds.
