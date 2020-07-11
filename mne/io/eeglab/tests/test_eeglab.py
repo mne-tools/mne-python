@@ -350,8 +350,8 @@ def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
-        [-4.,  1.,  7.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],  # noqa: E241,E501
-        [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],  # noqa: E241,E501
+        [-4.,  1.,  7.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
+        [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 

@@ -28,7 +28,7 @@ jobs:
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
-      python -m pip install numpy scipy matplotlib sphinx pytest pytest-cov pytest-timeout pytest-sugar flake8
+      python -m pip install numpy scipy matplotlib -r requirements_testing.txt
     displayName: Install dependencies
     condition: always()
   - bash: |
@@ -36,24 +36,12 @@ jobs:
     displayName: make flake
     condition: always()
   - bash: |
-      pip install pydocstyle
-    displayName: Install pydocstyle
-    condition: always()
-  - bash: |
       make pydocstyle
     displayName: make pydocstyle
     condition: always()
   - bash: |
-      pip install https://github.com/codespell-project/codespell/zipball/master
-    displayName: Install latest codespell
-    condition: always()
-  - bash: |
       make codespell-error
     displayName: make codespell-error
-    condition: always()
-  - bash: |
-      pip install https://github.com/numpy/numpydoc/archive/master.zip pytest pytest-cov pytest-timeout pytest-sugar
-    displayName: Install NumpyDoc validation
     condition: always()
   - bash: |
       make docstring
@@ -63,16 +51,8 @@ jobs:
     displayName: make nesting
     condition: always()
   - bash: |
-      pip install check-manifest
-    displayName: Install manifest checker
-    condition: always()
-  - bash: |
       make check-manifest
     displayName: make check-manifest
-    condition: always()
-  - bash: |
-      pip install twine wheel
-    displayName: Install twine
     condition: always()
   - bash: |
       make check-readme
@@ -115,9 +95,7 @@ jobs:
     displayName: 'Spin up Xvfb'
   - bash: |
       set -e
-      pip install --upgrade numpy scipy vtk
-      pip install --upgrade -r requirements.txt
-      pip install codecov
+      pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
     displayName: 'Install dependencies with pip'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
@@ -217,7 +195,7 @@ jobs:
   - bash: |
       set -e
       pip install --upgrade numpy scipy vtk
-      pip install --upgrade -r requirements.txt
+      pip install --upgrade -r requirements.txt -r requirements_testing.txt
       pip install codecov
       pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
@@ -228,9 +206,7 @@ jobs:
       python -m pip install --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
       python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
       python -m pip install --upgrade --only-binary vtk vtk;
-      python -m pip install https://github.com/enthought/mayavi/zipball/master
-      python -m pip install -r requirements.txt
-      python -m pip install codecov
+      python -m pip install -r requirements.txt -r requirements_testing.txt codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'
   - powershell: |
@@ -245,7 +221,7 @@ jobs:
       conda install numpy scipy matplotlib scikit-learn
       conda env update --name base --file $env:CONDA_ENV
       pip uninstall -yq mne
-      pip install codecov
+      pip install -r requirements_testing.txt codecov
       pip uninstall -yq pysurfer mayavi
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
