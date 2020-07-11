@@ -77,7 +77,7 @@ report.save('report_basic.html')
 # selected by the pattern. For a slightly more useful report, we'll ask for the
 # power spectral density of the :class:`~mne.io.Raw` files, by passing
 # ``raw_psd=True`` to the :class:`~mne.Report` constructor. We'll also
-# visualize the SSP projectors stored in the raw data's `~mne.Info` strcuture
+# visualize the SSP projectors stored in the raw data's `~mne.Info` dictionary
 # by setting ``projs=True``. Lastly, let's also refine our pattern to select
 # only the filtered raw recording (omitting the unfiltered data and the
 # empty-room noise recordings):
@@ -90,7 +90,7 @@ report.save('report_raw_psd.html')
 ###############################################################################
 # The sample dataset also contains SSP projectors stored as *individual files*.
 # To add them to a report, we also have to provide the path to a file
-# containing an `~mne.Info` structure, from which the channel locations can be
+# containing an `~mne.Info` dictionary, from which the channel locations can be
 # read.
 
 info_fname = os.path.join(path, 'MEG', 'sample',
