@@ -97,7 +97,7 @@ info_fname = os.path.join(path, 'MEG', 'sample',
                           'sample_audvis_filt-0-40_raw.fif')
 pattern = 'sample_audvis_*proj.fif'
 report = mne.Report(info_fname=info_fname, verbose=True)
-report.parse_folder(path, pattern=pattern)
+report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_proj.html')
 
 ###############################################################################
