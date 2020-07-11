@@ -39,11 +39,12 @@ from .externals.h5io import read_hdf5, write_hdf5
 
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     'eve.fif', 'eve.fif.gz', 'cov.fif', 'cov.fif.gz',
-                    'trans.fif', 'trans.fif.gz', 'fwd.fif', 'fwd.fif.gz',
-                    'epo.fif', 'epo.fif.gz', 'inv.fif', 'inv.fif.gz',
-                    'ave.fif', 'ave.fif.gz', 'T1.mgz', 'meg.fif']
-SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
-                 'mri', 'forward', 'inverse']
+                    'proj.fif', 'prof.fif.gz', 'trans.fif', 'trans.fif.gz',
+                    'fwd.fif', 'fwd.fif.gz', 'epo.fif', 'epo.fif.gz',
+                    'inv.fif', 'inv.fif.gz', 'ave.fif', 'ave.fif.gz', 'T1.mgz',
+                    'meg.fif']
+SECTION_ORDER = ['raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
+                 'trans', 'mri', 'forward', 'inverse']
 
 
 ###############################################################################
@@ -208,6 +209,10 @@ def _get_toc_property(fname):
         div_klass = 'covariance'
         tooltip = fname
         text = op.basename(fname)
+    elif _endswith(fname, 'proj'):
+        div_klass = 'ssp'
+        tooltip = fname
+        text = op.basename(fname)
     elif _endswith(fname, ['raw', 'sss', 'meg']):
         div_klass = 'raw'
         tooltip = fname
@@ -302,6 +307,10 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                 html = report._render_cov(fname, info, image_format, data_path)
                 report_fname = fname
                 report_sectionlabel = 'covariance'
+            elif _endswith(fname, 'proj') and report.info_fname is not None:
+                html = report._render_projs(report.info_fname, data_path)
+                report_fname = fname
+                report_sectionlabel = 'ssp'
             elif (_endswith(fname, 'trans') and
                   report.info_fname is not None and report.subjects_dir
                   is not None and report.subject is not None):
@@ -324,11 +333,12 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
             report_fname = None
             report_sectionlabel = None
 
-        # Plot SSP projectors.
+        # Add SSP projectors found in the currently processed file, if any.
         if (report.projs and report_fname is not None and
                 _endswith(fname, ['raw', 'sss', 'meg', 'epo', 'ave'])
                 and read_info(fname).get('projs')):
-            projs_html = report._render_projs(fname, data_path)
+            projs_html = report._render_projs(fname, data_path,
+                                              div_klass=report_sectionlabel)
             html += f'\n\n{projs_html}'
 
         _update_html(html, report_fname, report_sectionlabel)
@@ -1460,6 +1470,9 @@ class Report(object):
             if any(_endswith(fname, 'trans') for fname in fnames):
                 warn('`info_fname` not provided. Cannot render '
                      '-trans.fif(.gz) files.')
+            if any(_endswith(fname, 'proj') for fname in fnames):
+                warn('`info_fname` not provided. Cannot render '
+                     '-proj.fif(.gz) files.')
             info, sfreq = None, None
 
         cov = None
@@ -1856,13 +1869,19 @@ class Report(object):
             html += '\n\n' + new_html
         return html
 
-    def _render_projs(self, fname, data_path):
+    def _render_projs(self, info_fname, data_path, div_klass='ssp'):
         """Render SSP projectors."""
         global_id = self._get_id()
-        div_klass = 'raw'
+        div_klass = div_klass
         img_klass = 'ssp'
-        info = read_info(fname, verbose=False)
-        caption = 'SSP Projectors'
+        info = read_info(info_fname, verbose=False)
+
+        if div_klass == 'ssp':  # "standalone"
+            caption = self._gen_caption(prefix='SSP Projectors',
+                                        fname=info_fname, data_path=data_path)
+        else:  # Part of another section
+            caption = 'SSP Projectors'
+
         img_kws = dict(projs=info['projs'], info=info, colorbar=True,
                        vlim='joint', show=False)
         img = _fig_to_img(plot_projs_topomap, self.image_format, **img_kws)

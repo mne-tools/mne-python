@@ -25,18 +25,19 @@ import mne
 # .. cssclass:: table-bordered
 # .. rst-class:: midvalign
 #
-# ============ ==============================================================
-# Data object  Filename convention (ends with)
-# ============ ==============================================================
-# raw          -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
-# events       -eve.fif(.gz)
-# epochs       -epo.fif(.gz)
-# evoked       -ave.fif(.gz)
-# covariance   -cov.fif(.gz)
-# trans        -trans.fif(.gz)
-# forward      -fwd.fif(.gz)
-# inverse      -inv.fif(.gz)
-# ============ ==============================================================
+# ============== ==============================================================
+# Data object    Filename convention (ends with)
+# ============== ==============================================================
+# raw            -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
+# events         -eve.fif(.gz)
+# epochs         -epo.fif(.gz)
+# evoked         -ave.fif(.gz)
+# covariance     -cov.fif(.gz)
+# SSP projectors -proj.fif(.gz)
+# trans          -trans.fif(.gz)
+# forward        -fwd.fif(.gz)
+# inverse        -inv.fif(.gz)
+# ============== ==============================================================
 #
 # Alternatively, the dash ``-`` in the filename may be replaced with an
 # underscore ``_``.
@@ -76,14 +77,28 @@ report.save('report_basic.html')
 # selected by the pattern. For a slightly more useful report, we'll ask for the
 # power spectral density of the :class:`~mne.io.Raw` files, by passing
 # ``raw_psd=True`` to the :class:`~mne.Report` constructor. We'll also
-# visualize the SSP projectors by setting ``projs=True``. Lastly, let's also
-# refine our pattern to select only the filtered raw recording (omitting the
-# unfiltered data and the empty-room noise recordings):
+# visualize the SSP projectors stored in the raw data's `~mne.Info` strcuture
+# by setting ``projs=True``. Lastly, let's also refine our pattern to select
+# only the filtered raw recording (omitting the unfiltered data and the
+# empty-room noise recordings):
 
 pattern = 'sample_audvis_filt-0-40_raw.fif'
-report = mne.Report(verbose=True, raw_psd=True, projs=True)
+report = mne.Report(raw_psd=True, projs=True, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_raw_psd.html')
+
+###############################################################################
+# The sample dataset also contains SSP projectors stored as *individual files*.
+# To add them to a report, we also have to provide the path to a file
+# containing an `~mne.Info` structure, from which the channel locations can be
+# read.
+
+info_fname = os.path.join(path, 'MEG', 'sample',
+                          'sample_audvis_filt-0-40_raw.fif')
+pattern = 'sample_audvis_*proj.fif'
+report = mne.Report(info_fname=info_fname, verbose=True)
+report.parse_folder(path, pattern=pattern, render_bem=False)
+report.save('report_proj.html')
 
 ###############################################################################
 # This time we'll pass a specific ``subject`` and ``subjects_dir`` (even though
