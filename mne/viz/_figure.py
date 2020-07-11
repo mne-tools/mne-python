@@ -50,7 +50,7 @@ class MNEFigure(Figure):
 
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
-    def __init__(self, *args, xlabel='Time (s)', show_scrollbars=True,
+    def __init__(self, inst, *args, xlabel='Time (s)', show_scrollbars=True,
                  **kwargs):
         from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_size import Fixed
@@ -67,14 +67,14 @@ class MNEBrowseFigure(MNEFigure):
         super().__init__(*args, **kwargs)
 
         # additional params for browse figures (comments indicate name changes)
-        self.mne.inst = None                # raw
+        self.mne.inst = inst                # raw
         # self.mne.info = None
         # self.mne.proj = None
         # self.mne.noise_cov = None
         # self.mne.event_id_rev = None
         # # channel
         self.mne.n_channels = None
-        # self.mne.ch_types = None          # types
+        self.mne.ch_types = None            # types
         # self.mne.group_by = None
         # self.mne.picks = None             # data_picks
 
@@ -107,10 +107,11 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.units = None
         # self.mne.scalings = None
         # self.mne.unit_scalings = None
+        self.mne.scale_factor = 1.
 
         # # ancillary figures
         # self.mne.fig_proj = None
-        # self.mne.fig_help = None
+        self.mne.fig_help = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
 
@@ -154,7 +155,7 @@ class MNEBrowseFigure(MNEFigure):
                                      pad=Fixed(vscroll_dist))
         ax_hscroll.get_yaxis().set_visible(False)
         ax_hscroll.set_xlabel(xlabel)
-        ax_vscroll.set_axis_off()
+        #ax_vscroll.set_axis_off()
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
                                   size=Fixed(help_width),
@@ -163,25 +164,33 @@ class MNEBrowseFigure(MNEFigure):
         loc = div.new_locator(nx=0, ny=0)
         ax_help.set_axes_locator(loc)
         # HELP BUTTON: make it a proper button
-        help_button = Button(ax_help, 'Help')
-        help_button.on_clicked(self._onclick_help)
-
-        # PROJ BUTTON: (optionally) added later, easier to compute position now
-        proj_button_pos = [
-            1 - self._inch_to_rel(r_margin + scroll_width),  # left
-            self._inch_to_rel(b_margin, horiz=False),        # bottom
-            self._inch_to_rel(scroll_width),                 # width
-            self._inch_to_rel(scroll_width, horiz=False)     # height
-        ]
-        self.mne.button_proj_position = proj_button_pos
-        self.mne.button_proj_locator = div.new_locator(nx=2, ny=0)
+        button_help = Button(ax_help, 'Help')
+        button_help.on_clicked(self._onclick_help)
+        # PROJ BUTTON
+        if len(inst.info['projs']) and not inst.proj:
+            # PROJ BUTTON: compute position
+            proj_button_pos = [
+                1 - self._inch_to_rel(r_margin + scroll_width),  # left
+                self._inch_to_rel(b_margin, horiz=False),        # bottom
+                self._inch_to_rel(scroll_width),                 # width
+                self._inch_to_rel(scroll_width, horiz=False)     # height
+            ]
+            loc = div.new_locator(nx=4, ny=0)
+            ax_proj = self.add_axes(proj_button_pos)
+            ax_proj.set_axes_locator(loc)
+            # PROJ BUTTON: make it a proper button
+            button_proj = Button(ax_proj, 'Prj')
+            button_proj.on_clicked(self._toggle_proj_dialog)
+            # self.mne.apply_proj = proj  # TODO add proj to init signature?
 
         # SAVE PARAMS
         self.mne.ax_main = ax
         self.mne.ax_help = ax_help
+        self.mne.ax_proj = ax_proj
         self.mne.ax_hscroll = ax_hscroll
         self.mne.ax_vscroll = ax_vscroll
-        self.mne.button_help = help_button
+        self.mne.button_help = button_help
+        self.mne.button_proj = button_proj
 
     def _resize(self, event):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
@@ -235,6 +244,15 @@ class MNEBrowseFigure(MNEFigure):
                     getattr(self.mne, elem).set_visible(should_show)
             self.mne.show_scrollbars = should_show
             self.canvas.draw()
+
+    def _toggle_proj_dialog(self, event):
+        """Show/hide projectors dialog."""
+        if self.mne.fig_proj is None:
+            self._draw_proj_checkbox(event, draw_current_state=False)
+        else:
+            self.mne.fig_proj.canvas.close_event()
+            del self.mne.proj_checks
+            self.mne.fig_proj = None
 
     def _setup_annotation_fig(self):
         pass
@@ -383,9 +401,11 @@ def _figure(*args, toolbar=False, FigureClass=None, **kwargs):
     return fig
 
 
-def browse_figure(*args, toolbar=False, FigureClass=MNEBrowseFigure, **kwargs):
+def browse_figure(inst, *args, toolbar=False, FigureClass=MNEBrowseFigure,
+                  **kwargs):
     """Instantiate a new MNE browse-style figure."""
-    fig = _figure(*args, toolbar=toolbar, FigureClass=FigureClass, **kwargs)
+    fig = _figure(*args, toolbar=toolbar, FigureClass=FigureClass, inst=inst,
+                  **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
