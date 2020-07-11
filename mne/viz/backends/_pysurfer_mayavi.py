@@ -65,9 +65,10 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
-                 name=None, show=False, shape=(1, 1)):
+                 name=None, show=False, shape=(1, 1), smooth_shading=True):
         if bgcolor is not None:
             bgcolor = _check_color(bgcolor)
+        print(bgcolor)
         self.mlab = _import_mlab()
         self.shape = shape
         if fig is None:
@@ -78,6 +79,10 @@ class _Renderer(_BaseRenderer):
             self.fig = fig
         self.fig._window_size = size
         _toggle_mlab_render(self.fig, show)
+
+    @property
+    def figure(self):  # cross-compat w/PyVista
+        return self.fig
 
     def subplot(self, x, y):
         pass
@@ -93,7 +98,8 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True,
+             representation='surface', line_width=1., **kwargs):
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
@@ -115,13 +121,14 @@ class _Renderer(_BaseRenderer):
                                                 figure=self.fig,
                                                 vmin=vmin,
                                                 vmax=vmax,
+                                                representation=representation,
+                                                line_width=line_width,
                                                 **kwargs)
 
+            l_m = surface.module_manager.scalar_lut_manager
             if vertex_color is not None:
-                surface.module_manager.scalar_lut_manager.lut.table = \
-                    vertex_color
+                l_m.lut.table = vertex_color
             elif isinstance(colormap, np.ndarray):
-                l_m = surface.module_manager.scalar_lut_manager
                 if colormap.dtype == np.uint8:
                     l_m.lut.table = colormap
                 elif colormap.dtype == np.float64:
@@ -130,6 +137,10 @@ class _Renderer(_BaseRenderer):
                     raise TypeError('Expected type for colormap values are'
                                     ' np.float64 or np.uint8: '
                                     '{} was given'.format(colormap.dtype))
+            elif colormap is not None:
+                from matplotlib.cm import get_cmap
+                l_m.load_lut_from_list(
+                    get_cmap(colormap)(np.linspace(0, 1, 256)))
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface

@@ -117,6 +117,7 @@ from . import minimum_norm
 from . import preprocessing
 from . import simulation
 from . import stats
+from . import surface
 from . import time_frequency
 from . import viz
 from . import decoding

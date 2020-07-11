@@ -198,6 +198,17 @@ fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
 print(fwd)
 
 ###############################################################################
+# .. warning::
+#    Forward computation can remove vertices that are too close to (or outside)
+#    the inner skull surface. For example, here we have gone from 8096 to 7498
+#    vertices in use. For many functions, such as
+#    :func:`mne.compute_source_morph`, it is important to pass ``fwd['src']``
+#    or ``inv['src']`` so that this removal is adequately accounted for.
+
+print(f'Before: {src}')
+print(f'After:  {fwd["src"]}')
+
+###############################################################################
 # We can explore the content of ``fwd`` to access the numpy array that contains
 # the gain matrix.
 

@@ -26,6 +26,7 @@ from scipy import linalg
 from ..defaults import DEFAULTS
 from ..fixes import _get_img_fdata
 from ..rank import compute_rank
+from ..source_space import _mri_orientation
 from ..surface import read_surface
 from ..io.constants import FIFF
 from ..io.proj import make_projector
@@ -296,21 +297,6 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _mri_ori(nim, orientation):
-    import nibabel as nib
-    axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
-    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
-    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    order = dict(
-        coronal=('R', 'S', 'A'),
-        axial=('R', 'A', 'S'),
-        sagittal=('A', 'S', 'R'),
-    )[orientation]
-    xyz = [axcodes.index(c) for c in order]
-    flips = [flips[c] for c in order]
-    return xyz, flips, order
-
-
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True, show_indices=False,
                        show_orientation=False, img_output=False):
@@ -327,7 +313,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     del vox_mri_t
 
     # plot axes (x, y, z) as data axes
-    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_ori(nim, orientation)
+    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_orientation(
+        nim, orientation)
     transpose = x < y
 
     data = _get_img_fdata(nim)
