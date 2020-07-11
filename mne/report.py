@@ -856,14 +856,14 @@ class Report(object):
 
     Parameters
     ----------
-    info_fname : str
+    info_fname : str | Path
         Name of the file containing the info dictionary.
     %(subjects_dir)s
     subject : str | None
         Subject name.
     title : str
         Title of the report.
-    cov_fname : str
+    cov_fname : str | Path
         Name of the file containing the noise covariance.
     baseline : None or tuple of length 2 (default (None, 0))
         The time interval to apply baseline correction for evokeds.
@@ -907,8 +907,8 @@ class Report(object):
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
                  image_format='png', raw_psd=False, projs=False, verbose=None):
-        self.info_fname = info_fname
-        self.cov_fname = cov_fname
+        self.info_fname = str(info_fname)
+        self.cov_fname = str(cov_fname)
         self.baseline = baseline
         self.subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
         self.subject = subject
