@@ -129,7 +129,7 @@ jobs:
       conda env update --file $CONDA_ENV
       pip uninstall -yq mne
       pip install -ve .
-      pip install -r requirements_testing.txt codecov
+      pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8 codecov
       echo "##vso[task.setvariable variable=PATH]${PATH}"
       echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
     displayName: 'Install dependencies'
@@ -195,7 +195,7 @@ jobs:
   - bash: |
       set -e
       pip install --upgrade numpy scipy vtk
-      pip install --upgrade -r requirements.txt
+      pip install --upgrade -r requirements.txt -r requirements_testing.txt
       pip install codecov
       pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
