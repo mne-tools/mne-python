@@ -722,7 +722,9 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
             selection=selection)
-        return self._pick_drop_channels(idx)
+        self._pick_drop_channels(idx)
+        self._pick_projs()
+        return self
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick some channels.
@@ -756,8 +758,10 @@ class UpdateChannelsMixin(object):
 
         .. versionadded:: 0.9.0
         """
-        return self._pick_drop_channels(
-            pick_channels(self.info['ch_names'], ch_names, ordered=ordered))
+        self._pick_drop_channels(pick_channels(self.info['ch_names'], ch_names,
+                                               ordered=ordered))
+        self._pick_projs()
+        return self
 
     @fill_doc
     def pick(self, picks, exclude=()):
@@ -777,7 +781,9 @@ class UpdateChannelsMixin(object):
         """
         picks = _picks_to_idx(self.info, picks, 'all', exclude,
                               allow_empty=False)
-        return self._pick_drop_channels(picks)
+        self._pick_drop_channels(picks)
+        self._pick_projs()
+        return self
 
     def reorder_channels(self, ch_names):
         """Reorder channels.
@@ -888,6 +894,20 @@ class UpdateChannelsMixin(object):
             self._data = self._data.take(idx, axis=axis)
         else:
             assert isinstance(self, BaseRaw) and not self.preload
+        return self
+
+    def _pick_projs(self):
+        """Only keep projectors whose channels are still in the data."""
+        drop_idx = []
+        for idx, proj in enumerate(self.info['projs']):
+            if not set(self.info['ch_names']) & set(proj['data']['col_names']):
+                drop_idx.append(idx)
+
+        for idx in drop_idx:
+            logger.warning(f"Removing projector {self.info['projs'][idx]}")
+        if drop_idx:
+            self.del_proj(drop_idx)
+
         return self
 
     def add_channels(self, add_list, force_update_info=False):
