@@ -78,8 +78,9 @@ def test_render_report(renderer, tmpdir):
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
     # Speed it up by picking channels
     raw = read_raw_fif(raw_fname_new, preload=True)
-    raw.pick_channels(['MEG 0111', 'MEG 0121'])
+    raw.pick_channels(['MEG 0111', 'MEG 0121', 'EEG 001', 'EEG 002'])
     raw.del_proj()
+    raw.set_eeg_reference(projection=True)
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
@@ -111,6 +112,10 @@ def test_render_report(renderer, tmpdir):
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
     assert '(MaxShield on)' in html
+    # Projectors in Raw.info
+    assert '<h4>SSP Projectors</h4>' in html
+    # Projectors in `proj_fname_new`
+    assert f'SSP Projectors: {op.basename(proj_fname_new)}' in html
 
     assert_equal(len(report.html), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
