@@ -728,28 +728,31 @@ def test_proj(tmpdir):
         assert_allclose(data_proj_1, data_proj_2)
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
 
+    # Test that picking removes projectors ...
+    raw = read_raw_fif(fif_fname).apply_proj()
+    n_projs = len(raw.info['projs'])
+    raw.pick_types(meg=False, eeg=True)
+    assert len(raw.info['projs']) == n_projs - 3
+
+    # ... but only if it doesn't apply to any channels in the dataset anymore.
+    raw = read_raw_fif(fif_fname).apply_proj()
+    n_projs = len(raw.info['projs'])
+    raw.pick_types(meg='mag', eeg=True)
+    assert len(raw.info['projs']) == n_projs
+
+    # I/O roundtrip of an MEG projector with a Raw that only contains MEG
+    # data.
     out_fname = tmpdir.join('test_raw.fif')
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
+    proj = raw.info['projs'][-1]
     raw.pick_types(meg=False, eeg=True)
-    raw.info['projs'] = [raw.info['projs'][-1]]
+    raw.info['projs'] = [proj]  # Restore, because picking removed it!
     raw._data.fill(0)
     raw._data[-1] = 1.
     raw.save(out_fname)
     raw = read_raw_fif(out_fname, preload=False)
     raw.apply_proj()
     assert_allclose(raw[:, :][0][:1], raw[0, :][0])
-
-    # Read file again, apply proj, pick all channels one proj did NOT apply to;
-    # then try to delete this proj, which now exclusively refers to channels
-    # which are not present in the data anymore.
-    raw = read_raw_fif(fif_fname).apply_proj()
-    del_proj_idx = 0
-    picks = list(set(raw.ch_names) -
-                 set(raw.info['projs'][del_proj_idx]['data']['col_names']))
-    raw.pick(picks)
-    n_projs = len(raw.info['projs'])
-    raw.del_proj(del_proj_idx)
-    assert len(raw.info['projs']) == n_projs - 1
 
 
 @testing.requires_testing_data
