@@ -104,6 +104,16 @@ def test_time_frequency():
     assert_allclose(power.data, power_picks_avg.data)
     assert_allclose(itc.data, itc_picks.data)
 
+    # test on evoked
+    power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
+                              return_itc=False)
+    # one is squared magnitude of the average (evoked) and
+    # the other is average of the squared magnitudes (epochs PSD)
+    # so values shouldn't match, but shapes should
+    assert_array_equal(power.data.shape, power_evoked.data.shape)
+    pytest.raises(AssertionError, assert_allclose,
+                  power.data, power_evoked.data)
+
     # complex output
     pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
                   return_itc=False, average=True, output="complex")
@@ -112,9 +122,13 @@ def test_time_frequency():
     epochs_power_complex = tfr_morlet(epochs, freqs, n_cycles,
                                       output="complex", average=False,
                                       return_itc=False)
-    epochs_power_2 = abs(epochs_power_complex)
-    epochs_power_3 = epochs_power_2.copy()
-    epochs_power_3.data[:] = np.inf  # test that it's actually copied
+    epochs_amplitude_2 = abs(epochs_power_complex)
+    epochs_amplitude_3 = epochs_amplitude_2.copy()
+    epochs_amplitude_3.data[:] = np.inf  # test that it's actually copied
+
+    # test that the power computed via `complex` is equivalent to power
+    # computed within the method.
+    assert_allclose(epochs_amplitude_2.data**2, epochs_power_picks.data)
 
     print(itc)  # test repr
     print(itc.ch_names)  # test property
