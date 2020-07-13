@@ -125,7 +125,7 @@ Changelog
 
 - BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` by `Stefan Appelhoff`_ and `Jan Sedivy`_
 
-- Deletion of applied (active) projectors via `~mne.Raw.del_proj`, `~mne.Epochs.del_proj`, and `~mne.Evoked.del_proj` is now possible if the channels the to-be-removed projector applies to is not present in the data anymore by `Richard Höchenberger`_
+- Deletion of applied (active) projectors via `~mne.Raw.del_proj`, `~mne.Epochs.del_proj`, and `~mne.Evoked.del_proj` is now possible if the channels the to-be-removed projector applies to are not present in the data anymore by `Richard Höchenberger`_
 
 Bug
 ~~~
