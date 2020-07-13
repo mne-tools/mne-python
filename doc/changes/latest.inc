@@ -127,7 +127,7 @@ Changelog
 
 - Deletion of applied (active) projectors via `~mne.io.Raw.del_proj`, `~mne.Epochs.del_proj`, and `~mne.Evoked.del_proj` is now possible if the channels the to-be-removed projector applies to are not present in the data anymore by `Richard Höchenberger`_
 
-- When picking a subset of channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
+- When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
 
 Bug
 ~~~

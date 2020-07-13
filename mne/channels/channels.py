@@ -864,7 +864,9 @@ class UpdateChannelsMixin(object):
         bad_idx = [self.ch_names.index(ch) for ch in ch_names
                    if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
-        return self._pick_drop_channels(idx)
+        self._pick_drop_channels(idx)
+        self._pick_projs()
+        return self
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports

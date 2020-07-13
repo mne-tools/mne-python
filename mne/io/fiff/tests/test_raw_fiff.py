@@ -1478,6 +1478,13 @@ def test_drop_channels_mixin():
     assert len(ch_names) == len(raw._cals)
     assert len(ch_names) == raw._data.shape[0]
 
+    # Test that picking all channels a projector applies to will lead to the
+    # removal of said projector.
+    raw = read_raw_fif(fif_fname).apply_proj()
+    n_projs = len(raw.info['projs'])
+    raw.drop_channels(raw.info['projs'][-1]['data']['col_names'])  # EEG proj
+    assert len(raw.info['projs']) == n_projs - 1
+
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
