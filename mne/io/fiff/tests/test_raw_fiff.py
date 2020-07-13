@@ -740,7 +740,7 @@ def test_proj(tmpdir):
     raw.pick_types(meg='mag', eeg=True)
     assert len(raw.info['projs']) == n_projs
 
-    # I/O roundtrip of an MEG projector with a Raw that only contains MEG
+    # I/O roundtrip of an MEG projector with a Raw that only contains EEG
     # data.
     out_fname = tmpdir.join('test_raw.fif')
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
