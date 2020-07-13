@@ -904,7 +904,7 @@ class UpdateChannelsMixin(object):
                 drop_idx.append(idx)
 
         for idx in drop_idx:
-            logger.warning(f"Removing projector {self.info['projs'][idx]}")
+            warn(f"Removing projector {self.info['projs'][idx]}")
         if drop_idx:
             self.del_proj(drop_idx)
 
