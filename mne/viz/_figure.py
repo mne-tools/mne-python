@@ -54,12 +54,10 @@ class MNEBrowseFigure(MNEFigure):
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         from mne.viz.utils import _get_figsize_from_config
 
-        # figsize is the first arg of Figure()
-        figsize = args.pop(0) if len(args) else kwargs.pop('figsize', None)
-        if figsize is None:
-            figsize = _get_figsize_from_config()
-        kwargs['figsize'] = figsize
-
+        # figsize is the first arg of matplotlib Figure()
+        args = list(args)
+        figsize = args.pop(0) if args else kwargs.pop('figsize', None)
+        args.insert(0, figsize or _get_figsize_from_config())
         # init Figure
         super().__init__(*args, **kwargs)
 
