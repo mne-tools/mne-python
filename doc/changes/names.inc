@@ -307,3 +307,5 @@
 .. _Kyle Mathewson: https://github.com/kylemath
 
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
+
+.. _Jan Sedivy: https://github.com/honzaseda

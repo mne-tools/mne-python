@@ -144,11 +144,12 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None):
+                 notebook=None, smooth_shading=False):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=notebook)
+                         background_color=bgcolor, notebook=notebook,
+                         smooth_shading=smooth_shading)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.shape = shape
@@ -219,7 +220,8 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True,
+             representation='surface', line_width=1., **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             smooth_shading = self.figure.smooth_shading
@@ -254,6 +256,7 @@ class _Renderer(_BaseRenderer):
                 rng=[vmin, vmax], show_scalar_bar=False,
                 smooth_shading=smooth_shading,
                 interpolate_before_map=interpolate_before_map,
+                representation=representation, line_width=line_width, **kwargs,
             )
             return actor, mesh
 
@@ -541,6 +544,7 @@ class _Renderer(_BaseRenderer):
 
 def _add_mesh(plotter, *args, **kwargs):
     _process_events(plotter)
+    kwargs['style'] = kwargs.pop('representation', 'wireframe')
     return plotter.add_mesh(*args, **kwargs)
 
 
@@ -594,10 +598,10 @@ def _get_world_to_view_matrix(plotter):
 
 def _get_view_to_display_matrix(size):
     x, y = size
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],  # noqa: E241,E501
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],  # noqa: E241,E501
-                                 [0.,            0.,   1.,        0.],  # noqa: E241,E501
-                                 [0.,            0.,   0.,        1.]])  # noqa: E241,E501
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],
+                                 [0.,            0.,   1.,        0.],
+                                 [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
 
 

@@ -73,6 +73,8 @@ Changelog
 
 - Speed up :meth:`mne.Epochs.copy` and :meth:`mne.Epochs.__getitem__` by avoiding copying immutable attributes by `Eric Larson`_
 
+- Reduce memory usage of `~mne.io.Raw.plot_psd`, `~mne.time_frequency.psd_welch`, and `~mne.time_frequency.psd_array_welch` for long segments of data by `Eric Larson`_
+
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
 - Add ``mri`` and ``show_orientation`` arguments to :func:`mne.viz.plot_bem` by `Eric Larson`_
@@ -119,6 +121,12 @@ Changelog
 
 - The ``reject_tmin`` and ``reject_tmax`` parameters of :class:`mne.Epochs` are now taken into account when using the ``reject_by_annotation`` parameter by `Stefan Appelhoff`_
 
+- :func:`mne.preprocessing.find_bad_channels_maxwell` now automatically applies a low-pass filter before running bad channel detection. This can be disabled, restoring previous behavior by `Richard Höchenberger`_
+
+- BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` by `Stefan Appelhoff`_ and `Jan Sedivy`_
+
+- Deletion of applied (active) projectors via `~mne.io.Raw.del_proj`, `~mne.Epochs.del_proj`, and `~mne.Evoked.del_proj` is now possible if the channels the to-be-removed projector applies to are not present in the data anymore by `Richard Höchenberger`_
+
 Bug
 ~~~
 
@@ -161,6 +169,8 @@ Bug
 - PSD plots will now show non-data channels (e.g., ``misc``) if those channels are explicitly passed to ``picks``, by `Daniel McCloy`_.
 
 - Fix bug with :func:`mne.time_frequency.read_tfrs` where ``info['meas_date']`` was not parsed correctly, by `Eric Larson`_
+
+- Fix bug with :func:`mne.time_frequency.tfr_array_stockwell` where inputs were not properly validated by `Eric Larson`_
 
 - Fix handling of NaN when using TFCE in clustering functions such as :func:`mne.stats.spatio_temporal_cluster_1samp_test` by `Eric Larson`_
 

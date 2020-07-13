@@ -222,7 +222,8 @@ class ProjMixin(object):
         """Remove SSP projection vector.
 
         .. note:: The projection vector can only be removed if it is inactive
-                  (has not been applied to the data).
+                  (has not been applied to the data), unless the channels it
+                  was applied to no longer exist in the data.
 
         Parameters
         ----------
@@ -238,9 +239,17 @@ class ProjMixin(object):
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
-        if any(self.info['projs'][ii]['active'] for ii in idx):
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
+
+        for ii in idx:
+            proj = self.info['projs'][ii]
+            if (proj['active'] and
+                    set(self.info['ch_names']) &
+                    set(proj['data']['col_names'])):
+                msg = (f'Cannot remove projector that has already been '
+                       f'applied, unless you first remove all channels it '
+                       f'applies to. The problematic projector is: {proj}')
+                raise ValueError(msg)
+
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]

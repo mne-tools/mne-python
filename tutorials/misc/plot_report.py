@@ -38,6 +38,8 @@ import mne
 # inverse      -inv.fif(.gz)
 # ============ ==============================================================
 #
+# Alternatively, the dash ``-`` in the filename may be replaced with an
+# underscore ``_``.
 #
 # Basic reports
 # ^^^^^^^^^^^^^

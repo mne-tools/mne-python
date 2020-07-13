@@ -9,7 +9,9 @@ import struct
 import numpy as np
 from scipy import sparse
 
-from .constants import FIFF
+from .constants import (FIFF, _dig_kind_named, _dig_cardinal_named,
+                        _ch_kind_named, _ch_coil_type_named, _ch_unit_named,
+                        _ch_unit_mul_named)
 from ..utils.numerics import _julian_to_cal
 
 
@@ -300,9 +302,13 @@ def _read_id_struct(fid, tag, shape, rlims):
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
     """Read dig point struct tag."""
+    kind = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    kind = _dig_kind_named.get(kind, kind)
+    ident = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    if kind == FIFF.FIFFV_POINT_CARDINAL:
+        ident = _dig_cardinal_named.get(ident, ident)
     return dict(
-        kind=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        ident=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        kind=kind, ident=ident,
         r=np.frombuffer(fid.read(12), dtype=">f4"),
         coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
 
@@ -321,7 +327,7 @@ def _read_coord_trans_struct(fid, tag, shape, rlims):
     return data
 
 
-_coord_dict = {
+_ch_coord_dict = {
     FIFF.FIFFV_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_REF_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_EEG_CH: FIFF.FIFFV_COORD_HEAD,
@@ -348,7 +354,11 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
     ch_name = ch_name[:np.argmax(ch_name == b'')].tobytes()
     d['ch_name'] = ch_name.decode()
     # coil coordinate system definition
-    d['coord_frame'] = _coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
+    d['coord_frame'] = _ch_coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
+    d['kind'] = _ch_kind_named.get(d['kind'], d['kind'])
+    d['coil_type'] = _ch_coil_type_named.get(d['coil_type'], d['coil_type'])
+    d['unit'] = _ch_unit_named.get(d['unit'], d['unit'])
+    d['unit_mul'] = _ch_unit_mul_named.get(d['unit_mul'], d['unit_mul'])
     return d
 
 

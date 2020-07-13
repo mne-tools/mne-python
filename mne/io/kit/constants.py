@@ -19,7 +19,7 @@ KIT.DOUBLE = 8
 # channel parameters
 KIT.CALIB_FACTOR = 1.0  # mne_manual p.272
 KIT.RANGE = 1.  # mne_manual p.272
-KIT.UNIT_MUL = 0  # default is 0 mne_manual p.273
+KIT.UNIT_MUL = FIFF.FIFF_UNITM_NONE  # default is 0 mne_manual p.273
 KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 
 KIT.HPFS = {
