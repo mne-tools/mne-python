@@ -731,8 +731,7 @@ def test_proj(tmpdir):
     # Test that picking removes projectors ...
     raw = read_raw_fif(fif_fname).apply_proj()
     n_projs = len(raw.info['projs'])
-    with pytest.warns(RuntimeWarning, match='Removing projector'):
-        raw.pick_types(meg=False, eeg=True)
+    raw.pick_types(meg=False, eeg=True)
     assert len(raw.info['projs']) == n_projs - 3
 
     # ... but only if it doesn't apply to any channels in the dataset anymore.
@@ -746,8 +745,7 @@ def test_proj(tmpdir):
     out_fname = tmpdir.join('test_raw.fif')
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
     proj = raw.info['projs'][-1]
-    with pytest.warns(RuntimeWarning, match='Removing projector'):
-        raw.pick_types(meg=False, eeg=True)
+    raw.pick_types(meg=False, eeg=True)
     raw.info['projs'] = [proj]  # Restore, because picking removed it!
     raw._data.fill(0)
     raw._data[-1] = 1.
