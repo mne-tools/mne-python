@@ -722,9 +722,7 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
             selection=selection)
-        self._pick_drop_channels(idx)
-        self._pick_projs()
-        return self
+        return self._pick_drop_channels(idx)
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick some channels.
@@ -758,10 +756,8 @@ class UpdateChannelsMixin(object):
 
         .. versionadded:: 0.9.0
         """
-        self._pick_drop_channels(pick_channels(self.info['ch_names'], ch_names,
-                                               ordered=ordered))
-        self._pick_projs()
-        return self
+        picks = pick_channels(self.info['ch_names'], ch_names, ordered=ordered)
+        return self._pick_drop_channels(picks)
 
     @fill_doc
     def pick(self, picks, exclude=()):
@@ -781,9 +777,7 @@ class UpdateChannelsMixin(object):
         """
         picks = _picks_to_idx(self.info, picks, 'all', exclude,
                               allow_empty=False)
-        self._pick_drop_channels(picks)
-        self._pick_projs()
-        return self
+        return self._pick_drop_channels(picks)
 
     def reorder_channels(self, ch_names):
         """Reorder channels.
@@ -864,9 +858,7 @@ class UpdateChannelsMixin(object):
         bad_idx = [self.ch_names.index(ch) for ch in ch_names
                    if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
-        self._pick_drop_channels(idx)
-        self._pick_projs()
-        return self
+        return self._pick_drop_channels(idx)
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
@@ -896,6 +888,8 @@ class UpdateChannelsMixin(object):
             self._data = self._data.take(idx, axis=axis)
         else:
             assert isinstance(self, BaseRaw) and not self.preload
+
+        self._pick_projs()
         return self
 
     def _pick_projs(self):
