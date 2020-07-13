@@ -1478,7 +1478,7 @@ def test_drop_channels_mixin():
     assert len(ch_names) == len(raw._cals)
     assert len(ch_names) == raw._data.shape[0]
 
-    # Test that picking all channels a projector applies to will lead to the
+    # Test that dropping all channels a projector applies to will lead to the
     # removal of said projector.
     raw = read_raw_fif(fif_fname).apply_proj()
     n_projs = len(raw.info['projs'])
