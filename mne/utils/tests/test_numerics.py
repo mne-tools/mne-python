@@ -310,6 +310,8 @@ def test_object_diff_with_nan():
 
     assert object_diff(d0, d1) == ''
     assert object_diff(d0, d2) != ''
+    assert object_diff(np.nan, np.nan) == ''
+    assert object_diff(np.nan, 3.5) == ' value mismatch (nan, 3.5)\n'
 
 
 def test_hash():
