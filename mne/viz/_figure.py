@@ -44,9 +44,6 @@ class MNEFigure(Figure):
         w_or_h = fig_w if horiz else fig_h
         return dim_inches / w_or_h
 
-    def _onclick_help(self, event):
-        pass
-
 
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
@@ -322,6 +319,9 @@ class MNEBrowseFigure(MNEFigure):
         #radio_clicked = partial(_annotation_radio_clicked, radio=fig.radio,
         #                        selector=selector)
         #fig.radio.on_clicked(radio_clicked)
+
+    def _onclick_help(self, event):
+        pass
 
     def _keypress(self, event):
         """Triage keypress events."""
