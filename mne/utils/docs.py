@@ -1238,6 +1238,21 @@ title : str | None
     orientation etc.) will be shown. Defaults to ``None``.
 """
 
+# TFRs
+docdict['tfr_average'] = """
+average : bool, default True
+    If ``False`` return an `EpochsTFR` containing separate TFRs for each
+    epoch. If ``True`` return an `AverageTFR` containing the average of all
+    TFRs across epochs.
+
+    .. note::
+        Using ``average=True`` is functionally equivalent to using
+        ``average=False`` followed by ``EpochsTFR.average()``, but is
+        more memory efficient.
+
+    .. versionadded:: 0.13.0
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
