@@ -217,8 +217,8 @@ class MNEBrowseFigure(MNEFigure):
         """Show or hide scrollbars (A.K.A. zen mode)."""
         if getattr(self.mne, 'show_scrollbars', None) is not None:
             # grow/shrink main axes to take up space from (or make room for)
-            # scrollbars. We  can't use ax.set_position() because axes are
-            # locatable, so we have to fake it with subplots_adjust
+            # scrollbars. We can't use ax.set_position() because axes are
+            # locatable, so we use subplots_adjust
             should_show = not self.mne.show_scrollbars
             margins = {side: getattr(self.subplotpars, side)
                        for side in ('left', 'bottom', 'right', 'top')}
