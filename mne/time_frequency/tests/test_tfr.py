@@ -80,8 +80,6 @@ def test_time_frequency():
                             use_fft=True, return_itc=True)
     # Now compute evoked
     evoked = epochs.average()
-    # power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
-    #                           return_itc=False)
     pytest.raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
@@ -117,11 +115,6 @@ def test_time_frequency():
     epochs_power_2 = abs(epochs_power_complex)
     epochs_power_3 = epochs_power_2.copy()
     epochs_power_3.data[:] = np.inf  # test that it's actually copied
-    # power_2 = epochs_power_2.average()
-
-    # XXX fails???
-    # assert_allclose(epochs_power_2.data, epochs_power_picks.data)
-    # assert_allclose(power_2.data, power.data)
 
     print(itc)  # test repr
     print(itc.ch_names)  # test property
