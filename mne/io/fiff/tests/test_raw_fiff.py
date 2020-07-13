@@ -747,7 +747,9 @@ def test_proj(tmpdir):
     picks = list(set(raw.ch_names) -
                  set(raw.info['projs'][del_proj_idx]['data']['col_names']))
     raw.pick(picks)
+    n_projs = len(raw.info['projs'])
     raw.del_proj(del_proj_idx)
+    assert len(raw.info['projs']) == n_projs - 1
 
 
 @testing.requires_testing_data
