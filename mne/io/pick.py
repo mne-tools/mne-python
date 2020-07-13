@@ -454,6 +454,7 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
 
     myinclude = [info['ch_names'][k] for k in range(nchan) if pick[k]]
     myinclude += include
+
     if len(myinclude) == 0:
         sel = np.array([], int)
     else:
