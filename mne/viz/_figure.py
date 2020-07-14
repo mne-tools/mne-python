@@ -5,8 +5,10 @@
 #
 # License: Simplified BSD
 
+from functools import partial
+import numpy as np
 from matplotlib.figure import Figure
-from ..utils import set_config
+from ..utils import set_config, plt_show
 
 
 class MNEFigParams:
@@ -23,7 +25,11 @@ class MNEFigure(Figure):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # add our param object
-        self.mne = MNEFigParams(fig_size_px=self._get_size_px())
+        self.mne = MNEFigParams()
+        # remove matplotlib default keypress catchers
+        default_cbs = list(self.canvas.callbacks.callbacks['key_press_event'])
+        for callback in default_cbs:
+            self.canvas.callbacks.disconnect(callback)
 
     def _get_dpi_ratio(self):
         """Get DPI ratio (to handle hi-DPI screens)."""
@@ -43,6 +49,16 @@ class MNEFigure(Figure):
         fig_w, fig_h = self.get_size_inches()
         w_or_h = fig_w if horiz else fig_h
         return dim_inches / w_or_h
+
+
+class MNEDialogFigure(MNEFigure):
+    def __init__(self):
+        pass
+
+    def _keypress(self, event):
+        from matplotlib.pyplot import close
+        if event.key == self.mne.close_key:
+            close(self)
 
 
 class MNEBrowseFigure(MNEFigure):
@@ -88,6 +104,7 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.added_label = None
 
         # # traces
+        # self.mne.trace_offsets = None     # (new)
         # self.mne.trace_indices = None     # inds
         # self.mne.orig_indices = None      # orig_inds
         # self.mne.clipping = None
@@ -103,9 +120,11 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.scalings = None
         # self.mne.unit_scalings = None
         self.mne.scale_factor = 1.
+        self.mne.scalebars = None           # (new)
+        self.mne.scalebar_texts = None      # (new)
 
         # # ancillary figures
-        # self.mne.fig_proj = None
+        self.mne.fig_proj = None
         self.mne.fig_help = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
@@ -113,7 +132,7 @@ class MNEBrowseFigure(MNEFigure):
         # # UI state variables
         # self.mne.ch_start = None
         # self.mne.t_start = None
-        # self.mne.show_scalebars = None
+        # self.mne.scalebars_visible = True
         self.mne.show_scrollbars = show_scrollbars
 
         # MAIN AXES: default sizes (inches)
@@ -175,7 +194,7 @@ class MNEBrowseFigure(MNEFigure):
             ax_proj.set_axes_locator(loc)
             # PROJ BUTTON: make it a proper button
             button_proj = Button(ax_proj, 'Prj')
-            button_proj.on_clicked(self._toggle_proj_dialog)
+            button_proj.on_clicked(self._toggle_proj_fig)
             # self.mne.apply_proj = proj  # TODO add proj to init signature?
 
         # SAVE PARAMS
@@ -193,11 +212,10 @@ class MNEBrowseFigure(MNEFigure):
         set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
         new_width, new_height = self._get_size_px()
         self._update_margins(new_width, new_height)
-        self.mne.fig_size_px = (new_width, new_height)
 
     def _update_margins(self, new_width, new_height):
         """Update figure margins to maintain fixed size in inches/pixels."""
-        old_width, old_height = self.mne.fig_size_px
+        old_width, old_height = self._get_size_px()
         new_margins = dict()
         for side in ('left', 'right', 'bottom', 'top'):
             ratio = ((old_width / new_width) if side in ('left', 'right') else
@@ -207,11 +225,10 @@ class MNEBrowseFigure(MNEFigure):
                 new_margins[side] = 1 - ratio * (1 - rel_dim)
             else:
                 new_margins[side] = ratio * rel_dim
-        # zen mode adjustment
+        self.subplots_adjust(**new_margins)
+        # zen mode bookkeeping
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
-        # apply the update
-        self.subplots_adjust(**new_margins)
 
     def _toggle_scrollbars(self):
         """Show or hide scrollbars (A.K.A. zen mode)."""
@@ -240,7 +257,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.show_scrollbars = should_show
             self.canvas.draw()
 
-    def _toggle_proj_dialog(self, event):
+    def _toggle_proj_fig(self, event):
         """Show/hide projectors dialog."""
         if self.mne.fig_proj is None:
             self._draw_proj_checkbox(event, draw_current_state=False)
@@ -248,6 +265,56 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.fig_proj.canvas.close_event()
             del self.mne.proj_checks
             self.mne.fig_proj = None
+
+    def _toggle_proj(self, event, all_=False):
+        """Perform operations when proj boxes clicked."""
+        # TODO: get from viz/utils.py lines 308-336
+        pass
+
+    def _create_proj_fig(self):
+        """Create the projectors dialog window."""
+        # TODO: partially incorporated from _draw_proj_checkbox; untested
+        from matplotlib.widgets import Button, CheckButtons
+
+        projs = self.inst.info['projs']
+        labels = [p['desc'] for p in projs]
+        actives = ([p['active'] for p in projs] if draw_current_state else
+                   getattr(self.mne, 'proj_bools',
+                           [self.mne.apply_proj] * len(projs)))
+        # make figure
+        width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
+        height = (len(projs) + 1) / 6.0 + 1.5
+        self.mne.fig_proj = dialog_figure(figsize=(width, height))
+        self.mne.fig_proj.canvas.set_window_title('SSP projection vectors')
+        # make axes
+        offset = (1. / 6. / height)
+        position = (0, offset, 1, 0.8 - offset)
+        ax_temp = self.mne.fig_proj.add_axes(position, frameon=False)
+        ax_temp.set_title('Projectors marked with "X" are active')
+        # draw checkboxes
+        self.mne.proj_checks = CheckButtons(ax_temp, labels=labels,
+                                            actives=actives)
+        for rect in self.mne.proj_checks.rectangles:
+            rect.set_edgecolor('0.5')
+            rect.set_linewidth(1.)
+        # change already-applied projectors to red
+        for ii, p in enumerate(projs):
+            if p['active']:
+                for x in self.mne.proj_checks.lines[ii]:
+                    x.set_color('#ff0000')
+        # add event listeners
+        self.mne.proj_checks.on_clicked(self._toggle_proj)
+        # add "toggle all" button
+        ax_all = self.mne.fig_proj.add_axes((0, 0, 1, offset), frameon=False)
+        self.mne.proj_all = Button(ax_all, 'Toggle all')
+        self.mne.proj_all.on_clicked(partial(self._toggle_proj, all_=True))
+        # show figure (this should work for non-test cases)
+        try:
+            self.mne.fig_proj.canvas.draw()
+            plt_show(fig=self.mne.fig_proj, warn=False)
+        except Exception:
+            pass
+        # TODO: partially incorporated from _draw_proj_checkbox; untested
 
     def _setup_annotation_fig(self):
         pass
@@ -379,15 +446,70 @@ class MNEBrowseFigure(MNEFigure):
             pass
         elif key == 'p':  # TODO: toggle snap annotations
             pass
-        elif key == 's':  # TODO: toggle show scalebars
-            pass
+        elif key == 's':
+            self._toggle_scalebars(event)
         elif key == 'w':  # TODO: toggle noise cov / whitening
             pass
         elif key == 'z':  # zen mode: remove scrollbars and buttons
             self._toggle_scrollbars()
 
+    def _toggle_scalebars(self, event):
+        """Show/hide the scalebars."""
+        if self.mne.scalebars_visible:
+            # TODO: keep them around to avoid re-computing? if so, try using
+            # set_visible and don't set params to None
+            for bar in self.mne.scalebars + self.mne.scalebar_texts:
+                self.ax_main.remove(bar)
+            self.mne.scalebars = None
+            self.mne.scalebar_texts = None
+        else:
+            bars, texts = self._draw_scalebars()
+            self.mne.scalebars = bars
+            self.mne.scalebar_texts = texts
+        # toggle
+        self.mne.scalebars_visible = not self.mne.scalebars_visible
 
-def _figure(*args, toolbar=False, FigureClass=None, **kwargs):
+    def _draw_scalebars(self):
+        """Draw the scalebars."""
+        # TODO: integrate raw.py lines 1075-1099 here
+        scalebar_color = '#AA3377'  # purple
+        ch_types_visible = set(self.mne.ch_types)
+        scalebar_indices = {ch_type: self.mne.ch_types.index(ch_type) for
+                            ch_type in ch_types_visible if ch_type != 'stim'}
+        # TODO: get y offsets of the channels that get bars
+        # TODO: compute y bounds of bars
+        # TODO: get current t_min
+        # TODO: draw the bars
+        bars = []
+        # TODO: add text labels
+        texts = []
+        return bars, texts
+
+    def _update_trace_offsets(self, n_channels):
+        """Compute viewport height and adjust offsets."""
+        ylim = (n_channels - 0.5, -0.5)  # inverted y axis → new chs at bottom
+        offsets = np.arange(n_channels)
+        self.mne.n_channels = n_channels
+        # update ylim, ticks, vertline, and scrollbar patch
+        self.mne.ax_main.set_ylim(ylim)
+        self.mne.ax_main.set_yticks(offsets)
+        self.mne.vsel_patch.set_height(n_channels)
+        _x = self.mne.ax_vertline._x
+        self.mne.ax_vertline.set_data(_x, np.array(ylim))
+        # store new offsets
+        self.mne.trace_offsets = offsets
+
+    def _draw_traces(self, color, bad_color, event_lines=None,
+                     event_color=None):
+        if self.mne.butterfly:
+            n_channels = len(self.mne.trace_offsets)
+            ch_start = 0
+            offsets = self.mne.trace_offsets[self.mne.trace_indices]
+        else:
+            pass
+
+
+def _figure(*args, toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
     from matplotlib.pyplot import figure
@@ -399,11 +521,10 @@ def _figure(*args, toolbar=False, FigureClass=None, **kwargs):
     return fig
 
 
-def browse_figure(inst, *args, toolbar=False, FigureClass=MNEBrowseFigure,
-                  **kwargs):
+def browse_figure(inst, *args, **kwargs):
     """Instantiate a new MNE browse-style figure."""
-    fig = _figure(*args, toolbar=toolbar, FigureClass=FigureClass, inst=inst,
-                  **kwargs)
+    fig = _figure(*args, toolbar=False, FigureClass=MNEBrowseFigure,
+                  inst=inst, **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
@@ -413,13 +534,22 @@ def browse_figure(inst, *args, toolbar=False, FigureClass=MNEBrowseFigure,
     if not fig.mne.show_scrollbars:
         fig.mne.show_scrollbars = True
         fig._toggle_scrollbars()
-    # remove MPL default keypress catchers
-    default_cbs = list(fig.canvas.callbacks.callbacks['key_press_event'])
-    for callback in default_cbs:
-        fig.canvas.callbacks.disconnect(callback)
-    # now add our custom ones
+    # add our custom callbacks
     callbacks = dict(resize_event=fig._resize,
                      key_press_event=fig._keypress)
+    callback_ids = dict()
+    for event, callback in callbacks.items():
+        callback_ids[event] = fig.canvas.mpl_connect(event, callback)
+    # store references so they aren't garbage-collected
+    fig.mne.callback_ids = callback_ids
+    return fig
+
+
+def dialog_figure(*args, **kwargs):
+    """Instantiate a new MNE dialog figure."""
+    fig = _figure(*args, toolbar=False, FigureClass=MNEDialogFigure, **kwargs)
+    # add a close event callback
+    callbacks = dict(key_press_event=fig._keypress)
     callback_ids = dict()
     for event, callback in callbacks.items():
         callback_ids[event] = fig.canvas.mpl_connect(event, callback)
