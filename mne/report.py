@@ -1648,12 +1648,7 @@ class Report(object):
     @staticmethod
     def _gen_caption(prefix, fname, data_path, suffix=''):
         if data_path is not None:
-            # Ensure we drop leading path separators from the
-            # filename before using it as a caption. We don't know whether
-            # `data_path` has a trailing separator or not; so create a Path
-            # just to be safe (trailing separators will be removed during the
-            # roundtrip).
-            fname = fname[len(str(Path(data_path))) + 1:]
+            fname = op.relpath(fname, start=data_path)
 
         caption = f'{prefix}: {fname} {suffix}'
         return caption.strip()
