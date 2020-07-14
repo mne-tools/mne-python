@@ -8,7 +8,8 @@
 from functools import partial
 import numpy as np
 from matplotlib.figure import Figure
-from ..utils import set_config, plt_show
+from .utils import plt_show
+from ..utils import set_config
 
 
 class MNEFigParams:
