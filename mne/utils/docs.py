@@ -623,9 +623,10 @@ weight_norm : str | None
         The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed,
         which simply scales all values from ``'unit-noise-gain'`` by a fixed
         value.
-    - ``'sqrtm'``
-        Use a matrix square root. This differs from ``'unit-noise-gain'`` only
-        when ``pick_ori='vector'``, creating a solution that:
+    - ``'unit-noise-gain-invariante'``
+        Compute a rotation-invariant normalization using the matrix square
+        root. This differs from ``'unit-noise-gain'`` only when
+        ``pick_ori='vector'``, creating a solution that:
 
         1. Is rotation invariant (``'unit-noise-gain'`` is not);
         2. Satisfies the first requirement from
@@ -660,6 +661,7 @@ inversion : 'single' | 'matrix'
     spatial filters are computed jointly using a matrix inversion. While
     ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
     precise. See section 5 of :footcite:`vanVlietEtAl2018`.
+    Defaults to ``'matrix'``.
 """
 docdict['use_cps'] = """
 use_cps : bool

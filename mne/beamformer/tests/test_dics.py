@@ -221,7 +221,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
                         noise_csd=noise_csd, inversion=inversion)
     _assert_weight_norm(filters, G)
 
-    weight_norm = 'sqrtm'
+    weight_norm = 'unit-noise-gain-invariant'
     inversion = 'single'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
                         weight_norm=weight_norm, depth=None,
@@ -264,7 +264,8 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
         # Using [:, :] syntax for in-place broadcasting
         csd_noise._data[:, :] = np.eye(csd.n_channels)[inds][:, np.newaxis]
         filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
-                            weight_norm=None, depth=1., noise_csd=noise_csd)
+                            weight_norm=None, depth=1., noise_csd=noise_csd,
+                            inversion='single')
         w = filters['weights'][0][:3]
         assert_allclose(np.diag(w.dot(w.conjugate().T)), 1.0, rtol=1e-6,
                         atol=0)
@@ -359,7 +360,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     power, f = apply_dics_csd(csd, filters)
     assert f == [10, 20]
     dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
-    # This is 0. for sqrtm:
+    # This is 0. for unit-noise-gain-invariant:
     assert dist <= (0.02 if inversion == 'matrix' else 0.)
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
@@ -401,7 +402,7 @@ def test_real(_load_forward, idx):
     epochs.pick_types(meg='grad')
     reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
-                             real_filter=True)
+                             real_filter=True, inversion='single')
     # Also test here that no warings are thrown - implemented to check whether
     # src should not be None warning occurs:
     with pytest.warns(None) as w:
@@ -424,7 +425,8 @@ def test_real(_load_forward, idx):
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test computing source power on a volume source space
-    filters_vol = make_dics(epochs.info, fwd_vol, csd, reg=reg)
+    filters_vol = make_dics(epochs.info, fwd_vol, csd, reg=reg,
+                            inversion='single')
     power, f = apply_dics_csd(csd, filters_vol)
     vol_source_ind = _nearest_vol_ind(fwd_vol, fwd_surf, vertices, source_ind)
     assert f == [10, 20]
@@ -472,7 +474,8 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
     # From now on, only apply filters with a single frequency (20 Hz).
     csd20 = csd.pick_frequency(20)
-    filters = make_dics(evoked.info, fwd_surf, csd20, label=label, reg=reg)
+    filters = make_dics(evoked.info, fwd_surf, csd20, label=label, reg=reg,
+                        inversion='single')
 
     # Sanity checks on the resulting STC after applying DICS on epochs.
     # Also test here that no warnings are thrown - implemented to check whether
@@ -527,7 +530,8 @@ def test_apply_dics_timeseries(_load_forward, idx):
     assert_array_equal(stcs[0].data, next(stcs_gen).data)
 
     # Test computing timecourses on a volume source space
-    filters_vol = make_dics(evoked.info, fwd_vol, csd20, reg=reg)
+    filters_vol = make_dics(evoked.info, fwd_vol, csd20, reg=reg,
+                            inversion='single')
     stc = apply_dics(evoked, filters_vol)
     stc = (stc ** 2).mean()
     assert stc.data.shape[1] == 1
@@ -592,7 +596,8 @@ def test_tf_dics(_load_forward, idx):
                          tmin=time_window[0], tmax=time_window[1], decim=10)
         csd = csd.sum()
         csd._data /= csd.n_fft
-        filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, label=label)
+        filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, label=label,
+                            inversion='single')
         stc_source_power, _ = apply_dics_csd(csd, filters)
         source_power.append(stc_source_power.data)
 

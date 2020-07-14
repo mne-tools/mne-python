@@ -27,7 +27,8 @@ from ._compute_beamformer import (
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='info', weight_norm='unit-noise-gain',
+              pick_ori=None, rank='info',
+              weight_norm='unit-noise-gain-invariant',
               reduce_rank=False, depth=None, inversion='matrix', verbose=None):
     """Compute LCMV spatial filter.
 
@@ -55,13 +56,14 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     %(rank_info)s
     %(weight_norm)s
 
-        Defaults to ``'unit-noise-gain'``.
+        Defaults to ``'unit-noise-gain-invariant'``.
     %(reduce_rank)s
     %(depth)s
 
         .. versionadded:: 0.18
     %(bf_inversion)s
-        Defaults to ``'matrix'``.
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -122,6 +124,14 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     Notes
     -----
     The original reference is :footcite:`VanVeenEtAl1997`.
+
+    To obtain the Sekihara unit-noise-gain vector beamformer, you should use
+    ``weight_norm='unit-noise-gain', pick_ori='vector'`` followed by
+    :meth:`vec_stc.project('pca', src) <mne.VectorSourceEstimate.project>`.
+
+    .. versionchanged:: 0.21
+       The computations were extensively reworked, and the default for
+       ``weight_norm`` was set to ``'unit-noise-gain-invariant'``.
 
     References
     ----------

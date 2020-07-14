@@ -179,7 +179,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The beamformer filter weights.
     """
     _check_option('weight_norm', weight_norm,
-                  ['unit-noise-gain', 'nai', 'sqrtm', None])
+                  ['unit-noise-gain-invariant', 'unit-noise-gain',
+                   'nai', None])
     assert Cm.shape == (G.shape[0],) * 2
     s, _ = np.linalg.eigh(Cm)
     if not (s >= -s.max() * 1e-7).all():
@@ -211,6 +212,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
     # inversion of the denominator
     _check_option('inversion', inversion, ('matrix', 'single'))
+    if inversion == 'single' and n_orient > 1 and pick_ori == 'vector' and \
+            weight_norm == 'unit-noise-gain-invariant':
+        raise ValueError(
+            'Cannot use pick_ori="vector" with inversion="single" and '
+            'weight_norm="unit-noise-gain-invariant"')
     if reduce_rank and inversion == 'single':
         raise ValueError('reduce_rank cannot be used with inversion="single"; '
                          'consider using inversion="matrix" if you have a '
@@ -334,7 +340,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             assert noise_norm.shape == (n_sources, n_orient, 1)
             W /= noise_norm
         else:
-            assert weight_norm == 'sqrtm'
+            assert weight_norm == 'unit-noise-gain-invariant'
             # Here we use sqrtm. The shortcut:
             #
             #    use = W
@@ -342,7 +348,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # ... does not match the direct route (it is rotated!), so we'll
             # use the direct one to match FieldTrip:
             use = bf_numer
-            # use = W
             inner = np.matmul(use, use.swapaxes(-2, -1).conj())
             W = np.matmul(_sym_mat_pow(inner, -0.5), use)
             noise_norm = 1.
