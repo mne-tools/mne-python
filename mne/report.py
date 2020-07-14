@@ -12,7 +12,6 @@ from mne.proj import read_proj
 import os
 import os.path as op
 import fnmatch
-from pathlib import Path
 import re
 import codecs
 from shutil import copyfile
