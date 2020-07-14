@@ -514,7 +514,7 @@ class SourceSpaces(list):
             n_diff = ((ix_ != ix) | (iy_ != iy) | (iz_ != iz)).sum()
             # generate use warnings for clipping
             if n_diff > 0:
-                warn(f'{n_diff} {src["kind"]} vertices lay outside of volume '
+                warn(f'{n_diff} {src["type"]} vertices lay outside of volume '
                      f'space. Consider using a larger volume space.')
             # get surface id or use default value
             # update image to include surface voxels
@@ -1532,6 +1532,7 @@ def _check_mri(mri, subject, subjects_dir):
 
 def _check_volume_labels(volume_label, mri, name='volume_label'):
     _validate_type(mri, 'path-like', 'mri when %s is not None' % (name,))
+    mri = _check_fname(mri, overwrite='read', must_exist=True)
     if isinstance(volume_label, str):
         volume_label = [volume_label]
     _validate_type(volume_label, (list, tuple, dict), name)  # should be
