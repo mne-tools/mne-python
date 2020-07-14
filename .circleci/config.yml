@@ -73,18 +73,16 @@ jobs:
             command: |
               mkdir -p $HOME/.fonts
               curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/2.045R-ro/1.095R-it | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.006R | tar xz -C $HOME/.fonts
               fc-cache -f
 
         - run:
             name: Get Python running
             command: |
               python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt
-              python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
-              python -m pip install --user --upgrade seaborn
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
+              python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user -e .
 
         - save_cache:
@@ -355,7 +353,7 @@ jobs:
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip" memory_profiler https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
+               python -m pip install --user --progress-bar off -r requirements_doc.txt
                python -m pip install --user -e .
         - run:
             name: make linkcheck

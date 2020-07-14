@@ -555,3 +555,7 @@ div[id^="mne-"] h1 {
 div[id^="examples-using-"] h2 {
   word-break: break-word;
 }
+/* Avoid awkward extra spacing in .. contents:: */
+div.contents ul li p {
+  margin: 0 0 0px;
+}
