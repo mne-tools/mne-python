@@ -893,7 +893,7 @@ class UpdateChannelsMixin(object):
         return self
 
     def _pick_projs(self):
-        """Only keep projectors whose channels are still in the data."""
+        """Keep only projectors which apply to at least 1 data channel."""
         drop_idx = []
         for idx, proj in enumerate(self.info['projs']):
             if not set(self.info['ch_names']) & set(proj['data']['col_names']):
