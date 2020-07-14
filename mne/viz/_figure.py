@@ -23,14 +23,17 @@ class MNEFigParams:
 
 class MNEFigure(Figure):
     """Wrapper of matplotlib.figure.Figure; adds MNE-Python figure params."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # add our param object
-        self.mne = MNEFigParams()
+    def __init__(self, **kwargs):
+        # figsize is the only kwarg we pass to matplotlib Figure()
+        figsize = kwargs.pop('figsize', None)
+        super().__init__(figsize=figsize)
         # remove matplotlib default keypress catchers
-        default_cbs = list(self.canvas.callbacks.callbacks['key_press_event'])
+        default_cbs = list(
+            self.canvas.callbacks.callbacks.get('key_press_event', {}))
         for callback in default_cbs:
             self.canvas.callbacks.disconnect(callback)
+        # add our param object
+        self.mne = MNEFigParams(**kwargs)
 
     def _get_dpi_ratio(self):
         """Get DPI ratio (to handle hi-DPI screens)."""
@@ -53,8 +56,9 @@ class MNEFigure(Figure):
 
 
 class MNEDialogFigure(MNEFigure):
-    def __init__(self):
-        pass
+    """Interactive dialog figure for annotations, projectors, etc."""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def _keypress(self, event):
         from matplotlib.pyplot import close
@@ -64,29 +68,27 @@ class MNEDialogFigure(MNEFigure):
 
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
-    def __init__(self, inst, *args, xlabel='Time (s)', show_scrollbars=True,
-                 **kwargs):
+    def __init__(self, inst, xlabel='Time (s)', **kwargs):
         from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         from mne.viz.utils import _get_figsize_from_config
 
-        # figsize is the first arg of matplotlib Figure()
-        args = list(args)
-        figsize = args.pop(0) if args else kwargs.pop('figsize', None)
-        args.insert(0, figsize or _get_figsize_from_config())
-        # init Figure
-        super().__init__(*args, **kwargs)
+        # get figsize from config if not provided
+        figsize = kwargs.pop('figsize', _get_figsize_from_config())
+        kwargs.update(inst=inst)
+        super().__init__(figsize=figsize, **kwargs)
 
         # additional params for browse figures (comments indicate name changes)
-        self.mne.inst = inst                # raw
+        # self.mne.inst = inst                # raw
+
         # self.mne.info = None
         # self.mne.proj = None
         # self.mne.noise_cov = None
         # self.mne.event_id_rev = None
         # # channel
-        self.mne.n_channels = None
-        self.mne.ch_types = None            # types
+        # self.mne.n_channels = None
+        # self.mne.ch_types = None            # types
         # self.mne.group_by = None
         # self.mne.picks = None             # data_picks
 
@@ -95,9 +97,9 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.first_time = None
         # self.mne.event_times = None
         # self.mne.event_nums = None
-        self.mne.duration = None
+        # self.mne.duration = None
         # self.mne.decim = None
-        self.mne.hsel_patch = None
+        # self.mne.hsel_patch = None
 
         # # annotations
         # self.mne.annotations = None
@@ -120,21 +122,21 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.units = None
         # self.mne.scalings = None
         # self.mne.unit_scalings = None
-        self.mne.scale_factor = 1.
-        self.mne.scalebars = None           # (new)
-        self.mne.scalebar_texts = None      # (new)
+        # self.mne.scale_factor = 1.
+        self.mne.scalebars = list()           # (new)
+        self.mne.scalebar_texts = list()      # (new)
 
         # # ancillary figures
-        self.mne.fig_proj = None
-        self.mne.fig_help = None
-        self.mne.fig_selection = None
+        # self.mne.fig_proj = None
+        # self.mne.fig_help = None
+        # self.mne.fig_selection = None
         self.mne.fig_annotation = None
 
         # # UI state variables
         # self.mne.ch_start = None
         # self.mne.t_start = None
-        # self.mne.scalebars_visible = True
-        self.mne.show_scrollbars = show_scrollbars
+        # self.mne.scalebars_visible = None
+        # self.mne.show_scrollbars = show_scrollbars
 
         # MAIN AXES: default sizes (inches)
         l_margin = 1.
@@ -510,22 +512,22 @@ class MNEBrowseFigure(MNEFigure):
             pass
 
 
-def _figure(*args, toolbar=True, FigureClass=MNEFigure, **kwargs):
+def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
     from matplotlib.pyplot import figure
     if toolbar:
-        fig = figure(*args, FigureClass=FigureClass, **kwargs)
+        fig = figure(FigureClass=FigureClass, **kwargs)
     else:
         with rc_context(rc=dict(toolbar='none')):
-            fig = figure(*args, FigureClass=FigureClass, **kwargs)
+            fig = figure(FigureClass=FigureClass, **kwargs)
     return fig
 
 
-def browse_figure(inst, *args, **kwargs):
+def browse_figure(inst, **kwargs):
     """Instantiate a new MNE browse-style figure."""
-    fig = _figure(*args, toolbar=False, FigureClass=MNEBrowseFigure,
-                  inst=inst, **kwargs)
+    fig = _figure(inst=inst, toolbar=False, FigureClass=MNEBrowseFigure,
+                  **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
@@ -546,7 +548,7 @@ def browse_figure(inst, *args, **kwargs):
     return fig
 
 
-def dialog_figure(*args, **kwargs):
+def dialog_figure(**kwargs):
     """Instantiate a new MNE dialog figure."""
     fig = _figure(*args, toolbar=False, FigureClass=MNEDialogFigure, **kwargs)
     # add a close event callback
