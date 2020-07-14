@@ -293,7 +293,7 @@ def test_make_lcmv(tmpdir, reg, proj):
 
     # __repr__
     assert len(evoked.ch_names) == 22
-    assert len(evoked.info['projs']) == (4 if proj else 0)
+    assert len(evoked.info['projs']) == (3 if proj else 0)
     assert len(evoked.info['bads']) == 2
     rank = 17 if proj else 20
     assert 'LCMV' in repr(filters)
