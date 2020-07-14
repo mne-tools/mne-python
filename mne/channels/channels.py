@@ -901,7 +901,8 @@ class UpdateChannelsMixin(object):
 
         for idx in drop_idx:
             logger.info(f"Removing projector {self.info['projs'][idx]}")
-        if drop_idx:
+
+        if drop_idx and hasattr(self, 'del_proj'):
             self.del_proj(drop_idx)
 
         return self
