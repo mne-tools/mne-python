@@ -218,6 +218,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_margins(self, new_width, new_height):
         """Update figure margins to maintain fixed size in inches/pixels."""
+        # TODO: consider incorporating into _resize event handler
         old_width, old_height = self._get_size_px()
         new_margins = dict()
         for side in ('left', 'right', 'bottom', 'top'):
@@ -261,9 +262,9 @@ class MNEBrowseFigure(MNEFigure):
             self.canvas.draw()
 
     def _toggle_proj_fig(self, event):
-        """Show/hide projectors dialog."""
+        """Show/hide the projectors dialog window."""
         if self.mne.fig_proj is None:
-            self._draw_proj_checkbox(event, draw_current_state=False)
+            self._create_proj_fig(draw_current_state=False)
         else:
             self.mne.fig_proj.canvas.close_event()
             del self.mne.proj_checks
@@ -274,7 +275,7 @@ class MNEBrowseFigure(MNEFigure):
         # TODO: get from viz/utils.py lines 308-336
         pass
 
-    def _create_proj_fig(self):
+    def _create_proj_fig(self, draw_current_state):
         """Create the projectors dialog window."""
         # TODO: partially incorporated from _draw_proj_checkbox; untested
         from matplotlib.widgets import Button, CheckButtons
@@ -504,12 +505,25 @@ class MNEBrowseFigure(MNEFigure):
 
     def _draw_traces(self, color, bad_color, event_lines=None,
                      event_color=None):
+        """Plot / redraw the channel data."""
+        # TODO: WIP unfinished
         if self.mne.butterfly:
             n_channels = len(self.mne.trace_offsets)
             ch_start = 0
             offsets = self.mne.trace_offsets[self.mne.trace_indices]
         else:
             pass
+
+    def _set_custom_selection(self):
+        """Set custom selection by lasso selector."""
+        chs = self.mne.fig_selection.lasso.selection
+        if len(chs) == 0:
+            return
+        labels = [label._text for label in self.mne.fig_selection.radio.labels]
+        inds = np.in1d(self.inst.ch_names, chs)
+        self.mne.selections['Custom'] = np.where(inds)[0]
+        # TODO: not tested; replaces _set_radio_button (old compatibility code)
+        self.mne.fig_selection.radio.set_active(labels.index('Custom'))
 
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
