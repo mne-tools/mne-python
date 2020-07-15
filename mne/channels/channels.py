@@ -10,6 +10,8 @@
 import os
 import os.path as op
 import sys
+from copy import deepcopy
+from functools import partial
 
 import numpy as np
 from scipy import sparse
@@ -19,7 +21,7 @@ from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
                      _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info, MontageMixin
+from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
@@ -986,6 +988,118 @@ class UpdateChannelsMixin(object):
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
+
+    def combine_channels(self, group_by, method='mean'):
+        """Combine channels based on regions of interest (ROIs).
+
+        Parameters
+        ----------
+        group_by : dict
+            Specifies which channels are aggregated into a single channel, with
+            aggregation method determined by the ``method`` parameter. One new
+            pseudo-channel is made per dict entry; the dict values must be
+            lists of picks (integer indices of ``ch_names``). For example::
+
+                group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+
+            Note that within a dict entry all channels must have the same type.
+        %(method)s
+            If callable, the callable must accept one positional input (data of
+            shape ``(n_channels, n_times)``, ``(n_epochs, n_channels,
+            n_times)``, or ``(n_evokeds, n_channels, n_time)``) and return an
+            :class:`array <numpy.ndarray>` of shape ``(n_times)``, ``(n_epochs,
+            n_times)``, or ``(n_evokeds, n_times)``. For example with an
+            instance of Raw::
+
+                method = lambda data: np.median(data, axis=0)
+
+            Defaults to ``mean``.
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            A new instance.
+        """
+        from ..io import BaseRaw, RawArray
+        from ..epochs import BaseEpochs
+        from ..evoked import Evoked
+        from .. import EpochsArray, EvokedArray
+
+        # Check to see if data is preloaded
+        _check_preload(self, 'Combining channels')
+
+        ch_axis = len(self._data.shape) - 2  # idx of the channel axis
+        ch_idx = _picks_to_idx(self.info, None)
+        ch_types = _get_channel_types(self.info)
+        group_by = deepcopy(group_by)
+
+        # Convert string values of ``method`` into callables
+        if isinstance(method, str):
+            method_dict = {key: partial(getattr(np, key), axis=ch_axis)
+                           for key in ('mean', 'median', 'std')}
+            try:
+                method = method_dict[method]
+            except KeyError:
+                raise ValueError('"method" must be a callable, or one of '
+                                 '"mean", "median", or "std"; got {}'
+                                 ''.format(method))
+
+        # Check correctness of combinations
+        for this_group, these_picks in group_by.items():
+            # Check if channel indices are out of bounds
+            if not all(idx in ch_idx for idx in these_picks):
+                raise ValueError('Some channel indices are out of bounds.')
+            # Check if heterogeneous sensor type combinations
+            this_ch_type = np.array(ch_types)[these_picks]
+            if len(set(this_ch_type)) > 1:
+                types = ', '.join(set(this_ch_type))
+                raise ValueError('Cannot combine sensors of different types; '
+                                 '"{}" contains types {}.'
+                                 ''.format(this_group, types))
+            #  Check if combining less than 2 channel
+            if len(these_picks) < 2:
+                raise ValueError('Less than 2 channels in group "{}"; cannot '
+                                 'combine by method "{}".'
+                                 ''.format(this_group, method))
+            # If all good create more detailed dict with channel type
+            group_by[this_group] = dict(picks=these_picks,
+                                        ch_type=this_ch_type[0])
+
+        try:
+            # Extract stim channels if any
+            inst = self.copy().pick_types(meg=False, stim=True)
+            # Create clean info to avoid inconsistencies
+            inst.info = create_info(sfreq=self.info['sfreq'],
+                                    ch_names=inst.info['ch_names'],
+                                    ch_types=_get_channel_types(inst.info))
+        except ValueError:
+            inst = None
+
+        # Combine channels and add them to the new instance
+        for this_group, this_group_dict in group_by.items():
+            these_picks = this_group_dict['picks']
+            this_ch_type = this_group_dict['ch_type']
+            this_data = np.take(self._data, these_picks, axis=ch_axis)
+            this_group_data = np.expand_dims(method(this_data), axis=ch_axis)
+            this_info = create_info(sfreq=self.info['sfreq'],
+                                    ch_names=[this_group],
+                                    ch_types=[this_ch_type])
+            this_inst = None
+            if isinstance(self, BaseRaw):
+                this_inst = RawArray(this_group_data, this_info,
+                                     first_samp=self.first_samp)
+            elif isinstance(self, BaseEpochs):
+                this_inst = EpochsArray(this_group_data, this_info,
+                                        tmin=self.times[0])
+            elif isinstance(self, Evoked):
+                this_inst = EvokedArray(this_group_data, this_info,
+                                        tmin=self.times[0])
+            if inst is None:
+                inst = this_inst
+            else:
+                inst.add_channels([this_inst])
+
+        return inst
 
 
 class InterpolationMixin(object):
