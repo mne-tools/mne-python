@@ -65,9 +65,10 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
-                 name=None, show=False, shape=(1, 1)):
+                 name=None, show=False, shape=(1, 1), smooth_shading=True):
         if bgcolor is not None:
             bgcolor = _check_color(bgcolor)
+        print(bgcolor)
         self.mlab = _import_mlab()
         self.shape = shape
         if fig is None:
@@ -78,6 +79,10 @@ class _Renderer(_BaseRenderer):
             self.fig = fig
         self.fig._window_size = size
         _toggle_mlab_render(self.fig, show)
+
+    @property
+    def figure(self):  # cross-compat w/PyVista
+        return self.fig
 
     def subplot(self, x, y):
         pass
@@ -93,7 +98,8 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True,
+             representation='surface', line_width=1., **kwargs):
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
@@ -115,13 +121,14 @@ class _Renderer(_BaseRenderer):
                                                 figure=self.fig,
                                                 vmin=vmin,
                                                 vmax=vmax,
+                                                representation=representation,
+                                                line_width=line_width,
                                                 **kwargs)
 
+            l_m = surface.module_manager.scalar_lut_manager
             if vertex_color is not None:
-                surface.module_manager.scalar_lut_manager.lut.table = \
-                    vertex_color
+                l_m.lut.table = vertex_color
             elif isinstance(colormap, np.ndarray):
-                l_m = surface.module_manager.scalar_lut_manager
                 if colormap.dtype == np.uint8:
                     l_m.lut.table = colormap
                 elif colormap.dtype == np.float64:
@@ -130,6 +137,10 @@ class _Renderer(_BaseRenderer):
                     raise TypeError('Expected type for colormap values are'
                                     ' np.float64 or np.uint8: '
                                     '{} was given'.format(colormap.dtype))
+            elif colormap is not None:
+                from matplotlib.cm import get_cmap
+                l_m.load_lut_from_list(
+                    get_cmap(colormap)(np.linspace(0, 1, 256)))
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface
@@ -143,6 +154,7 @@ class _Renderer(_BaseRenderer):
                 mesh, contours=contours, line_width=width, vmin=vmin,
                 vmax=vmax, opacity=opacity, figure=self.fig)
             cont.module_manager.scalar_lut_manager.lut.table = colormap
+            return cont
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -313,6 +325,10 @@ class _Renderer(_BaseRenderer):
         if self.fig.scene is not None:
             self.fig.scene.renderer.use_depth_peeling = True
 
+    def remove_mesh(self, surface):
+        if self.fig.scene is not None:
+            self.fig.scene.renderer.remove_actor(surface.actor)
+
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""
@@ -397,11 +413,11 @@ def _get_world_to_view_matrix(scene):
 
 
 def _get_view_to_display_matrix(scene):
-    """Return the 4x4 matrix to convert view coordinates to display coordinates.
+    """Return the 4x4 matrix to convert view coordinates to display coords.
 
     It's assumed that the view should take up the entire window and that the
     origin of the window is in the upper left corner.
-    """  # noqa: E501
+    """
     _validate_type(scene, (MayaviScene, TVTKScene), "scene",
                    "TVTKScene/MayaviScene")
 
@@ -409,10 +425,10 @@ def _get_view_to_display_matrix(scene):
     # so we need to scale by width and height of the display window and shift
     # by half width and half height. The matrix accomplishes that.
     x, y = tuple(scene.get_size())
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],  # noqa: E241,E501
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],  # noqa: E241,E501
-                                 [0.,            0.,   1.,        0.],  # noqa: E241,E501
-                                 [0.,            0.,   0.,        1.]])  # noqa: E241,E501
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],
+                                 [0.,            0.,   1.,        0.],
+                                 [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
 
 

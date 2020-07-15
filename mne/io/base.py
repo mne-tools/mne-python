@@ -431,6 +431,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         raise NotImplementedError
 
     def _check_bad_segment(self, start, stop, picks,
+                           reject_start, reject_stop,
                            reject_by_annotation=False):
         """Check if data segment is bad.
 
@@ -446,6 +447,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             End of the slice.
         picks : array of int
             Channel picks.
+        reject_start : int
+            First sample to check for overlaps with bad annotations.
+        reject_stop : int
+            Last sample to check for overlaps with bad annotations.
         reject_by_annotation : bool
             Whether to perform rejection based on annotations.
             False by default.
@@ -462,9 +467,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             annot = self.annotations
             sfreq = self.info['sfreq']
             onset = _sync_onset(self, annot.onset)
-            overlaps = np.where(onset < stop / sfreq)
+            overlaps = np.where(onset < reject_stop / sfreq)
             overlaps = np.where(onset[overlaps] + annot.duration[overlaps] >
-                                start / sfreq)
+                                reject_start / sfreq)
             for descr in annot.description[overlaps]:
                 if descr.lower().startswith('bad'):
                     return descr

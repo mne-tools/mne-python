@@ -26,13 +26,15 @@ from scipy import linalg
 from ..defaults import DEFAULTS
 from ..fixes import _get_img_fdata
 from ..rank import compute_rank
+from ..source_space import _mri_orientation
 from ..surface import read_surface
+from ..io.constants import FIFF
 from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
 from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
                             _check_mri, _ensure_src)
-from ..transforms import invert_transform, apply_trans
+from ..transforms import invert_transform, apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
                      _mask_to_onsets_offsets, _pl)
 from ..io.pick import _picks_by_type
@@ -295,21 +297,6 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _mri_ori(nim, orientation):
-    import nibabel as nib
-    axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
-    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
-    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    order = dict(
-        coronal=('R', 'S', 'A'),
-        axial=('R', 'A', 'S'),
-        sagittal=('A', 'S', 'R'),
-    )[orientation]
-    xyz = [axcodes.index(c) for c in order]
-    flips = [flips[c] for c in order]
-    return xyz, flips, order
-
-
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True, show_indices=False,
                        show_orientation=False, img_output=False):
@@ -326,7 +313,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     del vox_mri_t
 
     # plot axes (x, y, z) as data axes
-    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_ori(nim, orientation)
+    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_orientation(
+        nim, orientation)
     transpose = x < y
 
     data = _get_img_fdata(nim)
@@ -356,9 +344,18 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         surf['rr'] = apply_trans(mri_vox_t, surf['rr'])
         surfs.append((surf, color))
 
-    src_points = list()
+    sources = list()
     if src is not None:
         _ensure_src(src, extra=' or None')
+        # Eventually we can relax this by allowing ``trans`` if need be
+        if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+            raise ValueError(
+                'Source space must be in MRI coordinates, got '
+                f'{_frame_to_str[src[0]["coord_frame"]]}')
+        for src_ in src:
+            points = src_['rr'][src_['inuse'].astype(bool)]
+            sources.append(apply_trans(mri_vox_t, points * 1e3))
+        sources = np.concatenate(sources, axis=0)
 
     if img_output:
         n_col = n_axes = 1
@@ -407,7 +404,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                               levels=[sl], colors=color, linewidths=1.0,
                               zorder=1)
 
-        for sources in src_points:
+        if len(sources):
             in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
             ax.scatter(flip_x * sources[in_slice, x] + shift_x,
                        flip_y * sources[in_slice, y] + shift_y,

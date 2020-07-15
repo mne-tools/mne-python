@@ -134,7 +134,7 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | remove_foci               | ✓            |                       |
        +---------------------------+--------------+-----------------------+
-       | remove_labels             | ✓            |                       |
+       | remove_labels             | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | save_image                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
@@ -145,6 +145,10 @@ class _Brain(object):
        | show_view                 | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | TimeViewer                | ✓            | ✓                     |
+       +---------------------------+--------------+-----------------------+
+       | enable_depth_peeling      |              | ✓                     |
+       +---------------------------+--------------+-----------------------+
+       | get_picked_points         |              | ✓                     |
        +---------------------------+--------------+-----------------------+
 
     """
@@ -203,6 +207,7 @@ class _Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
+        self._label_data = list()
         self._hemi_actors = {}
         self._hemi_meshes = {}
         # for now only one color bar can be added
@@ -542,6 +547,13 @@ class _Brain(object):
 
         self._update()
 
+    def remove_labels(self):
+        """Remove all the ROI labels from the image."""
+        for data in self._label_data:
+            self._renderer.remove_mesh(data)
+        self._label_data.clear()
+        self._update()
+
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
         """Add an ROI label to the image.
@@ -655,17 +667,28 @@ class _Brain(object):
                     'rr': self.geo[hemi].coords,
                     'tris': self.geo[hemi].faces,
                 }
-                self._renderer.contour(surface, label, [1.0], color=color,
-                                       kind='tube')
+                mesh_data = self._renderer.contour(
+                    surface=surface,
+                    scalars=label,
+                    contours=[1.0],
+                    color=color,
+                    kind='tube',
+                )
             else:
-                self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                    y=self.geo[hemi].coords[:, 1],
-                                    z=self.geo[hemi].coords[:, 2],
-                                    triangles=self.geo[hemi].faces,
-                                    scalars=label,
-                                    color=None,
-                                    colormap=ctable,
-                                    backface_culling=False)
+                mesh_data = self._renderer.mesh(
+                    x=self.geo[hemi].coords[:, 0],
+                    y=self.geo[hemi].coords[:, 1],
+                    z=self.geo[hemi].coords[:, 2],
+                    triangles=self.geo[hemi].faces,
+                    scalars=label,
+                    color=None,
+                    colormap=ctable,
+                    backface_culling=False,
+                )
+                if isinstance(mesh_data, tuple):
+                    actor, _ = mesh_data
+                    self.resolve_coincident_topology(actor)
+            self._label_data.append(mesh_data)
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 
@@ -1416,6 +1439,11 @@ class _Brain(object):
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self._notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
+
+    def get_picked_points(self):
+        """Return the vertices of the picked points."""
+        if hasattr(self, "time_viewer"):
+            return self.time_viewer.picked_points
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

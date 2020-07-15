@@ -14,7 +14,7 @@ import numpy as np
 from copy import deepcopy
 from scipy import linalg
 
-from .fixes import einsum, jit, mean, dict_
+from .fixes import einsum, jit, mean
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
@@ -70,7 +70,7 @@ def _to_const(cf):
     return int(cf)
 
 
-class Transform(dict_):
+class Transform(dict):
     """A transform.
 
     Parameters

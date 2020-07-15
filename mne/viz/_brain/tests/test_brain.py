@@ -121,6 +121,7 @@ def test_brain(renderer):
     # add label
     label = read_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
+    brain.remove_labels()
 
     # add foci
     brain.add_foci([0], coords_as_verts=True,
@@ -207,7 +208,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
     assert hasattr(time_viewer, "_spheres")
 
     # test points picked by default
-    picked_points = time_viewer.picked_points
+    picked_points = brain_data.get_picked_points()
     spheres = time_viewer._spheres
     hemi_str = [hemi] if hemi in ('lh', 'rh') else ['lh', 'rh']
     for current_hemi in hemi_str:

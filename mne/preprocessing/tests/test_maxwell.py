@@ -1077,23 +1077,27 @@ def test_mf_skips():
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     ('fname', 'bads', 'annot', 'add_ch', 'ignore_ref', 'want_bads',
-     'return_scores'), [
+     'return_scores', 'h_freq'), [
         # Neuromag data tested against MF
-        (sample_fname, [], False, False, False, ['MEG 2443'], False),
+        (sample_fname, [], False, False, False, ['MEG 2443'], False, None),
         # add 0111 to test picking, add annot to test it, and prepend chs for
         # idx
-        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], False),
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], False,
+         None),
         # CTF data seems to be sensitive to linalg lib (?) because some
         # channels are very close to the limit, so we just check that one shows
         # up
-        (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}, False),
+        (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}, False,
+         None),
         # faked
-        (ctf_fname_continuous, [], False, False, True, ['MLC24-4304'], False),
+        (ctf_fname_continuous, [], False, False, True, ['MLC24-4304'], False,
+         None),
         # For `return_scores=True`
-        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True)
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
+         50)
     ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
-                                   want_bads, return_scores):
+                                   want_bads, return_scores, h_freq):
     """Test automatic bad channel detection."""
     if fname.endswith('.ds'):
         raw = read_raw_ctf(fname).load_data()
@@ -1133,7 +1137,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
             raw, origin=(0., 0., 0.04), regularize=None,
             bad_condition='ignore', skip_by_annotation='BAD', verbose=True,
             ignore_ref=ignore_ref, min_count=min_count,
-            return_scores=return_scores)
+            return_scores=return_scores, h_freq=h_freq)
 
     if return_scores:
         assert len(return_vals) == 3
@@ -1150,6 +1154,9 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     log = log.getvalue()
     assert 'Interval   1:    0.00' in log
     assert 'Interval   2:    5.00' in log
+
+    if h_freq is not None and h_freq > raw.info['lowpass']:
+        assert 'data has already been low-pass filtered' in log
 
     if return_scores:
         meg_chs = raw.copy().pick_types(meg=True, exclude=[]).ch_names

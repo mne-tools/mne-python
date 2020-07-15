@@ -31,6 +31,7 @@ raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
 ms_fname = op.join(data_dir, 'SSS', 'test_move_anon_raw.fif')
 event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
 cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
+proj_fname = op.join(report_dir, 'sample_audvis_ecg-proj.fif')
 fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
@@ -59,6 +60,7 @@ def test_render_report(renderer, tmpdir):
     ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
     cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
+    proj_fname_new = op.join(tempdir, 'temp_ecg-proj.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
     for a, b in [[raw_fname, raw_fname_new],
@@ -66,6 +68,7 @@ def test_render_report(renderer, tmpdir):
                  [ms_fname, ms_fname_new],
                  [event_fname, event_fname_new],
                  [cov_fname, cov_fname_new],
+                 [proj_fname, proj_fname_new],
                  [fwd_fname, fwd_fname_new],
                  [inv_fname, inv_fname_new]]:
         shutil.copyfile(a, b)
@@ -75,15 +78,17 @@ def test_render_report(renderer, tmpdir):
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
     # Speed it up by picking channels
     raw = read_raw_fif(raw_fname_new, preload=True)
-    raw.pick_channels(['MEG 0111', 'MEG 0121'])
+    raw.pick_channels(['MEG 0111', 'MEG 0121', 'EEG 001', 'EEG 002'])
     raw.del_proj()
+    raw.set_eeg_reference(projection=True)
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
-    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
+                    projs=True)
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
     assert repr(report)
@@ -107,6 +112,10 @@ def test_render_report(renderer, tmpdir):
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
     assert '(MaxShield on)' in html
+    # Projectors in Raw.info
+    assert '<h4>SSP Projectors</h4>' in html
+    # Projectors in `proj_fname_new`
+    assert f'SSP Projectors: {op.basename(proj_fname_new)}' in html
 
     assert_equal(len(report.html), len(fnames))
     assert_equal(len(report.html), len(report.fnames))

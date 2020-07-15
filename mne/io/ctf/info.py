@@ -134,17 +134,12 @@ def _at_origin(x):
 
 
 def _check_comp_ch(cch, kind, desired=None):
-    if 'reference' in kind.lower():
-        if cch['grad_order_no'] != 0:
-            raise RuntimeError('%s channel with non-zero compensation grade %s'
-                               % (kind, cch['grad_order_no']))
-    else:
-        if desired is None:
-            desired = cch['grad_order_no']
-        if cch['grad_order_no'] != desired:
-            raise RuntimeError('%s channel with inconsistent compensation '
-                               'grade %s, should be %s'
-                               % (kind, cch['grad_order_no'], desired))
+    if desired is None:
+        desired = cch['grad_order_no']
+    if cch['grad_order_no'] != desired:
+        raise RuntimeError('%s channel with inconsistent compensation '
+                           'grade %s, should be %s'
+                           % (kind, cch['grad_order_no'], desired))
     return desired
 
 
@@ -218,17 +213,14 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             # Set the coil type
             if cch['sensor_type_index'] == CTF.CTFV_REF_MAG_CH:
                 ch['kind'] = FIFF.FIFFV_REF_MEG_CH
-                _check_comp_ch(cch, 'Reference magnetometer')
                 ch['coil_type'] = FIFF.FIFFV_COIL_CTF_REF_MAG
                 nref += 1
                 ch['logno'] = nref
             elif cch['sensor_type_index'] == CTF.CTFV_REF_GRAD_CH:
                 ch['kind'] = FIFF.FIFFV_REF_MEG_CH
                 if off_diag:
-                    _check_comp_ch(cch, 'Reference off-diagonal gradiometer')
                     ch['coil_type'] = FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD
                 else:
-                    _check_comp_ch(cch, 'Reference gradiometer')
                     ch['coil_type'] = FIFF.FIFFV_COIL_CTF_REF_GRAD
                 nref += 1
                 ch['logno'] = nref

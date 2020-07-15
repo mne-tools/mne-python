@@ -8,8 +8,12 @@ import shutil
 import zipfile
 
 import numpy as np
+import pytest
 
-from mne.io.constants import FIFF, FWD
+from mne.io.constants import (FIFF, FWD, _coord_frame_named, _ch_kind_named,
+                              _ch_unit_named, _ch_unit_mul_named,
+                              _ch_coil_type_named, _dig_kind_named,
+                              _dig_cardinal_named)
 from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
@@ -314,3 +318,22 @@ def test_constants(tmpdir):
             bad_list.append(('    %s,' % key).ljust(10) + '  # ' + desc)
     assert len(bad_list) == 0, \
         'In coil_def, missing  from fiff-constants:\n' + '\n'.join(bad_list)
+
+
+@pytest.mark.parametrize('dict_, match, extras', [
+    ({**_dig_kind_named, **_dig_cardinal_named}, 'FIFFV_POINT_', ()),
+    (_ch_kind_named, '^FIFFV_.*_CH$',
+     (FIFF.FIFFV_DIPOLE_WAVE, FIFF.FIFFV_GOODNESS_FIT)),
+    (_coord_frame_named, 'FIFFV_COORD_', ()),
+    (_ch_unit_named, 'FIFF_UNIT_', ()),
+    (_ch_unit_mul_named, 'FIFF_UNITM_', ()),
+    (_ch_coil_type_named, 'FIFFV_COIL_', ()),
+])
+def test_dict_completion(dict_, match, extras):
+    """Test readable dict completions."""
+    regex = re.compile(match)
+    got = set(FIFF[key] for key in FIFF if regex.search(key) is not None)
+    for e in extras:
+        got.add(e)
+    want = set(dict_)
+    assert got == want

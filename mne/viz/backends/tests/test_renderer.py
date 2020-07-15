@@ -106,9 +106,14 @@ def test_3d_backend(renderer):
     rend.set_interactive()
 
     # use mesh
-    rend.mesh(x=tet_x, y=tet_y, z=tet_z,
-              triangles=tet_indices,
-              color=tet_color)
+    mesh_data = rend.mesh(
+        x=tet_x,
+        y=tet_y,
+        z=tet_z,
+        triangles=tet_indices,
+        color=tet_color,
+    )
+    rend.remove_mesh(mesh_data)
 
     # use contour
     rend.contour(surface=ct_surface, scalars=ct_scalars,

@@ -1244,6 +1244,30 @@ def test_source_estime_project(real):
     assert_allclose(directions, want_nn, atol=1e-6)
 
 
+def test_source_estime_project_label():
+    """Test projecting a source estimate onto direction of max power."""
+    fwd = read_forward_solution(fname_fwd)
+    fwd = pick_types_forward(fwd, meg=True, eeg=False)
+
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
+    noise_cov = read_cov(fname_cov)
+    free = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=1.)
+    stc_free = apply_inverse(evoked, free, pick_ori='vector')
+
+    stc_pca = stc_free.project('pca', fwd['src'])[0]
+
+    labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                       subjects_dir=subjects_dir)
+    new_label = labels_lh[0] + labels_lh[1]
+
+    stc_in_label = stc_free.in_label(new_label)
+    stc_pca_in_label = stc_pca.in_label(new_label)
+
+    stc_in_label_pca = stc_in_label.project('pca', fwd['src'])[0]
+    assert_array_equal(stc_pca_in_label.data, stc_in_label_pca.data)
+
+
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
 def invs():
     """Inverses of various amounts of loose."""

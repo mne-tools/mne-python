@@ -48,9 +48,9 @@ Ch25=FC5,,0.5,µV
 Ch26=FC6,,0.5,µV
 Ch27=CP5,,0.5,µV
 Ch28=CP 6,,0.5,µV
-Ch29=HL,,0.5,µV
-Ch30=HR,,0.5,µV
-Ch31=Vb,,0.5,µV
+Ch29=ECG,,0.5,µV
+Ch30=HEOG,,0.5,µV
+Ch31=VEOG,,0.5,µV
 Ch32=ReRef,,0.5,µV
 
 [Comment]
@@ -92,12 +92,55 @@ Channels
 26    FC6         26               0.5 µV             10              250              Off                0
 27    CP5         27               0.5 µV             10              250              Off                0
 28    CP 6        28               0.5 µV             10              250              Off                0
-29    HL          29               0.5 µV             10              250              Off                0
-30    HR          30               0.5 µV             10              250              Off                0
-31    Vb          31               0.5 µV             10              250              Off                0
+29    ECG         29               0.5 µV             10              250              Off                0
+30    HEOG        30               0.5 µV             10              250              Off                0
+31    VEOG        31               0.5 µV             10              250              Off                0
 32    ReRef       32               0.5 µV             10              125              Off                0
 
 S o f t w a r e  F i l t e r s
 ==============================
 Disabled
 
+
+
+Impedances Imported from actiCAP Control Software:
+Impedance [kOhm] at 10:17:02 :
+FP1:        ???
+FP2:        ???
+F3:         ???
+F4:         ???
+C3:         ???
+C4:         ???
+P3:         ???
+P4:         ???
+O1:         ???
+O2:         ???
+F7:         ???
+F8:         ???
+P7:         ???
+P8:         ???
+Fz:         ???
+FCz:        ???
+Cz:         ???
+CPz:        ???
+Pz:         ???
+POz:        ???
+FC1:        ???
+FC2:        ???
+CP1:        ???
+CP2:        ???
+FC5:        ???
+FC6:        ???
+CP5:        ???
+CP 6:       ???
+ECG+:        35
+ECG-:        46
+HEOG+:        6
+HEOG-:        8
+VEOG+:        3
+VEOG-:        4
+ReRef:        0
+Ref:          8
+Gnd:          2.5
+
+; this is a comment

@@ -11,7 +11,7 @@ import numpy as np
 from scipy import linalg
 
 from ._eloreta import _compute_eloreta
-from ..fixes import _safe_svd, dict_
+from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
@@ -46,7 +46,7 @@ from ..utils import (check_fname, logger, verbose, warn, _validate_type,
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
 
 
-class InverseOperator(dict_):
+class InverseOperator(dict):
     """InverseOperator class to represent info from inverse operator."""
 
     def copy(self):
@@ -1424,7 +1424,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     gain = np.dot(whitener, forward['sol']['data'])
 
     logger.info('Creating the source covariance matrix')
-    source_std = np.ones(gain.shape[1])
+    source_std = np.ones(gain.shape[1], dtype=gain.dtype)
     if depth_prior is not None:
         source_std *= depth_prior
     if orient_prior is not None:

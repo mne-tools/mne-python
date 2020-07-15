@@ -22,7 +22,6 @@ from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import fill_doc
 
@@ -88,8 +87,8 @@ def _compute_row_norms(data):
     return norms
 
 
-def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
-    """Compute a regularized pseudoinverse of a square matrix.
+def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
+    """Compute a regularized pseudoinverse of Hermitian matrices.
 
     Regularization is performed by adding a constant value to each diagonal
     element of the matrix before inversion. This is known as "diagonal
@@ -103,8 +102,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
 
     Parameters
     ----------
-    x : ndarray, shape (n, n)
-        Square matrix to invert.
+    x : ndarray, shape (..., n, n)
+        Square, Hermitian matrices to invert.
     reg : float
         Regularization parameter. Defaults to 0.
     rank : int | None | 'full'
@@ -124,7 +123,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
 
     Returns
     -------
-    x_inv : ndarray, shape (n, n)
+    x_inv : ndarray, shape (..., n, n)
         The inverted matrix.
     loading_factor : float
         Value added to the diagonal of the matrix during regularization.
@@ -136,67 +135,63 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     from ..rank import _estimate_rank_from_s
     if rank is not None and rank != 'full':
         rank = int(operator.index(rank))
-    if x.ndim != 2 or x.shape[0] != x.shape[1]:
+    if x.ndim < 2 or x.shape[-2] != x.shape[-1]:
         raise ValueError('Input matrix must be square.')
-    if not np.allclose(x, x.conj().T):
+    if not np.allclose(x, x.conj().swapaxes(-2, -1)):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
+    assert x.ndim >= 2 and x.shape[-2] == x.shape[-1]
+    n = x.shape[-1]
 
-    # Decompose the matrix
-    if svd_lwork is None:
-        svd_lwork = _svd_lwork(x.shape, x.dtype)
-    U, s, V = _repeated_svd(x, lwork=svd_lwork)
+    # Decompose the matrix, not necessarily positive semidefinite
+    from mne.fixes import svd
+    U, s, Vh = svd(x, hermitian=True)
 
     # Estimate the rank before regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_before = _estimate_rank_from_s(s, tol)
 
     # Decompose the matrix again after regularization
-    loading_factor = reg * np.mean(s)
-    U, s, V = _repeated_svd(x + loading_factor * np.eye(len(x)),
-                            lwork=svd_lwork)
+    loading_factor = reg * np.mean(s, axis=-1)
+    if reg:
+        U, s, Vh = svd(
+            x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n),
+            hermitian=True)
 
     # Estimate the rank after regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_after = _estimate_rank_from_s(s, tol)
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
-    if rank_after < len(x) and reg == 0 and rank == 'full' and rcond == 1e-15:
+    if (rank_after < n).any() and reg == 0 and \
+            rank == 'full' and rcond == 1e-15:
         warn('Covariance matrix is rank-deficient and no regularization is '
              'done.')
-    elif isinstance(rank, int) and rank > len(x):
+    elif isinstance(rank, int) and rank > n:
         raise ValueError('Invalid value for the rank parameter (%d) given '
                          'the shape of the input matrix (%d x %d).' %
                          (rank, x.shape[0], x.shape[1]))
 
     # Pick the requested number of singular values
+    mask = np.arange(s.shape[-1]).reshape((1,) * (x.ndim - 2) + (-1,))
     if rank is None:
-        sel_s = s[:rank_before]
+        cmp = ret = rank_before
     elif rank == 'full':
-        sel_s = s[:rank_after]
+        cmp = rank_after
+        ret = rank_before
     else:
-        sel_s = s[:rank]
+        cmp = ret = rank
+    mask = mask < np.asarray(cmp)[..., np.newaxis]
+    mask &= s > 0
 
     # Invert only non-zero singular values
     s_inv = np.zeros(s.shape)
-    nonzero_inds = np.flatnonzero(sel_s != 0)
-    if len(nonzero_inds) > 0:
-        s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
+    s_inv[mask] = 1. / s[mask]
 
     # Compute the pseudo inverse
-    U *= s_inv
-    if U.dtype == np.float64:
-        gemm = dgemm
-    else:
-        assert U.dtype == np.complex128
-        gemm = zgemm
+    x_inv = np.matmul(U * s_inv[..., np.newaxis, :], Vh)
 
-    x_inv = gemm(1., U, V).conj().T
-
-    if rank is None or rank == 'full':
-        return x_inv, loading_factor, rank_before
-    else:
-        return x_inv, loading_factor, rank
+    return x_inv, loading_factor, ret
 
 
 def _gen_events(n_epochs):
@@ -758,7 +753,10 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes, np.generic)):
+    elif isinstance(a, float):
+        if not _array_equal_nan(a, b):
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:

@@ -64,7 +64,7 @@ def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
 
     Parameters
     ----------
-    s : list of float
+    s : ndarray, shape (..., ndim)
         The singular values of the matrix.
     tol : float | 'auto'
         Tolerance for singular values to consider non-zero in calculating the
@@ -76,10 +76,11 @@ def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
 
     Returns
     -------
-    rank : int
+    rank : ndarray, shape (...)
         The estimated rank.
     """
-    max_s = np.amax(s)
+    s = np.array(s, float)
+    max_s = np.amax(s, axis=-1)
     if isinstance(tol, str):
         if tol not in ('auto', 'float32'):
             raise ValueError('tol must be "auto" or float, got %r' % (tol,))
@@ -92,15 +93,16 @@ def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
             eps = np.finfo(np.float32).eps
         else:
             eps = np.finfo(np.float64).eps
-        tol = len(s) * max_s * eps
-        logger.info('    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g '
-                    ' max singular value)' % (tol, eps, len(s), max_s))
-    else:
+        tol = s.shape[-1] * max_s * eps
+        if s.ndim == 1:  # typical
+            logger.info('    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g'
+                        '  max singular value)' % (tol, eps, len(s), max_s))
+    elif not (isinstance(tol, np.ndarray) and tol.dtype.kind == 'f'):
         tol = float(tol)
         if tol_kind == 'relative':
             tol = tol * max_s
 
-    rank = np.sum(s > tol)
+    rank = np.sum(s > tol, axis=-1)
     return rank
 
 

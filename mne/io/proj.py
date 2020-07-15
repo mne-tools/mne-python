@@ -19,11 +19,10 @@ from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
-from ..fixes import dict_
 from ..utils import logger, verbose, warn, fill_doc
 
 
-class Projection(dict_):
+class Projection(dict):
     """Projection vector.
 
     A basic class to proj a meaningful print for projection vectors.
@@ -239,9 +238,17 @@ class ProjMixin(object):
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
-        if any(self.info['projs'][ii]['active'] for ii in idx):
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
+
+        for ii in idx:
+            proj = self.info['projs'][ii]
+            if (proj['active'] and
+                    set(self.info['ch_names']) &
+                    set(proj['data']['col_names'])):
+                msg = (f'Cannot remove projector that has already been '
+                       f'applied, unless you first remove all channels it '
+                       f'applies to. The problematic projector is: {proj}')
+                raise ValueError(msg)
+
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]

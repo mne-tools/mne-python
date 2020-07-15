@@ -688,10 +688,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
-    average : bool, default True
-        If True average across Epochs.
-
-        .. versionadded:: 0.13.0
+    %(tfr_average)s
     output : str
         Can be "power" (default) or "complex". If "complex", then
         average must be False.
@@ -831,10 +828,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         .. note:: Decimation may create aliasing artifacts.
     %(n_jobs)s
     %(picks_good_data)s
-    average : bool, default True
-        If True average across Epochs.
-
-        .. versionadded:: 0.13.0
+    %(tfr_average)s
     %(verbose)s
 
     Returns
@@ -1928,6 +1922,26 @@ class AverageTFR(_BaseTFR):
     def __isub__(self, tfr):  # noqa: D105
         self._check_compat(tfr)
         self.data -= tfr.data
+        return self
+
+    def __truediv__(self, a):  # noqa: D105
+        """Divide instances."""
+        out = self.copy()
+        out /= a
+        return out
+
+    def __itruediv__(self, a):  # noqa: D105
+        self.data /= a
+        return self
+
+    def __mul__(self, a):
+        """Multiply source instances."""
+        out = self.copy()
+        out *= a
+        return out
+
+    def __imul__(self, a):  # noqa: D105
+        self.data *= a
         return self
 
     def __repr__(self):  # noqa: D105

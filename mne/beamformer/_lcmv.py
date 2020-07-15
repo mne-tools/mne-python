@@ -17,7 +17,8 @@ from ..cov import compute_covariance
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (logger, verbose, warn, _reg_pinv,
                      _check_channels_spatial_filter, _check_option)
-from ..utils import _check_one_ch_type, _check_rank, _check_info_inv
+from ..utils import (_check_one_ch_type, _check_rank, _check_info_inv,
+                     deprecated)
 from .. import Epochs
 from ._compute_beamformer import (
     _check_proj_match, _prepare_beamformer_input, _compute_power,
@@ -26,16 +27,17 @@ from ._compute_beamformer import (
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='info', weight_norm='unit-noise-gain',
-              reduce_rank=False, depth=None, verbose=None):
+              pick_ori=None, rank='info',
+              weight_norm='unit-noise-gain-invariant',
+              reduce_rank=False, depth=None, inversion='matrix', verbose=None):
     """Compute LCMV spatial filter.
 
     Parameters
     ----------
-    info : dict
+    info : instance of Info
         The measurement info to specify the channels to include.
         Bad channels in info['bads'] are not used.
-    forward : dict
+    forward : instance of Forward
         Forward operator.
     data_cov : instance of Covariance
         The data covariance.
@@ -47,30 +49,21 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         gradiometers with magnetometers or EEG with MEG.
     label : instance of Label
         Restricts the LCMV solution to a given label.
-    pick_ori : None | 'normal' | 'max-power' | 'vector'
-        For forward solutions with fixed orientation, None (default) must be
-        used and a scalar beamformer is computed. For free-orientation forward
-        solutions, a vector beamformer is computed and:
+    %(bf_pick_ori)s
 
-            None
-                Pools the orientations by taking the norm.
-            'normal'
-                Keeps only the radial component.
-            'max-power'
-                Selects orientations that maximize output source power at
-                each location.
-            'vector'
-                Keeps the currents for each direction separate
+        - ``'vector'``
+            Keeps the currents for each direction separate
     %(rank_info)s
-    weight_norm : 'unit-noise-gain' | 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed,
-        if None, the unit-gain LCMV beamformer [2]_ will be computed.
+    %(weight_norm)s
+
+        Defaults to ``'unit-noise-gain-invariant'``.
     %(reduce_rank)s
     %(depth)s
 
         .. versionadded:: 0.18
+    %(bf_inversion)s
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -79,22 +72,24 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         Dictionary containing filter weights from LCMV beamformer.
         Contains the following keys:
 
+            'kind' : str
+                The type of beamformer, in this case 'LCMV'.
             'weights' : array
                 The filter weights of the beamformer.
             'data_cov' : instance of Covariance
                 The data covariance matrix used to compute the beamformer.
             'noise_cov' : instance of Covariance | None
                 The noise covariance matrix used to compute the beamformer.
-            'whitener' : None | array
+            'whitener' : None | ndarray, shape (n_channels, n_channels)
                 Whitening matrix, provided if whitening was applied to the
                 covariance matrix and leadfield during computation of the
                 beamformer weights.
-            'weight_norm' : 'unit-noise-gain'| 'nai' | None
+            'weight_norm' : str | None
                 Type of weight normalization used to compute the filter
                 weights.
-            'pick_ori' : None | 'normal'
-                Orientation selection used in filter computation.
-            'ch_names' : list
+            'pick-ori' : None | 'max-power' | 'normal' | 'vector'
+                The orientation in which the beamformer filters were computed.
+            'ch_names' : list of str
                 Channels used to compute the beamformer.
             'proj' : array
                 Projections used to compute the beamformer.
@@ -104,20 +99,43 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 Vertices for which the filter weights were computed.
             'is_free_ori' : bool
                 If True, the filter was computed with free source orientation.
+            'n_sources' : int
+                Number of source location for which the filter weight were
+                computed.
             'src_type' : str
                 Type of source space.
+            'source_nn' : ndarray, shape (n_sources, 3)
+                For each source location, the surface normal.
+            'proj' : ndarray, shape (n_channels, n_channels)
+                Projections used to compute the beamformer.
+            'subject' : str
+                The subject ID.
+            'rank' : int
+                The rank of the data covariance matrix used to compute the
+                beamformer weights.
+            'max-power-ori' : ndarray, shape (n_sources, 3) | None
+                When pick_ori='max-power', this fields contains the estimated
+                direction of maximum power at each source location.
+            'inversion' : 'single' | 'matrix'
+                Whether the spatial filters were computed for each dipole
+                separately or jointly for all dipoles at each vertex using a
+                matrix inversion.
 
     Notes
     -----
-    The original reference is [1]_.
+    The original reference is :footcite:`VanVeenEtAl1997`.
+
+    To obtain the Sekihara unit-noise-gain vector beamformer, you should use
+    ``weight_norm='unit-noise-gain', pick_ori='vector'`` followed by
+    :meth:`vec_stc.project('pca', src) <mne.VectorSourceEstimate.project>`.
+
+    .. versionchanged:: 0.21
+       The computations were extensively reworked, and the default for
+       ``weight_norm`` was set to ``'unit-noise-gain-invariant'``.
 
     References
     ----------
-    .. [1] Van Veen et al. Localization of brain electrical activity via
-           linearly constrained minimum variance spatial filtering.
-           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
+    .. footbibliography::
     """
     # check number of sensor types present in the data and ensure a noise cov
     info = _simplify_info(info)
@@ -141,8 +159,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     rank = data_rank
     logger.info('Making LCMV beamformer with rank %s' % (rank,))
     del data_rank
-    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
     depth = _check_depth(depth, 'depth_sparse')
+    if inversion == 'single':
+        depth['combine_xyz'] = False
 
     is_free_ori, info, proj, vertno, G, whitener, nn, orient_std = \
         _prepare_beamformer_input(
@@ -157,14 +176,18 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # Whiten the data covariance
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+    # Restore to positive semi-definite, as
+    # (negative eigenvalues are errant / due to massive scaling differences)
+    s, u = np.linalg.eigh(Cm)
+    Cm = np.dot(u * np.abs(s), u.T.conj())
     rank_int = sum(rank.values())
     del rank
 
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
-    W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
-                            pick_ori, reduce_rank, rank_int,
-                            inversion='matrix', nn=nn, orient_std=orient_std)
+    W, max_power_ori = _compute_beamformer(
+        G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank, rank_int,
+        inversion=inversion, nn=nn, orient_std=orient_std)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
@@ -180,11 +203,24 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         kind='LCMV', weights=W, data_cov=data_cov, noise_cov=noise_cov,
         whitener=whitener, weight_norm=weight_norm, pick_ori=pick_ori,
         ch_names=ch_names, proj=proj, is_ssp=is_ssp, vertices=vertno,
-        is_free_ori=is_free_ori, nsource=forward['nsource'], src_type=src_type,
-        source_nn=forward['source_nn'].copy(), subject=subject_from,
-        rank=rank_int)
+        is_free_ori=is_free_ori, n_sources=forward['nsource'],
+        src_type=src_type, source_nn=forward['source_nn'].copy(),
+        subject=subject_from, rank=rank_int, max_power_ori=max_power_ori,
+        inversion=inversion)
 
     return filters
+
+
+def _proj_whiten_data(M, proj, filters):
+    if filters['is_ssp']:
+        # check whether data and filter projs match
+        _check_proj_match(proj, filters)
+        if filters['whitener'] is None:
+            M = np.dot(filters['proj'], M)
+
+    if filters['whitener'] is not None:
+        M = np.dot(filters['whitener'], M)
+    return M
 
 
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):
@@ -208,14 +244,7 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
 
-        if filters['is_ssp']:
-            # check whether data and filter projs match
-            _check_proj_match(info, filters)
-            if filters['whitener'] is None:
-                M = np.dot(filters['proj'], M)
-
-        if filters['whitener'] is not None:
-            M = np.dot(filters['whitener'], M)
+        M = _proj_whiten_data(M, info['projs'], filters)
 
         # project to source space using beamformer weights
         vector = False
@@ -417,9 +446,12 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
     sel_names = [data_cov.ch_names[ii] for ii in sel]
     data_cov = pick_channels_cov(data_cov, sel_names)
 
-    n_orient = filters['weights'].shape[0] // filters['nsource']
-    source_power = _compute_power(data_cov['data'], filters['weights'],
-                                  n_orient)
+    n_orient = filters['weights'].shape[0] // filters['n_sources']
+    # Need to project and whiten along both dimensions
+    data = _proj_whiten_data(data_cov['data'].T, data_cov['projs'], filters)
+    data = _proj_whiten_data(data.T, data_cov['projs'], filters)
+    del data_cov
+    source_power = _compute_power(data, filters['weights'], n_orient)
 
     # compatibility with 0.16, add src_type as None if not present:
     filters, warn_text = _check_src_type(filters)
@@ -497,6 +529,9 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
                      tmin=1, tstep=1, subject=subject)
 
 
+@deprecated(
+    'tf_lcmv is deprecated and will be removed in 0.22, use LCMV with '
+    'a covariances computed on band-passed data or DICS instead')
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,

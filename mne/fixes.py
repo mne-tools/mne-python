@@ -976,6 +976,24 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     return out
 
 
+# This shim can be removed once NumPy 1.19.0+ is required (1.18.4 has sign bug)
+def svd(a, hermitian=False):
+    if hermitian:  # faster
+        s, u = np.linalg.eigh(a)
+        sgn = np.sign(s)
+        s = np.abs(s)
+        sidx = np.argsort(s)[..., ::-1]
+        sgn = take_along_axis(sgn, sidx, axis=-1)
+        s = take_along_axis(s, sidx, axis=-1)
+        u = take_along_axis(u, sidx[..., None, :], axis=-1)
+        # singular values are unsigned, move the sign into v
+        vt = (u * sgn[..., np.newaxis, :]).swapaxes(-2, -1).conj()
+        np.abs(s, out=s)
+        return u, s, vt
+    else:
+        return np.linalg.svd(a)
+
+
 ###############################################################################
 # NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
 # XXX eventually we should hand-tune our `einsum` calls given our array sizes!
@@ -985,6 +1003,48 @@ def einsum(*args, **kwargs):
         kwargs['optimize'] = False
     return np.einsum(*args, **kwargs)
 
+
+try:
+    from numpy import take_along_axis
+except ImportError:  # NumPy < 1.15
+    def take_along_axis(arr, indices, axis):
+        # normalize inputs
+        if axis is None:
+            arr = arr.flat
+            arr_shape = (len(arr),)  # flatiter has no .shape
+            axis = 0
+        else:
+            # there is a NumPy function for this, but rather than copy our
+            # internal uses should be correct, so just normalize quickly
+            if axis < 0:
+                axis += arr.ndim
+            assert 0 <= axis < arr.ndim
+            arr_shape = arr.shape
+
+        # use the fancy index
+        return arr[_make_along_axis_idx(arr_shape, indices, axis)]
+
+    def _make_along_axis_idx(arr_shape, indices, axis):
+        # compute dimensions to iterate over
+        if not np.issubdtype(indices.dtype, np.integer):
+            raise IndexError('`indices` must be an integer array')
+        if len(arr_shape) != indices.ndim:
+            raise ValueError(
+                "`indices` and `arr` must have the same number of dimensions")
+        shape_ones = (1,) * indices.ndim
+        dest_dims = list(range(axis)) + [None] + list(range(axis+1, indices.ndim))
+
+        # build a fancy index, consisting of orthogonal aranges, with the
+        # requested index inserted at the right location
+        fancy_index = []
+        for dim, n in zip(dest_dims, arr_shape):
+            if dim is None:
+                fancy_index.append(indices)
+            else:
+                ind_shape = shape_ones[:dim] + (-1,) + shape_ones[dim+1:]
+                fancy_index.append(np.arange(n).reshape(ind_shape))
+
+        return tuple(fancy_index)
 
 ###############################################################################
 # From nilearn
@@ -1091,61 +1151,3 @@ except ImportError:
     @contextmanager
     def nullcontext(enter_result=None):
         yield enter_result
-
-
-###############################################################################
-# Work around autosummary making bad :class: links
-
-class dict_(dict):
-
-    def clear(self):
-        """D.clear() -> None
-
-        Remove all items from D.
-        """
-        return super().clear()
-
-    def copy(self):
-        """D.copy() -> dict
-
-        a shallow copy of D."""
-        return super().copy()
-
-    def items(self):
-        """D.items() -> object
-
-        A set-like object providing a view on D's items.
-        """
-        return super().items()
-
-    def keys(self):
-        """D.keys() -> object
-
-        A set-like object providing a view on D's keys.
-        """
-        return super().keys()
-
-    def pop(self, k, *args, **kwargs):
-        """D.pop(k[,d]) -> object
-
-        Remove specified key and return the corresponding value.
-        If key is not found, d is returned if given, otherwise KeyError is raised.
-        """
-        return super().pop(k, *args, **kwargs)
-
-    def update(self, *E, **F):
-        """D.update([E, ]**F) -> None
-
-        Update D from dict/iterable E and F.
-        If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
-        If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
-        In either case, this is followed by: for k in F:  D[k] = F[k]
-        """
-        return super().update(*E, **F)
-
-    def values(self):
-        """D.values() -> object
-
-        An object providing a view on D's values.
-        """
-        return super().values()
