@@ -29,7 +29,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _connection_line, _get_color_list, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit,
-                    _plot_masked_image, _trim_ticks)
+                    _plot_masked_image, _trim_ticks, _set_window_title)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
 
@@ -313,7 +313,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         fig = axes[0].get_figure()
 
     if window_title is not None:
-        fig.canvas.set_window_title(window_title)
+        _set_window_title(fig, window_title)
 
     if len(axes) != len(ch_types_used):
         raise ValueError('Number of axes (%g) must match number of channel '
