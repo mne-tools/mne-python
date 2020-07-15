@@ -982,6 +982,10 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             The file name, which should end with ``-tfr.h5``.
         overwrite : bool
             If True, overwrite file (if it exists). Defaults to False.
+
+        See Also
+        --------
+        read_tfrs, write_tfrs
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
