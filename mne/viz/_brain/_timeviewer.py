@@ -82,8 +82,12 @@ class MplCanvas(object):
 
     def update_plot(self):
         """Update the plot."""
-        self.axes.legend(prop={'family': 'monospace', 'size': 'small'},
-                         framealpha=0.5, handlelength=1.)
+        leg = self.axes.legend(
+            prop={'family': 'monospace', 'size': 'small'},
+            framealpha=0.5, handlelength=1.,
+            facecolor=self.time_viewer.brain._bg_color)
+        for text in leg.get_texts():
+            text.set_color(self.time_viewer.brain._fg_color)
         self.canvas.draw()
 
     def set_color(self, bg_color, fg_color):
