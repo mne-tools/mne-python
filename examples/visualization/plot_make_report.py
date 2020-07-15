@@ -5,7 +5,7 @@
 Make an MNE-Report with a Slider
 ================================
 
-In this example, MEG evoked data are plotted in an html slider.
+In this example, MEG evoked data are plotted in an HTML slider.
 """
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
@@ -49,5 +49,5 @@ for t in times:
 report.add_slider_to_section(figs, times, 'Evoked Response',
                              image_format='png')  # can also use 'svg'
 
-# to save report
+# Save the report
 report.save('my_report.html', overwrite=True)

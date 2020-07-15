@@ -7,29 +7,33 @@
 # License: BSD (3-clause)
 
 from collections import Counter
+import contextlib
 from copy import deepcopy
 import datetime
 from io import BytesIO
 import operator
+from textwrap import shorten
 
 import numpy as np
 from scipy import linalg
 
-from .pick import channel_type
-from .constants import FIFF
+from .pick import channel_type, pick_channels, pick_info
+from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
-from .tag import read_tag, find_tag, _coord_dict
-from .proj import _read_proj, _write_proj, _uniquify_projs, _normalize_proj
+from .tag import read_tag, find_tag, _ch_coord_dict
+from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
+                   Projection)
 from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform, Transform
-from ..utils import logger, verbose, warn, object_diff, _validate_type
-from ._digitization import (_format_dig_points, _dig_kind_proper,
+from ..transforms import invert_transform, Transform, _coord_frame_name
+from ..utils import (logger, verbose, warn, object_diff, _validate_type,
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric)
+from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
@@ -50,12 +54,13 @@ _kind_dict = dict(
     seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
-    fnirs_raw=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_RAW,
-               FIFF.FIFF_UNIT_V),
+    fnirs_cw_amplitude=(FIFF.FIFFV_FNIRS_CH,
+                        FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE, FIFF.FIFF_UNIT_V),
     fnirs_od=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_OD,
               FIFF.FIFF_UNIT_NONE),
     hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_MOL),
-    hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL)
+    hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL),
+    csd=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG_CSD, FIFF.FIFF_UNIT_V_M2),
 )
 
 
@@ -114,27 +119,6 @@ def _get_valid_units():
     return tuple(valid_units)
 
 
-def _summarize_str(st):
-    """Make summary string."""
-    return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
-
-
-def _dt_to_stamp(inp_date):
-    """Convert a datetime object to a meas_date."""
-    return int(inp_date.timestamp() // 1), inp_date.microsecond
-
-
-def _stamp_to_dt(utc_stamp):
-    """Convert timestamp to datetime object in Windows-friendly way."""
-    # The min on windows is 86400
-    stamp = [int(s) for s in utc_stamp]
-    if len(stamp) == 1:  # In case there is no microseconds information
-        stamp.append(0)
-    return (datetime.datetime.fromtimestamp(stamp[0],
-                                            tz=datetime.timezone.utc) +
-            datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
-
-
 def _unique_channel_names(ch_names):
     """Ensure unique channel names."""
     FIFF_CH_NAME_MAX_LENGTH = 15
@@ -164,21 +148,69 @@ def _unique_channel_names(ch_names):
     return ch_names
 
 
+class MontageMixin(object):
+    """Mixin for Montage setting."""
+
+    @verbose
+    def set_montage(self, montage, match_case=True,
+                    on_missing='raise', verbose=None):
+        """Set EEG sensor configuration and head digitization.
+
+        Parameters
+        ----------
+        %(montage)s
+        %(match_case)s
+        %(on_missing_montage)s
+        %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance.
+
+        Notes
+        -----
+        Operates in place.
+        """
+        # How to set up a montage to old named fif file (walk through example)
+        # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
+
+        from ..channels.montage import _set_montage
+        info = self if isinstance(self, Info) else self.info
+        _set_montage(info, montage, match_case, on_missing)
+        return self
+
+
+def _format_trans(obj, key):
+    try:
+        t = obj[key]
+    except KeyError:
+        pass
+    else:
+        if t is not None:
+            obj[key] = Transform(t['from'], t['to'], t['trans'])
+
+
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
-class Info(dict):
+class Info(dict, MontageMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
-    that is available for a recording.
+    that is available for a recording. However, its keys are restricted to
+    those provided by the
+    `FIF format specification <https://github.com/mne-tools/fiff-constants>`__,
+    so new entries should not be manually added.
+
+    .. warning:: The only entries that should be manually changed by the user
+                 are ``info['bads']`` and ``info['description']``. All other
+                 entries should be considered read-only, though they can be
+                 modified by various MNE-Python functions or methods (which
+                 have safeguards to ensure all fields remain in sync).
 
     This class should not be instantiated directly. To create a measurement
-    information strucure, use :func:`mne.create_info`.
+    information structure, use :func:`mne.create_info`.
 
-    The only entries that should be manually changed by the user are
-    ``info['bads']`` and ``info['description']``. All other entries should
-    be considered read-only, or should be modified by functions or methods.
-
-    Parameters
+    Attributes
     ----------
     acq_pars : str | None
         MEG system acquition parameters.
@@ -199,7 +231,7 @@ class Info(dict):
     ctf_head_t : dict | None
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
-    custom_ref_applied : bool
+    custom_ref_applied : int
         Whether a custom (=other than average) reference has been applied to
         the EEG data. This flag is checked by some algorithms that require an
         average reference to be set.
@@ -242,11 +274,12 @@ class Info(dict):
         Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
-    meas_date : tuple of int
-        The first element of this list is a UNIX timestamp (seconds since
-        1970-01-01 00:00:00) denoting the date and time at which the
-        measurement was taken. The second element is the additional number of
-        microseconds.
+    meas_date : datetime
+        The time (UTC) of the recording.
+
+        .. versionchanged:: 0.20
+           This is stored as a :class:`~python:datetime.datetime` object
+           instead of a tuple of seconds/microseconds.
     utc_offset : str
         "UTC offset of related meas_date (sHH:MM).
 
@@ -474,7 +507,7 @@ class Info(dict):
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
-            Handedness (1=right, 2=left).
+            Handedness (1=right, 2=left, 3=ambidextrous).
 
     * ``device_info`` dict:
 
@@ -497,8 +530,34 @@ class Info(dict):
             Original file GUID.
         meas_date : tuple of int
             The helium level meas date.
-
     """
+
+    def __init__(self, *args, **kwargs):
+        super(Info, self).__init__(*args, **kwargs)
+        # Deal with h5io writing things as dict
+        for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
+            _format_trans(self, key)
+        for res in self.get('hpi_results', []):
+            _format_trans(res, 'coord_trans')
+        if self.get('dig', None) is not None and len(self['dig']):
+            if isinstance(self['dig'], dict):  # needs to be unpacked
+                self['dig'] = _dict_unpack(self['dig'], _dig_cast)
+            if not isinstance(self['dig'][0], DigPoint):
+                self['dig'] = _format_dig_points(self['dig'])
+        if isinstance(self.get('chs', None), dict):
+            self['chs']['ch_name'] = [str(x) for x in np.char.decode(
+                self['chs']['ch_name'], encoding='utf8')]
+            self['chs'] = _dict_unpack(self['chs'], _ch_cast)
+        for pi, proj in enumerate(self.get('projs', [])):
+            if not isinstance(proj, Projection):
+                self['projs'][pi] = Projection(proj)
+        # Old files could have meas_date as tuple instead of datetime
+        try:
+            meas_date = self['meas_date']
+        except KeyError:
+            pass
+        else:
+            self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
 
     def copy(self):
         """Copy the instance.
@@ -508,7 +567,7 @@ class Info(dict):
         info : instance of Info
             The copied info.
         """
-        return Info(deepcopy(self))
+        return deepcopy(self)
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection.
@@ -528,27 +587,37 @@ class Info(dict):
 
     def __repr__(self):
         """Summarize info instead of printing all."""
-        strs = ['<Info | %s non-empty fields']
+        MAX_WIDTH = 68
+        strs = ['<Info | %s non-empty values']
         non_empty = 0
         for k, v in self.items():
-            if k in ['bads', 'ch_names']:
-                entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
-                        if v else '0 items')
-                if len(v) > 10:
-                    # get rid of of half printed ch names
-                    entr = _summarize_str(entr)
-            elif k == 'projs' and v:
-                entr = ', '.join(p['desc'] + ': o%s' %
-                                 {0: 'ff', 1: 'n'}[p['active']] for p in v)
-                if len(entr) >= 56:
-                    entr = _summarize_str(entr)
+            if k == 'ch_names':
+                if v:
+                    entr = shorten(', '.join(v), MAX_WIDTH, placeholder=' ...')
+                else:
+                    entr = '[]'  # always show
+                    non_empty -= 1  # don't count as non-empty
+            elif k == 'bads':
+                if v:
+                    entr = '{} items ('.format(len(v))
+                    entr += ', '.join(v)
+                    entr = shorten(entr, MAX_WIDTH, placeholder=' ...') + ')'
+                else:
+                    entr = '[]'  # always show
+                    non_empty -= 1  # don't count as non-empty
+            elif k == 'projs':
+                if v:
+                    entr = ', '.join(p['desc'] + ': o%s' %
+                                     {0: 'ff', 1: 'n'}[p['active']] for p in v)
+                    entr = shorten(entr, MAX_WIDTH, placeholder=' ...')
+                else:
+                    entr = '[]'  # always show projs
+                    non_empty -= 1  # don't count as non-empty
             elif k == 'meas_date':
                 if v is None:
                     entr = 'unspecified'
                 else:
-                    # first entry in meas_date is meaningful
-                    entr = (_stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') +
-                            ' GMT')
+                    entr = v.strftime('%Y-%m-%d %H:%M:%S %Z')
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
@@ -558,56 +627,131 @@ class Info(dict):
                                      _dig_kind_proper[_dig_kind_rev[ii]])
                           for ii in _dig_kind_ints if ii in counts]
                 counts = (' (%s)' % (', '.join(counts))) if len(counts) else ''
-                entr = '%d items%s' % (len(v), counts)
-            else:
-                this_len = (len(v) if hasattr(v, '__len__') else
-                            ('%s' % v if v is not None else None))
-                entr = (('%d items' % this_len) if isinstance(this_len, int)
-                        else ('%s' % this_len if this_len else ''))
-            if entr:
-                non_empty += 1
-                entr = ' | ' + entr
-            if k == 'chs':
+                entr = '%d item%s%s' % (len(v), _pl(len(v)), counts)
+            elif isinstance(v, Transform):
+                # show entry only for non-identity transform
+                if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
+                    frame1 = _coord_frame_name(v['from'])
+                    frame2 = _coord_frame_name(v['to'])
+                    entr = '%s -> %s transform' % (frame1, frame2)
+                else:
+                    entr = ''
+            elif k in ['sfreq', 'lowpass', 'highpass']:
+                entr = '{:.1f} Hz'.format(v)
+            elif isinstance(v, str):
+                entr = shorten(v, MAX_WIDTH, placeholder=' ...')
+            elif k == 'chs':
                 ch_types = [channel_type(self, idx) for idx in range(len(v))]
                 ch_counts = Counter(ch_types)
-                entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
-                                            for ch_type, count
-                                            in ch_counts.items())
-            strs.append('%s : %s%s' % (k, type(v).__name__, entr))
-            if k in ['sfreq', 'lowpass', 'highpass']:
-                strs[-1] += ' Hz'
-        strs_non_empty = sorted(s for s in strs if '|' in s)
-        strs_empty = sorted(s for s in strs if '|' not in s)
-        st = '\n    '.join(strs_non_empty + strs_empty)
+                entr = "%s" % ', '.join("%d %s" % (count, ch_type.upper())
+                                        for ch_type, count
+                                        in ch_counts.items())
+            elif k == 'custom_ref_applied':
+                entr = str(bool(v))
+                if not v:
+                    non_empty -= 1  # don't count if 0
+            else:
+                try:
+                    this_len = len(v)
+                except TypeError:
+                    entr = '{}'.format(v) if v is not None else ''
+                else:
+                    if this_len > 0:
+                        entr = ('%d item%s (%s)' % (this_len, _pl(this_len),
+                                                    type(v).__name__))
+                    else:
+                        entr = ''
+            if entr != '':
+                non_empty += 1
+                strs.append('%s: %s' % (k, entr))
+        st = '\n '.join(sorted(strs))
         st += '\n>'
         st %= non_empty
         return st
 
-    def _check_consistency(self):
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        result = Info.__new__(Info)
+        for k, v in self.items():
+            # chs is roughly half the time but most are immutable
+            if k == 'chs':
+                # dict shallow copy is fast, so use it then overwrite
+                result[k] = list()
+                for ch in v:
+                    ch = ch.copy()  # shallow
+                    ch['loc'] = ch['loc'].copy()
+                    result[k].append(ch)
+            elif k == 'ch_names':
+                # we know it's list of str, shallow okay and saves ~100 µs
+                result[k] = v.copy()
+            elif k == 'hpi_meas':
+                hms = list()
+                for hm in v:
+                    hm = hm.copy()
+                    # the only mutable thing here is some entries in coils
+                    hm['hpi_coils'] = [coil.copy() for coil in hm['hpi_coils']]
+                    # There is a *tiny* risk here that someone could write
+                    # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ...
+                    # and assume that info.copy() will make an actual copy,
+                    # but copying these entries has a 2x slowdown penalty so
+                    # probably not worth it for such a deep corner case:
+                    # for coil in hpi_coils:
+                    #     for key in ('epoch', 'slopes', 'corr_coeff'):
+                    #         coil[key] = coil[key].copy()
+                    hms.append(hm)
+                result[k] = hms
+            else:
+                result[k] = deepcopy(v, memodict)
+        return result
+
+    def _check_consistency(self, prepend_error=''):
         """Do some self-consistency checks and datatype tweaks."""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
         if len(missing) > 0:
-            raise RuntimeError('bad channel(s) %s marked do not exist in info'
-                               % (missing,))
+            msg = '%sbad channel(s) %s marked do not exist in info'
+            raise RuntimeError(msg % (prepend_error, missing,))
         meas_date = self.get('meas_date')
-        if meas_date is not None and (
-                not isinstance(self['meas_date'], tuple) or
-                len(self['meas_date']) != 2):
-            raise RuntimeError('info["meas_date"] must be a tuple of length '
-                               '2 or None, got "%r"'
-                               % (repr(self['meas_date']),))
+        if meas_date is not None:
+            if (not isinstance(self['meas_date'], datetime.datetime) or
+                    self['meas_date'].tzinfo is None or
+                    self['meas_date'].tzinfo is not datetime.timezone.utc):
+                raise RuntimeError('%sinfo["meas_date"] must be a datetime '
+                                   'object in UTC or None, got "%r"'
+                                   % (prepend_error, repr(self['meas_date']),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
                 ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)) or \
                 self['nchan'] != len(chs):
-            raise RuntimeError('info channel name inconsistency detected, '
-                               'please notify mne-python developers')
+            raise RuntimeError('%sinfo channel name inconsistency detected, '
+                               'please notify mne-python developers'
+                               % (prepend_error,))
 
         # make sure we have the proper datatypes
         for key in ('sfreq', 'highpass', 'lowpass'):
             if self.get(key) is not None:
                 self[key] = float(self[key])
+
+        # Ensure info['chs'] has immutable entries (copies much faster)
+        scalar_keys = ('unit_mul range cal kind coil_type unit '
+                       'coord_frame scanno logno').split()
+        for ci, ch in enumerate(self['chs']):
+            ch_name = ch['ch_name']
+            if not isinstance(ch_name, str):
+                raise TypeError(
+                    'Bad info: info["chs"][%d]["ch_name"] is not a string, '
+                    'got type %s' % (ci, type(ch_name)))
+            for key in scalar_keys:
+                val = ch.get(key, 1)
+                if not _is_numeric(val):
+                    raise TypeError(
+                        'Bad info: info["chs"][%d][%r] = %s is type %s, must '
+                        'be float or int' % (ci, key, val, type(val)))
+            loc = ch['loc']
+            if not (isinstance(loc, np.ndarray) and loc.shape == (12,)):
+                raise TypeError(
+                    'Bad info: info["chs"][%d]["loc"] must be ndarray with '
+                    '12 elements, got %r' % (ci, loc))
 
         # make sure channel names are not too long
         self._check_ch_name_length()
@@ -638,11 +782,41 @@ class Info(dict):
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
 
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this Info object.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        info : instance of Info.
+            The modified Info object.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        sel = pick_channels(self.ch_names, ch_names, exclude=[],
+                            ordered=ordered)
+        return pick_info(self, sel, copy=False, verbose=False)
+
+    @property
+    def ch_names(self):
+        return self['ch_names']
+
 
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
     chs = [{key: ch[key]
-            for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc')}
+            for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc', 'cal')}
            for ch in info['chs']]
     sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'],
                     projs=info['projs'],
@@ -667,7 +841,7 @@ def read_fiducials(fname, verbose=None):
         List of digitizer points (each point in a dict).
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.io.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...).
     """
     fid, tree, _ = fiff_open(fname)
     with fid:
@@ -680,10 +854,11 @@ def read_fiducials(fname, verbose=None):
             pos = isotrak['directory'][k].pos
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
-                pts.append(tag.data)
+                pts.append(DigPoint(tag.data))
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
                 coord_frame = tag.data[0]
+                coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
 
     # coord_frame is not stored in the tag
     for pt in pts:
@@ -833,7 +1008,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     proj_name = None
     line_freq = None
     gantry_angle = None
-    custom_ref_applied = False
+    custom_ref_applied = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     xplotter_layout = None
     kit_system_id = None
     for k in range(meas_info['nent']):
@@ -901,7 +1076,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             gantry_angle = float(tag.data)
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
-            custom_ref_applied = bool(tag.data)
+            custom_ref_applied = int(tag.data)
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
@@ -1055,12 +1230,15 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                     hc['number'] = int(read_tag(fid, pos).data)
                 elif kind == FIFF.FIFF_EPOCH:
                     hc['epoch'] = read_tag(fid, pos).data
+                    hc['epoch'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_SLOPES:
                     hc['slopes'] = read_tag(fid, pos).data
+                    hc['slopes'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_CORR_COEFF:
                     hc['corr_coeff'] = read_tag(fid, pos).data
+                    hc['corr_coeff'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_COIL_FREQ:
-                    hc['coil_freq'] = read_tag(fid, pos).data
+                    hc['coil_freq'] = float(read_tag(fid, pos).data)
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
@@ -1091,7 +1269,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 tag = read_tag(fid, pos)
                 si['middle_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_BIRTH_DAY:
-                tag = read_tag(fid, pos)
+                try:
+                    tag = read_tag(fid, pos)
+                except OverflowError:
+                    warn('Encountered an error while trying to read the '
+                         'birthday from the input data. No birthday will be '
+                         'set. Please check the integrity of the birthday '
+                         'information in the input data.')
+                    continue
                 si['birthday'] = tag.data
             elif kind == FIFF.FIFF_SUBJ_SEX:
                 tag = read_tag(fid, pos)
@@ -1205,9 +1390,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['proj_name'] = proj_name
     if meas_date is None:
         meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
-    if np.array_equal(meas_date, DATE_NONE):
-        meas_date = None
-    info['meas_date'] = meas_date
+    info['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
     info['utc_offset'] = utc_offset
 
     info['sfreq'] = sfreq
@@ -1249,6 +1432,48 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     return info, meas
 
 
+def _ensure_meas_date_none_or_dt(meas_date):
+    if meas_date is None or np.array_equal(meas_date, DATE_NONE):
+        meas_date = None
+    elif not isinstance(meas_date, datetime.datetime):
+        meas_date = _stamp_to_dt(meas_date)
+    return meas_date
+
+
+def _check_dates(info, prepend_error=''):
+    """Check dates before writing as fif files.
+
+    It's needed because of the limited integer precision
+    of the fix standard.
+    """
+    for key in ('file_id', 'meas_id'):
+        value = info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            for key_2 in ('secs', 'usecs'):
+                if (value[key_2] < np.iinfo('>i4').min or
+                        value[key_2] > np.iinfo('>i4').max):
+                    raise RuntimeError('%sinfo[%s][%s] must be between '
+                                       '"%r" and "%r", got "%r"'
+                                       % (prepend_error, key, key_2,
+                                          np.iinfo('>i4').min,
+                                          np.iinfo('>i4').max,
+                                          value[key_2]),)
+
+    meas_date = info.get('meas_date')
+    if meas_date is None:
+        return
+
+    meas_date_stamp = _dt_to_stamp(meas_date)
+    if (meas_date_stamp[0] < np.iinfo('>i4').min or
+            meas_date_stamp[0] > np.iinfo('>i4').max):
+        raise RuntimeError(
+            '%sinfo["meas_date"] seconds must be between "%r" '
+            'and "%r", got "%r"'
+            % (prepend_error, (np.iinfo('>i4').min, 0),
+               (np.iinfo('>i4').max, 0), meas_date_stamp[0],))
+
+
 def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info into a file id (from a fif file).
 
@@ -1270,6 +1495,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     Tags are written in a particular order for compatibility with maxfilter.
     """
     info._check_consistency()
+    _check_dates(info)
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
@@ -1390,7 +1616,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get('proj_name') is not None:
         write_string(fid, FIFF.FIFF_PROJ_NAME, info['proj_name'])
     if info.get('meas_date') is not None:
-        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+        write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(info['meas_date']))
     if info.get('utc_offset') is not None:
         write_string(fid, FIFF.FIFF_UTC_OFFSET, info['utc_offset'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
@@ -1509,7 +1735,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
     fname : str
         The name of the file. Should end by -info.fif.
     info : instance of Info
-        The measurement info structure
+        The measurement info structure.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
@@ -1714,7 +1940,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
 
 @verbose
-def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
+def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
@@ -1725,11 +1951,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
-        Channel types. If None, data are assumed to be misc.
+        Channel types, default is ``'misc'`` which is not a
+        :term:`data channel <data channels>`.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
-    %(montage)s
     %(verbose)s
 
     Returns
@@ -1755,7 +1981,6 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     * Am: dipole
     * AU: misc
     """
-    from ..channels.montage import (DigMontage, _set_montage)
     try:
         ch_names = operator.index(ch_names)  # int-like
     except TypeError:
@@ -1764,17 +1989,13 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         ch_names = list(np.arange(ch_names).astype(str))
     _validate_type(ch_names, (list, tuple), "ch_names",
                    ("list, tuple, or int"))
-    _validate_type(montage, types=(type(None), str, DigMontage),
-                   item_name='montage')
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
     nchan = len(ch_names)
-    if ch_types is None:
-        ch_types = ['misc'] * nchan
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
-    ch_types = np.atleast_1d(np.array(ch_types, np.str))
+    ch_types = np.atleast_1d(np.array(ch_types, np.str_))
     if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length '
                          '(%s != %s) for ch_types=%s'
@@ -1788,15 +2009,15 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
         # mirror what tag.py does here
-        coord_frame = _coord_dict.get(kind[0], FIFF.FIFFV_COORD_UNKNOWN)
-        chan_info = dict(loc=np.full(12, np.nan), unit_mul=0, range=1., cal=1.,
+        coord_frame = _ch_coord_dict.get(kind[0], FIFF.FIFFV_COORD_UNKNOWN)
+        chan_info = dict(loc=np.full(12, np.nan),
+                         unit_mul=FIFF.FIFF_UNITM_NONE, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=coord_frame,
                          ch_name=str(name), scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
 
     info._update_redundant()
-    _set_montage(info, montage)
     info._check_consistency()
     return info
 
@@ -1828,7 +2049,7 @@ def _empty_info(sfreq):
         info[k] = None
     for k in _list_keys:
         info[k] = list()
-    info['custom_ref_applied'] = False
+    info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.
@@ -1867,8 +2088,23 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def anonymize_info(info, daysback=None, keep_his=False):
+def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
+    """Add a timedelta to a meas_date tuple."""
+    if meas_date_stamp is not None:
+        meas_date_stamp = _dt_to_stamp(_stamp_to_dt(meas_date_stamp) + delta_t)
+    return meas_date_stamp
+
+
+@verbose
+def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     """Anonymize measurement information in place.
+
+    .. warning:: If ``info`` is part of an object like
+                 :class:`raw.info <mne.io.Raw>`, you should directly use
+                 the method :meth:`raw.anonymize() <mne.io.Raw.anonymize>`
+                 to ensure that all parts of the data are anonymized and
+                 stay synchronized (e.g.,
+                 :class:`raw.annotations <mne.Annotations>`).
 
     Parameters
     ----------
@@ -1877,9 +2113,14 @@ def anonymize_info(info, daysback=None, keep_his=False):
     daysback : int | None
         Number of days to subtract from all dates.
         If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
+        This parameter is ignored if ``info['meas_date'] is None``.
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
+
+        .. warning:: This could mean that ``info`` is not fully
+                     anonymized. Use with caution.
+    %(verbose)s
 
     Returns
     -------
@@ -1907,6 +2148,9 @@ def anonymize_info(info, daysback=None, keep_his=False):
     - helium_info, device_info
           Dates use the meas_date logic, meta info uses defaults.
 
+    If ``info['meas_date']`` is None, it will remain None during processing
+    the above fields.
+
     Operates in place.
     """
     _validate_type(info, 'info', "self")
@@ -1918,25 +2162,39 @@ def anonymize_info(info, daysback=None, keep_his=False):
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
-    # datetime object representing meas_date
-    meas_date_datetime = _stamp_to_dt(info['meas_date'])
+    none_meas_date = info['meas_date'] is None
 
-    if daysback is None:
-        delta_t = meas_date_datetime - default_anon_dos
+    if none_meas_date:
+        warn('Input info has \'meas_date\' set to None.'
+             ' Removing all information from time/date structures.'
+             ' *NOT* performing any time shifts')
+        info['meas_date'] = None
     else:
-        delta_t = datetime.timedelta(days=daysback)
-
-    # adjust meas_date
-    info['meas_date'] = _dt_to_stamp(meas_date_datetime - delta_t)
+        # compute timeshift delta
+        if daysback is None:
+            delta_t = info['meas_date'] - default_anon_dos
+        else:
+            delta_t = datetime.timedelta(days=daysback)
+        # adjust meas_date
+        info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = info['meas_date'][0]
-            value['usecs'] = info['meas_date'][1]
-            value['machid'][:] = 0
+            if none_meas_date:
+                tmp = DATE_NONE
+            else:
+                tmp = _add_timedelta_to_stamp(
+                    (value['secs'], value['usecs']), -delta_t)
+            value['secs'] = tmp[0]
+            value['usecs'] = tmp[1]
+            # The following copy is needed for a test CTF dataset
+            # otherwise value['machid'][:] = 0 would suffice
+            _tmp = value['machid'].copy()
+            _tmp[:] = 0
+            value['machid'] = _tmp
 
     # subject info
     subject_info = info.get('subject_info')
@@ -1944,7 +2202,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            logger.warning('Not fully anonymizing info - keeping \'his_id\'')
+            logger.info('Not fully anonymizing info - keeping \'his_id\'')
         elif subject_info.get('his_id') is not None:
             subject_info['his_id'] = str(default_subject_id)
 
@@ -1952,7 +2210,10 @@ def anonymize_info(info, daysback=None, keep_his=False):
             if subject_info.get(key) is not None:
                 subject_info[key] = default_str
 
-        if subject_info.get('birthday') is not None:
+        # anonymize the subject birthday
+        if none_meas_date:
+            subject_info.pop('birthday', None)
+        elif subject_info.get('birthday') is not None:
             dob = datetime.datetime(subject_info['birthday'][0],
                                     subject_info['birthday'][1],
                                     subject_info['birthday'][2])
@@ -1967,7 +2228,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     info['description'] = default_desc
 
     if info['proj_id'] is not None:
-        info['proj_id'][:] = 0
+        info['proj_id'] = np.zeros_like(info['proj_id'])
     if info['proj_name'] is not None:
         info['proj_name'] = default_str
     if info['utc_offset'] is not None:
@@ -1976,25 +2237,45 @@ def anonymize_info(info, daysback=None, keep_his=False):
     proc_hist = info.get('proc_history')
     if proc_hist is not None:
         for record in proc_hist:
-            record['block_id']['secs'] = info['meas_date'][0]
-            record['block_id']['usecs'] = info['meas_date'][1]
             record['block_id']['machid'][:] = 0
-            record['date'] = info['meas_date']
             record['experimenter'] = default_str
+            if none_meas_date:
+                record['block_id']['secs'] = DATE_NONE[0]
+                record['block_id']['usecs'] = DATE_NONE[1]
+                record['date'] = DATE_NONE
+            else:
+                this_t0 = (record['block_id']['secs'],
+                           record['block_id']['usecs'])
+                this_t1 = _add_timedelta_to_stamp(
+                    this_t0, -delta_t)
+                record['block_id']['secs'] = this_t1[0]
+                record['block_id']['usecs'] = this_t1[1]
+                record['date'] = _add_timedelta_to_stamp(
+                    record['date'], -delta_t)
 
     hi = info.get('helium_info')
     if hi is not None:
         if hi.get('orig_file_guid') is not None:
             hi['orig_file_guid'] = default_str
-        if hi.get('meas_date') is not None:
-            hi['meas_date'] = [info['meas_date'][0],
-                               info['meas_date'][1]]
+        if none_meas_date and hi.get('meas_date') is not None:
+            hi['meas_date'] = DATE_NONE
+        elif hi.get('meas_date') is not None:
+            hi['meas_date'] = _add_timedelta_to_stamp(
+                hi['meas_date'], -delta_t)
 
     di = info.get('device_info')
     if di is not None:
         for k in ('serial', 'site'):
             if di.get(k) is not None:
                 di[k] = default_str
+
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
+                'Underlying Error:\n')
+    info._check_consistency(prepend_error=err_mesg)
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
+                'daysback parameter was too large.'
+                'Underlying Error:\n')
+    _check_dates(info, prepend_error=err_mesg)
 
     return info
 
@@ -2043,3 +2324,40 @@ def _bad_chans_comp(info, ch_names):
         return True, missing_ch_names
 
     return False, missing_ch_names
+
+
+_dig_cast = {'kind': int, 'ident': int, 'r': lambda x: x, 'coord_frame': int}
+_ch_cast = {'scanno': int, 'logno': int, 'kind': int,
+            'range': float, 'cal': float, 'coil_type': int,
+            'loc': lambda x: x, 'unit': int, 'unit_mul': int,
+            'ch_name': lambda x: x, 'coord_frame': int}
+
+
+@contextlib.contextmanager
+def _writing_info_hdf5(info):
+    # Make info writing faster by packing chs and dig into numpy arrays
+    orig_dig = info.get('dig', None)
+    orig_chs = info['chs']
+    try:
+        if orig_dig is not None and len(orig_dig) > 0:
+            info['dig'] = _dict_pack(info['dig'], _dig_cast)
+        info['chs'] = _dict_pack(info['chs'], _ch_cast)
+        info['chs']['ch_name'] = np.char.encode(
+            info['chs']['ch_name'], encoding='utf8')
+        yield
+    finally:
+        if orig_dig is not None:
+            info['dig'] = orig_dig
+        info['chs'] = orig_chs
+
+
+def _dict_pack(obj, casts):
+    # pack a list of dict into dict of array
+    return {key: np.array([o[key] for o in obj]) for key in casts}
+
+
+def _dict_unpack(obj, casts):
+    # unpack a dict of array into a list of dict
+    n = len(obj[list(casts)[0]])
+    return [{key: cast(obj[key][ii]) for key, cast in casts.items()}
+            for ii in range(n)]

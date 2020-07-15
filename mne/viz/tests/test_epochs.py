@@ -57,7 +57,7 @@ def test_plot_epochs_basic(capsys):
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title='Epochs')
     ticks = [x.get_text() for x in fig.axes[0].get_xticklabels()]
-    assert ticks == ['1']
+    assert ticks == ['0']
     plt.close('all')
     # covariance / whitening
     cov = read_cov(cov_fname)
@@ -174,9 +174,14 @@ def test_plot_epochs_image():
     `plt.close('all')` just before the offending test seems to prevent this
     warning, though it's unclear why.
     """
+    plt.close('all')
     epochs = _get_epochs()
     figs = epochs.plot_image()
     assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
+    assert len(plt.get_fignums()) == 2
+    figs = epochs.plot_image()
+    assert len(figs) == 2
+    assert len(plt.get_fignums()) == 4  # should create new figures
     epochs.plot_image(picks='mag', sigma=0.1)
     epochs.plot_image(picks=[0, 1], combine='mean',
                       ts_args=dict(show_sensors=False))
@@ -264,9 +269,12 @@ def test_plot_drop_log():
     pytest.raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad()
     epochs.plot_drop_log()
-    plot_drop_log([['One'], [], []])
-    plot_drop_log([['One'], ['Two'], []])
-    plot_drop_log([['One'], ['One', 'Two'], []])
+    plot_drop_log((('One',), (), ()))
+    plot_drop_log((('One',), ('Two',), ()))
+    plot_drop_log((('One',), ('One', 'Two'), ()))
+    for arg in ([], ([],), (1,)):
+        with pytest.raises(TypeError, match='tuple of tuple of str'):
+            plot_drop_log(arg)
     plt.close('all')
 
 
@@ -277,7 +285,7 @@ def test_plot_butterfly():
     sfreq = 1000.
     data = np.sin(rng.randn(n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, np.ones([n_epochs],
-                       dtype=np.int)]).T
+                       dtype=np.int64)]).T
     chanlist = ['eeg' if chan < n_channels // 3 else 'ecog'
                 if chan < n_channels // 2 else 'seeg'
                 for chan in range(n_channels)]
@@ -303,17 +311,32 @@ def test_plot_psd_epochs():
     epochs.plot_psd(average=True, spatial_colors=False)
     epochs.plot_psd(average=False, spatial_colors=True)
     epochs.plot_psd(average=False, spatial_colors=False)
-    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
-                  bands=[(0, 0.01, 'foo')])  # no freqs in range
-    epochs.plot_psd_topomap()
-
-    # with a flat channel
-    err_str = r'channel\(s\) (%s){1}\.' % epochs.ch_names[2]
+    # test plot_psd_topomap errors
+    with pytest.raises(RuntimeError, match='No frequencies in band'):
+        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+    # test vmin, vmax deprecation
+    with pytest.warns(DeprecationWarning, match='you didn\'t specify "vlim"'):
+        epochs.plot_psd_topomap(vmax=5)
+    with pytest.warns(DeprecationWarning, match='provided values for "vlim"'):
+        epochs.plot_psd_topomap(vmax=5, vlim=(None, 7))
+    plt.close('all')
+    # test defaults
+    fig = epochs.plot_psd_topomap()
+    assert len(fig.axes) == 10  # default: 5 bands (δ, θ, α, β, γ) + colorbars
+    # test joint vlim
+    fig = epochs.plot_psd_topomap(vlim='joint')
+    vmin_0 = fig.axes[0].images[0].norm.vmin
+    vmax_0 = fig.axes[0].images[0].norm.vmax
+    assert all(vmin_0 == ax.images[0].norm.vmin for ax in fig.axes[1:5])
+    assert all(vmax_0 == ax.images[0].norm.vmax for ax in fig.axes[1:5])
+    # test support for single-bin bands
+    fig = epochs.plot_psd_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
+    # test with a flat channel
+    err_str = 'for channel %s' % epochs.ch_names[2]
     epochs.get_data()[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
             epochs.plot_psd(dB=dB)
-
     plt.close('all')
 
 
@@ -354,9 +377,8 @@ def test_plot_psd_epochs_ctf():
     epochs.plot_psd_topomap()
 
     # EEG060 is flat in this dataset
-    err_str = r'channel\(s\) EEG060\.'
     for dB in [True, False]:
-        with pytest.warns(UserWarning, match=err_str):
+        with pytest.warns(UserWarning, match='for channel EEG060'):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)

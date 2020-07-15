@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 """Compute resolution matrix for linear estimators."""
+# Authors: olaf.hauk@mrc-cbu.cam.ac.uk
+#
+# License: BSD (3-clause)
 from copy import deepcopy
 
 import numpy as np
@@ -7,13 +11,12 @@ from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
 from mne.utils import logger, verbose
 from mne.forward.forward import convert_forward_solution
-
 from mne.minimum_norm import apply_inverse
 
 
 @verbose
-def make_resolution_matrix(forward, inverse_operator, method='dSPM',
-                           lambda2=1. / 9., verbose=None):
+def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
+                                   lambda2=1. / 9., verbose=None):
     """Compute resolution matrix for linear inverse operator.
 
     Parameters
@@ -48,19 +51,15 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
 
     # good channels
     ch_names = [c for c in inv['info']['ch_names'] if (c not in bads_inv)]
-
     fwd = pick_channels_forward(fwd, ch_names, ordered=True)
 
     # get leadfield matrix from forward solution
     leadfield = fwd['sol']['data']
-
     invmat = _get_matrix_from_inverse_operator(inv, fwd,
                                                method=method, lambda2=lambda2)
-
     resmat = invmat.dot(leadfield)
 
     logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
-
     return resmat
 
 
@@ -79,7 +78,7 @@ def _get_psf_ctf(resmat, src, idx, func='psf', norm=False):
         Whether to produce PSFs or CTFs. Defaults to psf.
     norm : bool
         Whether to normalise to maximum across all PSFs and CTFs (default:
-        False)
+        False).
 
     Returns
     -------
@@ -120,7 +119,7 @@ def get_point_spread(resmat, src, idx, norm=False):
     idx : list of int
         Vertex indices for which PSFs or CTFs to produce.
     norm : bool
-        Whether to normalise to maximum across all PSFs (default: False)
+        Whether to normalise to maximum across all PSFs (default: False).
 
     Returns
     -------
@@ -142,7 +141,7 @@ def get_cross_talk(resmat, src, idx, norm=False):
     idx : list of int
         Vertex indices for which PSFs or CTFs to produce.
     norm : bool
-        Whether to normalise to maximum across all CTFs (default: False)
+        Whether to normalise to maximum across all CTFs (default: False).
 
     Returns
     -------

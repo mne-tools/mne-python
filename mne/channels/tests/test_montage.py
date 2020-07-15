@@ -16,17 +16,17 @@ from string import ascii_lowercase
 from numpy.testing import (assert_array_equal,
                            assert_allclose, assert_equal)
 
-from mne import __file__ as _mne_file, create_info, read_evokeds
+from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
 from mne.utils._testing import _dig_sort_key
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
-                          read_dig_egi, read_dig_captrack, read_dig_fif,
+                          read_dig_egi, read_dig_captrak, read_dig_fif,
+                          read_dig_captrack,  # XXX: remove with 0.22
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
                           read_dig_polhemus_isotrak,
                           read_polhemus_fastscan,
                           read_dig_hpts)
-from mne.channels.montage import (_set_montage, transform_to_head,
-                                  _check_get_coord_frame)
+from mne.channels.montage import transform_to_head, _check_get_coord_frame
 from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
@@ -146,7 +146,7 @@ def test_documented():
 
 @pytest.mark.parametrize('reader, file_content, expected_dig, ext', [
     pytest.param(
-        partial(read_custom_montage, head_size=None, unit='m'),
+        partial(read_custom_montage, head_size=None),
         ('FidNz 0       9.071585155     -2.359754454\n'
          'FidT9 -6.711765       0.040402876     -3.251600355\n'
          'very_very_very_long_name -5.831241498 -4.494821698  4.955347697\n'
@@ -163,7 +163,7 @@ def test_documented():
         'sfp', id='sfp'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=1, unit='n/a'),
+        partial(read_custom_montage, head_size=1),
         ('1	       0	 0.50669	     FPz\n'
          '2	      23	 0.71	    	EOG1\n'
          '3	 -39.947	 0.34459	      F3\n'
@@ -180,8 +180,7 @@ def test_documented():
         'loc', id='EEGLAB'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=None, unit='m',
-                coord_frame='mri'),
+        partial(read_custom_montage, head_size=None, coord_frame='mri'),
         ('// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa: E501
          '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa: E501
          'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa: E501
@@ -200,7 +199,7 @@ def test_documented():
         'csd', id='matlab'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=None, unit='not_used'),
+        partial(read_custom_montage, head_size=None),
         ('# ASA electrode file\nReferenceLabel  avg\nUnitPosition    mm\n'
          'NumberPositions=    68\n'
          'Positions\n'
@@ -220,7 +219,7 @@ def test_documented():
         'elc', id='ASA electrode'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=1, unit='n/a'),
+        partial(read_custom_montage, head_size=1),
         ('Site  Theta  Phi\n'
          'Fp1  -92    -72\n'
          'Fp2   92     72\n'
@@ -238,12 +237,15 @@ def test_documented():
         'txt', id='generic theta-phi (txt)'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=None, unit='n/a'),
+        partial(read_custom_montage, head_size=None),
         ('346\n'  # XXX: this should actually race an error 346 != 4
-         'EEG\t      F3\t -62.027\t -50.053\t      85\n'
-         'EEG\t      Fz\t  45.608\t      90\t      85\n'
-         'EEG\t      F4\t   62.01\t  50.103\t      85\n'
-         'EEG\t      FCz\t   68.01\t  58.103\t      85\n'),
+         'FID\t      LPA\t -120.03\t      0\t      85\n'
+         'FID\t      RPA\t  120.03\t      0\t      85\n'
+         'FID\t      Nz\t   114.03\t     90\t      85\n'
+         'EEG\t      F3\t  -62.027\t -50.053\t     85\n'
+         'EEG\t      Fz\t   45.608\t      90\t     85\n'
+         'EEG\t      F4\t    62.01\t  50.103\t     85\n'
+         'EEG\t      FCz\t   68.01\t  58.103\t     85\n'),
         make_dig_montage(
             ch_pos={
                 'F3': [-0.48200427, 0.57551063, 0.39869712],
@@ -251,7 +253,9 @@ def test_documented():
                 'F4': [0.48142596, 0.57584026, 0.39891983],
                 'FCz': [0.41645989, 0.66914889, 0.31827805],
             },
-            nasion=None, lpa=None, rpa=None,
+            nasion=[4.75366562e-17, 7.76332511e-01, -3.46132681e-01],
+            lpa=[-7.35898963e-01, 9.01216309e-17, -4.25385374e-01],
+            rpa=[0.73589896, 0., -0.42538537],
         ),
         'elp', id='BESA spherical model'),
 
@@ -271,7 +275,7 @@ def test_documented():
         'hpts', id='legacy mne-c'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=None, unit='mm'),
+        partial(read_custom_montage, head_size=None),
         ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
          '<!-- Generated by EasyCap Configurator 19.05.2014 -->\n'
          '<Electrodes defaults="false">\n'
@@ -332,6 +336,9 @@ def test_montage_readers(
         assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
     for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
         assert d1['coord_frame'] == d2['coord_frame']
+        for key in ('coord_frame', 'ident', 'kind'):
+            assert isinstance(d1[key], int)
+            assert isinstance(d2[key], int)
 
 
 @testing.requires_testing_data
@@ -685,8 +692,8 @@ def test_set_dig_montage():
     assert repr(montage_ch_only) == (
         '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
     )
-    info = create_info(ch_names, sfreq=1, ch_types='eeg',
-                       montage=montage_ch_only)
+    info = create_info(ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage_ch_only)
     assert len(info['dig']) == len(montage_ch_only.dig)
 
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -706,7 +713,8 @@ def test_set_dig_montage():
         '<DigMontage | 2 extras (headshape), 1 HPIs, 3 fiducials, 4 channels>'
     )
 
-    info = create_info(ch_names, sfreq=1, ch_types='eeg', montage=montage_full)
+    info = create_info(ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage_full)
     EXPECTED_LEN = sum({'hsp': 2, 'hpi': 1, 'fid': 3, 'eeg': 4}.values())
     assert len(info['dig']) == EXPECTED_LEN
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -832,9 +840,9 @@ def _pop_montage(dig_montage, ch_name):
 
 
 @testing.requires_testing_data
-def test_read_dig_captrack(tmpdir):
-    """Test reading a captrack montage file."""
-    EXPECTED_CH_NAMES = [
+def test_read_dig_captrak(tmpdir):
+    """Test reading a captrak montage file."""
+    EXPECTED_CH_NAMES_OLD = [
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
         'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CPz', 'Cz', 'F1', 'F2', 'F3', 'F4',
         'F5', 'F6', 'F7', 'F8', 'FC1', 'FC2', 'FC3', 'FC4', 'FC5', 'FC6',
@@ -843,9 +851,27 @@ def test_read_dig_captrack(tmpdir):
         'PO4', 'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'REF', 'T7', 'T8', 'TP10',
         'TP7', 'TP8', 'TP9'
     ]
-    montage = read_dig_captrack(
+    EXPECTED_CH_NAMES = [
+        'T7', 'FC5', 'F7', 'C5', 'FT7', 'FT9', 'TP7', 'TP9', 'P7', 'CP5',
+        'PO7', 'C3', 'CP3', 'P5', 'P3', 'PO3', 'PO9', 'O1', 'Oz', 'POz', 'O2',
+        'PO4', 'P1', 'Pz', 'P2', 'CP2', 'CP1', 'CPz', 'Cz', 'C1', 'FC1', 'FC3',
+        'REF', 'F3', 'F1', 'Fz', 'F5', 'AF7', 'AF3', 'Fp1', 'GND', 'F2', 'AF4',
+        'Fp2', 'F4', 'F8', 'F6', 'AF8', 'FC2', 'FC6', 'FC4', 'C2', 'C4', 'P4',
+        'CP4', 'PO8', 'P8', 'P6', 'CP6', 'PO10', 'TP10', 'TP8', 'FT10', 'T8',
+        'C6', 'FT8'
+    ]
+    assert set(EXPECTED_CH_NAMES) == set(EXPECTED_CH_NAMES_OLD)
+    montage = read_dig_captrak(
         fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
     )
+
+    # XXX: remove with 0.22 once captrCK is deprecated
+    with pytest.warns(DeprecationWarning,
+                      match='read_dig_captrack is deprecated'):
+        montage2 = read_dig_captrack(
+            fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
+        )
+        assert repr(montage) == repr(montage2)
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (
@@ -878,21 +904,58 @@ def test_read_dig_captrack(tmpdir):
                             [-0.005103, 0.05395, 0.144622], rtol=1e-04)
 
 
-def test_set_montage():
+# https://gist.github.com/larsoner/2264fb5895070d29a8c9aa7c0dc0e8a6
+_MGH60 = [
+    'Fz', 'F2', 'AF4', 'Fpz', 'Fp1', 'AF8', 'FT9', 'F7', 'FC5', 'FC6', 'FT7',
+    'F1', 'AF7', 'FT8', 'F6', 'F5', 'FC1', 'FC2', 'FT10', 'T9', 'Cz', 'F4',
+    'T7', 'C2', 'C4', 'C1', 'C3', 'F8', 'F3', 'C5', 'Fp2', 'AF3',
+    'CP2', 'P2', 'O2', 'Iz', 'Oz', 'PO4', 'O1', 'P8', 'PO8', 'P6', 'PO7', 'PO3', 'C6', 'TP9', 'TP8', 'CP4', 'P4',  # noqa
+    'CP3', 'CP1', 'TP7', 'P3', 'Pz', 'P1', 'P7', 'P5', 'TP10', 'T8', 'T10',
+]
+
+
+@pytest.mark.parametrize('rename', ('raw', 'montage', 'custom'))
+def test_set_montage_mgh(rename):
     """Test setting 'mgh60' montage to old fif."""
     raw = read_raw_fif(fif_fname)
-    raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
+    eeg_picks = pick_types(raw.info, meg=False, eeg=True, exclude=())
+    assert list(eeg_picks) == [ii for ii, name in enumerate(raw.ch_names)
+                               if name.startswith('EEG')]
+    orig_pos = np.array([raw.info['chs'][pick]['loc'][:3]
+                         for pick in eeg_picks])
+    atol = 1e-6
+    if rename == 'raw':
+        raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
+        raw.set_montage('mgh60')  # test loading with string argument
+    elif rename == 'montage':
+        mon = make_standard_montage('mgh60')
+        mon.rename_channels(lambda x: x.replace('EEG', 'EEG '))
+        assert [raw.ch_names[pick] for pick in eeg_picks] == mon.ch_names
+        raw.set_montage(mon)
+    else:
+        atol = 3e-3  # XXX old defs here apparently (maybe not realistic)?
+        assert rename == 'custom'
+        assert len(_MGH60) == 60
+        mon = make_standard_montage('standard_1020')
 
-    orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
-                         if ch['ch_name'].startswith('EEG')])
+        def renamer(x):
+            try:
+                return 'EEG %03d' % (_MGH60.index(x) + 1,)
+            except ValueError:
+                return x
 
-    raw.set_montage('mgh60')  # test loading with string argument
+        mon.rename_channels(renamer)
+        raw.set_montage(mon)
+
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert ((orig_pos != new_pos).all())
 
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0.000775, 0.006881, 0.047398], atol=1e-3)
+    # spot check
+    assert_allclose(new_pos[:2], [[0.000273, 0.084920, 0.105838],
+                                  [0.028822, 0.083529, 0.099164]], atol=atol)
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig
@@ -921,6 +984,7 @@ def _fake_montage(ch_names):
     pos = np.random.RandomState(42).randn(len(ch_names), 3)
     return make_dig_montage(ch_pos=dict(zip(ch_names, pos)),
                             coord_frame='head')
+
 
 cnt_ignore_warns = [
     pytest.mark.filterwarnings(
@@ -997,7 +1061,7 @@ def test_transform_to_head_and_compute_dev_head_t():
         assert_allclose(fids[kk], EXPECTED_FID_IN_HEAD[kk], atol=1e-5)
 
     dev_head_t = compute_dev_head_t(montage)
-    assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=1e-7)
+    assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=5e-7)
 
     # Test errors when number of HPI points do not match
     EXPECTED_ERR_MSG = 'Device-to-Head .*Got 0 .*device and 5 points in head'
@@ -1024,13 +1088,38 @@ def test_set_montage_with_mismatching_ch_names():
     montage = make_standard_montage('mgh60')
 
     # 'EEG 001' and 'EEG001' won't match
-    with pytest.raises(ValueError, match='60 channel positions not present'):
+    missing_err = '60 channel positions not present'
+    with pytest.raises(ValueError, match=missing_err):
         raw.set_montage(montage)
 
     montage.ch_names = [  # modify the names in place
         name.replace('EEG', 'EEG ') for name in montage.ch_names
     ]
     raw.set_montage(montage)  # does not raise
+
+    # Case sensitivity
+    raw.rename_channels(lambda x: x.lower())
+    with pytest.raises(ValueError, match=missing_err):
+        raw.set_montage(montage)
+    # should work
+    raw.set_montage(montage, match_case=False)
+    raw.rename_channels(lambda x: x.upper())  # restore
+    assert 'EEG 001' in raw.ch_names and 'eeg 001' not in raw.ch_names
+    raw.rename_channels({'EEG 002': 'eeg 001'})
+    assert 'EEG 001' in raw.ch_names and 'eeg 001' in raw.ch_names
+    raw.set_channel_types({'eeg 001': 'misc'})
+    raw.set_montage(montage)
+    raw.set_channel_types({'eeg 001': 'eeg'})
+    with pytest.raises(ValueError, match='1 channel position not present'):
+        raw.set_montage(montage)
+    with pytest.raises(ValueError, match='match_case=False as 1 channel name'):
+        raw.set_montage(montage, match_case=False)
+    info = create_info(['EEG 001'], 1000., 'eeg')
+    mon = make_dig_montage({'EEG 001': np.zeros(3), 'eeg 001': np.zeros(3)},
+                           nasion=[0, 1., 0], rpa=[1., 0, 0], lpa=[-1., 0, 0])
+    info.set_montage(mon)
+    with pytest.raises(ValueError, match='match_case=False as 1 montage name'):
+        info.set_montage(mon, match_case=False)
 
 
 def test_set_montage_with_sub_super_set_of_ch_names():
@@ -1039,22 +1128,19 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
 
     # montage and info match
-    _ = create_info(
-        ch_names=list('abcdef'), sfreq=1, ch_types='eeg', montage=montage
-    )
+    info = create_info(ch_names=list('abcdef'), sfreq=1, ch_types='eeg')
+    info.set_montage(montage)
 
     # montage is a SUPERset of info
-    info = create_info(
-        ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
-    )
+    info = create_info(list('abc'), sfreq=1, ch_types='eeg')
+    info.set_montage(montage)
     assert len(info['dig']) == len(list('abc'))
 
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
+    info = create_info(ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg')
     with pytest.raises(ValueError, match=_MSG):
-        _ = create_info(
-            ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
-        )
+        info.set_montage(montage)
 
 
 def test_heterogeneous_ch_type():
@@ -1067,12 +1153,8 @@ def test_heterogeneous_ch_type():
     )
 
     # Montage and info match
-    _ = create_info(
-        ch_names=montage.ch_names,
-        ch_types=list(VALID_MONTAGE_NAMED_CHS),
-        montage=montage,
-        sfreq=1,
-    )
+    info = create_info(montage.ch_names, 1., list(VALID_MONTAGE_NAMED_CHS))
+    RawArray(np.zeros((3, 1)), info, copy=None).set_montage(montage)
 
 
 def test_set_montage_coord_frame_in_head_vs_unknown():
@@ -1104,8 +1186,7 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
         ]
     )
 
-    _MSG = 'Points have to be provided as one dimensional arrays of length 3.'
-    with pytest.raises(ValueError, match=_MSG):
+    with pytest.warns(RuntimeWarning, match='assuming identity'):
         raw.set_montage(montage_in_unknown)
 
     raw.set_montage(montage_in_unknown_with_fid)
@@ -1126,29 +1207,42 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     )
 
 
-def test_set_dig_montage_parameters_deprecation():
-    """Test parameter deprecation for set_montage."""
-    # XXX: This is testing deprecated behavior and should be removed in 0.21.
-    N_CHANNELS = 3
+def test_set_montage_with_missing_coordinates():
+    """Test set montage with missing coordinates."""
+    N_CHANNELS, NaN = 3, np.nan
+
     raw = _make_toy_raw(N_CHANNELS)
-    montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
+    raw.set_channel_types({ch: 'ecog' for ch in raw.ch_names})
+    # don't include all the channels
+    ch_names = raw.ch_names[1:]
+    n_channels = len(ch_names)
+    ch_coords = np.arange(n_channels * 3).reshape(n_channels, 3)
+    montage_in_mri = make_dig_montage(
+        ch_pos=dict(zip(ch_names, ch_coords,)),
+        coord_frame='unknown',
+        nasion=[0, 1, 0], lpa=[1, 0, 0], rpa=[-1, 0, 0],
+    )
 
-    # ok
-    raw.set_montage(montage)
+    with pytest.raises(ValueError, match='DigMontage is '
+                                         'only a subset of info'):
+        raw.set_montage(montage_in_mri)
 
-    with pytest.deprecated_call():
-        raw.set_montage(montage, raise_if_subset=True)
+    with pytest.raises(ValueError, match='Invalid value'):
+        raw.set_montage(montage_in_mri, on_missing=True)
 
-    _msg = 'since 0.20 its value can only be True.'
-    with pytest.raises(ValueError, match=_msg):
-        raw.set_montage(montage, raise_if_subset=False)
+    with pytest.warns(RuntimeWarning, match='DigMontage is '
+                                            'only a subset of info'):
+        raw.set_montage(montage_in_mri, on_missing='warn')
 
-    # Already deleted parameters in 0.20, just for completeness
-    with pytest.raises(TypeError, match='unexpected keyword argument'):
-        raw.set_montage(montage, set_dig=True)
-
-    with pytest.raises(TypeError, match='unexpected keyword argument'):
-        _set_montage(raw.info, montage, update_ch_names=False)
+    raw.set_montage(montage_in_mri, on_missing='ignore')
+    assert_allclose(
+        actual=np.array([ch['loc'] for ch in raw.info['chs']]),
+        desired=[
+            [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+            [0., 1., -2., 0., 0., 0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [-3., 4., -5., 0., 0., 0., NaN, NaN, NaN, NaN, NaN, NaN],
+        ]
+    )
 
 
 def test_read_dig_hpts():

@@ -10,16 +10,18 @@ import numpy as np
 from shutil import copyfile
 
 import pytest
-
 from numpy.testing import assert_allclose, assert_array_equal
+
 from mne.annotations import events_from_annotations
+from mne.bem import _fit_sphere
 from mne.datasets import testing
 from mne.event import find_events
+from mne.io import _loc_to_coil_trans
 from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
-from mne.utils import check_version, run_tests_if_main
+from mne.utils import check_version, run_tests_if_main, catch_logging
 from mne.annotations import read_annotations
 from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
                                 _read_events_curry, FILE_EXTENSIONS)
@@ -88,6 +90,108 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         raw.get_data(picks=picks, start=start, stop=stop),
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol)
+    assert raw.info['dev_head_t'] is None
+
+
+# These values taken from a different recording but allow us to test
+# using our existing filres
+
+HPI_CONTENT = """\
+FileVersion:	804
+NumCoils:	10
+
+0	1	-50.67	50.98	133.15	0.006406		1	46.45	51.51	143.15	0.006789		1	39.38	-26.67	155.51	0.008034		1	-36.72	-39.95	142.83	0.007700		1	1.61	16.95	172.76	0.001788		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000
+"""  # noqa: E501
+
+
+LM_CONTENT = """
+
+LANDMARKS_MAG1 START
+   ListDescription      = functional landmark positions
+   ListUnits            = mm
+   ListNrColumns        =  3
+   ListNrRows           =  8
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  1
+   ListTrafoType        =  1
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+LANDMARKS_MAG1 END
+
+LANDMARKS_MAG1 START_LIST	# Do not edit!
+  75.4535	 5.32907e-15	 2.91434e-16
+  1.42109e-14	-75.3212	 9.71445e-16
+ -74.4568	-1.42109e-14	 2.51188e-15
+ -59.7558	 35.5804	 66.822
+  43.15	 43.4107	 78.0027
+  38.8415	-41.1884	 81.9941
+ -36.683	-59.5119	 66.4338
+ -1.07259	-1.88025	 103.747
+LANDMARKS_MAG1 END_LIST
+
+LM_INDICES_MAG1 START
+   ListDescription      = functional landmark PAN info
+   ListUnits            =
+   ListNrColumns        =  1
+   ListNrRows           =  3
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  0
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+LM_INDICES_MAG1 END
+
+LM_INDICES_MAG1 START_LIST	# Do not edit!
+  2
+  1
+  3
+LM_INDICES_MAG1 END_LIST
+
+LM_REMARKS_MAG1 START
+   ListDescription      = functional landmark labels
+   ListUnits            =
+   ListNrColumns        =  40
+   ListNrRows           =  8
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  5
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+LM_REMARKS_MAG1 END
+
+LM_REMARKS_MAG1 START_LIST	# Do not edit!
+Left ear
+Nasion
+Right ear
+HPI1
+HPI2
+HPI3
+HPI4
+HPI5
+LM_REMARKS_MAG1 END_LIST
+
+"""
+
+WANT_TRANS = np.array(
+    [[0.99729224, -0.07353067, -0.00119791, 0.00126953],
+     [0.07319243, 0.99085848, 0.11332405, 0.02670814],
+     [-0.00714583, -0.11310488, 0.99355736, 0.04721836],
+     [0., 0., 0., 1.]])
 
 
 @testing.requires_testing_data
@@ -95,11 +199,35 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     pytest.param(curry7_rfDC_file, 1e-6, id='curry 7'),
     pytest.param(curry8_rfDC_file, 1e-3, id='curry 8'),
 ])
-def test_read_raw_curry_rfDC(fname, tol):
+@pytest.mark.parametrize('mock_dev_head_t', [True, False])
+def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmpdir):
     """Test reading CURRY files."""
+    if mock_dev_head_t:
+        if 'Curry 7' in fname:  # not supported yet
+            return
+        # copy files to tmpdir
+        base = op.splitext(fname)[0]
+        for ext in ('.cdt', '.cdt.dpa'):
+            src = base + ext
+            dst = op.join(tmpdir, op.basename(base) + ext)
+            copyfile(src, dst)
+            if ext == '.cdt.dpa':
+                with open(dst, 'a') as fid:
+                    fid.write(LM_CONTENT)
+        fname = op.join(tmpdir, op.basename(fname))
+        with open(fname + '.hpi', 'w') as fid:
+            fid.write(HPI_CONTENT)
+
     # check data
     bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
-    raw = read_raw_curry(fname)
+    with catch_logging() as log:
+        raw = read_raw_curry(fname, verbose=True)
+    log = log.getvalue()
+    if mock_dev_head_t:
+        assert 'Composing device' in log
+    else:
+        assert 'Leaving device' in log
+        assert 'no landmark' in log
 
     # test on the eeg chans, since these were not renamed by curry
     eeg_names = [ch["ch_name"] for ch in raw.info["chs"]
@@ -107,6 +235,43 @@ def test_read_raw_curry_rfDC(fname, tol):
 
     assert_allclose(raw.get_data(eeg_names),
                     bti_rfDC.get_data(eeg_names), rtol=tol)
+    assert bti_rfDC.info['dev_head_t'] is not None  # XXX probably a BTI bug
+    if mock_dev_head_t:
+        assert raw.info['dev_head_t'] is not None
+        assert_allclose(raw.info['dev_head_t']['trans'], WANT_TRANS, atol=1e-5)
+    else:
+        assert raw.info['dev_head_t'] is None
+
+    # check that most MEG sensors are approximately oriented outward from
+    # the device origin
+    n_meg = n_eeg = n_other = 0
+    pos = list()
+    nn = list()
+    for ch in raw.info['chs']:
+        if ch['kind'] == FIFF.FIFFV_MEG_CH:
+            assert ch['coil_type'] == FIFF.FIFFV_COIL_CTF_GRAD
+            t = _loc_to_coil_trans(ch['loc'])
+            pos.append(t[:3, 3])
+            nn.append(t[:3, 2])
+            assert_allclose(np.linalg.norm(nn[-1]), 1.)
+            n_meg += 1
+        elif ch['kind'] == FIFF.FIFFV_EEG_CH:
+            assert ch['coil_type'] == FIFF.FIFFV_COIL_EEG
+            n_eeg += 1
+        else:
+            assert ch['coil_type'] == FIFF.FIFFV_COIL_NONE
+            n_other += 1
+    assert n_meg == 148
+    assert n_eeg == 31
+    assert n_other == 15
+    pos = np.array(pos)
+    nn = np.array(nn)
+    rad, origin = _fit_sphere(pos, disp=False)
+    assert 0.11 < rad < 0.13
+    pos -= origin
+    pos /= np.linalg.norm(pos, axis=1, keepdims=True)
+    angles = np.abs(np.rad2deg(np.arccos((pos * nn).sum(-1))))
+    assert (angles < 20).sum() > 100
 
 
 @testing.requires_testing_data
@@ -122,6 +287,7 @@ def test_read_events_curry_are_same_as_bdf(fname):
     raw = read_raw_curry(fname)
     events, _ = events_from_annotations(raw, event_id=EVENT_ID)
     assert_allclose(events, REF_EVENTS)
+    assert raw.info['dev_head_t'] is None
 
 
 def test_check_missing_files():
@@ -131,8 +297,10 @@ def test_check_missing_files():
     with pytest.raises(IOError, match="file type .*? must end with"):
         _read_events_curry(invalid_fname)
 
-    with pytest.raises(FileNotFoundError, match="files cannot be found"):
+    with pytest.raises(FileNotFoundError, match='does not exist'):
         _get_curry_file_structure(invalid_fname)
+
+    with pytest.raises(FileNotFoundError, match="files cannot be found"):
         _get_curry_file_structure(missing_event_file,
                                   required=["info", "events"])
 

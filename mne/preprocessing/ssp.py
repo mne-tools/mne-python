@@ -8,9 +8,10 @@ import copy as cp
 
 import numpy as np
 
-from .. import Epochs, compute_proj_evoked, compute_proj_epochs
+from ..epochs import Epochs
+from ..proj import compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose, warn
-from .. import pick_types
+from ..io.pick import pick_types
 from ..io import make_eeg_average_ref_proj
 from .ecg import find_ecg_events
 from .eog import find_eog_events
@@ -178,7 +179,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     filter_length : str | int | None
         Number of taps to use for filtering.
     %(n_jobs)s
-    ch_name : string (or None)
+    ch_name : str | None
         Channel to use for ECG detection (Required if no ECG found).
     reject : dict | None
         Epoch rejection configuration (see Epochs).
@@ -315,7 +316,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    ch_name: str | None
+    ch_name : str | None
         If not None, specify EOG channel name.
     copy : bool
         If False, filtering raw data is done in place. Defaults to True.

@@ -40,14 +40,15 @@ raw.plot_projs_topomap()
 
 ###############################################################################
 # Display the projections one by one
-fig, axes = plt.subplots(1, len(empty_room_proj))
+n_cols = len(empty_room_proj)
+fig, axes = plt.subplots(1, n_cols, figsize=(2 * n_cols, 2))
 for proj, ax in zip(empty_room_proj, axes):
-    proj.plot_topomap(axes=ax)
+    proj.plot_topomap(axes=ax, info=raw.info)
 
 ###############################################################################
 # Use the function in `mne.viz` to display a list of projections
 assert isinstance(empty_room_proj, list)
-mne.viz.plot_projs_topomap(empty_room_proj)
+mne.viz.plot_projs_topomap(empty_room_proj, info=raw.info)
 
 ###############################################################################
 # .. TODO: add this when the tutorial is up: "As shown in the tutorial
@@ -61,32 +62,3 @@ ecg_projs = read_proj(ecg_fname)
 # add them to raw and plot everything
 raw.add_proj(ecg_projs)
 raw.plot_projs_topomap()
-
-###############################################################################
-# Displaying the projections from a raw object requires no extra information
-# since all the layout information is present in `raw.info`.
-# MNE is able to automatically determine the layout for some magnetometer and
-# gradiometer configurations but not the layout of EEG electrodes.
-#
-# Here we display the `ecg_projs` individually and we provide extra parameters
-# for EEG. (Notice that planar projection refers to the gradiometers and axial
-# refers to magnetometers.)
-#
-# Notice that the conditional is just for illustration purposes. We could
-# `raw.info` in all cases to avoid the guesswork in `plot_topomap` and ensure
-# that the right layout is always found
-fig, axes = plt.subplots(1, len(ecg_projs))
-for proj, ax in zip(ecg_projs, axes):
-    if proj['desc'].startswith('ECG-eeg'):
-        proj.plot_topomap(axes=ax, info=raw.info)
-    else:
-        proj.plot_topomap(axes=ax)
-
-###############################################################################
-# The correct layout or a list of layouts from where to choose can also be
-# provided. Just for illustration purposes, here we generate the
-# `possible_layouts` from the raw object itself, but it can come from somewhere
-# else.
-possible_layouts = [mne.find_layout(raw.info, ch_type=ch_type)
-                    for ch_type in ('grad', 'mag', 'eeg')]
-mne.viz.plot_projs_topomap(ecg_projs, layout=possible_layouts)

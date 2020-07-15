@@ -1,9 +1,0 @@
-.highlight a {
-    color: rgb(41, 122, 204);
-}
-.highlight * {
-    color: inherit;
-    font-weight: inherit;
-    font-style: inherit;
-    background-color: #fafafa;
-}

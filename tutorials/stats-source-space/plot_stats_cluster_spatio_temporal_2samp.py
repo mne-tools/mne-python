@@ -18,7 +18,7 @@ import numpy as np
 from scipy import stats as stats
 
 import mne
-from mne import spatial_src_connectivity
+from mne import spatial_src_adjacency
 from mne.stats import spatio_temporal_cluster_test, summarize_clusters_stc
 from mne.datasets import sample
 
@@ -44,7 +44,7 @@ morph = mne.compute_source_morph(stc, 'sample', 'fsaverage',
                                  subjects_dir=subjects_dir)
 stc = morph.apply(stc)
 n_vertices_fsave, n_times = stc.data.shape
-tstep = stc.tstep
+tstep = stc.tstep * 1000  # convert to milliseconds
 
 n_subjects1, n_subjects2 = 7, 9
 print('Simulating data for %d and %d subjects.' % (n_subjects1, n_subjects2))
@@ -66,9 +66,9 @@ X2 = np.abs(X2)  # only magnitude
 # -----------------
 #
 # To use an algorithm optimized for spatio-temporal clustering, we
-# just pass the spatial connectivity matrix (instead of spatio-temporal)
-print('Computing connectivity.')
-connectivity = spatial_src_connectivity(src)
+# just pass the spatial adjacency matrix (instead of spatio-temporal)
+print('Computing adjacency.')
+adjacency = spatial_src_adjacency(src)
 
 #    Note that X needs to be a list of multi-dimensional array of shape
 #    samples (subjects_k) x time x space, so we permute dimensions
@@ -83,7 +83,7 @@ f_threshold = stats.distributions.f.ppf(1. - p_threshold / 2.,
                                         n_subjects1 - 1, n_subjects2 - 1)
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu =\
-    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
+    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
                                  threshold=f_threshold, buffer_size=None)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).
@@ -108,5 +108,5 @@ subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A != condition B
 brain = stc_all_cluster_vis.plot('fsaverage', hemi='both',
                                  views='lateral', subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)',
+                                 time_label='temporal extent (ms)',
                                  clim=dict(kind='value', lims=[0, 1, 40]))

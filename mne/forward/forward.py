@@ -12,7 +12,7 @@ from copy import deepcopy
 import re
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import sparse
 
 import shutil
 import os
@@ -37,20 +37,29 @@ from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _set_source_space_vertices,
-                            _write_source_spaces_to_fid)
+                            _write_source_spaces_to_fid, _get_src_nn)
 from ..source_estimate import _BaseSourceEstimate
+from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units)
+                     _check_stc_units, _stamp_to_dt)
 from ..label import Label
 from ..fixes import einsum
 
 
 class Forward(dict):
-    """Forward class to represent info from forward solution."""
+    """Forward class to represent info from forward solution.
+
+    Attributes
+    ----------
+    ch_names : list of str
+        List of channels' names.
+
+        .. versionadded:: 0.20.0
+    """
 
     def copy(self):
         """Copy the Forward instance."""
@@ -99,6 +108,36 @@ class Forward(dict):
 
         return entr
 
+    @property
+    def ch_names(self):
+        return self['info']['ch_names']
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this forward operator.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to include.
+        ordered : bool
+            If true (default False), treat ``include`` as an ordered list
+            rather than a set.
+
+        Returns
+        -------
+        fwd : instance of Forward.
+            The modified forward model.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_forward(self, ch_names, exclude=[],
+                                     ordered=ordered, copy=False,
+                                     verbose=False)
+
 
 def _block_diag(A, n):
     """Construct a block diagonal from a packed structure.
@@ -136,58 +175,12 @@ def _block_diag(A, n):
     if na % n > 0:
         raise ValueError('Width of matrix must be a multiple of n')
 
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
+    tmp = np.arange(ma * bdn, dtype=np.int64).reshape(bdn, ma)
     tmp = np.tile(tmp, (1, n))
     ii = tmp.ravel()
 
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
-    jj = jj.T.ravel()  # column indices foreach sparse bd
-
-    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
-
-    return bd
-
-
-def _inv_block_diag(A, n):
-    """Construct an inverse block diagonal from a packed structure.
-
-    You have to try it on a matrix to see what it's doing.
-
-    "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
-    Each submatrix is ma x "n", and the inverses of these submatrices
-    are placed down the diagonal of the matrix.
-
-    Parameters
-    ----------
-    A : array
-        The matrix.
-    n : int
-        The block size.
-
-    Returns
-    -------
-    bd : sparse matrix
-        The block diagonal matrix.
-    """
-    ma, na = A.shape
-    bdn = na // int(n)  # number of submatrices
-
-    if na % n > 0:
-        raise ValueError('Width of matrix must be a multiple of n')
-
-    # modify A in-place to invert each sub-block
-    A = A.copy()
-    for start in range(0, na, 3):
-        # this is a view
-        A[:, start:start + 3] = linalg.inv(A[:, start:start + 3])
-
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
-    tmp = np.tile(tmp, (1, n))
-    ii = tmp.ravel()
-
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
+    jj = np.arange(na, dtype=np.int64)[None, :]
+    jj = jj * np.ones(ma, dtype=np.int64)[:, None]
     jj = jj.T.ravel()  # column indices foreach sparse bd
 
     bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
@@ -337,7 +330,7 @@ def _read_forward_meas_info(tree, fid):
     if tag is None:
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
-    info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
+    info['custom_ref_applied'] = int(tag.data) if tag is not None else False
     info._check_consistency()
     return info
 
@@ -389,7 +382,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -fwd.fif or -fwd.fif.gz.
     include : list, optional
         List of names of channels to include. If empty all channels
@@ -578,12 +571,10 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
     force_fixed : bool, optional (default False)
-        Force fixed source orientation mode?
+        If True, force fixed source orientation mode.
     copy : bool
         Whether to return a new instance or modify in place.
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when surf_ori and/or force_fixed are True.
+    %(use_cps)s
     %(verbose)s
 
     Returns
@@ -603,20 +594,16 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             'possible. Consider using a discrete source space if you have '
             'meaningful normal orientations.')
 
-    if surf_ori:
-        if use_cps:
-            if any(s.get('patch_inds') is not None for s in fwd['src']):
-                use_ave_nn = True
-                logger.info('    Average patch normals will be employed in '
-                            'the rotation to the local surface coordinates..'
-                            '..')
-            else:
-                use_ave_nn = False
-                logger.info('    No patch info available. The standard source '
-                            'space normals will be employed in the rotation '
-                            'to the local surface coordinates....')
+    if surf_ori and use_cps:
+        if any(s.get('patch_inds') is not None for s in fwd['src']):
+            logger.info('    Average patch normals will be employed in '
+                        'the rotation to the local surface coordinates..'
+                        '..')
         else:
-            use_ave_nn = False
+            use_cps = False
+            logger.info('    No patch info available. The standard source '
+                        'space normals will be employed in the rotation '
+                        'to the local surface coordinates....')
 
     # We need to change these entries (only):
     # 1. source_nn
@@ -626,9 +613,9 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
 
-    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_ave_nn):
+    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_cps):
         # Fixed
-        fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
+        fwd['source_nn'] = np.concatenate([_get_src_nn(s, use_cps)
                                            for s in fwd['src']], axis=0)
         if not is_fixed_orient(fwd, orig=True):
             logger.info('    Changing to fixed-orientation forward '
@@ -654,20 +641,11 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         pp = 0
         for s in fwd['src']:
             if s['type'] in ['surf', 'discrete']:
-                for p in range(s['nuse']):
-                    #  Project out the surface normal and compute SVD
-                    if use_ave_nn and s.get('patch_inds') is not None:
-                        nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
-                        nn = np.sum(nn, axis=0)[:, np.newaxis]
-                        nn /= linalg.norm(nn)
-                    else:
-                        nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
-                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                    #  Make sure that ez is in the direction of nn
-                    if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
-                        U *= -1.0
-                    fwd['source_nn'][pp:pp + 3, :] = U.T
-                    pp += 3
+                nn = _get_src_nn(s, use_cps)
+                stop = pp + 3 * s['nuse']
+                fwd['source_nn'][pp:stop] = _normal_orth(nn).reshape(-1, 3)
+                pp = stop
+                del nn
             else:
                 pp += 3 * s['nuse']
 
@@ -699,7 +677,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     else:  # Free, cartesian
         logger.info('    Cartesian source orientations...')
-        fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
+        fwd['source_nn'] = np.tile(np.eye(3), (fwd['nsource'], 1))
         fwd['sol']['data'] = fwd['_orig_sol'].copy()
         fwd['sol']['ncol'] = 3 * fwd['nsource']
         if fwd['sol_grad'] is not None:
@@ -1016,7 +994,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     if not (0 <= loose <= 1):
         raise ValueError('loose value should be between 0 and 1, '
                          'got %s.' % (loose,))
-    orient_prior = np.ones(n_sources, dtype=np.float)
+    orient_prior = np.ones(n_sources, dtype=np.float64)
     if loose > 0.:
         if is_fixed_ori:
             raise ValueError('loose must be 0. with forward operator '
@@ -1137,7 +1115,6 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
           Use all channels. Not recommended since the depth weighting will be
           biased toward whichever channel type has the largest values in
           SI units (such as EEG being orders of magnitude larger than MEG).
-
     """
     from ..cov import Covariance, compute_whitener
     _validate_type(forward, Forward, 'forward')
@@ -1233,7 +1210,7 @@ def _stc_src_sel(src, stc, on_missing='raise',
         vertices = stc
     else:
         assert isinstance(stc, _BaseSourceEstimate)
-        vertices = stc._vertices_list
+        vertices = stc.vertices
     del stc
     if not len(src) == len(vertices):
         raise RuntimeError('Mismatch between number of source spaces (%s) and '
@@ -1282,11 +1259,9 @@ def _fill_measurement_info(info, fwd, sfreq):
     sec = np.floor(now)
     usec = 1e6 * (now - sec)
 
-    info['meas_date'] = (int(sec), int(usec))
-    info['highpass'] = 0.0
-    info['lowpass'] = sfreq / 2.0
-    info['sfreq'] = sfreq
-    info['projs'] = []
+    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
+                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
+    info._check_consistency()
 
     return info
 
@@ -1334,7 +1309,6 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     which the original data was acquired. An exception will be raised if the
     forward operator contains channels that are not present in the template.
 
-
     Parameters
     ----------
     fwd : Forward
@@ -1347,9 +1321,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations when converting to fixed orientation (if necessary).
+    %(use_cps)s
 
         .. versionadded:: 0.15
     %(on_missing)s Default is "raise".
@@ -1366,6 +1338,10 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
+    _validate_type(info, Info, 'info')
+    _validate_type(fwd, Forward, 'forward')
+    info._check_consistency()
+
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:
@@ -1384,8 +1360,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked = EvokedArray(data, info_out, times[0], nave=1)
 
     evoked.times = times
-    evoked.first = int(np.round(evoked.times[0] * sfreq))
-    evoked.last = evoked.first + evoked.data.shape[1] - 1
+    evoked._update_first_last()
 
     return evoked
 
@@ -1841,7 +1816,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
 
 @verbose
-def average_forward_solutions(fwds, weights=None):
+def average_forward_solutions(fwds, weights=None, verbose=None):
     """Average forward solutions.
 
     Parameters
@@ -1853,6 +1828,7 @@ def average_forward_solutions(fwds, weights=None):
         Weights to apply to each forward solution in averaging. If None,
         forward solutions will be equally weighted. Weights must be
         non-negative, and will be adjusted to sum to one.
+    %(verbose)s
 
     Returns
     -------

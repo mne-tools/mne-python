@@ -29,3 +29,7 @@ coo
 hist
 datas
 dof
+nwe
+thead
+sherif
+master

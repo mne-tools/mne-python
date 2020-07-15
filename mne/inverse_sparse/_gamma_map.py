@@ -9,7 +9,7 @@ from ..forward import is_fixed_orient
 
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
-from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
+from .mxne_inverse import (_check_ori, _make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
                            _make_dipoles_sparse)
 
@@ -51,7 +51,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     M = M.copy()
 
     if gammas is None:
-        gammas = np.ones(G.shape[1], dtype=np.float)
+        gammas = np.ones(G.shape[1], dtype=np.float64)
 
     eps = np.finfo(float).eps
 
@@ -132,7 +132,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             gammas = np.repeat(gammas_comb / group_size, group_size)
 
         # compute convergence criterion
-        gammas_full = np.zeros(n_sources, dtype=np.float)
+        gammas_full = np.zeros(n_sources, dtype=np.float64)
         gammas_full[active_set] = gammas
 
         err = (np.sum(np.abs(gammas_full - gammas_full_old)) /
@@ -165,7 +165,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
               gammas=None, pca=True, return_residual=False,
-              return_as_dipoles=False, rank=None, verbose=None):
+              return_as_dipoles=False, rank=None, pick_ori=None, verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method.
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -217,6 +217,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     %(rank_None)s
 
         .. versionadded:: 0.18
+    %(pick_ori)s
     %(verbose)s
 
     Returns
@@ -242,6 +243,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, rank)
+    _check_ori(pick_ori, forward)
 
     group_size = 1 if (is_fixed_orient(forward) or not xyz_same_gamma) else 3
 
@@ -294,7 +296,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
                                    M_estimated, active_is_idx=True)
     else:
         out = _make_sparse_stc(X, active_set, forward, tmin, tstep,
-                               active_is_idx=True, verbose=verbose)
+                               active_is_idx=True, pick_ori=pick_ori,
+                               verbose=verbose)
 
     logger.info('[done]')
 

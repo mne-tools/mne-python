@@ -7,7 +7,7 @@ Advanced setup of MNE-Python
 
 .. contents::
    :local:
-   :depth: 1
+   :depth: 2
 
 Using MNE-Python with IPython / Jupyter notebooks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -57,9 +57,29 @@ interactivity within the scene is limited in non-blocking plot calls.
      In [1]: from mayavi import mlab
      In [2]: %gui qt
 
+If you installed the ``nb_conda_kernels`` package into your ``base``
+environment (as recommended), you should be able to launch ``mne``-capable
+notebooks from within the Anaconda Navigator GUI without having to explicitly
+switch to the ``mne`` environment first; look for ``Python [conda env:mne]``
+when choosing which notebook kernel to use. Otherwise, be sure to activate the
+``mne`` environment before launching the notebook.
+
 If you use another Python setup and you encounter some difficulties please
 report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
 assistance.
+
+It is also possible to interact with the 3D plots without installing Qt by using
+the notebook 3d backend:
+
+.. code-block:: ipython
+
+   In [1]: import mne
+   In [2]: mne.viz.set_3d_backend("notebook")
+
+
+The notebook 3d backend requires PyVista to be installed along with other packages,
+please follow :doc:`mne_python`
+
 
 .. _installing_master:
 
@@ -79,7 +99,7 @@ instructions, this will be ``base``), and use ``pip`` to upgrade:
 .. code-block:: console
 
    $ conda activate name_of_my_mne_environment
-   $ pip install --upgrade --no-deps git+https://github.com/mne-tools/mne-python.git
+   $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/master.zip
 
 If you plan to contribute to MNE-Python, or just prefer to use git rather than
 pip to make frequent updates, check out the :ref:`contributing guide
@@ -160,11 +180,47 @@ to force MESA to use modern OpenGL by using this before executing
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
 
+MESA also can have trouble with full-screen antialiasing, which you can
+disable with:
+
+.. code-block:: console
+
+    $ export MNE_3D_OPTION_ANTIALIAS=false
+
+or by doing
+:func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
+a given Python session.
+
+.. _troubleshoot_3d:
+
 Troubleshooting 3D plots in MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you run into trouble when visualizing source estimates (or anything else
-using mayavi), you can try setting a couple of environment variables at the
+3D plotting trouble after version 0.20 upgrade on macOS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When upgrading MNE-Python to version 0.20, some macOS users may end up with
+conflicting versions of some of the 3D plotting dependencies. If you plot using
+the pyvista 3D backend and find that you can click-drag to rotate the brain,
+but cannot adjust any of the settings sliders, it is likely that your versions
+of VTK and/or QT are incompatible. This series of commands should fix it:
+
+.. code-block:: console
+
+    $ conda uninstall vtk
+    $ pip uninstall -y pyvista
+    $ conda install vtk
+    $ pip install --no-cache pyvista
+
+If you installed VTK using ``pip`` rather than ``conda``, substitute the first
+line for ``pip uninstall -y vtk``.
+
+
+3D plotting trouble using mayavi 3D backend
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you run into trouble when visualizing source estimates (or anything else)
+using mayavi, you can try setting a couple of environment variables at the
 beginning of your script, session, or notebook::
 
     >>> import os

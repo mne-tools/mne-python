@@ -3,7 +3,7 @@
 Permutation t-test on source data with spatio-temporal clustering
 =================================================================
 
-Tests if the evoked response is significantly different between
+This example tests if the evoked response is significantly different between
 two conditions across subjects. Here just for demonstration purposes
 we simulate data from multiple subjects using one subject's data.
 The multiple comparisons problem is addressed with a cluster-level
@@ -85,7 +85,7 @@ condition2 = apply_inverse(evoked2, inverse_operator, lambda2, method)
 condition1.crop(0, None)
 condition2.crop(0, None)
 tmin = condition1.tmin
-tstep = condition1.tstep
+tstep = condition1.tstep * 1000  # convert to milliseconds
 
 ###############################################################################
 # Transform to common cortical space
@@ -146,9 +146,9 @@ X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 # -----------------
 #
 # To use an algorithm optimized for spatio-temporal clustering, we
-# just pass the spatial connectivity matrix (instead of spatio-temporal)
-print('Computing connectivity.')
-connectivity = mne.spatial_src_connectivity(src)
+# just pass the spatial adjacency matrix (instead of spatio-temporal)
+print('Computing adjacency.')
+adjacency = mne.spatial_src_adjacency(src)
 
 #    Note that X needs to be a multi-dimensional array of shape
 #    samples (subjects) x time x space, so we permute dimensions
@@ -160,7 +160,7 @@ p_threshold = 0.001
 t_threshold = -stats.distributions.t.ppf(p_threshold / 2., n_subjects - 1)
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=1,
+    spatio_temporal_cluster_1samp_test(X, adjacency=adjacency, n_jobs=1,
                                        threshold=t_threshold, buffer_size=None,
                                        verbose=True)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
@@ -184,6 +184,6 @@ subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot(
     hemi='both', views='lateral', subjects_dir=subjects_dir,
-    time_label='Duration significant (ms)', size=(800, 800),
+    time_label='temporal extent (ms)', size=(800, 800),
     smoothing_steps=5, clim=dict(kind='value', pos_lims=[0, 1, 40]))
 # brain.save_image('clusters.png')

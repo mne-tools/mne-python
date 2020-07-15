@@ -129,7 +129,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         Xt : array, shape (n_samples, n_channels, n_freqs, n_times)
             The time-frequency transform of the data, where n_channels can be
             zero- or 1-dimensional.
-
         """
         # Ensure 3-dimensional X
         shape = X.shape[1:-1]

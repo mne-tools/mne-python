@@ -8,7 +8,6 @@
 from copy import deepcopy
 from itertools import count
 from math import sqrt
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -19,6 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
 from ..utils import logger, verbose, warn, fill_doc
 
 
@@ -32,22 +32,37 @@ class Projection(dict):
         s = "%s" % self['desc']
         s += ", active : %s" % self['active']
         s += ", n_channels : %s" % self['data']['ncol']
-        return "<Projection  |  %s>" % s
+        return "<Projection | %s>" % s
+
+    # speed up info copy by taking advantage of mutability
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        cls = self.__class__
+        result = cls.__new__(cls)
+        for k, v in self.items():
+            if k == 'data':
+                v = v.copy()
+                v['data'] = v['data'].copy()
+                result[k] = v
+            else:
+                result[k] = v  # kind, active, desc, explained_var immutable
+        return result
 
     @fill_doc
-    def plot_topomap(self, layout=None, cmap=None, sensors=True,
+    def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, vlim=(None, None), info=None):
+                     axes=None, vlim=(None, None), sphere=None,
+                     border=_BORDER_DEFAULT):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
-        %(proj_topomap_kwargs)s
         info : instance of Info | None
-            The measurement information to use to determine the layout. If both
-            ``info`` and ``layout`` are provided, the layout will take
-            precedence.
+            The measurement information to use to determine the layout.
+        %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
+        %(topomap_border)s
 
         Returns
         -------
@@ -59,10 +74,10 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        with warnings.catch_warnings(record=True):  # tight_layout fails
-            return plot_projs_topomap(self, layout, cmap, sensors, colorbar,
-                                      res, size, show, outlines,
-                                      contours, image_interp, axes, vlim, info)
+        return plot_projs_topomap(self, info, cmap, sensors, colorbar,
+                                  res, size, show, outlines,
+                                  contours, image_interp, axes, vlim,
+                                  sphere=sphere, border=border)
 
 
 class ProjMixin(object):
@@ -140,6 +155,11 @@ class ProjMixin(object):
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+            The instance.
+
         Notes
         -----
         Once the projectors have been applied, they can no longer be
@@ -159,11 +179,6 @@ class ProjMixin(object):
             # drop the first and see again
             evoked.copy().del_proj(0).apply_proj().plot()
             evoked.apply_proj()  # finally keep both
-
-        Returns
-        -------
-        self : instance of Raw | Epochs | Evoked
-            The instance.
         """
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
@@ -206,8 +221,8 @@ class ProjMixin(object):
     def del_proj(self, idx='all'):
         """Remove SSP projection vector.
 
-        Note: The projection vector can only be removed if it is inactive
-              (has not been applied to the data).
+        .. note:: The projection vector can only be removed if it is inactive
+                  (has not been applied to the data).
 
         Parameters
         ----------
@@ -218,24 +233,35 @@ class ProjMixin(object):
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
+            The instance.
         """
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
-        if any(self.info['projs'][ii]['active'] for ii in idx):
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
+
+        for ii in idx:
+            proj = self.info['projs'][ii]
+            if (proj['active'] and
+                    set(self.info['ch_names']) &
+                    set(proj['data']['col_names'])):
+                msg = (f'Cannot remove projector that has already been '
+                       f'applied, unless you first remove all channels it '
+                       f'applies to. The problematic projector is: {proj}')
+                raise ValueError(msg)
+
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
         return self
 
     @fill_doc
-    def plot_projs_topomap(self, ch_type=None, layout=None, cmap=None,
+    def plot_projs_topomap(self, ch_type=None, cmap=None,
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
-                           vlim=(None, None)):
+                           vlim=(None, None), sphere=None,
+                           extrapolate=_EXTRAPOLATE_DEFAULT,
+                           border=_BORDER_DEFAULT):
         """Plot SSP vector.
 
         Parameters
@@ -246,6 +272,11 @@ class ProjMixin(object):
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
         %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
+        %(topomap_extrapolate)s
+
+            .. versionadded:: 0.20
+        %(topomap_border)s
 
         Returns
         -------
@@ -254,13 +285,13 @@ class ProjMixin(object):
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
             from ..viz.topomap import plot_projs_topomap
-            fig = plot_projs_topomap(self.info['projs'], layout=layout,
-                                     cmap=cmap, sensors=sensors,
-                                     colorbar=colorbar, res=res, size=size,
-                                     show=show, outlines=outlines,
-                                     contours=contours,
+            fig = plot_projs_topomap(self.info['projs'], self.info, cmap=cmap,
+                                     sensors=sensors, colorbar=colorbar,
+                                     res=res, size=size, show=show,
+                                     outlines=outlines, contours=contours,
                                      image_interp=image_interp, axes=axes,
-                                     vlim=vlim, info=self.info)
+                                     vlim=vlim, sphere=sphere,
+                                     extrapolate=extrapolate, border=border)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
         return fig

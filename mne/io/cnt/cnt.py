@@ -8,7 +8,7 @@ from os import path
 
 import numpy as np
 
-from ...utils import warn, verbose, fill_doc, _check_option
+from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
@@ -83,7 +83,9 @@ def _read_annotations_cnt(fname, data_format='int16'):
                                       n_channels=n_channels,
                                       event_type=type(my_events[0]),
                                       data_format=data_format)
-        duration = np.array([e.Latency for e in my_events], dtype=float)
+        duration = np.array([getattr(e, 'Latency', 0.) for e in my_events],
+                            dtype=float)
+
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
                            duration=duration,
@@ -276,7 +278,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype='f4', count=1)[0]
             fid.seek(data_offset + 75 * ch_idx + 71)
-            cal = np.fromfile(fid, dtype='f4', count=1)
+            cal = np.fromfile(fid, dtype='f4', count=1)[0]
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
     info = _empty_info(sfreq)
@@ -298,6 +300,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                       FIFF.FIFFV_EEG_CH, eog, ecg, emg, misc)
     eegs = [idx for idx, ch in enumerate(chs) if
             ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
+    # XXX this should probably use mne.transforms._topo_to_sph and _sph_to_cart
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords
@@ -395,20 +398,16 @@ class RawCNT(BaseRaw):
         self.set_annotations(
             _read_annotations_cnt(input_fname, data_format=data_format))
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
-        if 'stim_channel' in self._raw_extras[0]:
-            n_channels = self.info['nchan'] - 1  # Stim channel already read.
-            sel = np.arange(n_channels + 1)[idx]
-            stim_ch = self._raw_extras[0]['stim_channel']
-        else:
-            n_channels = self.info['nchan']
-            sel = np.arange(n_channels)[idx]
+        n_channels = self._raw_extras[fi]['orig_nchan']
+        if 'stim_channel' in self._raw_extras[fi]:
+            n_channels = n_channels - 1  # Stim channel already read.
+            stim_ch = self._raw_extras[fi]['stim_channel']
 
-        channel_offset = self._raw_extras[0]['channel_offset']
-        baselines = self._raw_extras[0]['baselines']
-        n_bytes = self._raw_extras[0]['n_bytes']
+        channel_offset = self._raw_extras[fi]['channel_offset']
+        baselines = self._raw_extras[fi]['baselines']
+        n_bytes = self._raw_extras[fi]['n_bytes']
         dtype = '<i4' if n_bytes == 4 else '<i2'
         chunk_size = channel_offset * n_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
@@ -429,7 +428,7 @@ class RawCNT(BaseRaw):
                                                   sample_start))
                 n_samps = sample_stop - sample_start
 
-                if 'stim_channel' in self._raw_extras[0]:
+                if 'stim_channel' in self._raw_extras[fi]:
                     data_ = np.empty((n_channels + 1, n_samps))
                 else:
                     data_ = np.empty((n_channels, n_samps))
@@ -449,7 +448,7 @@ class RawCNT(BaseRaw):
                                       order='C')
 
                 # Intermediate shaping to chunk sizes.
-                if 'stim_channel' in self._raw_extras[0]:
+                if 'stim_channel' in self._raw_extras[fi]:
                     block = np.zeros((n_channels + 1,
                                       channel_offset * n_chunks))
                 else:
@@ -458,18 +457,18 @@ class RawCNT(BaseRaw):
                 for set_idx, row in enumerate(samps):  # Final shape.
                     block_slice = slice(set_idx * channel_offset,
                                         (set_idx + 1) * channel_offset)
-                    if 'stim_channel' in self._raw_extras[0]:
+                    if 'stim_channel' in self._raw_extras[fi]:
                         block[:-1, block_slice] = row
                     else:
                         block[:, block_slice] = row
 
-                block = block[sel, s_offset:n_samps + s_offset]
-                data_[sel] = block
-                if 'stim_channel' in self._raw_extras[0]:
+                block = block[idx, s_offset:n_samps + s_offset]
+                data_[idx] = block
+                if 'stim_channel' in self._raw_extras[fi]:
                     _data_start = start + sample_start
                     _data_stop = start + sample_stop
                     data_[-1] = stim_ch[_data_start:_data_stop]
 
-                data_[sel] -= baselines[sel][:, None]
+                data_[idx] -= baselines[idx][:, None]
                 _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
                               cals, mult=None)

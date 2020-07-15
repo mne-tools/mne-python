@@ -9,7 +9,7 @@ from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import minimum_phase, _sosfreqz, irfft, ifftshift, fftfreq
+from .fixes import irfft, ifftshift, fftfreq
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
@@ -179,7 +179,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
             # cost function based on number of multiplications
             N = 2 ** np.arange(np.ceil(np.log2(min_fft)),
                                np.ceil(np.log2(max_fft)) + 1, dtype=int)
-            cost = (np.ceil(n_x / (N - len(h) + 1).astype(np.float)) *
+            cost = (np.ceil(n_x / (N - len(h) + 1).astype(np.float64)) *
                     N * (np.log2(N) + 1))
 
             # add a heuristic term to prevent too-long FFT's which are slow
@@ -363,6 +363,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
     else:
         assert fir_design == 'firwin'
         fir_design = partial(_firwin_design, sfreq=sfreq)
+    from scipy.signal import minimum_phase
 
     # issue a warning if attenuation is less than this
     min_att_db = 12 if phase == 'minimum' else 20
@@ -616,15 +617,15 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     a 10-sample moving window with no padding during filtering, for example,
     one can just do:
 
-    >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)
-    >>> iir_params = construct_iir_filter(iir_params, return_copy=False)
+    >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)  # doctest:+SKIP
+    >>> iir_params = construct_iir_filter(iir_params, return_copy=False)  # doctest:+SKIP
     >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))  # doctest:+SKIP
     (array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]), [1, 0], 0)
 
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
-    from scipy.signal import iirfilter, iirdesign, freqz
+    from scipy.signal import iirfilter, iirdesign, freqz, sosfreqz
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
                      'cheby2', 'chebyshev1', 'chebyshev2', 'chebyshevi',
                      'chebyshevii', 'ellip', 'elliptic')
@@ -691,7 +692,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     # get the gains at the cutoff frequencies
     if Wp is not None:
         if output == 'sos':
-            cutoffs = _sosfreqz(system, worN=Wp * np.pi)[1]
+            cutoffs = sosfreqz(system, worN=Wp * np.pi)[1]
         else:
             cutoffs = freqz(system[0], system[1], worN=Wp * np.pi)[1]
         # 2 * 20 here because we do forward-backward filtering
@@ -890,7 +891,6 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
         * Fs1 = Fp1 - l_trans_bandwidth in Hz
         * Fs2 = Fp2 + h_trans_bandwidth in Hz
-
 
     **Band-stop filter**
 
@@ -1103,7 +1103,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
     p_value : float
-        p-value to use in F-test thresholding to determine significant
+        P-value to use in F-test thresholding to determine significant
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
@@ -1123,7 +1123,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     Returns
     -------
     xf : array
-        x filtered.
+        The x array filtered.
 
     See Also
     --------
@@ -1333,6 +1333,11 @@ def _check_filterable(x, kind='filtered'):
     return x
 
 
+def _resamp_ratio_len(up, down, n):
+    ratio = float(up) / down
+    return ratio, int(round(ratio * n))
+
+
 @verbose
 def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
              pad='reflect_limited', verbose=None):
@@ -1362,7 +1367,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     Returns
     -------
     y : array
-        x resampled.
+        The x array resampled.
 
     Notes
     -----
@@ -1388,7 +1393,8 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     # make sure our arithmetic will work
     x = _check_filterable(x, 'resampled')
-    ratio = float(up) / down
+    ratio, final_len = _resamp_ratio_len(up, down, x.shape[axis])
+    del up, down
     if axis < 0:
         axis = x.ndim + axis
     orig_last_axis = x.ndim - 1
@@ -1418,7 +1424,6 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     x_flat = x.reshape((-1, x_len))
     orig_len = x_len + npads.sum()  # length after padding
     new_len = int(round(ratio * orig_len))  # length after resampling
-    final_len = int(round(ratio * x_len))
     to_removes = [int(round(ratio * npads[0]))]
     to_removes.append(new_len - final_len - to_removes[0])
     to_removes = np.array(to_removes)
@@ -1458,6 +1463,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     y.shape = orig_shape[:-1] + (y.shape[1],)
     if axis != orig_last_axis:
         y = y.swapaxes(axis, orig_last_axis)
+    assert y.shape[axis] == final_len
 
     return y
 
@@ -1525,17 +1531,18 @@ def detrend(x, order=1, axis=-1):
         Signal to detrend.
     order : int
         Fit order. Currently must be '0' or '1'.
-    axis : integer
+    axis : int
         Axis of the array to operate on.
 
     Returns
     -------
     y : array
-        x detrended.
+        The x array detrended.
 
     Examples
     --------
-    As in scipy.signal.detrend:
+    As in :func:`scipy.signal.detrend`::
+
         >>> randgen = np.random.RandomState(9)
         >>> npoints = int(1e3)
         >>> noise = randgen.randn(npoints)
@@ -1556,6 +1563,7 @@ def detrend(x, order=1, axis=-1):
     y = detrend(x, axis=axis, type=fit)
 
     return y
+
 
 # Taken from Ifeachor and Jervis p. 356.
 # Note that here the passband ripple and stopband attenuation are
@@ -1783,10 +1791,11 @@ class FilterMixin(object):
         ----------
         h_freq : float
             Approximate high cut-off frequency in Hz. Note that this
-            is not an exact cutoff, since Savitzky-Golay filtering [1]_ is
-            done using polynomial fits instead of FIR/IIR filtering.
-            This parameter is thus used to determine the length of the
-            window over which a 5th-order polynomial smoothing is used.
+            is not an exact cutoff, since Savitzky-Golay filtering
+            :footcite:`SavitzkyGolay1964` is done using polynomial fits
+            instead of FIR/IIR filtering. This parameter is thus used to
+            determine the length of the window over which a 5th-order
+            polynomial smoothing is used.
         %(verbose_meth)s
 
         Returns
@@ -1804,8 +1813,11 @@ class FilterMixin(object):
 
             https://gist.github.com/larsoner/bbac101d50176611136b
 
-
         .. versionadded:: 0.9.0
+
+        References
+        ----------
+        .. footbibliography::
 
         Examples
         --------
@@ -1815,22 +1827,14 @@ class FilterMixin(object):
         >>> evoked = mne.read_evokeds(evoked_fname, baseline=(None, 0))[0]  # doctest:+SKIP
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
-
-        References
-        ----------
-        .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
-               Differentiation of Data by Simplified Least Squares
-               Procedures". Analytical Chemistry 36 (8): 1627-39.
         """  # noqa: E501
+        from scipy.signal import savgol_filter
         _check_preload(self, 'inst.savgol_filter')
         h_freq = float(h_freq)
         if h_freq >= self.info['sfreq'] / 2.:
             raise ValueError('h_freq must be less than half the sample rate')
 
         # savitzky-golay filtering
-        if not check_version('scipy', '0.14'):
-            raise RuntimeError('scipy >= 0.14 must be installed for savgol')
-        from scipy.signal import savgol_filter
         window_length = (int(np.round(self.info['sfreq'] /
                                       h_freq)) // 2) * 2 + 1
         logger.info('Using savgol length %d' % window_length)
@@ -1929,7 +1933,7 @@ class FilterMixin(object):
         if isinstance(self, BaseRaw):
             # Deal with annotations
             onsets, ends = _annotations_starts_stops(
-                self, skip_by_annotation, 'skip_by_annotation', invert=True)
+                self, skip_by_annotation, invert=True)
             logger.info('Filtering raw data in %d contiguous segment%s'
                         % (len(onsets), _pl(onsets)))
         else:
@@ -2001,7 +2005,7 @@ class FilterMixin(object):
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
         self.info['lowpass'] = min(lowpass, sfreq / 2.)
-        new_times = (np.arange(self._data.shape[-1], dtype=np.float) /
+        new_times = (np.arange(self._data.shape[-1], dtype=np.float64) /
                      sfreq + self.times[0])
         # adjust indirectly affected variables
         if isinstance(self, BaseEpochs):
@@ -2009,8 +2013,7 @@ class FilterMixin(object):
             self._raw_times = self.times
         else:  # isinstance(self, Evoked)
             self.times = new_times
-            self.first = int(self.times[0] * self.info['sfreq'])
-            self.last = len(self.times) + self.first - 1
+            self._update_first_last()
         return self
 
     @verbose
@@ -2021,10 +2024,10 @@ class FilterMixin(object):
         Parameters
         ----------
         %(picks_all_data_noref)s
-        envelope : bool (default: False)
-            Compute the envelope signal of each channel. See Notes.
-        n_jobs: int
-            Number of jobs to run in parallel.
+        envelope : bool
+            Compute the envelope signal of each channel. Default False.
+            See Notes.
+        %(n_jobs)s
         n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back
@@ -2259,100 +2262,3 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
         if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                 (info["highpass"] is None or l_freq > info['highpass']):
             info['highpass'] = float(l_freq)
-
-
-###############################################################################
-# Class for interpolation between adjacent points
-
-class _Interp2(object):
-    r"""Interpolate between two points.
-
-    Parameters
-    ----------
-    interp : str
-        Can be 'zero', 'linear', 'hann', or 'cos2'.
-
-    Notes
-    -----
-    This will process data using overlapping windows of potentially
-    different sizes to achieve a constant output value using different
-    2-point interpolation schemes. For example, for linear interpolation,
-    and window sizes of 6 and 17, this would look like::
-
-        1 _     _
-          |\   / '-.           .-'
-          | \ /     '-.     .-'
-          |  x         |-.-|
-          | / \     .-'     '-.
-          |/   \_.-'           '-.
-        0 +----|----|----|----|---
-          0    5   10   15   20   25
-
-    """
-
-    @verbose
-    def __init__(self, interp='hann'):
-        # set up interpolation
-        self._last = dict()
-        self._current = dict()
-        self._count = dict()
-        self._n_samp = None
-        self.interp = interp
-
-    def __setitem__(self, key, value):
-        """Update an item."""
-        if value is None:
-            assert key not in self._current
-            return
-        if key in self._current:
-            self._last[key] = self._current[key].copy()
-        self._current[key] = value.copy()
-        self._count[key] = self._count.get(key, 0) + 1
-
-    @property
-    def n_samp(self):
-        return self._n_samp
-
-    @n_samp.setter
-    def n_samp(self, n_samp):
-        # all up to date
-        assert len(set(self._count.values())) == 1
-        self._n_samp = n_samp
-        self.interp = self.interp
-
-    @property
-    def interp(self):
-        return self._interp
-
-    @interp.setter
-    def interp(self, interp):
-        known_types = ('cos2', 'linear', 'zero', 'hann')
-        if interp not in known_types:
-            raise ValueError('interp must be one of %s, got "%s"'
-                             % (known_types, interp))
-        self._interp = interp
-        if self.n_samp is not None:
-            if self._interp == 'zero' or np.isinf(self.n_samp):  # ZOH
-                self._interpolators = None
-            else:
-                if self._interp == 'linear':
-                    interp = np.linspace(1, 0, self.n_samp, endpoint=False)
-                elif self._interp == 'cos2':
-                    interp = np.cos(0.5 * np.pi * np.arange(self.n_samp)) ** 2
-                else:  # interp == 'hann'
-                    interp = np.hanning(self.n_samp * 2 + 1)[self.n_samp:-1]
-                self._interpolators = np.array([interp, 1 - interp])
-
-    def interpolate(self, key, data, out, picks=None, interp_sl=None):
-        """Interpolate."""
-        picks = slice(None) if picks is None else picks
-        interp_sl = slice(None) if interp_sl is None else interp_sl
-        # Process data in large chunks to save on memory
-        this_data = np.dot(self._last[key], data)
-        if self._interpolators is not None:
-            this_data *= self._interpolators[0][interp_sl]
-        out[picks, ] += this_data
-        if self._interpolators is not None:
-            this_data = np.dot(self._current[key], data)
-            this_data *= self._interpolators[1][interp_sl]
-            out[picks, :] += this_data

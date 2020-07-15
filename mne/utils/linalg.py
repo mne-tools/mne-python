@@ -26,7 +26,6 @@ import numpy as np
 from scipy import linalg
 from scipy.linalg import LinAlgError
 from scipy._lib._util import _asarray_validated
-from ..fixes import _check_info
 
 _d = np.empty(0, np.float64)
 _z = np.empty(0, np.complex128)
@@ -81,106 +80,6 @@ def _repeated_svd(x, lwork, overwrite_a=False):
     return u, s, v
 
 
-def _repeated_pinv2(x, lwork, rcond=None):
-    """Mimic scipy.linalg.pinv2, avoid lwork and get_lapack_funcs overhead."""
-    # Adapted from SciPy
-    u, s, vh = _repeated_svd(x, lwork)
-    if rcond in [None, -1]:
-        t = u.dtype.char.lower()
-        factor = {'f': 1E3, 'd': 1E6}
-        rcond = factor[t] * np.finfo(t).eps
-    rank = np.sum(s > rcond * s[0])
-    psigma_diag = 1.0 / s[:rank]
-    u[:, :rank] *= psigma_diag
-    B = np.transpose(np.conjugate(np.dot(u[:, :rank], vh[:rank])))
-    return B
-
-
-###############################################################################
-# linalg.eig
-
-dgeev, dgeev_lwork = linalg.get_lapack_funcs(('geev', 'geev_lwork'), (_d,))
-zgeev, zgeev_lwork = linalg.get_lapack_funcs(('geev', 'geev_lwork'), (_z,))
-
-
-def _eig_lwork(shape, dtype=np.float64):
-    """Set up SVD calculations on identical-shape float64/complex128 arrays."""
-    if dtype == np.float64:
-        geev_lwork = dgeev_lwork
-    else:
-        assert dtype == np.complex128
-        geev_lwork = zgeev_lwork
-    lwork = linalg.decomp._compute_lwork(
-        geev_lwork, shape[0], compute_vl=False, compute_vr=True)
-    return lwork
-
-
-def _repeated_eig(a, lwork, overwrite_a=False):
-    """Mimic scipy.linalg.eig, avoid lwork and get_lapack_funcs overhead."""
-    if a.dtype == np.float64:
-        wr, wi, vl, vr, info = dgeev(
-            a, lwork=lwork, compute_vl=False, compute_vr=True,
-            overwrite_a=overwrite_a)
-        w = wr + _I * wi
-        need_complex = np.any(wi)
-    else:
-        assert a.dtype == np.complex128
-        w, vl, vr, info = zgeev(
-            a, lwork=lwork, compute_vl=False, compute_vr=True,
-            overwrite_a=overwrite_a)
-        need_complex = False
-    _check_info(
-        info, 'eig algorithm (geev)',
-        positive='did not converge (only eigenvalues '
-                 'with order >= %d have converged)')
-    if need_complex:
-        t = w.dtype.char
-        vr = linalg.decomp._make_complex_eigvecs(w, vr, t)
-    return w, vr
-
-
-###############################################################################
-# linalg.inv
-
-dgetrf, dgetri, dgetri_lwork = linalg.get_lapack_funcs(
-    ('getrf', 'getri', 'getri_lwork'), (_d,))
-zgetrf, zgetri, zgetri_lwork = linalg.get_lapack_funcs(
-    ('getrf', 'getri', 'getri_lwork'), (_z,))
-
-
-def _inv_lwork(shape, dtype=np.float64):
-    if dtype == np.float64:
-        getri_lwork = dgetri_lwork
-    else:
-        assert dtype == np.complex128
-        getri_lwork = zgetri_lwork
-    return linalg.lapack._compute_lwork(getri_lwork, shape[0])
-
-
-def _repeated_inv(a, lwork, overwrite_a=False):
-    if a.dtype == np.float64:
-        getrf, getri = dgetrf, dgetri
-    else:
-        assert a.dtype == np.complex128
-        getrf, getri = zgetrf, zgetri
-    lu, piv, info = getrf(a, overwrite_a=overwrite_a)
-    if info == 0:
-        # XXX: the following line fixes curious SEGFAULT when
-        # benchmarking 500x500 matrix inverse. This seems to
-        # be a bug in LAPACK ?getri routine because if lwork is
-        # minimal (when using lwork[0] instead of lwork[1]) then
-        # all tests pass. Further investigation is required if
-        # more such SEGFAULTs occur.
-        lwork = int(1.01 * lwork)
-        inv_a, info = getri(lu, piv, lwork=lwork, overwrite_lu=1)
-    if info > 0:
-        raise LinAlgError("singular matrix")
-    if info < 0:
-        raise ValueError('illegal value in %d-th argument of internal '
-                         'getrf|getri' % -info)
-    return inv_a
-
-
 ###############################################################################
 # linalg.eigh
 
@@ -228,3 +127,49 @@ def eigh(a, overwrite_a=False, check_finite=True):
                           "%i off-diagonal elements of an "
                           "intermediate tridiagonal form did not converge"
                           " to zero." % info)
+
+
+def sqrtm_sym(A, rcond=1e-7, inv=False):
+    """Compute the sqrt of a positive, semi-definite matrix (or its inverse).
+
+    Parameters
+    ----------
+    A : ndarray, shape (..., n, n)
+        The array to take the square root of.
+    rcond : float
+        The relative condition number used during reconstruction.
+    inv : bool
+        If True, compute the inverse of the square root rather than the
+        square root itself.
+
+    Returns
+    -------
+    A_sqrt : ndarray, shape (..., n, n)
+        The (possibly inverted) square root of A.
+    s : ndarray, shape (..., n)
+        The original square root singular values (not inverted).
+    """
+    # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
+    return _sym_mat_pow(A, -0.5 if inv else 0.5, rcond, return_s=True)
+
+
+def _sym_mat_pow(A, power, rcond=1e-7, reduce_rank=False, return_s=False):
+    """Exponentiate Hermitian matrices with optional rank reduction."""
+    assert power in (-1, 0.5, -0.5)  # only used internally
+    s, u = np.linalg.eigh(A)  # eigenvalues in ascending order
+    # Is it positive semi-defidite? If so, keep real
+    limit = s[..., -1:] * rcond
+    if not (s >= -limit).all():  # allow some tiny small negative ones
+        raise ValueError('Matrix is not positive semi-definite')
+    s[s <= limit] = np.inf if power < 0 else 0
+    if reduce_rank:
+        # These are ordered smallest to largest, so we set the first one
+        # to inf -- then the 1. / s below will turn this to zero, as needed.
+        s[..., 0] = np.inf
+    if power in (-0.5, 0.5):
+        np.sqrt(s, out=s)
+    use_s = 1. / s if power < 0 else s
+    out = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1).conj())
+    if return_s:
+        out = (out, s)
+    return out

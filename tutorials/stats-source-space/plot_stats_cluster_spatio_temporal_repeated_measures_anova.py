@@ -89,7 +89,7 @@ for cond in ['l_aud', 'r_aud', 'l_vis', 'r_vis']:  # order is important
     conditions.append(condition)
 
 tmin = conditions[0].tmin
-tstep = conditions[0].tstep
+tstep = conditions[0].tstep * 1000  # convert to milliseconds
 
 ###############################################################################
 # Transform to common cortical space
@@ -159,8 +159,11 @@ factor_levels = [2, 2]
 
 ###############################################################################
 # Finally we will pick the interaction effect by passing 'A:B'.
-# (this notation is borrowed from the R formula language). Without this also
-# the main effects will be returned.
+# (this notation is borrowed from the R formula language).
+# As an aside, note that in this particular example, we cannot use the A*B
+# notation which return both the main and the interaction effect. The reason
+# is that the clustering function expects ``stat_fun`` to return a 1-D array.
+# To get clusters for both, you must create a loop.
 effects = 'A:B'
 # Tell the ANOVA not to compute p-values which we don't need for clustering
 return_pvals = False
@@ -195,11 +198,11 @@ def stat_fun(*args):
 # ----------------------------
 #
 # To use an algorithm optimized for spatio-temporal clustering, we
-# just pass the spatial connectivity matrix (instead of spatio-temporal).
+# just pass the spatial adjacency matrix (instead of spatio-temporal).
 
-# as we only have one hemisphere we need only need half the connectivity
-print('Computing connectivity.')
-connectivity = mne.spatial_src_connectivity(src[:1])
+# as we only have one hemisphere we need only need half the adjacency
+print('Computing adjacency.')
+adjacency = mne.spatial_src_adjacency(src[:1])
 
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...
@@ -211,7 +214,7 @@ n_permutations = 128  # ... run fewer permutations (reduces sensitivity)
 
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
+    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
                                  buffer_size=None)
@@ -239,7 +242,7 @@ subjects_dir = op.join(data_path, 'subjects')
 # stimulus modality and stimulus location
 
 brain = stc_all_cluster_vis.plot(subjects_dir=subjects_dir, views='lat',
-                                 time_label='Duration significant (ms)',
+                                 time_label='temporal extent (ms)',
                                  clim=dict(kind='value', lims=[0, 1, 40]))
 brain.save_image('cluster-lh.png')
 brain.show_view('medial')

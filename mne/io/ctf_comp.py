@@ -109,8 +109,8 @@ def read_ctf_comp(fid, node, chs, verbose=None):
             #   Calibrate...
             _calibrate_comp(one, chs, mat['row_names'], mat['col_names'])
         else:
-            one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float)
-            one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float)
+            one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float64)
+            one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float64)
 
         compdata.append(one)
 

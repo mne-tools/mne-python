@@ -1,10 +1,10 @@
 from io import StringIO
 import os
 import pytest
+from pathlib import Path
 
 from mne.utils import (set_config, get_config, get_config_path,
-                       set_memmap_min_size, _get_stim_channel, sys_info,
-                       verbose, _get_call_line)
+                       set_memmap_min_size, _get_stim_channel, sys_info)
 
 
 def test_config(tmpdir):
@@ -13,6 +13,8 @@ def test_config(tmpdir):
     key = '_MNE_PYTHON_CONFIG_TESTING'
     value = '123456'
     value2 = '123'
+    value3 = Path('/foo/bar')
+
     old_val = os.getenv(key, None)
     os.environ[key] = value
     assert (get_config(key) == value)
@@ -36,6 +38,11 @@ def test_config(tmpdir):
     assert (key not in os.environ)
     if old_val is not None:
         os.environ[key] = old_val
+
+    # Check serialization from Path to string
+    with pytest.warns(RuntimeWarning, match='non-standard'):
+        set_config(key, value3, home_dir=tempdir)
+
     # Check if get_config with key=None returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
     assert key not in get_config(home_dir=tempdir)
@@ -76,20 +83,3 @@ def test_sys_info():
     sys_info(fid=out)
     out = out.getvalue()
     assert ('numpy:' in out)
-
-
-def test_get_call_line():
-    """Test getting a call line."""
-    @verbose
-    def foo(verbose=None):
-        return _get_call_line(in_verbose=True)
-
-    for v in (None, True):
-        my_line = foo(verbose=v)  # testing
-        assert my_line == 'my_line = foo(verbose=v)  # testing'
-
-    def bar():
-        return _get_call_line(in_verbose=False)
-
-    my_line = bar()  # testing more
-    assert my_line == 'my_line = bar()  # testing more'

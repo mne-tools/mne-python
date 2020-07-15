@@ -19,7 +19,8 @@ from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  convert_forward_solution, VolSourceEstimate,
                  make_bem_solution)
 from mne.bem import _surfaces_to_bem
-from mne.chpi import _calculate_chpi_positions, read_head_pos, _get_hpi_info
+from mne.chpi import (read_head_pos, compute_chpi_amplitudes,
+                      compute_chpi_locs, compute_head_pos, _get_hpi_info)
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc, simulate_raw, add_eog,
@@ -60,6 +61,7 @@ def _assert_iter_sim(raw_sim, raw_new, new_event_id):
     assert_array_equal(data_new, data_sim)
 
 
+@pytest.mark.slowtest
 def test_iterable():
     """Test iterable support for simulate_raw."""
     raw = read_raw_fif(raw_fname_short).load_data()
@@ -72,16 +74,16 @@ def test_iterable():
     sphere = make_sphere_model(head_radius=None, info=raw.info)
     tstep = 1. / raw.info['sfreq']
     rng = np.random.RandomState(0)
-    vertices = np.array([1])
+    vertices = [np.array([1])]
     data = rng.randn(1, 2)
     stc = VolSourceEstimate(data, vertices, 0, tstep)
-    assert isinstance(stc.vertices, np.ndarray)
+    assert isinstance(stc.vertices[0], np.ndarray)
     with pytest.raises(ValueError, match='at least three time points'):
         simulate_raw(raw.info, stc, trans, src, sphere, None)
     data = rng.randn(1, 1000)
     n_events = (len(raw.times) - 1) // 1000 + 1
     stc = VolSourceEstimate(data, vertices, 0, tstep)
-    assert isinstance(stc.vertices, np.ndarray)
+    assert isinstance(stc.vertices[0], np.ndarray)
     raw_sim = simulate_raw(raw.info, [stc] * 15, trans, src, sphere, None,
                            first_samp=raw.first_samp)
     raw_sim.crop(0, raw.times[-1])
@@ -136,16 +138,16 @@ def test_iterable():
         while ii < 100:
             ii += 1
             stc_new = stc.copy()
-            stc_new.vertices = np.array([ii % 2])
+            stc_new.vertices[0] = np.array([ii % 2])
             yield stc_new
     with pytest.raises(RuntimeError, match=r'Vertex mismatch for stc\[1\]'):
         simulate_raw(raw.info, stc_iter_bad(), trans, src, sphere, None)
 
     # Forward omission
-    vertices = np.array([0, 1])
+    vertices = [np.array([0, 1])]
     data = rng.randn(2, 1000)
     stc = VolSourceEstimate(data, vertices, 0, tstep)
-    assert isinstance(stc.vertices, np.ndarray)
+    assert isinstance(stc.vertices[0], np.ndarray)
     # XXX eventually we should support filtering based on sphere radius, too,
     # by refactoring the code in source_space.py that does it!
     surf = _get_ico_surface(3)
@@ -222,7 +224,7 @@ def test_simulate_raw_sphere(raw_data, tmpdir):
     cov['projs'] = raw.info['projs']
     raw.info['bads'] = raw.ch_names[:1]
     sphere_norad = make_sphere_model('auto', None, raw.info)
-    raw_meg = raw.copy().pick_types()
+    raw_meg = raw.copy().pick_types(meg=True)
     raw_sim = simulate_raw(raw_meg.info, stc, trans, src, sphere_norad,
                            head_pos=head_pos_sim)
     # Test IO on processed data
@@ -336,7 +338,7 @@ def test_simulate_raw_bem(raw_data):
                          0, 1. / raw.info['sfreq'])
     stcs = [stc] * 15
     raw_sim_sph = simulate_raw(raw.info, stcs, trans, src, sphere)
-    raw_sim_bem = simulate_raw(raw.info, stcs, trans, src, bem_fname, n_jobs=2)
+    raw_sim_bem = simulate_raw(raw.info, stcs, trans, src, bem_fname)
     # some components (especially radial) might not match that well,
     # so just make sure that most components have high correlation
     assert_array_equal(raw_sim_sph.ch_names, raw_sim_bem.ch_names)
@@ -437,8 +439,9 @@ def test_simulate_raw_chpi():
     raw.info.normalize_proj()
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
-    sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
-    src = setup_volume_source_space(sphere=sphere_vol, pos=70.)
+    sphere_vol = tuple(sphere['r0']) + (sphere.radius,)
+    src = setup_volume_source_space(sphere=sphere_vol, pos=70.,
+                                    sphere_units='m')
     stcs = [_make_stc(raw, src)] * 15
     # simulate data with cHPI on
     raw_sim = simulate_raw(raw.info, stcs, None, src, sphere,
@@ -468,9 +471,12 @@ def test_simulate_raw_chpi():
             assert_allclose(psd_sim, psd_chpi, atol=1e-20)
 
     # test localization based on cHPI information
-    quats_sim = _calculate_chpi_positions(raw_chpi, t_step_min=10.)
+    chpi_amplitudes = compute_chpi_amplitudes(raw, t_step_min=10.)
+    coil_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
+    quats_sim = compute_head_pos(raw_chpi.info, coil_locs)
     quats = read_head_pos(pos_fname)
-    _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5)
+    _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5,
+                  vel_atol=0.03)  # velicity huge because of t_step_min above
 
 
 run_tests_if_main()

@@ -14,8 +14,7 @@ import configparser
 import os
 import os.path as op
 import re
-from datetime import datetime
-from math import modf
+from datetime import datetime, timezone
 from io import StringIO
 
 import numpy as np
@@ -52,6 +51,11 @@ class RawBrainVision(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    Attributes
+    ----------
+    impedances : dict
+        A dictionary of all electrodes and their impedances.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -66,18 +70,16 @@ class RawBrainVision(BaseRaw):
         vhdr_fname = op.abspath(vhdr_fname)
         (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
          orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale)
-        self._order = order
-        self._n_samples = n_samples
 
         with open(data_fname, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
-                if self._order == 'F':  # multiplexed, channels in columns
+                if order == 'F':  # multiplexed, channels in columns
                     n_skip = 0
                     for ii in range(int(fmt['skiplines'])):
                         n_skip += len(f.readline())
                     offsets = np.cumsum([n_skip] + [len(line) for line in f])
                     n_samples = len(offsets) - 1
-                elif self._order == 'C':  # vectorized, channels, in rows
+                elif order == 'C':  # vectorized, channels, in rows
                     raise NotImplementedError()
             else:
                 n_data_ch = int(info['nchan'])
@@ -87,12 +89,19 @@ class RawBrainVision(BaseRaw):
                 offsets = None
                 n_samples = n_samples // (dtype_bytes * n_data_ch)
 
+        raw_extras = dict(
+            offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
             orig_format=fmt, preload=preload, verbose=verbose,
-            raw_extras=[offsets], orig_units=orig_units)
+            raw_extras=[raw_extras], orig_units=orig_units)
 
         self.set_montage(montage)
+
+        settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
+        split_settings = settings.splitlines()
+        self.impedances = _parse_impedance(split_settings,
+                                           self.info['meas_date'])
 
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
@@ -101,34 +110,38 @@ class RawBrainVision(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
-        n_data_ch = len(self.ch_names)
-        if self._order == 'C':
+        n_data_ch = self._raw_extras[fi]['orig_nchan']
+        fmt = self._raw_extras[fi]['fmt']
+        if self._raw_extras[fi]['order'] == 'C':
             _read_segments_c(self, data, idx, fi, start, stop, cals, mult)
-        elif isinstance(self.orig_format, str):
-            dtype = _fmt_dtype_dict[self.orig_format]
+        elif isinstance(fmt, str):
+            dtype = _fmt_dtype_dict[fmt]
             _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                                 dtype=dtype, n_channels=n_data_ch)
         else:
-            offsets = self._raw_extras[fi]
+            offsets = self._raw_extras[fi]['offsets']
             with open(self._filenames[fi], 'rb') as fid:
                 fid.seek(offsets[start])
-                block = np.empty((len(self.ch_names), stop - start))
+                block = np.empty((n_data_ch, stop - start))
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
                     line = line.strip().replace(',', '.').split()
-                    block[:n_data_ch, ii] = [float(l) for l in line]
+                    block[:n_data_ch, ii] = [float(part) for part in line]
             _mult_cal_one(data, block, idx, cals, mult)
 
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     """Read chunk of vectorized raw data."""
-    n_samples = raw._n_samples
-    dtype = _fmt_dtype_dict[raw.orig_format]
-    n_bytes = _fmt_byte_dict[raw.orig_format]
-    n_channels = len(raw.ch_names)
+    n_samples = raw._raw_extras[fi]['n_samples']
+    fmt = raw._raw_extras[fi]['fmt']
+    dtype = _fmt_dtype_dict[fmt]
+    n_bytes = _fmt_byte_dict[fmt]
+    n_channels = raw._raw_extras[fi]['orig_nchan']
     block = np.zeros((n_channels, stop - start))
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
-        for ch_id in np.arange(n_channels)[idx]:
+        if isinstance(idx, slice):
+            idx = np.arange(idx.start, idx.stop)
+        for ch_id in idx:
             fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
             block[ch_id] = np.fromfile(fid, dtype, stop - start)
 
@@ -163,7 +176,7 @@ def _read_vmrk(fname):
     # the characters in it all belong to ASCII and are thus the
     # same in Latin-1 and UTF-8
     header = txt.decode('ascii', 'ignore').split('\n')[0].strip()
-    _check_mrk_version(header)
+    _check_bv_version(header, 'marker')
 
     # although the markers themselves are guaranteed to be ASCII (they
     # consist of numbers and a few reserved words), we should still
@@ -264,34 +277,22 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     return annotations
 
 
-def _check_hdr_version(header):
+_data_err = """\
+MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable \
+%r. Contact MNE-Python developers for support."""
+# optional space, optional Core, Version/Header, optional comma, 1/2
+_data_re = r'Brain ?Vision( Core)? Data Exchange %s File,? Version %s\.0'
+
+
+def _check_bv_version(header, kind):
     """Check the header version."""
-    if header == 'Brain Vision Data Exchange Header File Version 1.0':
-        return 1
-    elif header == 'BrainVision Data Exchange Header File Version 1.0':
-        return 1
-    elif header == 'Brain Vision Data Exchange Header File Version 2.0':
-        return 2
-    elif header == 'BrainVision Data Exchange Header File Version 2.0':
-        return 2
+    assert kind in ('header', 'marker')
+    for version in range(1, 3):
+        this_re = _data_re % (kind.capitalize(), version)
+        if re.search(this_re, header) is not None:
+            return version
     else:
-        raise ValueError("Currently only support versions 1.0 and 2.0, not %r "
-                         "Contact MNE-Developers for support." % header)
-
-
-def _check_mrk_version(header):
-    """Check the marker version."""
-    tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
-            'BrainVision Data Exchange Marker File, Version 1.0',
-            'Brain Vision Data Exchange Marker File Version 1.0',
-            'Brain Vision Data Exchange Marker File, Version 2.0',
-            'BrainVision Data Exchange Marker File Version 1.0',
-            'Brain Vision Data Exchange Marker File, Version 2.0',
-            'BrainVision Data Exchange Marker File, Version 1.0']
-    if header not in tags:
-        raise ValueError("Currently, MNE-Python only supports %r, not %r"
-                         "Contact MNE-Developers for support."
-                         % (str(tags), header))
+        raise ValueError(_data_err % (kind, header))
 
 
 _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
@@ -299,13 +300,14 @@ _fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
 _fmt_byte_dict = dict(short=2, int=4, single=4)
 _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
 _unit_dict = {'V': 1.,  # V stands for Volt
-              u'µV': 1e-6,
+              'µV': 1e-6,
               'uV': 1e-6,
+              'mV': 1e-3,
               'nV': 1e-9,
               'C': 1,  # C stands for celsius
-              u'µS': 1e-6,  # S stands for Siemens
-              u'uS': 1e-6,
-              u'ARU': 1,  # ARU is the unity for the breathing data
+              'µS': 1e-6,  # S stands for Siemens
+              'uS': 1e-6,
+              'ARU': 1,  # ARU is the unity for the breathing data
               'S': 1,
               'N': 1}  # Newton
 
@@ -316,6 +318,8 @@ def _str_to_meas_date(date_str):
     if date_str in ['', '0', '00000000000000000000']:
         return None
 
+    # these calculations are in naive time but should be okay since
+    # they are relative (subtraction below)
     try:
         meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
     except ValueError as e:
@@ -324,13 +328,8 @@ def _str_to_meas_date(date_str):
         else:
             raise
 
-    # We need list of unix time in milliseconds and as second entry
-    # the additional amount of microseconds
-    epoch = datetime.utcfromtimestamp(0)
-    unix_time = (meas_date - epoch).total_seconds()
-    unix_secs = int(modf(unix_time)[1])
-    microsecs = int(modf(unix_time)[0] * 1e6)
-    return unix_secs, microsecs
+    meas_date = meas_date.replace(tzinfo=timezone.utc)
+    return meas_date
 
 
 def _aux_vhdr_info(vhdr_fname):
@@ -343,7 +342,7 @@ def _aux_vhdr_info(vhdr_fname):
         # the characters in it all belong to ASCII and are thus the
         # same in Latin-1 and UTF-8
         header = header.decode('ascii', 'ignore').strip()
-        _check_hdr_version(header)
+        _check_bv_version(header, 'header')
 
         settings = f.read()
         try:
@@ -513,11 +512,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 resolution = 0.000001
             else:
                 resolution = 1.  # for files with units specified, but not res
-        unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
+        unit = unit.replace('\xc2', '')  # Remove unwanted control characters
         orig_units[name] = unit  # Save the original units to expose later
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, 1) * scale
-        if unit not in ('V', 'nV', u'µV', 'uV'):
+        if unit not in ('V', 'mV', 'µV', 'uV', 'nV'):
             misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
                               else FIFF.FIFF_UNIT_NONE)
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
@@ -623,16 +622,21 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names, 1):
-            line = re.split(divider, settings[idx + i])
             # double check alignment with channel by using the hw settings
             if idx == idx_amp:
-                line_amp = line
+                line_amp = settings[idx + i]
             else:
-                line_amp = re.split(divider, settings[idx_amp + i])
-            assert ch in line_amp
+                line_amp = settings[idx_amp + i]
+            assert line_amp.find(ch) > -1
 
-            highpass.append(line[hp_col + shift])
-            lowpass.append(line[lp_col + shift])
+            # Correct shift for channel names with spaces
+            # Header already gives 1 therefore has to be subtracted
+            ch_name_parts = re.split(divider, ch)
+            real_shift = shift + len(ch_name_parts) - 1
+
+            line = re.split(divider, settings[idx + i])
+            highpass.append(line[hp_col + real_shift])
+            lowpass.append(line[lp_col + real_shift])
         if len(highpass) == 0:
             pass
         elif len(set(highpass)) == 1:
@@ -653,7 +657,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # highpass relaxed / no filters
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else np.Inf for filt in highpass]
-                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float64))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
@@ -668,7 +672,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             else:
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else 0.0 for filt in highpass]
-                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float64))
                 if info['highpass'] == 0.0 and len(set(highpass)) == 1:
                     # not actually heterogeneous in effect
                     # ... just heterogeneously disabled
@@ -697,7 +701,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else 0.0 for filt in lowpass]
-                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float64))
                 try:
                     # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
@@ -719,7 +723,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else np.Inf for filt in lowpass]
-                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float64))
 
                 if np.isinf(info['lowpass']):
                     # No lowpass actually set for the weakest setting
@@ -770,11 +774,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
             scanno=idx + 1, cal=cals[idx], range=ranges[idx],
             loc=np.full(12, np.nan),
-            unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
+            unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()
-    info._check_consistency()
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)
 
@@ -812,7 +815,6 @@ def read_raw_brainvision(vhdr_fname,
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
-
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, eog=eog,
                           misc=misc, scale=scale, preload=preload,
@@ -851,3 +853,101 @@ def _check_bv_annot(descriptions):
     bv_markers = (set(_BV_EVENT_IO_OFFSETS.keys())
                   .union(set(_OTHER_ACCEPTED_MARKERS.keys())))
     return len(markers_basename - bv_markers) == 0
+
+
+def _parse_impedance(settings, recording_date=None):
+    """Parse impedances from the header file.
+
+    Parameters
+    ----------
+    settings : list
+        The header settings lines fom the VHDR file.
+    recording_date : datetime.datetime | None
+        The date of the recording as extracted from the VMRK file.
+
+    Returns
+    -------
+    impedances : dict
+        A dictionary of all electrodes and their impedances.
+    """
+    ranges = _parse_impedance_ranges(settings)
+    impedance_setting_lines = [i for i in settings if
+                               i.startswith('Impedance [') and
+                               i.endswith(' :')]
+    impedances = dict()
+    if len(impedance_setting_lines) > 0:
+        idx = settings.index(impedance_setting_lines[0])
+        impedance_setting = impedance_setting_lines[0].split()
+        impedance_unit = impedance_setting[1].lstrip('[').rstrip(']')
+        impedance_time = None
+
+        # If we have a recording date, we can update it with the time of
+        # impedance measurement
+        if recording_date is not None:
+            meas_time = [int(i) for i in impedance_setting[3].split(':')]
+            impedance_time = recording_date.replace(hour=meas_time[0],
+                                                    minute=meas_time[1],
+                                                    second=meas_time[2],
+                                                    microsecond=0)
+        for setting in settings[idx + 1:]:
+            # Parse channel impedances until we find a line that doesn't start
+            # with a channel name and optional +/- polarity for passive elecs
+            match = re.match(r'[ a-zA-Z0-9_+-]+:', setting)
+            if match:
+                channel_name = match.group().rstrip(':')
+                channel_imp_line = setting.split()
+                imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
+                                           channel_imp_line[-1])
+                channel_impedance = dict(
+                    imp=float(imp_as_number[0]) if imp_as_number else np.nan,
+                    imp_unit=impedance_unit,
+                )
+                if impedance_time is not None:
+                    channel_impedance.update({'imp_meas_time': impedance_time})
+
+                if channel_name == 'Ref' and 'Reference' in ranges:
+                    channel_impedance.update(ranges['Reference'])
+                elif channel_name == 'Gnd' and 'Ground' in ranges:
+                    channel_impedance.update(ranges['Ground'])
+                elif 'Data' in ranges:
+                    channel_impedance.update(ranges['Data'])
+                impedances[channel_name] = channel_impedance
+            else:
+                break
+    return impedances
+
+
+def _parse_impedance_ranges(settings):
+    """Parse the selected electrode impedance ranges from the header.
+
+    Parameters
+    ----------
+    settings : list
+        The header settings lines fom the VHDR file.
+
+    Returns
+    -------
+    electrode_imp_ranges : dict
+        A dictionary of impedance ranges for each type of electrode.
+    """
+    impedance_ranges = [item for item in settings if
+                        "Selected Impedance Measurement Range" in item]
+    electrode_imp_ranges = dict()
+    if impedance_ranges:
+        if len(impedance_ranges) == 1:
+            img_range = impedance_ranges[0].split()
+            for electrode_type in ['Data', 'Reference', 'Ground']:
+                electrode_imp_ranges[electrode_type] = {
+                    "imp_lower_bound": float(img_range[-4]),
+                    "imp_upper_bound": float(img_range[-2]),
+                    "imp_range_unit": img_range[-1]
+                }
+        else:
+            for electrode_range in impedance_ranges:
+                electrode_range = electrode_range.split()
+                electrode_imp_ranges[electrode_range[0]] = {
+                    "imp_lower_bound": float(electrode_range[6]),
+                    "imp_upper_bound": float(electrode_range[8]),
+                    "imp_range_unit": electrode_range[9]
+                }
+    return electrode_imp_ranges

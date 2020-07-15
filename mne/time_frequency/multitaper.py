@@ -23,14 +23,14 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     Parameters
     ----------
     N : int
-        Sequence length
+        Sequence length.
     half_nbw : float
         Standardized half bandwidth corresponding to 2 * half_bw = BW*f0
         = BW*N/dt but with dt taken as 1.
     Kmax : int
-        Number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
+        Number of DPSS windows to return is Kmax (orders 0 through Kmax-1).
     low_bias : bool
-        Keep only tapers with eigenvalues > 0.9
+        Keep only tapers with eigenvalues > 0.9.
     interp_from : int (optional)
         The dpss can be calculated using interpolation from a set of dpss
         with the same NW and Kmax, but shorter N. This is the length of this
@@ -45,12 +45,11 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         'zero', 'slinear', 'quadratic, 'cubic') or as an integer specifying the
         order of the spline interpolator to use.
 
-
     Returns
     -------
     v, e : tuple,
-        v is an array of DPSS windows shaped (Kmax, N)
-        e are the eigenvalues
+        The v array contains DPSS windows shaped (Kmax, N).
+        e are the eigenvalues.
 
     Notes
     -----
@@ -300,7 +299,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
         The frequency points in Hz of the spectra
     """
     if n_fft is None:
-        n_fft = x.shape[1]
+        n_fft = x.shape[-1]
 
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1, keepdims=True)
@@ -316,9 +315,9 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     for idx, sig in enumerate(x):
         x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
-    x_mt[:, :, 0] /= np.sqrt(2.)
+    x_mt[..., 0] /= np.sqrt(2.)
     if x.shape[1] % 2 == 0:
-        x_mt[:, :, -1] /= np.sqrt(2.)
+        x_mt[..., -1] /= np.sqrt(2.)
     return x_mt, freqs
 
 
@@ -479,7 +478,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     time_bandwidth : float
         If None, will be set to 4.0 (3 tapers). Time x (Full) Bandwidth
         product. The number of good tapers (low-bias) is chosen automatically
-        based on this to equal floor(time_bandwidth - 1). Defaults to None
+        based on this to equal floor(time_bandwidth - 1). Defaults to None.
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
     decim : int | slice
@@ -491,7 +490,6 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         .. note::
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
-
     output : str, default 'complex'
 
         * 'complex' : single trial complex.
@@ -501,7 +499,6 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'itc' : inter-trial coherence.
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
-
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
@@ -514,7 +511,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
         n_times), else it is (n_chans, n_freqs, n_times). If output is
         'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc
+        imaginary values code for the 'itc': out = avg_power + i * itc.
 
     See Also
     --------

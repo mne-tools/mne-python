@@ -21,12 +21,11 @@ the possible interpretation of "significant" clusters.
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mne.viz import plot_topomap
 
 import mne
 from mne.stats import spatio_temporal_cluster_test
 from mne.datasets import sample
-from mne.channels import find_ch_connectivity
+from mne.channels import find_ch_adjacency
 from mne.viz import plot_compare_evokeds
 
 print(__doc__)
@@ -64,13 +63,13 @@ X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
 
 
 ###############################################################################
-# Find the FieldTrip neighbor definition to setup sensor connectivity
-# -------------------------------------------------------------------
-connectivity, ch_names = find_ch_connectivity(epochs.info, ch_type='mag')
+# Find the FieldTrip neighbor definition to setup sensor adjacency
+# ----------------------------------------------------------------
+adjacency, ch_names = find_ch_adjacency(epochs.info, ch_type='mag')
 
-print(type(connectivity))  # it's a sparse matrix!
+print(type(adjacency))  # it's a sparse matrix!
 
-plt.imshow(connectivity.toarray(), cmap='gray', origin='lower',
+plt.imshow(adjacency.toarray(), cmap='gray', origin='lower',
            interpolation='nearest')
 plt.xlabel('{} Magnetometers'.format(len(ch_names)))
 plt.ylabel('{} Magnetometers'.format(len(ch_names)))
@@ -80,7 +79,7 @@ plt.title('Between-sensor adjacency')
 # Compute permutation statistic
 # -----------------------------
 #
-# How does it work? We use clustering to `bind` together features which are
+# How does it work? We use clustering to "bind" together features which are
 # similar. Our features are the magnetic fields measured over our sensor
 # array at different times. This reduces the multiple comparison problem.
 # To compute the actual test-statistic, we first sum all F-values in all
@@ -102,14 +101,14 @@ p_accept = 0.01
 cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
                                              threshold=threshold, tail=1,
                                              n_jobs=1, buffer_size=None,
-                                             connectivity=connectivity)
+                                             adjacency=adjacency)
 
 T_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
 
 ###############################################################################
 # Note. The same functions work with source estimate. The only differences
-# are the origin of the data, the size, and the connectivity definition.
+# are the origin of the data, the size, and the adjacency definition.
 # It can be used for single trials or for groups of subjects.
 #
 # Visualize clusters
@@ -118,9 +117,6 @@ good_cluster_inds = np.where(p_values < p_accept)[0]
 # configure variables for visualization
 colors = {"Aud": "crimson", "Vis": 'steelblue'}
 linestyles = {"L": '-', "R": '--'}
-
-# get sensor positions via layout
-pos = mne.find_layout(epochs.info).pos
 
 # organize data for plotting
 evokeds = {cond: epochs[cond].average() for cond in event_id}
@@ -146,8 +142,11 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
 
     # plot average test statistic and mark significant sensors
-    image, _ = plot_topomap(f_map, pos, mask=mask, axes=ax_topo, cmap='Reds',
-                            vmin=np.min, vmax=np.max, show=False)
+    f_evoked = mne.EvokedArray(f_map[:, np.newaxis], epochs.info, tmin=0)
+    f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap='Reds',
+                          vmin=np.min, vmax=np.max, show=False,
+                          colorbar=False, mask_params=dict(markersize=10))
+    image = ax_topo.images[0]
 
     # create additional axes (for ERF and colorbar)
     divider = make_axes_locatable(ax_topo)

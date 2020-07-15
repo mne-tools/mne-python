@@ -69,7 +69,8 @@ fig.canvas.key_press_event('a')
 # functions or class constructors, including:
 #
 # - creation of epoched data from continuous data (:class:`mne.Epochs`)
-# - independent components analysis (:class:`mne.preprocessing.ICA`)
+# - many methods of the independent components analysis class
+#   (:class:`mne.preprocessing.ICA`)
 # - functions for finding heartbeat and blink artifacts
 #   (:func:`~mne.preprocessing.find_ecg_events`,
 #   :func:`~mne.preprocessing.find_eog_events`)
@@ -121,6 +122,8 @@ raw.plot(events=eog_events, order=eeg_picks)
 # on creating annotations programmatically.
 #
 #
+# .. _`tut-reject-epochs-section`:
+#
 # Rejecting Epochs based on channel amplitude
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -135,12 +138,12 @@ raw.plot(events=eog_events, order=eeg_picks)
 
 reject_criteria = dict(mag=3000e-15,     # 3000 fT
                        grad=3000e-13,    # 3000 fT/cm
-                       eeg=100e-6,       # 100 μV
-                       eog=200e-6)       # 200 μV
+                       eeg=100e-6,       # 100 µV
+                       eog=200e-6)       # 200 µV
 
 flat_criteria = dict(mag=1e-15,          # 1 fT
                      grad=1e-13,         # 1 fT/cm
-                     eeg=1e-6)           # 1 μV
+                     eeg=1e-6)           # 1 µV
 
 ###############################################################################
 # The values that are appropriate are dataset- and hardware-dependent, so some
@@ -219,8 +222,8 @@ epochs.drop_bad()
 
 stronger_reject_criteria = dict(mag=2000e-15,     # 2000 fT
                                 grad=2000e-13,    # 2000 fT/cm
-                                eeg=100e-6,       # 100 μV
-                                eog=100e-6)       # 100 μV
+                                eeg=100e-6,       # 100 µV
+                                eog=100e-6)       # 100 µV
 
 epochs.drop_bad(reject=stronger_reject_criteria)
 print(epochs.drop_log)

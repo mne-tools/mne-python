@@ -5,22 +5,19 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose,
                            assert_array_less)
 import pytest
-from scipy.signal import resample as sp_resample, butter, freqz
+from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
 from mne import create_info
-from mne.fixes import _sosfreqz, fft, fftfreq
+from mne.fixes import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
-                        estimate_ringing_samples, create_filter, _Interp2)
+                        estimate_ringing_samples, create_filter)
 
 from mne.utils import (sum_squared, run_tests_if_main,
-                       catch_logging, requires_version, _TempDir,
-                       requires_mne, run_subprocess)
-
-rng = np.random.RandomState(0)
+                       catch_logging, requires_mne, run_subprocess)
 
 
 def test_filter_array():
@@ -31,9 +28,9 @@ def test_filter_array():
 
 
 @requires_mne
-def test_mne_c_design():
+def test_mne_c_design(tmpdir):
     """Test MNE-C filter design."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     temp_fname = op.join(tempdir, 'test_raw.fif')
     out_fname = op.join(tempdir, 'test_c_raw.fif')
     x = np.zeros((1, 10001))
@@ -80,6 +77,7 @@ def test_estimate_ringing():
 def test_1d_filter():
     """Test our private overlap-add filtering function."""
     # make some random signals and filters
+    rng = np.random.RandomState(0)
     for n_signal in (1, 2, 3, 5, 10, 20, 40):
         x = rng.randn(n_signal)
         for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101):
@@ -202,6 +200,7 @@ def test_iir_stability():
 def test_notch_filters():
     """Test notch filters."""
     # let's use an ugly, prime sfreq for fun
+    rng = np.random.RandomState(0)
     sfreq = 487.0
     sig_len_secs = 20
     t = np.arange(0, int(sig_len_secs * sfreq)) / sfreq
@@ -237,6 +236,7 @@ def test_notch_filters():
 
 def test_resample():
     """Test resampling."""
+    rng = np.random.RandomState(0)
     x = rng.normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
     assert x.shape == (10, 10, 10)
@@ -254,7 +254,6 @@ def test_resample():
     assert_array_equal(resample([0., 0.], 2, 1), [0., 0., 0., 0.])
 
 
-@requires_version('scipy', '1.0')  # earlier versions have a Nyquist bug
 def test_resample_scipy():
     """Test resampling against SciPy."""
     n_jobs_test = (1, 'cuda')
@@ -325,6 +324,7 @@ def test_resample_raw():
 @pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
+    rng = np.random.RandomState(0)
     sfreq = 100
     sig_len_secs = 15
 
@@ -370,7 +370,7 @@ def test_filters():
         lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2,
                          **kwargs)
         hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, **kwargs)
-        assert_allclose(hp, bp, rtol=1e-3, atol=1e-3)
+        assert_allclose(hp, bp, rtol=1e-3, atol=2e-3)
         assert_allclose(bp + bs, a, rtol=1e-3, atol=1e-3)
         # Sanity check ttenuation
         mask = (freqs > 5.5) & (freqs < 6.5)
@@ -500,6 +500,7 @@ def test_cuda_fir():
     """Test CUDA-based filtering."""
     # Using `n_jobs='cuda'` on a non-CUDA system should be fine,
     # as it should fall back to using n_jobs=1.
+    rng = np.random.RandomState(0)
     sfreq = 500
     sig_len_secs = 20
     a = rng.randn(sig_len_secs * sfreq)
@@ -539,6 +540,7 @@ def test_cuda_fir():
 
 def test_cuda_resampling():
     """Test CUDA resampling."""
+    rng = np.random.RandomState(0)
     for window in ('boxcar', 'triang'):
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
@@ -558,25 +560,6 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
-
-
-def test_interp2():
-    """Test our two-point interpolator."""
-    interp = _Interp2('zero')
-    x = np.ones((1, 100))
-    interp['y'] = np.array([[10.]])
-    interp['y'] = np.array([[-10]])
-    interp.n_samp = 100
-    out = np.zeros_like(x)
-    interp.interpolate('y', x, out)
-    expected = 10 * x
-    assert_allclose(out, expected, atol=1e-7)
-    # Linear
-    interp.interp = 'linear'
-    out.fill(0.)
-    interp.interpolate('y', x, out)
-    expected = np.linspace(10, -10, 100, endpoint=False)[np.newaxis]
-    assert_allclose(out, expected, atol=1e-7)
 
 
 @pytest.mark.parametrize('output', ('ba', 'sos'))
@@ -629,7 +612,7 @@ def test_reporting_iir(ftype, btype, order, output):
     if output == 'ba':
         w, h = freqz(x['b'], x['a'], worN=10000)
     else:
-        w, h = _sosfreqz(x['sos'], worN=10000)
+        w, h = sosfreqz(x['sos'], worN=10000)
     w *= fs / (2 * np.pi)
     h = np.abs(h)
     # passband

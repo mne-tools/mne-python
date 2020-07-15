@@ -10,8 +10,10 @@
 #
 # License: Simplified BSD
 
+import base64
 import copy
 from glob import glob
+from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
@@ -22,14 +24,19 @@ import numpy as np
 from scipy import linalg
 
 from ..defaults import DEFAULTS
+from ..fixes import _get_img_fdata
 from ..rank import compute_rank
+from ..source_space import _mri_orientation
 from ..surface import read_surface
+from ..io.constants import FIFF
 from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
-from ..source_space import read_source_spaces, SourceSpaces
-from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
-                     _mask_to_onsets_offsets)
+from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
+                            _check_mri, _ensure_src)
+from ..transforms import invert_transform, apply_trans, _frame_to_str
+from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
+                     _mask_to_onsets_offsets, _pl)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
@@ -44,9 +51,9 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    info: dict
+    info : dict
         Measurement info.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
     colorbar : bool
@@ -199,6 +206,11 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
         If true, a colorbar will be added to the plot.
     show : bool
         Show figure if True.
+
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
     """
     import matplotlib.pyplot as plt
 
@@ -286,101 +298,152 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True):
+                       slices=None, show=True, show_indices=False,
+                       show_orientation=False, img_output=False):
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
-    import nibabel as nib
-
-    # plot axes (x, y, z) as data axes (0, 1, 2)
-    if orientation == 'coronal':
-        x, y, z = 0, 1, 2
-    elif orientation == 'axial':
-        x, y, z = 2, 0, 1
-    elif orientation == 'sagittal':
-        x, y, z = 2, 1, 0
-    else:
-        raise ValueError("Orientation must be 'coronal', 'axial' or "
-                         "'sagittal'. Got %s." % orientation)
+    from matplotlib import patheffects
+    # For ease of plotting, we will do everything in voxel coordinates.
+    _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
     # Load the T1 data
-    nim = nib.load(mri_fname)
-    data = nim.get_data()
-    try:
-        affine = nim.affine
-    except AttributeError:  # older nibabel
-        affine = nim.get_affine()
+    _, vox_mri_t, _, _, _, nim = _read_mri_info(
+        mri_fname, units='mm', return_img=True)
+    mri_vox_t = invert_transform(vox_mri_t)['trans']
+    del vox_mri_t
 
-    n_sag, n_axi, n_cor = data.shape
-    orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
-    orientation_axis = orientation_name2axis[orientation]
+    # plot axes (x, y, z) as data axes
+    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_orientation(
+        nim, orientation)
+    transpose = x < y
 
+    data = _get_img_fdata(nim)
+    shift_x = data.shape[x] if flip_x < 0 else 0
+    shift_y = data.shape[y] if flip_y < 0 else 0
+    n_slices = data.shape[z]
     if slices is None:
-        n_slices = data.shape[orientation_axis]
-        slices = np.linspace(0, n_slices, 12, endpoint=False).astype(np.int)
+        slices = np.round(np.linspace(0, n_slices - 1, 14)).astype(int)[1:-1]
+    slices = np.atleast_1d(slices).copy()
+    slices[slices < 0] += n_slices  # allow negative indexing
+    if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
+            slices.size < 1 or slices[0] < 0 or slices[-1] >= n_slices or \
+            slices.dtype.kind not in 'iu':
+        raise ValueError('slices must be a sorted 1D array of int with unique '
+                         'elements, at least one element, and no elements '
+                         'greater than %d, got %s' % (n_slices - 1, slices))
+    if flip_z < 0:
+        # Proceed in the opposite order to maintain left-to-right / orientation
+        slices = slices[::-1]
 
     # create of list of surfaces
     surfs = list()
-
-    trans = linalg.inv(affine)
-    # XXX : next line is a hack don't ask why
-    trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
-
     for file_name, color in surfaces:
         surf = dict()
         surf['rr'], surf['tris'] = read_surface(file_name)
-        # move back surface to MRI coordinate system
-        surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
+        # move surface to voxel coordinate system
+        surf['rr'] = apply_trans(mri_vox_t, surf['rr'])
         surfs.append((surf, color))
 
-    src_points = list()
-    if isinstance(src, SourceSpaces):
+    sources = list()
+    if src is not None:
+        _ensure_src(src, extra=' or None')
+        # Eventually we can relax this by allowing ``trans`` if need be
+        if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+            raise ValueError(
+                'Source space must be in MRI coordinates, got '
+                f'{_frame_to_str[src[0]["coord_frame"]]}')
         for src_ in src:
-            points = src_['rr'][src_['inuse'].astype(bool)] * 1e3
-            src_points.append(nib.affines.apply_affine(trans, points))
-    elif src is not None:
-        raise TypeError("src needs to be None or SourceSpaces instance, not "
-                        "%s" % repr(src))
+            points = src_['rr'][src_['inuse'].astype(bool)]
+            sources.append(apply_trans(mri_vox_t, points * 1e3))
+        sources = np.concatenate(sources, axis=0)
 
-    fig, axs = _prepare_trellis(len(slices), 4)
+    if img_output:
+        n_col = n_axes = 1
+        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
+        axs = [ax] * len(slices)
 
-    for ax, sl in zip(axs, slices):
-
+        w = fig.get_size_inches()[0]
+        fig.set_size_inches([w, w / data.shape[x] * data.shape[y]])
+        plt.close(fig)
+    else:
+        n_col = 4
+        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        n_axes = len(axs)
+    fig.set_facecolor('k')
+    bounds = np.concatenate(
+        [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
+    slicer = [slice(None)] * 3
+    ori_labels = dict(R='LR', A='PA', S='IS')
+    xlabels, ylabels = ori_labels[order[0]], ori_labels[order[1]]
+    path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
+                                           alpha=0.75)]
+    out = list() if img_output else fig
+    for ai, (ax, sl, lower, upper) in enumerate(zip(
+            axs, slices, bounds[:-1], bounds[1:])):
         # adjust the orientations for good view
-        if orientation == 'coronal':
-            dat = data[:, :, sl].transpose()
-        elif orientation == 'axial':
-            dat = data[:, sl, :]
-        elif orientation == 'sagittal':
-            dat = data[sl, :, :]
+        slicer[z] = sl
+        dat = data[tuple(slicer)]
+        dat = dat.T if transpose else dat
+        dat = dat[::flip_y, ::flip_x]
 
         # First plot the anatomical data
-        ax.imshow(dat, cmap=plt.cm.gray)
+        if img_output:
+            ax.clear()
+        ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
         ax.set_autoscale_on(False)
         ax.axis('off')
+        ax.set_aspect('equal')  # XXX eventually could deal with zooms
 
         # and then plot the contours on top
         for surf, color in surfs:
             with warnings.catch_warnings(record=True):  # ignore contour warn
                 warnings.simplefilter('ignore')
-                ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
+                ax.tricontour(flip_x * surf['rr'][:, x] + shift_x,
+                              flip_y * surf['rr'][:, y] + shift_y,
                               surf['tris'], surf['rr'][:, z],
                               levels=[sl], colors=color, linewidths=1.0,
                               zorder=1)
 
-        for sources in src_points:
-            in_slice = np.logical_and(sources[:, z] > sl - 0.5,
-                                      sources[:, z] < sl + 0.5)
-            ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
-                       color='#FF00FF', s=1, zorder=2)
+        if len(sources):
+            in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
+            ax.scatter(flip_x * sources[in_slice, x] + shift_x,
+                       flip_y * sources[in_slice, y] + shift_y,
+                       marker='.', color='#FF00FF', s=1, zorder=2)
+        if show_indices:
+            ax.text(dat.shape[1] // 8 + 0.5, 0.5, str(sl),
+                    color='w', fontsize='x-small', va='bottom', ha='left')
+        # label the axes
+        kwargs = dict(
+            color='#66CCEE', fontsize='medium', path_effects=path_effects,
+            family='monospace', clip_on=False, zorder=5, weight='bold')
+        if show_orientation:
+            if ai % n_col == 0:  # left
+                ax.text(0, dat.shape[0] / 2., xlabels[0],
+                        va='center', ha='left', **kwargs)
+            if ai % n_col == n_col - 1 or ai == n_axes - 1:  # right
+                ax.text(dat.shape[1] - 1, dat.shape[0] / 2., xlabels[1],
+                        va='center', ha='right', **kwargs)
+            if ai >= n_axes - n_col:  # bottom
+                ax.text(dat.shape[1] / 2., 0, ylabels[0],
+                        ha='center', va='bottom', **kwargs)
+            if ai < n_col or n_col == 1:  # top
+                ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
+                        ha='center', va='top', **kwargs)
+        if img_output:
+            output = BytesIO()
+            fig.savefig(output, bbox_inches='tight',
+                        pad_inches=0, format='png')
+            out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
-    plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+    fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
-    plt_show(show)
-    return fig
+    plt_show(show, fig=fig)
+    return out
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
-             slices=None, brain_surfaces=None, src=None, show=True):
+             slices=None, brain_surfaces=None, src=None, show=True,
+             show_indices=True, mri='T1.mgz', show_orientation=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -399,11 +462,29 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
     src : None | SourceSpaces | str
         SourceSpaces instance or path to a source space to plot individual
-        sources as scatter-plot. Only sources lying in the shown slices will be
-        visible, sources that lie between visible slices are not shown. Path
-        can be absolute or relative to the subject's ``bem`` folder.
+        sources as scatter-plot. Sources will be shown on exactly one slice
+        (whichever slice is closest to each source in the given orientation
+        plane). Path can be absolute or relative to the subject's ``bem``
+        folder.
+
+        .. versionchanged:: 0.20
+           All sources are shown on the nearest slice rather than some
+           being omitted.
     show : bool
         Show figure if True.
+    show_indices : bool
+        Show slice indices if True.
+
+        .. versionadded:: 0.20
+    mri : str
+        The name of the MRI to use. Can be a standard FreeSurfer MRI such as
+        ``'T1.mgz'``, or a full path to a custom MRI file.
+
+        .. versionadded:: 0.21
+    show_orientation : str
+        Show the orientation (L/R, P/A, I/S) of the data slices.
+
+        .. versionadded:: 0.21
 
     Returns
     -------
@@ -413,13 +494,23 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     See Also
     --------
     mne.viz.plot_alignment
+
+    Notes
+    -----
+    Images are plotted in MRI voxel coordinates.
+
+    If ``src`` is not None, for a given slice index, all source points are
+    shown that are halfway between the previous slice and the given slice,
+    and halfway between the given slice and the next slice.
+    For large slice decimations, this can
+    make some source points appear outside the BEM contour, which is shown
+    for the given slice index. For example, in the case where the single
+    midpoint slice is used ``slices=[128]``, all source points will be shown
+    on top of the midpoint MRI slice with the BEM boundary drawn for that
+    slice.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    # Get the MRI filename
-    mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    if not op.isfile(mri_fname):
-        raise IOError('MRI file "%s" does not exist' % mri_fname)
+    mri_fname = _check_mri(mri, subject, subjects_dir)
 
     # Get the BEM surface filenames
     bem_path = op.join(subjects_dir, subject, 'bem')
@@ -427,16 +518,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
-    surfaces = []
-    for surf_name, color in (('*inner_skull', '#FF0000'),
-                             ('*outer_skull', '#FFFF00'),
-                             ('*outer_skin', '#FFAA80')):
-        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
-        if len(surf_fname) > 0:
-            surf_fname = surf_fname[0]
-            logger.info("Using surface: %s" % surf_fname)
-            surfaces.append((surf_fname, color))
-
+    surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
         if isinstance(brain_surfaces, str):
             brain_surfaces = (brain_surfaces,)
@@ -467,7 +549,20 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show)
+                              show, show_indices, show_orientation)
+
+
+def _get_bem_plotting_surfaces(bem_path):
+    surfaces = []
+    for surf_name, color in (('*inner_skull', '#FF0000'),
+                             ('*outer_skull', '#FFFF00'),
+                             ('*outer_skin', '#FFAA80')):
+        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
+        if len(surf_fname) > 0:
+            surf_fname = surf_fname[0]
+            logger.info("Using surface: %s" % surf_fname)
+            surfaces.append((surf_fname, color))
+    return surfaces
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
@@ -518,6 +613,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         xlabel = 'Time (s)'
 
     events = np.asarray(events)
+    if len(events) == 0:
+        raise ValueError('No events in events array, cannot plot.')
     unique_events = np.unique(events[:, 2])
 
     if event_id is not None:
@@ -539,7 +636,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         unique_events_id = unique_events
 
-    color = _handle_event_colors(unique_events, color, unique_events_id)
+    color = _handle_event_colors(color, unique_events, event_id)
     import matplotlib.pyplot as plt
 
     fig = None
@@ -550,21 +647,27 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     unique_events_id = np.array(unique_events_id)
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
+    max_x = (events[np.in1d(events[:, 2], unique_events_id), 0].max() -
+             first_samp) / sfreq
 
+    handles, labels = list(), list()
     for idx, ev in enumerate(unique_events_id):
         ev_mask = events[:, 2] == ev
-        kwargs = {}
+        count = ev_mask.sum()
+        if count == 0:
+            continue
+        y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = '{} ({})'.format(event_id_rev[ev], np.sum(ev_mask))
-            kwargs['label'] = event_label
+            event_label = '%s (%s)' % (event_id_rev[ev], count)
+        else:
+            event_label = 'N=%d' % (count,)
+        labels.append(event_label)
+        kwargs = {}
         if ev in color:
             kwargs['color'] = color[ev]
-        if equal_spacing:
+        handles.append(
             ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                    (idx + 1) * np.ones(ev_mask.sum()), '.', **kwargs)
-        else:
-            ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                    events[ev_mask, 2], '.', **kwargs)
+                    y, '.', clip_on=False, **kwargs)[0])
 
     if equal_spacing:
         ax.set_ylim(0, unique_events_id.size + 1)
@@ -573,16 +676,20 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         ax.set_ylim([min_event - 1, max_event + 1])
 
-    ax.set(xlabel=xlabel, ylabel='Events id')
+    ax.set(xlabel=xlabel, ylabel='Events id', xlim=[0, max_x])
 
     ax.grid(True)
 
     fig = fig if fig is not None else plt.gcf()
-    if event_id is not None:
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.canvas.draw()
+    # reverse order so that the highest numbers are at the top
+    # (match plot order)
+    handles, labels = handles[::-1], labels[::-1]
+    box = ax.get_position()
+    factor = 0.8 if event_id is not None else 0.9
+    ax.set_position([box.x0, box.y0, box.width * factor, box.height])
+    ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5),
+              fontsize='small')
+    fig.canvas.draw()
     plt_show(show)
     return fig
 
@@ -612,7 +719,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     ----------
     dipoles : list of instance of Dipole
         The dipoles whose amplitudes should be shown.
-    colors: list of color | None
+    colors : list of color | None
         Color to plot with each dipole. If None default colors are used.
     show : bool
         Show figure if True.
@@ -711,7 +818,8 @@ _DEFAULT_ALIM = (-80, 10)
 
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 flim=None, fscale='log', alim=_DEFAULT_ALIM, show=True,
-                compensate=False):
+                compensate=False, plot=('time', 'magnitude', 'delay'),
+                axes=None):
     """Plot properties of a filter.
 
     Parameters
@@ -727,7 +835,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         The ideal response gains to plot.
         If None (default), do not plot the ideal response.
     title : str | None
-        The title to use. If None (default), deteremine the title based
+        The title to use. If None (default), determine the title based
         on the type of the system.
     color : color object
         The color to use (default '#1f77b4').
@@ -751,6 +859,19 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
           by squaring it.
 
         .. versionadded:: 0.18
+    plot : list | tuple | str
+        A list of the requested plots from ``time``, ``magnitude`` and
+        ``delay``. Default is to plot all three filter properties
+        ('time', 'magnitude', 'delay').
+
+        .. versionadded:: 0.21.0
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of requested plot types. If instance of
+        Axes, there must be only one filter property plotted.
+        Defaults to ``None``.
+
+        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -769,13 +890,20 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     from scipy.signal import (
         freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt)
     import matplotlib.pyplot as plt
+
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
+    if isinstance(plot, str):
+        plot = [plot]
+    for xi, x in enumerate(plot):
+        _check_option('plot[%d]' % xi, x, ('magnitude', 'delay', 'time'))
+
     flim = _get_flim(flim, fscale, freq, sfreq)
     if fscale == 'log':
         omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
     else:
         omega = np.linspace(flim[0], flim[1], 1000)
+    xticks, xticklabels = _filter_ticks(flim, fscale)
     omega /= sfreq / (2 * np.pi)
     if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
         if 'sos' in h:
@@ -832,9 +960,24 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         title = 'FIR filter' if title is None else title
         if compensate:
             title += ' (delay-compensated)'
-    # eventually axes could be a parameter
-    fig, (ax_time, ax_freq, ax_delay) = plt.subplots(3)
+
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(len(plot), 1)
+    if isinstance(axes, plt.Axes):
+        axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = list(axes)
+    if fig is None:
+        fig = axes[0].get_figure()
+    if len(axes) != len(plot):
+        raise ValueError('Length of axes (%d) must be the same as number of '
+                         'requested filter properties (%d)'
+                         % (len(axes), len(plot)))
+
     t = np.arange(len(h))
+    dlim = np.abs(t).max() / 2.
+    dlim = [-dlim, dlim]
     if compensate:
         n_shift = (len(h) - 1) // 2
         t -= n_shift
@@ -843,34 +986,48 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     t = t / sfreq
     gd = gd / sfreq
     f = omega * sfreq / (2 * np.pi)
-    ax_time.plot(t, h, color=color)
-    ax_time.set(xlim=t[[0, -1]], xlabel='Time (s)',
-                ylabel='Amplitude', title=title)
-    mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
     sl = slice(0 if fscale == 'linear' else 1, None, None)
+    mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
+
+    if 'time' in plot:
+        ax_time_idx = np.where([p == 'time' for p in plot])[0][0]
+        axes[ax_time_idx].plot(t, h, color=color)
+        axes[ax_time_idx].set(xlim=t[[0, -1]], xlabel='Time (s)',
+                              ylabel='Amplitude', title=title)
     # Magnitude
-    ax_freq.plot(f[sl], mag[sl], color=color, linewidth=2, zorder=4)
-    if freq is not None and gain is not None:
-        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale, show=False)
-    ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
-    # Delay
-    ax_delay.plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
-    # shade nulled regions
-    for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
-        ax_delay.axvspan(f[start], f[stop - 1], facecolor='k', alpha=0.05,
-                         zorder=5)
-    ax_delay.set(xlim=flim, ylabel='Group delay (s)', xlabel='Frequency (Hz)',
-                 xscale=fscale)
-    xticks, xticklabels = _filter_ticks(flim, fscale)
-    dlim = np.abs(t).max() / 2.
-    dlim = [-dlim, dlim]
-    for ax, ylim, ylabel in ((ax_freq, alim, 'Amplitude (dB)'),
-                             (ax_delay, dlim, 'Delay (s)')):
+    if 'magnitude' in plot:
+        ax_mag_idx = np.where([p == 'magnitude' for p in plot])[0][0]
+        axes[ax_mag_idx].plot(f[sl], mag[sl], color=color,
+                              linewidth=2, zorder=4)
+        if freq is not None and gain is not None:
+            plot_ideal_filter(freq, gain, axes[ax_mag_idx],
+                              fscale=fscale, show=False)
+        axes[ax_mag_idx].set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
         if xticks is not None:
-            ax.set(xticks=xticks)
-            ax.set(xticklabels=xticklabels)
-        ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
-    adjust_axes([ax_time, ax_freq, ax_delay])
+            axes[ax_mag_idx].set(xticks=xticks)
+            axes[ax_mag_idx].set(xticklabels=xticklabels)
+        axes[ax_mag_idx].set(xlim=flim, ylim=alim, xlabel='Frequency (Hz)',
+                             ylabel='Amplitude (dB)')
+    # Delay
+    if 'delay' in plot:
+        ax_delay_idx = np.where([p == 'delay' for p in plot])[0][0]
+        axes[ax_delay_idx].plot(f[sl], gd[sl], color=color,
+                                linewidth=2, zorder=4)
+        # shade nulled regions
+        for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
+            axes[ax_delay_idx].axvspan(f[start], f[stop - 1],
+                                       facecolor='k', alpha=0.05,
+                                       zorder=5)
+        axes[ax_delay_idx].set(xlim=flim, ylabel='Group delay (s)',
+                               xlabel='Frequency (Hz)',
+                               xscale=fscale)
+        if xticks is not None:
+            axes[ax_delay_idx].set(xticks=xticks)
+            axes[ax_delay_idx].set(xticklabels=xticklabels)
+        axes[ax_delay_idx].set(xlim=flim, ylim=dlim, xlabel='Frequency (Hz)',
+                               ylabel='Delay (s)')
+
+    adjust_axes(axes)
     tight_layout()
     plt_show(show)
     return fig
@@ -929,7 +1086,6 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         >>> gain = [0, 1, 1, 0]
         >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
         <...Figure...>
-
     """
     import matplotlib.pyplot as plt
     my_freq, my_gain = list(), list()
@@ -975,27 +1131,32 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     return axes.figure
 
 
-def _handle_event_colors(unique_events, color, unique_events_id):
-    """Handle event colors."""
-    if color is None:
+def _handle_event_colors(color_dict, unique_events, event_id):
+    """Create event-integer-to-color mapping, assigning defaults as needed."""
+    default_colors = dict(zip(sorted(unique_events), cycle(_get_color_list())))
+    # warn if not enough colors
+    if color_dict is None:
         if len(unique_events) > len(_get_color_list()):
-            warn('More events than colors available. You should pass a list '
-                 'of unique colors.')
-        colors = cycle(_get_color_list())
-        color = dict()
-        for this_event, this_color in zip(sorted(unique_events_id), colors):
-            color[this_event] = this_color
+            warn('More events than default colors available. You should pass '
+                 'a list of unique colors.')
     else:
-        for this_event in color:
-            if this_event not in unique_events_id:
-                raise ValueError('Event ID %s is in the color dict but is not '
-                                 'present in events or event_id.' % this_event)
-
-        for this_event in unique_events_id:
-            if this_event not in color:
-                warn('Color is not available for event %d. Default colors '
-                     'will be used.' % this_event)
-    return color
+        custom_colors = dict()
+        for key, color in color_dict.items():
+            if key in unique_events:  # key was a valid event integer
+                custom_colors[key] = color
+            elif key in event_id:     # key was an event label
+                custom_colors[event_id[key]] = color
+            else:                     # key not a valid event, warn and ignore
+                warn('Event ID %s is in the color dict but is not '
+                     'present in events or event_id.' % str(key))
+        # warn if color_dict is missing any entries
+        unassigned = sorted(set(unique_events) - set(custom_colors))
+        if len(unassigned):
+            unassigned_str = ', '.join(str(e) for e in unassigned)
+            warn('Color was not assigned for event%s %s. Default colors will '
+                 'be used.' % (_pl(unassigned), unassigned_str))
+        default_colors.update(custom_colors)
+    return default_colors
 
 
 def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
@@ -1009,7 +1170,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    info: instance of Info | None
+    info : instance of Info | None
         To split the figure by channel-type, provide the measurement info.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'
@@ -1057,7 +1218,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         if mode == 'csd':
             # The units in which to plot the CSD
-            units = dict(eeg=u'μV²', grad=u'fT²/cm²', mag=u'fT²')
+            units = dict(eeg='µV²', grad='fT²/cm²', mag='fT²')
             scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
     else:
         indices = [np.arange(len(csd.ch_names))]

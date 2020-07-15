@@ -30,6 +30,12 @@ NOINFO_WARNING = 'Importing FieldTrip data without an info dict from the ' \
                  'source analysis, channel interpolation etc.'
 
 
+def _validate_ft_struct(ft_struct):
+    """Run validation checks on the ft_structure."""
+    if isinstance(ft_struct, list):
+        raise RuntimeError('Loading of data in cell arrays is not supported')
+
+
 def _create_info(ft_struct, raw_info):
     """Create MNE info structure from a FieldTrip structure."""
     if raw_info is None:
@@ -50,10 +56,18 @@ def _create_info(ft_struct, raw_info):
             new_chs = [ch for ch in ch_names if ch not in missing_channels]
             ch_names = new_chs
             ft_struct['label'] = ch_names
-            if ft_struct['trial'].ndim == 2:
-                ft_struct['trial'] = np.delete(ft_struct['trial'],
-                                               missing_chan_idx,
-                                               axis=0)
+
+            if 'trial' in ft_struct:
+                ft_struct['trial'] = _remove_missing_channels_from_trial(
+                    ft_struct['trial'],
+                    missing_chan_idx
+                )
+
+            if 'avg' in ft_struct:
+                if ft_struct['avg'].ndim == 2:
+                    ft_struct['avg'] = np.delete(ft_struct['avg'],
+                                                 missing_chan_idx,
+                                                 axis=0)
 
         info['sfreq'] = sfreq
         ch_idx = [info['ch_names'].index(ch) for ch in ch_names]
@@ -61,12 +75,31 @@ def _create_info(ft_struct, raw_info):
     else:
         montage = _create_montage(ft_struct)
 
-        info = create_info(ch_names, sfreq, montage=montage)
+        info = create_info(ch_names, sfreq)
+        info.set_montage(montage)
         chs = _create_info_chs(ft_struct)
         info['chs'] = chs
         info._update_redundant()
 
     return info
+
+
+def _remove_missing_channels_from_trial(trial, missing_chan_idx):
+    if isinstance(trial, list):
+        for idx_trial in range(len(trial)):
+            trial[idx_trial] = _remove_missing_channels_from_trial(
+                trial[idx_trial], missing_chan_idx
+            )
+    elif isinstance(trial, np.ndarray):
+        if trial.ndim == 2:
+            trial = np.delete(trial,
+                              missing_chan_idx,
+                              axis=0)
+    else:
+        raise ValueError('"trial" field of the FieldTrip structure '
+                         'has an unknown format.')
+
+    return trial
 
 
 def _create_info_chs(ft_struct):
@@ -141,8 +174,16 @@ def _create_montage(ft_struct):
             cur_labels = np.asanyarray(tmp_labels)
             montage_ch_names.extend(
                 cur_labels[available_channels])
-            montage_pos.extend(
-                cur_ch_struct['chanpos'][available_channels])
+            try:
+                montage_pos.extend(
+                    cur_ch_struct['chanpos'][available_channels])
+            except KeyError:
+                raise RuntimeError('This file was created with an old version '
+                                   'of FieldTrip. You can convert the data to '
+                                   'the new version by loading it into '
+                                   'FieldTrip and applying ft_selectdata with '
+                                   'an empty cfg structure on it. '
+                                   'Otherwise you can supply the Info field.')
 
     montage = None
 
@@ -179,12 +220,16 @@ def _set_tmin(ft_struct):
     if time_check:
         tmin = times[0][0]
     else:
-        tmin = None
+        raise RuntimeError('Loading data with non-uniform '
+                           'times per epoch is not supported')
     return tmin
 
 
 def _create_events(ft_struct, trialinfo_column):
     """Create an event matrix from the FieldTrip structure."""
+    if 'trialinfo' not in ft_struct:
+        return None
+
     event_type = ft_struct['trialinfo']
     event_number = range(len(event_type))
 
@@ -295,9 +340,10 @@ def _process_channel_meg(cur_ch, grad):
     original_orientation = np.squeeze(grad['chanori'][chan_idx_in_grad, :])
     try:
         orientation = rotation3d_align_z_axis(original_orientation).T
-        orientation = orientation.flatten()
     except AssertionError:
-        orientation = np.eye(4, 4).flatten()
+        orientation = np.eye(3)
+    assert orientation.shape == (3, 3)
+    orientation = orientation.flatten()
     chanunit = grad['chanunit'][chan_idx_in_grad]
 
     cur_ch['loc'] = np.hstack((position, orientation))

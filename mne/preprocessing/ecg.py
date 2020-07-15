@@ -6,7 +6,6 @@
 
 import numpy as np
 
-from .. import pick_types, pick_channels
 from ..annotations import _annotations_starts_stops
 from ..utils import logger, verbose, sum_squared, warn
 from ..filter import filter_data
@@ -14,8 +13,8 @@ from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
 from ..evoked import Evoked
 from ..io import RawArray
-from ..io.pick import _picks_to_idx
-from .. import create_info
+from ..io.meas_info import create_info
+from ..io.pick import _picks_to_idx, pick_types, pick_channels
 
 
 @verbose
@@ -95,7 +94,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
             if window[0] > thresh1:
                 max_time = np.argmax(window)
                 time.append(ii + max_time)
-                nx = np.sum(np.diff(((window > thresh1).astype(np.int) ==
+                nx = np.sum(np.diff(((window > thresh1).astype(np.int64) ==
                                      1).astype(int)))
                 numcross.append(nx)
                 rms.append(np.sqrt(sum_squared(window) / window.size))
@@ -142,9 +141,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
         If None (default), a synthetic ECG channel is created from
@@ -281,7 +280,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
         If None (default), ECG channel is used if present. If None and no
@@ -289,7 +288,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         cross channel average. Synthetic channel can only be created from
         MEG channels.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     %(picks_all)s
     tmin : float
         Start time before event.

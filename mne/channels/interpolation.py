@@ -10,11 +10,30 @@ from ..fixes import einsum
 from ..utils import logger, warn, verbose
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
-from ..bem import _fit_sphere
 from ..forward import _map_meg_channels
+from ..utils import _check_option
 
 
-def _calc_g(cosang, stiffness=4, num_lterms=50):
+def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
+    """Calculate spherical spline h function between points on a sphere.
+
+    Parameters
+    ----------
+    cosang : array-like | float
+        cosine of angles between pairs of points on a spherical surface. This
+        is equivalent to the dot product of unit vectors.
+    stiffness : float
+        stiffnes of the spline. Also referred to as ``m``.
+    n_legendre_terms : int
+        number of Legendre terms to evaluate.
+    """
+    factors = [(2 * n + 1) /
+               (n ** (stiffness - 1) * (n + 1) ** (stiffness - 1) * 4 * np.pi)
+               for n in range(1, n_legendre_terms + 1)]
+    return legval(cosang, [0] + factors)
+
+
+def _calc_g(cosang, stiffness=4, n_legendre_terms=50):
     """Calculate spherical spline g function between points on a sphere.
 
     Parameters
@@ -24,7 +43,7 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
         is equivalent to the dot product of unit vectors.
     stiffness : float
         stiffness of the spline.
-    num_lterms : int
+    n_legendre_terms : int
         number of Legendre terms to evaluate.
 
     Returns
@@ -33,7 +52,8 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
         The G matrix.
     """
     factors = [(2 * n + 1) / (n ** stiffness * (n + 1) ** stiffness *
-                              4 * np.pi) for n in range(1, num_lterms + 1)]
+                              4 * np.pi)
+               for n in range(1, n_legendre_terms + 1)]
     return legval(cosang, [0] + factors)
 
 
@@ -106,7 +126,7 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, verbose=None):
+def _interpolate_bads_eeg(inst, origin, verbose=None):
     """Interpolate bad EEG channels.
 
     Operates in place.
@@ -116,8 +136,8 @@ def _interpolate_bads_eeg(inst, verbose=None):
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The data to interpolate. Must be preloaded.
     """
-    bads_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
-    goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
+    bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
+    goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
     inst.info._check_consistency()
@@ -135,20 +155,17 @@ def _interpolate_bads_eeg(inst, verbose=None):
     bads_idx_pos = bads_idx[picks]
     goods_idx_pos = goods_idx[picks]
 
-    pos_good = pos[goods_idx_pos]
-    pos_bad = pos[bads_idx_pos]
-
     # test spherical fit
-    radius, center = _fit_sphere(pos_good)
-    distance = np.sqrt(np.sum((pos_good - center) ** 2, 1))
-    distance = np.mean(distance / radius)
+    distance = np.linalg.norm(pos - origin, axis=-1)
+    distance = np.mean(distance / np.mean(distance))
     if np.abs(1. - distance) > 0.1:
         warn('Your spherical fit is poor, interpolation results are '
              'likely to be inaccurate.')
 
+    pos_good = pos[goods_idx_pos] - origin
+    pos_bad = pos[bads_idx_pos] - origin
     logger.info('Computing interpolation matrix from {} sensor '
                 'positions'.format(len(pos_good)))
-
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {} sensors'.format(len(pos_bad)))
@@ -195,5 +212,60 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         return
     info_from = pick_info(inst.info, picks_good)
     info_to = pick_info(inst.info, picks_bad)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)
+
+
+@verbose
+def _interpolate_bads_nirs(inst, method='nearest', verbose=None):
+    """Interpolate bad nirs channels. Simply replaces by closest non bad.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    method : str
+        Only the method 'nearest' is currently available. This method replaces
+        each bad channel with the nearest non bad channel.
+    %(verbose)s
+    """
+    from scipy.spatial.distance import pdist, squareform
+    from mne.preprocessing.nirs import _channel_frequencies,\
+        _check_channels_ordered
+
+    # Returns pick of all nirs and ensures channels are correctly ordered
+    freqs = np.unique(_channel_frequencies(inst))
+    picks_nirs = _check_channels_ordered(inst, freqs)
+    if len(picks_nirs) == 0:
+        return
+
+    nirs_ch_names = [inst.info['ch_names'][p] for p in picks_nirs]
+    bads_nirs = [ch for ch in inst.info['bads'] if ch in nirs_ch_names]
+    if len(bads_nirs) == 0:
+        return
+    picks_bad = pick_channels(inst.info['ch_names'], bads_nirs, exclude=[])
+    bads_mask = [p in picks_bad for p in picks_nirs]
+
+    chs = [inst.info['chs'][i] for i in picks_nirs]
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+
+    _check_option('fnirs_method', method, ['nearest'])
+
+    if method == 'nearest':
+
+        dist = pdist(locs3d)
+        dist = squareform(dist)
+
+        for bad in picks_bad:
+            dists_to_bad = dist[bad]
+            # Ignore distances to self
+            dists_to_bad[dists_to_bad == 0] = np.inf
+            # Ignore distances to other bad channels
+            dists_to_bad[bads_mask] = np.inf
+            # Find closest remaining channels for same frequency
+            closest_idx = np.argmin(dists_to_bad) + (bad % 2)
+            inst._data[bad] = inst._data[closest_idx]
+
+        inst.info['bads'] = []
+
+    return inst

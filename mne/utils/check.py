@@ -4,10 +4,12 @@
 #
 # License: BSD (3-clause)
 
+from difflib import get_close_matches
 from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +22,10 @@ def _ensure_int(x, name='unknown', must_be='an int'):
     # This is preferred over numbers.Integral, see:
     # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
     try:
+        # someone passing True/False is much more likely to be an error than
+        # intentional usage
+        if isinstance(x, bool):
+            raise TypeError()
         x = int(operator.index(x))
     except TypeError:
         raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
@@ -54,7 +60,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version):
+def check_version(library, min_version='0.0'):
     r"""Check minimum library version required.
 
     Parameters
@@ -134,17 +140,21 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
+def _check_fname(fname, overwrite=False, must_exist=False, name='File',
+                 allow_dir=False):
     """Check for file existence."""
     _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname):
+    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
         if not overwrite:
-            raise IOError('Destination file exists. Please use option '
-                          '"overwrite=True" to force overwriting.')
+            raise FileExistsError('Destination file exists. Please use option '
+                                  '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
+        if must_exist and not os.access(fname, os.R_OK):
+            raise PermissionError(
+                '%s does not have read permissions: %s' % (name, fname))
     elif must_exist:
-        raise IOError('%s "%s" does not exist' % (name, fname))
+        raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
     return str(fname)
 
 
@@ -242,15 +252,37 @@ def _check_pandas_installed(strict=True):
             return False
 
 
-def _check_pandas_index_arguments(index, defaults):
+def _check_pandas_index_arguments(index, valid):
     """Check pandas index arguments."""
-    if not any(isinstance(index, k) for k in (list, tuple)):
+    if index is None:
+        return
+    if isinstance(index, str):
         index = [index]
-    invalid_choices = [e for e in index if e not in defaults]
-    if invalid_choices:
-        options = [', '.join(e) for e in [invalid_choices, defaults]]
-        raise ValueError('[%s] is not an valid option. Valid index'
-                         'values are \'None\' or %s' % tuple(options))
+    if not isinstance(index, list):
+        raise TypeError('index must be `None` or a string or list of strings,'
+                        ' got type {}.'.format(type(index)))
+    invalid = set(index) - set(valid)
+    if invalid:
+        plural = ('is not a valid option',
+                  'are not valid options')[int(len(invalid) > 1)]
+        raise ValueError('"{}" {}. Valid index options are `None`, "{}".'
+                         .format('", "'.join(invalid), plural,
+                                 '", "'.join(valid)))
+    return index
+
+
+def _check_time_format(time_format, valid, meas_date=None):
+    """Check time_format argument."""
+    if time_format not in valid and time_format is not None:
+        valid_str = '", "'.join(valid)
+        raise ValueError('"{}" is not a valid time format. Valid options are '
+                         '"{}" and None.'.format(time_format, valid_str))
+    # allow datetime only if meas_date available
+    if time_format == 'datetime' and meas_date is None:
+        warn("Cannot convert to Datetime when raw.info['meas_date'] is "
+             "None. Falling back to Timedelta.")
+        time_format = 'timedelta'
+    return time_format
 
 
 def _check_ch_locs(chs):
@@ -281,14 +313,22 @@ class _IntLike(object):
         else:
             return True
 
+
 int_like = _IntLike()
+
+
+class _Callable(object):
+    @classmethod
+    def __instancecheck__(cls, other):
+        return callable(other)
 
 
 _multi = {
     'str': (str,),
     'numeric': (np.floating, float, int_like),
     'path-like': (str, Path),
-    'int-like': (int_like,)
+    'int-like': (int_like,),
+    'callable': (_Callable(),),
 }
 try:
     _multi['path-like'] += (os.PathLike,)
@@ -446,30 +486,36 @@ def _check_rank(rank):
 def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     """Check number of sensor types and presence of noise covariance matrix."""
     from ..cov import make_ad_hoc_cov, Covariance
+    from ..time_frequency.csd import CrossSpectralDensity
     from ..io.pick import pick_info
     from ..channels.channels import _contains_ch_type
-    picks = _check_info_inv(info, forward, data_cov=data_cov,
-                            noise_cov=noise_cov)
-    info_pick = pick_info(info, picks)
+    if isinstance(data_cov, CrossSpectralDensity):
+        _validate_type(noise_cov, [None, CrossSpectralDensity], 'noise_cov')
+        # FIXME
+        picks = list(range(len(data_cov.ch_names)))
+        info_pick = info
+    else:
+        _validate_type(noise_cov, [None, Covariance], 'noise_cov')
+        picks = _check_info_inv(info, forward, data_cov=data_cov,
+                                noise_cov=noise_cov)
+        info_pick = pick_info(info, picks)
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
     if sum(ch_types) > 1:
-        if method == 'lcmv' and noise_cov is None:
+        if noise_cov is None:
             raise ValueError('Source reconstruction with several sensor types'
                              ' requires a noise covariance matrix to be '
                              'able to apply whitening.')
-        if method == 'dics':
-            raise RuntimeError(
-                'The use of several sensor types with the DICS beamformer is '
-                'not supported yet.')
     if noise_cov is None:
         noise_cov = make_ad_hoc_cov(info_pick, std=1.)
+        allow_mismatch = True
     else:
         noise_cov = noise_cov.copy()
-        if 'estimator' in noise_cov:
+        if isinstance(noise_cov, Covariance) and 'estimator' in noise_cov:
             del noise_cov['estimator']
-    _validate_type(noise_cov, Covariance, 'noise_cov')
-    return noise_cov, picks
+        allow_mismatch = False
+    _validate_type(noise_cov, (Covariance, CrossSpectralDensity), 'noise_cov')
+    return noise_cov, picks, allow_mismatch
 
 
 def _check_depth(depth, kind='depth_mne'):
@@ -480,7 +526,7 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
-def _check_option(parameter, value, allowed_values):
+def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
     Raises a ValueError with a readable error message if the value was invalid.
@@ -493,6 +539,9 @@ def _check_option(parameter, value, allowed_values):
         The value of the parameter to check.
     allowed_values : list
         The list of allowed values for the parameter.
+    extra : str
+        Extra string to append to the invalid value sentence, e.g.
+        "when using ico mode".
 
     Raises
     ------
@@ -503,16 +552,18 @@ def _check_option(parameter, value, allowed_values):
         return True
 
     # Prepare a nice error message for the user
-    msg = ("Invalid value for the '{parameter}' parameter. "
+    extra = ' ' + extra if extra else extra
+    msg = ("Invalid value for the '{parameter}' parameter{extra}. "
            '{options}, but got {value!r} instead.')
+    allowed_values = list(allowed_values)  # e.g., if a dict was given
     if len(allowed_values) == 1:
-        options = 'The only allowed value is %r' % allowed_values[0]
+        options = f'The only allowed value is {repr(allowed_values[0])}'
     else:
         options = 'Allowed values are '
-        options += ', '.join(['%r' % v for v in allowed_values[:-1]])
-        options += ' and %r' % allowed_values[-1]
+        options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
+        options += f' and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
-                                value=value))
+                                value=value, extra=extra))
 
 
 def _check_all_same_channel_names(instances):
@@ -560,3 +611,85 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
              '(dSPM, sLORETA, or eLORETA) values? The result will only be '
              'correct if currents (in units of Am) are used.'
              % (1e9 * max_cur))
+
+
+def _check_pyqt5_version():
+    bad = True
+    try:
+        from PyQt5.Qt import PYQT_VERSION_STR as version
+    except Exception:
+        version = 'unknown'
+    else:
+        if LooseVersion(version) >= LooseVersion('5.10'):
+            bad = False
+    bad &= sys.platform == 'darwin'
+    if bad:
+        warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
+             'Please upgrade e.g. with:\n\n'
+             '    pip install "PyQt5>=5.10,<5.14"\n'
+             % (version,))
+
+    return version
+
+
+def _check_sphere(sphere, info=None, sphere_units='m'):
+    from ..defaults import HEAD_SIZE_DEFAULT
+    from ..bem import fit_sphere_to_headshape, ConductorModel, get_fitting_dig
+    if sphere is None:
+        sphere = HEAD_SIZE_DEFAULT
+        if info is not None:
+            # Decide if we have enough dig points to do the auto fit
+            try:
+                get_fitting_dig(info, 'extra', verbose='error')
+            except (RuntimeError, ValueError):
+                pass
+            else:
+                sphere = 'auto'
+    if isinstance(sphere, str):
+        if sphere != 'auto':
+            raise ValueError('sphere, if str, must be "auto", got %r'
+                             % (sphere))
+        R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+        sphere = tuple(r0) + (R,)
+        sphere_units = 'm'
+    elif isinstance(sphere, ConductorModel):
+        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
+            raise ValueError('sphere, if a ConductorModel, must be spherical '
+                             'with multiple layers, not a BEM or single-layer '
+                             'sphere (got %s)' % (sphere,))
+        sphere = tuple(sphere['r0']) + (sphere['layers'][0]['rad'],)
+        sphere_units = 'm'
+    sphere = np.array(sphere, dtype=float)
+    if sphere.shape == ():
+        sphere = np.concatenate([[0.] * 3, [sphere]])
+    if sphere.shape != (4,):
+        raise ValueError('sphere must be float or 1D array of shape (4,), got '
+                         'array-like of shape %s' % (sphere.shape,))
+    # 0.21 deprecation can just remove this conversion
+    if sphere_units is None:
+        sphere_units = 'mm'
+    _check_option('sphere_units', sphere_units, ('m', 'mm'))
+    if sphere_units == 'mm':
+        sphere /= 1000.
+
+    sphere = np.array(sphere, float)
+    return sphere
+
+
+def _check_freesurfer_home():
+    from .config import get_config
+    fs_home = get_config('FREESURFER_HOME')
+    if fs_home is None:
+        raise RuntimeError(
+            'The FREESURFER_HOME environment variable is not set.')
+    return fs_home
+
+
+def _suggest(val, options, cutoff=0.66):
+    options = get_close_matches(val, options, cutoff=cutoff)
+    if len(options) == 0:
+        return ''
+    elif len(options) == 1:
+        return ' Did you mean %r?' % (options[0],)
+    else:
+        return ' Did you mean one of %r?' % (options,)

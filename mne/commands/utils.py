@@ -85,7 +85,6 @@ def main():
                                               'commands', 'mne_*.py')))
     valid_commands = [c.split(op.sep)[-1][4:-3] for c in valid_commands]
 
-
     def print_help():  # noqa
         print("Usage : mne command options\n")
         print("Accepted commands :\n")

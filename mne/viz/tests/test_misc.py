@@ -14,13 +14,15 @@ import pytest
 import matplotlib.pyplot as plt
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
-                 read_dipole, SourceEstimate)
+                 read_dipole, SourceEstimate, pick_events)
 from mne.datasets import testing
 from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd)
+from mne.viz.misc import _handle_event_colors
+from mne.viz.utils import _get_color_list
 from mne.utils import requires_nibabel, run_tests_if_main
 from mne.time_frequency import CrossSpectralDensity
 
@@ -62,14 +64,45 @@ def test_plot_filter():
     iir = create_filter(data, sfreq, l_freq, h_freq, method='iir')
     plot_filter(iir, sfreq)
     plt.close('all')
-    plot_filter(iir, sfreq,  freq, gain)
+    plot_filter(iir, sfreq, freq, gain)
     plt.close('all')
     iir_ba = create_filter(data, sfreq, l_freq, h_freq, method='iir',
                            iir_params=dict(output='ba'))
-    plot_filter(iir_ba, sfreq,  freq, gain)
+    plot_filter(iir_ba, sfreq, freq, gain)
     plt.close('all')
-    plot_filter(h, sfreq, freq, gain, fscale='linear')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear')
+    assert len(fig.axes) == 3
     plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=('time', 'delay'))
+    assert len(fig.axes) == 2
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=['magnitude', 'delay'])
+    assert len(fig.axes) == 2
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot='magnitude')
+    assert len(fig.axes) == 1
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=('magnitude'))
+    assert len(fig.axes) == 1
+    plt.close('all')
+    with pytest.raises(ValueError, match='Invalid value for the .plot'):
+        plot_filter(h, sfreq, freq, gain, plot=('turtles'))
+    _, axes = plt.subplots(1)
+    fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude'), axes=axes)
+    assert len(fig.axes) == 1
+    _, axes = plt.subplots(2)
+    fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude', 'delay'),
+                      axes=axes)
+    assert len(fig.axes) == 2
+    plt.close('all')
+    _, axes = plt.subplots(1)
+    with pytest.raises(ValueError, match='Length of axes'):
+        plot_filter(h, sfreq, freq, gain,
+                    plot=('magnitude', 'delay'), axes=axes)
 
 
 def test_plot_cov():
@@ -85,17 +118,42 @@ def test_plot_cov():
 @requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
-    pytest.raises(IOError, plot_bem, subject='bad-subject',
-                  subjects_dir=subjects_dir)
-    pytest.raises(ValueError, plot_bem, subject='sample',
-                  subjects_dir=subjects_dir, orientation='bad-ori')
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='sagittal', slices=[25, 50])
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='coronal', slices=[25, 50],
-             brain_surfaces='white')
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='coronal', slices=[25, 50], src=src_fname)
+    with pytest.raises(IOError, match='MRI file .* not found'):
+        plot_bem(subject='bad-subject', subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match="Invalid value for the 'orientation"):
+        plot_bem(subject='sample', subjects_dir=subjects_dir,
+                 orientation='bad-ori')
+    with pytest.raises(ValueError, match="sorted 1D array"):
+        plot_bem(subject='sample', subjects_dir=subjects_dir, slices=[0, 500])
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='sagittal', slices=[25, 50])
+    assert len(fig.axes) == 2
+    assert len(fig.axes[0].collections) == 3  # 3 BEM surfaces ...
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='coronal', brain_surfaces='white')
+    assert len(fig.axes[0].collections) == 5  # 3 BEM surfaces + 2 hemis
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='coronal', slices=[25, 50], src=src_fname)
+    assert len(fig.axes[0].collections) == 4  # 3 BEM surfaces + 1 src contour
+    with pytest.raises(ValueError, match='MRI coordinates, got head'):
+        plot_bem(subject='sample', subjects_dir=subjects_dir,
+                 src=inv_fname)
+
+
+def test_event_colors():
+    """Test color assignment."""
+    events = pick_events(_get_events(), include=[1, 2])
+    unique_events = set(events[:, 2])
+    # make sure defaults work
+    colors = _handle_event_colors(None, unique_events, dict())
+    default_colors = _get_color_list()
+    assert colors[1] == default_colors[0]
+    # make sure custom color overrides default
+    colors = _handle_event_colors(color_dict=dict(foo='k', bar='#facade'),
+                                  unique_events=unique_events,
+                                  event_id=dict(foo=1, bar=2))
+    assert colors[1] == 'k'
+    assert colors[2] == '#facade'
 
 
 def test_plot_events():
@@ -104,24 +162,30 @@ def test_plot_events():
     color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()
     events = _get_events()
-    plot_events(events, raw.info['sfreq'], raw.first_samp)
+    fig = plot_events(events, raw.info['sfreq'], raw.first_samp)
+    assert fig.axes[0].get_legend() is not None  # legend even with no event_id
     plot_events(events, raw.info['sfreq'], raw.first_samp, equal_spacing=False)
     # Test plotting events without sfreq
     plot_events(events, first_samp=raw.first_samp)
     with pytest.warns(RuntimeWarning, match='will be ignored'):
-        plot_events(events, raw.info['sfreq'], raw.first_samp,
-                    event_id=event_labels)
-    with pytest.warns(RuntimeWarning, match='Color is not available'):
+        fig = plot_events(events, raw.info['sfreq'], raw.first_samp,
+                          event_id=event_labels)
+    assert fig.axes[0].get_legend() is not None
+    with pytest.warns(RuntimeWarning, match='Color was not assigned'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     color=color)
-    with pytest.warns(RuntimeWarning, match='event .* missing'):
+    with pytest.warns(RuntimeWarning, match=r'vent \d+ missing from event_id'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels, color=color)
-    with pytest.warns(RuntimeWarning, match='event .* missing'):
-        pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
-                      raw.first_samp, event_id={'aud_l': 1}, color=color)
-    pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
-                  raw.first_samp, event_id={'aud_l': 111}, color=color)
+    multimatch = r'event \d+ missing from event_id|in the color dict but is'
+    with pytest.warns(RuntimeWarning, match=multimatch):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id={'aud_l': 1}, color=color)
+    with pytest.raises(ValueError, match='from event_id is not present in'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id={'aud_l': 111}, color=color)
+    with pytest.raises(ValueError, match='No events'):
+        plot_events(np.empty((0, 3)))
     plt.close('all')
 
 

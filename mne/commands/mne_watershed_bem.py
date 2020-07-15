@@ -81,4 +81,5 @@ def run():
                        gcaatlas=gcaatlas, preflood=preflood, copy=copy,
                        T1=T1, brainmask=brainmask, verbose=verbose)
 
+
 mne.utils.run_command_if_main()

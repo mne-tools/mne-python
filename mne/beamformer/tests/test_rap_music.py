@@ -157,7 +157,8 @@ def test_rap_music_sphere():
     sphere = mne.make_sphere_model(r0=(0., 0., 0.04))
     src = mne.setup_volume_source_space(subject=None, pos=10.,
                                         sphere=(0.0, 0.0, 40, 65.0),
-                                        mindist=5.0, exclude=0.0)
+                                        mindist=5.0, exclude=0.0,
+                                        sphere_units='mm')
     forward = mne.make_forward_solution(evoked.info, trans=None, src=src,
                                         bem=sphere)
 

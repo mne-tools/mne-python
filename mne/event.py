@@ -44,12 +44,12 @@ def pick_events(events, include=None, exclude=None, step=False):
     Returns
     -------
     events : array, shape (n_events, 3)
-        The list of events
+        The list of events.
     """
     if include is not None:
         if not isinstance(include, list):
             include = [include]
-        mask = np.zeros(len(events), dtype=np.bool)
+        mask = np.zeros(len(events), dtype=bool)
         for e in include:
             mask = np.logical_or(mask, events[:, 2] == e)
             if step:
@@ -58,7 +58,7 @@ def pick_events(events, include=None, exclude=None, step=False):
     elif exclude is not None:
         if not isinstance(exclude, list):
             exclude = [exclude]
-        mask = np.ones(len(events), dtype=np.bool)
+        mask = np.ones(len(events), dtype=bool)
         for e in exclude:
             mask = np.logical_and(mask, events[:, 2] != e)
             if step:
@@ -181,7 +181,7 @@ def _read_events_fif(fid, tree):
         elif kind == FIFF.FIFF_MNE_EVENT_COMMENTS:
             tag = read_tag(fid, pos)
             event_id = tag.data
-            event_id = event_id.tostring().decode('latin-1').split('\x00')[:-1]
+            event_id = event_id.tobytes().decode('latin-1').split('\x00')[:-1]
             assert len(event_id) == len(event_list)
             event_id = {k: v[2] for k, v in zip(event_id, event_list)}
             break
@@ -193,12 +193,12 @@ def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='and', return_event_id=False, verbose=None):
     """Read events from fif or text file.
 
-    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
+    See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Name of the input file.
         If the extension is .fif, events are read assuming
         the file is in FIF format, otherwise (e.g., .eve,
@@ -215,7 +215,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
         If None (default), no masking is performed.
-    mask_type: 'and' | 'not_and'
+    mask_type : 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' (default) for MNE-C masking behavior.
 
@@ -230,7 +230,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
     Returns
     -------
     events: array, shape (n_events, 3)
-        The list of events
+        The list of events.
     event_id : dict
         Dictionary of ``{str: int}`` mappings of event IDs.
 
@@ -304,16 +304,15 @@ def write_events(filename, event_list):
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Name of the output file.
         If the extension is .fif, events are written in
         binary FIF format, otherwise (e.g., .eve, .lst,
         .txt) events are written as plain text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
-
     event_list : array, shape (n_events, 3)
-        The list of events
+        The list of events.
 
     See Also
     --------
@@ -393,7 +392,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     ----------
     raw : Raw object
         The raw data.
-    pad_start: None | int
+    pad_start : None | int
         Values to assume outside of the stim channel (e.g., if pad_start=0 and
         the stim channel starts with value 5, an event of [0, 0, 5] will be
         inserted at the beginning). With None, no steps will be inserted.
@@ -404,7 +403,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
         indicates over how many samples events should be merged, and the sign
         indicates in which direction they should be merged (negative means
         towards the earlier event, positive towards the later event).
-    stim_channel : None | string | list of string
+    stim_channel : None | str | list of str
         Name of the stim channel or all the stim channels
         affected by the trigger. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -433,7 +432,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     if np.any(data < 0):
         warn('Trigger channel contains negative values, using absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
-    data = data.astype(np.int)
+    data = data.astype(np.int64)
 
     return _find_stim_steps(data, raw.first_samp, pad_start=pad_start,
                             pad_stop=pad_stop, merge=merge)
@@ -453,9 +452,9 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     else:
         merge = 0
 
-    data = data.astype(np.int)
+    data = data.astype(np.int64)
     if uint_cast:
-        data = data.astype(np.uint16).astype(np.int)
+        data = data.astype(np.uint16).astype(np.int64)
     if data.min() < 0:
         warn('Trigger channel contains negative values, using absolute '
              'value. If data were acquired on a Neuromag system with '
@@ -541,14 +540,14 @@ def find_events(raw, stim_channel=None, output='onset',
                 mask_type='and', initial_event=False, verbose=None):
     """Find events from raw file.
 
-    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
+    See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
 
     Parameters
     ----------
     raw : Raw object
         The raw data.
-    stim_channel : None | string | list of string
+    stim_channel : None | str | list of str
         Name of the stim channel or all the stim channels
         affected by triggers. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -583,7 +582,7 @@ def find_events(raw, stim_channel=None, output='onset',
         in MNE-C.
 
         .. versionadded:: 0.12
-    mask_type: 'and' | 'not_and'
+    mask_type : 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' (default) for MNE-C masking behavior.
 
@@ -690,7 +689,6 @@ def find_events(raw, stim_channel=None, output='onset',
              37 '0100101' <- mask
          ----------------
               2 '0000010'
-
     """
     min_samples = min_duration * raw.info['sfreq']
 
@@ -776,7 +774,16 @@ def merge_events(events, ids, new_id, replace_events=True):
     Returns
     -------
     new_events : array, shape (n_events_out, 3)
-        The new events
+        The new events.
+
+    Notes
+    -----
+    Rather than merging events you can use hierarchical event_id
+    in Epochs. For example, here::
+
+        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
+
+    And the condition 'auditory' would correspond to either 1 or 2.
 
     Examples
     --------
@@ -793,15 +800,6 @@ def merge_events(events, ids, new_id, replace_events=True):
                [341,   0,   2],
                [341,   0,  12],
                [502,   0,   3]])
-
-    Notes
-    -----
-    Rather than merging events you can use hierarchical event_id
-    in Epochs. For example, here::
-
-        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
-
-    And the condition 'auditory' would correspond to either 1 or 2.
     """
     events = np.asarray(events)
     events_out = events.copy()
@@ -864,9 +862,9 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     stop : float | None
         Maximum time of last event. If None, events extend to the end
         of the recording.
-    duration: float
+    duration : float
         The duration to separate events by.
-    first_samp: bool
+    first_samp : bool
         If True (default), times will have raw.first_samp added to them, as
         in :func:`mne.find_events`. This behavior is not desirable if the
         returned events will be combined with event times that already
@@ -993,7 +991,7 @@ class AcqParserFIF(object):
 
     See Also
     --------
-    mne.io.Raw.acqparser : access the parser through a Raw attribute
+    mne.io.Raw.acqparser : Access the parser through a Raw attribute.
 
     Notes
     -----
@@ -1335,7 +1333,7 @@ class AcqParserFIF(object):
             (e.g. acqp['Auditory left'], where acqp is an instance of
             AcqParserFIF). If None, get all conditions marked active in
             DACQ.
-        stim_channel : None | string | list of string
+        stim_channel : None | str | list of str
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
             'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -1351,10 +1349,10 @@ class AcqParserFIF(object):
             Neuromag acquisition setups that use channel STI016 (channel 16
             turns data into e.g. -32768), similar to ``mne_fix_stim14 --32``
             in MNE-C.
-        mask_type: 'and' | 'not_and'
+        mask_type : 'and' | 'not_and'
             The type of operation between the mask and the trigger.
             Choose 'and' for MNE-C masking behavior.
-        delayed_lookup: bool
+        delayed_lookup : bool
             If True, use the 'delayed lookup' procedure implemented in Elekta
             software. When a trigger transition occurs, the lookup of
             the new trigger value will not happen immediately at the following
@@ -1382,7 +1380,6 @@ class AcqParserFIF(object):
             tmax : float
                 Epoch ending time relative to t0. Use as the ``tmax``
                 parameter to Epochs.
-
         """
         if condition is None:
             condition = self.categories  # get all

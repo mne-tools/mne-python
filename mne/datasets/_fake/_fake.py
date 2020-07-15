@@ -15,11 +15,13 @@ def data_path(path=None, force_update=False, update_path=False,
                       update_path=update_path, name='fake',
                       download=download)
 
+
 data_path.__doc__ = _data_path_doc.format(name='fake',
                                           conf='MNE_DATASETS_FAKE_PATH')
 
 
 def get_version():  # noqa: D103
     return _get_version('fake')
+
 
 get_version.__doc__ = _version_doc.format(name='fake')

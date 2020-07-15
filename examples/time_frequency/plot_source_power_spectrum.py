@@ -50,7 +50,7 @@ stc.save('psd_dSPM')
 
 ###############################################################################
 # View PSD of sources in label
-plt.plot(1e3 * stc.times, stc.data.T)
+plt.plot(stc.times, stc.data.T)
 plt.xlabel('Frequency (Hz)')
 plt.ylabel('PSD (dB)')
 plt.title('Source Power Spectrum (PSD)')

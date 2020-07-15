@@ -170,7 +170,7 @@ Cortical surface reconstruction with FreeSurfer
 The first processing stage is the creation of various surface
 reconstructions with FreeSurfer. The recommended FreeSurfer workflow
 is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_. See
-also this information :ref:`tut-freesurfer`.
+also this information :ref:`tut-freesurfer-reconstruction`.
 
 .. _setting_up_source_space:
 
@@ -323,7 +323,7 @@ The corregistration is stored in ``-trans.fif`` file. If is present,
 you can follow :ref:`plot_source_alignment` to validate its correctness.
 If the ``-trans.fif`` is not present or the alignment is not correct
 you need to use :func:`mne.gui.coregistration` (or its convenient command line
-equivalent :ref:`gen_mne_coreg`) to generate it.
+equivalent :ref:`mne coreg`) to generate it.
 
 .. XXX: It would be good to link to the ``-trans.fif`` file description
 

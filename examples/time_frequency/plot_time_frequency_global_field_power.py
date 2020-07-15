@@ -86,8 +86,9 @@ frequency_map = list()
 
 for band, fmin, fmax in iter_freqs:
     # (re)load the data to save memory
-    raw = mne.io.read_raw_fif(raw_fname, preload=True)
+    raw = mne.io.read_raw_fif(raw_fname)
     raw.pick_types(meg='grad', eog=True)  # we just look at gradiometers
+    raw.load_data()
 
     # bandpass filter
     raw.filter(fmin, fmax, n_jobs=1,  # use more jobs to speed up.
@@ -119,6 +120,7 @@ del raw
 def stat_fun(x):
     """Return sum of squares."""
     return np.sum(x ** 2, axis=0)
+
 
 # Plot
 fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)

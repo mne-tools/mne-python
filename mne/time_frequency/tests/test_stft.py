@@ -2,7 +2,8 @@ import numpy as np
 from scipy import linalg
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
 
-from mne.time_frequency.stft import stft, istft, stftfreq, stft_norm2
+from mne.time_frequency import stft, istft, stftfreq
+from mne.time_frequency._stft import stft_norm2
 
 
 def test_stft():
@@ -11,7 +12,7 @@ def test_stft():
     f = 7.  # Hz
     for T in [127, 128]:  # try with even and odd numbers
         # Test with low frequency signal
-        t = np.arange(T).astype(np.float)
+        t = np.arange(T).astype(np.float64)
         x = np.sin(2 * np.pi * f * t / sfreq)
         x = np.array([x, x + 1.])
         wsize = 128

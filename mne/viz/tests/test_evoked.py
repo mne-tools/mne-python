@@ -22,7 +22,7 @@ from mne import (read_events, Epochs, read_cov, compute_covariance,
                  make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, catch_logging
-from mne.viz.evoked import plot_compare_evokeds
+from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
 from mne.io.constants import FIFF
@@ -42,7 +42,7 @@ picks = [0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305]
 sel = [0, 7]
 
 
-def _get_epochs():
+def _get_epochs(picks=picks):
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     raw.add_proj([], remove_existing=True)
@@ -193,24 +193,30 @@ def test_plot_white():
     evoked = _get_epochs().average()
     # test rank param.
     evoked.plot_white(cov, rank={'mag': 101, 'grad': 201}, time_unit='s')
-    evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank param
-    evoked.plot_white(cov, rank={'grad': 201}, time_unit='s')
-    pytest.raises(
-        ValueError, evoked.plot_white, cov,
-        rank={'mag': 101, 'grad': 201, 'meg': 306}, time_unit='s')
-    pytest.raises(
-        ValueError, evoked.plot_white, cov, rank={'meg': 306}, time_unit='s')
+    fig = evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank
+    evoked.plot_white(cov, rank={'grad': 201}, time_unit='s', axes=fig.axes)
+    with pytest.raises(ValueError, match=r'must have shape \(3,\), got \(2,'):
+        evoked.plot_white(cov, axes=fig.axes[:2])
+    with pytest.raises(ValueError, match='When not using SSS'):
+        evoked.plot_white(cov, rank={'meg': 306})
     evoked.plot_white([cov, cov], time_unit='s')
     plt.close('all')
+
+    assert 'eeg' not in evoked
+    fig = plot_evoked_white(evoked, [cov, cov])
+    assert len(fig.axes) == 2 * 2
+    axes = np.array(fig.axes).reshape(2, 2)
+    plot_evoked_white(evoked, [cov, cov], axes=axes)
+    with pytest.raises(ValueError, match=r'have shape \(2, 2\), got'):
+        plot_evoked_white(evoked, [cov, cov], axes=axes[:, :1])
 
     # Hack to test plotting of maxfiltered data
     evoked_sss = evoked.copy()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     evoked_sss.info['proc_history'] = [dict(max_info=sss)]
-    evoked_sss.plot_white(cov, rank={'meg': 64}, time_unit='s')
-    pytest.raises(
-        ValueError, evoked_sss.plot_white, cov, rank={'grad': 201},
-        time_unit='s')
+    evoked_sss.plot_white(cov, rank={'meg': 64})
+    with pytest.raises(ValueError, match='When using SSS'):
+        evoked_sss.plot_white(cov, rank={'grad': 201})
     evoked_sss.plot_white(cov, time_unit='s')
     plt.close('all')
 
@@ -317,6 +323,12 @@ def test_plot_compare_evokeds():
     figs = plot_compare_evokeds(evoked_dict, axes='topo', legend=True)
     for fig in figs:
         assert len(fig.axes[0].lines) == len(evoked_dict)
+    # test with (fake) CSD data
+    csd = _get_epochs(picks=np.arange(315, 320)).average()  # 5 EEG chs
+    for entry in csd.info['chs']:
+        entry['coil_type'] = FIFF.FIFFV_COIL_EEG_CSD
+        entry['unit'] = FIFF.FIFF_UNIT_V_M2
+    plot_compare_evokeds(csd, picks='csd', axes='topo')
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
     plot_compare_evokeds([red, blue], picks=[0],

@@ -81,17 +81,17 @@ def run():
                       help="Magnetometers rejection parameter in fT (peak to "
                       "peak amplitude)", default=3000)
     parser.add_option("--rej-eeg", dest="rej_eeg", type="float",
-                      help="EEG rejection parameter in uV (peak to peak "
+                      help="EEG rejection parameter in µV (peak to peak "
                       "amplitude)", default=50)
     parser.add_option("--rej-eog", dest="rej_eog", type="float",
-                      help="EOG rejection parameter in uV (peak to peak "
+                      help="EOG rejection parameter in µV (peak to peak "
                       "amplitude)", default=1e9)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                       help="Add EEG average reference proj",
                       default=False)
     parser.add_option("--no-proj", dest="no_proj", action="store_true",
                       help="Exclude the SSP projectors currently in the "
-                      "fiff file",  default=False)
+                      "fiff file", default=False)
     parser.add_option("--bad", dest="bad_fname",
                       help="Text file containing bad channels list "
                       "(one per line)", default=None)
@@ -194,6 +194,7 @@ def run():
 
     print("Writing EOG events in %s" % eog_event_fname)
     mne.write_events(eog_event_fname, events)
+
 
 is_main = (__name__ == '__main__')
 if is_main:

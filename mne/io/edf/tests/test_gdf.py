@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import shutil
 
 import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -13,7 +14,6 @@ import scipy.io as sio
 
 from mne.datasets import testing
 from mne.io import read_raw_gdf
-from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne import pick_types, find_events, events_from_annotations
@@ -54,13 +54,33 @@ def test_gdf_data():
     assert len(raw.annotations.duration == 963)
 
     # gh-5604
-    assert raw.info['meas_date'] == DATE_NONE
+    assert raw.info['meas_date'] is None
+
+
+@testing.requires_testing_data
+def test_gdf2_birthday(tmpdir):
+    """Test reading raw GDF 2.x files."""
+    new_fname = str(tmpdir.join('temp.gdf'))
+    shutil.copyfile(gdf2_path + '.gdf', new_fname)
+    d = int(3.1e15)  # chosen by trial and error to give a reasonable age
+    with open(new_fname, 'r+b') as fid:
+        fid.seek(176, 0)
+        assert np.fromfile(fid, np.uint64, 1)[0] == 0
+        fid.seek(176, 0)
+        fid.write(np.array([d], np.uint64).tobytes())
+        fid.seek(176, 0)
+        assert np.fromfile(fid, np.uint64, 1)[0] == d
+    raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
+    assert raw._raw_extras[0]['subject_info']['age'] == 44
+    # XXX this is a bug, it should be populated...
+    assert raw.info['subject_info'] is None
 
 
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
     raw = read_raw_gdf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
+    assert raw._raw_extras[0]['subject_info']['age'] is None
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
@@ -80,7 +100,7 @@ def test_gdf2_data():
     assert_array_equal(events[:, 2], [20, 28])
 
     # gh-5604
-    assert raw.info['meas_date'] == DATE_NONE
+    assert raw.info['meas_date'] is None
     _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
                      eog=None, misc=None)
 

@@ -3,7 +3,8 @@ import os.path as op
 
 import pytest
 
-from mne.utils import _fetch_file, requires_good_network, catch_logging
+from mne.utils import (_fetch_file, requires_good_network, catch_logging,
+                       sizeof_fmt)
 
 
 @pytest.mark.timeout(60)
@@ -16,9 +17,9 @@ def test_fetch_file(url, tmpdir):
     tempdir = str(tmpdir)
     archive_name = op.join(tempdir, "download_test")
     with catch_logging() as log:
-        _fetch_file(url, archive_name, timeout=30., verbose='debug')
+        _fetch_file(url, archive_name, timeout=30., verbose=True)
     log = log.getvalue()
-    assert 'Resuming at' not in log
+    assert ', resuming at' not in log
     with open(archive_name, 'rb') as fid:
         data = fid.read()
     stop = len(data) // 2
@@ -26,10 +27,10 @@ def test_fetch_file(url, tmpdir):
     with open(archive_name + '.part', 'wb') as fid:
         fid.write(data[:stop])
     with catch_logging() as log:
-        _fetch_file(url, archive_name, timeout=30., verbose='debug')
+        _fetch_file(url, archive_name, timeout=30., verbose=True)
     log = log.getvalue()
-    assert 'Resuming at %s' % stop in log
-    with pytest.raises(Exception, match='unknown url type'):
+    assert ', resuming at %s' % sizeof_fmt(stop) in log
+    with pytest.raises(Exception, match='Cannot use'):
         _fetch_file('NOT_AN_ADDRESS', op.join(tempdir, 'test'), verbose=False)
     resume_name = op.join(tempdir, "download_resume")
     # touch file

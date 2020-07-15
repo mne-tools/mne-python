@@ -18,7 +18,8 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...utils import verbose, logger, warn, fill_doc, _check_option
+from ...utils import (verbose, logger, warn, fill_doc, _check_option,
+                      _stamp_to_dt)
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
@@ -163,7 +164,7 @@ class RawKIT(BaseRaw):
 
         pick = pick_types(self.info, meg=False, ref_meg=False,
                           stim=True, exclude=[])
-        stim_ch = np.empty((1, stop), dtype=np.int)
+        stim_ch = np.empty((1, stop), dtype=np.int64)
         for b_start in range(start, stop, buffer_size):
             b_stop = b_start + buffer_size
             x = self[pick, b_start:b_stop][0]
@@ -220,20 +221,21 @@ class RawKIT(BaseRaw):
             nchan = self._raw_extras[0]['nchan'] + 1
             info['chs'].append(dict(
                 cal=KIT.CALIB_FACTOR, logno=nchan, scanno=nchan, range=1.0,
-                unit=FIFF.FIFF_UNIT_NONE, unit_mul=0, ch_name='STI 014',
+                unit=FIFF.FIFF_UNIT_NONE, unit_mul=FIFF.FIFF_UNITM_NONE,
+                ch_name='STI 014',
                 coil_type=FIFF.FIFFV_COIL_NONE, loc=np.full(12, np.nan),
-                kind=FIFF.FIFFV_STIM_CH))
+                kind=FIFF.FIFFV_STIM_CH, coord_frame=FIFF.FIFFV_COORD_UNKNOWN))
             info._update_redundant()
 
         self._raw_extras[0]['stim'] = stim
         self._raw_extras[0]['stim_code'] = stim_code
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        nchan = self._raw_extras[fi]['nchan']
+        params = self._raw_extras[fi]
+        nchan = params['nchan']
         data_left = (stop - start) * nchan
-        conv_factor = self._raw_extras[fi]['conv_factor']
+        conv_factor = params['conv_factor']
 
         n_bytes = 2
         # Read up to 100 MB of data at a time.
@@ -245,7 +247,7 @@ class RawKIT(BaseRaw):
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             pointer = start * nchan * KIT.SHORT
             fid.seek(data_offset + pointer)
-            stim = self._raw_extras[fi]['stim']
+            stim = params['stim']
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid, dtype='h', count=blk_size)
@@ -256,11 +258,9 @@ class RawKIT(BaseRaw):
 
                 # Create a synthetic stim channel
                 if stim is not None:
-                    params = self._raw_extras[fi]
-                    stim_ch = _make_stim_channel(block[stim, :],
-                                                 params['slope'],
-                                                 params['stimthresh'],
-                                                 params['stim_code'], stim)
+                    stim_ch = _make_stim_channel(
+                        block[stim, :], params['slope'], params['stimthresh'],
+                        params['stim_code'], stim)
                     block = np.vstack((block, stim_ch))
 
                 _mult_cal_one(data_view, block, idx, None, mult)
@@ -375,7 +375,7 @@ class EpochsKIT(BaseEpochs):
 
     @verbose
     def __init__(self, input_fname, events, event_id=None, tmin=0,
-                 baseline=None,  reject=None, flat=None, reject_tmin=None,
+                 baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
                  allow_unknown_format=False, verbose=None):  # noqa: D102
 
@@ -668,7 +668,8 @@ def get_kit_info(rawfile, allow_unknown_format):
 
     # Create raw.info dict for raw fif object with SQD data
     info = _empty_info(float(sqd['sfreq']))
-    info.update(meas_date=(create_time, 0), lowpass=sqd['lowpass'],
+    info.update(meas_date=_stamp_to_dt((create_time, 0)),
+                lowpass=sqd['lowpass'],
                 highpass=sqd['highpass'], kit_system_id=sysid)
 
     # Creates a list of dicts of meg channels for raw.info
@@ -686,7 +687,7 @@ def get_kit_info(rawfile, allow_unknown_format):
             z = cos(theta)
             vec_z = np.array([x, y, z])
             vec_z /= linalg.norm(vec_z)
-            vec_x = np.zeros(vec_z.size, dtype=np.float)
+            vec_x = np.zeros(vec_z.size, dtype=np.float64)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
                     vec_x[0] = 1.0

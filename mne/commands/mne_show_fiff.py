@@ -35,4 +35,5 @@ def run():
     msg = mne.io.show_fiff(args[0], tag=options.tag).strip()
     print(msg)
 
+
 mne.utils.run_command_if_main()

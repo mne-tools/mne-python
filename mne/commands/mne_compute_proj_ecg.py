@@ -84,11 +84,11 @@ def run():
                       "in fT (peak to peak amplitude)",
                       default=3000)
     parser.add_option("--rej-eeg", dest="rej_eeg", type="float",
-                      help="EEG rejection parameter in uV "
+                      help="EEG rejection parameter in µV "
                       "(peak to peak amplitude)",
                       default=50)
     parser.add_option("--rej-eog", dest="rej_eog", type="float",
-                      help="EOG rejection parameter in uV "
+                      help="EOG rejection parameter in µV "
                       "(peak to peak amplitude)",
                       default=250)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
@@ -207,5 +207,6 @@ def run():
 
     print("Writing ECG events in %s" % ecg_event_fname)
     mne.write_events(ecg_event_fname, events)
+
 
 mne.utils.run_command_if_main()

@@ -22,4 +22,5 @@ def run():
     for arg in args:
         print(mne.what(arg))
 
+
 mne.utils.run_command_if_main()

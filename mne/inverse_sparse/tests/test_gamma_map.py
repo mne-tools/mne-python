@@ -6,7 +6,7 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import assert_array_almost_equal
 
 import mne
 from mne.datasets import testing
@@ -16,12 +16,11 @@ from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne import pick_types_forward
-from mne.utils import run_tests_if_main
+from mne.utils import assert_stcs_equal, run_tests_if_main
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis-ave.fif')
+fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
@@ -42,16 +41,6 @@ def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.):
                                   axis=0)[0]) * 1000.
     assert dist <= dist_limit
     assert amps[0] > ratio * amps[1]
-
-
-def _check_stcs(stc1, stc2):
-    """Check correctness."""
-    assert_allclose(stc1.times, stc2.times)
-    assert_allclose(stc1.data, stc2.data)
-    assert_allclose(stc1.vertices[0], stc2.vertices[0])
-    assert_allclose(stc1.vertices[1], stc2.vertices[1])
-    assert_allclose(stc1.tmin, stc2.tmin)
-    assert_allclose(stc1.tstep, stc2.tstep)
 
 
 @pytest.mark.slowtest
@@ -75,16 +64,20 @@ def test_gamma_map():
                     xyz_same_gamma=True, update_mode=1)
     _check_stc(stc, evoked, 68477, 'lh', fwd=forward)
 
+    vec_stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                        xyz_same_gamma=True, update_mode=1, pick_ori='vector')
+    assert_stcs_equal(vec_stc.magnitude(), stc)
+
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=1)
-    _check_stc(stc, evoked, 82010, 'lh', fwd=forward)
+    _check_stc(stc, evoked, 82010, 'lh', fwd=forward, dist_limit=4., ratio=20.)
 
     dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                      xyz_same_gamma=False, update_mode=1,
                      return_as_dipoles=True)
     assert (isinstance(dips[0], Dipole))
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
-    _check_stcs(stc, stc_dip)
+    assert_stcs_equal(stc, stc_dip)
 
     # force fixed orientation
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
@@ -108,9 +101,9 @@ def test_gamma_map_vol_sphere():
     info = evoked.info
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
     src = mne.setup_volume_source_space(subject=None, pos=30., mri=None,
-                                        sphere=(0.0, 0.0, 0.0, 80.0),
+                                        sphere=(0.0, 0.0, 0.0, 0.08),
                                         bem=None, mindist=5.0,
-                                        exclude=2.0)
+                                        exclude=2.0, sphere_units='m')
     fwd = mne.make_forward_solution(info, trans=None, src=src, bem=sphere,
                                     eeg=False, meg=True)
 
@@ -130,7 +123,7 @@ def test_gamma_map_vol_sphere():
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
     stc = mne.VolSourceEstimate(50e-9 * np.random.RandomState(42).randn(1, 4),
-                                vertices=stc.vertices[:1],
+                                vertices=[stc.vertices[0][:1]],
                                 tmin=stc.tmin,
                                 tstep=stc.tstep)
     evoked_dip = mne.simulation.simulate_evoked(fwd, stc, info, cov, nave=1e9,
@@ -140,7 +133,7 @@ def test_gamma_map_vol_sphere():
 
     amp_max = [np.max(d.amplitude) for d in dip_gmap]
     dip_gmap = dip_gmap[np.argmax(amp_max)]
-    assert (dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
+    assert (dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices[0]])
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert (np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)

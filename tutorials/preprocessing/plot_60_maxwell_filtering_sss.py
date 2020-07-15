@@ -16,19 +16,25 @@ As usual we'll start by importing the modules we need, loading some
 """
 
 import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
 import mne
+from mne.preprocessing import find_bad_channels_maxwell
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
-raw.crop(tmax=60).load_data()
+raw.crop(tmax=60)
 
 ###############################################################################
 # Background on SSS and Maxwell filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Signal-space separation (SSS) [1]_ [2]_ is a technique based on the physics
+# Signal-space separation (SSS) :footcite:`TauluKajola2005,TauluSimola2006`
+# is a technique based on the physics
 # of electromagnetic fields. SSS separates the measured signal into components
 # attributable to sources *inside* the measurement volume of the sensor array
 # (the *internal components*), and components attributable to sources *outside*
@@ -57,6 +63,8 @@ raw.crop(tmax=60).load_data()
 # The MNE-Python implementation of SSS / Maxwell filtering currently provides
 # the following features:
 #
+# - Basic bad channel detection
+#   (:func:`~mne.preprocessing.find_bad_channels_maxwell`)
 # - Bad channel reconstruction
 # - Cross-talk cancellation
 # - Fine calibration correction
@@ -66,8 +74,8 @@ raw.crop(tmax=60).load_data()
 # - Raw movement compensation (using head positions estimated by MaxFilter)
 # - cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
 # - Handling of 3D (in addition to 1D) fine calibration files
-# - Epoch-based movement compensation as described in [1]_ through
-#   :func:`mne.epochs.average_movements`
+# - Epoch-based movement compensation as described in
+#   :footcite:`TauluKajola2005` through :func:`mne.epochs.average_movements`
 # - **Experimental** processing of data from (un-compensated) non-Elekta
 #   systems
 #
@@ -85,24 +93,135 @@ fine_cal_file = os.path.join(sample_data_folder, 'SSS', 'sss_cal_mgh.dat')
 crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 
 ###############################################################################
-# Before we perform SSS we'll set a couple additional bad channels — ``MEG
-# 2313`` has some DC jumps and ``MEG 1032`` has some large-ish low-frequency
-# drifts. After that, performing SSS and Maxwell filtering is done with a
+# Before we perform SSS we'll look for bad channels — ``MEG 2443`` is quite
+# noisy.
+#
+# .. warning::
+#
+#     It is critical to mark bad channels in ``raw.info['bads']`` *before*
+#     calling :func:`~mne.preprocessing.maxwell_filter` in order to prevent
+#     bad channel noise from spreading.
+#
+# Let's see if we can automatically detect it.
+
+raw.info['bads'] = []
+raw_check = raw.copy()
+auto_noisy_chs, auto_flat_chs, auto_scores = find_bad_channels_maxwell(
+    raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
+    return_scores=True, verbose=True)
+print(auto_noisy_chs)  # we should find them!
+print(auto_flat_chs)  # none for this dataset
+
+###############################################################################
+#
+# .. note:: `~mne.preprocessing.find_bad_channels_maxwell` needs to operate on
+#           a signal without line noise or cHPI signals. By default, it simply
+#           applies a low-pass filter with a cutoff frequency of 40 Hz to the
+#           data, which should remove these artifacts. You may also specify a
+#           different cutoff by passing the ``h_freq`` keyword argument. If you
+#           set ``h_freq=None``, no filtering will be applied. This can be
+#           useful if your data has already been preconditioned, for example
+#           using :func:`mne.chpi.filter_chpi`,
+#           :func:`mne.io.Raw.notch_filter`, or :meth:`mne.io.Raw.filter`.
+#
+# Now we can update the list of bad channels in the dataset.
+
+bads = raw.info['bads'] + auto_noisy_chs + auto_flat_chs
+raw.info['bads'] = bads
+
+###############################################################################
+# We called `~mne.preprocessing.find_bad_channels_maxwell` with the optional
+# keyword argument ``return_scores=True``, causing the function to return a
+# dictionary of all data related to the scoring used to classify channels as
+# noisy or flat. This information can be used to produce diagnostic figures.
+#
+# In the following, we will generate such visualizations for
+# the automated detection of *noisy* gradiometer channels.
+
+# Only select the data forgradiometer channels.
+ch_type = 'grad'
+ch_subset = auto_scores['ch_types'] == ch_type
+ch_names = auto_scores['ch_names'][ch_subset]
+scores = auto_scores['scores_noisy'][ch_subset]
+limits = auto_scores['limits_noisy'][ch_subset]
+bins = auto_scores['bins']  # The the windows that were evaluated.
+# We will label each segment by its start and stop time, with up to 3
+# digits before and 3 digits after the decimal place (1 ms precision).
+bin_labels = [f'{start:3.3f} – {stop:3.3f}'
+              for start, stop in bins]
+
+# We store the data in a Pandas DataFrame. The seaborn heatmap function
+# we will call below will then be able to automatically assign the correct
+# labels to all axes.
+data_to_plot = pd.DataFrame(data=scores,
+                            columns=pd.Index(bin_labels, name='Time (s)'),
+                            index=pd.Index(ch_names, name='Channel'))
+
+# First, plot the "raw" scores.
+fig, ax = plt.subplots(1, 2, figsize=(12, 8))
+fig.suptitle(f'Automated noisy channel detection: {ch_type}',
+             fontsize=16, fontweight='bold')
+sns.heatmap(data=data_to_plot, cmap='Reds', cbar_kws=dict(label='Score'),
+            ax=ax[0])
+[ax[0].axvline(x, ls='dashed', lw=0.25, dashes=(25, 15), color='gray')
+    for x in range(1, len(bins))]
+ax[0].set_title('All Scores', fontweight='bold')
+
+# Now, adjust the color range to highlight segments that exceeded the limit.
+sns.heatmap(data=data_to_plot,
+            vmin=np.nanmin(limits),  # bads in input data have NaN limits
+            cmap='Reds', cbar_kws=dict(label='Score'), ax=ax[1])
+[ax[1].axvline(x, ls='dashed', lw=0.25, dashes=(25, 15), color='gray')
+    for x in range(1, len(bins))]
+ax[1].set_title('Scores > Limit', fontweight='bold')
+
+# The figure title should not overlap with the subplots.
+fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+###############################################################################
+#
+# .. note:: You can use the very same code as above to produce figures for
+#           *flat* channel detection. Simply replace the word "noisy" with
+#           "flat", and replace ``vmin=np.nanmin(limits)`` with
+#           ``vmax=np.nanmax(limits)``.
+#
+# You can see the un-altered scores for each channel and time segment in the
+# left subplots, and thresholded scores – those which exceeded a certain limit
+# of noisiness – in the right subplots. While the right subplot is entirely
+# white for the magnetometers, we can see a horizontal line extending all the
+# way from left to right for the gradiometers. This line corresponds to channel
+# ``MEG 2443``, which was reported as auto-detected noisy channel in the step
+# above. But we can also see another channel exceeding the limits, apparently
+# in a more transient fashion. It was therefore *not* detected as bad, because
+# the number of segments in which it exceeded the limits was less than 5,
+# which MNE-Python uses by default.
+#
+# .. note:: You can request a different number of segments that must be
+#           found to be problematic before
+#           `~mne.preprocessing.find_bad_channels_maxwell` reports them as bad.
+#           To do this, pass the keyword argument ``min_count`` to the
+#           function.
+
+###############################################################################
+# Obviously, this algorithm is not perfect. Specifically, on closer inspection
+# of the raw data after looking at the diagnostic plots above, it becomes clear
+# that the channel exceeding the "noise" limits in some segments without
+# qualifying as "bad", in fact contains some flux jumps. There were just not
+# *enough* flux jumps in the recording for our automated procedure to report
+# the channel as bad. So it can still be useful to manually inspect and mark
+# bad channels. The channel in question is ``MEG 2313``. Let's mark it as bad:
+
+raw.info['bads'] += ['MEG 2313']  # from manual inspection
+
+###############################################################################
+# After that, performing SSS and Maxwell filtering is done with a
 # single call to :func:`~mne.preprocessing.maxwell_filter`, with the crosstalk
 # and fine calibration filenames provided (if available):
 
-raw.info['bads'].extend(['MEG 1032', 'MEG 2313'])
-raw_sss = mne.preprocessing.maxwell_filter(raw, cross_talk=crosstalk_file,
-                                           calibration=fine_cal_file)
+raw_sss = mne.preprocessing.maxwell_filter(
+    raw, cross_talk=crosstalk_file, calibration=fine_cal_file, verbose=True)
 
 ###############################################################################
-#  .. warning::
-#
-#      Automatic bad channel detection is not currently implemented. It is
-#      critical to mark bad channels in ``raw.info['bads']`` *before* calling
-#      :func:`~mne.preprocessing.maxwell_filter` in order to prevent bad
-#      channel noise from spreading.
-#
 # To see the effect, we can plot the data before and after SSS / Maxwell
 # filtering.
 
@@ -132,7 +251,8 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 # The thickness of this source-free measurement shell should be 4-8 cm for SSS
 # to perform optimally. In practice, there may be sources falling within that
 # measurement volume; these can often be mitigated by using Spatiotemporal
-# Signal Space Separation (tSSS) [2]_. tSSS works by looking for temporal
+# Signal Space Separation (tSSS) :footcite:`TauluSimola2006`.
+# tSSS works by looking for temporal
 # correlation between components of the internal and external subspaces, and
 # projecting out any components that are common to the internal and external
 # subspaces. The projection is done in an analogous way to
@@ -174,12 +294,13 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 # ^^^^^^^^^^^^^^^^^^^^^
 #
 # If you have information about subject head position relative to the sensors
-# (i.e., continuous head position indicator coils, or :term:`cHPI <hpi>`), SSS
+# (i.e., continuous head position indicator coils, or :term:`cHPI <HPI>`), SSS
 # can take that into account when projecting sensor data onto the internal
-# subspace. Head position data is loaded with the
-# :func:`~mne.chpi.read_head_pos` function. The :ref:`example data
-# <sample-dataset>` doesn't include cHPI, so here we'll load a :file:`.pos`
-# file used for testing, just to demonstrate:
+# subspace. Head position data can be computed using
+# :func:`mne.chpi.compute_chpi_locs` and :func:`mne.chpi.compute_head_pos`,
+# or loaded with the:func:`mne.chpi.read_head_pos` function. The
+# :ref:`example data <sample-dataset>` doesn't include cHPI, so here we'll
+# load a :file:`.pos` file used for testing, just to demonstrate:
 
 head_pos_file = os.path.join(mne.datasets.testing.data_path(), 'SSS',
                              'test_move_anon_raw.pos')
@@ -219,14 +340,7 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 # References
 # ^^^^^^^^^^
 #
-# .. [1] Taulu S and Kajola M. (2005). Presentation of electromagnetic
-#        multichannel data: The signal space separation method. *J Appl Phys*
-#        97, 124905 1-10. https://doi.org/10.1063/1.1935742
-#
-# .. [2] Taulu S and Simola J. (2006). Spatiotemporal signal space separation
-#        method for rejecting nearby interference in MEG measurements. *Phys
-#        Med Biol* 51, 1759-1768.
-#        https://doi.org/10.1088/0031-9155/51/7/008
+# .. footbibliography::
 #
 #
 # .. LINKS

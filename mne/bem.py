@@ -31,7 +31,8 @@ from .surface import (read_surface, write_surface, complete_surface_info,
                       _fast_cross_nd_sum, _get_solids)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
-                    _pl, _validate_type, _TempDir)
+                    _pl, _validate_type, _TempDir, _check_freesurfer_home,
+                    _check_fname, has_nibabel)
 from .fixes import einsum
 
 
@@ -62,7 +63,7 @@ class ConductorModel(dict):
         else:
             extra = ('BEM (%s layer%s)' % (len(self['surfs']),
                                            _pl(self['surfs'])))
-        return '<ConductorModel  |  %s>' % extra
+        return '<ConductorModel | %s>' % extra
 
     def copy(self):
         """Return copy of ConductorModel instance."""
@@ -308,17 +309,13 @@ def make_bem_solution(surfs, verbose=None):
     Parameters
     ----------
     surfs : list of dict
-        The BEM surfaces to use (`from make_bem_model`)
+        The BEM surfaces to use (from :func:`mne.make_bem_model`).
     %(verbose)s
 
     Returns
     -------
     bem : instance of ConductorModel
         The BEM solution.
-
-    Notes
-    -----
-    .. versionadded:: 0.10.0
 
     See Also
     --------
@@ -327,6 +324,10 @@ def make_bem_solution(surfs, verbose=None):
     write_bem_surfaces
     read_bem_solution
     write_bem_solution
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     logger.info('Approximation method : Linear collocation\n')
     if isinstance(surfs, str):
@@ -475,7 +476,7 @@ def _check_thicknesses(surfs):
     """Compute how close we are."""
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
         min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
-                                    return_dists=True)[0]
+                                    return_dists=True)[1]
         min_dist = min_dist.min()
         logger.info('Checking distance between %s and %s surfaces...' %
                     (_surf_name[surf_1['id']], _surf_name[surf_2['id']]))
@@ -548,19 +549,14 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         for a one-layer model, or three elements for a three-layer model.
         Defaults to ``[0.3, 0.006, 0.3]``. The MNE-C default for a
         single-layer model would be ``[0.3]``.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
     -------
     surfaces : list of dict
         The BEM surfaces. Use `make_bem_solution` to turn these into a
-        `ConductorModel` suitable for forward calculation.
-
-    Notes
-    -----
-    .. versionadded:: 0.10.0
+        `~mne.bem.ConductorModel` suitable for forward calculation.
 
     See Also
     --------
@@ -568,6 +564,10 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     make_sphere_model
     read_bem_surfaces
     write_bem_surfaces
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     conductivity = np.array(conductivity, float)
     if conductivity.ndim != 1 or conductivity.size not in (1, 3):
@@ -744,14 +744,23 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sphere : instance of ConductorModel
         The resulting spherical conductor model.
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     make_bem_model
     make_bem_solution
+
+    Notes
+    -----
+    The default model has::
+
+        relative_radii = (0.90, 0.92, 0.97, 1.0)
+        sigmas = (0.33, 1.0, 0.004, 0.33)
+
+    These correspond to compartments (with relative radii in ``m`` and
+    conductivities σ in ``S/m``) for the brain, CSF, skull, and scalp,
+    respectively.
+
+    .. versionadded:: 0.9.0
     """
     for name in ('r0', 'head_radius'):
         param = locals()[name]
@@ -831,16 +840,15 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     ----------
     info : instance of Info
         Measurement info.
-    dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
+    %(dig_kinds)s
     units : str
         Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
+    move_origin : bool
+        If True, allow the origin to vary. Otherwise, fix it at (0, 0, 0).
+
+        .. versionadded:: 0.20
 
     %(verbose)s
 
@@ -996,8 +1004,7 @@ def _fit_sphere(points, disp='auto'):
     x_opt = fmin_cobyla(cost_fun, x0, constraint, rhobeg=radius_init,
                         rhoend=radius_init * 1e-6, disp=disp)
 
-    origin = x_opt[:3]
-    radius = x_opt[3]
+    origin, radius = x_opt[:3], x_opt[3]
     return radius, origin
 
 
@@ -1036,7 +1043,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, T1=None, brainmask='ws',
+                       show=False, copy=False, T1=None, brainmask='ws.mgz',
                        verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
@@ -1079,37 +1086,42 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         .. versionadded:: 0.19
     %(verbose)s
 
+    See Also
+    --------
+    mne.viz.plot_bem
+
     Notes
     -----
+    If your BEM meshes do not look correct when viewed in
+    :func:`mne.viz.plot_alignment` or :func:`mne.viz.plot_bem`, consider
+    potential solutions from the :ref:`FAQ <faq_watershed_bem_meshes>`.
+
     .. versionadded:: 0.10
     """
     from .viz.misc import plot_bem
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
 
-    subjects_dir = env['SUBJECTS_DIR']
+    subjects_dir = env['SUBJECTS_DIR']  # Set by _prepare_env() above.
     subject_dir = op.join(subjects_dir, subject)
-    mri_dir = op.join(subject_dir, 'mri')
+    ws_dir = op.join(bem_dir, 'watershed')
     T1_dir = op.join(mri_dir, volume)
     T1_mgz = T1_dir
     if not T1_dir.endswith('.mgz'):
         T1_mgz += '.mgz'
-    bem_dir = op.join(subject_dir, 'bem')
-    ws_dir = op.join(subject_dir, 'bem', 'watershed')
+
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
-    if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
-        raise RuntimeError('Could not find the MRI data:\n%s\nor\n%s'
-                           % (T1_dir, T1_mgz))
+    _check_fname(T1_mgz, overwrite='read', must_exist=True, name='MRI data')
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the --overwrite option'
                                ' to recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
+
     # put together the command
     cmd = ['mri_watershed']
     if preflood:
@@ -1140,21 +1152,23 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 % (ws_dir, ' '.join(cmd)))
     os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
+    del tempdir  # clean up directory
     if op.isfile(T1_mgz):
-        new_info = _extract_volume_info(T1_mgz)
-        if new_info is None:
-            warn('nibabel is required to replace the volume info. Volume info'
-                 'not updated in the written surface.')
-            new_info = dict()
+        new_info = _extract_volume_info(T1_mgz) if has_nibabel() else dict()
+        if not new_info:
+            warn('nibabel is not available or the volumn info is invalid.'
+                 'Volume info not updated in the written surface.')
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
 
             rr, tris, volume_info = read_surface(surf_ws_out,
                                                  read_metadata=True)
-            volume_info.update(new_info)  # replace volume info, 'head' stays
+            # replace volume info, 'head' stays
+            volume_info.update(new_info)
+            write_surface(surf_ws_out, rr, tris, volume_info=volume_info,
+                          overwrite=True)
 
-            write_surface(s, rr, tris, volume_info=volume_info)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
@@ -1194,25 +1208,21 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     logger.info('Created %s\n\nComplete.' % (fname_head,))
 
 
-def _extract_volume_info(mgz, raise_error=True):
+def _extract_volume_info(mgz):
     """Extract volume info from a mgz file."""
-    try:
-        import nibabel as nib
-    except ImportError:
-        return  # warning raised elsewhere
-    header = nib.load(mgz).header
-    vol_info = dict()
+    import nibabel
+    header = nibabel.load(mgz).header
     version = header['version']
+    vol_info = dict()
     if version == 1:
         version = '%s  # volume info valid' % version
-    else:
-        raise ValueError('Volume info invalid.')
-    vol_info['valid'] = version
-    vol_info['filename'] = mgz
-    vol_info['volume'] = header['dims'][:3]
-    vol_info['voxelsize'] = header['delta']
-    vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc'].T
-    vol_info['cras'] = header['Pxyz_c']
+        vol_info['valid'] = version
+        vol_info['filename'] = mgz
+        vol_info['volume'] = header['dims'][:3]
+        vol_info['voxelsize'] = header['delta']
+        vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc']
+        vol_info['cras'] = header['Pxyz_c']
+
     return vol_info
 
 
@@ -1225,7 +1235,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the file containing the surfaces.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
@@ -1331,7 +1341,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         raise ValueError('Vertex data not found')
 
-    res['rr'] = tag.data.astype(np.float)  # XXX : double because of mayavi bug
+    res['rr'] = tag.data.astype(np.float64)  # XXX : double because of mayavi
     if res['rr'].shape[0] != res['np']:
         raise ValueError('Vertex information is incorrect')
 
@@ -1362,7 +1372,7 @@ def read_bem_solution(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file containing the BEM solution.
     %(verbose)s
 
@@ -1561,12 +1571,11 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir, requires_freesurfer):
+def _prepare_env(subject, subjects_dir):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
-    if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
-        raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
-                           'environment variable is not set.')
+
+    fs_home = _check_freesurfer_home()
 
     _validate_type(subject, "str")
 
@@ -1578,8 +1587,8 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer):
     if not op.isdir(subject_dir):
         raise RuntimeError('Could not find the subject data directory "%s"'
                            % (subject_dir,))
-    env['SUBJECT'] = subject
-    env['SUBJECTS_DIR'] = subjects_dir
+    env.update(SUBJECT=subject, SUBJECTS_DIR=subjects_dir,
+               FREESURFER_HOME=fs_home)
     mri_dir = op.join(subject_dir, 'mri')
     bem_dir = op.join(subject_dir, 'bem')
     return env, mri_dir, bem_dir
@@ -1603,8 +1612,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Notes
@@ -1633,8 +1641,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
@@ -1752,8 +1759,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Write over existing .surf files in bem folder.
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     flash_path : str | None
         Path to the flash images. If None (default), mri/flash/parameter_maps
         within the subject reconstruction is used.
@@ -1780,10 +1786,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     """
     from .viz.misc import plot_bem
 
-    is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
-
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=True)
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
@@ -1819,9 +1822,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     flash5_dir = op.join(mri_dir, 'flash5')
     shutil.rmtree(flash5_dir, ignore_errors=True)
     os.makedirs(flash5_dir)
-    if not is_test:  # CIs don't have freesurfer, skipped when testing.
-        cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
-        run_subprocess_env(cmd)
+    cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
+    run_subprocess_env(cmd)
     # Step 5b and c : Convert the mgz volumes into COR
     convert_T1 = False
     T1_dir = op.join(mri_dir, 'T1')
@@ -1853,10 +1855,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
-    if not is_test:  # CIs don't have freesurfer, skipped when testing.
-        logger.info("\n---- Creating the BEM surfaces ----")
-        cmd = ['mri_make_bem_surfaces', subject]
-        run_subprocess_env(cmd)
+    logger.info("\n---- Creating the BEM surfaces ----")
+    cmd = ['mri_make_bem_surfaces', subject]
+    run_subprocess_env(cmd)
     del tempdir  # ran our last subprocess; clean up directory
 
     logger.info("\n---- Converting the tri files into surf files ----")

@@ -14,7 +14,7 @@ from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
-                        Range, Str, RGBColor, Property, cached_property)
+                        Range, Str, Property, cached_property, ArrayOrNone)
 from traitsui.api import (View, Item, HGroup, VGrid, VGroup, Spring,
                           TextEditor)
 from tvtk.api import tvtk
@@ -26,6 +26,10 @@ from ..utils import SilenceStdout
 from ..viz.backends._pysurfer_mayavi import (_create_mesh_surf,
                                              _toggle_mlab_render)
 
+try:
+    from traitsui.api import RGBColor
+except ImportError:
+    from traits.api import RGBColor
 
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
                           show_border=True, label='View')
@@ -208,7 +212,7 @@ class PointObject(Object):
     # projection onto a surface
     nearest = Instance(_DistanceQuery)
     check_inside = Instance(_CheckInside)
-    project_to_trans = Array(float, shape=(4, 4))
+    project_to_trans = ArrayOrNone(float, shape=(4, 4))
     project_to_surface = Bool(False, label='Project', desc='project points '
                               'onto the surface')
     orient_to_surface = Bool(False, label='Orient', desc='orient points '

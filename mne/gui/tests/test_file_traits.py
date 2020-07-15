@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-import os
 import os.path as op
 
 from numpy import array
@@ -10,7 +9,8 @@ from numpy.testing import assert_allclose
 import pytest
 
 from mne.datasets import testing
-from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, traits_test
+from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
+                       modified_env)
 from mne.channels import read_dig_fif
 
 data_path = testing.data_path(download=False)
@@ -59,10 +59,10 @@ def test_fiducials_source():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_inst_source():
+def test_inst_source(tmpdir):
     """Test DigSource."""
     from mne.gui._file_traits import DigSource
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     inst = DigSource()
     assert inst.inst_fname == '-'
@@ -102,10 +102,10 @@ def test_subject_source():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_subject_source_with_fsaverage():
+def test_subject_source_with_fsaverage(tmpdir):
     """Test SubjectSelector."""
     from mne.gui._file_traits import MRISubjectSource
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     mri = MRISubjectSource()
     assert not mri.can_create_fsaverage
@@ -115,13 +115,8 @@ def test_subject_source_with_fsaverage():
     assert mri.can_create_fsaverage
     assert not op.isdir(op.join(tempdir, 'fsaverage'))
     # fake FREESURFER_HOME
-    old_val = os.getenv('FREESURFER_HOME')
-    os.environ['FREESURFER_HOME'] = data_path
-    try:
+    with modified_env(FREESURFER_HOME=data_path):
         mri.create_fsaverage()
-    finally:
-        if old_val is not None:
-            os.environ['FREESURFER_HOME'] = old_val
     assert op.isdir(op.join(tempdir, 'fsaverage'))
 
 

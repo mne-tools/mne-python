@@ -96,7 +96,8 @@ raw_train.plot(duration=60, scalings='auto')
 # Extract 30s events from annotations
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The Sleep Physionet dataset is annotated using `8 labels <physionet_labels>`:
+# The Sleep Physionet dataset is annotated using
+# `8 labels <physionet_labels_>`_:
 # Wake (W), Stage 1, Stage 2, Stage 3, Stage 4 corresponding to the range from
 # light sleep to deep sleep, REM sleep (R) where REM is the abbreviation for
 # Rapid Eye Movement sleep, movement (M), and Stage (?) for any none scored
@@ -184,7 +185,7 @@ for ax, title, epochs in zip([ax1, ax2],
                                fmin=0.1, fmax=20., show=False,
                                average=True, spatial_colors=False)
     ax.set(title=title, xlabel='Frequency (Hz)')
-ax2.set(ylabel='uV^2/hz (dB)')
+ax2.set(ylabel='µV^2/Hz (dB)')
 ax2.legend(ax2.lines[2::3], stages)
 plt.show()
 
@@ -246,7 +247,7 @@ def eeg_power_band(epochs):
 # and a final estimator, while the FunctionTransformer converts a python
 # function in an estimator compatible object. In this manner we can create
 # scikit-learn estimator that takes :class:`mne.Epochs` thanks to
-# `eeg_power_band` function we just created.
+# ``eeg_power_band`` function we just created.
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
                      RandomForestClassifier(n_estimators=100, random_state=42))

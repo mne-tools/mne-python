@@ -268,7 +268,7 @@ class CSP(TransformerMixin, BaseEstimator):
             If self.transform_into == 'average_power' then returns the power of
             CSP features averaged over time and shape (n_epochs, n_sources)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times)
+            space and shape is (n_epochs, n_sources, n_times).
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
@@ -290,13 +290,15 @@ class CSP(TransformerMixin, BaseEstimator):
                 X /= self.std_
         return X
 
-    def plot_patterns(self, info, components=None, ch_type=None, layout=None,
+    @fill_doc
+    def plot_patterns(self, info, components=None, ch_type=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                       colorbar=True, scalings=None, units='a.u.', res=64,
                       size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None, head_pos=None):
+                      image_interp='bilinear', average=None,
+                      sphere=None):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the
@@ -307,18 +309,13 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of float | None.
+        components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
             If None, then first available channel type from order given
             above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
         vmin : float | callable
             The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -341,7 +338,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
             .. warning::  Interactive mode works smoothly only for a small
                 amount of topomaps.
-
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -361,14 +357,14 @@ class CSP(TransformerMixin, BaseEstimator):
         cbar_fmt : str
             String format for colorbar values.
         name_format : str
-            String format for topomap values. Defaults to "CSP%01d"
+            String format for topomap values. Defaults to "CSP%%01d".
         show : bool
             Show figure if True.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
             passed, channel names will be formatted using the callable; e.g.,
             to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
+            function lambda x: x.replace('MEG ', ''). If ``mask`` is not None,
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
@@ -381,18 +377,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
+        %(topomap_outlines)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -407,11 +392,7 @@ class CSP(TransformerMixin, BaseEstimator):
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head
-            should be relative to the electrode locations.
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -429,22 +410,23 @@ class CSP(TransformerMixin, BaseEstimator):
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
         return patterns.plot_topomap(
-            times=components, ch_type=ch_type, layout=layout,
+            times=components, ch_type=ch_type,
             vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors,
             scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,
-            average=average, head_pos=head_pos)
+            average=average, sphere=sphere)
 
-    def plot_filters(self, info, components=None, ch_type=None, layout=None,
+    @fill_doc
+    def plot_filters(self, info, components=None, ch_type=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, scalings=None, units='a.u.', res=64,
                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None):
+                     image_interp='bilinear', average=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -462,11 +444,6 @@ class CSP(TransformerMixin, BaseEstimator):
             collected in pairs and the RMS for each pair is plotted.
             If None, then first available channel type from order given
             above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
         vmin : float | callable
             The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -489,7 +466,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
             .. warning::  Interactive mode works smoothly only for a small
                 amount of topomaps.
-
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -509,14 +485,14 @@ class CSP(TransformerMixin, BaseEstimator):
         cbar_fmt : str
             String format for colorbar values.
         name_format : str
-            String format for topomap values. Defaults to "CSP%01d"
+            String format for topomap values. Defaults to "CSP%%01d".
         show : bool
             Show figure if True.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
             passed, channel names will be formatted using the callable; e.g.,
             to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
+            function lambda x: x.replace('MEG ', ''). If ``mask`` is not None,
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
@@ -529,18 +505,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
+        %(topomap_outlines)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -555,11 +520,6 @@ class CSP(TransformerMixin, BaseEstimator):
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head
-            should be relative to the electrode locations.
 
         Returns
         -------
@@ -577,14 +537,13 @@ class CSP(TransformerMixin, BaseEstimator):
         filters = EvokedArray(self.filters_, info, tmin=0)
         # the call plot_topomap
         return filters.plot_topomap(
-            times=components, ch_type=ch_type, layout=layout, vmin=vmin,
+            times=components, ch_type=ch_type, vmin=vmin,
             vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors, scalings=scalings, units=units,
             time_unit='s', time_format=name_format, size=size,
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
-            image_interp=image_interp, show=show, average=average,
-            head_pos=head_pos)
+            image_interp=image_interp, show=show, average=average)
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
@@ -830,6 +789,6 @@ class SPoC(CSP):
             If self.transform_into == 'average_power' then returns the power of
             CSP features averaged over time and shape (n_epochs, n_sources)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times)
+            space and shape is (n_epochs, n_sources, n_times).
         """
         return super(SPoC, self).transform(X)

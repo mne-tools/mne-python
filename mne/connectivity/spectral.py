@@ -569,7 +569,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         number of time points as stc_*. The array-like object can also
         be a list/generator of array, shape =(n_signals, n_times),
         or a list/generator of SourceEstimate or VolSourceEstimate objects.
-    method : string | list of string
+    method : str | list of str
         Connectivity measure(s) to compute.
     indices : tuple of array | None
         Two arrays with indices of connections for which to compute
@@ -590,7 +590,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     fskip : int
         Omit every "(fskip + 1)-th" frequency bin to decimate in frequency
         domain.
-    faverage : boolean
+    faverage : bool
         Average connectivity scores for each frequency band. If True,
         the output freqs will be a list with arrays of the frequencies
         that were averaged.
@@ -615,7 +615,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
-    cwt_n_cycles: float | array of float
+    cwt_n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
         'cwt_morlet' mode.
     block_size : int
@@ -720,7 +720,6 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                       E[|Im(Sxy)|]
 
         'wpli2_debiased' : Debiased estimator of squared WPLI [6]_.
-
 
     References
     ----------
@@ -981,7 +980,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
             raise ValueError('define frequencies of interest using '
                              'cwt_freqs')
         else:
-            cwt_freqs = cwt_freqs.astype(np.float)
+            cwt_freqs = cwt_freqs.astype(np.float64)
         if any(cwt_freqs > (sfreq / 2.)):
             raise ValueError('entries in cwt_freqs cannot be '
                              'larger than Nyquist (sfreq / 2)')
@@ -1004,7 +1003,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
                                   5. / np.min(fmin), five_cycle_freq))
 
     # create a frequency mask for all bands
-    freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
+    freq_mask = np.zeros(len(freqs_all), dtype=bool)
     for f_lower, f_upper in zip(fmin, fmax):
         freq_mask |= ((freqs_all >= f_lower) & (freqs_all <= f_upper))
 

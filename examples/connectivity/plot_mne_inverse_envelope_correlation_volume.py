@@ -34,7 +34,7 @@ crop_to = 60.
 # hurt SNR) and downsample. Then we compute SSP projectors and apply them.
 
 raw = mne.io.read_raw_ctf(raw_fname, verbose='error')
-raw.crop(0, crop_to).load_data().pick_types(meg=True, eeg=False).resample(80)
+raw.crop(0, crop_to).pick_types(meg=True, eeg=False).load_data().resample(80)
 raw.apply_gradient_compensation(3)
 projs_ecg, _ = compute_proj_ecg(raw, n_grad=1, n_mag=2)
 projs_eog, _ = compute_proj_eog(raw, n_grad=1, n_mag=2, ch_name='MLT31-4407')
@@ -80,7 +80,7 @@ corr = envelope_correlation(stcs, verbose=True)
 # ------------------------------
 
 degree = mne.connectivity.degree(corr, 0.15)
-stc = mne.VolSourceEstimate(degree, src[0]['vertno'], 0, 1, 'bst_resting')
+stc = mne.VolSourceEstimate(degree, [src[0]['vertno']], 0, 1, 'bst_resting')
 brain = stc.plot(
     src, clim=dict(kind='percent', lims=[75, 85, 95]), colormap='gnuplot',
     subjects_dir=subjects_dir, mode='glass_brain')

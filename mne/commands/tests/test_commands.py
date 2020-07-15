@@ -4,11 +4,13 @@ from os import path as op
 import shutil
 import glob
 
+import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
 from mne import (concatenate_raws, read_bem_surfaces, read_surface,
-                 read_source_spaces)
+                 read_source_spaces, read_bem_solution)
+from mne.bem import ConductorModel
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -16,12 +18,14 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_report, mne_surf2bem, mne_watershed_bem,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
                           mne_show_info, mne_what, mne_setup_source_space,
-                          mne_anonymize)
-from mne.datasets import testing, sample
+                          mne_setup_forward_model, mne_anonymize,
+                          mne_prepare_bem_model, mne_sys_info)
+from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
-                       requires_mayavi, requires_tvtk, requires_freesurfer,
-                       traits_test, ArgvSetter, modified_env)
+                       requires_mayavi, requires_vtk, requires_freesurfer,
+                       requires_nibabel, traits_test, ArgvSetter, modified_env,
+                       _stamp_to_dt)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -126,7 +130,7 @@ def test_kit2fiff():
 
 
 @pytest.mark.slowtest  # slow on Travis OSX
-@requires_tvtk
+@requires_vtk
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmpdir):
     """Test mne make_scalp_surfaces."""
@@ -204,49 +208,61 @@ def test_surf2bem():
     check_usage(mne_surf2bem)
 
 
-@pytest.mark.timeout(600)  # took ~400 sec on a local test
+@pytest.mark.timeout(900)  # took ~400 sec on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
-@requires_freesurfer
+@requires_nibabel()
+@requires_freesurfer('mri_watershed')
 @testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
     check_usage(mne_watershed_bem)
+    # from T1.mgz
+    Mdc = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    Pxyz_c = np.array([-5.273613, 9.039085, -27.287964])
     # Copy necessary files to tempdir
     tempdir = str(tmpdir)
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
     subject_path_new = op.join(tempdir, 'sample')
     mridata_path_new = op.join(subject_path_new, 'mri')
-    os.mkdir(op.join(tempdir, 'sample'))
-    os.mkdir(mridata_path_new)
-    if op.exists(op.join(mridata_path, 'T1')):
-        shutil.copytree(op.join(mridata_path, 'T1'), op.join(mridata_path_new,
-                                                             'T1'))
-    if op.exists(op.join(mridata_path, 'T1.mgz')):
-        shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
-                        op.join(mridata_path_new, 'T1.mgz'))
-    out_fnames = list()
-    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
-        out_fnames.append(op.join(subject_path_new, 'bem', 'inner_skull.surf'))
-    assert not any(op.isfile(out_fname) for out_fname in out_fnames)
-    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-o'),
-                    disable_stdout=False, disable_stderr=False):
+    os.makedirs(mridata_path_new)
+    new_fname = op.join(mridata_path_new, 'T1.mgz')
+    shutil.copyfile(op.join(mridata_path, 'T1.mgz'), new_fname)
+    old_mode = os.stat(new_fname).st_mode
+    os.chmod(new_fname, 0)
+    args = ('-d', tempdir, '-s', 'sample', '-o')
+    with pytest.raises(PermissionError, match=r'read permissions.*T1\.mgz'):
+        with ArgvSetter(args):
+            mne_watershed_bem.run()
+    os.chmod(new_fname, old_mode)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
+    with ArgvSetter(args):
         mne_watershed_bem.run()
-    for out_fname in out_fnames:
-        _, tris = read_surface(out_fname)
-        assert len(tris) == 20480
+
+    kwargs = dict(rtol=1e-5, atol=1e-5)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        rr, tris, vol_info = read_surface(op.join(subject_path_new, 'bem',
+                                                  '%s.surf' % s),
+                                          read_metadata=True)
+        assert_equal(len(tris), 20480)
+        assert_equal(tris.min(), 0)
+        assert_equal(rr.shape[0], tris.max() + 1)
+        # compare the volume info to the mgz header
+        assert_allclose(vol_info['xras'], Mdc[0], **kwargs)
+        assert_allclose(vol_info['yras'], Mdc[1], **kwargs)
+        assert_allclose(vol_info['zras'], Mdc[2], **kwargs)
+        assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
-@pytest.mark.timeout(300)  # took 200 sec locally
+@pytest.mark.timeout(120)  # took ~70 sec locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_flash_bem(tmpdir):
     """Test mne flash_bem."""
     check_usage(mne_flash_bem, force_help=True)
-    # Using the sample dataset
-    subjects_dir = op.join(sample.data_path(download=False), 'subjects')
     # Copy necessary files to tempdir
     tempdir = str(tmpdir)
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
@@ -265,20 +281,26 @@ def test_flash_bem(tmpdir):
         shutil.copyfile(in_fname, op.join(flash_path, op.basename(in_fname)))
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
-    out_fnames = list()
-    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
-        out_fnames.append(op.join(subject_path_new, 'bem', 'outer_skin.surf'))
-    assert not any(op.isfile(out_fname) for out_fname in out_fnames)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
     with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
-    # do they exist and are expected size
-    for out_fname in out_fnames:
-        _, tris = read_surface(out_fname)
-        assert len(tris) == 5120
+
+    kwargs = dict(rtol=1e-5, atol=1e-5)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        rr, tris = read_surface(op.join(subject_path_new, 'bem',
+                                        '%s.surf' % s))
+        assert_equal(len(tris), 5120)
+        assert_equal(tris.min(), 0)
+        assert_equal(rr.shape[0], tris.max() + 1)
+        # compare to the testing flash surfaces
+        rr_c, tris_c = read_surface(op.join(subjects_dir, 'sample', 'bem',
+                                            '%s.surf' % s))
+        assert_allclose(rr, rr_c, **kwargs)
+        assert_allclose(tris, tris_c, **kwargs)
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_setup_source_space(tmpdir):
     """Test mne setup_source_space."""
@@ -289,7 +311,7 @@ def test_setup_source_space(tmpdir):
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
                      '-s', 'sample', '--morph', 'sample',
-                     '--ico', '3', '--verbose')):
+                     '--add-dist', 'False', '--ico', '3', '--verbose')):
         mne_setup_source_space.run()
     src = read_source_spaces(use_fname)
     assert len(src) == 2
@@ -308,11 +330,56 @@ def test_setup_source_space(tmpdir):
             assert mne_setup_source_space.run()
 
 
+@testing.requires_testing_data
+def test_setup_forward_model(tmpdir):
+    """Test mne setup_forward_model."""
+    check_usage(mne_setup_forward_model, force_help=True)
+    # Using the sample dataset
+    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+    use_fname = op.join(tmpdir, "model-bem.fif")
+    # Test  command
+    with ArgvSetter(('--model', use_fname, '-d', subjects_dir, '--homog',
+                     '-s', 'sample', '--ico', '3', '--verbose')):
+        mne_setup_forward_model.run()
+    model = read_bem_surfaces(use_fname)
+    assert len(model) == 1
+    sol_fname = op.splitext(use_fname)[0] + '-sol.fif'
+    read_bem_solution(sol_fname)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_mne_prepare_bem_model(tmpdir):
+    """Test mne setup_source_space."""
+    check_usage(mne_prepare_bem_model, force_help=True)
+    # Using the sample dataset
+    bem_model_fname = op.join(testing.data_path(download=False), 'subjects',
+                              'sample', 'bem', 'sample-320-320-320-bem.fif')
+    bem_solution_fname = op.join(tmpdir, "bem_solution-bem-sol.fif")
+    # Test  command
+    with ArgvSetter(('--bem', bem_model_fname, '--sol', bem_solution_fname,
+                     '--verbose')):
+        mne_prepare_bem_model.run()
+    bem_solution = read_bem_solution(bem_solution_fname)
+    assert isinstance(bem_solution, ConductorModel)
+
+
 def test_show_info():
     """Test mne show_info."""
     check_usage(mne_show_info)
     with ArgvSetter((raw_fname,)):
         mne_show_info.run()
+
+
+def test_sys_info():
+    """Test mne show_info."""
+    check_usage(mne_sys_info, force_help=True)
+    with ArgvSetter((raw_fname,)):
+        with pytest.raises(SystemExit, match='1'):
+            mne_sys_info.run()
+    with ArgvSetter() as out:
+        mne_sys_info.run()
+    assert 'numpy' in out.stdout.getvalue()
 
 
 def test_anonymize(tmpdir):
@@ -323,6 +390,7 @@ def test_anonymize(tmpdir):
         mne_anonymize.run()
     info = read_info(out_fname)
     assert(op.exists(out_fname))
-    assert_equal(info['meas_date'], (946684800, 0))
+    assert info['meas_date'] == _stamp_to_dt((946684800, 0))
+
 
 run_tests_if_main()

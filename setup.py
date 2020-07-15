@@ -10,7 +10,7 @@ from setuptools import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
-with open(op.join('mne', '__init__.py'), 'r') as fid:
+with open(op.join('mne', '_version.py'), 'r') as fid:
     for line in (line.strip() for line in fid):
         if line.startswith('__version__'):
             version = line.split('=')[1].strip().strip('\'')
@@ -73,6 +73,7 @@ if __name__ == "__main__":
                        'Programming Language :: Python :: 3',
                        ],
           platforms='any',
+          python_requires='>=3.6',
           install_requires=['numpy>=1.11.3', 'scipy>=0.17.1'],
           packages=package_tree('mne'),
           package_data={'mne': [
@@ -94,7 +95,10 @@ if __name__ == "__main__":
               op.join('gui', 'help', '*.json'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),
+              op.join('icons', '*.svg'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
-              ]},
-          scripts=['bin/mne'])
+          ]},
+          entry_points={'console_scripts': [
+              'mne = mne.commands.utils:main',
+          ]})

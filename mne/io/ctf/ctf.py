@@ -11,7 +11,8 @@ import os.path as op
 import numpy as np
 
 from .._digitization import _format_dig_points
-from ...utils import verbose, logger, _clean_names, fill_doc, _check_option
+from ...utils import (verbose, logger, _clean_names, fill_doc, _check_option,
+                      _validate_type)
 
 from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
@@ -90,9 +91,11 @@ class RawCTF(BaseRaw):
     def __init__(self, directory, system_clock='truncate', preload=False,
                  verbose=None, clean_names=False):  # noqa: D102
         # adapted from mne_ctf2fiff.c
-        if not isinstance(directory, str) or \
-                not directory.endswith('.ds'):
-            raise TypeError('directory must be a directory ending with ".ds"')
+        _validate_type(directory, 'path-like', 'directory')
+        directory = str(directory)
+        if not directory.endswith('.ds'):
+            raise TypeError('directory must be a directory ending with ".ds", '
+                            f'got {directory}')
         if not op.isdir(directory):
             raise ValueError('directory does not exist: "%s"' % directory)
         _check_option('system_clock', system_clock, ['ignore', 'truncate'])
@@ -141,11 +144,13 @@ class RawCTF(BaseRaw):
 
         # Add bad segments as Annotations (correct for start time)
         start_time = -res4['pre_trig_pts'] / float(info['sfreq'])
-        annot = _annotate_bad_segments(directory, start_time)
+        annot = _annotate_bad_segments(directory, start_time,
+                                       info['meas_date'])
         marker_annot = _read_annotations_ctf_call(
             directory=directory,
             total_offset=(res4['pre_trig_pts'] / res4['sfreq']),
             trial_duration=(res4['nsamp'] / res4['sfreq']),
+            meas_date=info['meas_date']
         )
         annot = marker_annot if annot is None else annot + marker_annot
         self.set_annotations(annot)
@@ -153,7 +158,6 @@ class RawCTF(BaseRaw):
         if clean_names:
             self._clean_names()
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         si = self._raw_extras[fi]

@@ -31,12 +31,13 @@ from mne.epochs import (
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
-                       requires_version, catch_logging, _FakeNoPandas,
-                       assert_meg_snr, check_version)
+                       catch_logging, _FakeNoPandas,
+                       assert_meg_snr, check_version, _dt_to_stamp)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
 from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.write import _get_split_size
 from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.datasets import testing
@@ -70,10 +71,10 @@ def test_event_repeated():
 
     events = np.array([[10, 0, 1], [10, 0, 2]])
     epochs = mne.Epochs(raw, events, event_repeated='drop')
-    assert epochs.drop_log == [[], ['DROP DUPLICATE']]
+    assert epochs.drop_log == ((), ('DROP DUPLICATE',))
     assert_array_equal(epochs.selection, [0])
     epochs = mne.Epochs(raw, events, event_repeated='merge')
-    assert epochs.drop_log == [[], ['MERGE DUPLICATE']]
+    assert epochs.drop_log == ((), ('MERGE DUPLICATE',))
     assert_array_equal(epochs.selection, [0])
 
 
@@ -86,34 +87,34 @@ def test_handle_event_repeated():
                        [5, 0, 2], [5, 0, 1], [5, 0, 3],
                        [7, 0, 1]])
     SELECTION = np.arange(len(EVENTS))
-    DROP_LOG = [list() for _ in range(len(EVENTS))]
+    DROP_LOG = ((),) * len(EVENTS)
     with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
         _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='error',
                                selection=SELECTION,
-                               drop_log=deepcopy(DROP_LOG))
+                               drop_log=DROP_LOG)
 
     events, event_id, selection, drop_log = _handle_event_repeated(
-        EVENTS, EVENT_ID, 'drop', SELECTION, deepcopy(DROP_LOG))
+        EVENTS, EVENT_ID, 'drop', SELECTION, DROP_LOG)
     assert_array_equal(events, [[0, 0, 1], [3, 0, 2], [5, 0, 2], [7, 0, 1]])
     assert_array_equal(events, EVENTS[selection])
     unselection = np.setdiff1d(SELECTION, selection)
-    assert all(drop_log[k] == ['DROP DUPLICATE'] for k in unselection)
+    assert all(drop_log[k] == ('DROP DUPLICATE',) for k in unselection)
     assert event_id == {'aud': 1, 'vis': 2}
 
     events, event_id, selection, drop_log = _handle_event_repeated(
-        EVENTS, EVENT_ID, 'merge', SELECTION, deepcopy(DROP_LOG))
+        EVENTS, EVENT_ID, 'merge', SELECTION, DROP_LOG)
     assert_array_equal(events[0][-1], events[1][-1])
     assert_array_equal(events, [[0, 0, 4], [3, 0, 4], [5, 0, 5], [7, 0, 1]])
     assert_array_equal(events[:, :2], EVENTS[selection][:, :2])
     unselection = np.setdiff1d(SELECTION, selection)
-    assert all(drop_log[k] == ['MERGE DUPLICATE'] for k in unselection)
+    assert all(drop_log[k] == ('MERGE DUPLICATE',) for k in unselection)
     assert set(event_id.keys()) == set(['aud', 'aud/vis', 'aud/foo/vis'])
     assert event_id['aud/vis'] == 4
 
     # Test early return with no changes: no error for wrong event_repeated arg
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
     events, event_id, selection, drop_log = _handle_event_repeated(
-        fine_events, EVENT_ID, 'no', [0, 2], deepcopy(DROP_LOG))
+        fine_events, EVENT_ID, 'no', [0, 2], DROP_LOG)
     assert event_id == EVENT_ID
     assert_array_equal(selection, [0, 2])
     assert drop_log == DROP_LOG
@@ -130,7 +131,7 @@ def test_handle_event_repeated():
     assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 5
     assert_array_equal(selection, [0])
-    assert drop_log[1] == ['MERGE DUPLICATE']
+    assert drop_log[1] == ('MERGE DUPLICATE',)
     assert_array_equal(events, np.array([[0, 0, 5], ]))
     del heterogeneous_events
 
@@ -143,7 +144,7 @@ def test_handle_event_repeated():
     assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
     assert_array_equal(events, np.array([[0, 99, 4], [1, 0, 1], [2, 0, 2]]))
     assert_array_equal(selection, [1, 4, 7])
-    assert drop_log[3] == ['MERGE DUPLICATE']
+    assert drop_log[3] == ('MERGE DUPLICATE',)
     del homogeneous_events
 
     # Test dropping instead of merging, if event_codes to be merged are equal
@@ -152,7 +153,7 @@ def test_handle_event_repeated():
         equal_events, EVENT_ID, 'merge', [3, 5], deepcopy(DROP_LOG))
     assert_array_equal(events, np.array([[0, 0, 1], ]))
     assert_array_equal(selection, [3])
-    assert drop_log[5] == ['MERGE DUPLICATE']
+    assert drop_log[5] == ('MERGE DUPLICATE',)
     assert set(event_id.keys()) == set(['aud'])
 
 
@@ -286,13 +287,23 @@ def test_average_movements():
                   head_pos=head_pos)  # prj
 
 
+def _assert_drop_log_types(drop_log):
+    __tracebackhide__ = True
+    assert isinstance(drop_log, tuple), 'drop_log should be tuple'
+    assert all(isinstance(log, tuple) for log in drop_log), \
+        'drop_log[ii] should be tuple'
+    assert all(isinstance(s, str) for log in drop_log for s in log), \
+        'drop_log[ii][jj] should be str'
+
+
 def test_reject():
     """Test epochs rejection."""
     raw, events, picks = _get_data()
     # cull the list just to contain the relevant event
     events = events[events[:, 2] == event_id, :]
     selection = np.arange(3)
-    drop_log = [[]] * 3 + [['MEG 2443']] * 4
+    drop_log = ((),) * 3 + (('MEG 2443',),) * 4
+    _assert_drop_log_types(drop_log)
     pytest.raises(TypeError, pick_types, raw)
     picks_meg = pick_types(raw.info, meg=True, eeg=False)
     pytest.raises(TypeError, Epochs, raw, events, event_id, tmin, tmax,
@@ -317,11 +328,12 @@ def test_reject():
             # no rejection
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             preload=preload)
+            _assert_drop_log_types(epochs.drop_log)
             pytest.raises(ValueError, epochs.drop_bad, reject='foo')
             epochs.drop_bad()
             assert_equal(len(epochs), len(events))
             assert_array_equal(epochs.selection, np.arange(len(events)))
-            assert_array_equal(epochs.drop_log, [[]] * 7)
+            assert epochs.drop_log == ((),) * 7
             if proj not in data_7:
                 data_7[proj] = epochs.get_data()
             assert_array_equal(epochs.get_data(), data_7[proj])
@@ -329,10 +341,12 @@ def test_reject():
             # with rejection
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             reject=reject, preload=preload)
+            _assert_drop_log_types(epochs.drop_log)
             epochs.drop_bad()
+            _assert_drop_log_types(epochs.drop_log)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # rejection post-hoc
@@ -345,7 +359,7 @@ def test_reject():
             assert_equal(len(epochs), len(events) - 4)
             assert_equal(len(epochs), len(epochs.get_data()))
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # rejection twice
@@ -357,7 +371,7 @@ def test_reject():
             epochs.drop_bad(reject)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # ensure that thresholds must become more stringent, not less
@@ -384,8 +398,8 @@ def test_reject():
                   events[::2][:3]]
         onsets[0] = onsets[0] + tmin - 0.499  # tmin < 0
         onsets[1] = onsets[1] + tmax - 0.001
-        first_time = (raw.info['meas_date'][0] + raw.info['meas_date'][1] *
-                      1e-6 + raw.first_samp / sfreq)
+        stamp = _dt_to_stamp(raw.info['meas_date'])
+        first_time = (stamp[0] + stamp[1] * 1e-6 + raw.first_samp / sfreq)
         for orig_time in [None, first_time]:
             annot = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD', orig_time)
             raw.set_annotations(annot)
@@ -397,6 +411,32 @@ def test_reject():
             assert_equal(epochs.drop_log[2][0], 'BAD')
             assert_equal(epochs.drop_log[4][0], 'BAD')
         raw.set_annotations(None)
+
+
+def test_reject_by_annotations_reject_tmin_reject_tmax():
+    """Test reject_by_annotations with reject_tmin and reject_tmax defined."""
+    # 10 seconds of data, event at 2s, bad segment from 1s to 1.5s
+    info = mne.create_info(ch_names=['test_a'], sfreq=1000, ch_types='eeg')
+    raw = mne.io.RawArray(np.atleast_2d(np.arange(0, 10, 1 / 1000)), info=info)
+    events = np.array([[2000, 0, 1]])
+    raw.set_annotations(mne.Annotations(1, 0.5, 'BAD'))
+
+    # Make the epoch based on the event at 2s, so from 1s to 3s ... assert it
+    # is rejected due to bad segment overlap from 1s to 1.5s
+    epochs = mne.Epochs(raw, events, tmin=-1, tmax=1,
+                        preload=True, reject_by_annotation=True)
+    assert len(epochs) == 0
+
+    # Setting `reject_tmin` to prevent rejection of epoch.
+    epochs = mne.Epochs(raw, events, tmin=-1, tmax=1, reject_tmin=-0.2,
+                        preload=True, reject_by_annotation=True)
+    assert len(epochs) == 1
+
+    # Same check but bad segment overlapping from 2.5s to 3s: use `reject_tmax`
+    raw.set_annotations(mne.Annotations(2.5, 0.5, 'BAD'))
+    epochs = mne.Epochs(raw, events, tmin=-1, tmax=1, reject_tmax=0.4,
+                        preload=True, reject_by_annotation=True)
+    assert len(epochs) == 1
 
 
 def test_own_data():
@@ -474,7 +514,7 @@ def test_decim():
             assert_allclose(ep_decim.get_data(), expected_data)
             assert_equal(ep_decim.info['sfreq'], sfreq_new)
 
-    # More complex cases
+    # More complicated cases
     epochs = Epochs(raw, events, event_id, tmin, tmax)
     expected_data = epochs.get_data()[:, :, ::decim]
     expected_times = epochs.times[::decim]
@@ -562,7 +602,6 @@ def test_base_epochs():
         BaseEpochs(raw.info, None, (np.ones((1, 3), int), {'foo': 1}))
 
 
-@requires_version('scipy', '0.14')
 def test_savgol_filter():
     """Test savgol filtering."""
     h_freq = 20.
@@ -678,32 +717,33 @@ def test_rescale():
     assert_allclose(tester(mode='zlogratio'), x / s)
 
 
-def test_epochs_baseline():
+@pytest.mark.parametrize('preload', (True, False))
+def test_epochs_baseline(preload):
     """Test baseline and rescaling modes with and without preloading."""
     data = np.array([[2, 3], [2, 3]], float)
     info = create_info(2, 1000., ('eeg', 'misc'))
     raw = RawArray(data, info)
     events = np.array([[0, 0, 1]])
-    for preload in (False, True):
-        epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None,
-                            preload=preload)
-        epochs.drop_bad()
-        epochs_data = epochs.get_data()
-        assert epochs_data.shape == (1, 2, 2)
-        expected = data.copy()
-        assert_array_equal(epochs_data[0], expected)
-        # the baseline period (1 sample here)
-        epochs.apply_baseline((0, 0))
-        expected[0] = [0, 1]
-        if preload:
-            assert_allclose(epochs_data[0][0], expected[0])
-        else:
-            assert_allclose(epochs_data[0][0], expected[1])
-        assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
-        # entire interval
-        epochs.apply_baseline((None, None))
-        expected[0] = [-0.5, 0.5]
-        assert_allclose(epochs.get_data()[0], expected)
+
+    epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None,
+                        preload=preload)
+    epochs.drop_bad()
+    epochs_data = epochs.get_data()
+    assert epochs_data.shape == (1, 2, 2)
+    expected = data.copy()
+    assert_array_equal(epochs_data[0], expected)
+    # the baseline period (1 sample here)
+    epochs.apply_baseline((0, 0))
+    expected[0] = [0, 1]
+    if preload:
+        assert_allclose(epochs_data[0][0], expected[0])
+    else:
+        assert_allclose(epochs_data[0][0], expected[1])
+    assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
+    # entire interval
+    epochs.apply_baseline((None, None))
+    expected[0] = [-0.5, 0.5]
+    assert_allclose(epochs.get_data()[0], expected)
 
 
 def test_epochs_bad_baseline():
@@ -930,11 +970,26 @@ def test_epochs_io_preload(tmpdir, preload):
 
     epochs.event_id.pop('1')
     epochs.event_id.update({'a:a': 1})  # test allow for ':' in key
-    epochs.save(op.join(tempdir, 'foo-epo.fif'), overwrite=True)
-    epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'),
-                               preload=preload)
-    assert_equal(epochs_read2.event_id, epochs.event_id)
-    assert_equal(epochs_read2['a:a'].average().comment, 'a:a')
+    fname_temp = op.join(tempdir, 'foo-epo.fif')
+    epochs.save(fname_temp, overwrite=True)
+    epochs_read = read_epochs(fname_temp, preload=preload)
+    assert_equal(epochs_read.event_id, epochs.event_id)
+    assert_equal(epochs_read['a:a'].average().comment, 'a:a')
+
+    # now use a baseline, crop it out, and I/O round trip afterward
+    assert epochs.times[0] < 0
+    assert epochs.times[-1] > 0
+    epochs.apply_baseline((None, 0))
+    with pytest.warns(RuntimeWarning,
+                      match=r'setting epochs\.baseline = None'):
+        epochs.crop(1. / epochs.info['sfreq'], None)
+    assert epochs.baseline is None
+    epochs.save(fname_temp, overwrite=True)
+    epochs_read = read_epochs(fname_temp, preload=preload)
+    assert epochs_read.baseline is None
+    assert_allclose(epochs.get_data(), epochs_read.get_data(),
+                    rtol=6e-4)  # XXX this rtol should be better...?
+    del epochs, epochs_read
 
     # add reject here so some of the epochs get dropped
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -957,7 +1012,7 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs_read5 = read_epochs(temp_fname, preload=preload)
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_equal(len(epochs_read5.selection), len(epochs_read5.events))
-    assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
+    assert epochs_read5.drop_log == epochs.drop_log
 
     if preload:
         # Test that one can drop channels on read file
@@ -974,6 +1029,10 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
                     picks=picks, on_missing='ignore')
     epochs.save(temp_fname, overwrite=True)
+    split_fname_1 = temp_fname[:-4] + '-1.fif'
+    split_fname_2 = temp_fname[:-4] + '-2.fif'
+    assert op.isfile(temp_fname)
+    assert not op.isfile(split_fname_1)
     epochs_read = read_epochs(temp_fname, preload=preload)
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
@@ -981,15 +1040,34 @@ def test_epochs_io_preload(tmpdir, preload):
                  {str(x) for x in epochs_read.event_id.keys()})
 
     # test saving split epoch files
-    epochs.save(temp_fname, split_size='7MB', overwrite=True)
+    split_size = '7MB'
+    # ensure that we're in a position where just the data itself could fit
+    # if that were all that we saved ...
+    split_size_bytes = _get_split_size(split_size)
+    assert epochs.get_data().nbytes // 2 < split_size_bytes
+    epochs.save(temp_fname, split_size=split_size, overwrite=True)
+    # ... but we correctly account for the other stuff we need to write,
+    # so end up with two files ...
+    assert op.isfile(temp_fname)
+    assert op.isfile(split_fname_1)
+    assert not op.isfile(split_fname_2)
     epochs_read = read_epochs(temp_fname, preload=preload)
+    # ... and none of the files exceed our limit.
+    for fname in (temp_fname, split_fname_1):
+        with open(fname, 'r') as fid:
+            fid.seek(0, 2)
+            fsize = fid.tell()
+        assert fsize <= split_size_bytes
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
-    assert_equal(epochs.drop_log, epochs_read.drop_log)
+    assert epochs.drop_log == epochs_read.drop_log
 
     # Test that having a single time point works
-    epochs.load_data().crop(0, 0)
+    assert epochs.baseline is not None
+    with pytest.warns(RuntimeWarning, match=r'setting epochs\.baseline'):
+        epochs.load_data().crop(0, 0)
+    assert epochs.baseline is None
     assert_equal(len(epochs.times), 1)
     assert_equal(epochs.get_data().shape[-1], 1)
     epochs.save(temp_fname, overwrite=True)
@@ -1007,12 +1085,20 @@ def test_split_saving(tmpdir):
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
     epochs_data = epochs.get_data()
+    assert len(epochs) == 9
     fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(fname, split_size='1MB', overwrite=True)
-    assert op.isfile(fname)
-    assert op.isfile(fname[:-4] + '-1.fif')
-    assert op.isfile(fname[:-4] + '-2.fif')
-    assert not op.isfile(fname[:-4] + '-3.fif')
+    size = _get_split_size('1MB')
+    assert size == 1048576 == 1024 * 1024
+    written_fnames = [fname] + [
+        fname[:-4] + '-%d.fif' % ii for ii in range(1, 4)]
+    for this_fname in written_fnames:
+        assert op.isfile(this_fname)
+        with open(this_fname, 'r') as fid:
+            fid.seek(0, 2)
+            file_size = fid.tell()
+        assert size * 0.5 < file_size <= size
+    assert not op.isfile(fname[:-4] + '-4.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
@@ -1111,12 +1197,10 @@ def test_evoked_arithmetic():
     evoked2 = epochs2.average()
     epochs = Epochs(raw, events[:8], event_id, tmin, tmax, picks=picks)
     evoked = epochs.average()
-    evoked_sum = combine_evoked([evoked1, evoked2], weights='nave')
-    assert_array_equal(evoked.data, evoked_sum.data)
-    assert_array_equal(evoked.times, evoked_sum.times)
-    assert_equal(evoked_sum.nave, evoked1.nave + evoked2.nave)
-    evoked_diff = combine_evoked([evoked1, evoked1], weights=[1, -1])
-    assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
+    evoked_avg = combine_evoked([evoked1, evoked2], weights='nave')
+    assert_array_equal(evoked.data, evoked_avg.data)
+    assert_array_equal(evoked.times, evoked_avg.times)
+    assert_equal(evoked_avg.nave, evoked1.nave + evoked2.nave)
 
 
 def test_evoked_io_from_epochs(tmpdir):
@@ -1129,8 +1213,9 @@ def test_evoked_io_from_epochs(tmpdir):
                     picks=picks, decim=5)
     evoked = epochs.average()
     evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
-    evoked.save(op.join(tempdir, 'evoked-ave.fif'))
-    evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
+    fname_temp = op.join(tempdir, 'evoked-ave.fif')
+    evoked.save(fname_temp)
+    evoked2 = read_evokeds(fname_temp)[0]
     assert_equal(evoked2.info['proj_name'], None)
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
@@ -1140,8 +1225,8 @@ def test_evoked_io_from_epochs(tmpdir):
     epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
                     picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
-    evoked.save(op.join(tempdir, 'evoked-ave.fif'))
-    evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
+    evoked.save(fname_temp)
+    evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
@@ -1152,6 +1237,25 @@ def test_evoked_io_from_epochs(tmpdir):
     evoked.crop(0.099, None)
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
+
+    # should work when one channel type is changed to a non-data ch
+    picks = pick_types(raw.info, meg=True, eeg=True)
+    epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
+                    picks=picks, baseline=(0.1, 0.2), decim=5)
+    with pytest.warns(RuntimeWarning, match='unit for.*changed from'):
+        epochs.set_channel_types({epochs.ch_names[0]: 'syst'})
+    evokeds = list()
+    for picks in (None, 'all'):
+        evoked = epochs.average(picks)
+        evokeds.append(evoked)
+        evoked.save(fname_temp)
+        evoked2 = read_evokeds(fname_temp)[0]
+        start = 1 if picks is None else 0
+        for ev in (evoked, evoked2):
+            assert ev.ch_names == epochs.ch_names[start:]
+            assert_allclose(ev.data, epochs.get_data().mean(0)[start:])
+    with pytest.raises(ValueError, match='.*nchan.* must match'):
+        write_evokeds(fname_temp, evokeds)
 
 
 def test_evoked_standard_error(tmpdir):
@@ -1195,10 +1299,10 @@ def test_reject_epochs():
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
-    assert (n_events > n_clean_epochs)
-    assert (n_clean_epochs == 3)
-    assert (epochs.drop_log == [[], [], [], ['MEG 2443'], ['MEG 2443'],
-                                ['MEG 2443'], ['MEG 2443']])
+    assert n_events > n_clean_epochs
+    assert n_clean_epochs == 3
+    assert epochs.drop_log == ((), (), (), ('MEG 2443',), ('MEG 2443',),
+                               ('MEG 2443',), ('MEG 2443',))
 
     # Ensure epochs are not dropped based on a bad channel
     raw_2 = raw.copy()
@@ -1223,18 +1327,17 @@ def test_reject_epochs():
                     reject=reject, flat=flat, reject_tmin=0., reject_tmax=.1)
     data = epochs.get_data()
     n_clean_epochs = len(data)
-    assert (n_clean_epochs == 7)
-    assert (len(epochs) == 7)
-    assert (epochs.times[epochs._reject_time][0] >= 0.)
-    assert (epochs.times[epochs._reject_time][-1] <= 0.1)
+    assert n_clean_epochs == 7
+    assert len(epochs) == 7
+    assert epochs.times[epochs._reject_time][0] >= 0.
+    assert epochs.times[epochs._reject_time][-1] <= 0.1
 
     # Invalid data for _is_good_epoch function
     epochs = Epochs(raw, events1, event_id, tmin, tmax)
-    assert_equal(epochs._is_good_epoch(None), (False, ['NO_DATA']))
-    assert_equal(epochs._is_good_epoch(np.zeros((1, 1))),
-                 (False, ['TOO_SHORT']))
+    assert epochs._is_good_epoch(None) == (False, ('NO_DATA',))
+    assert epochs._is_good_epoch(np.zeros((1, 1))) == (False, ('TOO_SHORT',))
     data = epochs[0].get_data()[0]
-    assert_equal(epochs._is_good_epoch(data), (True, None))
+    assert epochs._is_good_epoch(data) == (True, None)
 
 
 def test_preload_epochs():
@@ -1562,21 +1665,28 @@ def test_subtract_evoked():
     data = zero_evoked.data
     assert_allclose(data, np.zeros_like(data), atol=1e-15)
 
+    # with decimation (gh-7854)
+    epochs3 = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                     decim=10, verbose='error')
+    data_old = epochs2.decimate(10, verbose='error').get_data()
+    data = epochs3.subtract_evoked().get_data()
+    assert_allclose(data, data_old)
+    assert_allclose(epochs3.average().data, 0., atol=1e-20)
+
 
 def test_epoch_eq():
     """Test epoch count equalization and condition combining."""
     raw, events, picks = _get_data()
     # equalizing epochs objects
-    epochs_1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
-    epochs_2 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
+    events_1 = events[events[:, 2] == event_id]
+    epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
+    events_2 = events[events[:, 2] == event_id_2]
+    epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
     epochs_1.drop_bad()  # make sure drops are logged
     assert_equal(len([log for log in epochs_1.drop_log if not log]),
                  len(epochs_1.events))
-    drop_log1 = epochs_1.drop_log = [[] for _ in range(len(epochs_1.events))]
-    drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
-                 epochs_1.drop_log]
-    assert_equal(drop_log1, drop_log2)
-    assert_equal(len([l for l in epochs_1.drop_log if not l]),
+    assert epochs_1.drop_log == ((),) * len(epochs_1.events)
+    assert_equal(len([lg for lg in epochs_1.drop_log if not lg]),
                  len(epochs_1.events))
     assert (epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts([epochs_1, epochs_2], method='mintime')
@@ -1597,8 +1707,8 @@ def test_epoch_eq():
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'])
     # undo the eq logging
-    drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
-                 epochs.drop_log]
+    drop_log2 = tuple(() if log == ('EQUALIZED_COUNT',) else log
+                      for log in epochs.drop_log)
     assert_equal(drop_log1, drop_log2)
 
     assert_equal(len([log for log in epochs.drop_log if not log]),
@@ -1739,37 +1849,62 @@ def test_to_data_frame():
     """Test epochs Pandas exporter."""
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
-    pytest.raises(ValueError, epochs.to_data_frame, index=['foo', 'bar'])
-    pytest.raises(ValueError, epochs.to_data_frame, index='qux')
-    pytest.raises(ValueError, epochs.to_data_frame, np.arange(400))
-
-    df = epochs.to_data_frame(index=['condition', 'epoch', 'time'],
-                              picks=list(range(epochs.info['nchan'])))
-
-    # Default index and picks
-    df2 = epochs.to_data_frame()
-    assert_equal(df.index.names, df2.index.names)
-    assert_array_equal(df.columns.values, epochs.ch_names)
-
+    # test index checking
+    with pytest.raises(ValueError, match='options. Valid index options are'):
+        epochs.to_data_frame(index=['foo', 'bar'])
+    with pytest.raises(ValueError, match='"qux" is not a valid option'):
+        epochs.to_data_frame(index='qux')
+    with pytest.raises(TypeError, match='index must be `None` or a string or'):
+        epochs.to_data_frame(index=np.arange(400))
+    # test wide format
+    df_wide = epochs.to_data_frame()
+    assert all(np.in1d(epochs.ch_names, df_wide.columns))
+    assert all(np.in1d(['time', 'epoch', 'condition'], df_wide.columns))
+    # test long format
+    df_long = epochs.to_data_frame(long_format=True)
+    expected = ('condition', 'epoch', 'time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    assert set(epochs.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == epochs.get_data().size)
+    # test long format w/ index
+    df_long = epochs.to_data_frame(long_format=True, index=['epoch'])
+    del df_wide, df_long
+    # test scalings
+    df = epochs.to_data_frame(index=['condition', 'epoch', 'time'])
     data = np.hstack(epochs.get_data())
-    assert ((df.columns == epochs.ch_names).all())
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
-    for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.to_data_frame(picks=[11, 12, 14], index=ind)
-        assert (df.index.names == ind if isinstance(ind, list) else [ind])
-        # test that non-indexed data were present as categorial variables
-        assert_array_equal(sorted(df.reset_index().columns[:3]),
-                           sorted(['time', 'condition', 'epoch']))
 
-    df = epochs.to_data_frame(long_format=True)
-    assert(len(df) == epochs.get_data().size)
-    assert("time" in df.columns)
-    assert("condition" in df.columns)
-    assert("channel" in df.columns)
-    assert("epoch" in df.columns)
-    assert("ch_type" in df.columns)
-    assert("observation" in df.columns)
+
+@requires_pandas
+@pytest.mark.parametrize('index', ('time', ['condition', 'time', 'epoch'],
+                                   ['epoch', 'time'], ['time', 'epoch'], None))
+def test_to_data_frame_index(index):
+    """Test index creation in epochs Pandas exporter."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
+    # test index order/hierarchy preservation
+    if not isinstance(index, list):
+        index = [index]
+    assert (df.index.names == index)
+    # test that non-indexed data were present as columns
+    non_index = list(set(['condition', 'time', 'epoch']) - set(index))
+    if len(non_index):
+        assert all(np.in1d(non_index, df.columns))
+
+
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in epochs Pandas exporter."""
+    from pandas import Timedelta
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    # test time_format
+    df = epochs.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])
 
 
 def test_epochs_proj_mixin():
@@ -1926,7 +2061,7 @@ def test_drop_epochs():
     assert_array_equal(epochs.selection,
                        np.where(events[:, 2] == event_id)[0])
     assert_equal(len(epochs.drop_log), len(events))
-    assert (all(epochs.drop_log[k] == ['IGNORED']
+    assert (all(epochs.drop_log[k] == ('IGNORED',)
                 for k in set(range(len(events))) - set(epochs.selection)))
 
     selection = epochs.selection.copy()
@@ -1956,10 +2091,10 @@ def test_drop_epochs_mult():
             # In the preload case you cannot know the bads if already ignored
             assert_equal(len(epochs1.drop_log), len(epochs2.drop_log))
             for d1, d2 in zip(epochs1.drop_log, epochs2.drop_log):
-                if d1 == ['IGNORED']:
-                    assert (d2 == ['IGNORED'])
-                if d1 != ['IGNORED'] and d1 != []:
-                    assert ((d2 == d1) or (d2 == ['IGNORED']))
+                if d1 == ('IGNORED',):
+                    assert (d2 == ('IGNORED',))
+                if d1 != ('IGNORED',) and d1 != []:
+                    assert ((d2 == d1) or (d2 == ('IGNORED',)))
                 if d1 == []:
                     assert (d2 == [])
             assert_array_equal(epochs1.events, epochs2.events)
@@ -2057,7 +2192,7 @@ def test_equalize_channels():
     epochs1.drop_channels(epochs1.ch_names[:1])
     epochs2.drop_channels(epochs2.ch_names[1:2])
     my_comparison = [epochs1, epochs2]
-    equalize_channels(my_comparison)
+    my_comparison = equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
 
@@ -2111,7 +2246,7 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     assert not epochs_meg.times.flags['WRITEABLE']
     assert not epochs_meg2.times.flags['WRITEABLE']
-    epochs_meg2.info['meas_date'] = (0, 0)
+    epochs_meg2.set_meas_date(0)
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
@@ -2415,7 +2550,7 @@ def test_metadata(tmpdir):
     chs = ['a', 'b']
     info = create_info(chs, 1000)
     meta = np.array([[1.] * 5 + [3.] * 5,
-                     ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + [u'μ'] * 2]).T
+                     ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + ['µ'] * 2]).T
     meta = DataFrame(meta, columns=['num', 'letter'])
     meta['num'] = np.array(meta['num'], float)
     events = np.arange(meta.shape[0])
@@ -2557,6 +2692,33 @@ def test_metadata(tmpdir):
                        match='metadata must have the same number of rows .*'):
         epochs['new_key == 1']
 
+    # metadata should be same length as original events
+    raw_data = np.random.randn(2, 10000)
+    info = mne.create_info(2, 1000.)
+    raw = mne.io.RawArray(raw_data, info)
+    opts = dict(raw=raw, tmin=0, tmax=.001, baseline=None)
+    events = [[0, 0, 1], [1, 0, 2]]
+    metadata = DataFrame(events, columns=['onset', 'duration', 'value'])
+    epochs = Epochs(events=events, event_id=1, metadata=metadata, **opts)
+    epochs.drop_bad()
+    assert len(epochs) == 1
+    assert len(epochs.metadata) == 1
+    with pytest.raises(ValueError, match='same number of rows'):
+        Epochs(events=events, event_id=1, metadata=metadata.iloc[:1], **opts)
+
+    # gh-7732: problem when repeated events and metadata
+    for er in ('drop', 'merge'):
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(events=events, event_repeated=er, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        events = [[1, 0, 1], [1, 0, 1]]
+        epochs = Epochs(
+            events=events, event_repeated=er, metadata=metadata, **opts)
+        epochs.drop_bad()
+        assert len(epochs) == 1
+        assert len(epochs.metadata) == 1
+
 
 def assert_metadata_equal(got, exp):
     """Assert metadata are equal."""
@@ -2574,7 +2736,7 @@ def assert_metadata_equal(got, exp):
         assert isinstance(exp, pandas.DataFrame)
         assert isinstance(got, pandas.DataFrame)
         assert set(got.columns) == set(exp.columns)
-        if LooseVersion(pandas.__version__) < LooseVersion('0.19'):
+        if LooseVersion(pandas.__version__) < LooseVersion('0.25'):
             # Old Pandas does not necessarily order them properly
             got = got[exp.columns]
         check = (got == exp)
@@ -2628,21 +2790,33 @@ def test_save_overwrite(tmpdir):
     epochs.save(fname2, overwrite=True)
 
 
-def test_save_complex_data(tmpdir):
+@pytest.mark.parametrize('preload', (True, False))
+@pytest.mark.parametrize('is_complex', (True, False))
+@pytest.mark.parametrize('fmt, rtol', [('single', 2e-6), ('double', 1e-10)])
+def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
     """Test whether epochs of hilbert-transformed data can be saved."""
-    for is_complex in [False, True]:
-        for fmt, rtol in [('single', 1e-6), ('double', 1e-7)]:
-            raw, events = _get_data()[:2]
-            raw.load_data()
-            if is_complex:
-                raw.apply_hilbert(envelope=False, n_fft=None)
-            epochs = Epochs(raw, events[:1], preload=True)[0]
-            temp_fname = op.join(str(tmpdir), 'test-epo.fif')
-            epochs.save(temp_fname, fmt=fmt, overwrite=True)
-            epochs_read = read_epochs(temp_fname, proj=False, preload=True)
-            assert_allclose(epochs_read.get_data(),
-                            epochs.get_data(), rtol=rtol)
-    # smoke test that having the first epoch bad does not break writing,
+    raw, events = _get_data()[:2]
+    raw.load_data()
+    if is_complex:
+        raw.apply_hilbert(envelope=False, n_fft=None)
+    epochs = Epochs(raw, events[:1], preload=True)[0]
+    temp_fname = op.join(str(tmpdir), 'test-epo.fif')
+    epochs.save(temp_fname, fmt=fmt)
+    data = epochs.get_data().copy()
+    epochs_read = read_epochs(temp_fname, proj=False, preload=preload)
+    data_read = epochs_read.get_data()
+    want_dtype = np.complex128 if is_complex else np.float64
+    assert data.dtype == want_dtype
+    assert data_read.dtype == want_dtype
+    # XXX for some reason some random samples in here are off by a larger
+    # factor...
+    if fmt == 'single' and not preload and not is_complex:
+        rtol = 2e-4
+    assert_allclose(data_read, data, rtol=rtol)
+
+
+def test_no_epochs(tmpdir):
+    """Test that having the first epoch bad does not break writing."""
     # a regression noticed in #5564
     raw, events = _get_data()[:2]
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
@@ -2707,10 +2881,8 @@ def test_shift_time(relative):
     timeshift = 13.5e-3  # Using sub-ms timeshift to test for sample accuracy.
     raw, events = _get_data()[:2]
     epochs = Epochs(raw, events[:1], preload=True, baseline=None)
-    avg = epochs.average()
-    avg.shift_time(timeshift, relative=relative)
-    epochs.shift_time(timeshift, relative=relative)
-    avg2 = epochs.average()
+    avg = epochs.average().shift_time(timeshift, relative=relative)
+    avg2 = epochs.shift_time(timeshift, relative=relative).average()
     assert_array_equal(avg.times, avg2.times)
     assert_equal(avg.first, avg2.first)
     assert_equal(avg.last, avg2.last)
@@ -2815,6 +2987,20 @@ def test_file_like(kind, preload, tmpdir):
         assert not fid.closed
         assert not file_fid.closed
     assert file_fid.closed
+
+
+@pytest.mark.parametrize('preload', (True, False))
+def test_epochs_get_data_item(preload):
+    """Test epochs.get_data(item=...)."""
+    raw, events, _ = _get_data()
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, preload=preload)
+    if not preload:
+        with pytest.raises(ValueError, match='item must be None'):
+            epochs.get_data(item=0)
+        epochs.drop_bad()
+    one_data = epochs.get_data(item=0)
+    one_epo = epochs[0]
+    assert_array_equal(one_data, one_epo.get_data())
 
 
 run_tests_if_main()

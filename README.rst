@@ -1,24 +1,29 @@
 .. -*- mode: rst -*-
 
-
-|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |Zenodo|_
+|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
 
 |MNE|_
 
-.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
+.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.svg?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
 
 .. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
 .. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 
-.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
+.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=shield
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python
 
 .. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
-.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
-.. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
+.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
+.. _PyPI: https://pypi.org/project/mne/
+
+.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
+.. _conda-forge: https://anaconda.org/conda-forge/mne
+
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
+.. _Zenodo: https://doi.org/10.5281/zenodo.592483
 
 .. |MNE| image:: https://mne.tools/stable/_static/mne_logo.png
 .. _MNE: https://mne.tools/dev/
@@ -48,9 +53,9 @@ To install the latest stable version of MNE-Python, you can use pip_ in a termin
 
     pip install -U mne
 
-**Note** that MNE-Python 0.17 was the last release to support Python 2.
-MNE-Python 0.18 only works under Python 3, and MNE-Python 0.19 requires
-Python 3.5 or higher.
+- MNE-Python 0.17 was the last release to support Python 2.7
+- MNE-Python 0.18 requires Python 3.5 or higher
+- MNE-Python 0.21 requires Python 3.6 or higher
 
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the `installation guide`_.
@@ -63,7 +68,7 @@ To install the latest version of the code using pip_ open a terminal and type:
 
 .. code-block:: bash
 
-    pip install -U https://api.github.com/repos/mne-tools/mne-python/zipball/master
+    pip install -U https://github.com/mne-tools/mne-python/archive/master.zip
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
@@ -80,23 +85,24 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 3.5
-- NumPy >= 1.12.1
-- SciPy >= 0.18.1
+- Python >= 3.6
+- NumPy >= 1.13.3
+- SciPy >= 1.0.0
 
 For full functionality, some functions require:
 
-- Matplotlib >= 2.0.2
+- Matplotlib >= 2.1
 - Mayavi >= 4.6
 - PySurfer >= 0.8
-- Scikit-learn >= 0.18.2
+- Scikit-learn >= 0.19.1
 - Numba >= 0.40
 - NiBabel >= 2.1.0
-- Pandas >= 0.19.2
+- Pandas >= 0.21
 - Picard >= 0.3
 - CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 0.10.1
-- PyVista >= 0.20.1
+- Imageio >= 2.6.1
+- PyVista >= 0.24
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

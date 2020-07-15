@@ -7,7 +7,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict, Counter
+from collections import Counter
 
 import datetime
 import os.path as op
@@ -15,7 +15,7 @@ import re
 
 import numpy as np
 
-from ..utils import logger, warn, _check_option, Bunch
+from ..utils import logger, warn, _check_option, Bunch, _validate_type
 
 from .constants import FIFF
 from .tree import dir_tree_find
@@ -67,6 +67,9 @@ def _count_points_by_type(dig):
     )
 
 
+_dig_keys = {'kind', 'ident', 'r', 'coord_frame'}
+
+
 class DigPoint(dict):
     """Container for a digitization point.
 
@@ -90,16 +93,22 @@ class DigPoint(dict):
 
     def __repr__(self):  # noqa: D105
         if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            id_ = _cardinal_kind_rev.get(
-                self.get('ident', -1), 'Unknown cardinal')
+            id_ = _cardinal_kind_rev.get(self['ident'], 'Unknown cardinal')
         else:
             id_ = _dig_kind_proper[
-                _dig_kind_rev.get(self.get('kind', -1), 'unknown')]
-            id_ = ('%s #%s' % (id_, self.get('ident', -1)))
+                _dig_kind_rev.get(self['kind'], 'unknown')]
+            id_ = ('%s #%s' % (id_, self['ident']))
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self['coord_frame'])
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
+
+    # speed up info copy by only deep copying the mutable item
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        return DigPoint(
+            kind=self['kind'], r=self['r'].copy(),
+            ident=self['ident'], coord_frame=self['coord_frame'])
 
     def __eq__(self, other):  # noqa: D105
         """Compare two DigPoints.
@@ -108,9 +117,9 @@ class DigPoint(dict):
         coordinate frame and position.
         """
         my_keys = ['kind', 'ident', 'coord_frame']
-        if sorted(self.keys()) != sorted(other.keys()):
+        if set(self.keys()) != set(other.keys()):
             return False
-        elif any([self[_] != other[_] for _ in my_keys]):
+        elif any(self[_] != other[_] for _ in my_keys):
             return False
         else:
             return np.allclose(self['r'], other['r'])
@@ -197,7 +206,8 @@ def _foo_get_data_from_dig(dig):
             dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, 'Only single coordinate frame in dig is supported' # noqa # XXX
+    assert len(dig_coord_frames) == 1, \
+        'Only single coordinate frame in dig is supported'  # XXX
 
     return Bunch(
         nasion=fids.get('nasion', None),
@@ -270,6 +280,9 @@ def _read_dig_points(fname, comments='%', unit='auto'):
         #      read_dig_montage. To be deprecated
         # raise RuntimeError('if you are reading isotrak files please use'
         #                    ' read_dig_polhemus_isotrak')
+        # Eventually it should use read_dig_polhemus_isotrak and/or
+        # read_dig_polhemus_fastscan, but needs refactoring to handle
+        # these formats better.
         with open(fname) as fid:
             file_str = fid.read()
         value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
@@ -415,19 +428,15 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        keys = dig_ch_pos.keys()
-        if not isinstance(dig_ch_pos, OrderedDict):
-            keys = sorted(keys)
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
             idents = []
-            for key in keys:
-                if not isinstance(key, str):
-                    raise ValueError()
+            for key in dig_ch_pos:
+                _validate_type(key, str, 'dig_ch_pos')
                 idents.append(int(key[-3:]))
         except ValueError:  # and if any conversion fails, simply use arange
-            idents = np.arange(1, len(keys) + 1)
-        for key, ident in zip(keys, idents):
-            dig.append({'r': dig_ch_pos[key], 'ident': ident,
+            idents = np.arange(1, len(dig_ch_pos) + 1)
+        for key, ident in zip(dig_ch_pos, idents):
+            dig.append({'r': dig_ch_pos[key], 'ident': int(ident),
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': coord_frame})
 

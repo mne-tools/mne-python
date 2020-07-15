@@ -10,19 +10,20 @@
 #
 # License: Simplified BSD
 
-import base64
 from distutils.version import LooseVersion
-from io import BytesIO
 from itertools import cycle
+import os
 import os.path as op
+import sys
 import warnings
+from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
 from scipy import linalg, sparse
 
 from ..defaults import DEFAULTS
-from ..fixes import einsum, _crop_colorbar, _get_img_fdata
+from ..fixes import einsum, _crop_colorbar, _get_img_fdata, _get_args
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
@@ -38,10 +39,11 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           invert_transform, Transform,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     has_nibabel, check_version, fill_doc, _pl,
+                     has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option)
-from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
+from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
+from .misc import _check_mri
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
@@ -301,9 +303,9 @@ def _set_aspect_equal(ax):
         pass
 
 
-@fill_doc
+@verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1):
+                      n_jobs=1, fig=None, verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -318,6 +320,12 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     time_label : str
         How to print info about the time instant visualized.
     %(n_jobs)s
+    fig : instance of mayavi.core.api.Scene | None
+        If None (default), a new figure will be created, otherwise it will
+        plot into the given figure.
+
+        .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -325,7 +333,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         The mayavi figure.
     """
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
     time_idx = None
@@ -345,7 +353,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = _Renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -391,126 +399,10 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text2d(x=0.01, y=0.01, text=time_label)
+    renderer.text2d(x_window=0.01, y_window=0.01, text=time_label)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
-
-
-def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
-                       slices=None, show=True, img_output=False):
-    """Plot BEM contours on anatomical slices.
-
-    Parameters
-    ----------
-    mri_fname : str
-        The name of the file containing anatomical data.
-    surf_fnames : list of str
-        The filenames for the BEM surfaces in the format
-        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
-    orientation : str
-        'coronal' or 'transverse' or 'sagittal'
-    slices : list of int
-        Slice indices.
-    show : bool
-        Call pyplot.show() at the end.
-    img_output : None | tuple
-        If tuple (width and height), images will be produced instead of a
-        single figure with many axes. This mode is designed to reduce the
-        (substantial) overhead associated with making tens to hundreds
-        of matplotlib axes, instead opting to re-use a single Axes instance.
-
-    Returns
-    -------
-    fig : instance of matplotlib.figure.Figure | list
-        The figure. Will instead be a list of png images if
-        img_output is a tuple.
-    """
-    import matplotlib.pyplot as plt
-    import nibabel as nib
-
-    _check_option('orientation', orientation, ['coronal', 'axial', 'sagittal'])
-
-    # Load the T1 data
-    nim = nib.load(mri_fname)
-    data = _get_img_fdata(nim)
-    try:
-        affine = nim.affine
-    except AttributeError:  # old nibabel
-        affine = nim.get_affine()
-
-    n_sag, n_axi, n_cor = data.shape
-    orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
-    orientation_axis = orientation_name2axis[orientation]
-
-    if slices is None:
-        n_slices = data.shape[orientation_axis]
-        slices = np.linspace(0, n_slices, 12, endpoint=False).astype(np.int)
-
-    # create of list of surfaces
-    surfs = list()
-
-    trans = linalg.inv(affine)
-    # XXX : next line is a hack don't ask why
-    trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
-
-    for surf_fname in surf_fnames:
-        surf = read_surface(surf_fname, return_dict=True)[-1]
-        # move back surface to MRI coordinate system
-        surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
-        surfs.append(surf)
-
-    if img_output is None:
-        fig, axs = _prepare_trellis(len(slices), 4)
-    else:
-        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
-        axs = [ax] * len(slices)
-
-        fig_size = fig.get_size_inches()
-        w, h = img_output[0], img_output[1]
-        w2 = fig_size[0]
-        fig.set_size_inches([(w2 / float(w)) * w, (w2 / float(w)) * h])
-        plt.close(fig)
-
-    inds = dict(coronal=[0, 1, 2], axial=[2, 0, 1],
-                sagittal=[2, 1, 0])[orientation]
-    outs = []
-    for ax, sl in zip(axs, slices):
-        # adjust the orientations for good view
-        if orientation == 'coronal':
-            dat = data[:, :, sl].transpose()
-        elif orientation == 'axial':
-            dat = data[:, sl, :]
-        elif orientation == 'sagittal':
-            dat = data[sl, :, :]
-
-        # First plot the anatomical data
-        if img_output is not None:
-            ax.clear()
-        ax.imshow(dat, cmap=plt.cm.gray)
-        ax.axis('off')
-
-        # and then plot the contours on top
-        for surf in surfs:
-            with warnings.catch_warnings(record=True):  # no contours
-                warnings.simplefilter('ignore')
-                ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
-                              surf['tris'], surf['rr'][:, inds[2]],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-        if img_output is not None:
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_xlim(0, img_output[1])
-            ax.set_ylim(img_output[0], 0)
-            output = BytesIO()
-            fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png')
-            outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
-    if show:
-        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                            hspace=0.)
-    plt_show(show)
-    return fig if img_output is None else outs
 
 
 @verbose
@@ -553,10 +445,17 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         ``('helmet', 'sensors')`` (same as None, default). True translates to
         ``('helmet', 'sensors', 'ref')``.
     eeg : bool | str | list
-        Can be "original" (default; equivalent to True) or "projected" to
-        show EEG sensors in their digitized locations or projected onto the
-        scalp, or a list of these options including ``[]`` (equivalent of
-        False).
+        String options are:
+
+        - "original" (default; equivalent to ``True``)
+            Shows EEG sensors using their digitized locations (after
+            transformation to the chosen ``coord_frame``)
+        - "projected"
+            The EEG locations projected onto the scalp, as is done in forward
+            modeling
+
+        Can also be a list of these options, or an empty list (``[]``,
+        equivalent of ``False``).
     fwd : instance of Forward
         The forward solution. If present, the orientations of the dipoles
         present in the forward solution are displayed.
@@ -574,22 +473,26 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     bem : list of dict | instance of ConductorModel | None
         Can be either the BEM surfaces (list of dict), a BEM solution or a
         sphere model. If None, we first try loading
-        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
-        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
-        the subjects bem and bem/flash folders are searched. Defaults to None.
+        ``'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'``, and then look
+        for ``'$SUBJECT*$SOURCE.fif'`` in the same directory. For
+        ``'outer_skin'``, the subjects bem and bem/flash folders are searched.
+        Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
-    fnirs : bool
-        If True (default), show fNIRS electrodes.
+    fnirs : str | list | bool | None
+        Can be "channels", "pairs", "detectors", and/or "sources" to show the
+        fNIRS channel locations, optode locations, or line between
+        source-detector pairs, or a combination like ``('pairs', 'channels')``.
+        True translates to ``('pairs',)``.
 
         .. versionadded:: 0.20
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
 
-        * head in pink
-        * MRI in gray (if ``trans is not None``)
-        * MEG in blue (if MEG sensors are present)
+        * head in pink.
+        * MRI in gray (if ``trans is not None``).
+        * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
     fig : mayavi.mlab.Figure | None
@@ -627,7 +530,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils, Forward
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if eeg is False:
         eeg = list()
@@ -649,18 +552,26 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if isinstance(eeg, str):
         eeg = [eeg]
 
+    if fnirs is True:
+        fnirs = ['pairs']
+    elif fnirs is False:
+        fnirs = list()
+    elif isinstance(fnirs, str):
+        fnirs = [fnirs]
+
     _check_option('interaction', interaction, ['trackball', 'terrain'])
-    for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
+    for kind, var in zip(('eeg', 'meg', 'fnirs'), (eeg, meg, fnirs)):
         if not isinstance(var, (list, tuple)) or \
                 not all(isinstance(x, str) for x in var):
             raise TypeError('%s must be list or tuple of str, got %s'
                             % (kind, type(var)))
-    if not all(x in ('helmet', 'sensors', 'ref') for x in meg):
-        raise ValueError('meg must only contain "helmet", "sensors" or "ref", '
-                         'got %s' % (meg,))
-    if not all(x in ('original', 'projected') for x in eeg):
-        raise ValueError('eeg must only contain "original" and '
-                         '"projected", got %s' % (eeg,))
+    for xi, x in enumerate(meg):
+        _check_option('meg[%d]' % xi, x, ('helmet', 'sensors', 'ref'))
+    for xi, x in enumerate(eeg):
+        _check_option('eeg[%d]' % xi, x, ('original', 'projected'))
+    for xi, x in enumerate(fnirs):
+        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs',
+                                            'sources', 'detectors'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
@@ -704,11 +615,17 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=fnirs)
-    del ecog, seeg, fnirs
+    fnirs_picks = pick_types(info, meg=False, eeg=False,
+                             ref_meg=False, fnirs=True)
+    other_bools = dict(ecog=ecog, seeg=seeg,
+                       fnirs=(('channels' in fnirs) |
+                              ('sources' in fnirs) |
+                              ('detectors' in fnirs)))
+    del ecog, seeg
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
+
     if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1012,13 +929,30 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     del dig
     for key, picks in other_picks.items():
         if other_bools[key] and len(picks):
-            other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                                       for pick in picks])
+            if key == 'fnirs':
+                if 'channels' in fnirs:
+                    other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
+                                               for pick in picks])
+                if 'sources' in fnirs:
+                    other_loc['source'] = np.array(
+                        [info['chs'][pick]['loc'][3:6]
+                         for pick in picks])
+                    logger.info('Plotting %d %s source%s'
+                                % (len(other_loc['source']),
+                                   key, _pl(other_loc['source'])))
+                if 'detectors' in fnirs:
+                    other_loc['detector'] = np.array(
+                        [info['chs'][pick]['loc'][6:9]
+                         for pick in picks])
+                    logger.info('Plotting %d %s detector%s'
+                                % (len(other_loc['detector']),
+                                   key, _pl(other_loc['detector'])))
+                other_keys = sorted(other_loc.keys())
             logger.info('Plotting %d %s location%s'
                         % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
-    renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
         renderer.set_interactive()
 
@@ -1119,6 +1053,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               fwd_nn[:, ori, 1],
                               fwd_nn[:, ori, 2],
                               color=color, mode='arrow', scale=1.5e-3)
+    if 'pairs' in fnirs and len(fnirs_picks) > 0:
+        fnirs_loc = np.array([info['chs'][k]['loc'][3:9] for k in fnirs_picks])
+        logger.info('Plotting %d fnirs pairs' % (fnirs_loc.shape[0]))
+        renderer.tube(origin=fnirs_loc[:, :3],
+                      destination=fnirs_loc[:, 3:])
+
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
@@ -1221,36 +1161,42 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
-def _limits_to_control_points(clim, stc_data, colormap, transparent,
-                              allow_pos_lims=True, linearize=False):
-    """Convert limits (values or percentiles) to control points.
+def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
+    """Convert colormap/clim options to dict.
 
-    This function also does the nonlinear scaling of the colormap in the
-    case of a diverging colormap, and it forces transparency in the
-    alpha channel.
+    This fills in any "auto" entries properly such that round-trip
+    calling gives the same results.
     """
     # Based on type of limits specified, get cmap control points
     import matplotlib.pyplot as plt
-    from matplotlib.colors import ListedColormap
-    if colormap == 'auto':
-        if clim == 'auto':
-            if allow_pos_lims and (stc_data < 0).any():
-                colormap = 'mne'
+    from matplotlib.colors import Colormap
+    _validate_type(colormap, (str, Colormap), 'colormap')
+    data = np.asarray(data)
+    if isinstance(colormap, str):
+        if colormap == 'auto':
+            if clim == 'auto':
+                if allow_pos_lims and (data < 0).any():
+                    colormap = 'mne'
+                else:
+                    colormap = 'hot'
             else:
-                colormap = 'hot'
+                if 'lims' in clim:
+                    colormap = 'hot'
+                else:  # 'pos_lims' in clim
+                    colormap = 'mne'
+        if colormap in ('mne', 'mne_analyze'):
+            colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
         else:
-            if 'lims' in clim:
-                colormap = 'hot'
-            else:  # 'pos_lims' in clim
-                colormap = 'mne'
+            colormap = plt.get_cmap(colormap)
+    assert isinstance(colormap, Colormap)
     diverging_maps = ['PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
                       'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr',
                       'seismic']
     diverging_maps += [d + '_r' for d in diverging_maps]
-    diverging_maps += ['mne', 'mne_analyze', ]
+    diverging_maps += ['mne', 'mne_analyze']
     if clim == 'auto':
         # this is merely a heuristic!
-        if allow_pos_lims and colormap in diverging_maps:
+        if allow_pos_lims and colormap.name in diverging_maps:
             key = 'pos_lims'
         else:
             key = 'lims'
@@ -1264,8 +1210,8 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     if 'pos_lims' in clim and not allow_pos_lims:
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
                          'instead')
-    diverging_lims = 'pos_lims' in clim
-    ctrl_pts = np.array(clim['pos_lims' if diverging_lims else 'lims'])
+    diverging = 'pos_lims' in clim
+    ctrl_pts = np.array(clim['pos_lims' if diverging else 'lims'], float)
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
         raise ValueError('clim has shape %s, it must be (3,)'
@@ -1276,70 +1222,102 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     clim_kind = clim.get('kind', 'percent')
     _check_option("clim['kind']", clim_kind, ['value', 'values', 'percent'])
     if clim_kind == 'percent':
-        perc_data = np.abs(stc_data) if diverging_lims else stc_data
+        perc_data = np.abs(data) if diverging else data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
         logger.info('Using control points %s' % (ctrl_pts,))
+    assert len(ctrl_pts) == 3
+    clim = dict(kind='value')
+    clim['pos_lims' if diverging else 'lims'] = ctrl_pts
+    mapdata = dict(clim=clim, colormap=colormap, transparent=transparent)
+    return mapdata
+
+
+def _separate_map(mapdata):
+    """Help plotters that cannot handle limit equality."""
+    diverging = 'pos_lims' in mapdata['clim']
+    key = 'pos_lims' if diverging else 'lims'
+    ctrl_pts = np.array(mapdata['clim'][key])
+    assert ctrl_pts.shape == (3,)
     if len(set(ctrl_pts)) == 1:  # three points match
         if ctrl_pts[0] == 0:  # all are zero
             warn('All data were zero')
             ctrl_pts = np.arange(3, dtype=float)
-            ticks = [0]
         else:
             ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
-            ticks = ctrl_pts[-1:]
     elif len(set(ctrl_pts)) == 2:  # two points match
         # if points one and two are identical, add a tiny bit to the
         # control point two; if points two and three are identical,
         # subtract a tiny bit from point two.
         bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
         ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
-        ticks = ctrl_pts[::2]
-    else:
-        ticks = ctrl_pts
+    mapdata['clim'][key] = ctrl_pts
 
-    if colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-    # scale colormap so that the bounds given by scale_pts actually work
-    colormap = plt.get_cmap(colormap)
-    if diverging_lims:
-        # remap -ctrl_norm[2]->ctrl_norm[2] to 0->1
-        ctrl_norm = np.concatenate([-ctrl_pts[::-1] / ctrl_pts[2], [0],
-                                    ctrl_pts / ctrl_pts[2]]) / 2 + 0.5
+
+def _linearize_map(mapdata):
+    from matplotlib.colors import ListedColormap
+    diverging = 'pos_lims' in mapdata['clim']
+    scale_pts = mapdata['clim']['pos_lims' if diverging else 'lims']
+    if diverging:
+        lims = [-scale_pts[2], scale_pts[2]]
+        ctrl_norm = np.concatenate([-scale_pts[::-1] / scale_pts[2], [0],
+                                    scale_pts / scale_pts[2]]) / 2 + 0.5
         linear_norm = [0, 0.25, 0.5, 0.5, 0.5, 0.75, 1]
         trans_norm = [1, 1, 0, 0, 0, 1, 1]
-        scale_pts = [-ctrl_pts[2], ctrl_pts[2]]
-        idx = int(ticks[0] == 0)
-        ticks = list(-np.array(ticks[idx:])[::-1]) + [0] + list(ticks[idx:])
     else:
-        # remap ctrl_norm[0]->ctrl_norm[2] to 0->1
-        ctrl_norm = [
-            0, (ctrl_pts[1] - ctrl_pts[0]) / (ctrl_pts[2] - ctrl_pts[0]), 1]
+        lims = [scale_pts[0], scale_pts[2]]
+        range_ = scale_pts[2] - scale_pts[0]
+        mid = (scale_pts[1] - scale_pts[0]) / range_ if range_ > 0 else 0.5
+        ctrl_norm = [0, mid, 1]
         linear_norm = [0, 0.5, 1]
         trans_norm = [0, 1, 1]
-        scale_pts = [ctrl_pts[0], ctrl_pts[2]]
-    if linearize:  # matplotlib
-        # do the piecewise linear transformation
-        interp_to = np.linspace(0, 1, 256)
-        colormap = np.array(colormap(
-            np.interp(interp_to, ctrl_norm, linear_norm)))
-        if transparent:
-            colormap[:, 3] = np.interp(interp_to, ctrl_norm, trans_norm)
-        assert len(scale_pts) == 2
-        scale_pts = np.array([scale_pts[0], np.mean(scale_pts), scale_pts[1]])
-        colormap = ListedColormap(colormap)
-    else:  # mayavi / PySurfer will do the transformation for us
-        scale_pts = ctrl_pts
-    return colormap, scale_pts, diverging_lims, transparent, ticks
+    # do the piecewise linear transformation
+    interp_to = np.linspace(0, 1, 256)
+    colormap = np.array(mapdata['colormap'](
+        np.interp(interp_to, ctrl_norm, linear_norm)))
+    if mapdata['transparent']:
+        colormap[:, 3] = np.interp(interp_to, ctrl_norm, trans_norm)
+    lims = np.array([lims[0], np.mean(lims), lims[1]])
+    colormap = ListedColormap(colormap)
+    return colormap, lims
+
+
+def _get_map_ticks(mapdata):
+    diverging = 'pos_lims' in mapdata['clim']
+    ticks = mapdata['clim']['pos_lims' if diverging else 'lims']
+    delta = 1e-2 * (ticks[2] - ticks[0])
+    if ticks[1] <= ticks[0] + delta:  # Only two worth showing
+        ticks = ticks[::2]
+    if ticks[1] <= ticks[0] + delta:  # Actually only one
+        ticks = ticks[::2]
+    if diverging:
+        idx = int(ticks[0] == 0)
+        ticks = list(-np.array(ticks[idx:])[::-1]) + [0] + list(ticks[idx:])
+    return np.array(ticks)
 
 
 def _handle_time(time_label, time_unit, times):
     """Handle time label string and units."""
+    _validate_type(time_label, (None, str, 'callable'), 'time_label')
     if time_label == 'auto':
-        if time_unit == 's':
-            time_label = 'time=%0.3fs'
-        elif time_unit == 'ms':
-            time_label = 'time=%0.1fms'
-    _, times = _check_time_unit(time_unit, times)
+        if times is not None and len(times) > 1:
+            if time_unit == 's':
+                time_label = 'time=%0.3fs'
+            elif time_unit == 'ms':
+                time_label = 'time=%0.1fms'
+        else:
+            time_label = None
+    # convert to callable
+    if isinstance(time_label, str):
+        time_label_fmt = time_label
+
+        def time_label(x):
+            try:
+                return time_label_fmt % x
+            except Exception:
+                return time_label  # in case it's static
+    assert time_label is None or callable(time_label)
+    if times is not None:
+        _, times = _check_time_unit(time_unit, times)
     return time_label, times
 
 
@@ -1405,7 +1383,9 @@ def _smooth_plot(this_time, params):
     colors[:, :3] += greymap(curv_ave)[:, :3] * (1. - colors[:, [3]])
     colors[:, 3] = 1.
     facecolors[:] = colors
-    ax.set_title(params['time_label'] % (times[time_idx] * scaler), color='w')
+    if params['time_label'] is not None:
+        ax.set_title(params['time_label'](times[time_idx] * scaler,),
+                     color='w')
     _set_aspect_equal(ax)
     ax.axis('off')
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
@@ -1445,11 +1425,13 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                  'ven': {'elev': -90, 'azim': -90},
                  'fro': {'elev': 16.739, 'azim': 60},
                  'par': {'elev': 30, 'azim': -60}}
+    time_viewer = False if time_viewer == 'auto' else time_viewer
     kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
     _check_option('views', views, sorted(lh_kwargs.keys()))
-    colormap, scale_pts, _, _, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, linearize=True)
-    del transparent
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
+    _separate_map(mapdata)
+    colormap, scale_pts = _linearize_map(mapdata)
+    del transparent, mapdata
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
@@ -1483,7 +1465,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     curv = nib.freesurfer.read_morph_data(
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
-    curv = np.clip(np.array(curv > 0, np.int), 0.33, 0.66)
+    curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
                   hemi_idx=hemi_idx, vertices=vertices, e=e,
                   smoothing_steps=smoothing_steps, n_verts=n_verts,
@@ -1506,8 +1488,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         if initial_time is None:
             initial_time = 0
         slider = Slider(ax=ax_time, label='Time', valmin=times[0],
-                        valmax=times[-1], valinit=initial_time,
-                        valfmt=time_label)
+                        valmax=times[-1], valinit=initial_time)
         time_viewer.slider = slider
         callback_slider = partial(_smooth_plot, params=params)
         slider.on_changed(callback_slider)
@@ -1536,16 +1517,45 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
+def link_brains(brains):
+    """Plot multiple SourceEstimate objects with PyVista.
+
+    Parameters
+    ----------
+    brains : list, tuple or np.ndarray
+        The collection of brains to plot.
+    """
+    from .backends.renderer import _get_3d_backend
+    if _get_3d_backend() != 'pyvista':
+        raise NotImplementedError("Expected 3d backend is pyvista but"
+                                  " {} was given.".format(_get_3d_backend()))
+    from ._brain import _Brain, _TimeViewer, _LinkViewer
+    if not isinstance(brains, Iterable):
+        brains = [brains]
+    if len(brains) == 0:
+        raise ValueError("The collection of brains is empty.")
+    for brain in brains:
+        if isinstance(brain, _Brain):
+            # check if the _TimeViewer wrapping is not already applied
+            if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
+                brain = _TimeViewer(brain)
+        else:
+            raise TypeError("Expected type is Brain but"
+                            " {} was given.".format(type(brain)))
+    # link brains properties
+    _LinkViewer(brains)
+
+
 @verbose
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=True, alpha=1.0,
-                          time_viewer=False, subjects_dir=None, figure=None,
+                          time_viewer='auto', subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
-                          foreground="white", initial_time=None,
+                          foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, verbose=None):
+                          title=None, show_traces='auto', verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1562,23 +1572,27 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         is None, the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display.
+    hemi : str
+        Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
+        of 'both', both hemispheres are shown in the same window.
+        In the case of 'split' hemispheres are displayed side-by-side
+        in different viewing panes.
     %(colormap)s
         The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.
-    time_label : str | callable | None
-        Format of the time label (a format string, a function that maps
-        floating point time values to strings, or None for no label). The
-        default is ``time=%%0.2f ms``.
+    %(time_label)s
     smoothing_steps : int
-        The amount of smoothing
+        The amount of smoothing.
     %(transparent)s
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.
-    time_viewer : bool
-        Display time viewer GUI.
+    time_viewer : bool | str
+        Display time viewer GUI. Can also be 'auto', which will mean True
+        for the PyVista backend and False otherwise.
+
+        .. versionchanged:: 0.20.0
+           "auto" mode added.
     %(subjects_dir)s
     figure : instance of mayavi.core.api.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
@@ -1605,9 +1619,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Has no effect with mpl backend.
     background : matplotlib color
         Color of the background of the display window.
-    foreground : matplotlib color
+    foreground : matplotlib color | None
         Color of the foreground of the display window. Has no effect with mpl
-        backend.
+        backend. None will choose white or black based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
@@ -1619,7 +1633,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         mayavi, but resorts to matplotlib if mayavi is not available.
 
         .. versionadded:: 0.15.0
-
     spacing : str
         The spacing to use for the source space. Can be ``'ico#'`` for a
         recursively subdivided icosahedron, ``'oct#'`` for a recursively
@@ -1632,6 +1645,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Title for the figure. If None, the subject name will be used.
 
         .. versionadded:: 0.17.0
+    %(show_traces)s
     %(verbose)s
 
     Returns
@@ -1640,7 +1654,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
-    from .backends.renderer import get_3d_backend
+    from .backends.renderer import _get_3d_backend, set_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1651,10 +1665,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
-            from mayavi import mlab  # noqa: F401
-        except ImportError:
+            set_3d_backend(_get_3d_backend())
+        except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
-                warn('Mayavi not found. Resorting to matplotlib 3d.')
+                warn('No 3D backend found. Resorting to matplotlib 3d.')
                 plot_mpl = True
             else:  # 'mayavi'
                 raise
@@ -1668,16 +1682,28 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    if get_3d_backend() == "mayavi":
-        from surfer import Brain, TimeViewer
-    else:
+
+    if _get_3d_backend() == "mayavi":
+        from surfer import Brain
+    else:  # PyVista
         from ._brain import _Brain as Brain
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
-    colormap, scale_pts, diverging, transparent, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
+    # XXX we should only need to do this for PySurfer/Mayavi, the PyVista
+    # plotter should be smart enough to do this separation in the cmap-to-ctab
+    # conversion. But this will need to be another refactoring that will
+    # hopefully restore this line:
+    #
+    # if _get_3d_backend() == 'mayavi':
+    _separate_map(mapdata)
+    colormap = mapdata['colormap']
+    diverging = 'pos_lims' in mapdata['clim']
+    scale_pts = mapdata['clim']['pos_lims' if diverging else 'lims']
+    transparent = mapdata['transparent']
+    del mapdata
 
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
@@ -1686,18 +1712,28 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     if title is None:
         title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    kwargs = {
+        "subject_id": subject, "hemi": hemi, "surf": surface,
+        "title": title, "cortex": cortex, "size": size,
+        "background": background, "foreground": foreground,
+        "figure": figure, "subjects_dir": subjects_dir,
+        "views": views,
+    }
+    if _get_3d_backend() in ['pyvista', 'notebook']:
+        kwargs["show"] = not time_viewer
+    else:
+        kwargs.update(_check_pysurfer_antialias(Brain))
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf=surface,
-                      title=title, cortex=cortex, size=size,
-                      background=background, foreground=foreground,
-                      figure=figure, subjects_dir=subjects_dir,
-                      views=views)
+        brain = Brain(**kwargs)
+    del kwargs
     center = 0. if diverging else None
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            if transparent is None:
+                transparent = True
             kwargs = {
                 "array": data, "colormap": colormap,
                 "vertices": vertices,
@@ -1708,42 +1744,55 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 "transparent": transparent, "center": center,
                 "verbose": False
             }
-            if get_3d_backend() == "mayavi":
+            if _get_3d_backend() == "mayavi":
                 kwargs["min"] = scale_pts[0]
                 kwargs["mid"] = scale_pts[1]
                 kwargs["max"] = scale_pts[2]
-            else:
+            else:  # pyvista
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
+                kwargs["clim"] = clim
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
-    if time_viewer:
-        TimeViewer(brain)
+
+    _check_time_viewer_compatibility(brain, time_viewer, show_traces)
     return brain
 
 
-def _get_ps_kwargs(initial_time, diverging, mid, transparent):
-    """Triage arguments based on PySurfer version."""
-    import surfer
-    surfer_version = LooseVersion(surfer.__version__)
-    require = '0.8'
-    if surfer_version < LooseVersion(require):
-        raise ImportError("This function requires PySurfer %s (you are "
-                          "running version %s). You can update PySurfer "
-                          "using:\n\n    $ pip install -U pysurfer" %
-                          (require, surfer.__version__))
+def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
+    from .backends.renderer import _get_3d_backend
+    using_mayavi = _get_3d_backend() == "mayavi"
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _check_option('show_traces', show_traces,
+                  (True, False, 'auto', 'separate'))
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = (
+            not using_mayavi and
+            time_viewer and
+            brain._times is not None and
+            len(brain._times) > 1 and
+            # XXX temporary hidden workaround for memory problems on CircleCI
+            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false'
+        )
 
-    ad_kwargs = dict(verbose=False)
-    sd_kwargs = dict(transparent=transparent, verbose=False)
-    if initial_time is not None:
-        ad_kwargs['initial_time'] = initial_time
-    if surfer_version >= LooseVersion('0.9'):
-        ad_kwargs.update(mid=mid, transparent=transparent)
-        ad_kwargs['center'] = 0. if diverging else None
-        sd_kwargs['center'] = 0. if diverging else None
+    if _get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
+        raise NotImplementedError("Point picking is not available"
+                                  " for the mayavi 3d backend.")
+    if using_mayavi:
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
 
-    return ad_kwargs, sd_kwargs
+    if time_viewer:
+        if using_mayavi:
+            from surfer import TimeViewer
+            TimeViewer(brain)
+        else:  # PyVista
+            from ._brain import _TimeViewer as TimeViewer
+            TimeViewer(brain, show_traces=show_traces)
 
 
 def _glass_brain_crosshairs(params, x, y, z):
@@ -1764,10 +1813,20 @@ def _ijk_to_cut_coords(ijk, img):
     return apply_trans(img.affine, ijk)
 
 
+def _load_subject_mri(mri, stc, subject, subjects_dir, name):
+    import nibabel as nib
+    from nibabel.spatialimages import SpatialImage
+    _validate_type(mri, ('path-like', SpatialImage), name)
+    if isinstance(mri, str):
+        subject = _check_subject(stc.subject, subject, True)
+        mri = nib.load(_check_mri(mri, subject, subjects_dir))
+    return mri
+
+
 @verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
-                                 mode='stat_map', bg_img=None, colorbar=True,
-                                 colormap='auto', clim='auto',
+                                 mode='stat_map', bg_img='T1.mgz',
+                                 colorbar=True, colormap='auto', clim='auto',
                                  transparent=None, show=True,
                                  initial_time=None, initial_pos=None,
                                  verbose=None):
@@ -1792,11 +1851,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
         For "glass_brain", activation absolute values are displayed
         after being transformed to a standard MNI brain.
-    bg_img : instance of SpatialImage | None
+    bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
-        If None, it is the T1.mgz file that is found in the subjects_dir.
+        Can also be a string to use the ``bg_img`` file in the subject's
+        MRI directory (default is ``'T1.mgz'``).
         Not used in "glass brain" plotting.
-    colorbar : boolean, optional
+    colorbar : bool, optional
         If True, display a colorbar on the right of the plots.
     %(colormap)s
     %(clim)s
@@ -1818,6 +1878,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.19
     %(verbose)s
+
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
 
     Notes
     -----
@@ -1845,7 +1910,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     >>> morph = mne.compute_source_morph(src_sample, subject_to='fsaverage')  # doctest: +SKIP
     >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
-
     """  # noqa: E501
     from matplotlib import pyplot as plt, colors
     from matplotlib.cbook import mplDeprecation
@@ -1871,13 +1935,14 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
         kind, src_subject = 'src subject', src._subject
+    del src
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
     subject = _check_subject(src_subject, subject, True, kind=kind)
     stc_ijk = np.array(
-        np.unravel_index(stc.vertices, img.shape[:3], order='F')).T
-    assert stc_ijk.shape == (len(stc.vertices), 3)
-    del src, kind
+        np.unravel_index(stc.vertices[0], img.shape[:3], order='F')).T
+    assert stc_ijk.shape == (len(stc.vertices[0]), 3)
+    del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
     dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
@@ -1891,7 +1956,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
         dist, loc_idx = dist[0], loc_idx[0]
         logger.debug('    Using vertex %d at a distance of %d voxels'
-                     % (stc.vertices[loc_idx], dist))
+                     % (stc.vertices[0][loc_idx], dist))
         return loc_idx
 
     ax_name = dict(x='X (saggital)', y='Y (coronal)', z='Z (axial)')
@@ -2019,11 +2084,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         bg_img = None  # not used
     else:  # stat_map
         if bg_img is None:
-            subject = _check_subject(stc.subject, subject, True)
-            subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                            raise_error=True)
-            t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-            bg_img = nib.load(t1_fname)
+            bg_img = 'T1.mgz'
+        bg_img = _load_subject_mri(
+            bg_img, stc, subject, subjects_dir, 'bg_img')
 
     if initial_time is None:
         time_sl = slice(0, None)
@@ -2058,7 +2121,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     logger.info('Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, '
                 '[%d, %d, %d] vox, %d vertex'
                 % ((stc.times[time_idx],) + tuple(cut_coords) + tuple(ijk) +
-                   (stc.vertices[loc_idx],)))
+                   (stc.vertices[0][loc_idx],)))
     del ijk
 
     # Plot initial figure
@@ -2074,8 +2137,14 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     fig.tight_layout()
 
     allow_pos_lims = (mode != 'glass_brain')
-    colormap, scale_pts, diverging, _, ticks = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, allow_pos_lims, linearize=True)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data,
+                            allow_pos_lims)
+    _separate_map(mapdata)
+    diverging = 'pos_lims' in mapdata['clim']
+    ticks = _get_map_ticks(mapdata)
+    colormap, scale_pts = _linearize_map(mapdata)
+    del mapdata
+
     ylim = [min((scale_pts[0], ydata.min())),
             max((scale_pts[-1], ydata.max()))]
     ylim = np.array(ylim) + np.array([-1, 1]) * 0.05 * np.diff(ylim)[0]
@@ -2160,17 +2229,29 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     return fig
 
 
-@fill_doc
+def _check_pysurfer_antialias(Brain):
+    antialias = _get_3d_option('antialias')
+    kwargs = dict()
+    if not antialias:
+        if 'antialias' not in _get_args(Brain):
+            raise ValueError('To turn off antialiasing, PySurfer needs to be '
+                             'updated to version 0.11+')
+        kwargs['antialias'] = antialias
+    return kwargs
+
+
+@verbose
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
-                                 scale_factor=None, time_viewer=False,
+                                 scale_factor=None, time_viewer='auto',
                                  subjects_dir=None, figure=None, views='lat',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
-                                 foreground='white', initial_time=None,
-                                 time_unit='s'):
+                                 foreground=None, initial_time=None,
+                                 time_unit='s', show_traces='auto',
+                                 verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2190,12 +2271,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         The hemisphere to display.
     %(colormap)s
         This should be a sequential colormap.
-    time_label : str | callable | None
-        Format of the time label (a format string, a function that maps
-        floating point time values to strings, or None for no label). The
-        default is ``time=%%0.2f ms``.
+    %(time_label)s
     smoothing_steps : int
-        The amount of smoothing
+        The amount of smoothing.
     %(transparent)s
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
@@ -2207,8 +2285,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     scale_factor : float | None
         Scaling factor for the vector glyphs. By default, an attempt is made to
         automatically determine a sane value.
-    time_viewer : bool
-        Display time viewer GUI.
+    time_viewer : bool | str
+        Display time viewer GUI. Can be "auto", which is True for the PyVista
+        backend and False otherwise.
+
+        .. versionchanged:: 0.20
+           Added "auto" option and default.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -2223,7 +2305,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         If True, display colorbar on scene.
     %(clim_onesided)s
     cortex : str or tuple
-        specifies how binarized curvature values are rendered.
+        Specifies how binarized curvature values are rendered.
         either the name of a preset PySurfer cortex colorscheme (one of
         'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
         name of mayavi colormap, or a tuple with values (colormap, min,
@@ -2233,14 +2315,17 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         a square window, or the (width, height) of a rectangular window.
     background : matplotlib color
         Color of the background of the display window.
-    foreground : matplotlib color
+    foreground : matplotlib color | None
         Color of the foreground of the display window.
+        None will choose black or white based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    %(show_traces)s
+    %(verbose)s
 
     Returns
     -------
@@ -2254,8 +2339,13 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     If the current magnitude overlay is not desired, set ``overlay_alpha=0``
     and ``smoothing_steps=1``.
     """
+    from .backends.renderer import _get_3d_backend
     # Import here to avoid circular imports
-    from surfer import Brain, TimeViewer
+    if _get_3d_backend() == "mayavi":
+        from surfer import Brain
+        from surfer import __version__ as surfer_version
+    else:  # PyVista
+        from ._brain import _Brain as Brain
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
@@ -2266,8 +2356,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    colormap, scale_pts, _, transparent, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, allow_pos_lims=False)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data,
+                            allow_pos_lims=False)
+    colormap = mapdata['colormap']
+    scale_pts = mapdata['clim']['lims']  # pos_lims not allowed
+    transparent = mapdata['transparent']
+    del mapdata
 
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
@@ -2280,35 +2374,81 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         smoothing_steps = 1  # Disable smoothing to save time.
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    kwargs = {
+        "subject_id": subject, "hemi": hemi, "surf": 'white',
+        "title": title, "cortex": cortex, "size": size,
+        "background": background, "foreground": foreground,
+        "figure": figure, "subjects_dir": subjects_dir,
+        "views": views, "alpha": brain_alpha,
+    }
+    if _get_3d_backend() in ['pyvista', 'notebook']:
+        kwargs["show"] = not time_viewer
+    else:
+        kwargs.update(_check_pysurfer_antialias(Brain))
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf='white',
-                      title=title, cortex=cortex, size=size,
-                      background=background, foreground=foreground,
-                      figure=figure, subjects_dir=subjects_dir,
-                      views=views, alpha=brain_alpha)
+        brain = Brain(**kwargs)
+    del kwargs
+    if scale_factor is None:
+        # Configure the glyphs scale directly
+        width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
+                         for hemi in hemis if hemi in brain.geo])
+        scale_factor = 0.025 * width / scale_pts[-1]
 
-    ad_kwargs, sd_kwargs = _get_ps_kwargs(
-        initial_time, False, scale_pts[1], transparent)
-    del initial_time, transparent
+    sd_kwargs = dict(transparent=transparent, verbose=False)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            kwargs = {
+                "array": data, "colormap": colormap,
+                "vertices": vertices,
+                "smoothing_steps": smoothing_steps,
+                "time": times, "time_label": time_label,
+                "alpha": overlay_alpha, "hemi": hemi,
+                "colorbar": colorbar,
+                "vector_alpha": vector_alpha,
+                "scale_factor": scale_factor,
+                "verbose": False,
+            }
+            if initial_time is not None:
+                kwargs['initial_time'] = initial_time
+            if _get_3d_backend() == "mayavi":
+                if surfer_version >= LooseVersion('0.9'):
+                    kwargs["transparent"] = transparent
+                kwargs["min"] = scale_pts[0]
+                kwargs["mid"] = scale_pts[1]
+                kwargs["max"] = scale_pts[2]
+            else:
+                kwargs["transparent"] = transparent
+                kwargs["fmin"] = scale_pts[0]
+                kwargs["fmid"] = scale_pts[1]
+                kwargs["fmax"] = scale_pts[2]
             with warnings.catch_warnings(record=True):  # traits warnings
-                brain.add_data(data, colormap=colormap, vertices=vertices,
-                               smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=overlay_alpha,
-                               hemi=hemi, colorbar=colorbar,
-                               vector_alpha=vector_alpha,
-                               scale_factor=scale_factor,
-                               min=scale_pts[0], max=scale_pts[2],
-                               **ad_kwargs)
+                brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
-    if time_viewer:
-        TimeViewer(brain)
+    if _get_3d_backend() == "mayavi":
+        for hemi in hemis:
+            for b in brain._brain_list:
+                for layer in b['brain'].data.values():
+                    glyphs = layer['glyphs']
+                    glyphs.glyph.glyph.scale_factor = scale_factor
+                    glyphs.glyph.glyph.clamping = False
+                    glyphs.glyph.glyph.range = (0., 1.)
+
+        # depth peeling patch
+        if brain_alpha < 1.0:
+            for ff in brain._figures:
+                for f in ff:
+                    if f.scene is not None and sys.platform != 'darwin':
+                        f.scene.renderer.use_depth_peeling = True
+    else:
+        if brain_alpha < 1.0 and sys.platform != 'darwin':
+            brain.enable_depth_peeling()
+
+    _check_time_viewer_compatibility(brain, time_viewer, show_traces)
 
     return brain
 
@@ -2335,7 +2475,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     stcs : instance of SourceEstimate or list of instances of SourceEstimate
         The source estimates (up to 3).
     colors : list
-        List of colors
+        List of colors.
     linewidth : int
         Line width in 2D plot.
     fontsize : int
@@ -2376,7 +2516,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
@@ -2419,7 +2559,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    renderer = _Renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
+    renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                             z=points[:, 2], triangles=use_faces,
                             color=brain_color, opacity=opacity,
@@ -2487,7 +2627,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
                           scale=5e-3, color=None, highlight_color='r',
-                          fig=None, verbose=None):
+                          fig=None, verbose=None, title=None):
     """Plot dipole locations.
 
     If mode is set to 'arrow' or 'sphere', only the location of the first
@@ -2527,11 +2667,11 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.14.0
     show_all : bool
-        Whether to always plot all the dipoles. If True (default), the active
-        dipole is plotted as a red dot and it's location determines the shown
-        MRI slices. The the non-active dipoles are plotted as small blue dots.
-        If False, only the active dipole is plotted.
-        Only used if mode equals 'orthoview'.
+        Whether to always plot all the dipoles. If ``True`` (default), the
+        active dipole is plotted as a red dot and its location determines the
+        shown MRI slices. The non-active dipoles are plotted as small blue
+        dots. If ``False``, only the active dipole is plotted.
+        Only used if ``mode='orthoview'``.
 
         .. versionadded:: 0.14.0
     ax : instance of matplotlib Axes3D | None
@@ -2548,7 +2688,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     show : bool
         Show figure if True. Defaults to True.
         Only used if mode equals 'orthoview'.
-    scale: float
+    scale : float
         The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
     color : tuple
         The color of the dipoles.
@@ -2568,6 +2708,9 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.19.0
     %(verbose)s
+    %(dipole_locs_fig_title)s
+
+        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -2583,11 +2726,11 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show, color=color,
-            highlight_color=highlight_color)
+            highlight_color=highlight_color, title=title)
     elif mode in ['arrow', 'sphere']:
-        from .backends.renderer import _Renderer
+        from .backends.renderer import _get_renderer
         color = (1., 0., 0.) if color is None else color
-        renderer = _Renderer(fig=fig, size=(600, 600))
+        renderer = _get_renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
         ori = dipoles.ori
         if coord_frame != 'head':
@@ -2615,7 +2758,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
     Note that this will take the raw values for 3d coordinates of each channel,
     without applying any transforms. If brain images are flipped up/dn upon
-    using `imshow`, check your matplotlib backend as this behavior changes.
+    using `~matplotlib.pyplot.imshow`, check your matplotlib backend as this
+    behavior changes.
 
     Parameters
     ----------
@@ -2623,9 +2767,9 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         The figure on which you've plotted electrodes using
         :func:`mne.viz.plot_alignment`.
     montage : instance of DigMontage or Info | dict
-        The digital montage for the electrodes plotted in the scene. If `Info`,
-        channel positions will be pulled from the `loc` field of `chs`.
-        dict should have ch:xyz mappings.
+        The digital montage for the electrodes plotted in the scene. If
+        :class:`~mne.Info`, channel positions will be pulled from the ``loc``
+        field of ``chs``. dict should have ch:xyz mappings.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
 
@@ -2634,12 +2778,12 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     xy : array, shape (n_channels, 2)
         The 2d location of each channel on the image of the current scene view.
     im : array, shape (m, n, 3)
-        The screenshot of the current scene view
+        The screenshot of the current scene view.
     """
     from ..channels import DigMontage
     from .. import Info
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if fig is None:
         raise ValueError('The figure must have a scene')
@@ -2658,7 +2802,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
                         ' or `dict`')
 
     # initialize figure
-    renderer = _Renderer(fig, show=True)
+    renderer = _get_renderer(fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
@@ -2678,7 +2822,7 @@ def plot_sensors_connectivity(info, con, picks=None):
     ----------
     info : dict | None
         The measurement info.
-    con: array, shape (n_channels, n_channels)
+    con : array, shape (n_channels, n_channels)
         The computed connectivity measure(s).
     %(picks_good_data)s
         Indices of selected channels.
@@ -2690,9 +2834,9 @@ def plot_sensors_connectivity(info, con, picks=None):
     """
     _validate_type(info, "info")
 
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
-    renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
+    renderer = _get_renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
 
     picks = _picks_to_idx(info, picks)
     if len(picks) != len(con):
@@ -2732,7 +2876,7 @@ def plot_sensors_connectivity(info, con, picks=None):
         tube = renderer.tube(origin=np.c_[x1, y1, z1],
                              destination=np.c_[x2, y2, z2],
                              scalars=np.c_[val, val],
-                             vmin=vmin, vmax=vmax, radius=0.001,
+                             vmin=vmin, vmax=vmax,
                              reverse_lut=True)
 
     renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)')
@@ -2757,7 +2901,7 @@ def plot_sensors_connectivity(info, con, picks=None):
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
                                ax=None, block=False, show=True, color=None,
-                               highlight_color='r'):
+                               highlight_color='r', title=None):
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -2795,7 +2939,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
               'vox': vox, 'gridx': gridx, 'gridy': gridy,
               'ori': ori, 'coord_frame': coord_frame,
               'show_all': show_all, 'pos': pos,
-              'color': color, 'highlight_color': highlight_color}
+              'color': color, 'highlight_color': highlight_color,
+              'title': title}
     _plot_dipole(**params)
     ax.view_init(elev=30, azim=-140)
 
@@ -2837,7 +2982,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     #
     # We could do this with two resample_from_to calls, but it's cleaner,
     # faster, and we get fewer boundary artifacts if we do it in one shot.
-    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE``` (2):
+    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE`` (2):
     upsamp = np.linalg.solve(vox_ras_t['trans'].T, RAS_AFFINE.T).T
     # Now figure out how we would resample from RAS to head or MRI coords:
     if coord_frame == 'head':
@@ -2863,7 +3008,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
 
 
 def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
-                 show_all, pos, color, highlight_color):
+                 show_all, pos, color, highlight_color, title):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
@@ -2919,10 +3064,15 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
 
     # These are the only two options
     coord_frame_name = 'Head' if coord_frame == 'head' else 'MRI'
-    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: ' % (
-        idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
-        dipole.amplitude[idx] * 1e9, coord_frame_name) +
-        '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
+
+    if title is None:
+        title = ('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: ' % (
+            idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
+            dipole.amplitude[idx] * 1e9, coord_frame_name) +
+            '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
+
+    ax.get_figure().suptitle(title)
+
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
@@ -2989,10 +3139,12 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
     """
     from matplotlib.colorbar import ColorbarBase
     from matplotlib.colors import Normalize
-    cmap, scale_pts, diverging, _, ticks = _limits_to_control_points(
-        clim, 0., colormap, transparent=True, linearize=True)
-    norm = Normalize(vmin=scale_pts[0], vmax=scale_pts[-1])
-    cbar = ColorbarBase(ax, cmap, norm=norm, ticks=ticks,
+    mapdata = _process_clim(clim, colormap, transparent)
+    ticks = _get_map_ticks(mapdata)
+    colormap, lims = _linearize_map(mapdata)
+    del mapdata
+    norm = Normalize(vmin=lims[0], vmax=lims[2])
+    cbar = ColorbarBase(ax, cmap=colormap, norm=norm, ticks=ticks,
                         label=label, orientation=orientation)
     # make the colorbar background match the brain color
     cbar.patch.set(facecolor=bgcolor)
@@ -3003,3 +3155,36 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
                 'bottom' if orientation == 'vertical' else 'right'):
         ax.spines[key].set_visible(False)
     return cbar
+
+
+_3d_options = dict()
+_3d_default = dict(antialias='true')
+
+
+def set_3d_options(antialias=None):
+    """Set 3D rendering options.
+
+    Parameters
+    ----------
+    antialias : bool | None
+        If not None, set the default full-screen anti-aliasing setting.
+        False is useful when renderers have problems (such as software
+        MESA renderers). This option can also be controlled using an
+        environment variable, e.g., ``MNE_3D_OPTION_ANTIALIAS=false``.
+
+    Notes
+    -----
+    .. versionadded:: 0.21.0
+    """
+    if antialias is not None:
+        _3d_options['antialias'] = str(bool(antialias)).lower()
+
+
+def _get_3d_option(key):
+    try:
+        opt = _3d_options[key]
+    except KeyError:
+        opt = get_config(f'MNE_3D_OPTION_{key.upper()}', _3d_default[key])
+    opt = opt.lower()
+    _check_option(f'3D option {key}', opt, ('true', 'false'))
+    return opt == 'true'

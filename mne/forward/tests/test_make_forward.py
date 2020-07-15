@@ -14,7 +14,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
                  setup_volume_source_space, read_source_spaces, create_info,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
-                 read_evokeds, read_cov, read_dipole, SourceSpaces)
+                 read_evokeds, read_cov, read_dipole)
 from mne.utils import (requires_mne, requires_nibabel,
                        run_tests_if_main, run_subprocess)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
@@ -25,6 +25,8 @@ from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
 from mne.source_space import (get_volume_labels_from_aseg, write_source_spaces,
                               _compare_source_spaces, setup_source_space)
+
+from mne.forward.tests.test_forward import assert_forward_allclose
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -117,6 +119,7 @@ def test_magnetic_dipole():
     assert not np.isfinite(fwd).any()
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 @pytest.mark.timeout(60)  # can take longer than 30 sec on Travis
 @testing.requires_testing_data
 @requires_mne
@@ -231,13 +234,14 @@ def test_make_forward_solution():
 
 
 @testing.requires_testing_data
-def test_make_forward_solution_discrete():
+def test_make_forward_solution_discrete(tmpdir):
     """Test making and converting a forward solution with discrete src."""
     # smoke test for depth weighting and discrete source spaces
-    src = read_source_spaces(fname_src)[0]
-    src = SourceSpaces([src] + setup_volume_source_space(
-        pos=dict(rr=src['rr'][src['vertno'][:3]].copy(),
-                 nn=src['nn'][src['vertno'][:3]].copy())))
+    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
+                             add_dist=False)
+    src = src + setup_volume_source_space(
+        pos=dict(rr=src[0]['rr'][src[0]['vertno'][:3]].copy(),
+                 nn=src[0]['nn'][src[0]['vertno'][:3]].copy()))
     sphere = make_sphere_model()
     fwd = make_forward_solution(fname_raw, fname_trans, src, sphere,
                                 meg=True, eeg=False)
@@ -294,12 +298,12 @@ def test_make_forward_solution_sphere(tmpdir):
 def test_forward_mixed_source_space(tmpdir):
     """Test making the forward solution for a mixed source space."""
     # get the surface source space
+    rng = np.random.RandomState(0)
     surf = read_source_spaces(fname_src)
 
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
-    vol_labels = [label_names[int(np.random.rand() * len(label_names))]
-                  for _ in range(2)]
+    vol_labels = rng.choice(label_names, 2)
     vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[0],
                                      add_interpolator=False)
@@ -311,7 +315,7 @@ def test_forward_mixed_source_space(tmpdir):
     src = surf + vol1 + vol2
 
     # calculate forward solution
-    fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem, None)
+    fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem)
     assert (repr(fwd))
 
     # extract source spaces
@@ -332,14 +336,14 @@ def test_forward_mixed_source_space(tmpdir):
 
     # head coordinates and mri_resolution, but wrong trans file
     vox_mri_t = vol1[0]['vox_mri_t']
-    with pytest.raises(ValueError, match='mri<->head, got mri_voxel->mri'):
+    with pytest.raises(ValueError, match='head<->mri, got mri_voxel->mri'):
         src_from_fwd.export_volume(fname_img, mri_resolution=True,
                                    trans=vox_mri_t)
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_forward_dipole():
+def test_make_forward_dipole(tmpdir):
     """Test forward-projecting dipoles."""
     rng = np.random.RandomState(0)
 
@@ -435,6 +439,14 @@ def test_make_forward_dipole():
 
     dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
 
+    # I/O round-trip
+    fname = str(tmpdir.join('test-fwd.fif'))
+    with pytest.warns(RuntimeWarning, match='free orientation'):
+        write_forward_solution(fname, fwd)
+    fwd_read = convert_forward_solution(
+        read_forward_solution(fname), force_fixed=True)
+    assert_forward_allclose(fwd, fwd_read, rtol=1e-6)
+
     fwd, stc = make_forward_dipole(dip_even_samp, sphere, info,
                                    trans=fname_trans)
     assert isinstance(stc, VolSourceEstimate)
@@ -449,7 +461,7 @@ def test_make_forward_no_meg(tmpdir):
     bem = make_sphere_model()
     trans = None
     montage = make_standard_montage('standard_1020')
-    info = create_info(['Cz'], 1000., 'eeg', montage=montage)
+    info = create_info(['Cz'], 1000., 'eeg').set_montage(montage)
     fwd = make_forward_solution(info, trans, src, bem)
     fname = tmpdir.join('test-fwd.fif')
     write_forward_solution(fname, fwd)

@@ -47,12 +47,15 @@ categories above) are linked here:
     faq
     design_philosophy
     implementation
+    ../whats_new
+    roadmap
     datasets_index
     cookbook
     ../generated/commands
     migrating
     cite
     get_help
+    ../bibliography
 
 Documentation for the related C and MATLAB tools are available here:
 

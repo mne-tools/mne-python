@@ -1,7 +1,6 @@
 numpy
 scipy
 matplotlib
-mayavi
 pyqt5
 pyqt5-sip
 sip
@@ -11,22 +10,20 @@ numba
 h5py
 pandas
 numexpr
+jupyter
 python-picard
 statsmodels
-pytest!=4.6.0
-pytest-cov
-pytest-faulthandler
-pytest-mock
-pytest-sugar
-pytest-timeout
 joblib
 psutil
 dipy
-numpydoc
+vtk<8.2; platform_system == "Darwin"
+vtk; platform_system != "Darwin"
+https://github.com/enthought/mayavi/archive/master.zip
 PySurfer[save_movie]
 nilearn
-neo
 xlrd
-pydocstyle
-flake8
-pyvista>=0.22.4
+imageio>=2.6.1
+imageio-ffmpeg>=0.4.1
+pyvista>=0.24
+pyvistaqt
+tqdm

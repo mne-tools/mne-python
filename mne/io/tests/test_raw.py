@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """Generic tests that all raw classes should run."""
-# # Authors: MNE Developers
-#            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+# Authors: MNE Developers
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
 from os import path as op
 import math
+import re
 
 import pytest
 import numpy as np
@@ -14,12 +15,23 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal)
 
 from mne import concatenate_raws, create_info, Annotations
-from mne.annotations import _handle_meas_date
 from mne.datasets import testing
-from mne.io import read_raw_fif, RawArray, BaseRaw
-from mne.utils import _TempDir, catch_logging, _raw_annot
+from mne.externals.h5io import read_hdf5, write_hdf5
+from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
+from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
+                       object_diff, check_version)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
+
+
+def assert_named_constants(info):
+    """Assert that info['chs'] has named constants."""
+    # for now we just check one
+    __tracebackhide__ = True
+    r = repr(info['chs'][0])
+    for check in ('.*FIFFV_COORD_.*', '.*FIFFV_COIL_.*', '.*FIFF_UNIT_.*',
+                  '.*FIFF_UNITM_.*',):
+        assert re.match(check, r, re.DOTALL) is not None, (check, r)
 
 
 def test_orig_units():
@@ -72,6 +84,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         del kwargs['montage']
     if test_preloading:
         raw = reader(preload=True, **kwargs)
+        rep = repr(raw)
+        assert rep.count('<') == 1
+        assert rep.count('>') == 1
         if montage is not None:
             raw.set_montage(montage)
         # don't assume the first is preloaded
@@ -95,17 +110,25 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 assert_allclose(times1, times2)
     else:
         raw = reader(**kwargs)
+    assert_named_constants(raw.info)
 
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info['dig'], (type(None), list))
+    data_max = full_data.max()
+    data_min = full_data.min()
+    # these limits could be relaxed if we actually find data with
+    # huge values (in SI units)
+    assert data_max < 1e5
+    assert data_min > -1e5
     if isinstance(raw.info['dig'], list):
         for di, d in enumerate(raw.info['dig']):
             assert isinstance(d, DigPoint), (di, d)
 
     # gh-5604
-    assert _handle_meas_date(raw.info['meas_date']) >= 0
+    meas_date = raw.info['meas_date']
+    assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
 
     # test resetting raw
     if test_kwargs:
@@ -118,6 +141,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     raw = concatenate_raws([raw])
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
     raw3 = read_raw_fif(out_fname)
+    assert_named_constants(raw3.info)
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
@@ -139,11 +163,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     assert concat_raw.last_samp - last_samp + first_samp == last_samp + 1
     idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
 
-    if concat_raw.info['meas_date'] is None:
-        expected_bad_boundary_onset = ((last_samp - first_samp) /
-                                       raw.info['sfreq'])
-    else:
-        expected_bad_boundary_onset = raw._last_time
+    expected_bad_boundary_onset = raw._last_time
 
     assert_array_almost_equal(concat_raw.annotations.onset[idx],
                               expected_bad_boundary_onset,
@@ -166,6 +186,43 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         for ch_name, unit in raw._orig_units.items():
             assert unit.lower() in valid_units_lower, ch_name
 
+    # Test picking with and without preload
+    if test_preloading:
+        preload_kwargs = (dict(preload=True), dict(preload=False))
+    else:
+        preload_kwargs = (dict(),)
+    n_ch = len(raw.ch_names)
+    picks = rng.permutation(n_ch)
+    for preload_kwarg in preload_kwargs:
+        these_kwargs = kwargs.copy()
+        these_kwargs.update(preload_kwarg)
+        # don't use the same filename or it could create problems
+        if isinstance(these_kwargs.get('preload', None), str) and \
+                op.isfile(these_kwargs['preload']):
+            these_kwargs['preload'] += '-1'
+        whole_raw = reader(**these_kwargs)
+        print(whole_raw)  # __repr__
+        assert n_ch >= 2
+        picks_1 = picks[:n_ch // 2]
+        picks_2 = picks[n_ch // 2:]
+        raw_1 = whole_raw.copy().pick(picks_1)
+        raw_2 = whole_raw.copy().pick(picks_2)
+        data, times = whole_raw[:]
+        data_1, times_1 = raw_1[:]
+        data_2, times_2 = raw_2[:]
+        assert_array_equal(times, times_1)
+        assert_array_equal(data[picks_1], data_1)
+        assert_array_equal(times, times_2,)
+        assert_array_equal(data[picks_2], data_2)
+
+    # Make sure that writing info to h5 format
+    # (all fields should be compatible)
+    if check_version('h5py'):
+        fname_h5 = op.join(tempdir, 'info.h5')
+        with _writing_info_hdf5(raw.info):
+            write_hdf5(fname_h5, raw.info)
+        new_info = Info(read_hdf5(fname_h5))
+        assert object_diff(new_info, raw.info) == ''
     return raw
 
 
@@ -224,10 +281,9 @@ def test_time_as_index():
     pytest.param(2, 0.0, id='absolute times in s. relative to 0')])
 def test_time_as_index_ref(offset, origin):
     """Test indexing of raw times."""
-    meas_date = 1
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
+    raw.set_meas_date(1)
 
     relative_times = raw.times
     inds = raw.time_as_index(relative_times + offset,
@@ -242,14 +298,14 @@ def test_meas_date_orig_time():
     # clips the annotations based on raw.data and resets the annotation based
     # on raw.info['meas_date]
     raw = _raw_annot(1, 1.5)
-    assert raw.annotations.orig_time == 1
+    assert raw.annotations.orig_time == _stamp_to_dt((1, 0))
     assert raw.annotations.onset[0] == 1
 
     # meas_time is set and orig_time is None:
     # Consider annot.orig_time to be raw.frist_sample, clip and reset
     # annotations to have the raw.annotations.orig_time == raw.info['meas_date]
     raw = _raw_annot(1, None)
-    assert raw.annotations.orig_time == 1
+    assert raw.annotations.orig_time == _stamp_to_dt((1, 0))
     assert raw.annotations.onset[0] == 1.5
 
     # meas_time is None and orig_time is set:
@@ -263,7 +319,7 @@ def test_meas_date_orig_time():
     # Consider annot.orig_time to be raw.first_sample and clip
     raw = _raw_annot(None, None)
     assert raw.annotations.orig_time is None
-    assert raw.annotations.onset[0] == 0.5
+    assert raw.annotations.onset[0] == 1.5
     assert raw.annotations.duration[0] == 0.2
 
 
@@ -316,9 +372,9 @@ def test_5839():
 
     def raw_factory(meas_date):
         raw = RawArray(data=np.empty((10, 10)),
-                       info=create_info(ch_names=10, sfreq=10., ),
+                       info=create_info(ch_names=10, sfreq=10.),
                        first_samp=10)
-        raw.info['meas_date'] = meas_date
+        raw.set_meas_date(meas_date)
         raw.set_annotations(annotations=Annotations(onset=[.5],
                                                     duration=[.2],
                                                     description='dummy',
@@ -331,4 +387,13 @@ def test_5839():
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
     assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
     assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
-    assert raw_A.annotations.orig_time == 0.0
+    assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))
+
+
+def test_repr():
+    """Test repr of Raw."""
+    sfreq = 256
+    info = create_info(3, sfreq)
+    r = repr(RawArray(np.zeros((3, 10 * sfreq)), info))
+    assert re.search('<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>',
+                     r) is not None, r

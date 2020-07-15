@@ -137,7 +137,7 @@ def test_continuous_regression_with_overlap():
         raw, events, {1: 1}, tmin=0)[1].data.flatten())
 
     # test that sklearn solvers can be used
-    from sklearn.linear_model.ridge import ridge_regression
+    from sklearn.linear_model import ridge_regression
 
     def solver(X, y):
         return ridge_regression(X, y, alpha=0., solver="cholesky")

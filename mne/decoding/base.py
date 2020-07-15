@@ -10,7 +10,7 @@ import numpy as np
 import time
 import numbers
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator, is_classifier
+from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
 from ..utils import check_version, logger, warn, fill_doc
 
 
@@ -20,7 +20,7 @@ class LinearModel(BaseEstimator):
     The linear model coefficients (filters) are used to extract discriminant
     neural sources from the measured data. This class computes the
     corresponding patterns of these linear filters to make them more
-    interpretable [1]_.
+    interpretable :footcite:`HaufeEtAl2014`.
 
     Parameters
     ----------
@@ -36,22 +36,19 @@ class LinearModel(BaseEstimator):
     patterns_ : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
-    Notes
-    -----
-    .. versionadded:: 0.10
-
     See Also
     --------
     CSP
     mne.preprocessing.ICA
     mne.preprocessing.Xdawn
 
+    Notes
+    -----
+    .. versionadded:: 0.10
+
     References
     ----------
-    .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
-           Blankertz, B., & Biebmann, F. (2014). On the interpretation of
-           weight vectors of linear models in multivariate neuroimaging.
-           NeuroImage, 87, 96-110.
+    .. footbibliography::
     """
 
     def __init__(self, model=None):  # noqa: D102
@@ -109,9 +106,14 @@ class LinearModel(BaseEstimator):
 
     @property
     def filters_(self):
-        if not hasattr(self.model, 'coef_'):
+        if hasattr(self.model, 'coef_'):
+            # Standard Linear Model
+            filters = self.model.coef_
+        elif hasattr(self.model.best_estimator_, 'coef_'):
+            # Linear Model with GridSearchCV
+            filters = self.model.best_estimator_.coef_
+        else:
             raise ValueError('model does not have a `coef_` attribute.')
-        filters = self.model.coef_
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
@@ -207,7 +209,7 @@ class LinearModel(BaseEstimator):
         Returns
         -------
         score : float
-            Score of the linear model
+            Score of the linear model.
         """
         return self.model.score(X, y)
 
@@ -220,35 +222,17 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     else:
         est_is_classifier = is_classifier(estimator)
     # Setup CV
-    if check_version('sklearn', '0.18'):
-        from sklearn import model_selection as models
-        from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            XFold = StratifiedKFold if est_is_classifier else KFold
-            cv = XFold(n_splits=cv)
-        elif isinstance(cv, str):
-            if not hasattr(models, cv):
-                raise ValueError('Unknown cross-validation')
-            cv = getattr(models, cv)
-            cv = cv()
-        cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
-    else:
-        from sklearn import cross_validation as models
-        from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            if est_is_classifier:
-                cv = StratifiedKFold(y=y, n_folds=cv)
-            else:
-                cv = KFold(n=len(y), n_folds=cv)
-        elif isinstance(cv, str):
-            if not hasattr(models, cv):
-                raise ValueError('Unknown cross-validation')
-            cv = getattr(models, cv)
-            if cv.__name__ not in ['KFold', 'LeaveOneOut']:
-                raise NotImplementedError('CV cannot be defined with str for'
-                                          ' sklearn < .017.')
-            cv = cv(len(y))
-        cv = check_cv(cv=cv, X=X, y=y, classifier=est_is_classifier)
+    from sklearn import model_selection as models
+    from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
+    if isinstance(cv, (int, np.int64)):
+        XFold = StratifiedKFold if est_is_classifier else KFold
+        cv = XFold(n_splits=cv)
+    elif isinstance(cv, str):
+        if not hasattr(models, cv):
+            raise ValueError('Unknown cross-validation')
+        cv = getattr(models, cv)
+        cv = cv()
+    cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
 
     # Extract train and test set to retrieve them at predict time
     if hasattr(cv, 'split'):
@@ -312,7 +296,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     """Retrieve the coefficients of an estimator ending with a Linear Model.
 
     This is typically useful to retrieve "spatial filters" or "spatial
-    patterns" of decoding models [1]_.
+    patterns" of decoding models :footcite:`HaufeEtAl2014`.
 
     Parameters
     ----------
@@ -332,15 +316,14 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
 
     References
     ----------
-    .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
-       Blankertz, B., & Biessmann, F. (2014). On the interpretation of weight
-       vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
-       96-110. doi:10.1016/j.neuroimage.2013.10.067.
+    .. footbibliography::
     """
     # Get the coefficients of the last estimator in case of nested pipeline
     est = estimator
     while hasattr(est, 'steps'):
         est = est.steps[-1][1]
+
+    squeeze_first_dim = False
 
     # If SlidingEstimator, loop across estimators
     if hasattr(est, 'estimators_'):
@@ -348,11 +331,17 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         for this_est in est.estimators_:
             coef.append(get_coef(this_est, attr, inverse_transform))
         coef = np.transpose(coef)
+        coef = coef[np.newaxis]  # fake a sample dimension
+        squeeze_first_dim = True
     elif not hasattr(est, attr):
-        raise ValueError('This estimator does not have a %s '
-                         'attribute.' % attr)
+        raise ValueError('This estimator does not have a %s attribute:\n%s'
+                         % (attr, est))
     else:
         coef = getattr(est, attr)
+
+    if coef.ndim == 1:
+        coef = coef[np.newaxis]
+        squeeze_first_dim = True
 
     # inverse pattern e.g. to get back physical units
     if inverse_transform:
@@ -362,7 +351,11 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
         for inverse_func in _get_inverse_funcs(estimator)[::-1]:
-            coef = inverse_func(np.array([coef]))[0]
+            coef = inverse_func(coef)
+
+    if squeeze_first_dim:
+        coef = coef[0]
+
     return coef
 
 
@@ -385,7 +378,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     groups : array-like, with shape (n_samples,)
         Group labels for the samples used while splitting the dataset into
         train/test set.
-    scoring : string, callable | None
+    scoring : str, callable | None
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
@@ -411,7 +404,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         The verbosity level.
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
-    pre_dispatch : int, or string, optional
+    pre_dispatch : int, or str, optional
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
@@ -435,8 +428,8 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     from sklearn.base import clone
     from sklearn.utils import indexable
-    from sklearn.metrics.scorer import check_scoring
     from sklearn.model_selection._split import check_cv
+    check_scoring = _get_check_scoring()
 
     X, y, groups = indexable(X, y, groups)
 
@@ -449,7 +442,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     parallel, p_func, n_jobs = parallel_func(_fit_and_score, n_jobs,
                                              pre_dispatch=pre_dispatch)
     scores = parallel(p_func(clone(estimator), X, y, scorer, train, test,
-                             verbose, None, fit_params)
+                             0, None, fit_params)
                       for train, test in cv_iter)
     return np.array(scores)[:, 0, ...]  # flatten over joblib output.
 
@@ -460,7 +453,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    return_times=False, error_score='raise'):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
-    from sklearn.model_selection._validation import _index_param_value
+    from ..fixes import _check_fit_params
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
@@ -474,8 +467,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = {k: _index_param_value(X, v, train)
-                  for k, v in fit_params.items()}
+    fit_params = _check_fit_params(X, fit_params, train)
 
     if parameters is not None:
         estimator.set_params(**parameters)

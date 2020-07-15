@@ -72,7 +72,7 @@ raw.crop(tmax=60).load_data()
 # What is a STIM channel?
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# A :term:`STIM channel` (short for "stimulus channel") is a channel that does
+# A :term:`stim channel` (short for "stimulus channel") is a channel that does
 # not receive signals from an EEG, MEG, or other sensor. Instead, STIM channels
 # record voltages (usually short, rectangular DC pulses of fixed magnitudes
 # sent from the experiment-controlling computer) that are time-locked to
@@ -129,7 +129,7 @@ print(events[:5])  # show the first 5
 #     MNE-Python events are actually *three* values: in between the sample
 #     number and the integer event code is a value indicating what the event
 #     code was on the immediately preceding sample. In practice, that value is
-#     almost always `0`, but it can be used to detect the *endpoint* of an
+#     almost always ``0``, but it can be used to detect the *endpoint* of an
 #     event whose duration is longer than one sample. See the documentation of
 #     :func:`mne.find_events` for more details.
 #

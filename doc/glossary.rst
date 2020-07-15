@@ -43,7 +43,23 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
         or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
-        is used in the code base, e.g. for plotting.
+        is used in the code base, e.g. for plotting. See also
+        :term:`data channels`.
+
+    data channels
+        Many functions in MNE operate by default on "data channels". These are
+        channels that typically hold *brain electophysiological* data,
+        as opposed to other forms of data, such as EOG, ECG, stimulus trigger,
+        or acquisition system status data. The set of channels considered
+        "data channels" in MNE is (along with their typical scale factors for
+        plotting, as they are stored in objects in SI units):
+
+        .. mne:: data channels list
+
+    DICS
+        Dynamic Imaging of Coherent Sources, a method for computing source
+        power in different frequency bands. see :ref:`ex-inverse-source-power`
+        and :func:`mne.beamformer.make_dics`.
 
     digitization
         Digitization is a procedure of recording the headshape of a subject and
@@ -56,8 +72,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
     dSPM
         Dynamic statistical parametric mapping (abbr. ``dSPM``) gives a noise-
-        normalized minimum-norm estimate at a given source location. dSPM is 
-        calculated by dividing the activity estimate at each source location by 
+        normalized minimum-norm estimate at a given source location. dSPM is
+        calculated by dividing the activity estimate at each source location by
         the baseline standard deviation of the noise.
 
     eLORETA and sLORETA
@@ -121,7 +137,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
     forward solution
         The forward solution (abbr. ``fwd``) is a linear operator capturing the
         relationship between each dipole location in the :term:`source space`
-        and the corresponding field distribution measured by the sensors (AKA,
+        and the corresponding field distribution measured by the sensors (A.K.A.,
         the "lead field matrix"). Calculating a forward solution requires a
         conductivity model of the head, encapsulating the geometry and
         electrical conductivity of the different tissue compartments (see
@@ -143,7 +159,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         and can be used to infer the head position. With cHPI, the sinusoidal
         signals are typically set at frequencies above any neural signal of
         interest, and thus can be removed after head position correction via
-        low-pass filtering. See :ref:`example-head-pos`.
+        low-pass filtering. See :ref:`tut-head-pos`.
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding
@@ -170,6 +186,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         each sensor). It is primarily used for illustrative purposes (i.e., making
         diagrams of approximate sensor positions in top-down diagrams of the head,
         so-called topographies or topomaps).
+
+    LCMV beamformer
+        Linearly constrained minimum variance beamformer, which attempts to
+        estimate activity for a given source while suppressing cross-talk from
+        other regions, see :func:`mne.beamformer.make_lcmv`.
 
     minimum-norm estimation
         Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed

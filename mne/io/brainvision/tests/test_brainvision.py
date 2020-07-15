@@ -5,16 +5,15 @@
 #
 # License: BSD (3-clause)
 import os.path as op
-from os import unlink
 import shutil
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
-from tempfile import NamedTemporaryFile
 
-from mne.utils import _TempDir, run_tests_if_main
+import datetime
+from mne.utils import run_tests_if_main, _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -52,7 +51,7 @@ data_path = testing.data_path(download=False)
 neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 
 # Test for nanovolts as unit
-vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
+vhdr_units_path = op.join(data_dir, 'test_units.vhdr')
 
 # Test bad date
 vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
@@ -84,17 +83,17 @@ def test_orig_units(recwarn):
 
 DATE_TEST_CASES = np.array([
     ('Mk1=New Segment,,1,1,0,20131113161403794232\n',  # content
-     [1384359243, 794231],  # meas_date internal representation
-     '2013-11-13 16:14:03 GMT'),  # meas_date representation
+     [1384359243, 794232],  # meas_date internal representation
+     '2013-11-13 16:14:03 UTC'),  # meas_date representation
 
     (('Mk1=New Segment,,1,1,0,20070716122240937454\n'
       'Mk2=New Segment,,2,1,0,20070716122240937455\n'),
-     [1184588560, 937453],
-     '2007-07-16 12:22:40 GMT'),
+     [1184588560, 937454],
+     '2007-07-16 12:22:40 UTC'),
 
     ('Mk1=New Segment,,1,1,0,\nMk2=New Segment,,2,1,0,20070716122240937454\n',
-     [1184588560, 937453],
-     '2007-07-16 12:22:40 GMT'),
+     [1184588560, 937454],
+     '2007-07-16 12:22:40 UTC'),
 
     ('Mk1=STATUS,,1,1,0\n', None, 'unspecified'),
     ('Mk1=New Segment,,1,1,0,\n', None, 'unspecified'),
@@ -135,10 +134,11 @@ def mocked_meas_date_file(_mocked_meas_date_data, request):
     lines[MEAS_DATE_LINE] = request.param['content']
     with open(vmrk_fname, 'w') as fout:
         fout.writelines(lines)
+    meas_date = request.param['meas_date']
+    if meas_date is not None:
+        meas_date = _stamp_to_dt(meas_date)
 
-    yield (
-        vhdr_fname, request.param['meas_date'], request.param['meas_date_repr']
-    )
+    yield vhdr_fname, meas_date, request.param['meas_date_repr']
 
 
 def test_meas_date(mocked_meas_date_file):
@@ -149,14 +149,14 @@ def test_meas_date(mocked_meas_date_file):
     if expected_meas is None:
         assert raw.info['meas_date'] is None
     else:
-        assert_allclose(raw.info['meas_date'], expected_meas)
+        assert raw.info['meas_date'] == expected_meas
 
 
-def test_vhdr_codepage_ansi():
+def test_vhdr_codepage_ansi(tmpdir):
     """Test BV reading with ANSI codepage."""
     raw_init = read_raw_brainvision(vhdr_path)
     data_expected, times_expected = raw_init[:]
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
     ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
     ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
@@ -187,11 +187,49 @@ def test_vhdr_codepage_ansi():
     assert_allclose(times_new, times_expected, atol=1e-15)
 
 
-def test_ascii():
+@pytest.mark.parametrize('header', [
+    b'BrainVision Data Exchange %s File Version 1.0\n',
+    # 2.0, space, core, comma
+    b'Brain Vision Core Data Exchange %s File, Version 2.0\n',
+    # bad
+    b'Brain Vision Core Data Exchange %s File, Version 3.0\n',
+])
+def test_vhdr_versions(tmpdir, header):
+    """Test BV reading with different header variants."""
+    raw_init = read_raw_brainvision(vhdr_path)
+    data_expected, times_expected = raw_init[:]
+    use_vhdr_path = op.join(tmpdir, op.split(vhdr_path)[-1])
+    use_vmrk_path = op.join(tmpdir, op.split(vmrk_path)[-1])
+    use_eeg_path = op.join(tmpdir, op.split(eeg_path)[-1])
+    shutil.copy(eeg_path, use_eeg_path)
+    with open(use_vhdr_path, 'wb') as fout:
+        with open(vhdr_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Brain'):
+                    line = header % b'Header'
+                fout.write(line)
+    with open(use_vmrk_path, 'wb') as fout:
+        with open(vmrk_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Brain'):
+                    line = header % b'Marker'
+                fout.write(line)
+
+    if b'3.0' in header:  # bad case
+        with pytest.raises(ValueError, match=r'3\.0.*Contact MNE-Python'):
+            read_raw_brainvision(use_vhdr_path)
+        return
+    raw = read_raw_brainvision(use_vhdr_path)
+    data_new, _ = raw[:]
+    assert_allclose(data_new, data_expected, atol=1e-15)
+
+
+def test_ascii(tmpdir):
     """Test ASCII BV reading."""
     raw = read_raw_brainvision(vhdr_path)
-    tempdir = _TempDir()
-    ascii_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
+    ascii_vhdr_path = op.join(tmpdir, op.split(vhdr_path)[-1])
     # copy marker file
     shutil.copy(vhdr_path.replace('.vhdr', '.vmrk'),
                 ascii_vhdr_path.replace('.vhdr', '.vmrk'))
@@ -420,15 +458,24 @@ def test_brainvision_data():
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
                          verbose='error')
-    # For the nanovolt unit test we use the same data file with a different
-    # header file.
-    raw_nV = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_nV_path, eog=eog, misc='auto'
+    # test different units with alternative header file
+    raw_units = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_units_path, eog=eog, misc='auto'
     )
-    assert_equal(raw_nV.info['chs'][0]['ch_name'], 'FP1')
-    assert_equal(raw_nV.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
-    data_nanovolt, _ = raw_nV[0]
-    assert_array_almost_equal(data_py[0, :], data_nanovolt[0, :])
+    assert_equal(raw_units.info['chs'][0]['ch_name'], 'FP1')
+    assert_equal(raw_units.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
+    data_units, _ = raw_units[0]
+    assert_array_almost_equal(data_py[0, :], data_units.squeeze())
+
+    assert_equal(raw_units.info['chs'][1]['ch_name'], 'FP2')
+    assert_equal(raw_units.info['chs'][1]['kind'], FIFF.FIFFV_EEG_CH)
+    data_units, _ = raw_units[1]
+    assert_array_almost_equal(data_py[1, :], data_units.squeeze())
+
+    assert_equal(raw_units.info['chs'][2]['ch_name'], 'F3')
+    assert_equal(raw_units.info['chs'][2]['kind'], FIFF.FIFFV_EEG_CH)
+    data_units, _ = raw_units[2]
+    assert_array_almost_equal(data_py[2, :], data_units.squeeze())
 
 
 def test_brainvision_vectorized_data():
@@ -507,7 +554,7 @@ def test_brainvision_neuroone_export():
 
 
 @testing.requires_testing_data
-def test_read_vmrk_annotations():
+def test_read_vmrk_annotations(tmpdir):
     """Test load brainvision annotations."""
     sfreq = 1000.0
 
@@ -515,23 +562,18 @@ def test_read_vmrk_annotations():
     # delete=False is for Windows compatibility
     with open(vmrk_path) as myfile:
         head = [next(myfile) for x in range(6)]
-    with NamedTemporaryFile(mode='w+', suffix='.vmrk', delete=False) as temp:
+    fname = tmpdir.join('temp.vmrk')
+    with open(str(fname), 'w') as temp:
         for item in head:
             temp.write(item)
-        temp.seek(0)
-        read_annotations(temp.name, sfreq=sfreq)
-    try:
-        temp.close()
-        unlink(temp.name)
-    except IOError:
-        pass
+    read_annotations(fname, sfreq=sfreq)
 
 
 @testing.requires_testing_data
 def test_read_vhdr_annotations_and_events():
     """Test load brainvision annotations and parse them to events."""
     sfreq = 1000.0
-    expected_orig_time = 1384359243.794231
+    expected_orig_time = _stamp_to_dt((1384359243, 794232))
     expected_onset_latency = np.array(
         [0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945., 5999., 6619.,
          6629., 7629., 7699.]
@@ -607,5 +649,59 @@ def test_event_id_stability_when_save_and_fif_reload(tmpdir):
 
     assert event_id == original_event_id
     assert_array_equal(events, original_events)
+
+
+def test_parse_impedance():
+    """Test case for parsing the impedances from header."""
+    expected_imp_meas_time = datetime.datetime(2013, 11, 13, 16, 12, 27,
+                                               tzinfo=datetime.timezone.utc)
+    expected_imp_unit = 'kOhm'
+    expected_electrodes = [
+        'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
+        'F8', 'P7', 'P8', 'Fz', 'FCz', 'Cz', 'CPz', 'Pz', 'POz', 'FC1', 'FC2',
+        'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'HL', 'HR', 'Vb', 'ReRef',
+        'Ref', 'Gnd'
+    ]
+    n_electrodes = len(expected_electrodes)
+    expected_imps = [np.nan] * (n_electrodes - 2) + [0., 4.]
+    expected_imp_lower_bound = 0.
+    expected_imp_upper_bound = [100.] * (n_electrodes - 2) + [10., 10.]
+
+    expected_impedances = {elec: {
+        'imp': expected_imps[i],
+        'imp_unit': expected_imp_unit,
+        'imp_meas_time': expected_imp_meas_time,
+        'imp_lower_bound': expected_imp_lower_bound,
+        'imp_upper_bound': expected_imp_upper_bound[i],
+        'imp_range_unit': expected_imp_unit,
+    } for i, elec in enumerate(expected_electrodes)}
+
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    assert object_diff(expected_impedances, raw.impedances) == ''
+
+    # Test "Impedances Imported from actiCAP Control Software"
+    expected_imp_meas_time = expected_imp_meas_time.replace(hour=10,
+                                                            minute=17,
+                                                            second=2)
+    tmpidx = expected_electrodes.index('CP6')
+    expected_electrodes = expected_electrodes[:tmpidx] + [
+        'CP 6', 'ECG+', 'ECG-', 'HEOG+', 'HEOG-', 'VEOG+', 'VEOG-', 'ReRef',
+        'Ref', 'Gnd'
+    ]
+    n_electrodes = len(expected_electrodes)
+    expected_imps = [np.nan] * (n_electrodes - 9) + [
+        35., 46., 6., 8., 3., 4., 0., 8., 2.5
+    ]
+    expected_impedances = {elec: {
+        'imp': expected_imps[i],
+        'imp_unit': expected_imp_unit,
+        'imp_meas_time': expected_imp_meas_time,
+    } for i, elec in enumerate(expected_electrodes)}
+
+    with pytest.warns(RuntimeWarning, match='different .*pass filters'):
+        raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
+                                   eog=['HEOG', 'VEOG'], misc=['ECG'])
+    assert object_diff(expected_impedances, raw.impedances) == ''
+
 
 run_tests_if_main()

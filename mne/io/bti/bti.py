@@ -14,7 +14,7 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose
+from ...utils import logger, verbose, _stamp_to_dt
 from ...transforms import (combine_transforms, invert_transform,
                            Transform)
 from .._digitization import _make_bti_dig_points
@@ -28,12 +28,14 @@ from .read import (read_int32, read_int16, read_float, read_double,
                    read_int16_matrix, read_dev_header)
 
 FIFF_INFO_CHS_FIELDS = ('loc',
-                        'ch_name', 'unit_mul', 'coord_frame', 'coil_type',
+                        'ch_name', 'unit_mul', 'coord_frame',
+                        'coil_type',
                         'range', 'unit', 'cal',
                         'scanno', 'kind', 'logno')
 
 FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
-                          None, 0, 0, 0,
+                          None, FIFF.FIFF_UNITM_NONE, FIFF.FIFFV_COORD_UNKNOWN,
+                          FIFF.FIFFV_COIL_NONE,
                           1.0, FIFF.FIFF_UNIT_V, 1.0,
                           None, FIFF.FIFFV_ECG_CH, None)
 
@@ -961,7 +963,8 @@ class RawBTi(BaseRaw):
         bti_info = self._raw_extras[fi]
         fname = bti_info['pdf_fname']
         dtype = bti_info['dtype']
-        n_channels = self.info['nchan']
+        assert len(bti_info['chs']) == self._raw_extras[fi]['orig_nchan']
+        n_channels = len(bti_info['chs'])
         n_bytes = np.dtype(dtype).itemsize
         data_left = (stop - start) * n_channels
         read_cals = np.empty((bti_info['total_chans'],))
@@ -1089,7 +1092,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     if pdf_fname is not None:
         info = _empty_info(sfreq)
         date = bti_info['processes'][0]['timestamp']
-        info['meas_date'] = (date, 0)
+        info['meas_date'] = _stamp_to_dt((date, 0))
     else:  # these cannot be guessed from config, see docstring
         info = _empty_info(1.0)
         info['sfreq'] = None
@@ -1135,7 +1138,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         chan_info['ch_name'] = chan_neuromag if rename_channels else chan_4d
         chan_info['logno'] = idx + BTI.FIFF_LOGNO
         chan_info['scanno'] = idx + 1
-        chan_info['cal'] = bti_info['chs'][idx]['scale']
+        chan_info['cal'] = float(bti_info['chs'][idx]['scale'])
 
         if any(chan_4d.startswith(k) for k in ('A', 'M', 'G')):
             loc = bti_info['chs'][idx]['loc']
@@ -1230,7 +1233,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
            the weights or use the low level functions from this module to
            include them by yourself.
         2. The informed guess for the 4D name is E31 for the ECG channel and
-           E63, E63 for the EOG channels. Pleas check and adjust if those
+           E63, E63 for the EOG channels. Please check and adjust if those
            channels are present in your dataset but 'ECG 01' and 'EOG 01',
            'EOG 02' don't appear in the channel names of the raw object.
 

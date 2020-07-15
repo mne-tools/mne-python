@@ -2,7 +2,6 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
-from collections import OrderedDict
 import os.path as op
 import numpy as np
 
@@ -44,26 +43,7 @@ def _egi_256(head_size):
 
 def _easycap(basename, head_size):
     fname = op.join(MONTAGE_PATH, basename)
-    # ignore existing fiducials to adjust to mne head coord frame
-    fid_names = None
-    montage = _read_theta_phi_in_degrees(fname, head_size, fid_names)
-
-    ch_pos = montage._get_ch_pos()
-
-    nasion = np.concatenate([[0], ch_pos['Fpz'][1:]])
-    lpa = np.mean([ch_pos['FT9'],
-                   ch_pos['TP9']], axis=0)
-    lpa *= head_size / np.linalg.norm(lpa)  # on sphere
-    rpa = np.mean([ch_pos['FT10'],
-                   ch_pos['TP10']], axis=0)
-    rpa *= head_size / np.linalg.norm(rpa)
-
-    fids_montage = make_dig_montage(
-        coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
-    )
-
-    montage += fids_montage  # add fiducials to montage
-
+    montage = _read_theta_phi_in_degrees(fname, head_size, add_fiducials=True)
     return montage
 
 
@@ -110,7 +90,7 @@ def _mgh_or_standard(basename, head_size):
             ch_names_.append(line.strip(' ').strip('\n'))
 
     pos = np.array(pos)
-    ch_pos = OrderedDict(zip(ch_names_, pos))
+    ch_pos = dict(zip(ch_names_, pos))
     nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
     scale = head_size / np.median(np.linalg.norm(pos, axis=1))
     for value in ch_pos.values():
@@ -127,7 +107,7 @@ standard_montage_look_up_table = {
     'EGI_256': _egi_256,
 
     'easycap-M1': partial(_easycap, basename='easycap-M1.txt'),
-    'easycap-M10': partial(_easycap, basename='easycap-M1.txt'),
+    'easycap-M10': partial(_easycap, basename='easycap-M10.txt'),
 
     'GSN-HydroCel-128': partial(_hydrocel, basename='GSN-HydroCel-128.sfp'),
     'GSN-HydroCel-129': partial(_hydrocel, basename='GSN-HydroCel-129.sfp'),
@@ -171,7 +151,7 @@ def _read_sfp(fname, head_size):
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
 
     pos = np.stack([xs, ys, zs], axis=-1)
-    ch_pos = OrderedDict(zip(ch_names, pos))
+    ch_pos = dict(zip(ch_names, pos))
     # no one grants that fid names are there.
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
@@ -197,9 +177,7 @@ def _read_csd(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(
-        ch_pos=OrderedDict(zip(ch_names, pos)),
-    )
+    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
 
 
 def _read_elc(fname, head_size):
@@ -247,23 +225,33 @@ def _read_elc(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    ch_pos = OrderedDict(zip(ch_names_, pos))
+    ch_pos = dict(zip(ch_names_, pos))
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
 
-def _read_theta_phi_in_degrees(fname, head_size, fid_names):
-    options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
-    ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
+def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
+                               add_fiducials=False):
+    ch_names, theta, phi = _safe_np_loadtxt(fname, skip_header=1,
+                                            dtype=(_str, 'i4', 'i4'))
+    if add_fiducials:
+        # Add fiducials based on 10/20 spherical coordinate definitions
+        # http://chgd.umich.edu/wp-content/uploads/2014/06/
+        # 10-20_system_positioning.pdf
+        # extrapolated from other sensor coordinates in the Easycap layouts
+        # https://www.easycap.de/wp-content/uploads/2018/02/
+        # Easycap-Equidistant-Layouts.pdf
+        assert fid_names is None
+        fid_names = ['Nasion', 'LPA', 'RPA']
+        ch_names.extend(fid_names)
+        theta = np.append(theta, [115, -115, 115])
+        phi = np.append(phi, [90, 0, 0])
 
     radii = np.full(len(phi), head_size)
-    pos = _sph_to_cart(np.stack(
-        [radii, np.deg2rad(phi), np.deg2rad(theta)],
-        axis=-1,
-    ))
-    ch_pos = OrderedDict(zip(ch_names, pos))
+    pos = _sph_to_cart(np.array([radii, np.deg2rad(phi), np.deg2rad(theta)]).T)
+    ch_pos = dict(zip(ch_names, pos))
 
     nasion, lpa, rpa = None, None, None
     if fid_names is not None:
@@ -294,17 +282,21 @@ def _read_elp_besa(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))
+    ch_pos = dict(zip(ch_names, pos))
+
+    fid_names = ('Nz', 'LPA', 'RPA')
+    # No one grants that the fid names actually exist.
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+
+    return make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa)
 
 
-def _read_brainvision(fname, head_size, unit):
+def _read_brainvision(fname, head_size):
     # 'BrainVision Electrodes File' format
     # Based on BrainVision Analyzer coordinate system: Defined between
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    if unit not in ['auto', 'mm']:
-        raise ValueError('`unit` must be "auto" or "mm" for .bvef files.')
     root = ElementTree.parse(fname).getroot()
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
@@ -318,4 +310,4 @@ def _read_brainvision(fname, head_size, unit):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))
+    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))

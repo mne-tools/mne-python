@@ -67,7 +67,11 @@ def docformat(docstring, docdict=None):
             indented[name] = '\n'.join(newlines)
         except IndexError:
             indented[name] = dstr
-    return docstring % indented
+    try:
+        return docstring % indented
+    except TypeError as exp:
+        raise TypeError('Error documenting %s:\n%s'
+                        % (docstring.split('\n')[0], str(exp)))
 
 
 def indentcount_lines(lines):

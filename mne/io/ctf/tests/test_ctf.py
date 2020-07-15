@@ -12,14 +12,17 @@ from numpy import array_equal
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
+import mne
 from mne import (pick_types, read_annotations, create_info,
-                 events_from_annotations)
+                 events_from_annotations, make_forward_solution)
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.io.compensator import get_current_comp
+from mne.io.ctf.constants import CTF
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.utils import run_tests_if_main, _clean_names, catch_logging
+from mne.utils import (run_tests_if_main, _clean_names, catch_logging,
+                       _stamp_to_dt)
 from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
@@ -115,6 +118,9 @@ def test_read_ctf(tmpdir):
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
+        # XXX 2019/11/29 : MNC-C FIF conversion files don't have meas_date set.
+        # Consider adding meas_date to below checks once this is addressed in
+        # MNE-C
         for key in ('acq_pars', 'acq_stim', 'bads',
                     'ch_names', 'custom_ref_applied', 'description',
                     'events', 'experimenter', 'highpass', 'line_freq',
@@ -145,6 +151,10 @@ def test_read_ctf(tmpdir):
                         key in ('kind', 'unit', 'coord_frame', 'coil_type',
                                 'logno'):
                     continue  # XXX see below...
+                if key == 'coil_type' and c1[key] == FIFF.FIFFV_COIL_EEG:
+                    # XXX MNE-C bug that this is not set
+                    assert c2[key] == FIFF.FIFFV_COIL_NONE
+                    continue
                 assert c1[key] == c2[key], key
             for key in ('cal',):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
@@ -282,6 +292,7 @@ def test_saving_picked(tmpdir, comp_grade):
     temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
+    assert raw.info['meas_date'] == _stamp_to_dt((1367228160, 0))
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5
@@ -337,17 +348,18 @@ def test_read_ctf_annotations():
        378391, 380800, 382859, 385161, 387093, 389434, 391624, 393785,  # noqa
        396093, 398214, 400198, 402166, 404104, 406047, 408372, 410686,  # noqa
        413029, 414975, 416850, 418797, 420824, 422959, 425026, 427215,  # noqa
-       429278, 431668
+       429278, 431668  # noqa
     ]) - 1  # Fieldtrip has 1 sample difference with MNE
 
     raw = RawArray(
         data=np.empty((1, 432000), dtype=np.float64),
-        info=create_info(ch_names=1, sfreq=1200.0)
-    ).set_annotations(read_annotations(somato_fname))
+        info=create_info(ch_names=1, sfreq=1200.0))
+    raw.set_meas_date(read_raw_ctf(somato_fname).info['meas_date'])
+    raw.set_annotations(read_annotations(somato_fname))
 
     events, _ = events_from_annotations(raw)
     latencies = np.sort(events[:, 0])
-    assert_array_equal(latencies, EXPECTED_LATENCIES)
+    assert_allclose(latencies, EXPECTED_LATENCIES, atol=1e-6)
 
 
 @testing.requires_testing_data
@@ -370,6 +382,48 @@ def test_read_ctf_annotations_smoke_test():
     assert_allclose(annot.onset, EXPECTED_ONSET)
 
     raw = read_raw_ctf(fname)
-    _assert_annotations_equal(raw.annotations, annot)
+    _assert_annotations_equal(raw.annotations, annot, 1e-6)
+
+
+def _read_res4_mag_comp(dsdir):
+    res = mne.io.ctf.res4._read_res4(dsdir)
+    for ch in res['chs']:
+        if ch['sensor_type_index'] == CTF.CTFV_REF_MAG_CH:
+            ch['grad_order_no'] = 1
+    return res
+
+
+def _bad_res4_grad_comp(dsdir):
+    res = mne.io.ctf.res4._read_res4(dsdir)
+    for ch in res['chs']:
+        if ch['sensor_type_index'] == CTF.CTFV_MEG_CH:
+            ch['grad_order_no'] = 1
+            break
+    return res
+
+
+@testing.requires_testing_data
+def test_read_ctf_mag_bad_comp(tmpdir, monkeypatch):
+    """Test CTF reader with mag comps and bad comps."""
+    path = op.join(ctf_dir, ctf_fname_continuous)
+    raw_orig = read_raw_ctf(path)
+    assert raw_orig.compensation_grade == 0
+    monkeypatch.setattr(mne.io.ctf.ctf, '_read_res4', _read_res4_mag_comp)
+    raw_mag_comp = read_raw_ctf(path)
+    assert raw_mag_comp.compensation_grade == 0
+    sphere = mne.make_sphere_model()
+    src = mne.setup_volume_source_space(pos=50., exclude=5., bem=sphere)
+    assert src[0]['nuse'] == 26
+    for grade in (0, 1):
+        raw_orig.apply_gradient_compensation(grade)
+        raw_mag_comp.apply_gradient_compensation(grade)
+        args = (None, src, sphere, True, False)
+        fwd_orig = make_forward_solution(raw_orig.info, *args)
+        fwd_mag_comp = make_forward_solution(raw_mag_comp.info, *args)
+        assert_allclose(fwd_orig['sol']['data'], fwd_mag_comp['sol']['data'])
+    monkeypatch.setattr(mne.io.ctf.ctf, '_read_res4', _bad_res4_grad_comp)
+    with pytest.raises(RuntimeError, match='inconsistent compensation grade'):
+        read_raw_ctf(path)
+
 
 run_tests_if_main()

@@ -201,6 +201,7 @@
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
+.. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
 

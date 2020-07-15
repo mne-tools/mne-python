@@ -13,11 +13,11 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
-import math
 from functools import partial
 import difflib
 import webbrowser
 import tempfile
+import math
 import numpy as np
 import platform
 from copy import deepcopy
@@ -25,24 +25,25 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import warnings
 
-from ..channels.layout import _auto_topomap_coords
-from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
+from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
+                       _VALID_CHANNEL_TYPES, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
-                       _picks_to_idx)
+                       _picks_to_idx, _contains_ch_type)
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
-                     _check_option, logger, fill_doc)
+                     _check_option, logger, fill_doc, _pl, _check_sphere)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset
+from ..transforms import apply_trans
 
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
@@ -58,8 +59,8 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     For the normal use-case (when `vmin` and `vmax` are None), the parameter
     `norm` drives the computation. When norm=False, data is supposed to come
     from a mag and the output tuple (vmin, vmax) is symmetric range
-    (-x, x) where x is the max(abs(data)). When norm=True (aka data is the L2
-    norm of a gradiometer pair) the output tuple corresponds to (0, x).
+    (-x, x) where x is the max(abs(data)). When norm=True (a.k.a. data is the
+    L2 norm of a gradiometer pair) the output tuple corresponds to (0, x).
 
     Otherwise, vmin and vmax are callables that drive the operation.
     """
@@ -119,14 +120,14 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     Parameters
     ----------
     pad : float
-        padding between the figure edge and the edges of subplots, as a
+        Padding between the figure edge and the edges of subplots, as a
         fraction of the font-size.
     h_pad : float
         Padding height between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     w_pad : float
         Padding width between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     fig : instance of Figure
         Figure to apply changes to.
     """
@@ -203,7 +204,8 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     Returns
     -------
     cmap : instance of colormap | array
-        A teal->blue->gray->red->yellow colormap.
+        A teal->blue->gray->red->yellow colormap. See docstring of the 'format'
+        argument for further details.
 
     Notes
     -----
@@ -212,13 +214,12 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Examples
     --------
-    The following code will plot a STC using standard MNE limits:
+    The following code will plot a STC using standard MNE limits::
 
-        colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])
-        brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)
-        brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)
-
-    """
+        >>> colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])  # doctest: +SKIP
+        >>> brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)  # doctest: +SKIP
+        >>> brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)  # doctest: +SKIP
+    """  # noqa: E501
     # Ensure limits is an array
     limits = np.asarray(limits, dtype='float')
 
@@ -315,6 +316,7 @@ def _toggle_proj(event, params, all_=False):
                 for bi, (old, new) in enumerate(zip(bools, new_bools)):
                     if old != new:
                         params['proj_checks'].set_active(bi)
+                        bools[bi] = new
         for bi, (b, p) in enumerate(zip(bools, params['projs'])):
             # see if they tried to deactivate an active one
             if not b and p['active']:
@@ -447,24 +449,51 @@ def _get_help_text(params):
     return ''.join(text), ''.join(text2)
 
 
-def _prepare_trellis(n_cells, max_col):
+def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
+                     size=1.3):
     import matplotlib.pyplot as plt
-    if n_cells == 1:
-        nrow = ncol = 1
-    elif n_cells <= max_col:
-        nrow, ncol = 1, n_cells
-    else:
-        nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
+    from matplotlib.gridspec import GridSpec
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
-                                                  1.5 * nrow + 1))
-    axes = [axes] if ncol == nrow == 1 else axes.flatten()
-    for ax in axes[n_cells:]:  # hide unused axes
-        # XXX: Previously done by ax.set_visible(False), but because of mpl
-        # bug, we just hide the frame.
-        from .topomap import _hide_frame
-        _hide_frame(ax)
-    return fig, axes
+    if n_cells == 1:
+        nrows = ncols = 1
+    elif isinstance(ncols, int) and n_cells <= ncols:
+        nrows, ncols = 1, n_cells
+    else:
+        if ncols == 'auto' and nrows == 'auto':
+            nrows = math.floor(math.sqrt(n_cells))
+            ncols = math.ceil(n_cells / nrows)
+        elif ncols == 'auto':
+            ncols = math.ceil(n_cells / nrows)
+        elif nrows == 'auto':
+            nrows = math.ceil(n_cells / ncols)
+        else:
+            naxes = ncols * nrows
+            if naxes < n_cells:
+                raise ValueError("Cannot plot {} axes in a {} by {} "
+                                 "figure.".format(n_cells, nrows, ncols))
+
+    if colorbar:
+        ncols += 1
+    width = size * ncols
+    height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
+    height_ratios = None
+    g_kwargs = {}
+    figure_nobar(figsize=(width * 1.5, height * 1.5))
+    gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+
+    axes = []
+    if colorbar:
+        # exclude last axis of each row except top row, which is for colorbar
+        exclude = set(range(2 * ncols - 1, nrows * ncols, ncols))
+        ax_idxs = sorted(set(range(nrows * ncols)) - exclude)[:n_cells + 1]
+    else:
+        ax_idxs = range(n_cells)
+    for ax_idx in ax_idxs:
+        axes.append(plt.subplot(gs[ax_idx]))
+
+    fig = axes[0].get_figure()
+
+    return fig, axes, ncols, nrows
 
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
@@ -480,7 +509,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
     height = (len(projs) + 1) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
-    fig_proj.canvas.set_window_title('SSP projection vectors')
+    _set_window_title(fig_proj, 'SSP projection vectors')
     offset = (1. / 6. / height)
     params['fig_proj'] = fig_proj  # necessary for proper toggling
     ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
@@ -520,7 +549,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 def _simplify_float(label):
     # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
-    if isinstance(label, float) and float(str(label)) != round(label):
+    if isinstance(label, float) and np.isfinite(label) and \
+            float(str(label)) != round(label):
         label = round(label, 2)
     return label
 
@@ -579,7 +609,7 @@ def _update_borders(params, new_width, new_height):
 
 
 def _toggle_scrollbars(params):
-    """Show or hide scrollbars (AKA zen mode) in mne_browse-style plots."""
+    """Show or hide scrollbars (A.K.A. zen mode) in mne_browse-style plots."""
     if params.get('show_scrollbars', None) is not None:
         # grow/shrink main axes to take up space from/make room for scrollbars
         # can't use ax.set_position() because axes are locatable, so we have to
@@ -733,7 +763,20 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
 
 def figure_nobar(*args, **kwargs):
-    """Make matplotlib figure with no toolbar."""
+    """Make matplotlib figure with no toolbar.
+
+    Parameters
+    ----------
+    *args : list
+        Arguments to pass to :func:`matplotlib.pyplot.figure`.
+    **kwargs : dict
+        Keyword arguments to pass to :func:`matplotlib.pyplot.figure`.
+
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
+    """
     from matplotlib import rcParams, pyplot as plt
     old_val = rcParams['toolbar']
     try:
@@ -805,7 +848,7 @@ def _radio_clicked(label, params):
     from .evoked import _rgb
 
     # First the selection dialog.
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
     channels = params['selections'][label]
@@ -829,7 +872,7 @@ def _radio_clicked(label, params):
         return
     # Then the plotting window.
     params['ax_vscroll'].set_visible(True)
-    nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
+    nchan = sum([len(params['selections'][label]) for label in labels[:idx]])
     params['vsel_patch'].set_y(nchan)
     n_channels = len(channels)
     params['n_channels'] = n_channels
@@ -992,7 +1035,7 @@ def _plot_raw_onkey(event, params):
         params['update_fun']()
         params['plot_fun']()
     elif event.key == 's':
-        params['use_scalebars'] = not params['use_scalebars']
+        params['show_scalebars'] = not params['show_scalebars']
         params['plot_fun']()
     elif event.key == 'p':
         params['snap_annotations'] = not params['snap_annotations']
@@ -1040,7 +1083,7 @@ def _setup_annotation_fig(params):
 
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
-    fig.canvas.set_window_title('Annotations')
+    _set_window_title(fig, 'Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
     circles = fig.radio.circles
@@ -1160,7 +1203,7 @@ def _find_channel_idx(ch_name, params):
     """Find all indices when using selections."""
     indices = list()
     offset = 0
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     for label in labels:
         if label == 'Custom':
             continue  # Custom selection not included as it shifts the indices.
@@ -1223,19 +1266,13 @@ def _select_bads(event, params, bads):
     return bads
 
 
-def _onclick_help(event, params):
-    """Draw help window."""
-    text, text2 = _get_help_text(params)
-
-    width, height = 9, 5
-
+def _show_help(col1, col2, width, height):
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    fig_help.canvas.set_window_title('Help')
-    params['fig_help'] = fig_help
+    _set_window_title(fig_help, 'Help')
 
     ax = fig_help.add_subplot(111)
-    celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
-                                           text2.strip().split("\n"))]
+    celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
+                                           col2.strip().split("\n"))]
     table = ax.table(cellText=celltext, loc="center", cellLoc="left")
     table.auto_set_font_size(False)
     table.set_fontsize(12)
@@ -1255,6 +1292,17 @@ def _onclick_help(event, params):
         plt_show(fig=fig_help, warn=False)
     except Exception:
         pass
+
+
+def _onclick_help(event, params):
+    """Draw help window."""
+    col1, col2 = _get_help_text(params)
+    params['fig_help'] = _show_help(
+        col1=col1,
+        col2=col2,
+        width=9,
+        height=5,
+    )
 
 
 def _key_press(event):
@@ -1298,7 +1346,6 @@ class ClickableImage(object):
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
 
     def __init__(self, imdata, **kwargs):
@@ -1360,7 +1407,12 @@ class ClickableImage(object):
         Parameters
         ----------
         **kwargs : dict
-            Arguments are passed to generate_2d_layout
+            Arguments are passed to generate_2d_layout.
+
+        Returns
+        -------
+        layout : instance of Layout
+            The layout.
         """
         from ..channels.layout import generate_2d_layout
         coords = np.array(self.coords)
@@ -1390,8 +1442,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
 def add_background_image(fig, im, set_ratios=None):
     """Add a background image to a plot.
 
-    Adds the image specified in `im` to the
-    figure `fig`. This is generally meant to
+    Adds the image specified in ``im`` to the
+    figure ``fig``. This is generally meant to
     be done with topo plots, though it could work
     for any plot.
 
@@ -1417,7 +1469,6 @@ def add_background_image(fig, im, set_ratios=None):
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
     if im is None:
         # Don't do anything and return nothing
@@ -1477,16 +1528,17 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     if use_times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
-    if len(use_times) > 20:
-        raise RuntimeError('Too many plots requested. Please pass fewer '
-                           'than 20 time instants.')
+
+    if len(use_times) > 25:
+        warn('More than 25 topomaps plots requested. This might take a while.')
 
     return use_times
 
 
+@verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True):
+                 block=False, show=True, sphere=None, verbose=None):
     """Plot sensors positions.
 
     Parameters
@@ -1507,7 +1559,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
-        ``'Sensor positions (%s)' % ch_type``.
+        ``'Sensor positions (%%s)' %% ch_type``.
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
@@ -1518,28 +1570,26 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         array, the channels are divided by picks given in the array.
 
         .. versionadded:: 0.13.0
-
     to_sphere : bool
         Whether to project the 3d locations to a sphere. When False, the
         sensor array appears similar as to looking downwards straight above the
         subject's head. Has no effect when kind='3d'. Defaults to True.
 
         .. versionadded:: 0.14.0
-
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
         of Axes3D. If None (default), a new axes will be created.
 
         .. versionadded:: 0.13.0
-
     block : bool
         Whether to halt program execution until the figure is closed. Defaults
         to False.
 
         .. versionadded:: 0.13.0
-
     show : bool
         Show figure if True. Defaults to True.
+    %(topomap_sphere_auto)s
+    %(verbose)s
 
     Returns
     -------
@@ -1559,7 +1609,6 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
-
     """
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
@@ -1589,7 +1638,18 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([ch['loc'][:3] for ch in chs])
+    dev_head_t = info['dev_head_t']
+    pos = np.empty((len(chs), 3))
+    for ci, ch in enumerate(chs):
+        pos[ci] = ch['loc'][:3]
+        if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
+            if dev_head_t is None:
+                warn('dev_head_t is None, transforming MEG sensors to head '
+                     'coordinate frame using identity transform')
+                dev_head_t = np.eye(4)
+            pos[ci] = apply_trans(dev_head_t, pos[ci])
+    del dev_head_t
+
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
@@ -1629,13 +1689,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
-    if kind in ('topomap', 'select'):
-        pos = _auto_topomap_coords(info, picks, True, to_sphere=to_sphere)
-
     title = 'Sensor positions (%s)' % ch_type if title is None else title
-    fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show, kind == 'select', block=block,
-                        to_sphere=to_sphere)
+    fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
+                        show_names, axes, show, kind, block,
+                        to_sphere, sphere)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1671,17 +1728,19 @@ def _close_event(event, fig):
         fig.lasso.disconnect()
 
 
-def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
-                  select, block, to_sphere):
+def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
+                  ax, show, kind, block, to_sphere, sphere):
     """Plot sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from .topomap import _check_outlines, _draw_outlines
+    from .topomap import _get_pos_outlines, _draw_outlines
+    sphere = _check_sphere(sphere, info)
+
     edgecolors = np.repeat('black', len(colors))
     edgecolors[bads] = 'red'
     if ax is None:
         fig = plt.figure(figsize=(max(plt.rcParams['figure.figsize']),) * 2)
-        if pos.shape[1] == 3:
+        if kind == '3d':
             Axes3D(fig)
             ax = fig.gca(projection='3d')
         else:
@@ -1689,39 +1748,35 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
     else:
         fig = ax.get_figure()
 
-    if pos.shape[1] == 3:
+    if kind == '3d':
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
                    s=75, edgecolor=edgecolors, linewidth=2)
 
         ax.azim = 90
         ax.elev = 0
-        ax.xaxis.set_label_text('x')
-        ax.yaxis.set_label_text('y')
-        ax.zaxis.set_label_text('z')
-    else:
+        ax.xaxis.set_label_text('x (m)')
+        ax.yaxis.set_label_text('y (m)')
+        ax.zaxis.set_label_text('z (m)')
+    else:  # kind in 'select', 'topomap'
         ax.text(0, 0, '', zorder=1)
-        # Equal aspect for 3D looks bad, so only use for 2D
-        ax.set(xticks=[], yticks=[], aspect='equal')
-        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                            hspace=None)
-        if to_sphere:
-            pos, outlines = _check_outlines(pos, 'head')
-        else:
-            pos, outlines = _check_outlines(pos, np.array([0.5, 0.5]),
-                                            {'center': (0, 0),
-                                             'scale': (4.5, 4.5)})
+
+        pos, outlines = _get_pos_outlines(info, picks, sphere,
+                                          to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
-
-        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=25,
-                         edgecolor=edgecolors, linewidth=2, clip_on=False)
-
-        if select:
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
+                         c=colors, edgecolors=edgecolors, s=25, lw=2)
+        if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:
             fig.lasso = None
 
+        # Equal aspect for 3D looks bad, so only use for 2D
+        ax.set(aspect='equal')
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                            hspace=None)
         ax.axis("off")  # remove border around figure
+    del sphere
 
     connect_picker = True
     if show_names:
@@ -1731,11 +1786,12 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
             indices = range(len(pos))
         for idx in indices:
             this_pos = pos[idx]
-            if pos.shape[1] == 3:
+            if kind == '3d':
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
-                ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
-        connect_picker = select
+                ax.text(this_pos[0] + 0.0025, this_pos[1], ch_names[idx],
+                        ha='left', va='center')
+        connect_picker = (kind == 'select')
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
@@ -1827,11 +1883,15 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             this_data = this_data[:, :this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
             this_data = this_data.T.reshape(-1, length, shape[0])  # segment
-            this_data -= this_data.mean(0)  # subtract segment means
+            this_data -= np.nanmean(this_data, 0)  # subtract segment means
             this_data = this_data.T.reshape(shape)  # reshape into original
-
-        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
-        scalings[key] = iqr.item()
+        this_data = this_data.ravel()
+        this_data = this_data[np.isfinite(this_data)]
+        if this_data.size:
+            iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+        else:
+            iqr = 1.
+        scalings[key] = iqr
     return scalings
 
 
@@ -1948,7 +2008,7 @@ class DraggableColorbar(object):
         elif self.index >= len(self.cycle):
             self.index = 0
         cmap = self.cycle[self.index]
-        self.cbar.set_cmap(cmap)
+        self.cbar.mappable.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
         self.mappable.set_norm(self.cbar.norm)
@@ -2006,13 +2066,13 @@ class SelectFromCollection(object):
         Collection you want to select from.
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an
-        alpha value of 1 and non-selected points to `alpha_other`.
+        alpha value of 1 and non-selected points to ``alpha_other``.
         Defaults to 0.3.
 
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
     """
 
     def __init__(self, ax, collection, ch_names,
@@ -2033,11 +2093,14 @@ class SelectFromCollection(object):
 
         # Ensure that we have separate colors for each object
         self.fc = collection.get_facecolors()
+        self.ec = collection.get_edgecolors()
         if len(self.fc) == 0:
             raise ValueError('Collection must have a facecolor')
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
+            self.ec = np.tile(self.ec, self.Npts).reshape(self.Npts, -1)
         self.fc[:, -1] = self.alpha_other  # deselect in the beginning
+        self.ec[:, -1] = self.alpha_other
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
                                    lineprops={'color': 'red', 'linewidth': .5})
@@ -2062,6 +2125,10 @@ class SelectFromCollection(object):
         self.fc[:, -1] = self.alpha_other
         self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
+
+        self.ec[:, -1] = self.alpha_other
+        self.ec[inds, -1] = 1
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2076,7 +2143,9 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
             this_alpha = 1
         self.fc[ind, -1] = this_alpha
+        self.ec[ind, -1] = this_alpha
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2084,7 +2153,9 @@ class SelectFromCollection(object):
         """Disconnect the lasso selector."""
         self.lasso.disconnect_events()
         self.fc[:, -1] = 1
+        self.ec[:, -1] = 1
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
 
 
@@ -2217,7 +2288,8 @@ def _on_hover(event, params):
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
                 line = params['ax'].plot([x, x], ylim, color=color,
-                                         linewidth=2., picker=5.)[0]
+                                         linewidth=2., picker=True)[0]
+                line.set_pickradius(5.)
                 dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:
@@ -2364,8 +2436,8 @@ def _setup_butterfly(params):
             ylim = (5. * len(picks), 0.)
             ax.set_ylim(ylim)
             offset = ylim[0] / (len(picks) + 1)
-            ticks = np.arange(0, ylim[0], offset)
-            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+            # ensure the last is not included
+            ticks = np.arange(0, ylim[0] - offset / 2., offset)
             ax.set_yticks(ticks)
             offsets = np.zeros(len(params['types']))
 
@@ -2374,8 +2446,8 @@ def _setup_butterfly(params):
                     offsets[pick] = offset * (group_idx + 1)
             params['inds'] = params['orig_inds'].copy()
             params['offsets'] = offsets
-            ax.set_yticklabels([''] + selections, color='black', rotation=45,
-                               va='top')
+            ax.set_yticklabels(
+                [''] + selections, color='black', rotation=45, va='top')
     else:
         params['inds'] = params['orig_inds'].copy()
         if 'fig_selection' not in params:
@@ -2531,8 +2603,8 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
         axes.spines['left'].set_bounds(*ybounds)
     # handle axis labels
     if skip_axlabel:
-        axes.set_yticklabels([])
-        axes.set_xticklabels([])
+        axes.set_yticklabels([''] * len(yticks))
+        axes.set_xticklabels([''] * len(xticks))
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)
@@ -2872,6 +2944,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             im = ax.imshow(
                 np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
         else:
+            ax.imshow(data, cmap=cmap, **im_args)  # see #6481
             im = ax.imshow(data, cmap=cmap, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
@@ -2890,7 +2963,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         if mask.all():
             t_end = ", all points masked)"
         else:
-            fraction = 1 - (np.float(mask.sum()) / np.float(mask.size))
+            fraction = 1 - (np.float64(mask.sum()) / np.float64(mask.size))
             t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
     else:
         t_end = ")"
@@ -2973,17 +3046,12 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    _user_picked = picks is not None
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False, False]
-    eegs = [False, False, True, False, False, False]
-    seegs = [False, False, False, True, False, False]
-    ecogs = [False, False, False, False, True, False]
-    fnirss = [False, False, False, False, False, 'fnirs_raw']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -2991,10 +3059,17 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, fnirs, name in zip(megs, eegs, seegs, ecogs,
-                                                 fnirss, _data_types):
-        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False, fnirs=fnirs, exclude=[])
+    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
+                        _DATA_CH_TYPES_SPLIT)
+    for name in allowed_ch_types:
+        kwargs = dict(meg=False, ref_meg=False, exclude=[])
+        if name in ('mag', 'grad'):
+            kwargs['meg'] = name
+        elif name in ('fnirs_cw_amplitude', 'fnirs_od', 'hbo', 'hbr'):
+            kwargs['fnirs'] = name
+        else:
+            kwargs[name] = True
+        these_picks = pick_types(info, **kwargs)
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
@@ -3015,25 +3090,25 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 
     fig = None
     if ax is None:
-        fig = plt.figure()
-        ax_list = list()
-        for ii in range(len(picks_list)):
-            # Make x-axes change together
-            if ii > 0:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
-                                           sharex=ax_list[0]))
-            else:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
-        make_label = True
+        fig, ax_list = plt.subplots(len(picks_list), 1, sharex=True,
+                                    squeeze=False)
+        ax_list = list(ax_list[:, 0])
     else:
         fig = ax_list[0].get_figure()
-        make_label = len(ax_list) == len(fig.axes)
+
+    # make_label decides if ylabel and titles are displayed
+    make_label = len(ax_list) == len(fig.axes)
+
+    # Plot Frequency [Hz] xlabel on the last axis
+    xlabels_list = [False] * len(picks_list)
+    xlabels_list[-1] = True
 
     return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, make_label)
+            ax_list, make_label, xlabels_list)
 
 
-def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
+def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
+                  first_dim='channel'):
     """Convert PSDs to dB (if necessary) and appropriate units.
 
     The following table summarizes the relationship between the value of
@@ -3052,15 +3127,25 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     where amp are the units corresponding to the variable, as specified by
     ``unit``.
     """
+    _check_option('first_dim', first_dim, ['channel', 'epoch'])
     where = np.where(psds.min(1) <= 0)[0]
-    dead_ch = ', '.join(ch_names[ii] for ii in where)
     if len(where) > 0:
+        # Construct a helpful error message, depending on whether the first
+        # dimension of `psds` are channels or epochs.
         if dB:
-            msg = "Infinite value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
+            bad_value = 'Infinite'
         else:
-            msg = "Zero value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
+            bad_value = 'Zero'
+
+        if first_dim == 'channel':
+            bads = ', '.join(ch_names[ii] for ii in where)
+        else:
+            bads = ', '.join(str(ii) for ii in where)
+
+        msg = "{bad_value} value in PSD for {first_dim}{pl} {bads}.".format(
+            bad_value=bad_value, first_dim=first_dim, bads=bads, pl=_pl(where))
+        if first_dim == 'channel':
+            msg += '\nThese channels might be dead.'
         warn(msg, UserWarning)
 
     if estimate == 'auto':
@@ -3094,10 +3179,12 @@ def _check_psd_fmax(inst, fmax):
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
-              line_alpha):
+              line_alpha, sphere, xlabels_list):
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
+    sphere = _check_sphere(sphere, inst.info)
+    _check_option('xscale', xscale, ('log', 'linear'))
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -3134,19 +3221,20 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     linewidth=0.5)
             if hyp_limits is not None:
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                                color=color, alpha=area_alpha)
+                                facecolor=color, alpha=area_alpha)
 
     if not average:
         picks = np.concatenate(picks_list)
         psd_list = np.concatenate(psd_list)
-        types = np.array([channel_type(inst.info, idx) for idx in picks])
+        types = np.array(inst.get_channel_types(picks=picks))
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
         info['chs'] = [inst.info['chs'][p] for p in picks]
-        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
-                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
+        valid_channel_types = [
+            'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
+            'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+            'hbr', 'misc', 'fnirs_cw_amplitude', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:
@@ -3163,19 +3251,22 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
-                    line_alpha=line_alpha, nave=None)
-    for ii, ax in enumerate(ax_list):
+                    line_alpha=line_alpha, nave=None, time_unit='ms',
+                    sphere=sphere)
+
+    for ii, (ax, xlabel) in enumerate(zip(ax_list, xlabels_list)):
         ax.grid(True, linestyle=':')
         if xscale == 'log':
             ax.set(xscale='log')
             ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
             ax.get_xaxis().set_major_formatter(ScalarFormatter())
-        else:
+        else:  # xscale == 'linear'
             ax.set(xlim=(freqs[0], freqs[-1]))
         if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
             ax.set(ylabel=ylabels[ii], title=titles_list[ii])
+            if xlabel:
+                ax.set_xlabel('Frequency (Hz)')
+
     if make_label:
         fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
                             hspace=0.5)
@@ -3186,3 +3277,8 @@ def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
     keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
     return ticks[keep]
+
+
+def _set_window_title(fig, title):
+    if fig.canvas.manager is not None:
+        fig.canvas.manager.set_window_title(title)

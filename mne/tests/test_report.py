@@ -19,8 +19,8 @@ from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
-from mne.utils import (_TempDir, requires_mayavi, requires_nibabel, Bunch,
-                       run_tests_if_main, traits_test, requires_h5py)
+from mne.utils import (requires_nibabel, Bunch,
+                       run_tests_if_main, requires_h5py)
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 
@@ -31,6 +31,7 @@ raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
 ms_fname = op.join(data_dir, 'SSS', 'test_move_anon_raw.fif')
 event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
 cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
+proj_fname = op.join(report_dir, 'sample_audvis_ecg-proj.fif')
 fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
@@ -51,19 +52,23 @@ def _get_example_figures():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_render_report():
+def test_render_report(renderer, tmpdir):
     """Test rendering -*.fif files for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
     ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
     cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
+    proj_fname_new = op.join(tempdir, 'temp_ecg-proj.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
     for a, b in [[raw_fname, raw_fname_new],
+                 [raw_fname, raw_fname_new_bids],
                  [ms_fname, ms_fname_new],
                  [event_fname, event_fname_new],
                  [cov_fname, cov_fname_new],
+                 [proj_fname, proj_fname_new],
                  [fwd_fname, fwd_fname_new],
                  [inv_fname, inv_fname_new]]:
         shutil.copyfile(a, b)
@@ -73,15 +78,17 @@ def test_render_report():
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
     # Speed it up by picking channels
     raw = read_raw_fif(raw_fname_new, preload=True)
-    raw.pick_channels(['MEG 0111', 'MEG 0121'])
+    raw.pick_channels(['MEG 0111', 'MEG 0121', 'EEG 001', 'EEG 002'])
     raw.del_proj()
+    raw.set_eeg_reference(projection=True)
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
-    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
+                    projs=True)
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
     assert repr(report)
@@ -105,6 +112,10 @@ def test_render_report():
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
     assert '(MaxShield on)' in html
+    # Projectors in Raw.info
+    assert '<h4>SSP Projectors</h4>' in html
+    # Projectors in `proj_fname_new`
+    assert f'SSP Projectors: {op.basename(proj_fname_new)}' in html
 
     assert_equal(len(report.html), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
@@ -143,19 +154,19 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
-    with pytest.raises(TypeError, match='Each fig must be a'):
+    with pytest.raises(TypeError, match='figure must be a'):
         report.add_figs_to_section('foo', 'caption', 'section')
-    with pytest.raises(TypeError, match='Each fig must be a'):
+    with pytest.raises(TypeError, match='figure must be a'):
         report.add_figs_to_section(['foo'], 'caption', 'section')
 
 
 @testing.requires_testing_data
-def test_report_raw_psd_and_date():
+def test_report_raw_psd_and_date(tmpdir):
     """Test report raw PSD and DATE_NONE functionality."""
     with pytest.raises(TypeError, match='dict'):
         Report(raw_psd='foo')
 
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw.save(raw_fname_new)
@@ -193,11 +204,9 @@ def test_report_raw_psd_and_date():
 
 
 @testing.requires_testing_data
-@requires_mayavi
-@traits_test
-def test_render_add_sections():
+def test_render_add_sections(renderer, tmpdir):
     """Test adding figures/images to section."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -240,12 +249,10 @@ def test_render_add_sections():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_mayavi
-@traits_test
 @requires_nibabel()
-def test_render_mri():
+def test_render_mri(renderer, tmpdir):
     """Test rendering MRI for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     trans_fname_new = op.join(tempdir, 'temp-trans.fif')
     for a, b in [[trans_fname, trans_fname_new]]:
         shutil.copyfile(a, b)
@@ -256,21 +263,26 @@ def test_render_mri():
     assert repr(report)
     report.add_bem_to_section('sample', caption='extra', section='foo',
                               subjects_dir=subjects_dir, decim=30)
-    report.save(op.join(tempdir, 'report.html'), open_browser=False,
-                overwrite=True)
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname, open_browser=False, overwrite=True)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert 'class="report_foo"' in html
 
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_render_mri_without_bem():
+def test_render_mri_without_bem(tmpdir):
     """Test rendering MRI without BEM for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(op.join(tempdir, 'sample', 'mri'))
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
     report.parse_folder(tempdir, render_bem=False)
+    with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
+        report.parse_folder(tempdir, render_bem=True, mri_decim=20)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
@@ -289,9 +301,9 @@ def test_add_htmls_to_section():
     assert (repr(report))
 
 
-def test_add_slider_to_section():
+def test_add_slider_to_section(tmpdir):
     """Test adding a slider with a series of images to mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
@@ -310,7 +322,7 @@ def test_add_slider_to_section():
     # Smoke test that SVG w/unicode can be added
     report = Report()
     fig, ax = plt.subplots()
-    ax.set_xlabel(u'μ')
+    ax.set_xlabel('µ')
     report.add_slider_to_section([fig] * 2, image_format='svg')
 
 
@@ -333,9 +345,9 @@ def test_validate_input():
 
 
 @requires_h5py
-def test_open_report():
+def test_open_report(tmpdir):
     """Test the open_report function."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     hdf5 = op.join(tempdir, 'report.h5')
 
     # Test creating a new report through the open_report function

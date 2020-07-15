@@ -50,7 +50,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 
 # and order with spectral reordering
 # If you don't have scikit-learn installed set order_func to None
-from sklearn.cluster.spectral import spectral_embedding  # noqa
+from sklearn.manifold import spectral_embedding  # noqa
 from sklearn.metrics.pairwise import rbf_kernel   # noqa
 
 

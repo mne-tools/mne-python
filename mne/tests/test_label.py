@@ -16,13 +16,13 @@ import pytest
 from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
-                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 write_labels_to_annot, split_label, spatial_tris_adjacency,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
                        select_sources)
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main)
+                       run_tests_if_main, check_version)
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -252,18 +252,25 @@ def test_label_addition():
 
 
 @testing.requires_testing_data
-def test_label_in_src():
-    """Test label in src."""
+@pytest.mark.parametrize('fname', (real_label_fname, v1_label_fname))
+def test_label_fill_restrict(fname):
+    """Test label in fill and restrict."""
     src = read_source_spaces(src_fname)
-    label = read_label(v1_label_fname)
+    label = read_label(fname)
 
     # construct label from source space vertices
-    vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
-    where = np.in1d(label.vertices, vert_in_src)
-    pos_in_src = label.pos[where]
-    values_in_src = label.values[where]
-    label_src = Label(vert_in_src, pos_in_src, values_in_src,
-                      hemi='lh').fill(src)
+    label_src = label.restrict(src)
+    vert_in_src = label_src.vertices
+    values_in_src = label_src.values
+    if check_version('scipy', '1.3') and fname == real_label_fname:
+        # Check that we can auto-fill patch info quickly for one condition
+        for s in src:
+            s['nearest'] = None
+        with pytest.warns(None):
+            label_src = label_src.fill(src)
+    else:
+        label_src = label_src.fill(src)
+    assert src[0]['nearest'] is not None
 
     # check label vertices
     vertices_status = np.in1d(src[0]['nearest'], label.vertices)
@@ -278,7 +285,8 @@ def test_label_in_src():
 
     # test exception
     vertices = np.append([-1], vert_in_src)
-    pytest.raises(ValueError, Label(vertices, hemi='lh').fill, src)
+    with pytest.raises(ValueError, match='does not contain all of the label'):
+        Label(vertices, hemi='lh').fill(src)
 
     # test filling empty label
     label = Label([], hemi='lh')
@@ -357,16 +365,16 @@ def test_annot_io():
                                     subjects_dir=tempdir)
 
     # test saving parcellation only covering one hemisphere
-    parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
+    parc = [label for label in labels if label.name == 'LOBE.TEMPORAL-lh']
     write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
     parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
-    parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
+    parc1 = [label for label in parc1 if not label.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
-    for l1, l in zip(parc1, parc):
-        assert_labels_equal(l1, l)
+    for lt, rt in zip(parc1, parc):
+        assert_labels_equal(lt, rt)
 
     # test saving only one hemisphere
-    parc = [l for l in labels if l.name.startswith('LOBE')]
+    parc = [label for label in labels if label.name.startswith('LOBE')]
     write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
                           subjects_dir=tempdir)
     annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
@@ -375,9 +383,9 @@ def test_annot_io():
     parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)
-    parc_lh = [l for l in parc if l.name.endswith('lh')]
-    for l1, l in zip(parc1, parc_lh):
-        assert_labels_equal(l1, l)
+    parc_lh = [label for label in parc if label.name.endswith('lh')]
+    for lt, rt in zip(parc1, parc_lh):
+        assert_labels_equal(lt, rt)
 
     # test that the annotation is complete (test Label() support)
     rr = read_surface(op.join(surf_dir, 'lh.white'))[0]
@@ -708,10 +716,10 @@ def test_stc_to_label():
 
     # test getting tris
     tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
-    pytest.raises(ValueError, spatial_tris_connectivity, tris,
+    pytest.raises(ValueError, spatial_tris_adjacency, tris,
                   remap_vertices=False)
-    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
-    assert (connectivity.shape[0] == len(stc.vertices[0]))
+    adjacency = spatial_tris_adjacency(tris, remap_vertices=True)
+    assert (adjacency.shape[0] == len(stc.vertices[0]))
 
     # "src" as a subject name
     pytest.raises(TypeError, stc_to_label, stc, src=1, smooth=False,
@@ -859,8 +867,8 @@ def test_label_sign_flip():
     label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
     src[0]['nn'][label.vertices] = np.array(
         [[1., 0., 0.],
-         [0.,  1., 0.],
-         [0,  0, 1.],
+         [0., 1., 0.],
+         [0, 0, 1.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.]])
     known_flips = np.array([1, 1, np.nan, 1, 1])

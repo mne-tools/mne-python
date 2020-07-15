@@ -117,4 +117,5 @@ def run():
             advanced_rendering=options.advanced_rendering,
             verbose=options.verbose)
 
+
 mne.utils.run_command_if_main()

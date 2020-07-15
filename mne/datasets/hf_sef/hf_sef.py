@@ -53,11 +53,11 @@ def data_path(dataset='evoked', path=None, force_update=False,
     destdir = op.join(path, 'HF_SEF')
 
     urls = {'evoked':
-            'https://osf.io/25f8d/download?version=1',
+            'https://zenodo.org/record/3523071/files/hf_sef_evoked.tar.gz',
             'raw':
             'https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz'}
-    hashes = {'evoked': 'a3e36f006dcece8f1da50b602bfc9cbe',
-              'raw': None}  # don't have raw hash yet
+    hashes = {'evoked': '13d34cb5db584e00868677d8fb0aab2b',
+              'raw': '33934351e558542bafa9b262ac071168'}
     _check_option('dataset', dataset, sorted(urls.keys()))
     url = urls[dataset]
     hash_ = hashes[dataset]
