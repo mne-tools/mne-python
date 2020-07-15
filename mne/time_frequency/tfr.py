@@ -986,7 +986,6 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         See Also
         --------
         read_tfrs, write_tfrs
-
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
