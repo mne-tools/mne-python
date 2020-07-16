@@ -20,8 +20,6 @@ from .view import lh_views_dict, rh_views_dict, View
 from .._3d import _process_clim, _handle_time
 
 from ...surface import mesh_edges
-from ...morph import _hemi_morph
-from ...label import read_label, _read_annot
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level)
 
@@ -593,6 +591,7 @@ class _Brain(object):
         To remove previously added labels, run Brain.remove_labels().
         """
         from matplotlib.colors import colorConverter
+        from ...label import read_label
         if isinstance(label, str):
             if color is None:
                 color = "crimson"
@@ -821,6 +820,7 @@ class _Brain(object):
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
+        from ...label import _read_annot
         hemis = self._check_hemis(hemi)
 
         # Figure out where the data is coming from
@@ -1030,6 +1030,7 @@ class _Brain(object):
         n_steps : int
             Number of smoothing steps
         """
+        from ...morph import _hemi_morph
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:

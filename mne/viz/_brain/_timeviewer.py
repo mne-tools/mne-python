@@ -818,69 +818,68 @@ class _TimeViewer(object):
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
 
     def configure_point_picking(self):
+        if not self.show_traces:
+            return
         from ..backends._pyvista import _update_picking_callback
-        # XXX we should change this to be if not self.show_traces: return
-        # and dedent...
-        if self.show_traces:
-            # use a matplotlib canvas
-            self.color_cycle = _ReuseCycle(_get_color_list())
-            win = self.plotter.app_window
-            dpi = win.windowHandle().screen().logicalDotsPerInch()
-            w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
-            h /= 3  # one third of the window
-            self.mpl_canvas = MplCanvas(self, w, h, dpi)
-            xlim = [np.min(self.brain._data['time']),
-                    np.max(self.brain._data['time'])]
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=UserWarning)
-                self.mpl_canvas.axes.set(xlim=xlim)
-            vlayout = self.plotter.frame.layout()
-            if not self.separate_canvas:
-                vlayout.addWidget(self.mpl_canvas.canvas)
-                vlayout.setStretch(0, self.interactor_stretch)
-                vlayout.setStretch(1, 1)
-            self.mpl_canvas.set_color(
-                bg_color=self.brain._bg_color,
-                fg_color=self.brain._fg_color,
-            )
-            self.mpl_canvas.show()
+        # use a matplotlib canvas
+        self.color_cycle = _ReuseCycle(_get_color_list())
+        win = self.plotter.app_window
+        dpi = win.windowHandle().screen().logicalDotsPerInch()
+        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
+        h /= 3  # one third of the window
+        self.mpl_canvas = MplCanvas(self, w, h, dpi)
+        xlim = [np.min(self.brain._data['time']),
+                np.max(self.brain._data['time'])]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            self.mpl_canvas.axes.set(xlim=xlim)
+        vlayout = self.plotter.frame.layout()
+        if not self.separate_canvas:
+            vlayout.addWidget(self.mpl_canvas.canvas)
+            vlayout.setStretch(0, self.interactor_stretch)
+            vlayout.setStretch(1, 1)
+        self.mpl_canvas.set_color(
+            bg_color=self.brain._bg_color,
+            fg_color=self.brain._fg_color,
+        )
+        self.mpl_canvas.show()
 
-            # get brain data
-            for idx, hemi in enumerate(['lh', 'rh']):
-                hemi_data = self.brain._data.get(hemi)
-                if hemi_data is not None:
-                    act_data = hemi_data['array']
-                    if act_data.ndim == 3:
-                        act_data = np.linalg.norm(act_data, axis=1)
-                    smooth_mat = hemi_data['smooth_mat']
-                    self.act_data_smooth[hemi] = (act_data, smooth_mat)
+        # get brain data
+        for idx, hemi in enumerate(['lh', 'rh']):
+            hemi_data = self.brain._data.get(hemi)
+            if hemi_data is not None:
+                act_data = hemi_data['array']
+                if act_data.ndim == 3:
+                    act_data = np.linalg.norm(act_data, axis=1)
+                smooth_mat = hemi_data['smooth_mat']
+                self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
-                    # simulate a picked renderer
-                    if self.brain._hemi == 'split':
-                        self.picked_renderer = self.plotter.renderers[idx]
-                    else:
-                        self.picked_renderer = self.plotter.renderers[0]
+                # simulate a picked renderer
+                if self.brain._hemi == 'split':
+                    self.picked_renderer = self.plotter.renderers[idx]
+                else:
+                    self.picked_renderer = self.plotter.renderers[0]
 
-                    # initialize the default point
-                    color = next(self.color_cycle)
-                    ind = np.unravel_index(
-                        np.argmax(self.act_data_smooth[hemi][0], axis=None),
-                        self.act_data_smooth[hemi][0].shape
-                    )
-                    vertex_id = hemi_data['vertices'][ind[0]]
-                    mesh = hemi_data['mesh'][-1]
-                    line = self.plot_time_course(hemi, vertex_id, color)
-                    self.add_point(hemi, mesh, vertex_id, line, color)
+                # initialize the default point
+                color = next(self.color_cycle)
+                ind = np.unravel_index(
+                    np.argmax(self.act_data_smooth[hemi][0], axis=None),
+                    self.act_data_smooth[hemi][0].shape
+                )
+                vertex_id = hemi_data['vertices'][ind[0]]
+                mesh = hemi_data['mesh'][-1]
+                line = self.plot_time_course(hemi, vertex_id, color)
+                self.add_point(hemi, mesh, vertex_id, line, color)
 
-            self.plot_time_line()
+        self.plot_time_line()
 
-            _update_picking_callback(
-                self.plotter,
-                self.on_mouse_move,
-                self.on_button_press,
-                self.on_button_release,
-                self.on_pick
-            )
+        _update_picking_callback(
+            self.plotter,
+            self.on_mouse_move,
+            self.on_button_press,
+            self.on_button_release,
+            self.on_pick
+        )
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon

@@ -384,7 +384,7 @@ if any(x in scrapers for x in ('pyvista', 'mayavi')):
 else:
     report_scraper = None
 if 'pyvista' in scrapers:
-    brain_scraper = mne.viz._3d._BrainScraper()
+    brain_scraper = mne.viz._brain._BrainScraper()
     scrapers = list(scrapers)
     scrapers.insert(scrapers.index('pyvista'), brain_scraper)
     scrapers = tuple(scrapers)

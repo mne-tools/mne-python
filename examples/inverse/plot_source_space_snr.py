@@ -5,7 +5,6 @@ Computing source space SNR
 ===============================
 
 This example shows how to compute and plot source space SNR as in [1]_.
-
 """
 # Author: Padma Sundaram <tottochan@gmail.com>
 #         Kaisu Lankinen <klankinen@mgh.harvard.edu>

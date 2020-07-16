@@ -18,9 +18,8 @@ from mne import SourceEstimate, read_source_estimate
 from mne.source_space import read_source_spaces, vertex_to_mni
 from mne.datasets import testing
 from mne.utils import check_version
-from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer
+from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer, _BrainScraper
 from mne.viz._brain.colormap import calculate_lut
-from mne.viz._3d import _BrainScraper
 
 from matplotlib import cm, image
 

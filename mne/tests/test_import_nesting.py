@@ -25,10 +25,9 @@ if len(bad) > 0:
     out |= {'scipy submodules: %s' % list(bad)}
 
 # check sklearn and others
-_sklearn = _pandas = _mayavi = _matplotlib = False
 for x in sys.modules.keys():
     for key in ('sklearn', 'pandas', 'mayavi', 'pyvista', 'matplotlib',
-                'dipy', 'nibabel', 'cupy', 'picard'):
+                'dipy', 'nibabel', 'cupy', 'picard', 'pyvistaqt'):
         if x.startswith(key):
             out |= {key}
 if len(out) > 0:
