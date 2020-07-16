@@ -1132,15 +1132,17 @@ class AverageTFR(_BaseTFR):
             If true, colorbar will be added to the plot. For user defined axes,
             the colorbar cannot be drawn. Defaults to True.
         show : bool
-            Call pyplot.show() at the end.
+            Whether to call pyplot.show() for each plotted figure or not.
+            Defaults to ``True``.
         title : str | 'auto' | None
             String for title. Defaults to None (blank/no title). If 'auto',
-            automatically create a title that lists up to 6 of the channels
-            used in the figure.
+            automatically create a title.
         axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of channels. If instance of Axes,
-            there must be only one channel plotted.
+            The axes to plot to. If `None`, plots a new figure for each
+            image to be plotted. If Axes or a list of Axes are supplied,
+            the number of axes must match the number of images to be plotted.
+            (1 if `combine` is not ``None``, or ``len(tfr.ch_names)`` if
+            `combine` is ``None``).
         layout : Layout | None
             Layout instance specifying sensor positions. Used for interactive
             plotting of topographies on rectangle selection. If possible, the
@@ -1181,8 +1183,9 @@ class AverageTFR(_BaseTFR):
 
             .. versionadded:: 0.16.0
         combine : 'mean' | 'rms' | None
-            Type of aggregation to perform across selected channels. If
-            None, plot one figure per selected channel.
+            Type of aggregation to perform across selected channels. Can be
+            the mean (``'mean'``) or the root mean square (``'rms'``). If
+            ``None``, plot one figure per selected channel.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
@@ -1190,8 +1193,8 @@ class AverageTFR(_BaseTFR):
 
         Returns
         -------
-        fig : matplotlib.figure.Figure
-            The figure containing the topography.
+        figs : list of matplotlib.figure.Figure | matplotlib.figure.Figure
+            The figure(s) containing the topography.
         """  # noqa: E501
         return self._plot(picks=picks, baseline=baseline, mode=mode,
                           tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
@@ -1248,7 +1251,9 @@ class AverageTFR(_BaseTFR):
             axes = [axes]
 
         cmap = _setup_cmap(cmap)
-        for idx in range(len(data)):
+        n_chans = data.shape[0]
+        figs = list()
+        for idx in range(n_chans):
             if axes is None:
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
@@ -1258,17 +1263,19 @@ class AverageTFR(_BaseTFR):
             onselect_callback = partial(
                 tfr._onselect, cmap=cmap, source_plot_joint=source_plot_joint,
                 topomap_args={k: v for k, v in topomap_args.items()
-                              if k not in {"vmin", "vmax", "cmap", "axes"}})
+                              if k not in {"vmin", "vmax", "cmap", "axes"}}
+            )
             _imshow_tfr(
-                ax, 0, tmin, tmax, vmin, vmax, onselect_callback, ylim=None,
-                tfr=data[idx: idx + 1], freq=tfr.freqs, x_label='Time (s)',
+                ax, idx, tmin, tmax, vmin, vmax, onselect_callback, ylim=None,
+                tfr=data, freq=tfr.freqs, x_label='Time (s)',
                 y_label='Frequency (Hz)', colorbar=colorbar, cmap=cmap,
                 yscale=yscale, mask=mask, mask_style=mask_style,
-                mask_cmap=mask_cmap, mask_alpha=mask_alpha)
+                mask_cmap=mask_cmap, mask_alpha=mask_alpha
+            )
 
-            if title is None:
-                if combine is None or len(tfr.info['ch_names']) == 1:
-                    title = tfr.info['ch_names'][0]
+            if title == 'auto':
+                if combine is None:
+                    title = tfr.info['ch_names'][idx]
                 else:
                     title = _set_title_multiple_electrodes(
                         title, combine, tfr.info["ch_names"], all=True,
@@ -1278,10 +1285,11 @@ class AverageTFR(_BaseTFR):
                 fig.suptitle(title)
 
             plt_show(show)
-            # XXX This is inside the loop, guaranteeing a single iter!
-            # Also there is no None-contingent behavior here so the docstring
-            # was wrong (saying it would be collapsed)
-            return fig
+            figs.append(fig)
+
+        if len(figs) == 1 or all([i == figs[i] for i in figs]):
+            return figs[0]
+        return figs
 
     @verbose
     def plot_joint(self, timefreqs=None, picks=None, baseline=None,
