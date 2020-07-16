@@ -360,4 +360,9 @@ def test_equalize_channels():
     assert epochs is epochs2
 
 
+def test_combine_channels():
+    # TODO
+    pass
+
+
 run_tests_if_main()
