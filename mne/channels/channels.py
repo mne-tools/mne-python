@@ -1054,8 +1054,7 @@ class UpdateChannelsMixin(object):
             if len(set(this_ch_type)) > 1:
                 types = ', '.join(set(this_ch_type))
                 raise ValueError('Cannot combine sensors of different types; '
-                                 '"{}" contains types {}.'
-                                 ''.format(this_group, types))
+                                 f'"{this_group}" contains types {types}.')
             #  Check if combining less than 2 channel
             if len(these_picks) < 2:
                 raise ValueError('Less than 2 channels in group "{}"; cannot '
