@@ -101,6 +101,8 @@ Changelog
 
 - BIDS conformity: When saving FIF files to disk and the files are split into parts, the ``split_naming='bids'`` parameter now uses a "_split-%d" naming instead of the previous "_part-%d", by `Stefan Appelhoff`_
 
+- Add support for whitening and multiple channel types in :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
+
 - Add better error message when trying to save incompatible `~mne.Evoked` objects to the same file by `Eric Larson`_
 
 - Add support for loading complex numbers from mat files by `Thomas Hartmann`_
@@ -125,7 +127,9 @@ Changelog
 
 - BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` by `Stefan Appelhoff`_ and `Jan Sedivy`_
 
-- Deletion of applied (active) projectors via `~mne.io.Raw.del_proj`, `~mne.Epochs.del_proj`, and `~mne.Evoked.del_proj` is now possible if the channels the to-be-removed projector applies to are not present in the data anymore by `Richard Höchenberger`_
+- When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
+
+- :class:`mne.Report` now can add topomaps of SSP projectors to the generated report. This behavior can be toggled via the new ``projs`` argument by `Richard Höchenberger`_
 
 Bug
 ~~~
@@ -202,6 +206,13 @@ Bug
 
 - Fix bug with :func:`mne.viz.plot_bem` and :class:`mne.Report` when plotting BEM contours when MRIs are not in standard FreeSurfer orientation by `Eric Larson`_
 
+- Fix bugs with :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` where:
+
+  - Noise normalization factors ``weight_norm='unit-noise-gain'`` and ``weight_norm='nai'`` were computed incorrectly
+  - ``pick_ori='max-power'`` computed the max-power orientation incorrectly
+  - ``pick_ori='normal'`` did not compute power or noise normalization factors correctly
+  - :func:`mne.beamformer.apply_lcmv_cov` did not apply whitening and projections properly
+
 - Fix :ref:`mne setup_forward_model` to have it actually compute the BEM solution in addition to creating the BEM model by `Eric Larson`_
 
 - Fix bug with :func:`mne.io.read_raw_edf` where null bytes were not properly handled, causing an error when opening a file by `Eric Larson`_
@@ -263,6 +274,8 @@ API
   2. Function names for defining adjacency, such as `mne.spatio_temporal_src_adjacency` replacing ``mne.spatio_temporal_src_connectivity``.
 
   "connectivity" is now reserved for discussions of functional and effective connectivity of the brain, and "adjacency" for source or sensor neighbor definitions for cluster-based analyses, by `Eric Larson`_.
+
+- The ``normalize_fwd`` argument of :func:`mne.beamformer.make_dics` has been deprecated in favor of ``depth``, by `Eric Larson`_
 
 - Add ``n_cols`` parameter to :meth:`mne.preprocessing.ICA.plot_scores` to allow plotting scores in multiple columns, by `Luke Bloy`_
 

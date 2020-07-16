@@ -222,8 +222,7 @@ class ProjMixin(object):
         """Remove SSP projection vector.
 
         .. note:: The projection vector can only be removed if it is inactive
-                  (has not been applied to the data), unless the channels it
-                  was applied to no longer exist in the data.
+                  (has not been applied to the data).
 
         Parameters
         ----------

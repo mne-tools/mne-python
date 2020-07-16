@@ -8,11 +8,12 @@
 # License: BSD (3-clause)
 import numpy as np
 
+from ..channels import equalize_channels
 from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option)
+                     _check_option, _validate_type)
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import combine_xyz, _check_reference
+from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
@@ -21,10 +22,10 @@ from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
 
 
 @verbose
-def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              rank=None, inversion='single', weight_norm=None,
-              normalize_fwd=True, real_filter=False, reduce_rank=False,
-              verbose=None):
+def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
+              pick_ori=None, rank=None, weight_norm=None,
+              reduce_rank=False, depth=1., real_filter=False,
+              inversion='matrix', normalize_fwd=None, verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     This is a beamformer filter that can be used to estimate the source power
@@ -49,56 +50,34 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     reg : float
         The regularization to apply to the cross-spectral density before
         computing the inverse.
+    noise_csd : instance of CrossSpectralDensity | None
+        Noise cross-spectral density (CSD) matrices. If provided, whitening
+        will be done. The noise CSDs need to have been computed for the same
+        frequencies as the data CSDs. Providing noise CSDs is mandatory if you
+        mix sensor types, e.g. gradiometers with magnetometers or EEG with
+        MEG.
+
+        .. versionadded:: 0.20
     label : Label | None
         Restricts the solution to a given label.
-    pick_ori : None | 'normal' | 'max-power'
-        The source orientation to compute the filter for:
-
-            ``None`` :
-                orientations are pooled (Default)
-            'normal' :
-                filters are computed for the orientation tangential to the
-                cortical surface
-            'max-power' :
-                filters are computer for the orientation that maximizes
-                spectral power.
-
-    rank : None | int | 'full'
-        This controls the effective rank of the covariance matrix when
-        computing the inverse. The rank can be set explicitly by specifying an
-        integer value. If ``None``, the rank will be automatically estimated.
-        Since applying regularization will always make the covariance matrix
-        full rank, the rank is estimated before regularization in this case. If
-        'full', the rank will be estimated after regularization and hence
-        will mean using the full rank, unless ``reg=0`` is used.
-        The default is None.
+    %(bf_pick_ori)s
+    %(rank_None)s
 
         .. versionadded:: 0.17
-    inversion : 'single' | 'matrix'
-        This determines how the beamformer deals with source spaces in "free"
-        orientation. Such source spaces define three orthogonal dipoles at each
-        source point. When ``inversion='single'``, each dipole is considered
-        as an individual source and the corresponding spatial filter is
-        computed for each dipole separately. When ``inversion='matrix'``, all
-        three dipoles at a source vertex are considered as a group and the
-        spatial filters are computed jointly using a matrix inversion. While
-        ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of :footcite:`vanVlietEtAl2018`.  Defaults to
-        'single'.
-    weight_norm : 'unit-noise-gain' | 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer)
-        :footcite:`SekiharaNagarajan2008`. If 'nai', the Neural Activity Index
-        :footcite:`VanVeenEtAl1997` will be computed.
+    %(weight_norm)s
+
         Defaults to ``None``, in which case no normalization is performed.
-    normalize_fwd : bool
-        Whether to normalize the forward solution. Defaults to ``True``. Note
-        that this normalization is not required when weight normalization
-        (``weight_norm``) is used.
+    %(reduce_rank)s
+    %(depth)s
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
-    %(reduce_rank)s
+    %(bf_inversion)s
+
+        .. versionchanged:: 0.21
+           Default changed to ``'matrix'``.
+    normalize_fwd : bool
+        Deprecated, use ``depth`` instead.
     %(verbose)s
 
     Returns
@@ -107,6 +86,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Dictionary containing filter weights from DICS beamformer.
         Contains the following keys:
 
+            'kind' : str
+                The type of beamformer, in this case 'DICS'.
             'weights' : ndarray, shape (n_frequencies, n_weights)
                 For each frequency, the filter weights of the beamformer.
             'csd' : instance of CrossSpectralDensity
@@ -118,20 +99,31 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 Projections used to compute the beamformer.
             'vertices' : list of ndarray
                 Vertices for which the filter weights were computed.
+            'n_sources' : int
+                Number of source location for which the filter weight were
+                computed.
+            'subject' : str
+                The subject ID.
+            'pick-ori' : None | 'max-power' | 'normal' | 'vector'
+                The orientation in which the beamformer filters were computed.
             'inversion' : 'single' | 'matrix'
                 Whether the spatial filters were computed for each dipole
                 separately or jointly for all dipoles at each vertex using a
                 matrix inversion.
             'weight_norm' : None | 'unit-noise-gain'
                 The normalization of the weights.
-            'normalize_fwd' : bool
-                Whether the forward solution was normalized
-            'n_orient' : int
-                Number of source orientations defined in the forward model.
-            'subject' : str
-                The subject ID.
             'src_type' : str
                 Type of source space.
+            'is_free_ori' : bool
+                Whether the filter was computed in a fixed direction
+                (pick_ori='max-power', pick_ori='normal') or not.
+            'whitener' : None | ndarray, shape (n_channels, n_channels)
+                Whitening matrix, provided if whitening was applied to the
+                covariance matrix and leadfield during computation of the
+                beamformer weights.
+            'max-power-ori' : ndarray, shape (n_sources, 3) | None
+                When pick_ori='max-power', this fields contains the estimated
+                direction of maximum power at each source location.
 
     See Also
     --------
@@ -153,11 +145,11 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     The default setting reproduce the DICS beamformer as described in
     :footcite:`vanVlietEtAl2018`::
 
-        inversion='single', weight_norm=None, normalize_fwd=True
+        inversion='single', weight_norm=None, depth=1.
 
     To use the :func:`make_lcmv` defaults, use::
 
-        inversion='matrix', weight_norm='unit-gain', normalize_fwd=False
+        inversion='matrix', weight_norm='unit-noise-gain-invariant', depth=None
 
     For more information about ``real_filter``, see the
     supplemental information from :footcite:`HippEtAl2011`.
@@ -166,75 +158,88 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    if normalize_fwd is not None:
+        warn('normalize_fwd is deprecated and will be removed in 0.22, use '
+             'depth instead', DeprecationWarning)
+        depth = 1. if normalize_fwd else 0.
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
     _check_option('inversion', inversion, ['single', 'matrix'])
-    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
+    _validate_type(weight_norm, (str, None), 'weight_norm')
 
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
-    n_orient = forward['sol']['ncol'] // forward['nsource']
 
-    # Determine how to normalize the leadfield
-    if normalize_fwd:
-        if inversion == 'single':
-            if weight_norm == 'unit-noise-gain':
-                raise ValueError('The computation of a unit-noise-gain '
-                                 'beamformer with inversion="single" is not '
-                                 'stable with depth normalization, set  '
-                                 'normalize_fwd to False.')
-            combine_xyz = False
-        else:
-            combine_xyz = 'fro'
-        exp = 1.  # turn on depth weighting with exponent 1
-    else:
-        exp = None  # turn off depth weighting entirely
-        combine_xyz = False
+    _check_one_ch_type('dics', info, forward, csd, noise_csd)
+    info, fwd, csd = equalize_channels([info, forward, csd])
 
-    _check_one_ch_type('dics', info, forward)
+    csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)
 
-    # pick info, get gain matrix, etc.
-    _, info, proj, vertices, G, _, nn, orient_std = _prepare_beamformer_input(
-        info, forward, label, pick_ori,
-        combine_xyz=combine_xyz, exp=exp)
-    subject = _subject_from_forward(forward)
-    src_type = _get_src_type(forward['src'], vertices)
-    del forward
+    depth = _check_depth(depth, 'depth_sparse')
+    if inversion == 'single':
+        depth['combine_xyz'] = False
+
+    is_free_ori, info, proj, vertices, G, whitener, nn, orient_std = \
+        _prepare_beamformer_input(
+            info, forward, label, pick_ori, noise_cov=noise_csd, rank=rank,
+            pca=False, **depth)
+    del noise_csd
     ch_names = list(info['ch_names'])
-
-    csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
+    max_oris = []
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
             logger.info('    computing DICS spatial filter at %sHz (%d/%d)' %
                         (freq, i + 1, n_freqs))
 
         Cm = csd.get_data(index=i)
-
         if real_filter:
             Cm = Cm.real
 
-        # Ensure the CSD is in the same order as the leadfield
-        Cm = Cm[csd_picks, :][:, csd_picks]
+        # Whiten the CSD
+        Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
 
         # compute spatial filter
-        W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                                reduce_rank, rank=rank, inversion=inversion,
-                                nn=nn, orient_std=orient_std)
+        n_orient = 3 if is_free_ori else 1
+        W, max_power_ori = _compute_beamformer(
+            G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank,
+            rank=rank, inversion=inversion, nn=nn, orient_std=orient_std)
         Ws.append(W)
+        max_oris.append(max_power_ori)
 
     Ws = np.array(Ws)
+    if pick_ori == 'max-power':
+        max_oris = np.array(max_oris)
+    else:
+        max_oris = None
+
+    src_type = _get_src_type(forward['src'], vertices)
+    subject = _subject_from_forward(forward)
+    is_free_ori = is_free_ori if pick_ori in [None, 'vector'] else False
+    n_sources = np.sum([len(v) for v in vertices])
 
     filters = Beamformer(
         kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
-        vertices=vertices, subject=subject, pick_ori=pick_ori,
-        inversion=inversion, weight_norm=weight_norm,
-        normalize_fwd=bool(normalize_fwd), src_type=src_type,
-        n_orient=n_orient if pick_ori is None else 1)
+        vertices=vertices, n_sources=n_sources, subject=subject,
+        pick_ori=pick_ori, inversion=inversion, weight_norm=weight_norm,
+        src_type=src_type, is_free_ori=is_free_ori, whitener=whitener,
+        max_power_ori=max_oris)
 
     return filters
+
+
+def _prepare_noise_csd(csd, noise_csd, real_filter):
+    if noise_csd is not None:
+        csd, noise_csd = equalize_channels([csd, noise_csd])
+        # Use the same noise CSD for all frequencies
+        if len(noise_csd.frequencies) > 1:
+            noise_csd = noise_csd.mean()
+        noise_csd = noise_csd.get_data(as_cov=True)
+        if real_filter:
+            noise_csd['data'] = noise_csd['data'].real
+    return csd, noise_csd
 
 
 def _apply_dics(data, filters, info, tmin):
@@ -258,7 +263,7 @@ def _apply_dics(data, filters, info, tmin):
 
         # Apply SSPs
         if info['projs']:
-            _check_proj_match(info, filters)
+            _check_proj_match(info['projs'], filters)
             M = np.dot(filters['proj'], M)
 
         stcs = []
@@ -266,7 +271,7 @@ def _apply_dics(data, filters, info, tmin):
             # project to source space using beamformer weights
             sol = np.dot(W, M)
 
-            if filters['n_orient'] > 1:
+            if filters['is_free_ori']:
                 logger.info('combining the current components...')
                 sol = combine_xyz(sol)
 
@@ -432,9 +437,10 @@ def apply_dics_csd(csd, filters, verbose=None):
     """  # noqa: E501
     ch_names = filters['ch_names']
     vertices = filters['vertices']
-    n_orient = filters['n_orient']
+    n_orient = 3 if filters['is_free_ori'] else 1
     subject = filters['subject']
-    n_sources = np.sum([len(v) for v in vertices])
+    whitener = filters['whitener']
+    n_sources = filters['n_sources']
 
     # If CSD is summed over multiple frequencies, take the average frequency
     frequencies = [np.mean(dfreq) for dfreq in csd.frequencies]
@@ -455,6 +461,9 @@ def apply_dics_csd(csd, filters, verbose=None):
         Cm = Cm[csd_picks, :][:, csd_picks]
         W = filters['weights'][i]
 
+        # Whiten the CSD
+        Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
+
         source_power[:, i] = _compute_power(Cm, W, n_orient)
 
     logger.info('[done]')
@@ -474,8 +483,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             frequencies=None, n_ffts=None, mt_bandwidths=None,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
             reg=0.05, label=None, pick_ori=None, rank=None, inversion='single',
-            weight_norm=None, normalize_fwd=True, real_filter=False,
-            reduce_rank=False, verbose=None):
+            weight_norm=None, depth=1., real_filter=False,
+            reduce_rank=False, normalize_fwd=None, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -591,14 +600,13 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer)
         :footcite:`SekiharaNagarajan2008`. Defaults to ``None``.
-    normalize_fwd : bool
-        Whether to normalize the forward solution. Defaults to ``True``. Note
-        that this normalization is not required when weight normalization
-        (``weight_norm``) is used.
+    %(depth)s
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
     %(reduce_rank)s
+    normalize_fwd : bool
+        Deprecated, use ``depth`` instead.
     %(verbose)s
 
     Returns
@@ -743,7 +751,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                 filters = make_dics(epochs.info, forward, csd, reg=reg,
                                     label=label, pick_ori=pick_ori,
                                     rank=rank, inversion=inversion,
-                                    weight_norm=weight_norm,
+                                    weight_norm=weight_norm, depth=depth,
                                     normalize_fwd=normalize_fwd,
                                     reduce_rank=reduce_rank,
                                     real_filter=real_filter, verbose=False)
