@@ -989,22 +989,24 @@ class UpdateChannelsMixin(object):
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
 
-    def combine_channels(self, group_by, method='mean'):
+    def combine_channels(self, groups, method='mean', keep_stim=False):
         """Combine channels based on regions of interest (ROIs).
 
         Parameters
         ----------
-        group_by : dict
+        groups : dict
             Specifies which channels are aggregated into a single channel, with
             aggregation method determined by the ``method`` parameter. One new
             pseudo-channel is made per dict entry; the dict values must be
             lists of picks (integer indices of ``ch_names``). For example::
 
-                group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+                groups=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
             Note that within a dict entry all channels must have the same type.
-        %(method)s
-            If callable, the callable must accept one positional input (data of
+        method : str | callable
+            Which method to use to combine channels. If a :class:`str`, must be
+            one of 'mean', 'median', or 'std' (standard deviation). If
+            callable, the callable must accept one positional input (data of
             shape ``(n_channels, n_times)``, ``(n_epochs, n_channels,
             n_times)``, or ``(n_evokeds, n_channels, n_time)``) and return an
             :class:`array <numpy.ndarray>` of shape ``(n_times)``, ``(n_epochs,
@@ -1014,6 +1016,8 @@ class UpdateChannelsMixin(object):
                 method = lambda data: np.median(data, axis=0)
 
             Defaults to ``mean``.
+        keep_stim : bool
+            If True (default False), keep stimulus channels.
 
         Returns
         -------
@@ -1031,7 +1035,7 @@ class UpdateChannelsMixin(object):
         ch_axis = len(self._data.shape) - 2  # idx of the channel axis
         ch_idx = _picks_to_idx(self.info, None)
         ch_types = _get_channel_types(self.info)
-        group_by = deepcopy(group_by)
+        groups = deepcopy(groups)
 
         # Convert string values of ``method`` into callables
         if isinstance(method, str):
@@ -1041,11 +1045,26 @@ class UpdateChannelsMixin(object):
                 method = method_dict[method]
             except KeyError:
                 raise ValueError('"method" must be a callable, or one of '
-                                 '"mean", "median", or "std"; got {}'
-                                 ''.format(method))
+                                 f'"mean", "median", or "std"; got {method}.')
+
+        # Create new instance
+        if not isinstance(keep_stim, bool):
+            raise ValueError('"keep_stim" must be of type bool, not '
+                             f'{type(keep_stim)}.')
+        if keep_stim is True:
+            try:
+                inst = self.copy().pick_types(meg=False, stim=True)
+                # Create clean info to avoid inconsistencies
+                inst.info = create_info(sfreq=self.info['sfreq'],
+                                        ch_names=inst.info['ch_names'],
+                                        ch_types=_get_channel_types(inst.info))
+            except ValueError:
+                raise ValueError('Could not find stimulus channels.')
+        else:
+            inst = None
 
         # Check correctness of combinations
-        for this_group, these_picks in group_by.items():
+        for this_group, these_picks in groups.items():
             # Check if channel indices are out of bounds
             if not all(idx in ch_idx for idx in these_picks):
                 raise ValueError('Some channel indices are out of bounds.')
@@ -1057,25 +1076,15 @@ class UpdateChannelsMixin(object):
                                  f'"{this_group}" contains types {types}.')
             #  Check if combining less than 2 channel
             if len(these_picks) < 2:
-                raise ValueError('Less than 2 channels in group "{}"; cannot '
-                                 'combine by method "{}".'
-                                 ''.format(this_group, method))
+                raise ValueError('Less than 2 channels in group '
+                                 f'"{this_group}"; cannot combine by method '
+                                 f'"{method}".')
             # If all good create more detailed dict with channel type
-            group_by[this_group] = dict(picks=these_picks,
-                                        ch_type=this_ch_type[0])
-
-        try:
-            # Extract stim channels if any
-            inst = self.copy().pick_types(meg=False, stim=True)
-            # Create clean info to avoid inconsistencies
-            inst.info = create_info(sfreq=self.info['sfreq'],
-                                    ch_names=inst.info['ch_names'],
-                                    ch_types=_get_channel_types(inst.info))
-        except ValueError:
-            inst = None
+            groups[this_group] = dict(picks=these_picks,
+                                      ch_type=this_ch_type[0])
 
         # Combine channels and add them to the new instance
-        for this_group, this_group_dict in group_by.items():
+        for this_group, this_group_dict in groups.items():
             these_picks = this_group_dict['picks']
             this_ch_type = this_group_dict['ch_type']
             this_data = np.take(self._data, these_picks, axis=ch_axis)
