@@ -20,15 +20,17 @@ from ...utils import logger, verbose, fill_doc, warn
 
 
 @fill_doc
-def read_raw_nirx(fname, preload=False, verbose=None):
+def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
     """Reader for a NIRX fNIRS recording.
-
-    This function has only been tested with NIRScout devices.
 
     Parameters
     ----------
     fname : str
         Path to the NIRX data folder or header file.
+    saturated : str
+        (Only relevant for NIRSport1 devices). If 'ignore' (default),
+        use *.nosatflags_wlX instead of standard *.wlX files. If 'nan',
+        use standard *.wlX files. Irrelevant if there is no *.nosatflags file.
     %(preload)s
     %(verbose)s
 
@@ -40,8 +42,22 @@ def read_raw_nirx(fname, preload=False, verbose=None):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    This function has only been tested with NIRScout and NIRSport1 devices.
+
+        - Re: saturated flag
+    The NIRSport probes can saturate during the experiment. Starting from
+    NIRStar 14.2, those saturated values are replaced by NaN in the
+    standard *.wlX files. The measured values are stored in another file
+    called *.nosatflags_wlX, which is a copy of the corresponding *.wlX
+    file where the saturated data didn't get replaced. Since NaN values can
+    cause unexpected behaviour with mathematical functions, you can chose
+    to use the original, non-modified data by setting the ``saturated`` flag to
+    'ignore' (default) or set it to 'nan' to use NaN values.
     """
-    return RawNIRX(fname, preload, verbose)
+    return RawNIRX(fname, saturated, preload, verbose)
 
 
 def _open(fname):
@@ -56,16 +72,36 @@ class RawNIRX(BaseRaw):
     ----------
     fname : str
         Path to the NIRX data folder or header file.
+    saturated : str
+        (Only relevant for NIRSport1 devices). If 'ignore' (default),
+        use *.nosatflags_wlX instead of standard *.wlX files. If 'nan',
+        use standard *.wlX files. Irrelevant if there is no *.nosatflags file.
+
     %(preload)s
     %(verbose)s
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    This function has only been tested with NIRScout and NIRSport1 devices.
+
+        - Re: saturated flag
+    The NIRSport probes can saturate during the experiment. Starting from
+    NIRStar 14.2, those saturated values are replaced by NaN in the
+    standard *.wlX files. The measured values are stored in another file
+    called *.nosatflags_wlX, which is a copy of the corresponding *.wlX
+    file where the saturated data didn't get replaced. Since NaN values can
+    cause unexpected behaviour with mathematical functions, you can chose
+    to use the original, non-modified data by setting the ``saturated`` flag of
+    the read_raw_nirx() method to 'ignore' (default) or set it to 'nan' to
+    use NaN values.
     """
 
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, saturated, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
@@ -83,9 +119,36 @@ class RawNIRX(BaseRaw):
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
             if len(files[key]) != 1:
-                raise RuntimeError('Expect one %s file, got %d' %
-                                   (key, len(files[key]),))
-            files[key] = files[key][0]
+                if (key == 'wl1' or key == 'wl2') \
+                    and len(glob.glob('%s/*%s' %
+                                      (fname, 'nosatflags_' + key))) == 1:
+                    if saturated == 'nan':
+                        warn('You provided saturated data and specified '
+                             'to use the standard *.wlX files.')
+                        files[key] = files[key][1]
+                    else:
+                        if saturated == 'ignore':
+                            warn('The data you provided contains NaN entries '
+                                 'which were put by NIRStar in the *.wlX '
+                                 'files. You chose to ignore them and use the '
+                                 '*.nosatflags_wlX files instead. You can '
+                                 'change this behaviour by setting '
+                                 '``saturated`` to "nan" when calling '
+                                 'read_raw_nirx()')
+                        else:
+                            warn('The value specified for ``saturated`` is '
+                                 'not recognized. Falling back to default '
+                                 'behaviour and using *.nosatflags_wlX files. '
+                                 'You can change this behaviour by setting '
+                                 '``saturated`` to "nan" when calling '
+                                 'read_raw_nirx()')
+                        files[key] = glob.glob('%s/*%s' %
+                                               (fname, 'nosatflags_' + key))[0]
+                else:
+                    raise RuntimeError('Expect one %s file, got %d' %
+                                       (key, len(files[key]),))
+            else:
+                files[key] = files[key][0]
         if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
             warn("A single dat file was expected in the specified path, but "
                  "got %d. This may indicate that the file structure has been "
@@ -111,7 +174,8 @@ class RawNIRX(BaseRaw):
         if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
             raise RuntimeError('MNE does not support this NIRStar version'
                                ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
-        if "NIRScout" not in hdr['GeneralInfo']['Device']:
+        if "NIRScout" not in hdr['GeneralInfo']['Device'] \
+                and "NIRSport" not in hdr['GeneralInfo']['Device']:
             warn("Only import of data from NIRScout devices have been "
                  "thoroughly tested. You are using a %s device. " %
                  hdr['GeneralInfo']['Device'])
