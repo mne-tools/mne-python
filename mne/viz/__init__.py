@@ -29,4 +29,4 @@ from .montage import plot_montage
 from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
                                 set_3d_view, set_3d_title, create_3d_figure,
                                 get_brain_class)
-from . import backends
+from . import backends, _brain

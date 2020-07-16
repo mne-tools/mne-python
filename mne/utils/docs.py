@@ -982,7 +982,7 @@ docdict["show_traces"] = """
 show_traces : bool | str
     If True, enable interactive picking of a point on the surface of the
     brain and plot it's time course using the bottom 1/3 of the figure.
-    This feature is only available with the PyVista 3d backend when
+    This feature is only available with the PyVista 3d backend, and requires
     ``time_viewer=True``. Defaults to 'auto', which will use True if and
     only if ``time_viewer=True``, the backend is PyVista, and there is more
     than one time point.

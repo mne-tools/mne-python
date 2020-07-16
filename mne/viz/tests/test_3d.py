@@ -719,6 +719,10 @@ def test_plot_vector_source_estimates(renderer_interactive):
         stc.plot('sample', subjects_dir=subjects_dir,
                  clim=dict(pos_lims=[1, 2, 3]))
 
+    with pytest.raises(ValueError, match='cannot be used'):
+        stc.plot('sample', subjects_dir=subjects_dir,
+                 show_traces=True, time_viewer=False)
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
