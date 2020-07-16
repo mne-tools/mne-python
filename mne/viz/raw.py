@@ -28,7 +28,7 @@ from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
                     _set_ax_label_style, _draw_vert_line, _simplify_float,
-                    _check_psd_fmax)
+                    _check_psd_fmax, _set_window_title)
 
 
 def _plot_update_raw_proj(params, bools):
@@ -665,7 +665,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     figsize = _get_figsize_from_config()
     params['fig'] = figure_nobar(facecolor=bgcolor, figsize=figsize)
-    params['fig'].canvas.set_window_title(title or "Raw")
+    _set_window_title(params['fig'], title or "Raw")
     # most of the axes setup is done in _prepare_mne_browse
     _prepare_mne_browse(params, xlabel='Time (s)')
     ax = params['ax']
@@ -1081,7 +1081,7 @@ def _setup_browser_selection(raw, kind, selector=True):
     if not selector:
         return order
     fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
-    fig_selection.canvas.set_window_title('Selection')
+    _set_window_title(fig_selection, 'Selection')
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     keys = np.concatenate([keys, ['Custom']])

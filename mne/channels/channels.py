@@ -757,8 +757,8 @@ class UpdateChannelsMixin(object):
 
         .. versionadded:: 0.9.0
         """
-        return self._pick_drop_channels(
-            pick_channels(self.info['ch_names'], ch_names, ordered=ordered))
+        picks = pick_channels(self.info['ch_names'], ch_names, ordered=ordered)
+        return self._pick_drop_channels(picks)
 
     @fill_doc
     def pick(self, picks, exclude=()):
@@ -889,6 +889,23 @@ class UpdateChannelsMixin(object):
             self._data = self._data.take(idx, axis=axis)
         else:
             assert isinstance(self, BaseRaw) and not self.preload
+
+        self._pick_projs()
+        return self
+
+    def _pick_projs(self):
+        """Keep only projectors which apply to at least 1 data channel."""
+        drop_idx = []
+        for idx, proj in enumerate(self.info['projs']):
+            if not set(self.info['ch_names']) & set(proj['data']['col_names']):
+                drop_idx.append(idx)
+
+        for idx in drop_idx:
+            logger.info(f"Removing projector {self.info['projs'][idx]}")
+
+        if drop_idx and hasattr(self, 'del_proj'):
+            self.del_proj(drop_idx)
+
         return self
 
     def add_channels(self, add_list, force_update_info=False):

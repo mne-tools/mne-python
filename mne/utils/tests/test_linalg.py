@@ -3,24 +3,35 @@
 #
 # License: BSD (3-clause)
 
+from distutils.version import LooseVersion
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
+from scipy import linalg
 import pytest
 
-from mne.utils import run_tests_if_main, _pos_semidef_inv, requires_version
+from mne.utils import _sym_mat_pow, _reg_pinv, requires_version
 
 
-@requires_version('numpy', '1.17')  # hermitian kwarg
+@requires_version('numpy', '1.17')  # pinv bugs
 @pytest.mark.parametrize('dtype', (np.float64, np.complex128))  # real, complex
 @pytest.mark.parametrize('ndim', (2, 3, 4))
 @pytest.mark.parametrize('n', (3, 4))
+@pytest.mark.parametrize('psdef', (True, False))
 @pytest.mark.parametrize('deficient, reduce_rank', [
     (False, False),
     (True, False),  # should auto-remove the reduced component
     (True, True),  # force removal of one component (though redundant here)
 ])
-def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
-    """Test positive semidefinite inverse."""
+@pytest.mark.parametrize('func', [
+    _sym_mat_pow,
+    _reg_pinv,
+])
+def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
+    """Test positive semidefinite matrix inverses."""
+    if LooseVersion(np.__version__) >= LooseVersion('1.19'):
+        svd = np.linalg.svd
+    else:
+        from mne.fixes import svd
     # make n-dimensional matrix
     n_extra = 2  # how many we add along the other dims
     rng = np.random.RandomState(73)
@@ -32,11 +43,17 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
         proj -= np.outer(vec, vec)
     with pytest.warns(None):  # intentionally discard imag
         mat = mat.astype(dtype)
+    # now make it conjugate symmetric or positive semi-definite
+    if psdef:
+        mat = np.matmul(mat, mat.swapaxes(-2, -1).conj())
+    else:
+        mat += mat.swapaxes(-2, -1).conj()
+    assert_allclose(mat, mat.swapaxes(-2, -1).conj(), atol=1e-6)
+    s = svd(mat, hermitian=True)[1]
+    assert (s >= 0).all()
     # make it rank deficient (maybe)
     if deficient:
-        mat = np.matmul(proj, mat)
-    # now make it positive definite
-    mat = np.matmul(mat, mat.conj().swapaxes(-2, -1))
+        mat = np.matmul(np.matmul(proj, mat), proj)
     # if the dtype is complex, the conjugate transpose != transpose
     kwargs = dict(atol=1e-10, rtol=1e-10)
     orig_eq_t = np.allclose(
@@ -57,8 +74,25 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
     want_rank = n - deficient
     assert_array_equal(rank, want_rank)
     # assert equiv with NumPy
-    mat_pinv = np.linalg.pinv(mat, hermitian=True)
-    mat_symv = _pos_semidef_inv(mat, reduce_rank=reduce_rank)
+    mat_pinv = np.linalg.pinv(mat)
+    if func is _sym_mat_pow:
+        if not psdef:
+            with pytest.raises(ValueError, match='not positive semi-'):
+                func(mat, -1)
+            return
+        mat_symv = func(mat, -1, reduce_rank=reduce_rank)
+        mat_sqrt = func(mat, 0.5)
+        if ndim == 2:
+            mat_sqrt_scipy = linalg.sqrtm(mat)
+            assert_allclose(mat_sqrt, mat_sqrt_scipy, atol=1e-6)
+        mat_2 = np.matmul(mat_sqrt, mat_sqrt)
+        assert_allclose(mat, mat_2, atol=1e-6)
+        mat_symv_2 = func(mat, -0.5, reduce_rank=reduce_rank)
+        mat_symv_2 = np.matmul(mat_symv_2, mat_symv_2)
+        assert_allclose(mat_symv_2, mat_symv, atol=1e-6)
+    else:
+        assert func is _reg_pinv
+        mat_symv, _, _ = func(mat, rank=None)
     assert_allclose(mat_pinv, mat_symv, **kwargs)
     want = np.dot(proj, np.eye(n))
     if deficient:
@@ -67,6 +101,3 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
         want = np.repeat(want[np.newaxis], n_extra, axis=0)
     assert_allclose(np.matmul(mat_symv, mat), want, **kwargs)
     assert_allclose(np.matmul(mat, mat_symv), want, **kwargs)
-
-
-run_tests_if_main()

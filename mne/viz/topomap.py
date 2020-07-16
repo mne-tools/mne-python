@@ -322,7 +322,11 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
             types.append(list(these_ch_types)[0])
         data = proj['data']['data'].ravel()
         info_names = _clean_names(info['ch_names'], remove_whitespace=True)
-        use_info = pick_info(info, pick_channels(info_names, ch_names))
+        picks = pick_channels(info_names, ch_names)
+        if len(picks) == 0:
+            raise ValueError(
+                f'No channel names in info match projector {proj}')
+        use_info = pick_info(info, picks)
         data_picks, pos, merge_channels, names, ch_type, this_sphere, \
             clip_origin = _prepare_topomap_plot(
                 use_info, _get_ch_type(use_info, None), sphere=sphere)

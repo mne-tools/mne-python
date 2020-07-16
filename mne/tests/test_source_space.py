@@ -35,6 +35,7 @@ from mne.io.constants import FIFF
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+aseg_fname = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
@@ -553,7 +554,6 @@ def test_read_freesurfer_lut(fname):
     atlas_ids, colors = read_freesurfer_lut(fname)
     assert list(atlas_ids).count('Brain-Stem') == 1
     assert len(colors) == len(atlas_ids) == 1266
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names, label_colors = get_volume_labels_from_aseg(
         aseg_fname, return_colors=True)
     assert isinstance(label_names, list)
@@ -644,7 +644,6 @@ def test_source_space_exclusive_complete(src_volume_labels):
 @requires_nibabel()
 def test_read_volume_from_src():
     """Test reading volumes from a mixed source space."""
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     labels_vol = ['Left-Amygdala',
                   'Brain-Stem',
                   'Right-Amygdala']
@@ -685,7 +684,6 @@ def test_combine_source_spaces(tmpdir):
     """Test combining source spaces."""
     import nibabel as nib
     rng = np.random.RandomState(2)
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     volume_labels = ['Brain-Stem', 'Right-Hippocampus']  # two fairly large
 
     # create a sparse surface source space to ensure all get mapped
@@ -735,7 +733,8 @@ def test_combine_source_spaces(tmpdir):
     image_fname = tmpdir.join('temp-image.mgz')
 
     # source spaces with no volume
-    pytest.raises(ValueError, srf.export_volume, image_fname, verbose='error')
+    with pytest.raises(ValueError, match='at least one volume'):
+        srf.export_volume(image_fname, verbose='error')
 
     # unrecognized source type
     disc2 = disc.copy()
@@ -754,8 +753,8 @@ def test_combine_source_spaces(tmpdir):
     disc3 = disc.copy()
     disc3[0]['coord_frame'] = 10
     src_mixed_coord = src + disc3
-    pytest.raises(ValueError, src_mixed_coord.export_volume, image_fname,
-                  verbose='error')
+    with pytest.raises(ValueError, match='must be in head coordinates'):
+        src_mixed_coord.export_volume(image_fname, verbose='error')
 
     # now actually write it
     fname_img = tmpdir.join('img.nii')
@@ -772,6 +771,20 @@ def test_combine_source_spaces(tmpdir):
             if mri_resolution is True:
                 n_want += up
             assert n_src == n_want, src
+
+    # gh-8004
+    temp_aseg = tmpdir.join('aseg.mgz')
+    aseg_img = nib.load(aseg_fname)
+    aseg_affine = aseg_img.affine
+    aseg_affine[:3, :3] *= 0.7
+    new_aseg = nib.MGHImage(aseg_img.dataobj, aseg_affine)
+    nib.save(new_aseg, str(temp_aseg))
+    lh_cereb = mne.setup_volume_source_space(
+        "sample", mri=temp_aseg, volume_label="Left-Cerebellum-Cortex",
+        add_interpolator=False, subjects_dir=subjects_dir)
+    src = srf + lh_cereb
+    with pytest.warns(RuntimeWarning, match='2 surf vertices lay outside'):
+        src.export_volume(image_fname, mri_resolution="sparse", overwrite=True)
 
 
 @testing.requires_testing_data
