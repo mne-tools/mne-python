@@ -5,6 +5,7 @@
 #
 # License: Simplified BSD
 
+from collections import defaultdict
 from functools import partial
 import numpy as np
 from matplotlib.figure import Figure
@@ -17,8 +18,8 @@ class MNEFigParams:
     def __init__(self, **kwargs):
         # default key to close window
         self.close_key = 'escape'
-        for key, val in kwargs.items():
-            setattr(self, key, val)
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
 
 
 class MNEFigure(Figure):
@@ -72,12 +73,26 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-        from mne.viz.utils import _get_figsize_from_config
+        from .utils import _get_figsize_from_config
+        from .. import BaseEpochs
+        from ..io import BaseRaw
+        from ..preprocessing import ICA
 
         # get figsize from config if not provided
         figsize = kwargs.pop('figsize', _get_figsize_from_config())
         kwargs.update(inst=inst)
         super().__init__(figsize=figsize, **kwargs)
+
+        # what kind of data are we dealing with?
+        if isinstance(inst, BaseRaw):
+            self.mne.instance_type = 'raw'
+        elif isinstance(inst, BaseEpochs):
+            self.mne.instance_type = 'epochs'
+        elif isinstance(inst, ICA):
+            self.mne.instance_type = 'ica'
+        else:
+            raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
+                            f'got {type(inst)}.')
 
         # additional params for browse figures (comments indicate name changes)
         # self.mne.inst = inst                # raw
@@ -90,7 +105,8 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.n_channels = None
         # self.mne.ch_types = None            # types
         # self.mne.group_by = None
-        # self.mne.picks = None             # data_picks
+        # self.mne.data_picks = None
+        self.mne.whitened_ch_names = list()
 
         # # time
         # self.mne.n_times = None
@@ -105,11 +121,14 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.annotations = None
         # self.mne.snap_annotations = None
         # self.mne.added_label = None
+        # self.mne.annotation_segments      # segments
 
         # # traces
-        # self.mne.trace_offsets = None     # (new)
+        # self.mne.traces = None            # lines
+        # self.mne.trace_offsets = None     # offsets
         # self.mne.trace_indices = None     # inds
         # self.mne.orig_indices = None      # orig_inds
+        self.mne.segment_line = None
         # self.mne.clipping = None
         # self.mne.butterfly = None
 
@@ -122,7 +141,7 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.units = None
         # self.mne.scalings = None
         # self.mne.unit_scalings = None
-        # self.mne.scale_factor = 1.
+        self.mne.scale_factor = 1.
         self.mne.scalebars = list()           # (new)
         self.mne.scalebar_texts = list()      # (new)
 
@@ -136,7 +155,7 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.ch_start = None
         # self.mne.t_start = None
         # self.mne.scalebars_visible = None
-        # self.mne.show_scrollbars = show_scrollbars
+        # self.mne.scrollbars_visible = scrollbars_visible
 
         # MAIN AXES: default sizes (inches)
         l_margin = 1.
@@ -172,7 +191,7 @@ class MNEBrowseFigure(MNEFigure):
                                      pad=Fixed(vscroll_dist))
         ax_hscroll.get_yaxis().set_visible(False)
         ax_hscroll.set_xlabel(xlabel)
-        #ax_vscroll.set_axis_off()
+        ax_vscroll.set_axis_off()
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
                                   size=Fixed(help_width),
@@ -213,13 +232,8 @@ class MNEBrowseFigure(MNEFigure):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
         size = ','.join(self.get_size_inches().astype(str))
         set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
+        old_width, old_height = self.mne.fig_size_px
         new_width, new_height = self._get_size_px()
-        self._update_margins(new_width, new_height)
-
-    def _update_margins(self, new_width, new_height):
-        """Update figure margins to maintain fixed size in inches/pixels."""
-        # TODO: consider incorporating into _resize event handler
-        old_width, old_height = self._get_size_px()
         new_margins = dict()
         for side in ('left', 'right', 'bottom', 'top'):
             ratio = ((old_width / new_width) if side in ('left', 'right') else
@@ -233,33 +247,33 @@ class MNEBrowseFigure(MNEFigure):
         # zen mode bookkeeping
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
+        self.mne.fig_size_px = (new_width, new_height)
 
     def _toggle_scrollbars(self):
         """Show or hide scrollbars (A.K.A. zen mode)."""
-        if getattr(self.mne, 'show_scrollbars', None) is not None:
-            # grow/shrink main axes to take up space from (or make room for)
-            # scrollbars. We can't use ax.set_position() because axes are
-            # locatable, so we use subplots_adjust
-            should_show = not self.mne.show_scrollbars
-            margins = {side: getattr(self.subplotpars, side)
-                       for side in ('left', 'bottom', 'right', 'top')}
-            # if should_show, bottom margin moves up; right margin moves left
-            margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
-            margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
-            # squeeze a bit more because we don't need space for xlabel now
-            v_delta = self._inch_to_rel(0.16, horiz=False)
-            margins['bottom'] += (1 if should_show else -1) * v_delta
-            self.subplots_adjust(**margins)
-            # show/hide
-            for elem in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
-                butterfly = getattr(self.mne, 'butterfly', False)
-                if elem == 'ax_vscroll' and butterfly:
-                    continue
-                # sometimes we don't have a proj button (ax_button)
-                if getattr(self.mne, elem, None) is not None:
-                    getattr(self.mne, elem).set_visible(should_show)
-            self.mne.show_scrollbars = should_show
-            self.canvas.draw()
+        # grow/shrink main axes to take up space from (or make room for)
+        # scrollbars. We can't use ax.set_position() because axes are
+        # locatable, so we use subplots_adjust
+        should_show = not self.mne.scrollbars_visible
+        margins = {side: getattr(self.subplotpars, side)
+                   for side in ('left', 'bottom', 'right', 'top')}
+        # if should_show, bottom margin moves up; right margin moves left
+        margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
+        margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
+        # squeeze a bit more because we don't need space for xlabel now
+        v_delta = self._inch_to_rel(0.16, horiz=False)
+        margins['bottom'] += (1 if should_show else -1) * v_delta
+        self.subplots_adjust(**margins)
+        # show/hide
+        for elem in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
+            butterfly = getattr(self.mne, 'butterfly', False)
+            if elem == 'ax_vscroll' and butterfly:
+                continue
+            # sometimes we don't have a proj button (ax_button)
+            if getattr(self.mne, elem, None) is not None:
+                getattr(self.mne, elem).set_visible(should_show)
+        self.mne.scrollbars_visible = should_show
+        self.canvas.draw()
 
     def _toggle_proj_fig(self, event):
         """Show/hide the projectors dialog window."""
@@ -320,7 +334,30 @@ class MNEBrowseFigure(MNEFigure):
             pass
         # TODO: partially incorporated from _draw_proj_checkbox; untested
 
-    def _setup_annotation_fig(self):
+    def _setup_annotation_colors(self):
+        pass
+
+    def _plot_annotations(self):
+        """."""
+        from ..annotations import _sync_onset
+        while len(self.mne.ax_hscroll.collections) > 0:
+            self.mne.ax_hscroll.collections.pop()
+        segments = list()
+        self._setup_annotation_colors()
+        for idx, annot in enumerate(self.mne.inst.annotations):
+            annot_start = (_sync_onset(self.mne.inst, annot['onset']) +
+                           self.mne.first_time)
+            annot_end = annot_start + annot['duration']
+            segments.append([annot_start, annot_end])
+            self.mne.ax_hscroll.fill_betweenx(
+                (0., 1.), annot_start, annot_end, alpha=0.3,
+                color=self.mne.segment_colors[annot['description']])
+        # Do not adjust ½ sample backward (even though it would clarify what
+        # is included) because that would break click-drag functionality
+        self.mne.segments = np.array(segments)
+
+    def _create_annotation_fig(self):
+        """."""
         pass
         #"""Initialize the annotation figure."""
         #import matplotlib.pyplot as plt
@@ -462,32 +499,36 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.scalebars_visible:
             # TODO: keep them around to avoid re-computing? if so, try using
             # set_visible and don't set params to None
-            for bar in self.mne.scalebars + self.mne.scalebar_texts:
-                self.ax_main.remove(bar)
-            self.mne.scalebars = None
-            self.mne.scalebar_texts = None
+            for bar in self.mne.scalebars:
+                self.mne.ax_main.lines.remove(bar)
+            for text in self.mne.scalebar_texts:
+                self.mne.ax_main.texts.remove(text)
+            self.mne.scalebars = list()
+            self.mne.scalebar_texts = list()
         else:
-            bars, texts = self._draw_scalebars()
-            self.mne.scalebars = bars
-            self.mne.scalebar_texts = texts
+            # TODO: refactor _draw_scalebar to take more flexible inputs
+            raise NotImplementedError
         # toggle
         self.mne.scalebars_visible = not self.mne.scalebars_visible
 
-    def _draw_scalebars(self):
+    def _draw_scalebar(self, x, y, ch_type):
         """Draw the scalebars."""
-        # TODO: integrate raw.py lines 1075-1099 here
-        scalebar_color = '#AA3377'  # purple
-        ch_types_visible = set(self.mne.ch_types)
-        scalebar_indices = {ch_type: self.mne.ch_types.index(ch_type) for
-                            ch_type in ch_types_visible if ch_type != 'stim'}
-        # TODO: get y offsets of the channels that get bars
-        # TODO: compute y bounds of bars
-        # TODO: get current t_min
-        # TODO: draw the bars
-        bars = []
-        # TODO: add text labels
-        texts = []
-        return bars, texts
+        from .utils import _simplify_float
+        #TODO: this might be useful when refactoring to draw all at once
+        #ch_types_visible = set(self.mne.ch_types)
+        #scalebar_indices = {ch_type: self.mne.ch_types.index(ch_type) for
+        #                    ch_type in ch_types_visible if ch_type != 'stim'}
+        color = '#AA3377'  # purple
+        kwargs = dict(color=color, zorder=5)
+        inv_norm = (2 * self.mne.scalings[ch_type] *
+                    self.mne.unit_scalings[ch_type] /
+                    self.mne.scale_factor)
+        bar = self.mne.ax_main.plot(x, y, lw=4, **kwargs)[0]
+        label = f'{_simplify_float(inv_norm)} {self.mne.units[ch_type]} '
+        text = self.mne.ax_main.text(x[1], y[1], label, va='baseline',
+                                     ha='right', size='xx-small', **kwargs)
+        self.mne.scalebars.append(bar)
+        self.mne.scalebar_texts.append(text)
 
     def _update_trace_offsets(self, n_channels):
         """Compute viewport height and adjust offsets."""
@@ -503,16 +544,127 @@ class MNEBrowseFigure(MNEFigure):
         # store new offsets
         self.mne.trace_offsets = offsets
 
+    def _load_data(self):
+        """."""
+        # TODO: adapt from _update_raw_data, raw.py lines 47-87
+        if self.mne.instance_type == 'raw':
+            data, times = self.mne.inst[:, :]  # TODO: add start:stop
+            self.mne.data = data
+            self.mne.times = times
+        else:
+            raise NotImplementedError  # TODO: support epochs, ICA
+
+    def _update_data(self):
+        """."""
+        # TODO: adapt from _update_raw_data, raw.py lines 47-87
+        pass
+
     def _draw_traces(self, color, bad_color, event_lines=None,
                      event_color=None):
         """Plot / redraw the channel data."""
-        # TODO: WIP unfinished
+        from matplotlib.patches import Rectangle
+
         if self.mne.butterfly:
             n_channels = len(self.mne.trace_offsets)
             ch_start = 0
             offsets = self.mne.trace_offsets[self.mne.trace_indices]
         else:
-            pass
+            n_channels = self.mne.n_channels
+            ch_start = self.mne.ch_start
+            offsets = self.mne.trace_offsets
+        self.mne.bad_color = bad_color
+        labels = self.mne.ax_main.yaxis.get_ticklabels()
+        # clear scalebars
+        for bar in self.mne.scalebars:
+            self.mne.ax_main.lines.remove(bar)
+        for text in self.mne.scalebar_texts:
+            self.mne.ax_main.texts.remove(text)
+        self.mne.scalebars = list()
+        self.mne.scalebar_texts = list()
+        # TODO: clear event and annotation texts
+        #
+        ch_indices = self.mne.trace_indices[np.arange(n_channels) + ch_start]
+        ch_names = np.array(self.mne.inst.info['ch_names'])[ch_indices]
+        ch_types = np.array(self.mne.ch_types)[ch_indices]
+        bads = ch_names[np.in1d(ch_names, self.mne.inst.info['bads'])]
+        # colors
+        if not isinstance(color, dict):
+            color = defaultdict(color)
+        ch_colors = [bad_color if _name in bads else color[_type]
+                     for _name, _type in zip(ch_names, ch_types)]
+        if self.mne.butterfly:
+            for label in labels:
+                label.set_color('black')
+        else:
+            for label, color in zip(labels, ch_colors):
+                label.set_color(color)
+        # decim
+        decim = np.ones_like(ch_indices)
+        decim[np.in1d(ch_indices, self.mne.data_picks)] = self.mne.decim
+        # decim can vary by channel, so compute different times vectors
+        decim_times_dict = {decim_value:
+                            self.mne.times[::decim_value] + self.mne.first_time
+                            for decim_value in set(decim)}
+        # loop over channels
+        for ii, ch_ind in enumerate(ch_indices):
+            this_name = ch_names[ii]
+            this_type = ch_types[ii]
+            this_line = self.mne.traces[ii]
+            # don't complain if user asks for more channels than they have
+            if ii >= len(self.mne.traces):
+                break
+            # remove traces if needed
+            elif ch_ind >= len(ch_indices):
+                this_line.set_xdata([])
+                this_line.set_ydata([])
+            # draw traces
+            else:
+                # do not update data in-place!
+                this_data = self.mne.data[ch_ind] * self.mne.scale_factor
+                this_times = decim_times_dict[decim[ii]]
+                # clip
+                if self.mne.clipping == 'clamp':
+                    np.clip(this_data, -1, 1, out=this_data)
+                elif self.mne.clipping is not None:
+                    l, w = this_times[0], this_times[-1] - this_times[0]
+                    ylim = self.mne.ax_main.get_ylim()
+                    b = offsets[ii] - self.mne.clipping  # max(, ylim[0])
+                    h = 2 * self.mne.clipping            # min(, ylim[1] - b)
+                    assert ylim[1] <= ylim[0]            # inverted
+                    b = max(b, ylim[1])
+                    h = min(h, ylim[0] - b)
+                    rect = Rectangle((l, b), w, h,
+                                     transform=self.mne.ax_main.transData)
+                    this_line.set_clip_path(rect)
+                # update trace data
+                # subtraction yields correct orientation given inverted ylim
+                this_line.set_xdata(this_times)
+                this_line.set_ydata(offsets[ii] - this_data[..., ::decim[ii]])
+                this_line.set_color(ch_colors[ii])
+                # add attributes to traces
+                vars(this_line)['ch_name'] = this_name
+                vars(this_line)['def_color'] = ch_colors[ii]
+                # set z-order and channel name colors
+                this_z = 0 if this_name in bads else 1
+                if self.mne.butterfly:
+                    if this_name not in bads:
+                        if this_type == 'mag':
+                            this_z = 2
+                        elif this_type == 'grad':
+                            this_z = 3
+                this_line.set_zorder(this_z)
+                # draw a scalebar maybe
+                if (this_name not in bads and
+                        this_name not in self.mne.whitened_ch_names and
+                        this_type != 'stim' and
+                        this_type in self.mne.scalings and
+                        this_type in getattr(self.mne, 'units', {}) and
+                        this_type in getattr(self.mne, 'unit_scalings', {}) and
+                        this_type not in self.mne.scalebars):  # TODO: why?
+                    x = (this_times[0],) * 2
+                    y = tuple(np.array([-1, 1]) + offsets[ii])
+                    self._draw_scalebar(x, y, this_type)
+        # TODO: event lines
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
@@ -544,12 +696,13 @@ def browse_figure(inst, **kwargs):
                   **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
+    fig.mne.fig_size_px = fig._get_size_px()
     fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
                      fig.mne.ax_main.get_position().xmax)
     fig.mne.zen_h = (fig.mne.ax_main.get_position().ymin -
                      fig.mne.ax_hscroll.get_position().ymin)
-    if not fig.mne.show_scrollbars:
-        fig.mne.show_scrollbars = True
+    if not fig.mne.scrollbars_visible:
+        fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
     # add our custom callbacks
     callbacks = dict(resize_event=fig._resize,
