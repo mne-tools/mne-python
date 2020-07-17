@@ -1,4 +1,4 @@
-name: notebook
+name: base
 channels:
 - conda-forge/label/vtk_dev
 - conda-forge
