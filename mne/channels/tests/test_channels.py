@@ -362,7 +362,7 @@ def test_equalize_channels():
 
 
 def test_combine_channels():
-    """Test channel combination on Raw, Epochs, and Evoked"""
+    """Test channel combination on Raw, Epochs, and Evoked."""
     raw = read_raw_fif(raw_fname, preload=True)
     epochs = Epochs(raw, read_events(eve_fname), preload=True)
     evoked = epochs.average()
