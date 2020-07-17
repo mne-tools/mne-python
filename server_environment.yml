@@ -1,4 +1,4 @@
-name: base
+name: notebook
 channels:
 - conda-forge/label/vtk_dev
 - conda-forge
@@ -20,5 +20,5 @@ dependencies:
   - pyvista==0.24
   - ipywidgets
   - nbformat
-  - nbclient
+  - nbclient<=0.4.0
   - jupyter_client!=6.1.5
