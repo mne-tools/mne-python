@@ -173,7 +173,10 @@ def test_center_cmap():
 
 def test_centers_to_edges():
     """Test centers_to_edges."""
-    assert_allclose(centers_to_edges([0, 1, 2])[0], [-0.5, 0.5, 1.5])
+    assert_allclose(centers_to_edges([0, 1, 2])[0], [-0.5, 0.5, 1.5, 2.5])
+    assert_allclose(centers_to_edges([0])[0], [-0.001, 0.001])
+    assert_allclose(centers_to_edges([1])[0], [0.999, 1.001])
+    assert_allclose(centers_to_edges([1000])[0], [999., 1001.])
 
 
 run_tests_if_main()

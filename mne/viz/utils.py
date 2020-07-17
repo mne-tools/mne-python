@@ -2896,7 +2896,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
-        time_lims = centers_to_edges(times)
+        time_lims, = centers_to_edges(times)
         log_yvals = np.concatenate([[yvals[0] / ratio[0]], yvals,
                                     [yvals[-1] * ratio[0]]])
         yval_lims = np.sqrt(log_yvals[:-1] * log_yvals[1:])
