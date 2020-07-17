@@ -13,7 +13,7 @@ import numpy as np
 from scipy.io import savemat
 from numpy.testing import assert_array_equal, assert_equal
 
-from mne.channels import (rename_channels, read_ch_adjacency,
+from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
                           read_custom_montage, equalize_channels)
 from mne.channels.channels import (_ch_neighbor_adjacency,
@@ -23,12 +23,13 @@ from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
-                 make_ad_hoc_cov, create_info)
+                 make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
+eve_fname = op .join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
@@ -361,8 +362,41 @@ def test_equalize_channels():
 
 
 def test_combine_channels():
-    # TODO
-    pass
+    """Test channel combination on Raw, Epochs, and Evoked"""
+    raw = read_raw_fif(raw_fname, preload=True)
+    epochs = Epochs(raw, read_events(eve_fname), preload=True)
+    evoked = epochs.average()
+    good = dict(foo=[0, 1], bar=[5, 2])  # good grad and mag
+
+    # Test good cases
+    combine_channels(raw, good)
+    combine_channels(epochs, good)
+    combine_channels(evoked, good)
+    combine_channels(raw, good, keep_stim=True)
+
+    # Test result with one ROI
+    good_single = dict(foo=[0, 1])  # good grad
+    combined_data = combine_channels(raw, good_single)._data
+    foo_mean = np.mean(raw._data[good_single['foo']], axis=0)
+    assert np.array_equal(combined_data, np.expand_dims(foo_mean, axis=0))
+
+    # Test bad cases
+    raw_no_preload = read_raw_fif(raw_fname, preload=False)
+    raw_no_stim = read_raw_fif(raw_fname, preload=True)
+    raw_no_stim.pick_types(meg=True, stim=False)
+    bad1 = dict(foo=[0, 376], bar=[5, 2])  # out of bounds
+    bad2 = dict(foo=[0, 2], bar=[5, 2])  # type mix in same group
+    bad3 = dict(foo=[0, 0], bar=[5, 2])  # same channel in same group
+    bad4 = dict(foo=[0], bar=[5, 2])  # one channel
+    pytest.raises(RuntimeError, combine_channels, raw_no_preload, good)
+    pytest.raises(ValueError, combine_channels, raw, good, method='bad_method')
+    pytest.raises(TypeError, combine_channels, raw, good, keep_stim='bad_type')
+    pytest.raises(ValueError, combine_channels, raw_no_stim, good,
+                  keep_stim=True)
+    pytest.raises(ValueError, combine_channels, raw, bad1)
+    pytest.raises(ValueError, combine_channels, raw, bad2)
+    pytest.raises(ValueError, combine_channels, raw, bad3)
+    pytest.raises(ValueError, combine_channels, raw, bad4)
 
 
 run_tests_if_main()

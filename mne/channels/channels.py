@@ -1587,8 +1587,8 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
 
     # Create new instance
     if not isinstance(keep_stim, bool):
-        raise ValueError('"keep_stim" must be of type bool, not '
-                         f'{type(keep_stim)}.')
+        raise TypeError('"keep_stim" must be of type bool, not '
+                        f'{type(keep_stim)}.')
     if keep_stim is True:
         try:
             combined_inst = instance.copy().pick_types(meg=False, stim=True)
