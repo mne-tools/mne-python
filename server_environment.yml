@@ -20,5 +20,5 @@ dependencies:
   - pyvista
   - ipywidgets
   - nbformat
-  - nbclient<=0.4.0
-  - jupyter_client<=6.1.3
+  - nbclient
+  - jupyter_client!=6.1.5
