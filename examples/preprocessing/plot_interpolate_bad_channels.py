@@ -33,7 +33,7 @@ data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname, condition='Left Auditory',
-                          baseline=(None, 0), proj=False)
+                          baseline=(None, 0))
 
 # plot with bads
 evoked.plot(exclude=[])
@@ -45,7 +45,7 @@ evoked_interp = evoked.copy().interpolate_bads(reset_bads=False)
 evoked_interp.comment += '(interpolated)'
 evoked_interp.plot(exclude=[])
 
-# you can also use minimum-norm for EEG as wel as MEG
+# you can also use minimum-norm for EEG as well as MEG
 evoked_interp_mne = evoked.copy().interpolate_bads(
     reset_bads=False, method=dict(eeg='MNE'), verbose=True)
 evoked_interp_mne.comment += ' (interpolated: eeg-MNE)'
