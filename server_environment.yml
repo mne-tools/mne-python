@@ -9,10 +9,10 @@ dependencies:
 - mesalib
 - ffmpeg
 - vtk
-- scipy
 - traits
 - pip:
   - mne
+  - scipy
   - numpy<1.19.0
   - matplotlib
   - ipympl
