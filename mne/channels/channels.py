@@ -1623,27 +1623,28 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
                                   ch_type=this_ch_type[0])
 
     # Combine channels and add them to the new instance
+    group_ch_names, group_ch_types, group_data = [], [], []
     for this_group, this_group_dict in groups.items():
+        group_ch_names.append(this_group)
+        group_ch_types.append(this_group_dict['ch_type'])
         these_picks = this_group_dict['picks']
-        this_ch_type = this_group_dict['ch_type']
         this_data = np.take(instance._data, these_picks, axis=ch_axis)
-        this_group_data = np.expand_dims(method(this_data), axis=ch_axis)
-        this_info = create_info(sfreq=instance.info['sfreq'],
-                                ch_names=[this_group],
-                                ch_types=[this_ch_type])
-        this_inst = None
-        if isinstance(instance, BaseRaw):
-            this_inst = RawArray(this_group_data, this_info,
-                                 first_samp=instance.first_samp)
-        elif isinstance(instance, BaseEpochs):
-            this_inst = EpochsArray(this_group_data, this_info,
-                                    tmin=instance.times[0])
-        elif isinstance(instance, Evoked):
-            this_inst = EvokedArray(this_group_data, this_info,
-                                    tmin=instance.times[0])
-        if combined_inst is None:
-            combined_inst = this_inst
-        else:
-            combined_inst.add_channels([this_inst])
+        group_data.append(method(this_data))
+    group_data = np.swapaxes(group_data, 0, ch_axis)
+    info = create_info(sfreq=instance.info['sfreq'], ch_names=group_ch_names,
+                       ch_types=group_ch_types)
+    if isinstance(instance, BaseRaw):
+        new_inst = RawArray(group_data, info, first_samp=instance.first_samp,
+                            verbose=instance.verbose)
+    elif isinstance(instance, BaseEpochs):
+        new_inst = EpochsArray(group_data, info, tmin=instance.times[0],
+                               verbose=instance.verbose)
+    elif isinstance(instance, Evoked):
+        new_inst = EvokedArray(group_data, info, tmin=instance.times[0],
+                               verbose=instance.verbose)
+    if combined_inst is None:
+        combined_inst = new_inst
+    else:
+        combined_inst.add_channels([new_inst])
 
     return combined_inst
