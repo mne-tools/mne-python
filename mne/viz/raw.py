@@ -14,7 +14,8 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter, _filtfilt
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels)
+                       _PICK_TYPES_KEYS, pick_channels,
+                       _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..utils import verbose, _ensure_int, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
@@ -98,6 +99,234 @@ def _pick_bad_channels(event, params):
 
 
 _RAW_CLIP_DEF = 3.
+
+
+@verbose
+def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
+                 bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+                 event_color='cyan', scalings=None, remove_dc=True, order=None,
+                 show_options=False, title=None, show=True, block=False,
+                 highpass=None, lowpass=None, filtorder=4,
+                 clipping=_RAW_CLIP_DEF,
+                 show_first_samp=False, proj=True, group_by='type',
+                 butterfly=False, decim='auto', noise_cov=None, event_id=None,
+                 show_scrollbars=True, show_scalebars=True, verbose=None):
+    """."""
+    from matplotlib.patches import Rectangle
+    from ..io.base import BaseRaw
+    from . import browse_figure
+    # handle defaults
+    color = _handle_default('color', color)
+    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
+                                 duration=duration)
+    _validate_type(raw, BaseRaw, 'raw', 'Raw')
+    _validate_type(clipping, (None, 'numeric', str), 'clipping')
+    if isinstance(clipping, str):
+        _check_option('clipping', clipping, ['clamp', 'transparent'],
+                      extra='when a string')
+        clipping = 1. if clipping == 'transparent' else clipping
+    elif clipping is not None:
+        clipping = float(clipping)
+
+    # be forgiving if user asks for too many channels / too much time
+    n_channels = min(raw.info['nchan'], n_channels)
+    duration = min(raw.times[-1], float(duration))
+
+    # determine IIR filtering parameters
+    sfreq = raw.info['sfreq']
+    if highpass is not None and highpass <= 0:
+        raise ValueError(f'highpass must be > 0, got {highpass}')
+    if highpass is None and lowpass is None:
+        ba = filt_bounds = None
+    else:
+        filtorder = int(filtorder)
+        if filtorder == 0:
+            method = 'fir'
+            iir_params = None
+        else:
+            method = 'iir'
+            iir_params = dict(order=filtorder, output='sos', ftype='butter')
+        ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
+                           sfreq, highpass, lowpass, method=method,
+                           iir_params=iir_params)
+        filt_bounds = _annotations_starts_stops(
+            raw, ('edge', 'bad_acq_skip'), invert=True)
+
+    # make a copy of info & remove projection (for now)
+    # TODO: why?
+    info = raw.info.copy()
+    projs = info['projs']
+    info['projs'] = []
+    n_times = raw.n_times
+
+    # generate window title; allow instances without a filename (e.g., ICA)
+    if title is None:
+        title = raw._filenames
+        if len(title) == 0:  # empty list or absent key
+            title = '<unknown>'
+        elif len(title) == 1:
+            title = title[0]
+        else:  # if len(title) > 1:
+            title = '%s ... (+ %d more) ' % (title[0], len(title) - 1)
+            if len(title) > 60:
+                title = '...' + title[-60:]
+    elif not isinstance(title, str):
+        raise TypeError(f'title must be None or a string, got a {type(title)}')
+
+    # compute event times in seconds
+    if events is not None:
+        event_times = events[:, 0] - raw.first_samp
+        event_times /= sfreq
+        event_nums = events[:, 2]
+    else:
+        event_times = event_nums = None
+
+    # determine trace order
+    ch_types = raw.get_channel_types()
+    if isinstance(order, (np.ndarray, list, tuple)):
+        ch_types = ch_types[order]
+    elif order is not None:
+        raise ValueError('order should be array-like; got '
+                         f'"{order}" ({type(order)}).')
+    else:
+        ch_type_order = _DATA_CH_TYPES_ORDER_DEFAULT
+        order = [pick_idx for order_type in ch_type_order
+                 for pick_idx, pick_type in zip(raw.ch_names, ch_types)
+                 if order_type == pick_type]
+
+    if group_by in ('selection', 'position'):
+        # TODO: refactor _setup_browser_selection
+        selections, fig_selection = _setup_browser_selection(raw, group_by)
+        selections = {k: np.intersect1d(v, order) for k, v in
+                      selections.items()}
+    elif group_by == 'original':
+        order = np.arange(len(order))
+    elif group_by != 'type':
+        raise ValueError('Unknown group_by type %s' % group_by)
+
+    # handle event colors
+    if not isinstance(event_color, dict):
+        event_color = {-1: event_color}
+    event_color = {_ensure_int(key, 'event_color key'): event_color[key]
+                   for key in event_color}
+    for key in event_color:
+        if key <= 0 and key != -1:
+            raise KeyError(f'only key <= 0 allowed is -1 (cannot use {key})')
+
+    # more argument checks
+    decim, data_picks = _handle_decim(info, decim, lowpass)
+    noise_cov = _check_cov(noise_cov, info)
+
+    # set up projection and data parameters
+    first_time = raw._first_time if show_first_samp else 0
+    start += first_time
+    event_id_rev = {val: key for key, val in (event_id or {}).items()}
+    units = _handle_default('units', None)
+    unit_scalings = _handle_default('scalings', None)
+
+    # gather parameters and initialize figure
+    params = dict(inst=raw, ch_start=0, t_start=start, duration=duration,
+                  info=info, projs=projs, remove_dc=remove_dc,
+                  filter_coefs_ba=ba, filter_bounds=filt_bounds,
+                  n_channels=n_channels, scalings=scalings, ch_types=ch_types,
+                  n_times=n_times, event_times=event_times,
+                  trace_indices=order,
+                  event_nums=event_nums, clipping=clipping, fig_proj=None,
+                  first_time=first_time, added_label=list(), butterfly=False,
+                  group_by=group_by, orig_indices=order.copy(), decim=decim,
+                  data_picks=data_picks, event_id_rev=event_id_rev,
+                  noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
+                  units=units, unit_scalings=unit_scalings,
+                  snap_annotations=False, scrollbars_visible=show_scrollbars,
+                  scalebars_visible=show_scalebars)
+
+    fig = browse_figure(**params)
+
+    # TODO: figure out what this is doing
+    if group_by in ('selection', 'position'):
+        for attr, value in dict(fig_selection=fig_selection,
+                                selections=selections,
+                                radio_clicked=_radio_clicked):
+            setattr(fig.mne, attr, value)
+        fig_selection.radio.on_clicked(_radio_clicked)
+        fig_selection.canvas.mpl_connect('lasso_event',
+                                         fig._set_custom_selection)
+        labels = [label._text for label in fig_selection.radio.labels]
+        # Flatten the selections dict to a list
+        sels = [selections[label] for label in labels]
+        cis = [item for sublist in sels for item in sublist]
+        for idx, ci in enumerate(cis):
+            this_color = (bad_color if info['ch_names'][ci] in
+                          info['bads'] else color)
+            if isinstance(this_color, dict):
+                this_color = this_color[fig.mne.ch_types[ci]]
+            fig.mne.ax_vscroll.add_patch(Rectangle((0, idx), 1, 1,
+                                                   facecolor=this_color,
+                                                   edgecolor=this_color))
+        fig.mne.ax_vscroll.set_ylim(len(cis), 0)
+        fig.mne.n_channels = max([len(selections[labels[0]]), n_channels])
+    else:
+        for ch_ix in range(len(order)):
+            this_color = (bad_color if info['ch_names'][order[ch_ix]] in
+                          info['bads'] else color)
+            if isinstance(this_color, dict):
+                this_color = this_color[fig.mne.ch_types[order[ch_ix]]]
+            fig.mne.ax_vscroll.add_patch(Rectangle((0, ch_ix), 1, 1,
+                                         facecolor=this_color,
+                                         edgecolor=this_color))
+        fig.mne.ax_vscroll.set_ylim(len(order), 0)
+
+    # scrollbar selection patches and lines
+    vsel_patch = Rectangle((0, 0), 1, fig.mne.n_channels, alpha=0.5,
+                           facecolor='w', edgecolor='w')
+    fig.mne.ax_vscroll.add_patch(vsel_patch)
+    hsel_patch = Rectangle((fig.mne.t_start, 0), fig.mne.duration, 1,
+                           edgecolor='k', facecolor=(0.75, 0.75, 0.75),
+                           alpha=0.25, linewidth=4, clip_on=False)
+    fig.mne.ax_hscroll.add_patch(hsel_patch)
+    fig.mne.ax_hscroll.set_xlim(fig.mne.first_time, fig.mne.first_time +
+                                fig.mne.n_times / info['sfreq'])
+    vertline_color = (0., 0.75, 0.)
+    ax_vertline = fig.mne.ax_main.axvline(0, color=vertline_color, zorder=4)
+    ax_vertline.ch_name = ''
+    vertline_t = fig.mne.ax_hscroll.text(fig.mne.first_time, 1.2, '',
+                                         color=vertline_color, fontsize=10,
+                                         va='bottom', ha='right')
+    ax_hscroll_vertline = fig.mne.ax_hscroll.axvline(0, color=vertline_color,
+                                                     zorder=2)
+    for attr, value in dict(vsel_patch=vsel_patch, hsel_patch=hsel_patch,
+                            ax_vertline=ax_vertline, vertline_t=vertline_t,
+                            ax_hscroll_vertline=ax_hscroll_vertline).items():
+        setattr(fig.mne, attr, value)
+
+    # make shells for plotting traces
+    fig._update_trace_offsets(n_channels)
+    fig.mne.ax_main.set_xlim(fig.mne.t_start,
+                             fig.mne.t_start + fig.mne.duration, False)
+    fig.mne.traces = fig.mne.ax_main.plot(np.full((1, len(order)), np.nan),
+                                          antialiased=True, linewidth=0.5)
+    fig.mne.ax_main.set_yticklabels(
+        ['X' * max([len(ch) for ch in info['ch_names']])] *
+        len(fig.mne.trace_offsets))
+
+    # plot event_line first so it's in the back
+    event_lines = [fig.mne.ax_main.plot([np.nan], color=event_color[ev_num])[0]
+                   for ev_num in sorted(event_color.keys())]
+
+    # plot the data
+    fig._load_data()
+    fig._draw_traces(color=color, bad_color=bad_color, event_lines=event_lines,
+                     event_color=event_color)
+
+    # plot annotations
+    fig._plot_annotations()
+
+    # TODO: update all these to use fig instead of params
+    params['update_fun'] = partial(_update_raw_data, params=params)
+    params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
+    params['label_click_fun'] = partial(_label_clicked, params=params)
+
+    return fig
 
 
 @verbose
