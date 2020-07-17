@@ -244,26 +244,37 @@ class _Brain(object):
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
-                    mesh_data = self._renderer.mesh(
-                        x=self.geo[h].coords[:, 0],
-                        y=self.geo[h].coords[:, 1],
-                        z=self.geo[h].coords[:, 2],
-                        triangles=self.geo[h].faces,
-                        color=None,
-                        scalars=self.geo[h].bin_curv,
-                        vmin=geo_kwargs["vmin"],
-                        vmax=geo_kwargs["vmax"],
-                        colormap=geo_kwargs["colormap"],
-                        opacity=alpha,
-                    )
-                    if isinstance(mesh_data, tuple):
-                        actor, mesh = mesh_data
-                        # add metadata to the mesh for picking
-                        mesh._hemi = h
+                    if self._hemi_meshes.get(h) is None:
+                        mesh_data = self._renderer.mesh(
+                            x=self.geo[h].coords[:, 0],
+                            y=self.geo[h].coords[:, 1],
+                            z=self.geo[h].coords[:, 2],
+                            triangles=self.geo[h].faces,
+                            color=None,
+                            scalars=self.geo[h].bin_curv,
+                            vmin=geo_kwargs["vmin"],
+                            vmax=geo_kwargs["vmax"],
+                            colormap=geo_kwargs["colormap"],
+                            opacity=alpha,
+                        )
+                        if isinstance(mesh_data, tuple):
+                            actor, mesh = mesh_data
+                            # add metadata to the mesh for picking
+                            mesh._hemi = h
+                        else:
+                            actor, mesh = mesh_data.actor, mesh_data
+                        self._hemi_meshes[h] = mesh
+                        self._hemi_actors[h] = actor
                     else:
-                        actor, mesh = mesh_data, None
-                    self._hemi_meshes[h] = mesh
-                    self._hemi_actors[h] = actor
+                        self._renderer._mesh(
+                            self._hemi_meshes[h],
+                            color=None,
+                            scalars=self.geo[h].bin_curv,
+                            vmin=geo_kwargs["vmin"],
+                            vmax=geo_kwargs["vmax"],
+                            colormap=geo_kwargs["colormap"],
+                            opacity=alpha,
+                        )
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
@@ -465,8 +476,8 @@ class _Brain(object):
         self._data['transparent'] = transparent
         # data specific for a hemi
         self._data[hemi] = dict()
-        self._data[hemi]['actor'] = list()
-        self._data[hemi]['mesh'] = list()
+        self._data[hemi]['actor'] = None
+        self._data[hemi]['mesh'] = None
         self._data[hemi]['glyph_actor'] = None
         self._data[hemi]['glyph_mesh'] = None
         self._data[hemi]['array'] = array
@@ -490,28 +501,38 @@ class _Brain(object):
             else:
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
-
-            mesh_data = self._renderer.mesh(
-                x=self.geo[hemi].coords[:, 0],
-                y=self.geo[hemi].coords[:, 1],
-                z=self.geo[hemi].coords[:, 2],
-                triangles=self.geo[hemi].faces,
-                color=None,
-                colormap=self._data['ctable'],
-                vmin=dt_min,
-                vmax=dt_max,
-                opacity=alpha,
-                scalars=np.zeros(len(self.geo[hemi].coords)),
-            )
-            if isinstance(mesh_data, tuple):
-                actor, mesh = mesh_data
-                # add metadata to the mesh for picking
-                mesh._hemi = hemi
-                self.resolve_coincident_topology(actor)
+            if self._data[hemi]['mesh'] is None:
+                mesh_data = self._renderer.mesh(
+                    x=self.geo[hemi].coords[:, 0],
+                    y=self.geo[hemi].coords[:, 1],
+                    z=self.geo[hemi].coords[:, 2],
+                    triangles=self.geo[hemi].faces,
+                    color=None,
+                    colormap=self._data['ctable'],
+                    vmin=dt_min,
+                    vmax=dt_max,
+                    opacity=alpha,
+                    scalars=np.zeros(len(self.geo[hemi].coords)),
+                )
+                if isinstance(mesh_data, tuple):
+                    actor, mesh = mesh_data
+                    # add metadata to the mesh for picking
+                    mesh._hemi = hemi
+                    self.resolve_coincident_topology(actor)
+                else:
+                    actor, mesh = mesh_data, None
+                self._data[hemi]['actor'] = actor
+                self._data[hemi]['mesh'] = mesh
             else:
-                actor, mesh = mesh_data, None
-            self._data[hemi]['actor'].append(actor)
-            self._data[hemi]['mesh'].append(mesh)
+                self._renderer._mesh(
+                    self._data[hemi]['mesh'],
+                    color=None,
+                    colormap=self._data['ctable'],
+                    vmin=dt_min,
+                    vmax=dt_max,
+                    opacity=alpha,
+                    scalars=np.zeros(len(self.geo[hemi].coords)),
+                )
 
         # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
@@ -1012,7 +1033,8 @@ class _Brain(object):
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                for actor in hemi_data['actor']:
+                if hemi_data['actor'] is not None:
+                    actor = hemi_data['actor']
                     if self._colorbar_added:
                         scalar_bar = self._renderer.plotter.scalar_bar
                     else:
@@ -1119,9 +1141,9 @@ class _Brain(object):
                     act_data = smooth_mat.dot(act_data)
 
                 # update the mesh scalar values
-                for mesh in hemi_data['mesh']:
-                    if mesh is not None:
-                        _set_mesh_scalars(mesh, act_data, 'Data')
+                if hemi_data['mesh'] is not None:
+                    mesh = hemi_data['mesh']
+                    _set_mesh_scalars(mesh, act_data, 'Data')
 
                 # update the glyphs
                 if array.ndim == 3:

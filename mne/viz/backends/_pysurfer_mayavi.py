@@ -68,7 +68,6 @@ class _Renderer(_BaseRenderer):
                  name=None, show=False, shape=(1, 1), smooth_shading=True):
         if bgcolor is not None:
             bgcolor = _check_color(bgcolor)
-        print(bgcolor)
         self.mlab = _import_mlab()
         self.shape = shape
         if fig is None:
@@ -95,6 +94,13 @@ class _Renderer(_BaseRenderer):
         if self.fig.scene is not None:
             self.fig.scene.interactor.interactor_style = \
                 tvtk.InteractorStyleTerrain()
+
+    def _mesh(self, mesh, color, opacity=1.0,
+              backface_culling=False, scalars=None, colormap=None,
+              vmin=None, vmax=None, interpolate_before_map=True,
+              representation='surface', line_width=1., **kwargs):
+        # XXX To do
+        pass
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
