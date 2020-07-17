@@ -489,7 +489,10 @@ class _TimeViewer(object):
 
     @copy_doc(_Brain.save_movie)
     def save_movie(self, filename=None, **kwargs):
-        from pyvista.plotting.qt_plotting import FileDialog
+        try:
+            from pyvista.plotting.qt_plotting import FileDialog
+        except ImportError:
+            from pyvistaqt.plotting import FileDialog
 
         if filename is None:
             self.status_msg.setText("Choose movie path ...")
