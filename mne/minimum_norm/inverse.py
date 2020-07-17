@@ -1424,7 +1424,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     gain = np.dot(whitener, forward['sol']['data'])
 
     logger.info('Creating the source covariance matrix')
-    source_std = np.ones(gain.shape[1])
+    source_std = np.ones(gain.shape[1], dtype=gain.dtype)
     if depth_prior is not None:
         source_std *= depth_prior
     if orient_prior is not None:

@@ -517,7 +517,7 @@ def _setup_ext_proj(info, ext_order):
     ext = _sss_basis(
         dict(origin=(0., 0., 0.), int_order=0, ext_order=ext_order),
         mf_coils).T
-    out_removes = _regularize_out(0, 1, mag_or_fine)
+    out_removes = _regularize_out(0, 1, mag_or_fine, [])
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
     ext = linalg.orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)

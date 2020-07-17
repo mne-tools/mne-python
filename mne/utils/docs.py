@@ -522,6 +522,13 @@ skip_by_annotation : str | list of str
     or :meth:`mne.io.Raw.append`, or separated during acquisition.
     To disable, provide an empty list.
 """
+docdict['maxwell_extended'] = """
+extended_proj : list
+    The empty-room projection vectors used to extend the external
+    SSS basis (i.e., use eSSS).
+
+    .. versionadded:: 0.21
+"""
 
 # Rank
 docdict['rank'] = """
@@ -604,6 +611,64 @@ reduce_rank : bool
     .. versionchanged:: 0.20
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
+"""
+docdict['weight_norm'] = """
+weight_norm : str | None
+    Can be:
+
+    - ``None``
+        The unit-gain LCMV beamformer :footcite:`SekiharaNagarajan2008` will be
+        computed.
+    - ``'unit-noise-gain'``
+        The unit-noise gain minimum variance beamformer will be computed
+        (Borgiotti-Kaplan beamformer) :footcite:`SekiharaNagarajan2008`,
+        which is not rotation invariant when ``pick_ori='vector'``.
+        This should be combined with
+        :meth:`stc.project('pca') <mne.VectorSourceEstimate.project>` to follow
+        the definition in :footcite:`SekiharaNagarajan2008`.
+    - ``'nai'``
+        The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed,
+        which simply scales all values from ``'unit-noise-gain'`` by a fixed
+        value.
+    - ``'unit-noise-gain-invariante'``
+        Compute a rotation-invariant normalization using the matrix square
+        root. This differs from ``'unit-noise-gain'`` only when
+        ``pick_ori='vector'``, creating a solution that:
+
+        1. Is rotation invariant (``'unit-noise-gain'`` is not);
+        2. Satisfies the first requirement from
+           :footcite:`SekiharaNagarajan2008` that ``w @ w.conj().T == I``,
+           whereas ``'unit-noise-gain'`` has non-zero off-diagonals; but
+        3. Does not satisfy the second requirement that ``w @ G.T = θI``,
+           which arguably does not make sense for a rotation-invariant
+           solution.
+"""
+docdict['bf_pick_ori'] = """
+pick_ori : None | str
+    For forward solutions with fixed orientation, None (default) must be
+    used and a scalar beamformer is computed. For free-orientation forward
+    solutions, a vector beamformer is computed and:
+
+    - ``None``
+        Orientations are pooled after computing a vector beamformer (Default).
+    - ``'normal'``
+        Filters are computed for the orientation tangential to the
+        cortical surface.
+    - ``'max-power'``
+        Filters are computed for the orientation that maximizes power.
+"""
+docdict['bf_inversion'] = """
+inversion : 'single' | 'matrix'
+    This determines how the beamformer deals with source spaces in "free"
+    orientation. Such source spaces define three orthogonal dipoles at each
+    source point. When ``inversion='single'``, each dipole is considered
+    as an individual source and the corresponding spatial filter is
+    computed for each dipole separately. When ``inversion='matrix'``, all
+    three dipoles at a source vertex are considered as a group and the
+    spatial filters are computed jointly using a matrix inversion. While
+    ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
+    precise. See section 5 of :footcite:`vanVlietEtAl2018`.
+    Defaults to ``'matrix'``.
 """
 docdict['use_cps'] = """
 use_cps : bool
@@ -917,7 +982,7 @@ docdict["show_traces"] = """
 show_traces : bool | str
     If True, enable interactive picking of a point on the surface of the
     brain and plot it's time course using the bottom 1/3 of the figure.
-    This feature is only available with the PyVista 3d backend when
+    This feature is only available with the PyVista 3d backend, and requires
     ``time_viewer=True``. Defaults to 'auto', which will use True if and
     only if ``time_viewer=True``, the backend is PyVista, and there is more
     than one time point.
@@ -1236,6 +1301,21 @@ title : str | None
     The title of the figure if ``mode='orthoview'`` (ignored for all other
     modes). If ``None``, dipole number and its properties (amplitude,
     orientation etc.) will be shown. Defaults to ``None``.
+"""
+
+# TFRs
+docdict['tfr_average'] = """
+average : bool, default True
+    If ``False`` return an `EpochsTFR` containing separate TFRs for each
+    epoch. If ``True`` return an `AverageTFR` containing the average of all
+    TFRs across epochs.
+
+    .. note::
+        Using ``average=True`` is functionally equivalent to using
+        ``average=False`` followed by ``EpochsTFR.average()``, but is
+        more memory efficient.
+
+    .. versionadded:: 0.13.0
 """
 
 # Finalize

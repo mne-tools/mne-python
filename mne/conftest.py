@@ -97,6 +97,7 @@ def pytest_configure(config):
     ignore:.*sphinx\.util\.smartypants is deprecated.*:
     ignore:.*pandas\.util\.testing is deprecated.*:
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
+    ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -164,13 +165,24 @@ def matplotlib_config():
     cbook.CallbackRegistry = CallbackRegistryReraise
 
 
+@pytest.fixture(scope='session')
+def travis_macos():
+    """Determine if running on Travis macOS."""
+    return (os.getenv('TRAVIS', 'false').lower() == 'true' and
+            sys.platform == 'darwin')
+
+
+@pytest.fixture(scope='session')
+def azure_windows():
+    """Determine if running on Azure Windows."""
+    return (os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true' and
+            sys.platform.startswith('win'))
+
+
 @pytest.fixture()
-def check_gui_ci():
+def check_gui_ci(travis_macos, azure_windows):
     """Skip tests that are not reliable on CIs."""
-    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
-           sys.platform == 'darwin')
-    win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
-    if win or osx:
+    if azure_windows or travis_macos:
         pytest.skip('Skipping GUI tests on Travis OSX and Azure Windows')
 
 

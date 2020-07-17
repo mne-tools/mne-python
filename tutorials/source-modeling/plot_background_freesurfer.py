@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 r"""
-.. _tut-freesurfer:
+.. _tut-freesurfer-reconstruction:
 
-======================================
-FreeSurfer integration with MNE-Python
-======================================
+=============================
+FreeSurfer MRI reconstruction
+=============================
 
 FreeSurfer is an open source analysis toolbox for MRI data. It contains several
 command line tools and graphical user interfaces. FreeSurfer can be obtained
@@ -85,34 +85,49 @@ prefix ``lh`` or ``rh`` to refer to the aforementioned. For that reason
 data representations such as :class:`mne.SourceEstimate` carry two sets of
 spatial locations (vertices) for both hemispheres separately. See also
 :ref:`tut-source-estimate-class`.
-
-'fsaverage'
-===========
-
-During installation, FreeSurfer copies a "default" subject, called
-``'fsaverage'`` to ``$FREESURFER_HOME/subjects/fsaverage``. It contains all
-data types that a subject reconstruction would yield and is required by
-MNE-Python.
-
-See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for more
-information. Furthermore a copy of 'fsaverage' can be found in
-:ref:`sample-data`.
-
-When using ``'fsaverage'`` as value for the definition
-of a subject when calling a function, the corresponding data will be read (e.g.
-``subject='fsaverage'``) from '~/subjects/fsaverage'. This becomes especially
-handy, when attempting statistical analyses on group level, based on
-individual's brain space data. In that case ``'fsaverage'`` will by default act
-as reference space for :ref:`source estimate transformations <ch_morph>`.
-
-Use with MNE-Python
-===================
-
-For source localization analyses to work properly, it is important, that the
-FreeSurfer reconstruction has completed beforehand. Furthermore, when using
-related functions, such as :func:`mne.setup_source_space`, ``SUBJECTS_DIR`` has
-to be defined either globally by setting :func:`mne.set_config` or for
-each function separately, by passing the respective keyword argument
-``subjects_dir='~/subjects'``. See also :ref:`setting_up_source_space` to get
-an idea of how this works.
 """
+
+import mne
+subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+Brain = mne.viz.get_brain_class()
+brain = Brain('sample', hemi='lh', surf='pial',
+              subjects_dir=subjects_dir, size=(800, 600))
+brain.add_annotation('aparc.a2009s', borders=False)
+
+###############################################################################
+# 'fsaverage'
+# ===========
+#
+# During installation, FreeSurfer copies a "default" subject, called
+# ``'fsaverage'`` to ``$FREESURFER_HOME/subjects/fsaverage``. It contains all
+# data types that a subject reconstruction would yield and is required by
+# MNE-Python.
+#
+# See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for more
+# information. Furthermore a copy of 'fsaverage' can be found in
+# :ref:`sample-data`.
+#
+# When using ``'fsaverage'`` as value for the definition
+# of a subject when calling a function, the corresponding data will be read
+# (e.g., ``subject='fsaverage'``) from '~/subjects/fsaverage'. This becomes
+# especially handy, when attempting statistical analyses on group level, based
+# on individual's brain space data. In that case ``'fsaverage'`` will by
+# default act as reference space for
+# :ref:`source estimate transformations <ch_morph>`.
+#
+# For example, to reproduce a typical header image used by FreeSurfer, we can
+# plot the ``aparc`` parcellation:
+#
+# Use with MNE-Python
+# ===================
+#
+# For source localization analyses to work properly, it is important that the
+# FreeSurfer reconstruction has completed beforehand. Furthermore, when using
+# related functions, such as :func:`mne.setup_source_space`, ``SUBJECTS_DIR``
+# has to be defined either globally by setting :func:`mne.set_config` or for
+# each function separately, by passing the respective keyword argument
+# ``subjects_dir='~/subjects'``.
+#
+# See also :ref:`setting_up_source_space` to get an idea of how this works for
+# one particular function, and :ref:`tut-freesurfer-mne` for how the two are
+# integrated.

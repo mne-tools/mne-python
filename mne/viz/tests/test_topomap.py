@@ -126,6 +126,11 @@ def test_plot_projs_topomap():
         plot_projs_topomap(projs[:-1], info, vlim=vlim, colorbar=True)
     plt.close('all')
 
+    eeg_proj = make_eeg_average_ref_proj(info)
+    info_meg = pick_info(info, pick_types(info, meg=True, eeg=False))
+    with pytest.raises(ValueError, match='No channel names in info match p'):
+        plot_projs_topomap([eeg_proj], info_meg)
+
 
 def test_plot_topomap_animation():
     """Test topomap plotting."""

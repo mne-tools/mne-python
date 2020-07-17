@@ -2,7 +2,7 @@ name: mne
 channels:
 - defaults
 dependencies:
-- python>=3.5
+- python>=3.6
 - pip
 - numpy
 - scipy
@@ -15,14 +15,8 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
-- pytest<5.4
-- pytest-cov
-- pytest-mock
-- pytest-timeout
-- pytest-xdist
 - joblib
 - psutil
-- flake8
 - numexpr
 - traits>=4.6.0
 - pyface>=6
@@ -41,9 +35,6 @@ dependencies:
   - nibabel
   - nilearn
   - neo
-  - pytest-sugar
-  - pydocstyle
-  - codespell
   - python-picard
   - tqdm
   - PyQt5>=5.10

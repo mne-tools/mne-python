@@ -132,6 +132,7 @@ brain.add_text(0.1, 0.9, 'dSPM (plus location of maximal activation)', 'title',
 ###############################################################################
 # Morph data to average brain
 # ---------------------------
+# Next we morph data to ``fsaverage``.
 
 # setup source morph
 morph = mne.compute_source_morph(

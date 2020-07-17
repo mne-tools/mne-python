@@ -1,0 +1,15 @@
+pytest!=4.6.0,<5.4
+pytest-cov
+pytest-mock
+pytest-sugar
+pytest-timeout
+pytest-xdist
+flake8
+https://github.com/larsoner/flake8-array-spacing/archive/master.zip
+https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
+https://github.com/numpy/numpydoc/archive/master.zip
+https://github.com/codespell-project/codespell/archive/master.zip
+pydocstyle
+check-manifest
+twine
+wheel

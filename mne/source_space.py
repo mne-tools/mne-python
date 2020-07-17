@@ -514,7 +514,7 @@ class SourceSpaces(list):
             n_diff = ((ix_ != ix) | (iy_ != iy) | (iz_ != iz)).sum()
             # generate use warnings for clipping
             if n_diff > 0:
-                warn(f'{n_diff} {src["kind"]} vertices lay outside of volume '
+                warn(f'{n_diff} {src["type"]} vertices lay outside of volume '
                      f'space. Consider using a larger volume space.')
             # get surface id or use default value
             # update image to include surface voxels
@@ -1532,6 +1532,7 @@ def _check_mri(mri, subject, subjects_dir):
 
 def _check_volume_labels(volume_label, mri, name='volume_label'):
     _validate_type(mri, 'path-like', 'mri when %s is not None' % (name,))
+    mri = _check_fname(mri, overwrite='read', must_exist=True)
     if isinstance(volume_label, str):
         volume_label = [volume_label]
     _validate_type(volume_label, (list, tuple, dict), name)  # should be
@@ -1893,6 +1894,46 @@ def _import_nibabel(why='use MRI files'):
     if msg:
         raise ImportError(msg)
     return nib
+
+
+def _mri_orientation(img, orientation):
+    """Get MRI orientation information from an image.
+
+    Parameters
+    ----------
+    img : instance of SpatialImage
+        The MRI image.
+    orientation : str
+        Orientation that you want. Can be "axial", "saggital", or "coronal".
+
+    Returns
+    -------
+    xyz : tuple, shape (3,)
+        The dimension indices for X, Y, and Z.
+    flips : tuple, shape (3,)
+        Whether each dimension requires a flip.
+    order : tuple, shape (3,)
+        The resulting order of the data if the given ``xyz`` and ``flips``
+        are used.
+
+    Notes
+    -----
+    .. versionadded:: 0.21
+    """
+    import nibabel as nib
+    _validate_type(img, nib.spatialimages.SpatialImage)
+    _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
+    axcodes = ''.join(nib.orientations.aff2axcodes(img.affine))
+    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
+    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
+    order = dict(
+        coronal=('R', 'S', 'A'),
+        axial=('R', 'A', 'S'),
+        sagittal=('A', 'S', 'R'),
+    )[orientation]
+    xyz = tuple(axcodes.index(c) for c in order)
+    flips = tuple(flips[c] for c in order)
+    return xyz, flips, order
 
 
 def _get_mri_info_data(mri, data):

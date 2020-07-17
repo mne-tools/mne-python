@@ -9,7 +9,7 @@ This example demonstrates how to morph an individual subject's
 :class:`mne.SourceEstimate` to a common reference space. We achieve this using
 :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
 a spherical representation of the cortex computed using the spherical
-registration of :ref:`FreeSurfer <tut-freesurfer>`
+registration of :ref:`FreeSurfer <tut-freesurfer-mne>`
 (https://surfer.nmr.mgh.harvard.edu/fswiki/SurfaceRegAndTemplates) [1]_. This
 transform will be used to morph the surface vertices of the subject towards the
 reference vertices. Here we will use 'fsaverage' as a reference space (see

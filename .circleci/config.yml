@@ -14,10 +14,10 @@ jobs:
               echo "set -e" >> $BASH_ENV
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci"  >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "source ${PWD}/tools/get_minimal_commands.sh" >> $BASH_ENV
               echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
-              echo "export _MNE_BRAIN_TRACES_AUTO=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
@@ -80,11 +80,9 @@ jobs:
             name: Get Python running
             command: |
               python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt
-              python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
-              python -m pip install --user --upgrade seaborn
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
+              python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user -e .
 
         - save_cache:
@@ -355,7 +353,7 @@ jobs:
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip" memory_profiler https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
+               python -m pip install --user --progress-bar off -r requirements_doc.txt
                python -m pip install --user -e .
         - run:
             name: make linkcheck
