@@ -2305,7 +2305,6 @@ def _animate(frame, ax, ax_line, params):
         line.remove()
         ylim = ax_line.get_ylim()
         params['line'] = ax_line.axvline(all_times[time_idx], color='r')
-        print(all_times[time_idx])
         ax_line.set_ylim(ylim)
         items.append(params['line'])
     params['frame'] = frame

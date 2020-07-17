@@ -2896,10 +2896,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
-        time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
-        time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
-                                    time_diff, [times[-1] + time_diff[-1]]])
-
+        time_lims = centers_to_edges(times)
         log_yvals = np.concatenate([[yvals[0] / ratio[0]], yvals,
                                     [yvals[-1] * ratio[0]]])
         yval_lims = np.sqrt(log_yvals[:-1] * log_yvals[1:])
@@ -3282,3 +3279,39 @@ def _trim_ticks(ticks, _min, _max):
 def _set_window_title(fig, title):
     if fig.canvas.manager is not None:
         fig.canvas.manager.set_window_title(title)
+
+
+def centers_to_edges(*arrays):
+    """Convert center points to edges.
+
+    Parameters
+    ----------
+    *arrays : list of ndarray
+        Each input array should be 1D monotonically increasing,
+        and will be cast to float.
+
+    Returns
+    -------
+    arrays : list of ndarray
+        Given each input of shape (N,), the output will have shape (N+1,).
+
+    Examples
+    --------
+    >>> x = [0., 0.1, 0.2, 0.3]
+    >>> y = [20, 30, 40]
+    >>> centers_to_edges(x, y)  # doctest: +NORMALIZE_WHITESPACE
+    [array([-0.05, 0.05, 0.15, 0.25, 0.35]), array([15., 25., 35., 45.])]
+    """
+    out = list()
+    for ai, arr in enumerate(arrays):
+        arr = np.asarray(arr, dtype=float)
+        _check_option(f'arrays[{ai}].ndim', arr.ndim, (1,))
+        if len(arr) > 1:
+            arr_diff = np.diff(arr) / 2.
+        else:
+            arr_diff = [abs(arr[0]) * 0.001] if arr[0] != 0 else [0.001]
+        out.append(np.concatenate([
+            [arr[0] - arr_diff[0]],
+            arr[:-1] + arr_diff,
+            [arr[-1] + arr_diff[-1]]]))
+    return out
