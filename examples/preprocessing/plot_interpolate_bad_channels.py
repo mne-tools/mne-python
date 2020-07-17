@@ -22,6 +22,8 @@ References
 #
 # License: BSD (3-clause)
 
+# sphinx_gallery_thumbnail_number = 2
+
 import mne
 from mne.datasets import sample
 
@@ -31,13 +33,20 @@ data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname, condition='Left Auditory',
-                          baseline=(None, 0))
+                          baseline=(None, 0), proj=False)
 
 # plot with bads
-evoked.plot(exclude=[], time_unit='s')
+evoked.plot(exclude=[])
 
 # compute interpolation (also works with Raw and Epochs objects)
-evoked.interpolate_bads(reset_bads=False, verbose=False)
+evoked_interp = evoked.copy().interpolate_bads(reset_bads=False)
 
 # plot interpolated (previous bads)
-evoked.plot(exclude=[], time_unit='s')
+evoked_interp.comment += '(interpolated)'
+evoked_interp.plot(exclude=[])
+
+# you can also use minimum-norm for EEG as wel as MEG
+evoked_interp_mne = evoked.copy().interpolate_bads(
+    reset_bads=False, method=dict(eeg='MNE'), verbose=True)
+evoked_interp_mne.comment += ' (interpolated: eeg-MNE)'
+evoked_interp_mne.plot(exclude=[])
