@@ -309,3 +309,5 @@
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 
 .. _Jan Sedivy: https://github.com/honzaseda
+
+.. _Johann Benerradi: https://github.com/HanBnrd
