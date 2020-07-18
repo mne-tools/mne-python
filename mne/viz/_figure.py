@@ -126,7 +126,7 @@ class MNEBrowseFigure(MNEFigure):
         # # traces
         # self.mne.traces = None            # lines
         # self.mne.trace_offsets = None     # offsets
-        # self.mne.trace_indices = None     # inds
+        # self.mne.ch_order = None     # inds
         # self.mne.orig_indices = None      # orig_inds
         self.mne.segment_line = None
         # self.mne.clipping = None
@@ -142,8 +142,8 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.scalings = None
         # self.mne.unit_scalings = None
         self.mne.scale_factor = 1.
-        self.mne.scalebars = list()           # (new)
-        self.mne.scalebar_texts = list()      # (new)
+        self.mne.scalebars = dict()           # (new)
+        self.mne.scalebar_texts = dict()      # (new)
 
         # # ancillary figures
         # self.mne.fig_proj = None
@@ -497,19 +497,18 @@ class MNEBrowseFigure(MNEFigure):
     def _toggle_scalebars(self, event):
         """Show/hide the scalebars."""
         if self.mne.scalebars_visible:
-            # TODO: keep them around to avoid re-computing? if so, try using
-            # set_visible and don't set params to None
-            for bar in self.mne.scalebars:
+            for bar in self.mne.scalebars.values():
                 self.mne.ax_main.lines.remove(bar)
-            for text in self.mne.scalebar_texts:
+            for text in self.mne.scalebar_texts.values():
                 self.mne.ax_main.texts.remove(text)
-            self.mne.scalebars = list()
-            self.mne.scalebar_texts = list()
+            self.mne.scalebars = dict()
+            self.mne.scalebar_texts = dict()
         else:
             # TODO: refactor _draw_scalebar to take more flexible inputs
             raise NotImplementedError
         # toggle
         self.mne.scalebars_visible = not self.mne.scalebars_visible
+        self.canvas.draw()
 
     def _draw_scalebar(self, x, y, ch_type):
         """Draw the scalebars."""
@@ -527,8 +526,8 @@ class MNEBrowseFigure(MNEFigure):
         label = f'{_simplify_float(inv_norm)} {self.mne.units[ch_type]} '
         text = self.mne.ax_main.text(x[1], y[1], label, va='baseline',
                                      ha='right', size='xx-small', **kwargs)
-        self.mne.scalebars.append(bar)
-        self.mne.scalebar_texts.append(text)
+        self.mne.scalebars[ch_type] = bar
+        self.mne.scalebar_texts[ch_type] = text
 
     def _update_trace_offsets(self, n_channels):
         """Compute viewport height and adjust offsets."""
@@ -543,6 +542,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.ax_vertline.set_data(_x, np.array(ylim))
         # store new offsets
         self.mne.trace_offsets = offsets
+        self.canvas.draw()
 
     def _load_data(self):
         """."""
@@ -557,7 +557,7 @@ class MNEBrowseFigure(MNEFigure):
     def _update_data(self):
         """."""
         # TODO: adapt from _update_raw_data, raw.py lines 47-87
-        pass
+        self.canvas.draw()
 
     def _draw_traces(self, color, bad_color, event_lines=None,
                      event_color=None):
@@ -567,7 +567,7 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.butterfly:
             n_channels = len(self.mne.trace_offsets)
             ch_start = 0
-            offsets = self.mne.trace_offsets[self.mne.trace_indices]
+            offsets = self.mne.trace_offsets[self.mne.ch_order]
         else:
             n_channels = self.mne.n_channels
             ch_start = self.mne.ch_start
@@ -579,11 +579,11 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.ax_main.lines.remove(bar)
         for text in self.mne.scalebar_texts:
             self.mne.ax_main.texts.remove(text)
-        self.mne.scalebars = list()
-        self.mne.scalebar_texts = list()
+        self.mne.scalebars = dict()
+        self.mne.scalebar_texts = dict()
         # TODO: clear event and annotation texts
         #
-        ch_indices = self.mne.trace_indices[np.arange(n_channels) + ch_start]
+        ch_indices = self.mne.ch_order[ch_start:(ch_start + n_channels)]
         ch_names = np.array(self.mne.inst.info['ch_names'])[ch_indices]
         ch_types = np.array(self.mne.ch_types)[ch_indices]
         bads = ch_names[np.in1d(ch_names, self.mne.inst.info['bads'])]
@@ -599,72 +599,73 @@ class MNEBrowseFigure(MNEFigure):
             for label, color in zip(labels, ch_colors):
                 label.set_color(color)
         # decim
+        data_picks_mask = np.in1d(ch_indices, self.mne.data_picks)
         decim = np.ones_like(ch_indices)
-        decim[np.in1d(ch_indices, self.mne.data_picks)] = self.mne.decim
+        decim[data_picks_mask] = self.mne.decim
         # decim can vary by channel, so compute different times vectors
         decim_times_dict = {decim_value:
                             self.mne.times[::decim_value] + self.mne.first_time
                             for decim_value in set(decim)}
+        # update axis labels
+        self.mne.ax_main.set_yticklabels(ch_names, rotation=0)
         # loop over channels
         for ii, ch_ind in enumerate(ch_indices):
             this_name = ch_names[ii]
             this_type = ch_types[ii]
             this_line = self.mne.traces[ii]
-            # don't complain if user asks for more channels than they have
-            if ii >= len(self.mne.traces):
-                break
-            # remove traces if needed
-            elif ch_ind >= len(ch_indices):
-                this_line.set_xdata([])
-                this_line.set_ydata([])
-            # draw traces
-            else:
-                # do not update data in-place!
-                this_data = self.mne.data[ch_ind] * self.mne.scale_factor
-                this_times = decim_times_dict[decim[ii]]
-                # clip
-                if self.mne.clipping == 'clamp':
-                    np.clip(this_data, -1, 1, out=this_data)
-                elif self.mne.clipping is not None:
-                    l, w = this_times[0], this_times[-1] - this_times[0]
-                    ylim = self.mne.ax_main.get_ylim()
-                    b = offsets[ii] - self.mne.clipping  # max(, ylim[0])
-                    h = 2 * self.mne.clipping            # min(, ylim[1] - b)
-                    assert ylim[1] <= ylim[0]            # inverted
-                    b = max(b, ylim[1])
-                    h = min(h, ylim[0] - b)
-                    rect = Rectangle((l, b), w, h,
-                                     transform=self.mne.ax_main.transData)
-                    this_line.set_clip_path(rect)
-                # update trace data
-                # subtraction yields correct orientation given inverted ylim
-                this_line.set_xdata(this_times)
-                this_line.set_ydata(offsets[ii] - this_data[..., ::decim[ii]])
-                this_line.set_color(ch_colors[ii])
-                # add attributes to traces
-                vars(this_line)['ch_name'] = this_name
-                vars(this_line)['def_color'] = ch_colors[ii]
-                # set z-order and channel name colors
-                this_z = 0 if this_name in bads else 1
-                if self.mne.butterfly:
-                    if this_name not in bads:
-                        if this_type == 'mag':
-                            this_z = 2
-                        elif this_type == 'grad':
-                            this_z = 3
-                this_line.set_zorder(this_z)
-                # draw a scalebar maybe
-                if (this_name not in bads and
-                        this_name not in self.mne.whitened_ch_names and
-                        this_type != 'stim' and
-                        this_type in self.mne.scalings and
-                        this_type in getattr(self.mne, 'units', {}) and
-                        this_type in getattr(self.mne, 'unit_scalings', {}) and
-                        this_type not in self.mne.scalebars):  # TODO: why?
-                    x = (this_times[0],) * 2
-                    y = tuple(np.array([-1, 1]) + offsets[ii])
-                    self._draw_scalebar(x, y, this_type)
-        # TODO: event lines
+            this_times = decim_times_dict[decim[ii]]
+            # do not update data in-place!
+            this_data = self.mne.data[ch_ind] * self.mne.scale_factor
+            # clip
+            if self.mne.clipping == 'clamp':
+                np.clip(this_data, -1, 1, out=this_data)
+            elif self.mne.clipping is not None:
+                l, w = this_times[0], this_times[-1] - this_times[0]
+                ylim = self.mne.ax_main.get_ylim()
+                b = offsets[ii] - self.mne.clipping  # max(, ylim[0])
+                h = 2 * self.mne.clipping            # min(, ylim[1] - b)
+                assert ylim[1] <= ylim[0]            # inverted
+                b = max(b, ylim[1])
+                h = min(h, ylim[0] - b)
+                rect = Rectangle((l, b), w, h,
+                                 transform=self.mne.ax_main.transData)
+                this_line.set_clip_path(rect)
+            # update trace data
+            # subtraction yields correct orientation given inverted ylim
+            this_line.set_xdata(this_times)
+            this_line.set_ydata(offsets[ii] - this_data[..., ::decim[ii]])
+            this_line.set_color(ch_colors[ii])
+            # add attributes to traces
+            vars(this_line)['ch_name'] = this_name
+            vars(this_line)['def_color'] = ch_colors[ii]
+            # set z-order and channel name colors
+            this_z = 0 if this_name in bads else 1
+            if self.mne.butterfly:
+                if this_name not in bads:
+                    if this_type == 'mag':
+                        this_z = 2
+                    elif this_type == 'grad':
+                        this_z = 3
+            this_line.set_zorder(this_z)
+            # draw a scalebar maybe
+            if (this_name not in bads and
+                    this_name not in self.mne.whitened_ch_names and
+                    this_type != 'stim' and
+                    this_type in self.mne.scalings and
+                    this_type in getattr(self.mne, 'units', {}) and
+                    this_type in getattr(self.mne, 'unit_scalings', {}) and
+                    this_type not in self.mne.scalebars):
+                x = (this_times[0],) * 2
+                y = tuple(np.array([-1, 1]) + offsets[ii])
+                self._draw_scalebar(x, y, this_type)
+        # TODO: WIP event lines
+        if self.mne.event_times is not None:
+            mask = np.logical_and(self.mne.event_times >= self.mne.times[0],
+                                  self.mne.event_times <= self.mne.times[-1])
+            these_event_times = self.mne.event_times[mask]
+            these_event_nums = self.mne.event_nums[mask]
+            # plot them
+            ylim = self.mne.ax_main.get_ylim()
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""

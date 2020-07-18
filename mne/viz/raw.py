@@ -191,9 +191,8 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     else:
         ch_type_order = _DATA_CH_TYPES_ORDER_DEFAULT
         order = [pick_idx for order_type in ch_type_order
-                 for pick_idx, pick_type in zip(raw.ch_names, ch_types)
+                 for pick_idx, pick_type in enumerate(ch_types)
                  if order_type == pick_type]
-
     if group_by in ('selection', 'position'):
         # TODO: refactor _setup_browser_selection
         selections, fig_selection = _setup_browser_selection(raw, group_by)
@@ -230,7 +229,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   filter_coefs_ba=ba, filter_bounds=filt_bounds,
                   n_channels=n_channels, scalings=scalings, ch_types=ch_types,
                   n_times=n_times, event_times=event_times,
-                  trace_indices=order,
+                  ch_order=np.asarray(order),
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
                   group_by=group_by, orig_indices=order.copy(), decim=decim,
