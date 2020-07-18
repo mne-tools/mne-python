@@ -81,6 +81,8 @@ Changelog
 
 - Add ``mri`` and ``show_orientation`` arguments to :func:`mne.viz.plot_bem` by `Eric Larson`_
 
+- Add :func:`mne.viz.centers_to_edges` to help when using :meth:`matplotlib.axes.Axes.pcolormesh` with flat shading by `Eric Larson`_
+
 - Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
 
 - Add better sanity checking of ``max_pca_components`` and ``n_components`` to provide more informative error messages for :class:`mne.preprocessing.ICA` by `Eric Larson`_

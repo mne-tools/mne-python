@@ -5,7 +5,8 @@ from .topomap import (plot_evoked_topomap, plot_projs_topomap, plot_arrowmap,
                       plot_epochs_psd_topomap, plot_layout)
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
-                    ClickableImage, add_background_image, plot_sensors)
+                    ClickableImage, add_background_image, plot_sensors,
+                    centers_to_edges)
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_vector_source_estimates, plot_evoked_field,
                   plot_dipole_locations, snapshot_brain_montage,
