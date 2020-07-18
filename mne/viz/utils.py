@@ -3299,7 +3299,7 @@ def centers_to_edges(*arrays):
     --------
     >>> x = [0., 0.1, 0.2, 0.3]
     >>> y = [20, 30, 40]
-    >>> centers_to_edges(x, y)  # doctest: +NORMALIZE_WHITESPACE
+    >>> centers_to_edges(x, y)  # doctest: +SKIP
     [array([-0.05, 0.05, 0.15, 0.25, 0.35]), array([15., 25., 35., 45.])]
     """
     out = list()
