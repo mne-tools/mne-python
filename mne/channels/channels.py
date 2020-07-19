@@ -10,6 +10,7 @@
 import os
 import os.path as op
 import sys
+from collections import OrderedDict
 from copy import deepcopy
 from functools import partial
 
@@ -1540,7 +1541,8 @@ def make_1020_channel_selections(info, midline="z"):
     return selections
 
 
-def combine_channels(instance, groups, method='mean', keep_stim=False):
+def combine_channels(instance, groups, method='mean', keep_stim=False,
+                     drop_bad=False):
     """Combine channels based on regions of interest (ROIs).
 
     Parameters
@@ -1571,6 +1573,8 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
         Defaults to ``mean``.
     keep_stim : bool
         If True (default False), keep stimulus channels.
+    drop_bad : bool
+        If True (default False), drop channels marked as bad.
 
     Returns
     -------
@@ -1589,7 +1593,7 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
     ch_axis = len(instance._data.shape) - 2  # idx of the channel axis
     ch_idx = list(range(instance.info['nchan']))
     ch_types = _get_channel_types(instance.info)
-    groups = deepcopy(groups)
+    groups = OrderedDict(deepcopy(groups))
 
     # Convert string values of ``method`` into callables
     # XXX Possibly de-duplicate with _make_combine_callable of mne/viz/utils.py
@@ -1620,6 +1624,18 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
     else:
         combined_inst = None
 
+    # Get indices of bad channels
+    if not isinstance(drop_bad, bool):
+        raise TypeError('"drop_bad" must be of type bool, not '
+                        f'{type(drop_bad)}.')
+    if drop_bad is False:
+        ch_idx_bad = []
+    elif not instance.info['bads']:
+        ch_idx_bad = []
+    else:
+        ch_idx_bad = pick_channels(instance.info['ch_names'],
+                                   instance.info['bads'])
+
     # Check correctness of combinations
     for this_group, these_picks in groups.items():
         # Check if channel indices are out of bounds
@@ -1631,13 +1647,18 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
             types = ', '.join(set(this_ch_type))
             raise ValueError('Cannot combine sensors of different types; '
                              f'"{this_group}" contains types {types}.')
+        # Remove bad channels
+        these_bads = [idx for idx in these_picks if idx in ch_idx_bad]
+        these_picks = [idx for idx in these_picks if idx not in ch_idx_bad]
+        if these_bads:
+            logger.info('Dropped the following channels in group '
+                        f'{this_group}: {these_bads}')
         #  Check if combining less than 2 channel
         if len(set(these_picks)) < 2:
-            warn(f'Only one channel in group "{this_group}"; cannot combine '
-                 f'by method "{method}".')
-        # If all good create more detailed dict with channel type
-        groups[this_group] = dict(picks=these_picks,
-                                  ch_type=this_ch_type[0])
+            warn(f'Less than 2 channels in group "{this_group}"; cannot '
+                 f'combine by method "{method}".')
+        # If all good create more detailed dict without bad channels
+        groups[this_group] = dict(picks=these_picks, ch_type=this_ch_type[0])
 
     # Combine channels and add them to the new instance
     group_ch_names, group_ch_types, group_data = [], [], []

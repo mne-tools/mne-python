@@ -364,6 +364,8 @@ def test_equalize_channels():
 def test_combine_channels():
     """Test channel combination on Raw, Epochs, and Evoked."""
     raw = read_raw_fif(raw_fname, preload=True)
+    raw_ch_bad = read_raw_fif(raw_fname, preload=True)
+    raw_ch_bad.info['bads'] = ['MEG 0113', 'MEG 0112']
     epochs = Epochs(raw, read_events(eve_fname), preload=True)
     evoked = epochs.average()
     good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
@@ -373,6 +375,7 @@ def test_combine_channels():
     combine_channels(epochs, good)
     combine_channels(evoked, good)
     combine_channels(raw, good, keep_stim=True)
+    combine_channels(raw_ch_bad, good, drop_bad=True)
 
     # Test result with one ROI
     good_single = dict(foo=[0, 1, 3, 4])  # good grad
@@ -403,8 +406,11 @@ def test_combine_channels():
     # Test warnings
     warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
     warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)
+    warn3 = dict(foo=[0, 4], bar=[5, 2])  # one good channel left
     pytest.warns(RuntimeWarning, combine_channels, raw, warn1)
     pytest.warns(RuntimeWarning, combine_channels, raw, warn2)
+    pytest.warns(RuntimeWarning, combine_channels, raw_ch_bad, warn3,
+                 drop_bad=True)
 
 
 run_tests_if_main()
