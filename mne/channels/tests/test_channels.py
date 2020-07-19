@@ -375,6 +375,7 @@ def test_combine_channels():
     combine_channels(epochs, good)
     combine_channels(evoked, good)
     combine_channels(raw, good, keep_stim=True)
+    combine_channels(raw, good, drop_bad=True)
     combine_channels(raw_ch_bad, good, drop_bad=True)
 
     # Test result with one ROI
@@ -398,6 +399,7 @@ def test_combine_channels():
     pytest.raises(RuntimeError, combine_channels, raw_no_preload, good)
     pytest.raises(ValueError, combine_channels, raw, good, method='bad_method')
     pytest.raises(TypeError, combine_channels, raw, good, keep_stim='bad_type')
+    pytest.raises(TypeError, combine_channels, raw, good, drop_bad='bad_type')
     pytest.raises(ValueError, combine_channels, raw_no_stim, good,
                   keep_stim=True)
     pytest.raises(ValueError, combine_channels, raw, bad1)
