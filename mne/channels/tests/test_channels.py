@@ -386,8 +386,6 @@ def test_combine_channels():
     raw_no_stim.pick_types(meg=True, stim=False)
     bad1 = dict(foo=[0, 376], bar=[5, 2])  # out of bounds
     bad2 = dict(foo=[0, 2], bar=[5, 2])  # type mix in same group
-    bad3 = dict(foo=[0, 0], bar=[5, 2])  # same channel in same group
-    bad4 = dict(foo=[0], bar=[5, 2])  # one channel
     pytest.raises(RuntimeError, combine_channels, raw_no_preload, good)
     pytest.raises(ValueError, combine_channels, raw, good, method='bad_method')
     pytest.raises(TypeError, combine_channels, raw, good, keep_stim='bad_type')
@@ -395,8 +393,12 @@ def test_combine_channels():
                   keep_stim=True)
     pytest.raises(ValueError, combine_channels, raw, bad1)
     pytest.raises(ValueError, combine_channels, raw, bad2)
-    pytest.raises(ValueError, combine_channels, raw, bad3)
-    pytest.raises(ValueError, combine_channels, raw, bad4)
+
+    # Test warnings
+    warn1 = dict(foo=[0, 0], bar=[5, 2])  # same channel in same group
+    warn2 = dict(foo=[0], bar=[5, 2])  # one channel
+    pytest.warns(RuntimeWarning, combine_channels, raw, warn1)
+    pytest.warns(RuntimeWarning, combine_channels, raw, warn2)
 
 
 run_tests_if_main()

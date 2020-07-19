@@ -1633,8 +1633,8 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
                              f'"{this_group}" contains types {types}.')
         #  Check if combining less than 2 channel
         if len(set(these_picks)) < 2:
-            raise ValueError('Cannot combine less than 2 different channels '
-                             f'in group "{this_group}".')
+            warn(f'Only one channel in group "{this_group}"; cannot combine '
+                 f'by method "{method}".')
         # If all good create more detailed dict with channel type
         groups[this_group] = dict(picks=these_picks,
                                   ch_type=this_ch_type[0])
