@@ -366,7 +366,7 @@ def test_combine_channels():
     raw = read_raw_fif(raw_fname, preload=True)
     epochs = Epochs(raw, read_events(eve_fname), preload=True)
     evoked = epochs.average()
-    good = dict(foo=[0, 1], bar=[5, 2])  # good grad and mag
+    good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
 
     # Test good cases
     combine_channels(raw, good)
@@ -375,10 +375,16 @@ def test_combine_channels():
     combine_channels(raw, good, keep_stim=True)
 
     # Test result with one ROI
-    good_single = dict(foo=[0, 1])  # good grad
-    combined_data = combine_channels(raw, good_single)._data
+    good_single = dict(foo=[0, 1, 3, 4])  # good grad
+    combined_mean = combine_channels(raw, good_single, method='mean')._data
+    combined_median = combine_channels(raw, good_single, method='median')._data
+    combined_std = combine_channels(raw, good_single, method='std')._data
     foo_mean = np.mean(raw._data[good_single['foo']], axis=0)
-    assert np.array_equal(combined_data, np.expand_dims(foo_mean, axis=0))
+    foo_median = np.median(raw._data[good_single['foo']], axis=0)
+    foo_std = np.std(raw._data[good_single['foo']], axis=0)
+    assert np.array_equal(combined_mean, np.expand_dims(foo_mean, axis=0))
+    assert np.array_equal(combined_median, np.expand_dims(foo_median, axis=0))
+    assert np.array_equal(combined_std, np.expand_dims(foo_std, axis=0))
 
     # Test bad cases
     raw_no_preload = read_raw_fif(raw_fname, preload=False)
