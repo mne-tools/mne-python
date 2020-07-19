@@ -1587,7 +1587,7 @@ def combine_channels(instance, groups, method='mean', keep_stim=False):
     _check_preload(instance, 'Combining channels')
 
     ch_axis = len(instance._data.shape) - 2  # idx of the channel axis
-    ch_idx = _picks_to_idx(instance.info, None)
+    ch_idx = list(range(instance.info['nchan']))
     ch_types = _get_channel_types(instance.info)
     groups = deepcopy(groups)
 

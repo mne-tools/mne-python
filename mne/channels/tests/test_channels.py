@@ -395,8 +395,8 @@ def test_combine_channels():
     pytest.raises(ValueError, combine_channels, raw, bad2)
 
     # Test warnings
-    warn1 = dict(foo=[0, 0], bar=[5, 2])  # same channel in same group
-    warn2 = dict(foo=[0], bar=[5, 2])  # one channel
+    warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
+    warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)
     pytest.warns(RuntimeWarning, combine_channels, raw, warn1)
     pytest.warns(RuntimeWarning, combine_channels, raw, warn2)
 
