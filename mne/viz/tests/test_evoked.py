@@ -198,6 +198,7 @@ def test_plot_evoked_reconstruct(picks, rlims, avg_proj):
     cov = read_cov(cov_fname)
     with pytest.raises(ValueError, match='Cannot use proj="reconstruct"'):
         evoked.plot(noise_cov=cov, proj='reconstruct')
+    plt.close('all')
 
 
 def test_plot_evoked_image():
