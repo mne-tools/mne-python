@@ -1445,7 +1445,8 @@ class _Brain(object):
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                for actor in hemi_data['actor']:
+                if hemi_data['actor'] is not None:
+                    actor = hemi_data['actor']
                     vtk_lut = actor.GetMapper().GetLookupTable()
                     vtk_lut.SetNumberOfColors(n_col)
                     vtk_lut.SetRange([fmin, fmax])
