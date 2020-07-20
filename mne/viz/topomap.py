@@ -1615,7 +1615,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     # apply projections before picking. NOTE: the `if proj is True`
     # anti-pattern is needed here to exclude proj='interactive'
     _check_option('proj', proj, (True, False, 'interactive', 'reconstruct'))
-    if proj is True:
+    if proj is True and not evoked.proj:
         evoked.apply_proj()
     elif proj == 'reconstruct':
         evoked._reconstruct_proj()

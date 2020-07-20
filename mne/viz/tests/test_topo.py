@@ -14,7 +14,8 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_channels_evoked, read_cov
+from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
+                 compute_proj_evoked)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
@@ -92,6 +93,19 @@ def test_plot_joint():
     with pytest.raises(ValueError, match='array of length 6'):
         evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                           topomap_args=dict(axes=axes[2:]))
+    plt.close('all')
+
+    # test proj options
+    assert len(evoked.info['projs']) == 0
+    evoked.pick_types(meg=True)
+    evoked.add_proj(compute_proj_evoked(
+        evoked, n_mag=1, n_grad=1, meg='combined'))
+    assert len(evoked.info['projs']) == 1
+    with pytest.raises(ValueError, match='must match ts_args'):
+        evoked.plot_joint(ts_args=dict(proj=True),
+                          topomap_args=dict(proj=False))
+    evoked.plot_joint(ts_args=dict(proj='reconstruct'),
+                      topomap_args=dict(proj='reconstruct'))
     plt.close('all')
 
 

@@ -1336,8 +1336,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_args = dict() if ts_args is None else ts_args.copy()
     ts_args['time_unit'], _ = _check_time_unit(
         ts_args.get('time_unit', 's'), evoked.times)
-    if topomap_args is None:
-        topomap_args = dict()
+    topomap_args = dict() if topomap_args is None else topomap_args.copy()
 
     got_axes = False
     illegal_args = {"show", 'times', 'exclude'}
@@ -1356,7 +1355,21 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
-    evoked = _pick_inst(evoked, picks, exclude, copy=True)
+    # Need to deal with proj before picking to avoid bad projections
+    proj = topomap_args.get('proj', True)
+    proj_ts = ts_args.get('proj', True)
+    if proj_ts != proj:
+        raise ValueError(
+            f'topomap_args["proj"] (default True, got {proj}) must match '
+            f'ts_args["proj"] (default True, got {proj_ts})')
+    _check_option('topomap_args["proj"]', proj, (True, False, 'reconstruct'))
+    evoked = evoked.copy()
+    if proj:
+        evoked.apply_proj()
+        if proj == 'reconstruct':
+            evoked._reconstruct_proj()
+    topomap_args['proj'] = ts_args['proj'] = False  # don't reapply
+    evoked = _pick_inst(evoked, picks, exclude, copy=False)
     info = evoked.info
     ch_types = _get_channel_types(info, unique=True, only_data_chs=True)
 
