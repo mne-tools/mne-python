@@ -12,6 +12,7 @@
 import os.path as op
 
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -19,7 +20,7 @@ from matplotlib.cm import get_cmap
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
-                 make_fixed_length_events)
+                 make_fixed_length_events, compute_proj_evoked)
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
@@ -86,12 +87,24 @@ def test_plot_evoked_cov():
     plt.close('all')
 
 
+def _get_amplitudes(fig):
+    amplitudes = [line.get_ydata() for line in fig.axes[0].get_lines()]
+    amplitudes = np.array(
+        [line for line in amplitudes if isinstance(line, np.ndarray)])
+    return amplitudes
+
+
 @pytest.mark.slowtest
 def test_plot_evoked():
     """Test evoked.plot."""
-    evoked = _get_epochs().average()
+    epochs = _get_epochs()
+    evoked = epochs.average()
+    assert evoked.proj is False
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
                       time_unit='s')
+    amplitudes = _get_amplitudes(fig)
+    assert len(amplitudes) == 9
+    assert evoked.proj is False
     # Test a click
     ax = fig.get_axes()[0]
     line = ax.lines[0]
@@ -136,6 +149,32 @@ def test_plot_evoked():
     with catch_logging() as log_file:
         evoked.plot(verbose=True, time_unit='s')
     assert 'Need more than one' in log_file.getvalue()
+
+    # Test reconstruction
+    evoked = epochs.average()
+    assert len(evoked.info['projs']) == 0
+    fig = evoked.plot(proj='reconstruct', exclude=[])
+    amplitudes_recon = _get_amplitudes(fig)
+    assert_allclose(amplitudes, amplitudes_recon)
+    proj = compute_proj_evoked(evoked.copy().crop(None, 0))
+    evoked.add_proj(proj)
+    assert len(evoked.info['projs']) == 4
+    fig = evoked.plot(proj=True, exclude=[])
+    amplitudes_proj = _get_amplitudes(fig)
+    fig = evoked.plot(proj='reconstruct', exclude=[])
+    amplitudes_recon = _get_amplitudes(fig)
+    assert len(amplitudes_recon) == 9
+    norm = np.linalg.norm(amplitudes)
+    norm_proj = np.linalg.norm(amplitudes_proj)
+    norm_recon = np.linalg.norm(amplitudes_recon)
+    r = np.dot(amplitudes_recon.ravel(), amplitudes.ravel()) / (
+        norm_recon * norm)
+    assert 0.60 < r < 0.62
+    assert 1.1 * norm_proj < norm_recon < norm * 0.9
+
+    cov = read_cov(cov_fname)
+    with pytest.raises(ValueError, match='Cannot use proj="reconstruct"'):
+        evoked.plot(noise_cov=cov, proj='reconstruct')
 
 
 def test_plot_evoked_image():

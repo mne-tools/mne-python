@@ -27,7 +27,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_vmin_vmax, _check_cov, _make_combine_callable,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, _get_color_list, _setup_ax_spines,
-                    _setup_plot_projector, _prepare_joint_axes,
+                    _setup_plot_projector, _prepare_joint_axes, _check_option,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image, _trim_ticks, _set_window_title)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
@@ -261,6 +261,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          "`axes` must not be a dict either.")
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
+    evoked = evoked.copy()  # we modify info
     info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
@@ -319,14 +320,20 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%d: %s)' % (len(axes), len(ch_types_used),
                                              sorted(ch_types_used)))
+    _check_option('proj', proj, (True, False, 'interactive', 'reconstruct'))
     noise_cov = _check_cov(noise_cov, info)
+    if proj == 'reconstruct' and noise_cov is not None:
+        raise ValueError('Cannot use proj="reconstruct" when noise_cov is not '
+                         'None')
     projector, whitened_ch_names = _setup_plot_projector(
         info, noise_cov, proj=proj is True, nave=evoked.nave)
-    evoked = evoked.copy()
     if len(whitened_ch_names) > 0:
         unit = False
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
+    if proj == 'reconstruct':
+        evoked = evoked._reconstruct_proj()
+
     if plot_type == 'butterfly':
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
@@ -647,10 +654,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
         X limits for plots.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
-        a check box for reversible selection of SSP projection vectors will
-        be shown.
+    %(plot_proj)s
     hline : list of float | None
         The values at which to show an horizontal line.
     units : dict | None

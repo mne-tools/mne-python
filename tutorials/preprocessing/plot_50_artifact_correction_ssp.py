@@ -182,8 +182,9 @@ fig = epochs.average().plot_topomap(times, proj='interactive')
 
 ###############################################################################
 # Plotting the ERP/F using ``evoked.plot()`` or ``evoked.plot_joint()`` with
-# and without projectors applied can also be informative.
-#
+# and without projectors applied can also be informative, as can plotting with
+# ``proj='reconstruct'``, which can reduce the signal bias introduced by
+# projections (see :ref:`tut-artifact-ssp-reconstruction` below).
 #
 # Example: EOG and ECG artifact repair
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -282,9 +283,9 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 #
 # By default, the filtered epochs will be averaged together
 # before the projection is computed; this can be controlled with the boolean
-# ``average`` parameter.
-#
-# .. TODO what is the (dis)advantage of **not** averaging before projection?
+# ``average`` parameter. In general this improves the signal-to-noise (where
+# "signal" here is our artifact!) ratio because the artifact temporal waveform
+# is fairly similar across epochs and well time locked to the detected events.
 #
 # To get a sense of how the heartbeat affects the signal at each sensor, you
 # can plot the data with and without the ECG projectors:
@@ -402,6 +403,40 @@ for title in ('Without', 'With'):
 # projectors are capturing something else other than a heartbeat artifact (and
 # thus may be removing brain signal and should be discarded).
 #
+# .. _tut-artifact-ssp-reconstruction:
+#
+# Reducing SSP bias in sensor space via signal reconstruction
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# In addition to looking at unprojected versus projected data, it's also useful
+# to look at sensor space data reconstructed to reduce the bias introduced by
+# projection. This reconstruction is performed internally by mapping to
+# source space and back via a minimum-norm solution. The reconstructed data
+# can be show by using ``proj='reconstruct'`` in evoked plotting functions,
+# for example via :meth:`evoked.plot() <mne.Evoked.plot>`:
+
+evoked = epochs.average().add_proj(ecg_projs).add_proj(eog_projs)
+fig, axes = plt.subplots(3, 3, figsize=(8, 6))
+for ii in range(3):
+    axes[ii, 0].get_shared_y_axes().join(*axes[ii])
+for pi, proj in enumerate((False, True, 'reconstruct')):
+    evoked.plot(proj=proj, axes=axes[:, pi], spatial_colors=True)
+    if pi == 0:
+        for ax in axes[:, pi]:
+            parts = ax.get_title().split('(')
+            ax.set(ylabel=f'{parts[0]} ({ax.get_ylabel()})\n'
+                          f'{parts[1].replace(")", "")}')
+    axes[0, pi].set(title=f'proj={proj}')
+    axes[0, pi].texts = []
+plt.setp(axes[1:, :].ravel(), title='')
+plt.setp(axes[:, 1:].ravel(), ylabel='')
+plt.setp(axes[:-1, :].ravel(), xlabel='')
+fig.tight_layout()
+
+###############################################################################
+# Note that the bias in the EEG and magnetometer channels is reduced by the
+# reconstruction. Projections are taken into account during source
+# localization, so we shouldn't see much bias due to SSP in our estimated brain
+# amplitudes during source localization.
 #
 # References
 # ^^^^^^^^^^
