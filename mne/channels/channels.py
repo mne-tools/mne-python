@@ -1543,7 +1543,7 @@ def make_1020_channel_selections(info, midline="z"):
 
 def combine_channels(instance, groups, method='mean', keep_stim=False,
                      drop_bad=False):
-    """Combine channels based on regions of interest (ROIs).
+    """Combine channels based on specified channel grouping.
 
     Parameters
     ----------
@@ -1556,7 +1556,7 @@ def combine_channels(instance, groups, method='mean', keep_stim=False,
         pseudo-channel is made per dict entry; the dict values must be lists of
         picks (integer indices of ``ch_names``). For example::
 
-            groups=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+            groups=dict(Left=[1, 2, 3, 4], Right=[5, 6, 7, 8])
 
         Note that within a dict entry all channels must have the same type.
     method : str | callable
@@ -1579,8 +1579,8 @@ def combine_channels(instance, groups, method='mean', keep_stim=False,
     Returns
     -------
     combined_inst : instance of Raw, Epochs, or Evoked
-        An MNE-Python object with channels combined for each ROI defined in the
-        ``groups`` parameter.
+        An MNE-Python object with channels combined for each group defined in
+        the ``groups`` parameter.
     """
     from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs
