@@ -57,6 +57,8 @@ Changelog
 
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
+- Add ability to interpolate EEG channels using minimum-norm projection in :meth:`mne.io.Raw.interpolate_bads` and related functions with ``method=dict(eeg='MNE')`` by `Eric Larson`_
+
 - Added ability of :func:`mne.io.read_raw_nirx` to open data by passing path to header file `Robert Luke`_
 
 - Add :meth:`mne.channels.DigMontage.rename_channels` to allow renaming montage channels by `Eric Larson`_

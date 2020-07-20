@@ -2575,7 +2575,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
        DOI: 10.1016/S0022-0736(76)80041-6
     """
     from matplotlib import pyplot as plt
-    from ..forward import _map_meg_channels
+    from ..forward import _map_meg_or_eeg_channels
 
     sphere = _check_sphere(sphere, info_from)
     ch_type = _picks_by_type(info_from)
@@ -2605,7 +2605,11 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                              "Got %s" % ch_type)
 
     if info_to is not info_from:
-        mapping = _map_meg_channels(info_from, info_to, mode='accurate')
+        info_to = pick_info(info_to, pick_types(info_to, meg=True))
+        info_from = pick_info(info_from, pick_types(info_from, meg=True))
+        # XXX should probably support the "origin" argument
+        mapping = _map_meg_or_eeg_channels(
+            info_from, info_to, origin=(0., 0., 0.04), mode='accurate')
         data = np.dot(mapping, data)
 
     _, pos, _, _, _, sphere, clip_origin = \
