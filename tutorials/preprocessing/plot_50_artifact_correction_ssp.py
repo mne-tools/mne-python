@@ -405,16 +405,35 @@ for title in ('Without', 'With'):
 #
 # .. _tut-artifact-ssp-reconstruction:
 #
-# Reducing SSP bias in sensor space via signal reconstruction
+# Visualizing SSP sensor-space bias via signal reconstruction
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# In addition to looking at unprojected versus projected data, it's also useful
-# to look at sensor space data reconstructed to reduce the bias introduced by
-# projection. This reconstruction is performed internally by mapping to
-# source space and back via a minimum-norm solution. The reconstructed data
-# can be show by using ``proj='reconstruct'`` in evoked plotting functions,
-# for example via :meth:`evoked.plot() <mne.Evoked.plot>`:
+# .. sidebar:: SSP reconstruction
+#
+#     Internally, the reconstruction is performed by effectively using a
+#     minimum-norm source localization to a spherical source space with the
+#     projections accounted for, and then projecting the source-space data
+#     back out to sensor space.
+#
+# Because SSP performs an orthogonal projection, any spatial component in the
+# data that is not perfectly orthogonal to the SSP spatial direction(s) will
+# have its overall amplitude reduced by the projection operation. In other
+# words, SSP typically introduces some amount of amplitude reduction bias in
+# the sensor space data.
+#
+# When performing source localization of M/EEG data, these projections are
+# properly taken into account by being applied not just to the M/EEG data
+# but also to the forward solution, and hence SSP should not bias the estimated
+# source amplitudes. However, for sensor space analyses, it can be useful to
+# visualize the extent to which SSP projection has biased the data. This can be
+# explored by using ``proj='reconstruct'`` in evoked plotting functions, for
+# example via :meth:`evoked.plot() <mne.Evoked.plot>`:
 
-evoked = epochs.average().add_proj(ecg_projs).add_proj(eog_projs)
+evoked = epochs.average()
+# Apply the average ref first:
+# It's how we typically view EEG data, and here we're really just interested
+# in the effect of the EOG+ECG SSPs
+evoked.del_proj().set_eeg_reference(projection=True).apply_proj()
+evoked.add_proj(ecg_projs).add_proj(eog_projs)
 fig, axes = plt.subplots(3, 3, figsize=(8, 6))
 for ii in range(3):
     axes[ii, 0].get_shared_y_axes().join(*axes[ii])
@@ -430,13 +449,13 @@ for pi, proj in enumerate((False, True, 'reconstruct')):
 plt.setp(axes[1:, :].ravel(), title='')
 plt.setp(axes[:, 1:].ravel(), ylabel='')
 plt.setp(axes[:-1, :].ravel(), xlabel='')
-fig.tight_layout()
+mne.viz.tight_layout()
 
 ###############################################################################
-# Note that the bias in the EEG and magnetometer channels is reduced by the
-# reconstruction. Projections are taken into account during source
-# localization, so we shouldn't see much bias due to SSP in our estimated brain
-# amplitudes during source localization.
+# Note that here the bias in the EEG and magnetometer channels is reduced by
+# the reconstruction. This suggests that the application of SSP has slightly
+# reduced the amplitude of our signals in sensor space, but that it should not
+# bias the amplitudes in source space.
 #
 # References
 # ^^^^^^^^^^
