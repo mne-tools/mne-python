@@ -380,39 +380,46 @@ def test_combine_channels():
 
     # Test result with one ROI
     good_single = dict(foo=[0, 1, 3, 4])  # good grad
-    combined_mean = combine_channels(raw, good_single, method='mean')._data
-    combined_median = combine_channels(raw, good_single, method='median')._data
-    combined_std = combine_channels(raw, good_single, method='std')._data
-    foo_mean = np.mean(raw._data[good_single['foo']], axis=0)
-    foo_median = np.median(raw._data[good_single['foo']], axis=0)
-    foo_std = np.std(raw._data[good_single['foo']], axis=0)
-    assert np.array_equal(combined_mean, np.expand_dims(foo_mean, axis=0))
-    assert np.array_equal(combined_median, np.expand_dims(foo_median, axis=0))
-    assert np.array_equal(combined_std, np.expand_dims(foo_std, axis=0))
+    combined_mean = combine_channels(raw, good_single, method='mean')
+    combined_median = combine_channels(raw, good_single, method='median')
+    combined_std = combine_channels(raw, good_single, method='std')
+    foo_mean = np.mean(raw.get_data()[good_single['foo']], axis=0)
+    foo_median = np.median(raw.get_data()[good_single['foo']], axis=0)
+    foo_std = np.std(raw.get_data()[good_single['foo']], axis=0)
+    assert np.array_equal(combined_mean.get_data(),
+                          np.expand_dims(foo_mean, axis=0))
+    assert np.array_equal(combined_median.get_data(),
+                          np.expand_dims(foo_median, axis=0))
+    assert np.array_equal(combined_std.get_data(),
+                          np.expand_dims(foo_std, axis=0))
 
     # Test bad cases
-    raw_no_preload = read_raw_fif(raw_fname, preload=False)
     raw_no_stim = read_raw_fif(raw_fname, preload=True)
     raw_no_stim.pick_types(meg=True, stim=False)
     bad1 = dict(foo=[0, 376], bar=[5, 2])  # out of bounds
     bad2 = dict(foo=[0, 2], bar=[5, 2])  # type mix in same group
-    pytest.raises(RuntimeError, combine_channels, raw_no_preload, good)
-    pytest.raises(ValueError, combine_channels, raw, good, method='bad_method')
-    pytest.raises(TypeError, combine_channels, raw, good, keep_stim='bad_type')
-    pytest.raises(TypeError, combine_channels, raw, good, drop_bad='bad_type')
-    pytest.raises(ValueError, combine_channels, raw_no_stim, good,
-                  keep_stim=True)
-    pytest.raises(ValueError, combine_channels, raw, bad1)
-    pytest.raises(ValueError, combine_channels, raw, bad2)
+    with pytest.raises(ValueError, match='"method" must be a callable, or'):
+        combine_channels(raw, good, method='bad_method')
+    with pytest.raises(TypeError, match='"keep_stim" must be of type bool'):
+        combine_channels(raw, good, keep_stim='bad_type')
+    with pytest.raises(TypeError, match='"drop_bad" must be of type bool'):
+        combine_channels(raw, good, drop_bad='bad_type')
+    with pytest.raises(ValueError, match='Could not find stimulus'):
+        combine_channels(raw_no_stim, good, keep_stim=True)
+    with pytest.raises(ValueError, match='Some channel indices are out of'):
+        combine_channels(raw, bad1)
+    with pytest.raises(ValueError, match='Cannot combine sensors of diff'):
+        combine_channels(raw, bad2)
 
     # Test warnings
     warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
     warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)
     warn3 = dict(foo=[0, 4], bar=[5, 2])  # one good channel left
-    pytest.warns(RuntimeWarning, combine_channels, raw, warn1)
-    pytest.warns(RuntimeWarning, combine_channels, raw, warn2)
-    pytest.warns(RuntimeWarning, combine_channels, raw_ch_bad, warn3,
-                 drop_bad=True)
+    with pytest.warns(RuntimeWarning, match='Less than 2 channels') as record:
+        combine_channels(raw, warn1)
+        combine_channels(raw, warn2)
+        combine_channels(raw_ch_bad, warn3, drop_bad=True)
+    assert len(record) == 3
 
 
 run_tests_if_main()
