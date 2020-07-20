@@ -23,7 +23,7 @@ from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
-from ..utils import logger, verbose, _check_option, _reg_pinv
+from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
 
@@ -81,9 +81,8 @@ def _compute_mapping_matrix(fmd, info):
     if fmd.get('pinv_method', 'tsvd') == 'tsvd':
         inv, fmd['nest'] = _pinv_trunc(whitened_dots, fmd['miss'])
     else:
-        assert fmd['pinv_method'] == 'tikhonov'
-        inv, _, fmd['nest'] = _reg_pinv(
-            whitened_dots, reg=fmd['miss'], rank=None, rcond=1e-6)
+        assert fmd['pinv_method'] == 'tikhonov', fmd['pinv_method']
+        inv, fmd['nest'] = _pinv_tikhonov(whitened_dots, fmd['miss'])
 
     # Sandwich with the whitener
     inv_whitened = np.dot(whitener.T, np.dot(inv, whitener))
@@ -120,7 +119,15 @@ def _pinv_trunc(x, miss):
     return inv, n
 
 
-def _map_meg_or_eeg_channels(info_from, info_to, mode, origin):
+def _pinv_tikhonov(x, reg):
+    # _reg_pinv requires square Hermitian, which we have here
+    inv, _, n = _reg_pinv(x, reg=reg, rank=None)
+    logger.info(f'    Truncating at {n}/{len(x)} components and regularizing '
+                f'with α={reg:0.1e}')
+    return inv, n
+
+
+def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -165,13 +172,13 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin):
                                        info_from['dev_head_t'], templates)
         coils_to = _create_meg_coils(info_to['chs'], 'normal',
                                      info_to['dev_head_t'], templates)
-        miss = 1e-4
         pinv_method = 'tsvd'
+        miss = 1e-4
     else:
         coils_from = _create_eeg_els(info_from['chs'])
         coils_to = _create_eeg_els(info_to['chs'])
-        miss = 1e-2
         pinv_method = 'tikhonov'
+        miss = 1e-1
         if _has_eeg_average_ref_proj(info_from['projs']) and \
                 not _has_eeg_average_ref_proj(info_to['projs']):
             raise RuntimeError(
@@ -183,11 +190,11 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin):
     #
     int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from, kind)
     logger.info(f'    Computing dot products for {len(coils_from)} '
-                f'{kind.upper()} channels...')
+                f'{kind.upper()} channel{_pl(coils_from)}...')
     self_dots = _do_self_dots(int_rad, False, coils_from, origin, kind,
                               lut_fun, n_fact, n_jobs=1)
     logger.info(f'    Computing cross products for {len(coils_from)} → '
-                f'{len(coils_to)} {kind.upper()} channels...')
+                f'{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}...')
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
                                 origin, kind, lut_fun, n_fact).T
 

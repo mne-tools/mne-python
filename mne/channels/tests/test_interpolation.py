@@ -46,8 +46,8 @@ def _load_data(kind):
 
 @pytest.mark.parametrize('offset', (0., 0.1))
 @pytest.mark.parametrize('avg_proj, ctol', [
-    (True, (0.88, 0.93)),
-    (False, (0.98, 0.99)),
+    (True, (0.86, 0.93)),
+    (False, (0.97, 0.99)),
 ])
 @pytest.mark.parametrize('method, atol', [
     (None, 3e-6),
@@ -114,7 +114,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     assert_allclose(ave_before, interp_zero, atol=atol)
     assert ctol[0] < np.corrcoef(ave_before, interp_zero)[0, 1] < ctol[1]
     interp_fit = evoked_eeg_bad.copy().interpolate_bads(**kw).data[bads_idx]
-    assert_allclose(ave_before, interp_fit, atol=2e-6)
+    assert_allclose(ave_before, interp_fit, atol=2.5e-6)
     assert ctol[1] < np.corrcoef(ave_before, interp_fit)[0, 1]  # better
 
     # check that interpolation fails when preload is False
