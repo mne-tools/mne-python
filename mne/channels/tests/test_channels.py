@@ -363,10 +363,10 @@ def test_equalize_channels():
 
 def test_combine_channels():
     """Test channel combination on Raw, Epochs, and Evoked."""
-    raw = read_raw_fif(raw_fname, preload=True)
-    raw_ch_bad = read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname)
+    raw_ch_bad = read_raw_fif(raw_fname)
     raw_ch_bad.info['bads'] = ['MEG 0113', 'MEG 0112']
-    epochs = Epochs(raw, read_events(eve_fname), preload=True)
+    epochs = Epochs(raw, read_events(eve_fname))
     evoked = epochs.average()
     good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
 
@@ -374,9 +374,13 @@ def test_combine_channels():
     combine_channels(raw, good)
     combine_channels(epochs, good)
     combine_channels(evoked, good)
-    combine_channels(raw, good, keep_stim=True)
     combine_channels(raw, good, drop_bad=True)
     combine_channels(raw_ch_bad, good, drop_bad=True)
+
+    # Test with stimulus channels
+    combine_stim = combine_channels(raw, good, keep_stim=True)
+    target_nchan = len(good) + len(pick_types(raw.info, meg=False, stim=True))
+    assert combine_stim.info['nchan'] == target_nchan
 
     # Test result with one ROI
     good_single = dict(foo=[0, 1, 3, 4])  # good grad
@@ -394,8 +398,6 @@ def test_combine_channels():
                           np.expand_dims(foo_std, axis=0))
 
     # Test bad cases
-    raw_no_stim = read_raw_fif(raw_fname, preload=True)
-    raw_no_stim.pick_types(meg=True, stim=False)
     bad1 = dict(foo=[0, 376], bar=[5, 2])  # out of bounds
     bad2 = dict(foo=[0, 2], bar=[5, 2])  # type mix in same group
     with pytest.raises(ValueError, match='"method" must be a callable, or'):
@@ -404,17 +406,19 @@ def test_combine_channels():
         combine_channels(raw, good, keep_stim='bad_type')
     with pytest.raises(TypeError, match='"drop_bad" must be of type bool'):
         combine_channels(raw, good, drop_bad='bad_type')
-    with pytest.raises(ValueError, match='Could not find stimulus'):
-        combine_channels(raw_no_stim, good, keep_stim=True)
     with pytest.raises(ValueError, match='Some channel indices are out of'):
         combine_channels(raw, bad1)
     with pytest.raises(ValueError, match='Cannot combine sensors of diff'):
         combine_channels(raw, bad2)
 
     # Test warnings
+    raw_no_stim = read_raw_fif(raw_fname)
+    raw_no_stim.pick_types(meg=True, stim=False)
     warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
     warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)
     warn3 = dict(foo=[0, 4], bar=[5, 2])  # one good channel left
+    with pytest.warns(RuntimeWarning, match='Could not find stimulus'):
+        combine_channels(raw_no_stim, good, keep_stim=True)
     with pytest.warns(RuntimeWarning, match='Less than 2 channels') as record:
         combine_channels(raw, warn1)
         combine_channels(raw, warn2)
