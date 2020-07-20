@@ -567,9 +567,24 @@ class SetChannelsMixin(MontageMixin):
                             to_sphere=to_sphere, axes=axes, block=block,
                             show=show, sphere=sphere, verbose=verbose)
 
-    @copy_function_doc_to_method_doc(anonymize_info)
+    @verbose
     def anonymize(self, daysback=None, keep_his=False, verbose=None):
-        """
+        """Anonymize measurement information in place.
+
+        Parameters
+        ----------
+        %(anonymize_info_parameters)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The modified instance.
+
+        Notes
+        -----
+        %(anonymize_info_notes)s
+
         .. versionadded:: 0.13.0
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his,
