@@ -2623,7 +2623,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     plot_topomap(data, pos, axes=axes, vmin=vmin, vmax=vmax, cmap=cmap,
                  sensors=sensors, res=res, names=names, show_names=show_names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
-                 contours=contours, image_interp=image_interp, show=show,
+                 contours=contours, image_interp=image_interp, show=False,
                  onselect=onselect, extrapolate=extrapolate, sphere=sphere,
                  ch_type=ch_type)
     x, y = tuple(pos.T)
@@ -2633,5 +2633,6 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1, clip_on=False)
     axes.figure.canvas.draw_idle()
     tight_layout(fig=fig)
+    plt_show(show)
 
     return fig
