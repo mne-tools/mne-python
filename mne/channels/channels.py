@@ -15,8 +15,8 @@ import numpy as np
 from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
-                     _check_preload, _validate_type, fill_doc, _check_option)
+from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
+                     fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin
@@ -567,9 +567,24 @@ class SetChannelsMixin(MontageMixin):
                             to_sphere=to_sphere, axes=axes, block=block,
                             show=show, sphere=sphere, verbose=verbose)
 
-    @copy_function_doc_to_method_doc(anonymize_info)
+    @verbose
     def anonymize(self, daysback=None, keep_his=False, verbose=None):
-        """
+        """Anonymize measurement information in place.
+
+        Parameters
+        ----------
+        %(anonymize_info_parameters)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The modified instance.
+
+        Notes
+        -----
+        %(anonymize_info_notes)s
+
         .. versionadded:: 0.13.0
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his,

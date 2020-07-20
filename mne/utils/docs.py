@@ -1318,6 +1318,46 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
+# Anonymization
+docdict['anonymize_info_parameters'] = """
+daysback : int | None
+    Number of days to subtract from all dates.
+    If ``None`` (default), the acquisition date, ``info['meas_date']``,
+    will be set to ``January 1ˢᵗ, 2000``. This parameter is ignored if
+    ``info['meas_date']`` is ``None`` (i.e., no acquisition date has been set).
+keep_his : bool
+    If ``True``, ``his_id`` of ``subject_info`` will **not** be overwritten.
+    Defaults to ``False``.
+
+    .. warning:: This could mean that ``info`` is not fully
+                 anonymized. Use with caution.
+"""
+docdict['anonymize_info_notes'] = """
+Removes potentially identifying information if it exists in ``info``.
+Specifically for each of the following we use:
+
+- meas_date, file_id, meas_id
+        A default value, or as specified by ``daysback``.
+- subject_info
+        Default values, except for 'birthday' which is adjusted
+        to maintain the subject age.
+- experimenter, proj_name, description
+        Default strings.
+- utc_offset
+        ``None``.
+- proj_id
+        Zeros.
+- proc_history
+        Dates use the ``meas_date`` logic, and experimenter a default string.
+- helium_info, device_info
+        Dates use the ``meas_date`` logic, meta info uses defaults.
+
+If ``info['meas_date']`` is ``None``, it will remain ``None`` during processing
+the above fields.
+
+Operates in place.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
