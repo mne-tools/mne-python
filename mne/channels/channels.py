@@ -15,8 +15,8 @@ import numpy as np
 from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
-                     _check_preload, _validate_type, fill_doc, _check_option)
+from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
+                     fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin
