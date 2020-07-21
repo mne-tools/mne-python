@@ -258,6 +258,7 @@ class _Brain(object):
                             y=self.geo[h].coords[:, 1],
                             z=self.geo[h].coords[:, 2],
                             triangles=self.geo[h].faces,
+                            normals=self.geo[h].nn,
                             **kwargs,
                         )
                         if isinstance(mesh_data, tuple):
@@ -514,6 +515,7 @@ class _Brain(object):
                     y=self.geo[hemi].coords[:, 1],
                     z=self.geo[hemi].coords[:, 2],
                     triangles=self.geo[hemi].faces,
+                    normals=self.geo[hemi].nn,
                     **kwargs,
                 )
                 if isinstance(mesh_data, tuple):

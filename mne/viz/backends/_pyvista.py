@@ -249,17 +249,28 @@ class _Renderer(_BaseRenderer):
                 interpolate_before_map=interpolate_before_map,
                 representation=representation, line_width=line_width, **kwargs,
             )
+
+            try:
+                mesh.point_arrays["Normals"]
+            except KeyError:
+                pass
+            else:
+                prop = actor.GetProperty()
+                prop.SetInterpolationToPhong()
             return actor, mesh
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., **kwargs):
+             representation='surface', line_width=1., normals=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             vertices = np.c_[x, y, z]
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
+            if normals is not None:
+                mesh.point_arrays["Normals"] = normals
+                mesh.GetPointData().SetActiveNormals("Normals")
         return self._mesh(
             mesh,
             color,
