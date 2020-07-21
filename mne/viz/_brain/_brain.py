@@ -244,18 +244,21 @@ class _Brain(object):
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
+                    kwargs = {
+                        "color": None,
+                        "scalars": self.geo[h].bin_curv,
+                        "vmin": geo_kwargs["vmin"],
+                        "vmax": geo_kwargs["vmax"],
+                        "colormap": geo_kwargs["colormap"],
+                        "opacity": alpha,
+                    }
                     if self._hemi_meshes.get(h) is None:
                         mesh_data = self._renderer.mesh(
                             x=self.geo[h].coords[:, 0],
                             y=self.geo[h].coords[:, 1],
                             z=self.geo[h].coords[:, 2],
                             triangles=self.geo[h].faces,
-                            color=None,
-                            scalars=self.geo[h].bin_curv,
-                            vmin=geo_kwargs["vmin"],
-                            vmax=geo_kwargs["vmax"],
-                            colormap=geo_kwargs["colormap"],
-                            opacity=alpha,
+                            **kwargs,
                         )
                         if isinstance(mesh_data, tuple):
                             actor, mesh = mesh_data
@@ -268,13 +271,9 @@ class _Brain(object):
                     else:
                         self._renderer._mesh(
                             self._hemi_meshes[h],
-                            color=None,
-                            scalars=self.geo[h].bin_curv,
-                            vmin=geo_kwargs["vmin"],
-                            vmax=geo_kwargs["vmax"],
-                            colormap=geo_kwargs["colormap"],
-                            opacity=alpha,
+                            **kwargs,
                         )
+                    del kwargs
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
@@ -501,18 +500,21 @@ class _Brain(object):
             else:
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
+            kwargs = {
+                "color": None,
+                "colormap": self._data['ctable'],
+                "vmin": dt_min,
+                "vmax": dt_max,
+                "opacity": alpha,
+                "scalars": np.zeros(len(self.geo[hemi].coords)),
+            }
             if self._data[hemi]['mesh'] is None:
                 mesh_data = self._renderer.mesh(
                     x=self.geo[hemi].coords[:, 0],
                     y=self.geo[hemi].coords[:, 1],
                     z=self.geo[hemi].coords[:, 2],
                     triangles=self.geo[hemi].faces,
-                    color=None,
-                    colormap=self._data['ctable'],
-                    vmin=dt_min,
-                    vmax=dt_max,
-                    opacity=alpha,
-                    scalars=np.zeros(len(self.geo[hemi].coords)),
+                    **kwargs,
                 )
                 if isinstance(mesh_data, tuple):
                     actor, mesh = mesh_data
@@ -526,13 +528,9 @@ class _Brain(object):
             else:
                 self._renderer._mesh(
                     self._data[hemi]['mesh'],
-                    color=None,
-                    colormap=self._data['ctable'],
-                    vmin=dt_min,
-                    vmax=dt_max,
-                    opacity=alpha,
-                    scalars=np.zeros(len(self.geo[hemi].coords)),
+                    **kwargs,
                 )
+            del kwargs
 
         # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
