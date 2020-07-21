@@ -18,5 +18,5 @@ from ._make_forward import (make_forward_solution, _prepare_for_forward,
 from ._compute_forward import (_magnetic_dipole_field_vec, _compute_forwards,
                                _concatenate_coils)
 from ._field_interpolation import (_make_surface_mapping, make_field_map,
-                                   _as_meg_type_inst, _map_meg_channels)
+                                   _as_meg_type_inst, _map_meg_or_eeg_channels)
 from . import _lead_dots  # for testing purposes

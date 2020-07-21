@@ -376,8 +376,6 @@ def test_sss_proj():
     raw = read_raw_fif(raw_fname)
     raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
     raw.pick_channels(raw.ch_names[:51]).del_proj()
-    with pytest.raises(ValueError, match='can only be used with Maxfiltered'):
-        compute_proj_raw(raw, meg='combined')
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking
     assert len(raw_sss.info['projs']) == 0

@@ -6,12 +6,12 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
-from ..fixes import einsum
 from ..utils import logger, warn, verbose
+from ..io.meas_info import _simplify_info
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
-from ..forward import _map_meg_channels
-from ..utils import _check_option
+from ..forward import _map_meg_or_eeg_channels
+from ..utils import _check_option, _validate_type
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -85,6 +85,8 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     """
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
+    n_from = pos_from.shape[0]
+    n_to = pos_to.shape[0]
 
     # normalize sensor positions to sphere
     _normalize_vectors(pos_from)
@@ -95,17 +97,18 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     cosang_to_from = pos_to.dot(pos_from.T)
     G_from = _calc_g(cosang_from)
     G_to_from = _calc_g(cosang_to_from)
+    assert G_from.shape == (n_from, n_from)
+    assert G_to_from.shape == (n_to, n_from)
 
     if alpha is not None:
         G_from.flat[::len(G_from) + 1] += alpha
 
-    n_channels = G_from.shape[0]  # G_from should be square matrix
-    C = np.r_[np.c_[G_from, np.ones((n_channels, 1))],
-              np.c_[np.ones((1, n_channels)), 0]]
+    C = np.vstack([np.hstack([G_from, np.ones((n_from, 1))]),
+                   np.hstack([np.ones((1, n_from)), [[0]]])])
     C_inv = linalg.pinv(C)
 
-    interpolation = np.c_[G_to_from,
-                          np.ones((G_to_from.shape[0], 1))].dot(C_inv[:, :-1])
+    interpolation = np.hstack([G_to_from, np.ones((n_to, 1))]) @ C_inv[:, :-1]
+    assert interpolation.shape == (n_to, n_from)
     return interpolation
 
 
@@ -114,15 +117,9 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-
-    if isinstance(inst, (BaseRaw, Evoked)):
-        inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
-    elif isinstance(inst, BaseEpochs):
-        inst._data[:, bads_idx, :] = einsum(
-            'ij,xjy->xiy', interpolation, inst._data[:, goods_idx, :])
-    else:
-        raise ValueError('Inputs of type {} are not supported'
-                         .format(type(inst)))
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst')
+    inst._data[..., bads_idx, :] = np.matmul(
+        interpolation, inst._data[..., goods_idx, :])
 
 
 @verbose
@@ -172,9 +169,15 @@ def _interpolate_bads_eeg(inst, origin, verbose=None):
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 
-@verbose
 def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
                           verbose=None, ref_meg=False):
+    return _interpolate_bads_meeg(
+        inst, mode, origin, ref_meg=ref_meg, eeg=False, verbose=verbose)
+
+
+@verbose
+def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
+                           meg=True, eeg=True, ref_meg=False, verbose=None):
     """Interpolate bad channels from data in good channels.
 
     Parameters
@@ -192,28 +195,39 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
     %(verbose)s
     ref_meg : bool
         Should always be False; only exists for testing purpose.
+    meg : bool
+        If True, interpolate bad MEG channels.
+    eeg : bool
+        If True, interpolate bad EEG channels.
     """
-    picks_meg = pick_types(inst.info, meg=True, eeg=False,
-                           ref_meg=ref_meg, exclude=[])
-    picks_good = pick_types(inst.info, meg=True, eeg=False,
-                            ref_meg=ref_meg, exclude='bads')
-    meg_ch_names = [inst.info['ch_names'][p] for p in picks_meg]
-    bads_meg = [ch for ch in inst.info['bads'] if ch in meg_ch_names]
-
-    # select the bad meg channel to be interpolated
-    if len(bads_meg) == 0:
-        picks_bad = []
-    else:
-        picks_bad = pick_channels(inst.info['ch_names'], bads_meg,
+    bools = dict(meg=meg, eeg=eeg)
+    info = _simplify_info(inst.info)
+    for ch_type, do in bools.items():
+        if not do:
+            continue
+        kw = dict(meg=False, eeg=False)
+        kw[ch_type] = True
+        picks_type = pick_types(info, ref_meg=ref_meg, exclude=[], **kw)
+        picks_good = pick_types(info, ref_meg=ref_meg, exclude='bads', **kw)
+        use_ch_names = [inst.info['ch_names'][p] for p in picks_type]
+        bads_type = [ch for ch in inst.info['bads'] if ch in use_ch_names]
+        if len(bads_type) == 0 or len(picks_type) == 0:
+            continue
+        # select the bad channels to be interpolated
+        picks_bad = pick_channels(inst.info['ch_names'], bads_type,
                                   exclude=[])
-
-    # return without doing anything if there are no meg channels
-    if len(picks_meg) == 0 or len(picks_bad) == 0:
-        return
-    info_from = pick_info(inst.info, picks_good)
-    info_to = pick_info(inst.info, picks_bad)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
-    _do_interp_dots(inst, mapping, picks_good, picks_bad)
+        if ch_type == 'eeg':
+            picks_to = picks_type
+            bad_sel = np.in1d(picks_type, picks_bad)
+        else:
+            picks_to = picks_bad
+            bad_sel = slice(None)
+        info_from = pick_info(inst.info, picks_good)
+        info_to = pick_info(inst.info, picks_to)
+        mapping = _map_meg_or_eeg_channels(
+            info_from, info_to, mode=mode, origin=origin)
+        mapping = mapping[bad_sel]
+        _do_interp_dots(inst, mapping, picks_good, picks_bad)
 
 
 @verbose

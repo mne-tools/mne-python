@@ -2,8 +2,10 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import contextmanager
 import os.path as op
 import pathlib
+import re
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -12,7 +14,7 @@ from scipy import sparse
 from scipy.special import sph_harm
 
 import mne
-from mne import compute_raw_covariance, pick_types, concatenate_raws
+from mne import compute_raw_covariance, pick_types, concatenate_raws, pick_info
 from mne.annotations import _annotations_starts_stops
 from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
@@ -27,7 +29,7 @@ from mne.preprocessing.maxwell import (
     _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.utils import (assert_meg_snr, run_tests_if_main, catch_logging,
-                       object_diff, buggy_mkl_svd)
+                       object_diff, buggy_mkl_svd, use_log_level)
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -808,8 +810,10 @@ def test_head_translation():
 # that calculates the localization error:
 # http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=1495874
 
-def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
+def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf,
+                      meg='mag'):
     """Assert a minimum shielding factor using empty-room power."""
+    __tracebackhide__ = True
     picks = pick_types(raw_sss.info, meg=meg, ref_meg=False)
     if isinstance(erm_power, BaseRaw):
         picks_erm = pick_types(raw_sss.info, meg=meg, ref_meg=False)
@@ -818,8 +822,69 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
-    assert factor >= shielding_factor, \
-        'Shielding factor %0.3f < %0.3f' % (factor, shielding_factor)
+    assert min_factor <= factor < max_factor, (
+        'Shielding factor not %0.3f <= %0.3f < %0.3f'
+        % (min_factor, factor, max_factor))
+
+
+@buggy_mkl_svd
+@testing.requires_testing_data
+@pytest.mark.parametrize('regularize', ('in', None))
+@pytest.mark.parametrize('bads', ([], ['MEG0111']))
+def test_esss(regularize, bads):
+    """Test extended-basis SSS."""
+    # Make some fake "projectors" that actually contain external SSS bases
+    raw_erm = read_crop(erm_fname).load_data().pick_types(meg=True)
+    raw_erm.info['bads'] = bads
+    proj_sss = mne.compute_proj_raw(raw_erm, meg='combined', verbose='error',
+                                    n_mag=15, n_grad=15)
+    good_info = pick_info(raw_erm.info, pick_types(raw_erm.info, meg=True))
+    S_tot = _trans_sss_basis(
+        dict(int_order=0, ext_order=3, origin=(0., 0., 0.)),
+        all_coils=_prep_mf_coils(good_info), coil_scale=1., trans=None)
+    assert S_tot.shape[-1] == len(proj_sss)
+    for a, b in zip(proj_sss, S_tot.T):
+        a['data']['data'][:] = b
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
+                                 regularize=regularize, verbose=True)
+    log = log.getvalue()
+    assert 'xtend' not in log
+    with catch_logging() as log:
+        raw_sss_2 = maxwell_filter(raw_erm, coord_frame='meg',
+                                   regularize=regularize, ext_order=0,
+                                   extended_proj=proj_sss, verbose=True)
+    log = log.getvalue()
+    assert 'Extending external SSS basis using 15 projection' in log
+    assert_allclose(raw_sss_2._data, raw_sss._data, atol=1e-20)
+
+    # Degenerate condititons
+    proj_sss = proj_sss[:2]
+    proj_sss[0]['data']['col_names'] = proj_sss[0]['data']['col_names'][:-1]
+    with pytest.raises(ValueError, match='do not match the good MEG'):
+        maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
+    proj_sss[0] = 1.
+    with pytest.raises(TypeError, match=r'extended_proj\[0\] must be an inst'):
+        maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
+    with pytest.raises(TypeError, match='extended_proj must be an inst'):
+        maxwell_filter(raw_erm, coord_frame='meg', extended_proj=1.)
+
+
+@contextmanager
+def get_n_projected():
+    """Get the number of projected tSSS components from the log."""
+    count = list()
+    with use_log_level(True):
+        with catch_logging() as log:
+            yield count
+    log = log.getvalue()
+    assert 'Processing data using tSSS' in log
+    log = log.splitlines()
+    reg = re.compile(r'\s+Projecting\s+([0-9])+\s+intersecting tSSS .*')
+    for line in log:
+        m = reg.match(line)
+        if m:
+            count.append(int(m.group(1)))
 
 
 @buggy_mkl_svd
@@ -836,95 +901,176 @@ def test_shielding_factor(tmpdir):
     # Vanilla SSS (second value would be for meg=True instead of meg='mag')
     _assert_shielding(read_crop(sss_erm_std_fname), erm_power, 10)  # 1.5)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None)
-    _assert_shielding(raw_sss, erm_power, 12)  # 1.5)
-    _assert_shielding(raw_sss, erm_power_grad, 0.45, 'grad')  # 1.5)
+    _assert_shielding(raw_sss, erm_power, 12, 13)  # 1.5)
+    _assert_shielding(raw_sss, erm_power_grad, 0.45, 0.55, 'grad')  # 1.5)
 
-    # Using different mag_scale values
+    # No external basis
+    raw_sss_0 = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                               ext_order=0)
+    _assert_shielding(raw_sss_0, erm_power, 1.0, 1.1)
+    del raw_sss_0
+
+    # Regularization
+    _assert_shielding(read_crop(sss_erm_std_fname), erm_power, 10)  # 1.5)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg')
+    _assert_shielding(raw_sss, erm_power, 14.5, 15.5)
+
+    #
+    # Extended (eSSS)
+    #
+
+    # Show that using empty-room projectors increase shielding factor
+    proj = mne.compute_proj_raw(raw_erm, meg='combined', verbose='error',
+                                n_mag=15, n_grad=15)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 38, 39)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 49, 51)
+    # Now with reg
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
+                             extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 42, 44)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
+                             extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 59, 61)
+
+    #
+    # Different mag_scale values
+    #
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              mag_scale='auto')
-    _assert_shielding(raw_sss, erm_power, 12)
-    _assert_shielding(raw_sss, erm_power_grad, 0.48, 'grad')
+    _assert_shielding(raw_sss, erm_power, 12, 13)
+    _assert_shielding(raw_sss, erm_power_grad, 0.48, 0.58, 'grad')
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              mag_scale=1.)  # not a good choice
-    _assert_shielding(raw_sss, erm_power, 7.3)
-    _assert_shielding(raw_sss, erm_power_grad, 0.2, 'grad')
+    _assert_shielding(raw_sss, erm_power, 7.3, 8.)
+    _assert_shielding(raw_sss, erm_power_grad, 0.2, 0.3, 'grad')
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              mag_scale=1000., bad_condition='ignore')
-    _assert_shielding(raw_sss, erm_power, 4.0)
-    _assert_shielding(raw_sss, erm_power_grad, 0.1, 'grad')
+    _assert_shielding(raw_sss, erm_power, 4.0, 5.0)
+    _assert_shielding(raw_sss, erm_power_grad, 0.1, 0.2, 'grad')
 
+    #
     # Fine cal
+    #
     _assert_shielding(read_crop(sss_erm_fine_cal_fname), erm_power, 12)  # 2.0)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
                              calibration=pathlib.Path(fine_cal_fname))
-    _assert_shielding(raw_sss, erm_power, 12)  # 2.0)
+    _assert_shielding(raw_sss, erm_power, 12, 13)  # 2.0)
 
+    #
     # Crosstalk
+    #
     _assert_shielding(read_crop(sss_erm_ctc_fname), erm_power, 12)  # 2.1)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
                              cross_talk=ctc_fname)
-    _assert_shielding(raw_sss, erm_power, 12)  # 2.1)
+    _assert_shielding(raw_sss, erm_power, 12, 13)  # 2.1)
 
     # Fine cal + Crosstalk
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              calibration=fine_cal_fname,
                              origin=mf_meg_origin,
                              cross_talk=ctc_fname)
-    _assert_shielding(raw_sss, erm_power, 13)  # 2.2)
+    _assert_shielding(raw_sss, erm_power, 13, 14)  # 2.2)
+    # Fine cal + Crosstalk + Extended
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             calibration=fine_cal_fname,
+                             origin=mf_meg_origin,
+                             cross_talk=ctc_fname, extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 28, 30)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             calibration=fine_cal_fname,
+                             origin=mf_meg_origin,
+                             cross_talk=ctc_fname, extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 25, 27)
 
     # tSSS
     _assert_shielding(read_crop(sss_erm_st_fname), erm_power, 37)  # 5.8)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 37)  # 5.8)
+    _assert_shielding(raw_sss, erm_power, 37, 38)  # 5.8)
 
     # Crosstalk + tSSS
-    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
-                             cross_talk=ctc_fname, origin=mf_meg_origin,
-                             st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 38)  # 5.91)
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 cross_talk=ctc_fname, origin=mf_meg_origin,
+                                 st_duration=1.)
+    _assert_shielding(raw_sss, erm_power, 38, 39)  # 5.91)
+    assert counts[0] == 4
 
     # Fine cal + tSSS
-    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
-                             calibration=fine_cal_fname,
-                             origin=mf_meg_origin, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 38)  # 5.98)
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 calibration=fine_cal_fname,
+                                 origin=mf_meg_origin, st_duration=1.)
+    _assert_shielding(raw_sss, erm_power, 38, 39)  # 5.98)
+    assert counts[0] == 4
+
+    # Extended + tSSS
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 origin=mf_meg_origin, st_duration=1.,
+                                 extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 40, 42)
+    assert counts[0] == 0
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 origin=mf_meg_origin, st_duration=1.,
+                                 extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 35, 37)
+    assert counts[0] == 1
 
     # Fine cal + Crosstalk + tSSS
     _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalk_fname),
-                      erm_power, 39)  # 6.07)
+                      erm_power, 39, 40)  # 6.07)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              calibration=fine_cal_fname, origin=mf_meg_origin,
                              cross_talk=ctc_fname, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 39)  # 6.05)
+    _assert_shielding(raw_sss, erm_power, 39, 40)  # 6.05)
+
+    # Fine cal + Crosstalk + tSSS + Extended (a bit worse)
+    _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalk_fname),
+                      erm_power, 39, 40)  # 6.07)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             calibration=fine_cal_fname, origin=mf_meg_origin,
+                             cross_talk=ctc_fname, st_duration=1.,
+                             extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 34, 36)
 
     # Fine cal + Crosstalk + tSSS + Reg-in
     _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalkRegIn_fname),
-                      erm_power, 57)  # 6.97)
+                      erm_power, 57, 58)  # 6.97)
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              origin=mf_meg_origin,
                              coord_frame='meg', regularize='in')
-    _assert_shielding(raw_sss, erm_power, 53)  # 6.64)
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in')
-    _assert_shielding(raw_sss, erm_power, 58)  # 7.0)
-    _assert_shielding(raw_sss, erm_power_grad, 1.6, 'grad')
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in',
-                             mag_scale='auto')
-    _assert_shielding(raw_sss, erm_power, 51)
-    _assert_shielding(raw_sss, erm_power_grad, 1.5, 'grad')
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in')
-
+    _assert_shielding(raw_sss, erm_power, 53, 54)  # 6.64)
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in')
+    _assert_shielding(raw_sss, erm_power, 58, 59)  # 7.0)
+    _assert_shielding(raw_sss, erm_power_grad, 1.6, 1.7, 'grad')
+    assert counts[0] == 4
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in',
+                                 mag_scale='auto')
+    _assert_shielding(raw_sss, erm_power, 51, 52)
+    _assert_shielding(raw_sss, erm_power_grad, 1.5, 1.6, 'grad')
+    assert counts[0] == 3
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
-    _assert_shielding(raw_sss, erm_power, 54)
+    _assert_shielding(raw_sss, erm_power, 57, 58)
+    assert counts[0] == 3
     # Show it by rewriting the 3D as 1D and testing it
     temp_dir = str(tmpdir)
     temp_fname = op.join(temp_dir, 'test_cal.dat')
@@ -932,11 +1078,22 @@ def test_shielding_factor(tmpdir):
         with open(temp_fname, 'w') as fid_out:
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
-    raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in')
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
-    _assert_shielding(raw_sss, erm_power, 44)
+    _assert_shielding(raw_sss, erm_power, 44, 45)
+    assert counts[0] == 3
+
+    # Fine cal + Crosstalk + tSSS + Reg-in + Extended
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in',
+                                 extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 48, 50)
+    assert counts[0] == 1
 
 
 @pytest.mark.slowtest
