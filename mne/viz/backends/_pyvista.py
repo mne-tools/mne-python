@@ -175,7 +175,6 @@ class _Renderer(_BaseRenderer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
-                self.figure.smooth_shading = False
                 self.tube_n_sides = 3
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
@@ -222,7 +221,6 @@ class _Renderer(_BaseRenderer):
               backface_culling=False, scalars=None, colormap=None,
               vmin=None, vmax=None, interpolate_before_map=True,
               representation='surface', line_width=1., **kwargs):
-        smooth_shading = self.figure.smooth_shading
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             n_vertices = mesh.n_points
@@ -247,7 +245,7 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=smooth_shading,
+                smooth_shading=self.figure.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 representation=representation, line_width=line_width, **kwargs,
             )
@@ -381,8 +379,7 @@ class _Renderer(_BaseRenderer):
                     color=color,
                     show_scalar_bar=False,
                     cmap=cmap,
-                    smooth_shading=self.
-                    figure.smooth_shading
+                    smooth_shading=self.figure.smooth_shading,
                 )
         return tube
 
