@@ -368,7 +368,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     n_freqs = len(freqs)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
     if output in ('power', 'phase', 'avg_power', 'itc'):
-        dtype = np.float
+        dtype = np.float64
     elif output in ('complex', 'avg_power_itc'):
         # avg_power_itc is stored as power + 1i * itc to keep a
         # simple dimensionality
@@ -495,7 +495,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         The decimation slice: e.g. power[:, decim]
     """
     # Set output type
-    dtype = np.float
+    dtype = np.float64
     if output in ['complex', 'avg_power_itc']:
         dtype = np.complex128
 
@@ -982,6 +982,10 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             The file name, which should end with ``-tfr.h5``.
         overwrite : bool
             If True, overwrite file (if it exists). Defaults to False.
+
+        See Also
+        --------
+        read_tfrs, write_tfrs
         """
         write_tfrs(fname, self, overwrite=overwrite)
 

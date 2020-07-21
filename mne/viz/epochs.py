@@ -33,7 +33,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
                     _set_title_multiple_electrodes, _make_combine_callable,
                     _get_figsize_from_config, _toggle_scrollbars,
-                    _check_psd_fmax)
+                    _check_psd_fmax, _set_window_title)
 from .misc import _handle_event_colors
 
 
@@ -396,7 +396,7 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         shape = (3, 10)
         for this_group in group_by:
             this_fig = figure()
-            this_fig.canvas.set_window_title(this_group)
+            _set_window_title(this_fig, this_group)
             kwargs = dict()
             if check_version('matplotlib', '2.2'):
                 kwargs['fig'] = this_fig  # unavailable on earlier mpl
@@ -426,7 +426,7 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
             _ = [ax.clear() for ax in fig.axes]
             if len(fig.axes) > n_axes:  # get rid of sensor inset
                 fig.axes[-1].remove()
-            fig.canvas.set_window_title(key)
+            _set_window_title(fig, key)
         axes = {key: fig.axes}
 
     # got an Axes instance, be forgiving (if evoked and colorbar are False)
@@ -1028,7 +1028,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     figsize = _get_figsize_from_config()
     params['fig'] = figure_nobar(facecolor='w', figsize=figsize, dpi=80)
-    params['fig'].canvas.set_window_title(title or 'Epochs')
+    _set_window_title(params['fig'], title or 'Epochs')
     _prepare_mne_browse(params, xlabel='Epochs')
     ax = params['ax']
     ax_hscroll = params['ax_hscroll']
@@ -1897,7 +1897,7 @@ def _open_options(params):
     width = 10
     height = 3
     fig_options = figure_nobar(figsize=(width, height), dpi=80)
-    fig_options.canvas.set_window_title('View settings')
+    _set_window_title(fig_options, 'View settings')
     params['fig_options'] = fig_options
     ax_channels = plt.axes([0.15, 0.1, 0.65, 0.1])
     ax_epochs = plt.axes([0.15, 0.25, 0.65, 0.1])

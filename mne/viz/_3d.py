@@ -12,7 +12,6 @@
 
 from distutils.version import LooseVersion
 from itertools import cycle
-import os
 import os.path as op
 import sys
 import warnings
@@ -1777,9 +1776,7 @@ def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
             not using_mayavi and
             time_viewer and
             brain._times is not None and
-            len(brain._times) > 1 and
-            # XXX temporary hidden workaround for memory problems on CircleCI
-            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false'
+            len(brain._times) > 1
         )
 
     if _get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
@@ -1789,6 +1786,9 @@ def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
+
+    if show_traces and not time_viewer:
+        raise ValueError('show_traces cannot be used when time_viewer=False')
 
     if time_viewer:
         if using_mayavi:

@@ -68,7 +68,6 @@ class _Renderer(_BaseRenderer):
                  name=None, show=False, shape=(1, 1), smooth_shading=True):
         if bgcolor is not None:
             bgcolor = _check_color(bgcolor)
-        print(bgcolor)
         self.mlab = _import_mlab()
         self.shape = shape
         if fig is None:

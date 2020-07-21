@@ -509,7 +509,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
     height = (len(projs) + 1) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
-    fig_proj.canvas.set_window_title('SSP projection vectors')
+    _set_window_title(fig_proj, 'SSP projection vectors')
     offset = (1. / 6. / height)
     params['fig_proj'] = fig_proj  # necessary for proper toggling
     ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
@@ -1083,7 +1083,7 @@ def _setup_annotation_fig(params):
 
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
-    fig.canvas.set_window_title('Annotations')
+    _set_window_title(fig, 'Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
     circles = fig.radio.circles
@@ -1268,7 +1268,7 @@ def _select_bads(event, params, bads):
 
 def _show_help(col1, col2, width, height):
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    fig_help.canvas.set_window_title('Help')
+    _set_window_title(fig_help, 'Help')
 
     ax = fig_help.add_subplot(111)
     celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
@@ -2896,10 +2896,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
-        time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
-        time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
-                                    time_diff, [times[-1] + time_diff[-1]]])
-
+        time_lims, = centers_to_edges(times)
         log_yvals = np.concatenate([[yvals[0] / ratio[0]], yvals,
                                     [yvals[-1] * ratio[0]]])
         yval_lims = np.sqrt(log_yvals[:-1] * log_yvals[1:])
@@ -3277,3 +3274,44 @@ def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
     keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
     return ticks[keep]
+
+
+def _set_window_title(fig, title):
+    if fig.canvas.manager is not None:
+        fig.canvas.manager.set_window_title(title)
+
+
+def centers_to_edges(*arrays):
+    """Convert center points to edges.
+
+    Parameters
+    ----------
+    *arrays : list of ndarray
+        Each input array should be 1D monotonically increasing,
+        and will be cast to float.
+
+    Returns
+    -------
+    arrays : list of ndarray
+        Given each input of shape (N,), the output will have shape (N+1,).
+
+    Examples
+    --------
+    >>> x = [0., 0.1, 0.2, 0.3]
+    >>> y = [20, 30, 40]
+    >>> centers_to_edges(x, y)  # doctest: +SKIP
+    [array([-0.05, 0.05, 0.15, 0.25, 0.35]), array([15., 25., 35., 45.])]
+    """
+    out = list()
+    for ai, arr in enumerate(arrays):
+        arr = np.asarray(arr, dtype=float)
+        _check_option(f'arrays[{ai}].ndim', arr.ndim, (1,))
+        if len(arr) > 1:
+            arr_diff = np.diff(arr) / 2.
+        else:
+            arr_diff = [abs(arr[0]) * 0.001] if arr[0] != 0 else [0.001]
+        out.append(np.concatenate([
+            [arr[0] - arr_diff[0]],
+            arr[:-1] + arr_diff,
+            [arr[-1] + arr_diff[-1]]]))
+    return out
