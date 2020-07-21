@@ -95,11 +95,12 @@ jobs:
     displayName: 'Spin up Xvfb'
   - bash: |
       set -e
-      pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
+      python -m pip install --upgrade pip setuptools
+      python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
     displayName: 'Install dependencies with pip'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "ultraslowtest" --tb=short --cov=mne -n 1 mne
+  - script: pytest -m "ultraslowtest" --tb=short --cov=mne mne
     displayName: 'Run ultraslow tests'
   - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
     displayName: 'Codecov'
@@ -194,10 +195,11 @@ jobs:
     displayName: Install OpenGL
   - bash: |
       set -e
-      pip install --upgrade numpy scipy vtk
-      pip install --upgrade -r requirements.txt -r requirements_testing.txt
-      pip install codecov
-      pip uninstall -yq pysurfer mayavi
+      python -m pip install --upgrade pip setuptools
+      python -m pip install --upgrade numpy scipy vtk
+      python -m pip install --upgrade -r requirements.txt -r requirements_testing.txt
+      python -m pip install codecov
+      python -m pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
   - bash: |
@@ -234,7 +236,7 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not slowtest" --tb=short --cov=mne -v mne
+  - script: pytest -m "not slowtest" --tb=short --cov=mne mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
