@@ -63,6 +63,7 @@ class MplCanvas(object):
         # XXX eventually this should be called in the window resize callback
         tight_layout(fig=self.axes.figure)
         self.time_viewer = time_viewer
+        self.time_func = time_viewer.time_call
         for event in ('button_press', 'motion_notify'):
             self.canvas.mpl_connect(
                 event + '_event', getattr(self, 'on_' + event))
@@ -117,7 +118,7 @@ class MplCanvas(object):
         if (event.inaxes != self.axes or
                 event.button != 1):
             return
-        self.time_viewer.time_call(
+        self.time_func(
             event.xdata, update_widget=True, time_as_index=False)
 
     on_motion_notify = on_button_press  # for now they can be the same
@@ -1226,6 +1227,14 @@ class _LinkViewer(object):
                 time_viewer.actions["play"].triggered.disconnect()
                 time_viewer.actions["play"].triggered.connect(
                     self.toggle_playback)
+
+            # link time course canvas
+            def _func(*args, **kwargs):
+                for time_viewer in self.time_viewers:
+                    time_viewer.time_call(*args, **kwargs)
+
+            for time_viewer in self.time_viewers:
+                time_viewer.mpl_canvas.time_func = _func
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
