@@ -57,6 +57,8 @@ Changelog
 
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
+- Add ability to interpolate EEG channels using minimum-norm projection in :meth:`mne.io.Raw.interpolate_bads` and related functions with ``method=dict(eeg='MNE')`` by `Eric Larson`_
+
 - Added ability of :func:`mne.io.read_raw_nirx` to open data by passing path to header file `Robert Luke`_
 
 - Add :meth:`mne.channels.DigMontage.rename_channels` to allow renaming montage channels by `Eric Larson`_
@@ -80,6 +82,8 @@ Changelog
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
 - Add ``mri`` and ``show_orientation`` arguments to :func:`mne.viz.plot_bem` by `Eric Larson`_
+
+- Add :func:`mne.viz.centers_to_edges` to help when using :meth:`matplotlib.axes.Axes.pcolormesh` with flat shading by `Eric Larson`_
 
 - Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
 

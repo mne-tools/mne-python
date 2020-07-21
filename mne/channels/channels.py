@@ -14,9 +14,9 @@ import sys
 import numpy as np
 from scipy import sparse
 
-from ..defaults import HEAD_SIZE_DEFAULT
-from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
-                     _check_preload, _validate_type, fill_doc, _check_option)
+from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
+from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
+                     fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin
@@ -567,9 +567,24 @@ class SetChannelsMixin(MontageMixin):
                             to_sphere=to_sphere, axes=axes, block=block,
                             show=show, sphere=sphere, verbose=verbose)
 
-    @copy_function_doc_to_method_doc(anonymize_info)
+    @verbose
     def anonymize(self, daysback=None, keep_his=False, verbose=None):
-        """
+        """Anonymize measurement information in place.
+
+        Parameters
+        ----------
+        %(anonymize_info_parameters)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The modified instance.
+
+        Notes
+        -----
+        %(anonymize_info_notes)s
+
         .. versionadded:: 0.13.0
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his,
@@ -1010,7 +1025,7 @@ class InterpolationMixin(object):
 
     @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         origin='auto', verbose=None):
+                         origin='auto', method=None, verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -1021,14 +1036,30 @@ class InterpolationMixin(object):
             If True, remove the bads from info.
         mode : str
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
-            Legendre polynomial expansion used for interpolation of MEG
-            channels.
+            Legendre polynomial expansion used for interpolation of channels
+            using the minimum-norm method.
         origin : array-like, shape (3,) | str
             Origin of the sphere in the head coordinate frame and in meters.
             Can be ``'auto'`` (default), which means a head-digitization-based
             origin fit.
 
             .. versionadded:: 0.17
+        method : dict
+            Method to use for each channel type.
+            Currently only the key "eeg" has multiple options:
+
+            - ``"spline"`` (default)
+                Use spherical spline interpolation.
+            - ``"MNE"``
+                Use minimum-norm projection to a sphere and back.
+                This is the method used for MEG channels.
+
+            The value for "meg" is "MNE", and the value for
+            "fnirs" is "nearest". The default (None) is thus an alias for::
+
+                method=dict(meg="MNE", eeg="spline", fnirs="nearest")
+
+            .. versionadded:: 0.21
         %(verbose_meth)s
 
         Returns
@@ -1042,16 +1073,27 @@ class InterpolationMixin(object):
         """
         from ..bem import _check_origin
         from .interpolation import _interpolate_bads_eeg,\
-            _interpolate_bads_meg, _interpolate_bads_nirs
+            _interpolate_bads_meeg, _interpolate_bads_nirs
 
         _check_preload(self, "interpolation")
+        method = _handle_default('interpolation_method', method)
+        for key in method:
+            _check_option('method[key]', key, ('meg', 'eeg', 'fnirs'))
+        _check_option("method['eeg']", method['eeg'], ('spline', 'MNE'))
+        _check_option("method['meg']", method['meg'], ('MNE',))
+        _check_option("method['fnirs']", method['fnirs'], ('nearest',))
 
         if len(self.info['bads']) == 0:
             warn('No bad channels to interpolate. Doing nothing...')
             return self
+        logger.info('Interpolating bad channels')
         origin = _check_origin(origin, self.info)
-        _interpolate_bads_eeg(self, origin=origin)
-        _interpolate_bads_meg(self, mode=mode, origin=origin)
+        if method['eeg'] == 'spline':
+            _interpolate_bads_eeg(self, origin=origin)
+            eeg_mne = False
+        else:
+            eeg_mne = True
+        _interpolate_bads_meeg(self, mode=mode, origin=origin, eeg=eeg_mne)
         _interpolate_bads_nirs(self)
 
         if reset_bads is True:

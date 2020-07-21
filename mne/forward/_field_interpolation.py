@@ -11,7 +11,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
-from ..io.constants import FWD
+from ..io.constants import FWD, FIFF
 from ..bem import _check_origin
 from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
@@ -23,7 +23,7 @@ from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
-from ..utils import logger, verbose, _check_option
+from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
 
@@ -78,41 +78,56 @@ def _compute_mapping_matrix(fmd, info):
 
     # SVD is numerically better than the eigenvalue composition even if
     # mat is supposed to be symmetric and positive definite
-    uu, sing, vv = linalg.svd(whitened_dots, full_matrices=False,
-                              overwrite_a=True)
-
-    # Eigenvalue truncation
-    sumk = np.cumsum(sing)
-    sumk /= sumk[-1]
-    fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0] + 1
-    logger.info('    Truncating at %d/%d components to omit less than %g '
-                '(%0.2g)' % (fmd['nest'], len(sing), fmd['miss'],
-                             1. - sumk[fmd['nest'] - 1]))
-    sing = 1.0 / sing[:fmd['nest']]
-
-    # Put the inverse together
-    inv = np.dot(uu[:, :fmd['nest']] * sing, vv[:fmd['nest']]).T
+    if fmd.get('pinv_method', 'tsvd') == 'tsvd':
+        inv, fmd['nest'] = _pinv_trunc(whitened_dots, fmd['miss'])
+    else:
+        assert fmd['pinv_method'] == 'tikhonov', fmd['pinv_method']
+        inv, fmd['nest'] = _pinv_tikhonov(whitened_dots, fmd['miss'])
 
     # Sandwich with the whitener
     inv_whitened = np.dot(whitener.T, np.dot(inv, whitener))
 
     # Take into account that the lead fields used to compute
     # d->surface_dots were unprojected
-    inv_whitened_proj = (np.dot(inv_whitened.T, proj_op)).T
+    inv_whitened_proj = proj_op.T @ inv_whitened
 
     # Finally sandwich in the selection matrix
     # This one picks up the correct lead field projection
     mapping_mat = np.dot(fmd['surface_dots'], inv_whitened_proj)
 
     # Optionally apply the average electrode reference to the final field map
-    if fmd['kind'] == 'eeg':
-        if _has_eeg_average_ref_proj(projs):
-            logger.info('    The map will have average electrode reference')
-            mapping_mat -= np.mean(mapping_mat, axis=0)[np.newaxis, :]
+    if fmd['kind'] == 'eeg' and _has_eeg_average_ref_proj(projs):
+        logger.info(
+            '    The map has an average electrode reference '
+            f'({mapping_mat.shape[0]} channels)')
+        mapping_mat -= np.mean(mapping_mat, axis=0)
     return mapping_mat
 
 
-def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
+def _pinv_trunc(x, miss):
+    """Compute pseudoinverse, truncating at most "miss" fraction of varexp."""
+    u, s, v = linalg.svd(x, full_matrices=False)
+
+    # Eigenvalue truncation
+    varexp = np.cumsum(s)
+    varexp /= varexp[-1]
+    n = np.where(varexp >= (1.0 - miss))[0][0] + 1
+    logger.info('    Truncating at %d/%d components to omit less than %g '
+                '(%0.2g)' % (n, len(s), miss, 1. - varexp[n - 1]))
+    s = 1. / s[:n]
+    inv = ((u[:, :n] * s) @ v[:n]).T
+    return inv, n
+
+
+def _pinv_tikhonov(x, reg):
+    # _reg_pinv requires square Hermitian, which we have here
+    inv, _, n = _reg_pinv(x, reg=reg, rank=None)
+    logger.info(f'    Truncating at {n}/{len(x)} components and regularizing '
+                f'with α={reg:0.1e}')
+    return inv, n
+
+
+def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -132,35 +147,62 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
 
     Returns
     -------
-    mapping : array
-        A mapping matrix of shape len(pick_to) x len(pick_from).
+    mapping : array, shape (n_to, n_from)
+        A mapping matrix.
     """
     # no need to apply trans because both from and to coils are in device
     # coordinates
-    templates = _read_coil_defs(verbose=False)
-    coils_from = _create_meg_coils(info_from['chs'], 'normal',
-                                   info_from['dev_head_t'], templates)
-    coils_to = _create_meg_coils(info_to['chs'], 'normal',
-                                 info_to['dev_head_t'], templates)
-    miss = 1e-4  # Smoothing criterion for MEG
+    info_kinds = set(ch['kind'] for ch in info_to['chs'])
+    info_kinds |= set(ch['kind'] for ch in info_from['chs'])
+    if FIFF.FIFFV_REF_MEG_CH in info_kinds:  # refs same as MEG
+        info_kinds |= set([FIFF.FIFFV_MEG_CH])
+        info_kinds -= set([FIFF.FIFFV_REF_MEG_CH])
+    info_kinds = sorted(info_kinds)
+    # This should be guaranteed by the callers
+    assert (len(info_kinds) == 1 and info_kinds[0] in (
+            FIFF.FIFFV_MEG_CH, FIFF.FIFFV_EEG_CH))
+    kind = 'eeg' if info_kinds[0] == FIFF.FIFFV_EEG_CH else 'meg'
+
+    #
+    # Step 1. Prepare the coil definitions
+    #
+    if kind == 'meg':
+        templates = _read_coil_defs(verbose=False)
+        coils_from = _create_meg_coils(info_from['chs'], 'normal',
+                                       info_from['dev_head_t'], templates)
+        coils_to = _create_meg_coils(info_to['chs'], 'normal',
+                                     info_to['dev_head_t'], templates)
+        pinv_method = 'tsvd'
+        miss = 1e-4
+    else:
+        coils_from = _create_eeg_els(info_from['chs'])
+        coils_to = _create_eeg_els(info_to['chs'])
+        pinv_method = 'tikhonov'
+        miss = 1e-1
+        if _has_eeg_average_ref_proj(info_from['projs']) and \
+                not _has_eeg_average_ref_proj(info_to['projs']):
+            raise RuntimeError(
+                'info_to must have an average EEG reference projector if '
+                'info_from has one')
     origin = _check_origin(origin, info_from)
     #
     # Step 2. Calculate the dot products
     #
-    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from, 'meg')
-    logger.info('    Computing dot products for %i coils...'
-                % (len(coils_from)))
-    self_dots = _do_self_dots(int_rad, False, coils_from, origin, 'meg',
+    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from, kind)
+    logger.info(f'    Computing dot products for {len(coils_from)} '
+                f'{kind.upper()} channel{_pl(coils_from)}...')
+    self_dots = _do_self_dots(int_rad, False, coils_from, origin, kind,
                               lut_fun, n_fact, n_jobs=1)
-    logger.info('    Computing cross products for coils %i x %i coils...'
-                % (len(coils_from), len(coils_to)))
+    logger.info(f'    Computing cross products for {len(coils_from)} → '
+                f'{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}...')
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
-                                origin, 'meg', lut_fun, n_fact).T
+                                origin, kind, lut_fun, n_fact).T
 
     ch_names = [c['ch_name'] for c in info_from['chs']]
-    fmd = dict(kind='meg', ch_names=ch_names,
+    fmd = dict(kind=kind, ch_names=ch_names,
                origin=origin, noise=noise, self_dots=self_dots,
-               surface_dots=cross_dots, int_rad=int_rad, miss=miss)
+               surface_dots=cross_dots, int_rad=int_rad, miss=miss,
+               pinv_method=pinv_method)
 
     #
     # Step 3. Compute the mapping matrix
@@ -205,7 +247,9 @@ def _as_meg_type_inst(inst, ch_type='grad', mode='fast'):
 
     info_from = pick_info(inst.info, pick_from)
     info_to = pick_info(inst.info, pick_to)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode)
+    # XXX someday we should probably expose the origin
+    mapping = _map_meg_or_eeg_channels(
+        info_from, info_to, origin=(0., 0., 0.04), mode=mode)
 
     # compute data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
