@@ -1205,10 +1205,10 @@ class _LinkViewer(object):
         self.time_viewers = [brain.time_viewer for brain in brains]
 
         # check time infos
-        brain_times = [brain._times for brain in brains]
-        if not all(len(x) == len(brain_times[0]) for x in brain_times):
+        times = [brain._times for brain in brains]
+        if time and not all(len(x) == len(times[0]) for x in times):
             time = False
-        if not all(all(np.equal(x, brain_times[0])) for x in brain_times):
+        if time and not all(all(np.equal(x, times[0])) for x in times):
             time = False
 
         if camera:
