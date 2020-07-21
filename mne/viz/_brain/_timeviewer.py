@@ -1272,8 +1272,15 @@ class _LinkViewer(object):
                 )
 
     def link_cameras(self):
+        from ..backends._pyvista import _add_camera_callback
+
+        def _update_camera(vtk_picker, event):
+            for time_viewer in self.time_viewers:
+                time_viewer.plotter.update()
+
         leader = self.time_viewers[0]  # select a time_viewer as leader
         camera = leader.plotter.camera
+        _add_camera_callback(camera, _update_camera)
         for time_viewer in self.time_viewers:
             for renderer in time_viewer.plotter.renderers:
                 renderer.camera = camera
