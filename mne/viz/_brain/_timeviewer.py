@@ -339,7 +339,7 @@ class _TimeViewer(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
-        self.act_data = {'lh': None, 'rh': None}
+        self.act_data_smooth = {'lh': None, 'rh': None}
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
         self._mouse_no_mvt = -1
@@ -489,7 +489,10 @@ class _TimeViewer(object):
 
     @copy_doc(_Brain.save_movie)
     def save_movie(self, filename=None, **kwargs):
-        from pyvista.plotting.qt_plotting import FileDialog
+        try:
+            from pyvista.plotting.qt_plotting import FileDialog
+        except ImportError:
+            from pyvistaqt.plotting import FileDialog
 
         if filename is None:
             self.status_msg.setText("Choose movie path ...")
@@ -818,69 +821,68 @@ class _TimeViewer(object):
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
 
     def configure_point_picking(self):
+        if not self.show_traces:
+            return
         from ..backends._pyvista import _update_picking_callback
-        if self.show_traces:
-            # use a matplotlib canvas
-            self.color_cycle = _ReuseCycle(_get_color_list())
-            win = self.plotter.app_window
-            dpi = win.windowHandle().screen().logicalDotsPerInch()
-            w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
-            h /= 3  # one third of the window
-            self.mpl_canvas = MplCanvas(self, w, h, dpi)
-            xlim = [np.min(self.brain._data['time']),
-                    np.max(self.brain._data['time'])]
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=UserWarning)
-                self.mpl_canvas.axes.set(xlim=xlim)
-            vlayout = self.plotter.frame.layout()
-            if not self.separate_canvas:
-                vlayout.addWidget(self.mpl_canvas.canvas)
-                vlayout.setStretch(0, self.interactor_stretch)
-                vlayout.setStretch(1, 1)
-            self.mpl_canvas.set_color(
-                bg_color=self.brain._bg_color,
-                fg_color=self.brain._fg_color,
-            )
-            self.mpl_canvas.show()
+        # use a matplotlib canvas
+        self.color_cycle = _ReuseCycle(_get_color_list())
+        win = self.plotter.app_window
+        dpi = win.windowHandle().screen().logicalDotsPerInch()
+        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
+        h /= 3  # one third of the window
+        self.mpl_canvas = MplCanvas(self, w, h, dpi)
+        xlim = [np.min(self.brain._data['time']),
+                np.max(self.brain._data['time'])]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            self.mpl_canvas.axes.set(xlim=xlim)
+        vlayout = self.plotter.frame.layout()
+        if not self.separate_canvas:
+            vlayout.addWidget(self.mpl_canvas.canvas)
+            vlayout.setStretch(0, self.interactor_stretch)
+            vlayout.setStretch(1, 1)
+        self.mpl_canvas.set_color(
+            bg_color=self.brain._bg_color,
+            fg_color=self.brain._fg_color,
+        )
+        self.mpl_canvas.show()
 
-            # get brain data
-            for idx, hemi in enumerate(['lh', 'rh']):
-                hemi_data = self.brain._data.get(hemi)
-                if hemi_data is not None:
-                    act_data = hemi_data['array']
-                    if act_data.ndim == 3:
-                        act_data = np.linalg.norm(act_data, axis=1)
-                    smooth_mat = hemi_data['smooth_mat']
-                    if smooth_mat is not None:
-                        act_data = smooth_mat.dot(act_data)
-                    self.act_data[hemi] = act_data
+        # get brain data
+        for idx, hemi in enumerate(['lh', 'rh']):
+            hemi_data = self.brain._data.get(hemi)
+            if hemi_data is not None:
+                act_data = hemi_data['array']
+                if act_data.ndim == 3:
+                    act_data = np.linalg.norm(act_data, axis=1)
+                smooth_mat = hemi_data['smooth_mat']
+                self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
-                    # simulate a picked renderer
-                    if self.brain._hemi == 'split':
-                        self.picked_renderer = self.plotter.renderers[idx]
-                    else:
-                        self.picked_renderer = self.plotter.renderers[0]
+                # simulate a picked renderer
+                if self.brain._hemi == 'split':
+                    self.picked_renderer = self.plotter.renderers[idx]
+                else:
+                    self.picked_renderer = self.plotter.renderers[0]
 
-                    # initialize the default point
-                    color = next(self.color_cycle)
-                    ind = np.unravel_index(
-                        np.argmax(self.act_data[hemi], axis=None),
-                        self.act_data[hemi].shape
-                    )
-                    vertex_id = ind[0]
-                    mesh = hemi_data['mesh'][-1]
-                    line = self.plot_time_course(hemi, vertex_id, color)
-                    self.add_point(hemi, mesh, vertex_id, line, color)
+                # initialize the default point
+                color = next(self.color_cycle)
+                ind = np.unravel_index(
+                    np.argmax(self.act_data_smooth[hemi][0], axis=None),
+                    self.act_data_smooth[hemi][0].shape
+                )
+                vertex_id = hemi_data['vertices'][ind[0]]
+                mesh = hemi_data['mesh']
+                line = self.plot_time_course(hemi, vertex_id, color)
+                self.add_point(hemi, mesh, vertex_id, line, color)
 
-            self.plot_time_line()
+        self.plot_time_line()
 
-            _update_picking_callback(
-                self.plotter,
-                self.on_mouse_move,
-                self.on_button_press,
-                self.on_button_release,
-                self.on_pick
-            )
+        _update_picking_callback(
+            self.plotter,
+            self.on_mouse_move,
+            self.on_button_press,
+            self.on_button_release,
+            self.on_pick
+        )
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
@@ -1079,7 +1081,7 @@ class _TimeViewer(object):
     def plot_time_course(self, hemi, vertex_id, color):
         if not hasattr(self, "mpl_canvas"):
             return
-        time = self.brain._data['time']
+        time = self.brain._data['time'].copy()  # avoid circular ref
         hemi_str = 'L' if hemi == 'lh' else 'R'
         hemi_int = 0 if hemi == 'lh' else 1
         mni = vertex_to_mni(
@@ -1091,9 +1093,14 @@ class _TimeViewer(object):
         label = "{}:{} MNI: {}".format(
             hemi_str, str(vertex_id).ljust(6),
             ', '.join('%5.1f' % m for m in mni))
+        act_data, smooth = self.act_data_smooth[hemi]
+        if smooth is not None:
+            act_data = smooth[vertex_id].dot(act_data)[0]
+        else:
+            act_data = act_data[vertex_id].copy()
         line = self.mpl_canvas.plot(
             time,
-            self.act_data[hemi][vertex_id, :],
+            act_data,
             label=label,
             lw=1.,
             color=color
@@ -1177,14 +1184,16 @@ class _TimeViewer(object):
         self.interactor = None
         if hasattr(self, "mpl_canvas"):
             self.mpl_canvas.close()
+            self.mpl_canvas.axes.clear()
+            self.mpl_canvas.fig.clear()
             self.mpl_canvas.time_viewer = None
             self.mpl_canvas.canvas = None
             self.mpl_canvas = None
         self.time_actor = None
         self.picked_renderer = None
-        self.act_data["lh"] = None
-        self.act_data["rh"] = None
-        self.act_data = None
+        self.act_data_smooth["lh"] = None
+        self.act_data_smooth["rh"] = None
+        self.act_data_smooth = None
 
 
 class _LinkViewer(object):

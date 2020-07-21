@@ -2112,48 +2112,17 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     ----------
     info : dict, instance of Info
         Measurement information for the dataset.
-    daysback : int | None
-        Number of days to subtract from all dates.
-        If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
-        This parameter is ignored if ``info['meas_date'] is None``.
-    keep_his : bool
-        If True his_id of subject_info will NOT be overwritten.
-        Defaults to False.
-
-        .. warning:: This could mean that ``info`` is not fully
-                     anonymized. Use with caution.
+    %(anonymize_info_parameters)s
     %(verbose)s
 
     Returns
     -------
     info : instance of Info
-        Measurement information for the dataset.
+        The anonymized measurement information.
 
     Notes
     -----
-    Removes potentially identifying information if it exist in ``info``.
-    Specifically for each of the following we use:
-
-    - meas_date, file_id, meas_id
-          A default value, or as specified by ``daysback``.
-    - subject_info
-          Default values, except for 'birthday' which is adjusted
-          to maintain the subject age.
-    - experimenter, proj_name, description
-          Default strings.
-    - utc_offset
-          ``None``.
-    - proj_id
-          Zeros.
-    - proc_history
-          Dates use the meas_date logic, and experimenter a default string.
-    - helium_info, device_info
-          Dates use the meas_date logic, meta info uses defaults.
-
-    If ``info['meas_date']`` is None, it will remain None during processing
-    the above fields.
-
-    Operates in place.
+    %(anonymize_info_notes)s
     """
     _validate_type(info, 'info', "self")
 

@@ -84,6 +84,7 @@ DEFAULTS = dict(
                    combine_xyz='spectral', allow_fixed_depth=False),
     depth_sparse=dict(exp=0.8, limit=None, limit_depth_chs='whiten',
                       combine_xyz='fro', allow_fixed_depth=True),
+    interpolation_method=dict(eeg='spline', meg='MNE', fnirs='nearest'),
 )
 
 

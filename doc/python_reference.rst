@@ -226,6 +226,7 @@ Visualization
 
    ClickableImage
    add_background_image
+   centers_to_edges
    compare_fiff
    circular_layout
    iter_topography

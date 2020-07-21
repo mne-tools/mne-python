@@ -17,10 +17,11 @@ from numpy.testing import assert_allclose
 from mne import SourceEstimate, read_source_estimate
 from mne.source_space import read_source_spaces, vertex_to_mni
 from mne.datasets import testing
-from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer
+from mne.utils import check_version
+from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer, _BrainScraper
 from mne.viz._brain.colormap import calculate_lut
 
-from matplotlib import cm
+from matplotlib import cm, image
 
 data_path = testing.data_path(download=False)
 subject_id = 'sample'
@@ -198,7 +199,7 @@ def test_brain_timeviewer(renderer_interactive):
     pytest.param('split', marks=pytest.mark.slowtest),
     pytest.param('both', marks=pytest.mark.slowtest),
 ])
-def test_brain_timeviewer_traces(renderer_interactive, hemi):
+def test_brain_timeviewer_traces(renderer_interactive, hemi, tmpdir):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
@@ -250,6 +251,22 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
 
         assert line.get_label() == label
     assert len(spheres) == len(hemi_str)
+
+    # and the scraper for it (will close the instance)
+    if not check_version('sphinx_gallery'):
+        return
+    screenshot = brain_data.screenshot()
+    fnames = [str(tmpdir.join('temp.png'))]
+    block_vars = dict(image_path_iterator=iter(fnames),
+                      example_globals=dict(brain=brain_data))
+    gallery_conf = dict(src_dir=str(tmpdir))
+    scraper = _BrainScraper()
+    rst = scraper(None, block_vars, gallery_conf)
+    assert 'temp.png' in rst
+    assert path.isfile(fnames[0])
+    img = image.imread(fnames[0])
+    assert img.shape[1] == screenshot.shape[1]  # same width
+    assert img.shape[0] > screenshot.shape[0]  # larger height
 
 
 @testing.requires_testing_data
