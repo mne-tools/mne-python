@@ -363,8 +363,8 @@ def test_equalize_channels():
 
 def test_combine_channels():
     """Test channel combination on Raw, Epochs, and Evoked."""
-    raw = read_raw_fif(raw_fname)
-    raw_ch_bad = read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw_ch_bad = read_raw_fif(raw_fname, preload=True)
     raw_ch_bad.info['bads'] = ['MEG 0113', 'MEG 0112']
     epochs = Epochs(raw, read_events(eve_fname))
     evoked = epochs.average()
@@ -382,7 +382,7 @@ def test_combine_channels():
     target_nchan = len(good) + len(pick_types(raw.info, meg=False, stim=True))
     assert combine_stim.info['nchan'] == target_nchan
 
-    # Test result with one ROI
+    # Test results with one ROI
     good_single = dict(foo=[0, 1, 3, 4])  # good grad
     combined_mean = combine_channels(raw, good_single, method='mean')
     combined_median = combine_channels(raw, good_single, method='median')
@@ -412,7 +412,7 @@ def test_combine_channels():
         combine_channels(raw, bad2)
 
     # Test warnings
-    raw_no_stim = read_raw_fif(raw_fname)
+    raw_no_stim = read_raw_fif(raw_fname, preload=True)
     raw_no_stim.pick_types(meg=True, stim=False)
     warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
     warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)

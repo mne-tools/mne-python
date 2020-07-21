@@ -1606,10 +1606,10 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
         try:
             method = method_dict[method]
         except KeyError:
-            raise ValueError('"method" must be a callable, or one of '
-                             f'"mean", "median", or "std"; got "{method}".')
+            raise ValueError('"method" must be a callable, or one of "mean", '
+                             f'"median", or "std"; got "{method}".')
 
-    # Instantiate data and channel info
+    # Instantiate channel info and data
     new_ch_names, new_ch_types, new_data = [], [], []
     if not isinstance(keep_stim, bool):
         raise TypeError('"keep_stim" must be of type bool, not '
