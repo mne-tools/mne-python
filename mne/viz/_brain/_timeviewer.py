@@ -1241,7 +1241,8 @@ class _LinkViewer(object):
                     time_viewer.time_call(*args, **kwargs)
 
             for time_viewer in self.time_viewers:
-                time_viewer.mpl_canvas.time_func = _func
+                if time_viewer.show_traces:
+                    time_viewer.mpl_canvas.time_func = _func
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
