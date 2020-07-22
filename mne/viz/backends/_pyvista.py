@@ -326,12 +326,19 @@ class _Renderer(_BaseRenderer):
             cmap = _get_colormap_from_array(colormap, normalized_colormap)
             vertices = np.array(surface['rr'])
             triangles = np.array(surface['tris'])
+            normals = surface.get('nn', None)
             n_triangles = len(triangles)
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             mesh = PolyData(vertices, triangles)
             if scalars is not None:
                 mesh.point_arrays['scalars'] = scalars
-            _add_mesh(
+            if normals is not None:
+                normals = np.array(normals)
+                mesh.point_arrays["Normals"] = normals
+                mesh.GetPointData().SetActiveNormals("Normals")
+            else:
+                return
+            actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color,
                 rng=[vmin, vmax],
@@ -341,6 +348,13 @@ class _Renderer(_BaseRenderer):
                 backface_culling=backface_culling,
                 smooth_shading=self.figure.smooth_shading
             )
+            try:
+                mesh.point_arrays["Normals"]
+            except KeyError:
+                pass
+            else:
+                prop = actor.GetProperty()
+                prop.SetInterpolationToPhong()
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
