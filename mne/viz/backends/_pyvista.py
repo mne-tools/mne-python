@@ -336,8 +336,6 @@ class _Renderer(_BaseRenderer):
                 normals = np.array(normals)
                 mesh.point_arrays["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
-            else:
-                return
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color,
