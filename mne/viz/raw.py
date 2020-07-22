@@ -183,16 +183,16 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # determine trace order
     ch_types = raw.get_channel_types()
-    if isinstance(order, (np.ndarray, list, tuple)):
-        ch_types = ch_types[order]
-    elif order is not None:
-        raise ValueError('order should be array-like; got '
-                         f'"{order}" ({type(order)}).')
-    else:
+    if order is None:
         ch_type_order = _DATA_CH_TYPES_ORDER_DEFAULT
         order = [pick_idx for order_type in ch_type_order
                  for pick_idx, pick_type in enumerate(ch_types)
                  if order_type == pick_type]
+    elif not isinstance(order, (np.ndarray, list, tuple)):
+        raise ValueError('order should be array-like; got '
+                         f'"{order}" ({type(order)}).')
+    ch_names = np.array(raw.ch_names)[order]
+    ch_types = np.array(ch_types)[order]
     if group_by in ('selection', 'position'):
         # TODO: refactor _setup_browser_selection
         selections, fig_selection = _setup_browser_selection(raw, group_by)
@@ -229,7 +229,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   filter_coefs_ba=ba, filter_bounds=filt_bounds,
                   n_channels=n_channels, scalings=scalings, ch_types=ch_types,
                   n_times=n_times, event_times=event_times,
-                  ch_order=np.asarray(order),
+                  ch_order=np.asarray(order), ch_names=ch_names,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
                   group_by=group_by, orig_indices=order.copy(), decim=decim,
@@ -314,6 +314,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # plot the data
     fig._load_data()
+    fig._update_data()  # TODO: not yet implemented
     fig._draw_traces(color=color, bad_color=bad_color, event_lines=event_lines,
                      event_color=event_color)
 
