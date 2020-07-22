@@ -49,7 +49,7 @@ class _Figure(object):
                  size=(600, 600),
                  shape=(1, 1),
                  background_color='black',
-                 smooth_shading=False,
+                 smooth_shading=True,
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
@@ -144,7 +144,7 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=False):
+                 notebook=None, smooth_shading=True):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
@@ -238,6 +238,10 @@ class _Renderer(_BaseRenderer):
                     colormap = colormap.astype(np.float64) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
+            if 'Normals' in mesh.point_arrays:
+                smooth_shading = False
+            else:
+                smooth_shading = self.figure.smooth_shading
 
             actor = _add_mesh(
                 plotter=self.plotter,
@@ -245,16 +249,12 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=self.figure.smooth_shading,
+                smooth_shading=smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
 
-            try:
-                mesh.point_arrays["Normals"]
-            except KeyError:
-                pass
-            else:
+            if 'Normals' in mesh.point_arrays:
                 prop = actor.GetProperty()
                 prop.SetInterpolationToPhong()
             return actor, mesh
@@ -333,9 +333,12 @@ class _Renderer(_BaseRenderer):
             if scalars is not None:
                 mesh.point_arrays['scalars'] = scalars
             if normals is not None:
+                smooth_shading = False
                 normals = np.array(normals)
                 mesh.point_arrays["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
+            else:
+                smooth_shading = self.figure.smooth_shading
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color,
@@ -344,13 +347,10 @@ class _Renderer(_BaseRenderer):
                 opacity=opacity,
                 cmap=cmap,
                 backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading
+                smooth_shading=smooth_shading,
             )
-            try:
-                mesh.point_arrays["Normals"]
-            except KeyError:
-                pass
-            else:
+
+            if 'Normals' in mesh.point_arrays:
                 prop = actor.GetProperty()
                 prop.SetInterpolationToPhong()
 
