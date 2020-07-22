@@ -22,7 +22,6 @@ dependencies:
 - pyface
 - traitsui
 - imageio
-- numpydoc
 - tqdm
 - spyder-kernels
 - pip:
