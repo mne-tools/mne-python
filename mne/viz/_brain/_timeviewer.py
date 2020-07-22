@@ -1206,9 +1206,8 @@ class _LinkViewer(object):
 
         # check time infos
         times = [brain._times for brain in brains]
-        if time and not all(len(x) == len(times[0]) for x in times):
-            time = False
-        if time and not all(all(np.equal(x, times[0])) for x in times):
+        if time and not all(np.allclose(x, times[0]) for x in times):
+            warn('stc.times do not match, not linking time')
             time = False
 
         if camera:
