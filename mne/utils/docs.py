@@ -70,6 +70,17 @@ tmax : float
 docdict["show"] = """
 show : bool
     Show figure if True."""
+docdict["plot_proj"] = """
+proj : bool | 'interactive' | 'reconstruct'
+    If true SSP projections are applied before display. If 'interactive',
+    a check box for reversible selection of SSP projection vectors will
+    be shown. If 'reconstruct', projection vectors will be applied and then
+    M/EEG data will be reconstructed via field mapping to reduce the signal
+    bias caused by projection.
+
+    .. versionchanged:: 0.21
+       Support for 'reconstruct' was added.
+"""
 docdict['topomap_outlines'] = """
 outlines : 'head' | 'skirt' | dict | None
     The outlines to be drawn. If 'head', the default head scheme will be
