@@ -247,7 +247,7 @@ class _Renderer(_BaseRenderer):
                 rng=[vmin, vmax], show_scalar_bar=False,
                 smooth_shading=self.figure.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
-                representation=representation, line_width=line_width, **kwargs,
+                style=representation, line_width=line_width, **kwargs,
             )
 
             try:
@@ -569,7 +569,6 @@ class _Renderer(_BaseRenderer):
 
 def _add_mesh(plotter, *args, **kwargs):
     _process_events(plotter)
-    kwargs['style'] = kwargs.pop('representation', 'wireframe')
     return plotter.add_mesh(*args, **kwargs)
 
 
