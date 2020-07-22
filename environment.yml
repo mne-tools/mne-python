@@ -19,7 +19,7 @@ dependencies:
 - psutil
 - numexpr
 - traits
-- pyface>=6,<7
+- pyface
 - traitsui
 - imageio
 - numpydoc
