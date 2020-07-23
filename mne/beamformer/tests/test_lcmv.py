@@ -819,7 +819,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     (0.05, 'unit-noise-gain', False, None, 83, 86),
     (0.05, 'unit-noise-gain', False, 0.8, 83, 86),  # depth same for wn != None
     # no reg
-    (0.00, 'unit-noise-gain', True, None, 63, 96),  # TODO: Still not stable
+    (0.00, 'unit-noise-gain', True, None, 63, 99),  # TODO: Still not stable
 ])
 def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
                                  depth, lower, upper):
