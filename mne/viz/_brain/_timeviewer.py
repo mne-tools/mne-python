@@ -855,7 +855,7 @@ class _TimeViewer(object):
                 act_data = hemi_data['array']
                 if act_data.ndim == 3:
                     act_data = np.linalg.norm(act_data, axis=1)
-                smooth_mat = hemi_data['smooth_mat']
+                smooth_mat = hemi_data.get('smooth_mat')
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
                 # simulate a picked renderer
