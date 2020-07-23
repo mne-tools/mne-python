@@ -444,17 +444,29 @@ class MNEBrowseFigure(MNEFigure):
             elif self.mne.fig_selection is not None:
                 pass  # TODO: change channel group
             else:
-                pass  # TODO: change visible channels
-        elif key == ('right', 'left', 'shift+right', 'shift+left'):
+                ceiling = len(self.mne.ch_names) - self.mne.n_channels
+                direction = -1 if key == 'up' else 1
+                ch_start = self.mne.ch_start + direction * self.mne.n_channels
+                self.mne.ch_start = np.clip(ch_start, 0, ceiling)
+                self._update_data()
+                self._draw_traces()
+                self._update_vscroll()
+            self.canvas.draw()
+        elif key in ('right', 'left', 'shift+right', 'shift+left'):
             direction = 1 if key.endswith('right') else -1
             denom = 1 if key.startswith('shift') else 4
-            t_shift = direction * self.mne.duration / denom
-            self.mne.t_start += t_shift
-            # TODO: redraw
+            t_max = self.mne.inst.times[-1] - self.mne.duration
+            t_start = self.mne.t_start + direction * self.mne.duration / denom
+            self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
+            self._update_data()
+            self._draw_traces()
+            self._update_hscroll()
+            self.canvas.draw()
         elif key in ('=', '+', '-'):
             scaler = 1 / 1.1 if key == '-' else 1.1
             self.mne.scale_factor *= scaler
-            # TODO: redraw
+            self._draw_traces()
+            self.canvas.draw()
         elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
             n_ch_delta = 1 if key == 'pageup' else -1
             if self.mne.n_channels + n_ch_delta > 0:
@@ -495,6 +507,14 @@ class MNEBrowseFigure(MNEFigure):
             pass
         elif key == 'z':  # zen mode: remove scrollbars and buttons
             self._toggle_scrollbars()
+
+    def _update_vscroll(self):
+        self.mne.vsel_patch.set_xy((0, self.mne.ch_start))
+        self.mne.vsel_patch.set_height(self.mne.n_channels)
+
+    def _update_hscroll(self):
+        self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
+        self.mne.hsel_patch.set_width(self.mne.duration)
 
     def _toggle_scalebars(self, event):
         """Show/hide the scalebars."""
@@ -568,7 +588,7 @@ class MNEBrowseFigure(MNEFigure):
         _x = self.mne.ax_vline._x
         self.mne.ax_vline.set_data(_x, np.array(ylim))
         # store new offsets
-        self.mne.trace_offsets = offsets  # TODO: is this needed?
+        self.mne.trace_offsets = offsets
         self.canvas.draw()
 
     def _load_data(self, picks, start=None, stop=None):
@@ -585,6 +605,9 @@ class MNEBrowseFigure(MNEFigure):
         start_sec = self.mne.t_start - self.mne.first_time
         stop_sec = start_sec + self.mne.duration
         start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
+        # update picks
+        _sl = slice(self.mne.ch_start, self.mne.ch_start + self.mne.n_channels)
+        self.mne.picks = self.mne.ch_order[_sl]
         # get the data
         data, times = self._load_data(self.mne.picks, start, stop)
         # apply projectors
@@ -600,17 +623,16 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.intersect1d(self.mne.picks, self.mne.data_picks)
-                this_data = self.mne.data[_picks, _start:_stop]
+                _picks = np.where(np.in1d(self.mne.picks, self.mne.data_picks))
+                this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(
                         this_data, self.mne.filter_coefs, copy=False)
                 else:  # IIR
                     this_data = _filtfilt(
                         this_data, self.mne.filter_coefs, None, 1, False)
-                data[self.mne.data_picks, _start:_stop] = this_data
+                data[_picks, _start:_stop] = this_data
         # scale the data for display in a 1-vertical-axis-unit slot
-        #for ix in range(data.shape[0]):
         for trace_ix, pick in enumerate(self.mne.picks):
             if self.mne.ch_types[pick] == 'stim':
                 norm = max(data[trace_ix])
@@ -634,11 +656,10 @@ class MNEBrowseFigure(MNEFigure):
             offsets = self.mne.trace_offsets
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         # clear scalebars
-        if not self.mne.scalebars_visible:
+        if self.mne.scalebars_visible:
             self._hide_scalebars()
         # TODO: clear event and annotation texts
         #
-
         # get indices of currently visible channels
         ch_names = self.mne.ch_names[self.mne.picks]
         ch_types = self.mne.ch_types[self.mne.picks]
@@ -688,6 +709,7 @@ class MNEBrowseFigure(MNEFigure):
             # update trace data
             # subtraction yields correct orientation given inverted ylim
             this_line.set_xdata(this_times)
+            self.mne.ax_main.set_xlim(this_times[0], this_times[-1])
             this_line.set_ydata(offsets[ii] - this_data[..., ::decim[ii]])
             this_line.set_color(ch_colors[ii])
             # add attributes to traces
