@@ -51,15 +51,14 @@ def what(fname):
     checks['cov'] = read_cov
     checks['transform'] = read_trans
     checks['events'] = read_events
-    checks['proj'] = read_proj
     checks['fiducials'] = read_fiducials
+    checks['proj'] = read_proj
     for what, func in checks.items():
         args = _get_args(func)
-        kwargs = dict()
+        assert 'verbose' in args, func
+        kwargs = dict(verbose='error')
         if 'preload' in args:
             kwargs['preload'] = False
-        if 'verbose' in args:
-            kwargs['verbose'] = 'error'
         try:
             func(fname, **kwargs)
         except Exception as exp:

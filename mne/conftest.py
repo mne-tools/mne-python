@@ -122,6 +122,13 @@ def check_verbose(request):
                     ' modifies logger.level')
 
 
+@pytest.fixture(scope='function')
+def verbose_debug():
+    """Run a test with debug verbosity."""
+    with mne.utils.use_log_level('debug'):
+        yield
+
+
 @pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
