@@ -806,7 +806,7 @@ def _update_picking_callback(plotter,
 
 def _compute_normals(polydata):
     normal = vtk.vtkPolyDataNormals()
-    normal.SetComputeCellNormals(False)
+    normal.SetComputeCellNormals(True)
     normal.SetConsistency(False)
     normal.SetNonManifoldTraversal(False)
     normal.SetSplitting(False)
