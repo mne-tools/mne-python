@@ -350,7 +350,7 @@ class _Renderer(_BaseRenderer):
                 smooth_shading=smooth_shading,
             )
 
-            if 'Normals' in mesh.point_arrays:
+            if normals is not None:
                 prop = actor.GetProperty()
                 prop.SetInterpolationToPhong()
 
