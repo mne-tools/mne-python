@@ -160,6 +160,7 @@ jobs:
     MNE_LOGGING_LEVEL: 'warning'
     MNE_FORCE_SERIAL: 'true'
     OPENBLAS_NUM_THREADS: 1
+    PYTHONUNBUFFERED: 1
     MKL_NUM_THREADS: 1
     AZURE_CI_WINDOWS: 'true'
     CONDA_VERSION: '>=4.3.27'
@@ -236,7 +237,7 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not slowtest" --tb=short --cov=mne mne/io/ mne/minimum_norm -vvs
+  - script: pytest -m "not slowtest" --tb=short --cov=mne mne -vvs
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'

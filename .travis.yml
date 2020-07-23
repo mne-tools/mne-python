@@ -16,7 +16,7 @@ env:
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
     global: PYTHON_VERSION=3.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning
-            CONDA_VERSION=">=4.3.27" OPENBLAS_NUM_THREADS=1
+            CONDA_VERSION=">=4.3.27" OPENBLAS_NUM_THREADS=1 PYTHONUNBUFFERED=1
 
 matrix:
     include:
@@ -150,7 +150,7 @@ script:
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
       fi;
     - if [ "${DEPS}" == "minimal" ]; then
-        pytest -m "${CONDITION}" --tb=short --cov=mne ${USE_DIRS};
+        pytest -m "${CONDITION}" --tb=short -vvs --cov=mne ${USE_DIRS};
       fi;
 
 after_script:
