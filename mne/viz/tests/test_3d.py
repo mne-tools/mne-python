@@ -836,7 +836,7 @@ def test_link_brains(renderer_interactive):
             link_brains([])
         with pytest.raises(TypeError, match='type is Brain'):
             link_brains('foo')
-        link_brains(brain)
+        link_brains(brain, time=True, camera=True)
 
 
 def test_renderer(renderer):
