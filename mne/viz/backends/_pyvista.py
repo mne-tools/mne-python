@@ -49,7 +49,7 @@ class _Figure(object):
                  size=(600, 600),
                  shape=(1, 1),
                  background_color='black',
-                 smooth_shading=True,
+                 smooth_shading=False,
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
@@ -144,7 +144,7 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=True):
+                 notebook=None, smooth_shading=False):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
