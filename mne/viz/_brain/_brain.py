@@ -1136,7 +1136,7 @@ class _Brain(object):
                     time_actor.SetInput(time_label(self._current_time))
 
                 # interpolate in space
-                smooth_mat = hemi_data['smooth_mat']
+                smooth_mat = hemi_data.get('smooth_mat')
                 if smooth_mat is not None:
                     act_data = smooth_mat.dot(act_data)
 
