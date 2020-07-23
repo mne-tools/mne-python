@@ -113,11 +113,11 @@ evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 # -----------------------------------------------
 #
 # It is possible to average channels by region of interest (for example left
-# and right) when studying the response to this left auditory stimulus.
-raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
-evoked_car = mne.Epochs(raw_car, **epochs_params).average()
-evoked_car.pick_types(meg=False, eeg=True, eog=False)
-del raw_car  # save memory
+# and right) when studying the response to this left auditory stimulus. Here we
+# use our Raw object on which the average reference projection has been added
+# back.
+evoked = mne.Epochs(raw, **epochs_params).average()
+evoked.pick_types(meg=False, eeg=True, eog=False)
 
 roi_dict = {'Left': [], 'Right': []}
 for idx, ch in enumerate(raw.info['chs']):
