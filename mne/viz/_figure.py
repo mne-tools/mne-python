@@ -469,9 +469,12 @@ class MNEBrowseFigure(MNEFigure):
             self.canvas.draw()
         elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
             n_ch_delta = 1 if key == 'pageup' else -1
-            if self.mne.n_channels + n_ch_delta > 0:
-                self.mne.n_channels += n_ch_delta
-                # TODO: redraw
+            n_ch = self.mne.n_channels + n_ch_delta
+            self.mne.n_channels = np.clip(n_ch, 1, len(self.mne.ch_names))
+            self._update_trace_offsets()
+            self._update_data()
+            self._draw_traces()
+            self.canvas.draw()
         elif key in ('home', 'end'):
             dur_delta = 1 if key == 'end' else -1
             if self.mne.duration + dur_delta > 0:
@@ -511,6 +514,7 @@ class MNEBrowseFigure(MNEFigure):
     def _update_vscroll(self):
         self.mne.vsel_patch.set_xy((0, self.mne.ch_start))
         self.mne.vsel_patch.set_height(self.mne.n_channels)
+        self._update_yaxis_labels()
 
     def _update_hscroll(self):
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
@@ -578,7 +582,9 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_trace_offsets(self):
         """Compute viewport height and adjust offsets."""
+        # update picks, ylim, and offsets
         n_channels = self.mne.n_channels
+        self._update_picks()
         ylim = (n_channels - 0.5, -0.5)  # inverted y axis → new chs at bottom
         offsets = np.arange(n_channels, dtype=float)
         # update ylim, ticks, vertline, and scrollbar patch
@@ -587,9 +593,17 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.vsel_patch.set_height(n_channels)
         _x = self.mne.ax_vline._x
         self.mne.ax_vline.set_data(_x, np.array(ylim))
-        # store new offsets
+        # store new offsets, update axis labels
         self.mne.trace_offsets = offsets
-        self.canvas.draw()
+        self._update_yaxis_labels()
+
+    def _update_yaxis_labels(self):
+        self.mne.ax_main.set_yticklabels(self.mne.ch_names[self.mne.picks],
+                                         rotation=0)
+
+    def _update_picks(self):
+        _sl = slice(self.mne.ch_start, self.mne.ch_start + self.mne.n_channels)
+        self.mne.picks = self.mne.ch_order[_sl]
 
     def _load_data(self, picks, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
@@ -605,10 +619,8 @@ class MNEBrowseFigure(MNEFigure):
         start_sec = self.mne.t_start - self.mne.first_time
         stop_sec = start_sec + self.mne.duration
         start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
-        # update picks
-        _sl = slice(self.mne.ch_start, self.mne.ch_start + self.mne.n_channels)
-        self.mne.picks = self.mne.ch_order[_sl]
         # get the data
+        self._update_picks()
         data, times = self._load_data(self.mne.picks, start, stop)
         # apply projectors
         if self.mne.projector is not None:
@@ -654,7 +666,6 @@ class MNEBrowseFigure(MNEFigure):
             offsets = self.mne.trace_offsets[self.mne.ch_order]
         else:
             offsets = self.mne.trace_offsets
-        labels = self.mne.ax_main.yaxis.get_ticklabels()
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
@@ -665,6 +676,7 @@ class MNEBrowseFigure(MNEFigure):
         ch_types = self.mne.ch_types[self.mne.picks]
         # colors
         bads = self.mne.info['bads']
+        labels = self.mne.ax_main.yaxis.get_ticklabels()
         ch_colors = [self.mne.bad_color if _name in bads else
                      self.mne.color_dict[_type]
                      for _name, _type in zip(ch_names, ch_types)]
@@ -682,13 +694,21 @@ class MNEBrowseFigure(MNEFigure):
         decim_times_dict = {decim_value:
                             self.mne.times[::decim_value] + self.mne.first_time
                             for decim_value in set(decim)}
-        # update axis labels
-        self.mne.ax_main.set_yticklabels(ch_names, rotation=0)
+        # add more traces if needed
+        if len(self.mne.picks) > len(self.mne.traces):
+            n_new_chs = len(self.mne.picks) - len(self.mne.traces)
+            new_traces = self.mne.ax_main.plot(np.full((1, n_new_chs), np.nan),
+                                               antialiased=True, linewidth=0.5)
+            self.mne.traces.extend(new_traces)
         # loop over channels
-        for ii, ch_ix in enumerate(self.mne.picks):
+        for ii, this_line in enumerate(self.mne.traces):
+            # remove extra traces if needed
+            if ii >= len(self.mne.picks):
+                self.mne.ax_main.lines.remove(this_line)
+                _ = self.mne.traces.pop(ii)
+                continue
             this_name = ch_names[ii]
             this_type = ch_types[ii]
-            this_line = self.mne.traces[ii]
             this_times = decim_times_dict[decim[ii]]
             # do not update data in-place!
             this_data = self.mne.data[ii] * self.mne.scale_factor

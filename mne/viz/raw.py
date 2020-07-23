@@ -331,10 +331,8 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # make shells for plotting traces
     fig._update_trace_offsets()
-    fig.mne.traces = fig.mne.ax_main.plot(np.full((1, len(order)), np.nan),
+    fig.mne.traces = fig.mne.ax_main.plot(np.full((1, n_channels), np.nan),
                                           antialiased=True, linewidth=0.5)
-    fig.mne.ax_main.set_yticklabels(
-        ['X' * max([len(ch) for ch in info['ch_names']])] * n_channels)
     fig.mne.ax_main.set_xlim(fig.mne.t_start,
                              fig.mne.t_start + fig.mne.duration, False)
 
