@@ -5,7 +5,6 @@
 #
 # License: Simplified BSD
 
-from collections import defaultdict
 from functools import partial
 import numpy as np
 from matplotlib.figure import Figure
@@ -135,7 +134,7 @@ class MNEBrowseFigure(MNEFigure):
 
         # # filters
         # self.mne.remove_dc = None
-        # self.mne.filter_coefs_ba = None   # ba
+        # self.mne.filter_coefs = None      # ba
         # self.mne.filter_bounds = None     # filt_bounds
 
         # # scalings
@@ -484,8 +483,10 @@ class MNEBrowseFigure(MNEFigure):
                 self.mne.fig_annotation.canvas.close_event()
         elif key == 'b':  # TODO: toggle butterfly mode
             pass
-        elif key == 'd':  # TODO: toggle remove DC
-            pass
+        elif key == 'd':
+            self.mne.remove_dc = not self.mne.remove_dc
+            self._update_data()
+            self._draw_traces()
         elif key == 'p':  # TODO: toggle snap annotations
             pass
         elif key == 's':
@@ -525,10 +526,10 @@ class MNEBrowseFigure(MNEFigure):
         """Add channel scale bars."""
         offsets = (self.mne.trace_offsets[self.mne.ch_order]
                    if self.mne.butterfly else self.mne.trace_offsets)
-        for ii, ch_ind in enumerate(ch_indices):
-            this_name = self.mne.inst.info['ch_names'][ch_ind]
-            this_type = self.mne.ch_types[ch_ind]
-            if (this_name not in self.mne.inst.info['bads'] and
+        for ii, ch_ix in enumerate(ch_indices):
+            this_name = self.mne.ch_names[ch_ix]
+            this_type = self.mne.ch_types[ch_ix]
+            if (this_name not in self.mne.info['bads'] and
                     this_name not in self.mne.whitened_ch_names and
                     this_type != 'stim' and
                     this_type in self.mne.scalings and
@@ -536,7 +537,7 @@ class MNEBrowseFigure(MNEFigure):
                     this_type in getattr(self.mne, 'unit_scalings', {}) and
                     this_type not in self.mne.scalebars):
                 x = (self.mne.times[0] + self.mne.first_time,) * 2
-                y = tuple(np.array([-1, 1]) + offsets[ii])
+                y = tuple(np.array([-0.5, 0.5]) + offsets[ii])
                 self._draw_one_scalebar(x, y, this_type)
 
     def _draw_one_scalebar(self, x, y, ch_type):
@@ -544,7 +545,8 @@ class MNEBrowseFigure(MNEFigure):
         from .utils import _simplify_float
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=5)
-        inv_norm = (self.mne.scalings[ch_type] *
+        # TODO: I changed trace spacing from 2 to 1; should this 2 be removed?
+        inv_norm = (2 * self.mne.scalings[ch_type] *
                     self.mne.unit_scalings[ch_type] /
                     self.mne.scale_factor)
         bar = self.mne.ax_main.plot(x, y, lw=4, **kwargs)[0]
@@ -554,135 +556,130 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.scalebars[ch_type] = bar
         self.mne.scalebar_texts[ch_type] = text
 
-    def _update_trace_offsets(self, n_channels):
+    def _update_trace_offsets(self):
         """Compute viewport height and adjust offsets."""
+        n_channels = self.mne.n_channels
         ylim = (n_channels - 0.5, -0.5)  # inverted y axis → new chs at bottom
-        offsets = np.arange(n_channels)
-        self.mne.n_channels = n_channels
+        offsets = np.arange(n_channels, dtype=float)
         # update ylim, ticks, vertline, and scrollbar patch
         self.mne.ax_main.set_ylim(ylim)
         self.mne.ax_main.set_yticks(offsets)
         self.mne.vsel_patch.set_height(n_channels)
-        _x = self.mne.ax_vertline._x
-        self.mne.ax_vertline.set_data(_x, np.array(ylim))
+        _x = self.mne.ax_vline._x
+        self.mne.ax_vline.set_data(_x, np.array(ylim))
         # store new offsets
-        self.mne.trace_offsets = offsets
+        self.mne.trace_offsets = offsets  # TODO: is this needed?
         self.canvas.draw()
 
-    def _load_data(self):
-        """."""
-        # TODO: adapt from _update_raw_data, raw.py lines 47-87
+    def _load_data(self, picks, start=None, stop=None):
+        """Retrieve the bit of data we need for plotting."""
         if self.mne.instance_type == 'raw':
-            data, times = self.mne.inst[:, :]  # TODO: add start:stop
-            self.mne.data = data
-            self.mne.times = times
+            return self.mne.inst[picks, start:stop]
         else:
             raise NotImplementedError  # TODO: support epochs, ICA
 
     def _update_data(self):
-        """Update self.mne.data after user interaction, & redraw the figure."""
+        """Update self.mne.data after user interaction."""
         from ..filter import _overlap_add_filter, _filtfilt
         # update time
         start_sec = self.mne.t_start - self.mne.first_time
         stop_sec = start_sec + self.mne.duration
         start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
-        data, times = self.mne.inst[:, start:stop]
+        # get the data
+        data, times = self._load_data(self.mne.picks, start, stop)
         # apply projectors
         if self.mne.projector is not None:
-            data = self.mne.projector @ data
+            data = self.mne.projector[self.mne.picks] @ data
         # remove DC
         if self.mne.remove_dc:
             data -= data.mean(axis=1, keepdims=True)
         # filter (with same defaults as raw.filter())
-        if self.mne.filter_coefs_ba is not None:
+        if self.mne.filter_coefs is not None:
             starts, stops = self.mne.filter_bounds
             mask = (starts < stop) & (stops > start)
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                this_data = self.mne.data[self.mne.data_picks, _start:_stop]
-                if isinstance(self.mne.filter_coefs_ba, np.ndarray):  # FIR
+                _picks = np.intersect1d(self.mne.picks, self.mne.data_picks)
+                this_data = self.mne.data[_picks, _start:_stop]
+                if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(
-                        this_data, self.mne.filter_coefs_ba, copy=False)
+                        this_data, self.mne.filter_coefs, copy=False)
                 else:  # IIR
-                    this_data = _filtfilt(this_data, self.mne.filter_coefs_ba,
-                                          None, 1, False)
+                    this_data = _filtfilt(
+                        this_data, self.mne.filter_coefs, None, 1, False)
                 data[self.mne.data_picks, _start:_stop] = this_data
         # scale the data for display in a 1-vertical-axis-unit slot
-        for ix in range(data.shape[0]):
-            if self.mne.ch_types[ix] == 'stim':
-                norm = max(data[ix])
-            elif self.mne.ch_names[ix] in self.mne.whitened_ch_names and \
-                    self.mne.ch_names[ix] not in self.mne.inst.info['bads']:
+        #for ix in range(data.shape[0]):
+        for trace_ix, pick in enumerate(self.mne.picks):
+            if self.mne.ch_types[pick] == 'stim':
+                norm = max(data[trace_ix])
+            elif self.mne.ch_names[pick] in self.mne.whitened_ch_names and \
+                    self.mne.ch_names[pick] not in self.mne.info['bads']:
                 norm = self.mne.scalings['whitened']
             else:
-                norm = self.mne.scalings[self.mne.ch_types[ix]]
-            data[ix] /= norm if norm != 0 else 1
-        # redraw
+                norm = self.mne.scalings[self.mne.ch_types[pick]]
+            data[trace_ix] /= norm if norm != 0 else 1
+        # save
         self.mne.data = data
         self.mne.times = times
-        self.canvas.draw()
 
-    def _draw_traces(self, color, bad_color, event_lines=None,
-                     event_color=None):
+    def _draw_traces(self, event_lines=None, event_color=None):
         """Draw (or redraw) the channel data."""
         from matplotlib.patches import Rectangle
 
         if self.mne.butterfly:
-            n_channels = len(self.mne.trace_offsets)
-            ch_start = 0
             offsets = self.mne.trace_offsets[self.mne.ch_order]
         else:
-            n_channels = self.mne.n_channels
-            ch_start = self.mne.ch_start
             offsets = self.mne.trace_offsets
-        self.mne.bad_color = bad_color
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         # clear scalebars
         if not self.mne.scalebars_visible:
             self._hide_scalebars()
         # TODO: clear event and annotation texts
         #
-        ch_indices = self.mne.ch_order[ch_start:(ch_start + n_channels)]
-        bads = self.mne.inst.info['bads']
+
+        # get indices of currently visible channels
+        ch_names = self.mne.ch_names[self.mne.picks]
+        ch_types = self.mne.ch_types[self.mne.picks]
         # colors
-        if not isinstance(color, dict):
-            color = defaultdict(color)
-        ch_colors = [bad_color if _name in bads else color[_type] for
-                     _name, _type in zip(self.mne.ch_names, self.mne.ch_types)]
+        bads = self.mne.info['bads']
+        ch_colors = [self.mne.bad_color if _name in bads else
+                     self.mne.color_dict[_type]
+                     for _name, _type in zip(ch_names, ch_types)]
         if self.mne.butterfly:
             for label in labels:
-                label.set_color('black')
+                label.set_color('black')  # TODO make compat. w/ MPL dark style
         else:
             for label, color in zip(labels, ch_colors):
                 label.set_color(color)
         # decim
-        data_picks_mask = np.in1d(ch_indices, self.mne.data_picks)
-        decim = np.ones_like(ch_indices)
+        decim = np.ones_like(self.mne.picks)
+        data_picks_mask = np.in1d(self.mne.picks, self.mne.data_picks)
         decim[data_picks_mask] = self.mne.decim
-        # decim can vary by channel, so compute different times vectors
+        # decim can vary by channel type, so compute different times vectors
         decim_times_dict = {decim_value:
                             self.mne.times[::decim_value] + self.mne.first_time
                             for decim_value in set(decim)}
         # update axis labels
-        self.mne.ax_main.set_yticklabels(self.mne.ch_names, rotation=0)
+        self.mne.ax_main.set_yticklabels(ch_names, rotation=0)
         # loop over channels
-        for ii, ch_ind in enumerate(ch_indices):
-            this_name = self.mne.ch_names[ii]
-            this_type = self.mne.ch_types[ii]
+        for ii, ch_ix in enumerate(self.mne.picks):
+            this_name = ch_names[ii]
+            this_type = ch_types[ii]
             this_line = self.mne.traces[ii]
             this_times = decim_times_dict[decim[ii]]
             # do not update data in-place!
-            this_data = self.mne.data[ch_ind] * self.mne.scale_factor
+            this_data = self.mne.data[ii] * self.mne.scale_factor
             # clip
             if self.mne.clipping == 'clamp':
                 np.clip(this_data, -0.5, 0.5, out=this_data)
             elif self.mne.clipping is not None:
                 l, w = this_times[0], this_times[-1] - this_times[0]
                 ylim = self.mne.ax_main.get_ylim()
-                b = offsets[ii] - self.mne.clipping  # max(, ylim[0])
-                h = self.mne.clipping                # min(, ylim[1] - b)
-                assert ylim[1] <= ylim[0]            # inverted
+                assert ylim[1] <= ylim[0]  # inverted
+                b = offsets[ii] - self.mne.clipping
+                h = 2 * self.mne.clipping
                 b = max(b, ylim[1])
                 h = min(h, ylim[0] - b)
                 rect = Rectangle((l, b), w, h,
@@ -696,7 +693,7 @@ class MNEBrowseFigure(MNEFigure):
             # add attributes to traces
             vars(this_line)['ch_name'] = this_name
             vars(this_line)['def_color'] = ch_colors[ii]
-            # set z-order and channel name colors
+            # set z-order
             this_z = 0 if this_name in bads else 1
             if self.mne.butterfly:
                 if this_name not in bads:
@@ -707,7 +704,7 @@ class MNEBrowseFigure(MNEFigure):
             this_line.set_zorder(this_z)
         # draw scalebars maybe
         if self.mne.scalebars_visible:
-            self._show_scalebars(ch_indices)
+            self._show_scalebars(self.mne.picks)
         # TODO: WIP event lines
         if self.mne.event_times is not None:
             mask = np.logical_and(self.mne.event_times >= self.mne.times[0],
