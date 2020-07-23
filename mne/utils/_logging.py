@@ -213,10 +213,11 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
 class ClosingStringIO(StringIO):
     """StringIO that closes after getvalue()."""
 
-    def getvalue(self):
+    def getvalue(self, close=True):
         """Get the value."""
         out = super().getvalue()
-        self.close()
+        if close:
+            self.close()
         return out
 
 
