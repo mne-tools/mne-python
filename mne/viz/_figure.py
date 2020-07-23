@@ -477,13 +477,17 @@ class MNEBrowseFigure(MNEFigure):
             self.canvas.draw()
         elif key in ('home', 'end'):
             dur_delta = 1 if key == 'end' else -1
-            if self.mne.duration + dur_delta > 0:
-                if self.mne.duration + dur_delta > self.inst.times[-1]:
-                    self.mne.duration = self.inst.times[-1]
-                else:
-                    self.mne.duration += dur_delta
-                self.mne.hsel_patch.set_width(self.mne.duration)
-                # TODO: redraw
+            old_dur = self.mne.duration
+            new_dur = self.mne.duration + dur_delta
+            min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
+            self.mne.duration = np.clip(new_dur, min_dur,
+                                        self.mne.inst.times[-1])
+            # only update if needed
+            if old_dur != self.mne.duration:
+                self._update_data()
+                self._draw_traces()
+                self._update_hscroll()
+                self.canvas.draw()
         elif key == '?':
             self._onclick_help(event)
         elif key == 'f11':
@@ -502,6 +506,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.remove_dc = not self.mne.remove_dc
             self._update_data()
             self._draw_traces()
+            self.canvas.draw()
         elif key == 'p':  # TODO: toggle snap annotations
             pass
         elif key == 's':
@@ -512,11 +517,13 @@ class MNEBrowseFigure(MNEFigure):
             self._toggle_scrollbars()
 
     def _update_vscroll(self):
+        """Update the vertical scrollbar (channel) selection indicator."""
         self.mne.vsel_patch.set_xy((0, self.mne.ch_start))
         self.mne.vsel_patch.set_height(self.mne.n_channels)
         self._update_yaxis_labels()
 
     def _update_hscroll(self):
+        """Update the horizontal scrollbar (time) selection indicator."""
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
         self.mne.hsel_patch.set_width(self.mne.duration)
 
