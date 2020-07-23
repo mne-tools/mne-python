@@ -12,225 +12,88 @@ pr:
 
 jobs:
 
-- job: Style
-  pool:
-    vmImage: 'ubuntu-18.04'
-  variables:
-    PYTHON_VERSION: '3.8'
-    PYTHON_ARCH: 'x64'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: $(PYTHON_VERSION)
-      architecture: $(PYTHON_ARCH)
-      addToPath: true
-    displayName: 'Get Python'
-  - bash: |
-      set -e
-      python -m pip install --upgrade pip setuptools
-      python -m pip install numpy scipy matplotlib -r requirements_testing.txt
-    displayName: Install dependencies
-    condition: always()
-  - bash: |
-      make flake
-    displayName: make flake
-    condition: always()
-  - bash: |
-      make pydocstyle
-    displayName: make pydocstyle
-    condition: always()
-  - bash: |
-      make codespell-error
-    displayName: make codespell-error
-    condition: always()
-  - bash: |
-      make docstring
-    displayName: make docstring
-  - bash: |
-      make nesting
-    displayName: make nesting
-    condition: always()
-  - bash: |
-      make check-manifest
-    displayName: make check-manifest
-    condition: always()
-  - bash: |
-      make check-readme
-    displayName: make check-readme
-    condition: always()
-
-
-- job: Ultraslow
-  pool:
-    vmImage: 'ubuntu-18.04'
-  variables:
-    DISPLAY: ':99'
-    OPENBLAS_NUM_THREADS: '1'
-  steps:
-  - bash: |
-      sudo apt install libxkbcommon-x11-0 xvfb tcsh libxcb*
-    displayName: 'Install Ubuntu dependencies'
-  - bash: |
-      source tools/get_minimal_commands.sh
-      echo "##vso[task.setvariable variable=MNE_ROOT]${MNE_ROOT}"
-      echo "##vso[task.setvariable variable=PATH]${PATH}"
-      echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
-      echo "##vso[task.setvariable variable=NEUROMAG2FT_ROOT]${NEUROMAG2FT_ROOT}"
-      echo "##vso[task.setvariable variable=FREESURFER_HOME]${FREESURFER_HOME}"
-      echo "##vso[task.setvariable variable=MNE_SKIP_FS_FLASH_CALL]${MNE_SKIP_FS_FLASH_CALL}"
-    displayName: 'Install minimal commands'
-  - bash: |
-      echo $PATH
-      mne_surf2bem --version
-      fsl_rigid_register --version
-    displayName: 'Test minimal commands'
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.7'
-      architecture: 'x64'
-      addToPath: true
-    displayName: 'Get Python'
-  - bash: |
-      /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-    displayName: 'Spin up Xvfb'
-  - bash: |
-      set -e
-      python -m pip install --upgrade pip setuptools
-      python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
-    displayName: 'Install dependencies with pip'
-  - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-    displayName: 'Get test data'
-  - script: pytest -m "ultraslowtest" --tb=short --cov=mne mne
-    displayName: 'Run ultraslow tests'
-  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
-    displayName: 'Codecov'
-    env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
-    condition: succeededOrFailed()
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for $(Agent.JobName)'
-      failTaskOnFailedTests: true
-    condition: succeededOrFailed()
-
-
-- job: Notebook
-  pool:
-    vmImage: 'ubuntu-18.04'
-  variables:
-    CONDA_ENV: 'server_environment.yml'
-  steps:
-  - bash: |
-      set -e
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
-      bash miniconda.sh -b -p ~/miniconda
-      source ~/miniconda/etc/profile.d/conda.sh
-      conda activate base
-      conda env update --file $CONDA_ENV
-      pip uninstall -yq mne
-      pip install -ve .
-      pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8 codecov
-      echo "##vso[task.setvariable variable=PATH]${PATH}"
-      echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
-    displayName: 'Install dependencies'
-  - script: mne sys_info
-    displayName: 'Print config and test access to commands'
-  - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-    displayName: 'Get test data'
-  - script: pytest --tb=short --cov=mne mne/viz
-    displayName: 'Run viz tests'
-  - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
-    displayName: 'Codecov'
-    env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
-    condition: succeededOrFailed()
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for $(Agent.JobName)'
-      failTaskOnFailedTests: true
-    condition: succeededOrFailed()
-
-
 - job: Windows
   pool:
     vmImage: 'VS2017-Win2016'
   variables:
-    MNE_LOGGING_LEVEL: 'warning'
-    MNE_FORCE_SERIAL: 'true'
     OPENBLAS_NUM_THREADS: 1
     PYTHONUNBUFFERED: 1
-    PYTHONIOENCODING: 'utf-8'
-    MKL_NUM_THREADS: 1
-    AZURE_CI_WINDOWS: 'true'
-    CONDA_VERSION: '>=4.3.27'
   strategy:
-    maxParallel: 4
     matrix:
-      3.7 conda:
-        PLATFORM: 'x86-64'
-        TEST_MODE: 'conda'
-        CONDA_ENV: 'environment.yml'
-        PIP_NO_UPGRADE: 'True'
-        PYTHON_VERSION: '3.7'
-      3.7 pip:
-        PYTHON_ARCH: 'x64'
-        TEST_MODE: 'pip'
-        PYTHON_VERSION: '3.7'
       3.8 pip pre:
         PYTHON_ARCH: 'x64'
-        TEST_MODE: 'pre-pip'
         PYTHON_VERSION: '3.8'
-        OPENBLAS_CORETYPE: 'prescott'  # workaround for https://github.com/numpy/numpy/issues/16913
+        BITS: 64
   steps:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
       architecture: $(PYTHON_ARCH)
       addToPath: true
-    condition: in(variables['TEST_MODE'], 'pip', 'pre-pip')
     displayName: 'Get Python'
+
+
   - bash: |
       set -e
-      git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
-      powershell gl-ci-helpers/appveyor/install_opengl.ps1
-    displayName: Install OpenGL
-  - bash: |
-      set -e
-      python -m pip install --upgrade pip setuptools
-      python -m pip install --upgrade numpy scipy vtk
-      python -m pip install --upgrade -r requirements.txt -r requirements_testing.txt
-      python -m pip install codecov
-      python -m pip uninstall -yq pysurfer mayavi
-    condition: eq(variables['TEST_MODE'], 'pip')
-    displayName: 'Install dependencies with pip'
-  - bash: |
-      set -e
-      python -m pip install --upgrade pip setuptools
-      python -m pip install --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
-      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
-      python -m pip install --upgrade --only-binary vtk vtk;
-      python -m pip install -r requirements.txt -r requirements_testing.txt codecov
-    condition: eq(variables['TEST_MODE'], 'pre-pip')
-    displayName: 'Install dependencies with pip --pre'
+      git clone git://github.com/numpy/numpy.git numpy_install --depth=1
+      cd numpy_install
+      git remote add mattip https://github.com/mattip/numpy.git
+      git fetch mattip issue-16913
+      git checkout -b issue-16913 mattip/issue-16913
+
+
+  - script: python -m pip install --upgrade pip
+    displayName: 'Install tools'
+  - script: python -m pip install -r numpy_install/test_requirements.txt
+    displayName: 'Install dependencies; some are optional to avoid test skips'
   - powershell: |
-      Set-StrictMode -Version Latest
       $ErrorActionPreference = "Stop"
-      $PSDefaultParameterValues['*:ErrorAction']='Stop'
-      $env:PYTHON = '$(System.DefaultWorkingDirectory)' + '\conda'
-      git clone git://github.com/astropy/ci-helpers.git
-      powershell ci-helpers/appveyor/install-miniconda.ps1
-      $env:PATH = $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PYTHON + "\Library\bin;" + $env:PATH
-      conda env list
-      conda install numpy scipy matplotlib scikit-learn
-      conda env update --name base --file $env:CONDA_ENV
-      pip uninstall -yq mne
-      pip install -r requirements_testing.txt codecov
-      pip uninstall -yq pysurfer mayavi
-      Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
-    condition: eq(variables['TEST_MODE'], 'conda')
-    displayName: 'Install dependencies with conda'
+      # Download and get the path to "openblas.a". We cannot copy it
+      # to $PYTHON_EXE's directory since that is on a different drive which
+      # mingw does not like. Instead copy it to a directory and set OPENBLAS,
+      # since OPENBLAS will be picked up by the openblas discovery
+      cd numpy_install
+      $target = $(python tools/openblas_support.py)
+      mkdir openblas
+      echo Copying $target to openblas/openblas$env:OPENBLAS_SUFFIX.a
+      cp $target openblas/openblas$env:OPENBLAS_SUFFIX.a
+      If ( Test-Path env:NPY_USE_BLAS_ILP64 ){
+          echo "##vso[task.setvariable variable=OPENBLAS64_]$pwd\openblas"
+      } else {
+          echo "##vso[task.setvariable variable=OPENBLAS]$pwd\openblas"
+      }
+    displayName: 'Download / Install OpenBLAS'
+
+  - powershell: |
+      choco install -y mingw --forcex86 --force --version=7.3.0
+    displayName: 'Install 32-bit mingw for 32-bit builds'
+    condition: eq(variables['BITS'], 32)
+  # NOTE: for Windows builds it seems much more tractable to use runtests.py
+  # vs. manual setup.py and then runtests.py for testing only
+  - powershell: |
+      If ($(BITS) -eq 32) {
+          $env:CFLAGS = "-m32"
+          $env:LDFLAGS = "-m32"
+          $env:PATH = "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw$(BITS)\\bin;" + $env:PATH
+          refreshenv
+      }
+      cd numpy_install
+      python -c "from tools import openblas_support; openblas_support.make_init('numpy')"
+      pip wheel -v -v -v --no-build-isolation --no-use-pep517 --wheel-dir=dist .
+      ls dist -r | Foreach-Object {
+          pip install $_.FullName
+      }
+    displayName: 'Build NumPy'
+
+  - script: python -c "import numpy; numpy.test('full')"
+    displayName: Run NumPy tests
+
+  - bash: |
+      set -e
+      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy matplotlib
+      python -m pip install pytest pytest-timeout pytest-cov
+      mkdir bad
+    displayName: 'Install dependencies with pip --pre'
   - script: python setup.py develop
     displayName: 'Install MNE-Python dev'
   - script: mne sys_info
@@ -239,16 +102,13 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not slowtest" --tb=short --cov=mne mne
+  - script: pytest --tb=short mne/minimum_norm/tests -k inverse_epochs
     displayName: 'Run tests'
-  - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
-    displayName: 'Codecov'
-    env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
-    condition: succeededOrFailed()
-  - task: PublishTestResults@2
+  - task: PublishPipelineArtifact@1
     inputs:
-      testResultsFiles: 'junit-*.xml'
-      testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
-      failTaskOnFailedTests: true
-    condition: succeededOrFailed()
+      path: $(System.DefaultWorkingDirectory)/bad
+      artifact: badrun
+    condition: always()
+  - script: python -c "import numpy as np, glob; data = np.load(glob.glob('bad/*.npz')[0]); a, b = data['a'], data['b']; print(np.dot(a, b).shape)"
+    displayName: Reproduce
+    condition: always()

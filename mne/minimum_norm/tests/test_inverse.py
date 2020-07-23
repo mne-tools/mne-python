@@ -943,73 +943,21 @@ def test_apply_mne_inverse_fixed_raw():
 @testing.requires_testing_data
 def test_apply_mne_inverse_epochs():
     """Test MNE with precomputed inverse operator on Epochs."""
-    inverse_operator = read_inverse_operator(fname_full)
-    label_lh = read_label(fname_label % 'Aud-lh')
-    label_rh = read_label(fname_label % 'Aud-rh')
     event_id, tmin, tmax = 1, -0.2, 0.5
     raw = read_raw_fif(fname_raw)
-
     picks = pick_types(raw.info, meg=True, eeg=False, stim=True, ecg=True,
                        eog=True, include=['STI 014'], exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
     flat = dict(grad=1e-15, mag=1e-15)
-
     events = read_events(fname_event)[:15]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
-
-    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
-                                                lambda2=lambda2,
-                                                method="dSPM")
-    for pick_ori in [None, "normal", "vector"]:
-        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                    label=label_lh, pick_ori=pick_ori)
-        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                     label=label_lh, pick_ori=pick_ori,
-                                     prepared=True)
-        # test if using prepared and not prepared inverse operator give the
-        # same result
-        assert_array_almost_equal(stcs[0].data, stcs2[0].data)
-        assert_array_almost_equal(stcs[0].times, stcs2[0].times)
-
-        assert (len(stcs) == 2)
-        assert (3 < stcs[0].data.max() < 10)
-        assert (stcs[0].subject == 'sample')
     inverse_operator = read_inverse_operator(fname_full)
-
-    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                label=label_lh, pick_ori='normal')
-    data = sum(stc.data for stc in stcs) / len(stcs)
-    flip = label_sign_flip(label_lh, inverse_operator['src'])
-
-    label_mean = np.mean(data, axis=0)
-    label_mean_flip = np.mean(flip[:, np.newaxis] * data, axis=0)
-
-    assert (label_mean.max() < label_mean_flip.max())
-
-    # test extracting a BiHemiLabel
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_rh, pick_ori="normal",
-                                   prepared=True)
-    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_lh + label_rh,
-                                   pick_ori="normal",
-                                   prepared=True)
-
-    n_lh = len(stcs[0].data)
-    assert_array_almost_equal(stcs[0].data, stcs_bh[0].data[:n_lh])
-    assert_array_almost_equal(stcs_rh[0].data, stcs_bh[0].data[n_lh:])
-
-    # test without using a label (so delayed computation is used)
-    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                pick_ori="normal", prepared=True)
-    assert (stcs[0].subject == 'sample')
-    label_stc = stcs[0].in_label(label_rh)
-    assert (label_stc.subject == 'sample')
-    assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
+    apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                         pick_ori="normal", prepared=True)
 
 
 def test_make_inverse_operator_bads(evoked, noise_cov):

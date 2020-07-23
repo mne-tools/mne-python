@@ -729,6 +729,13 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
     #
+    import mne, os.path as op, time
+    fname = op.join(op.dirname(mne.__file__), '..', 'bad', f'{time.time()}.npz')
+    np.savez_compressed(fname, a=eigen_leads, b=trans)
+    print(eigen_leads.flags)
+    print(trans.flags)
+    data = np.load(fname)
+    np.dot(data['a'], data['b'])
     K = np.dot(eigen_leads, trans)
     if inv['eigen_leads_weighted']:
         #
