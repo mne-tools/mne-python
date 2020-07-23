@@ -2660,7 +2660,8 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False,
         logger.info('Reassigning vertex indices.')
         tris = np.searchsorted(np.unique(tris), tris)
 
-    edges = mesh_edges(tris).tocoo()
+    edges = mesh_edges(tris)
+    edges = (edges + sparse.eye(edges.shape[0], format='csr')).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 

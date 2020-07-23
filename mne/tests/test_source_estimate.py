@@ -956,6 +956,7 @@ def test_spatio_temporal_src_adjacency():
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
     adjacency = spatio_temporal_tris_adjacency(tris, 2)
+    assert_allclose(np.diag(adjacency.todense()), 1.)
     src[0]['use_tris'] = np.array([[0, 1, 2]])
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     src[0]['vertno'] = np.array([0, 1, 2])
