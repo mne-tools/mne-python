@@ -12,6 +12,7 @@ EEG processing and Event Related Potentials (ERPs)
 
 import mne
 from mne.datasets import sample
+from mne.channels import combine_channels
 
 ###############################################################################
 # Setup for reading the raw data
@@ -106,6 +107,28 @@ del raw_custom  # save memory
 title = 'EEG Custom reference'
 evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
+
+###############################################################################
+# Evoked response averaged accross channels by ROI
+# ------------------------------------------------
+#
+# It is possible to average channels by region of interest (for example left
+# and right) when studying the response to this left auditory stimulus.
+raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
+evoked_car = mne.Epochs(raw_car, **epochs_params).average()
+evoked_car.pick_types(meg=False, eeg=True, eog=False)
+del raw_car  # save memory
+
+roi_dict = {'Left': [], 'Right': []}
+for idx, ch in enumerate(raw.info['chs']):
+    if ch['loc'][0] < 0:
+        roi_dict['Left'].append(idx)
+    elif ch['loc'][0] > 0:
+        roi_dict['Right'].append(idx)
+evoked_combined = combine_channels(evoked_car, roi_dict, method='mean')
+
+title = 'Evoked response averaged by side'
+evoked_combined.plot(titles=dict(eeg=title), time_unit='s')
 
 ###############################################################################
 # Evoked arithmetic (e.g. differences)
