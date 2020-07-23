@@ -871,7 +871,7 @@ class _TimeViewer(object):
                     self.act_data_smooth[hemi][0].shape
                 )
                 vertex_id = hemi_data['vertices'][ind[0]]
-                mesh = hemi_data['mesh'][-1]
+                mesh = hemi_data['mesh']
                 line = self.plot_time_course(hemi, vertex_id, color)
                 self.add_point(hemi, mesh, vertex_id, line, color)
 

@@ -297,6 +297,17 @@ class ICA(ContainsMixin):
     see :class:`~sklearn.decomposition.FastICA`, :func:`~picard.picard`,
     :func:`~mne.preprocessing.infomax`.
 
+    .. note:: Picard can be used to solve the same problems as FastICA,
+              Infomax, and extended Infomax, but typically converges faster
+              than either of those methods. To make use of Picard's speed while
+              still obtaining the same solution as with other algorithms, you
+              need to specify ``method='picard'`` and ``fit_params`` as a
+              dictionary with the following combination of keys:
+
+              - ``dict(ortho=False, extended=False)`` for Infomax
+              - ``dict(ortho=False, extended=True)`` for extended Infomax
+              - ``dict(ortho=True, extended=True)`` for FastICA
+
     Reducing the tolerance (set in ``fit_params``) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
     compare tolerance levels between Infomax and Picard, but for Picard and

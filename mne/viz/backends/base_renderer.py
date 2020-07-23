@@ -35,7 +35,8 @@ class _BaseRenderer(metaclass=ABCMeta):
     @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True,
+             representation='surface', line_width=1., normals=None, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -72,6 +73,12 @@ class _BaseRenderer(metaclass=ABCMeta):
             Enabling makes for a smoother scalars display. Default is True.
             When False, OpenGL will interpolate the mapped colors which can
             result is showing colors that are not present in the color map.
+        representation: str
+            The representation of the mesh: either 'surface' or 'wireframe'.
+        line_width: int
+            The width of the lines when representation='wireframe'.
+        normals: array, shape (n_vertices, 3)
+            The array containing the normal of each vertex.
         kwargs: args
             The arguments to pass to triangular_mesh
 
