@@ -182,7 +182,7 @@ jobs:
         PYTHON_ARCH: 'x64'
         TEST_MODE: 'pre-pip'
         PYTHON_VERSION: '3.8'
-        OPENBLAS_CORETYPE: 'nehalem'  # workaround for https://github.com/numpy/numpy/issues/16913
+        OPENBLAS_CORETYPE: 'prescott'  # workaround for https://github.com/numpy/numpy/issues/16913
   steps:
   - task: UsePythonVersion@0
     inputs:
