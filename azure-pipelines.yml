@@ -182,6 +182,7 @@ jobs:
         PYTHON_ARCH: 'x64'
         TEST_MODE: 'pre-pip'
         PYTHON_VERSION: '3.8'
+        OPENBLAS_CORETYPE: 'nehalem'  # workaround for https://github.com/numpy/numpy/issues/16913
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -238,7 +239,7 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not slowtest" --tb=short --cov=mne mne -vvs
+  - script: pytest -m "not slowtest" --tb=short --cov=mne mne -vv
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
