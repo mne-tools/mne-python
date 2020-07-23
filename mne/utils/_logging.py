@@ -210,6 +210,17 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
+class ClosingStringIO(StringIO):
+    """StringIO that closes after getvalue()."""
+
+    def getvalue(self, close=True):
+        """Get the value."""
+        out = super().getvalue()
+        if close:
+            self.close()
+        return out
+
+
 class catch_logging(object):
     """Store logging.
 
@@ -218,7 +229,7 @@ class catch_logging(object):
     """
 
     def __enter__(self):  # noqa: D105
-        self._data = StringIO()
+        self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
         self._lh._mne_file_like = True  # monkey patch for warn() use
@@ -377,7 +388,7 @@ class ETSContext(object):
 def wrapped_stdout(indent=''):
     """Wrap stdout writes to logger.info, with an optional indent prefix."""
     orig_stdout = sys.stdout
-    my_out = StringIO()
+    my_out = ClosingStringIO()
     sys.stdout = my_out
     try:
         yield

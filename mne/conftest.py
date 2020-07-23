@@ -99,6 +99,7 @@ def pytest_configure(config):
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
+    always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -120,6 +121,13 @@ def check_verbose(request):
         pytest.fail('.'.join([request.module.__name__,
                               request.function.__name__]) +
                     ' modifies logger.level')
+
+
+@pytest.fixture(scope='function')
+def verbose_debug():
+    """Run a test with debug verbosity."""
+    with mne.utils.use_log_level('debug'):
+        yield
 
 
 @pytest.fixture(scope='session')
