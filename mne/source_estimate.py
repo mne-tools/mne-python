@@ -2660,7 +2660,8 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False,
         logger.info('Reassigning vertex indices.')
         tris = np.searchsorted(np.unique(tris), tris)
 
-    edges = mesh_edges(tris).tocoo()
+    edges = mesh_edges(tris)
+    edges = (edges + sparse.eye(edges.shape[0], format='csr')).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 
@@ -2694,8 +2695,14 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
     if src[0]['dist'] is None:
         raise RuntimeError('src must have distances included, consider using '
                            'setup_source_space with add_dist=True')
-    edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
-                               for s in src])
+    blocks = [s['dist'][s['vertno'], :][:, s['vertno']] for s in src]
+    # Ensure we keep explicit zeros; deal with changes in SciPy
+    for block in blocks:
+        if isinstance(block, np.ndarray):
+            block[block == 0] = -np.inf
+        else:
+            block.data[block.data == 0] == -1
+    edges = sparse_block_diag(blocks)
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
     edges = edges.tocsr()
