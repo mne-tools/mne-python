@@ -238,10 +238,6 @@ class _Renderer(_BaseRenderer):
                     colormap = colormap.astype(np.float64) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
-            if 'Normals' in mesh.point_arrays:
-                smooth_shading = False
-            else:
-                smooth_shading = self.figure.smooth_shading
 
             actor = _add_mesh(
                 plotter=self.plotter,
@@ -249,7 +245,7 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=smooth_shading,
+                smooth_shading=self.figure.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
@@ -271,6 +267,8 @@ class _Renderer(_BaseRenderer):
             if normals is not None:
                 mesh.point_arrays["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
+            else:
+                _compute_normals(mesh)
         return self._mesh(
             mesh,
             color,
@@ -333,12 +331,11 @@ class _Renderer(_BaseRenderer):
             if scalars is not None:
                 mesh.point_arrays['scalars'] = scalars
             if normals is not None:
-                smooth_shading = False
                 normals = np.array(normals)
                 mesh.point_arrays["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
-                smooth_shading = self.figure.smooth_shading
+                _compute_normals(mesh)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color,
@@ -347,10 +344,10 @@ class _Renderer(_BaseRenderer):
                 opacity=opacity,
                 cmap=cmap,
                 backface_culling=backface_culling,
-                smooth_shading=smooth_shading,
+                smooth_shading=self.figure.smooth_shading,
             )
 
-            if normals is not None:
+            if 'Normals' in mesh.point_arrays:
                 prop = actor.GetProperty()
                 prop.SetInterpolationToPhong()
 
@@ -805,6 +802,18 @@ def _update_picking_callback(plotter,
         on_pick
     )
     plotter.picker = picker
+
+
+def _compute_normals(polydata):
+    normal = vtk.vtkPolyDataNormals()
+    normal.SetComputeCellNormals(False)
+    normal.SetConsistency(False)
+    normal.SetNonManifoldTraversal(False)
+    normal.SetSplitting(False)
+    normal.SetInputData(polydata)
+    normal.Update()
+    mesh = pyvista.wrap(normal.GetOutput())
+    polydata.overwrite(mesh)
 
 
 def _add_polydata_actor(plotter, polydata, name=None,
