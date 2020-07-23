@@ -109,8 +109,8 @@ evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
-# Evoked response averaged accross channels by ROI
-# ------------------------------------------------
+# Evoked response averaged across channels by ROI
+# -----------------------------------------------
 #
 # It is possible to average channels by region of interest (for example left
 # and right) when studying the response to this left auditory stimulus.
