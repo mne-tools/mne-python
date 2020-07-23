@@ -804,16 +804,17 @@ def _update_picking_callback(plotter,
     plotter.picker = picker
 
 
-def _compute_normals(polydata):
-    normal = vtk.vtkPolyDataNormals()
-    normal.SetComputeCellNormals(True)
-    normal.SetConsistency(False)
-    normal.SetNonManifoldTraversal(False)
-    normal.SetSplitting(False)
-    normal.SetInputData(polydata)
-    normal.Update()
-    mesh = pyvista.wrap(normal.GetOutput())
-    polydata.overwrite(mesh)
+def _compute_normals(mesh):
+    mesh.compute_normals(
+        cell_normals=False,
+        point_normals=True,
+        split_vertices=False,
+        flip_normals=False,
+        consistent_normals=True,
+        auto_orient_normals=False,
+        non_manifold_traversal=False,
+        inplace=True,
+    )
 
 
 def _add_polydata_actor(plotter, polydata, name=None,
