@@ -182,8 +182,9 @@ fig = epochs.average().plot_topomap(times, proj='interactive')
 
 ###############################################################################
 # Plotting the ERP/F using ``evoked.plot()`` or ``evoked.plot_joint()`` with
-# and without projectors applied can also be informative.
-#
+# and without projectors applied can also be informative, as can plotting with
+# ``proj='reconstruct'``, which can reduce the signal bias introduced by
+# projections (see :ref:`tut-artifact-ssp-reconstruction` below).
 #
 # Example: EOG and ECG artifact repair
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -282,9 +283,9 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 #
 # By default, the filtered epochs will be averaged together
 # before the projection is computed; this can be controlled with the boolean
-# ``average`` parameter.
-#
-# .. TODO what is the (dis)advantage of **not** averaging before projection?
+# ``average`` parameter. In general this improves the signal-to-noise (where
+# "signal" here is our artifact!) ratio because the artifact temporal waveform
+# is fairly similar across epochs and well time locked to the detected events.
 #
 # To get a sense of how the heartbeat affects the signal at each sensor, you
 # can plot the data with and without the ECG projectors:
@@ -402,6 +403,59 @@ for title in ('Without', 'With'):
 # projectors are capturing something else other than a heartbeat artifact (and
 # thus may be removing brain signal and should be discarded).
 #
+# .. _tut-artifact-ssp-reconstruction:
+#
+# Visualizing SSP sensor-space bias via signal reconstruction
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# .. sidebar:: SSP reconstruction
+#
+#     Internally, the reconstruction is performed by effectively using a
+#     minimum-norm source localization to a spherical source space with the
+#     projections accounted for, and then projecting the source-space data
+#     back out to sensor space.
+#
+# Because SSP performs an orthogonal projection, any spatial component in the
+# data that is not perfectly orthogonal to the SSP spatial direction(s) will
+# have its overall amplitude reduced by the projection operation. In other
+# words, SSP typically introduces some amount of amplitude reduction bias in
+# the sensor space data.
+#
+# When performing source localization of M/EEG data, these projections are
+# properly taken into account by being applied not just to the M/EEG data
+# but also to the forward solution, and hence SSP should not bias the estimated
+# source amplitudes. However, for sensor space analyses, it can be useful to
+# visualize the extent to which SSP projection has biased the data. This can be
+# explored by using ``proj='reconstruct'`` in evoked plotting functions, for
+# example via :meth:`evoked.plot() <mne.Evoked.plot>`:
+
+evoked = epochs.average()
+# Apply the average ref first:
+# It's how we typically view EEG data, and here we're really just interested
+# in the effect of the EOG+ECG SSPs
+evoked.del_proj().set_eeg_reference(projection=True).apply_proj()
+evoked.add_proj(ecg_projs).add_proj(eog_projs)
+fig, axes = plt.subplots(3, 3, figsize=(8, 6))
+for ii in range(3):
+    axes[ii, 0].get_shared_y_axes().join(*axes[ii])
+for pi, proj in enumerate((False, True, 'reconstruct')):
+    evoked.plot(proj=proj, axes=axes[:, pi], spatial_colors=True)
+    if pi == 0:
+        for ax in axes[:, pi]:
+            parts = ax.get_title().split('(')
+            ax.set(ylabel=f'{parts[0]} ({ax.get_ylabel()})\n'
+                          f'{parts[1].replace(")", "")}')
+    axes[0, pi].set(title=f'proj={proj}')
+    axes[0, pi].texts = []
+plt.setp(axes[1:, :].ravel(), title='')
+plt.setp(axes[:, 1:].ravel(), ylabel='')
+plt.setp(axes[:-1, :].ravel(), xlabel='')
+mne.viz.tight_layout()
+
+###############################################################################
+# Note that here the bias in the EEG and magnetometer channels is reduced by
+# the reconstruction. This suggests that the application of SSP has slightly
+# reduced the amplitude of our signals in sensor space, but that it should not
+# bias the amplitudes in source space.
 #
 # References
 # ^^^^^^^^^^

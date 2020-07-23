@@ -135,6 +135,8 @@ Changelog
 
 - BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` by `Stefan Appelhoff`_ and `Jan Sedivy`_
 
+- Add ``proj='reconstruct'`` to :meth:`mne.Evoked.plot` and related functions to apply projectors and then undo the signal bias using field mapping by `Eric Larson`_
+
 - When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
 
 - :class:`mne.Report` now can add topomaps of SSP projectors to the generated report. This behavior can be toggled via the new ``projs`` argument by `Richard Höchenberger`_
