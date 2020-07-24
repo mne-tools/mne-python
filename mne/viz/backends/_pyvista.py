@@ -814,9 +814,9 @@ def _compute_normals(mesh):
         point_normals=True,
         split_vertices=False,
         flip_normals=False,
-        consistent_normals=True,
+        consistent_normals=False,
         auto_orient_normals=False,
-        non_manifold_traversal=False,
+        non_manifold_traversal=True,
         inplace=True,
     )
 
