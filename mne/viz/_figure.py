@@ -458,6 +458,7 @@ class MNEBrowseFigure(MNEFigure):
             t_max = self.mne.inst.times[-1] - self.mne.duration
             t_start = self.mne.t_start + direction * self.mne.duration / denom
             self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
+            # TODO: only update if changed
             self._update_data()
             self._draw_traces()
             self._update_hscroll()
@@ -471,29 +472,29 @@ class MNEBrowseFigure(MNEFigure):
             n_ch_delta = 1 if key == 'pageup' else -1
             n_ch = self.mne.n_channels + n_ch_delta
             self.mne.n_channels = np.clip(n_ch, 1, len(self.mne.ch_names))
+            # TODO: only update if changed
             self._update_trace_offsets()
             self._update_data()
             self._draw_traces()
             self.canvas.draw()
-        elif key in ('home', 'end'):
+        elif key in ('home', 'end'):  # change duration
             dur_delta = 1 if key == 'end' else -1
             old_dur = self.mne.duration
             new_dur = self.mne.duration + dur_delta
             min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
             self.mne.duration = np.clip(new_dur, min_dur,
                                         self.mne.inst.times[-1])
-            # only update if needed
-            if old_dur != self.mne.duration:
+            if self.mne.duration != old_dur:
                 self._update_data()
                 self._draw_traces()
                 self._update_hscroll()
                 self.canvas.draw()
-        elif key == '?':
+        elif key == '?':  # help
             self._onclick_help(event)
-        elif key == 'f11':
+        elif key == 'f11':  # full screen
             fig_manager = get_current_fig_manager()
             fig_manager.full_screen_toggle()
-        elif key == 'a':
+        elif key == 'a':  # annotation mode
             if isinstance(self.mne.inst, ICA):
                 return
             if self.mne.fig_annotation is None:
@@ -502,18 +503,18 @@ class MNEBrowseFigure(MNEFigure):
                 self.mne.fig_annotation.canvas.close_event()
         elif key == 'b':  # TODO: toggle butterfly mode
             pass
-        elif key == 'd':
+        elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
             self._update_data()
             self._draw_traces()
             self.canvas.draw()
         elif key == 'p':  # TODO: toggle snap annotations
             pass
-        elif key == 's':
+        elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # TODO: toggle noise cov / whitening
             pass
-        elif key == 'z':  # zen mode: remove scrollbars and buttons
+        elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
 
     def _update_vscroll(self):
