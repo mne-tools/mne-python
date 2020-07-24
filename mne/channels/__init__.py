@@ -15,8 +15,8 @@ from .montage import (DigMontage,
                       read_custom_montage, read_dig_hpts,
                       compute_native_head_t)
 from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
-                       read_ch_adjacency, _get_ch_type,
-                       find_ch_adjacency, make_1020_channel_selections)
+                       read_ch_adjacency, _get_ch_type, find_ch_adjacency,
+                       make_1020_channel_selections, combine_channels)
 from ..utils import deprecated_alias
 deprecated_alias('read_ch_connectivity', read_ch_adjacency)
 deprecated_alias('find_ch_connectivity', find_ch_adjacency)
