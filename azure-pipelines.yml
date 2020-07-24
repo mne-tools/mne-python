@@ -100,7 +100,7 @@ jobs:
     displayName: 'Install dependencies with pip'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "ultraslowtest" --tb=short --cov=mne mne
+  - script: pytest -m "ultraslowtest" --tb=short --cov=mne -vv mne
     displayName: 'Run ultraslow tests'
   - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
     displayName: 'Codecov'
@@ -138,7 +138,7 @@ jobs:
     displayName: 'Print config and test access to commands'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest --tb=short --cov=mne mne/viz
+  - script: pytest --tb=short --cov=mne -vv mne/viz
     displayName: 'Run viz tests'
   - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
     displayName: 'Codecov'
@@ -239,7 +239,7 @@ jobs:
     displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not slowtest" --tb=short --cov=mne mne
+  - script: pytest -m "not slowtest" --tb=short --cov=mne -vv mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'
