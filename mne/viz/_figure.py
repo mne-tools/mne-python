@@ -661,7 +661,7 @@ class MNEBrowseFigure(MNEFigure):
                 norm = self.mne.scalings['whitened']
             else:
                 norm = self.mne.scalings[self.mne.ch_types[pick]]
-            data[trace_ix] /= norm if norm != 0 else 1
+            data[trace_ix] /= 2 * (norm if norm != 0 else 1)
         # save
         self.mne.data = data
         self.mne.times = times
