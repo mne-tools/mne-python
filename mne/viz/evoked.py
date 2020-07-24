@@ -1926,9 +1926,12 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     ----------
     evokeds : instance of mne.Evoked | list | dict
         If a single Evoked instance, it is plotted as a time series.
+        If a list of Evokeds, the contents are plotted with their
+        ``.comment`` attributes used as condition labels. If no comment is set,
+        the index of the respectiv Evoked the list will be used instead,
+        starting with `1` for the first Evoked.
         If a dict whose values are Evoked objects, the contents are plotted as
-        single time series each and the keys are used as condition labels.
-        If a list of Evokeds, the contents are plotted with indices as labels.
+        single time series each and the keys are used as labels.
         If a [dict/list] of lists, the unweighted mean is plotted as a time
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
@@ -2129,8 +2132,20 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     # build up evokeds into a dict, if it's not already
     if isinstance(evokeds, Evoked):
         evokeds = [evokeds]
+
     if isinstance(evokeds, (list, tuple)):
-        evokeds = {str(idx + 1): evk for idx, evk in enumerate(evokeds)}
+        evokeds_copy = evokeds.copy()
+        evokeds = dict()
+        for evk_idx, evk in enumerate(evokeds_copy, start=1):
+            try:
+                label = evk.comment
+            except AttributeError:  # e.g. list of lists or dict of lists
+                label = None
+            if not label:
+                label = str(evk_idx)
+            evokeds[label] = evk
+        del evokeds_copy
+
     if not isinstance(evokeds, dict):
         raise TypeError('"evokeds" must be a dict, list, or instance of '
                         'mne.Evoked; got {}'.format(type(evokeds).__name__))

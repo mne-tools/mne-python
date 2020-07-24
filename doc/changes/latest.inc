@@ -145,6 +145,7 @@ Changelog
 
 - Improved documentation building instructions and execution on Windows by `Eric Larson`_ and `kalenkovich`_
 
+- When passing a list of `~mne.Evoked` objects to `~mne.viz.plot_compare_evokeds`, each evoked's ``.comment`` attribute will be used to label the trace. If ``.comment`` is empty, a 1-based index is assigned as the label by  `Richard Höchenberger`_
 
 Bug
 ~~~
