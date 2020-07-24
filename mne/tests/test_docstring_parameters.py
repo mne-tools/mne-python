@@ -69,6 +69,8 @@ docstring_ignores = {
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
+    'mne.externals.tqdm._tqdm.__main__',
+    'mne.externals.tqdm._tqdm.cli',
     'mne.channels.tests.test_montage',
     'mne.io.curry.tests.test_curry',
 ]
@@ -172,7 +174,7 @@ def test_tabs():
                       ('_coreg_gui', '_fiducials_gui', '_file_traits', '_help',
                        '_kit2fiff_gui', '_marker_gui', '_viewer'))
 
-    for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
+    for _, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         # because we don't import e.g. mne.tests w/mne
         if not ispkg and modname not in ignore:
             # mod = importlib.import_module(modname)  # not py26 compatible!

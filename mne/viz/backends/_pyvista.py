@@ -175,7 +175,6 @@ class _Renderer(_BaseRenderer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
-                self.figure.smooth_shading = False
                 self.tube_n_sides = 3
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
@@ -218,17 +217,13 @@ class _Renderer(_BaseRenderer):
     def set_interactive(self):
         self.plotter.enable_terrain_style()
 
-    def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., **kwargs):
+    def _mesh(self, mesh, color, opacity=1.0,
+              backface_culling=False, scalars=None, colormap=None,
+              vmin=None, vmax=None, interpolate_before_map=True,
+              representation='surface', line_width=1., **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            smooth_shading = self.figure.smooth_shading
-            vertices = np.c_[x, y, z]
-            n_vertices = len(vertices)
-            triangles = np.c_[np.full(len(triangles), 3), triangles]
-            mesh = PolyData(vertices, triangles)
+            n_vertices = mesh.n_points
             rgba = False
             if color is not None and len(color) == n_vertices:
                 if color.shape[1] == 3:
@@ -237,10 +232,6 @@ class _Renderer(_BaseRenderer):
                     scalars = color
                 scalars = (scalars * 255).astype('ubyte')
                 color = None
-                # Disabling normal computation for smooth shading
-                # is a temporary workaround of:
-                # https://github.com/pyvista/pyvista-support/issues/15
-                smooth_shading = False
                 rgba = True
             if isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
@@ -254,11 +245,46 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=smooth_shading,
+                smooth_shading=self.figure.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 representation=representation, line_width=line_width, **kwargs,
             )
+
+            try:
+                mesh.point_arrays["Normals"]
+            except KeyError:
+                pass
+            else:
+                prop = actor.GetProperty()
+                prop.SetInterpolationToPhong()
             return actor, mesh
+
+    def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, interpolate_before_map=True,
+             representation='surface', line_width=1., normals=None, **kwargs):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            vertices = np.c_[x, y, z]
+            triangles = np.c_[np.full(len(triangles), 3), triangles]
+            mesh = PolyData(vertices, triangles)
+            if normals is not None:
+                mesh.point_arrays["Normals"] = normals
+                mesh.GetPointData().SetActiveNormals("Normals")
+        return self._mesh(
+            mesh,
+            color,
+            opacity,
+            backface_culling,
+            scalars,
+            colormap,
+            vmin,
+            vmax,
+            interpolate_before_map,
+            representation,
+            line_width,
+            **kwargs,
+        )
 
     def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -364,8 +390,7 @@ class _Renderer(_BaseRenderer):
                     color=color,
                     show_scalar_bar=False,
                     cmap=cmap,
-                    smooth_shading=self.
-                    figure.smooth_shading
+                    smooth_shading=self.figure.smooth_shading,
                 )
         return tube
 
@@ -743,6 +768,10 @@ def _update_slider_callback(slider, callback, event_type):
 
     slider.RemoveObserver(event)
     slider.AddObserver(event, _the_callback)
+
+
+def _add_camera_callback(camera, callback):
+    camera.AddObserver(vtk.vtkCommand.ModifiedEvent, callback)
 
 
 def _update_picking_callback(plotter,
