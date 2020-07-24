@@ -250,9 +250,6 @@ class _Renderer(_BaseRenderer):
                 style=representation, line_width=line_width, **kwargs,
             )
 
-            if 'Normals' in mesh.point_arrays:
-                prop = actor.GetProperty()
-                prop.SetInterpolationToPhong()
             return actor, mesh
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
@@ -336,7 +333,7 @@ class _Renderer(_BaseRenderer):
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
-            actor = _add_mesh(
+            _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color,
                 rng=[vmin, vmax],
@@ -346,10 +343,6 @@ class _Renderer(_BaseRenderer):
                 backface_culling=backface_culling,
                 smooth_shading=self.figure.smooth_shading,
             )
-
-            if 'Normals' in mesh.point_arrays:
-                prop = actor.GetProperty()
-                prop.SetInterpolationToPhong()
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -369,7 +362,7 @@ class _Renderer(_BaseRenderer):
                                factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
-                glyph, color=color, opacity=opacity,
+                mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
                 smooth_shading=self.figure.smooth_shading
             )
@@ -430,9 +423,9 @@ class _Renderer(_BaseRenderer):
             elif mode == 'arrow' or mode == '3darrow':
                 _add_mesh(
                     self.plotter,
-                    grid.glyph(orient='vec',
-                               scale=scale,
-                               factor=factor),
+                    mesh=grid.glyph(orient='vec',
+                                    scale=scale,
+                                    factor=factor),
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -450,10 +443,10 @@ class _Renderer(_BaseRenderer):
                 geom = cone.GetOutput()
                 _add_mesh(
                     self.plotter,
-                    grid.glyph(orient='vec',
-                               scale=scale,
-                               factor=factor,
-                               geom=geom),
+                    mesh=grid.glyph(orient='vec',
+                                    scale=scale,
+                                    factor=factor,
+                                    geom=geom),
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -477,10 +470,10 @@ class _Renderer(_BaseRenderer):
                 geom = trp.GetOutput()
                 _add_mesh(
                     self.plotter,
-                    grid.glyph(orient='vec',
-                               scale=scale,
-                               factor=factor,
-                               geom=geom),
+                    mesh=grid.glyph(orient='vec',
+                                    scale=scale,
+                                    factor=factor,
+                                    geom=geom),
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -576,9 +569,35 @@ class _Renderer(_BaseRenderer):
         self.plotter.renderer.remove_actor(actor)
 
 
+def _compute_normals(mesh):
+    mesh.compute_normals(
+        cell_normals=False,
+        inplace=True,
+    )
+
+
 def _add_mesh(plotter, *args, **kwargs):
     _process_events(plotter)
-    return plotter.add_mesh(*args, **kwargs)
+    mesh = kwargs.get('mesh')
+    actor = plotter.add_mesh(*args, **kwargs)
+    if 'Normals' in mesh.point_arrays:
+        prop = actor.GetProperty()
+        prop.SetInterpolationToPhong()
+    return actor
+
+
+def _add_polydata_actor(plotter, polydata, name=None,
+                        hide=False):
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputData(polydata)
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    if hide:
+        actor.VisibilityOff()
+
+    plotter.add_actor(actor, name=name)
+    return actor
 
 
 def _deg2rad(deg):
@@ -808,33 +827,6 @@ def _update_picking_callback(plotter,
     plotter.picker = picker
 
 
-def _compute_normals(mesh):
-    mesh.compute_normals(
-        cell_normals=False,
-        point_normals=True,
-        split_vertices=False,
-        flip_normals=False,
-        consistent_normals=False,
-        auto_orient_normals=False,
-        non_manifold_traversal=True,
-        inplace=True,
-    )
-
-
-def _add_polydata_actor(plotter, polydata, name=None,
-                        hide=False):
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(polydata)
-
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    if hide:
-        actor.VisibilityOff()
-
-    plotter.add_actor(actor, name=name)
-    return actor
-
-
 def _arrow_glyph(grid, factor):
     glyph = vtk.vtkGlyphSource2D()
     glyph.SetGlyphTypeToArrow()
@@ -899,7 +891,11 @@ def _sphere(plotter, center, color, radius):
     sphere.SetCenter(center)
     sphere.Update()
     mesh = pyvista.wrap(sphere.GetOutput())
-    actor = _add_mesh(plotter, mesh, color=color)
+    actor = _add_mesh(
+        plotter,
+        mesh=mesh,
+        color=color
+    )
     return actor, mesh
 
 
