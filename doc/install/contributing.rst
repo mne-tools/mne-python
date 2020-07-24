@@ -231,6 +231,15 @@ MNE-Python, but are needed for locally running our test suite::
 And for building our documentation::
 
     $ pip install -r requirements_doc.txt
+    $ conda install graphviz
+
+To build documentation, you will also require `optipng`_:
+
+- On Linux, use the command ``sudo apt install optipng``.
+
+- On MacOS, optipng can be installed using Homebrew.
+
+- On Windows, unzip optipng.exe from the `optipng for Windows`_ archive into the ``doc`` folder.
 
 You can also choose to install some optional linters for reStructuredText::
 
@@ -918,3 +927,8 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _travis: https://travis-ci.org/mne-tools/mne-python/branches
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 .. _circle: https://circleci.com/gh/mne-tools/mne-python
+
+.. optipng
+
+.. _optipng: http://optipng.sourceforge.net/
+.. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.7-win32.zip?download
