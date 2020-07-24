@@ -165,3 +165,31 @@ def test_get_3d_backend(renderer):
     orig_backend = renderer.MNE_3D_BACKEND
     assert renderer.get_3d_backend() == orig_backend
     assert renderer.get_3d_backend() == orig_backend
+
+
+def test_smooth_shading(renderer):
+    if renderer._get_3d_backend() == "mayavi":
+        pytest.skip('This parameter is only supported on PyVista')
+    from pyvista import PolyData
+
+    vertices = np.array([
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+    ])
+    triangles = np.array([
+        [3, 0, 1, 2]
+    ])
+    normals = np.array([
+        [0, 0, 1],
+        [0, 0, 1],
+        [0, 0, 1],
+    ])
+
+    mesh = PolyData(vertices, triangles)
+    mesh.point_arrays['Normals'] = normals
+    mesh.GetPointData().SetActiveNormals("Normals")
+
+    rend = renderer._get_renderer()
+    rend.plotter.add_mesh(mesh, smooth_shading=True)
+    rend.show()
