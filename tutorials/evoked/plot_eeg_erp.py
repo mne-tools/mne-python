@@ -117,15 +117,13 @@ evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 # use our Raw object on which the average reference projection has been added
 # back.
 evoked = mne.Epochs(raw, **epochs_params).average()
-evoked.pick_types(meg=False, eeg=True, eog=False)
 
-roi_dict = {'Left': [], 'Right': []}
-for idx, ch in enumerate(raw.info['chs']):
-    if ch['loc'][0] < 0:
-        roi_dict['Left'].append(idx)
-    elif ch['loc'][0] > 0:
-        roi_dict['Right'].append(idx)
-evoked_combined = combine_channels(evoked_car, roi_dict, method='mean')
+left_idx = mne.pick_channels(evoked.info['ch_names'],
+                             ['EEG 017', 'EEG 018', 'EEG 025', 'EEG 026'])
+right_idx = mne.pick_channels(evoked.info['ch_names'],
+                              ['EEG 023', 'EEG 024', 'EEG 034', 'EEG 035'])
+roi_dict = dict(Left=left_idx, Right=right_idx)
+evoked_combined = combine_channels(evoked, roi_dict, method='mean')
 
 title = 'Evoked response averaged by side'
 evoked_combined.plot(titles=dict(eeg=title), time_unit='s')
