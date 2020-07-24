@@ -780,11 +780,9 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
     from matplotlib.pyplot import figure
-    if toolbar:
+    rc = dict() if toolbar else dict(toolbar='none')
+    with rc_context(rc=rc):
         fig = figure(FigureClass=FigureClass, **kwargs)
-    else:
-        with rc_context(rc=dict(toolbar='none')):
-            fig = figure(FigureClass=FigureClass, **kwargs)
     return fig
 
 
@@ -809,7 +807,7 @@ def browse_figure(inst, **kwargs):
     for event, callback in callbacks.items():
         callback_ids[event] = fig.canvas.mpl_connect(event, callback)
     # store references so they aren't garbage-collected
-    fig.mne.callback_ids = callback_ids
+    fig.mne._callback_ids = callback_ids
     return fig
 
 
@@ -822,5 +820,5 @@ def dialog_figure(**kwargs):
     for event, callback in callbacks.items():
         callback_ids[event] = fig.canvas.mpl_connect(event, callback)
     # store references so they aren't garbage-collected
-    fig.mne.callback_ids = callback_ids
+    fig.mne._callback_ids = callback_ids
     return fig
