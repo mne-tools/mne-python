@@ -6,7 +6,7 @@ import pytest
 
 from mne import read_evokeds
 from mne.utils import (warn, set_log_level, set_log_file, filter_out_warnings,
-                       verbose, _get_call_line, use_log_level)
+                       verbose, _get_call_line, use_log_level, catch_logging)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
@@ -106,6 +106,9 @@ def test_logging_options(tmpdir):
         with open(test_name, 'r') as new_log_file:
             new_lines = clean_lines(new_log_file.readlines())
         assert new_lines == old_lines
+    with catch_logging() as log:
+        pass
+    assert log.getvalue() == ''
 
 
 def test_warn(capsys):
