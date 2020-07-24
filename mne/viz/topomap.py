@@ -1502,10 +1502,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         String format for topomap values. Defaults (None) to "%%01d ms" if
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
         "%%g" otherwise.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
-        a check box for reversible selection of SSP projection vectors will
-        be show.
+    %(plot_proj)s
     show : bool
         Show figure if True.
     %(topomap_show_names)s
@@ -1618,10 +1615,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         names = None
     # apply projections before picking. NOTE: the `if proj is True`
     # anti-pattern is needed here to exclude proj='interactive'
+    _check_option('proj', proj, (True, False, 'interactive', 'reconstruct'))
     if proj is True and not evoked.proj:
-        data = evoked.apply_proj().data
-    else:
-        data = evoked.data
+        evoked.apply_proj()
+    elif proj == 'reconstruct':
+        evoked._reconstruct_proj()
+    data = evoked.data
+
     # remove compensation matrices (safe: only plotting & already made copy)
     evoked.info['comps'] = []
     evoked = evoked._pick_drop_channels(picks)

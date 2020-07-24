@@ -527,8 +527,9 @@ def test_chpi_subtraction_filter_chpi():
     raw_orig = raw.copy().crop(0, 16)
     with catch_logging() as log:
         filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
-    assert 'No average EEG' not in log.getvalue()
-    assert '5 cHPI' in log.getvalue()
+    log = log.getvalue()
+    assert 'No average EEG' not in log
+    assert '5 cHPI' in log
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
     raw.crop(0, 16)
     # remove cHPI status chans

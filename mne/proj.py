@@ -20,7 +20,8 @@ from .forward import (is_fixed_orient, _subject_from_forward,
 from .source_estimate import _make_stc
 
 
-def read_proj(fname):
+@verbose
+def read_proj(fname, verbose=None):
     """Read projections from a FIF file.
 
     Parameters
@@ -28,6 +29,7 @@ def read_proj(fname):
     fname : str
         The name of file containing the projections vectors. It should end with
         -proj.fif or -proj.fif.gz.
+    %(verbose)s
 
     Returns
     -------

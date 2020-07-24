@@ -955,7 +955,8 @@ def test_spatio_temporal_src_adjacency():
     """Test spatio-temporal adjacency from source spaces."""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
-    adjacency = spatio_temporal_tris_adjacency(tris, 2)
+    adjacency = spatio_temporal_tris_adjacency(tris, 2).todense()
+    assert_allclose(np.diag(adjacency), 1.)
     src[0]['use_tris'] = np.array([[0, 1, 2]])
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     src[0]['vertno'] = np.array([0, 1, 2])
@@ -963,7 +964,7 @@ def test_spatio_temporal_src_adjacency():
     src[0]['type'] = 'surf'
     src[1]['type'] = 'surf'
     adjacency2 = spatio_temporal_src_adjacency(src, 2)
-    assert_array_equal(adjacency.todense(), adjacency2.todense())
+    assert_array_equal(adjacency2.todense(), adjacency)
     # add test for dist adjacency
     src[0]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[1]['dist'] = np.ones((3, 3)) - np.eye(3)
@@ -972,7 +973,7 @@ def test_spatio_temporal_src_adjacency():
     src[0]['type'] = 'surf'
     src[1]['type'] = 'surf'
     adjacency3 = spatio_temporal_src_adjacency(src, 2, dist=2)
-    assert_array_equal(adjacency.todense(), adjacency3.todense())
+    assert_array_equal(adjacency3.todense(), adjacency)
     # add test for source space adjacency with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
     src_ = inverse_operator['src']

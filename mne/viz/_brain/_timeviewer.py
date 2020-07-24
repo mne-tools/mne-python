@@ -63,6 +63,7 @@ class MplCanvas(object):
         # XXX eventually this should be called in the window resize callback
         tight_layout(fig=self.axes.figure)
         self.time_viewer = time_viewer
+        self.time_func = time_viewer.time_call
         for event in ('button_press', 'motion_notify'):
             self.canvas.mpl_connect(
                 event + '_event', getattr(self, 'on_' + event))
@@ -117,7 +118,7 @@ class MplCanvas(object):
         if (event.inaxes != self.axes or
                 event.button != 1):
             return
-        self.time_viewer.time_call(
+        self.time_func(
             event.xdata, update_widget=True, time_as_index=False)
 
     on_motion_notify = on_button_press  # for now they can be the same
@@ -854,7 +855,7 @@ class _TimeViewer(object):
                 act_data = hemi_data['array']
                 if act_data.ndim == 3:
                     act_data = np.linalg.norm(act_data, axis=1)
-                smooth_mat = hemi_data['smooth_mat']
+                smooth_mat = hemi_data.get('smooth_mat')
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
                 # simulate a picked renderer
@@ -1199,28 +1200,48 @@ class _TimeViewer(object):
 class _LinkViewer(object):
     """Class to link multiple _TimeViewer objects."""
 
-    def __init__(self, brains):
+    def __init__(self, brains, time=True, camera=False):
         self.brains = brains
         self.time_viewers = [brain.time_viewer for brain in brains]
 
-        # link time sliders
-        self.link_sliders(
-            name="_time_slider",
-            callback=self.set_time_point,
-            event_type="always"
-        )
+        # check time infos
+        times = [brain._times for brain in brains]
+        if time and not all(np.allclose(x, times[0]) for x in times):
+            warn('stc.times do not match, not linking time')
+            time = False
 
-        # link playback speed sliders
-        self.link_sliders(
-            name="_playback_speed_slider",
-            callback=self.set_playback_speed,
-            event_type="always"
-        )
+        if camera:
+            self.link_cameras()
 
-        # link toggle to start/pause playback
-        for time_viewer in self.time_viewers:
-            time_viewer.actions["play"].triggered.disconnect()
-            time_viewer.actions["play"].triggered.connect(self.toggle_playback)
+        if time:
+            # link time sliders
+            self.link_sliders(
+                name="_time_slider",
+                callback=self.set_time_point,
+                event_type="always"
+            )
+
+            # link playback speed sliders
+            self.link_sliders(
+                name="_playback_speed_slider",
+                callback=self.set_playback_speed,
+                event_type="always"
+            )
+
+            # link toggle to start/pause playback
+            for time_viewer in self.time_viewers:
+                time_viewer.actions["play"].triggered.disconnect()
+                time_viewer.actions["play"].triggered.connect(
+                    self.toggle_playback)
+
+            # link time course canvas
+            def _func(*args, **kwargs):
+                for time_viewer in self.time_viewers:
+                    time_viewer.time_call(*args, **kwargs)
+
+            for time_viewer in self.time_viewers:
+                if time_viewer.show_traces:
+                    time_viewer.mpl_canvas.time_func = _func
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
@@ -1231,8 +1252,8 @@ class _LinkViewer(object):
             time_viewer.playback_speed_call(value, update_widget=True)
 
     def toggle_playback(self):
-        master = self.time_viewers[0]  # select a master time_viewer
-        value = master.time_call.slider_rep.GetValue()
+        leader = self.time_viewers[0]  # select a time_viewer as leader
+        value = leader.time_call.slider_rep.GetValue()
         # synchronize starting points before playback
         self.set_time_point(value)
         for time_viewer in self.time_viewers:
@@ -1248,6 +1269,20 @@ class _LinkViewer(object):
                     callback=callback,
                     event_type=event_type
                 )
+
+    def link_cameras(self):
+        from ..backends._pyvista import _add_camera_callback
+
+        def _update_camera(vtk_picker, event):
+            for time_viewer in self.time_viewers:
+                time_viewer.plotter.update()
+
+        leader = self.time_viewers[0]  # select a time_viewer as leader
+        camera = leader.plotter.camera
+        _add_camera_callback(camera, _update_camera)
+        for time_viewer in self.time_viewers:
+            for renderer in time_viewer.plotter.renderers:
+                renderer.camera = camera
 
 
 def _get_range(brain):

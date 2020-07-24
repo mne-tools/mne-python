@@ -770,6 +770,10 @@ def _update_slider_callback(slider, callback, event_type):
     slider.AddObserver(event, _the_callback)
 
 
+def _add_camera_callback(camera, callback):
+    camera.AddObserver(vtk.vtkCommand.ModifiedEvent, callback)
+
+
 def _update_picking_callback(plotter,
                              on_mouse_move,
                              on_button_press,

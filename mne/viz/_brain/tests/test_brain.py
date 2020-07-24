@@ -279,7 +279,11 @@ def test_brain_linkviewer(renderer_interactive, travis_macos):
     brain_data = _create_testing_brain(hemi='split')
     _TimeViewer(brain_data)
 
-    link_viewer = _LinkViewer([brain_data])
+    link_viewer = _LinkViewer(
+        [brain_data],
+        time=True,
+        camera=True,
+    )
     link_viewer.set_time_point(value=0)
     link_viewer.set_playback_speed(value=0.1)
     link_viewer.toggle_playback()
