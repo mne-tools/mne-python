@@ -143,6 +143,9 @@ Changelog
 
 - Add function :func:`mne.channels.combine_channels` to combine channels from Raw, Epochs, or Evoked according to ROIs (combinations including mean, median, or standard deviation; can also use a callable) by `Johann Benerradi`_
 
+- Improved documentation building instructions and execution on Windows by `Eric Larson`_ and `kalenkovich`_
+
+
 Bug
 ~~~
 
