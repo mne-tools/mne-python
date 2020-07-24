@@ -360,6 +360,7 @@ class _Renderer(_BaseRenderer):
             mesh = PolyData(np.array(center))
             glyph = mesh.glyph(orient=False, scale=False,
                                factor=factor, geom=geom)
+            _compute_normals(glyph)
             actor = _add_mesh(
                 self.plotter,
                 mesh=glyph, color=color, opacity=opacity,
