@@ -170,26 +170,15 @@ def test_get_3d_backend(renderer):
 def test_smooth_shading(renderer):
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('This parameter is only supported on PyVista')
-    from pyvista import PolyData
+    tet_size = 1.0
+    tet_x = np.array([0, tet_size, 0, 0])
+    tet_y = np.array([0, 0, tet_size, 0])
+    tet_z = np.array([0, 0, 0, tet_size])
+    sph_center = np.column_stack((tet_x, tet_y, tet_z))
+    sph_color = 'red'
+    sph_scale = tet_size / 3.0
 
-    vertices = np.array([
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, 1, 0],
-    ])
-    triangles = np.array([
-        [3, 0, 1, 2]
-    ])
-    normals = np.array([
-        [0, 0, 1],
-        [0, 0, 1],
-        [0, 0, 1],
-    ])
-
-    mesh = PolyData(vertices, triangles)
-    mesh.point_arrays['Normals'] = normals
-    mesh.GetPointData().SetActiveNormals("Normals")
-
-    rend = renderer._get_renderer()
-    rend.plotter.add_mesh(mesh, smooth_shading=True)
+    rend = renderer._get_renderer(smooth_shading=True)
+    rend.sphere(center=sph_center, color=sph_color,
+                scale=sph_scale, radius=1.0)
     rend.show()
