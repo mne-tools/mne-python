@@ -184,6 +184,9 @@ contributors. First, edit these two variables for your situation::
     $ # pick where to put your local copy of MNE-Python development version:
     $ INSTALL_LOCATION="/opt"
 
+.. note::
+   On Windows, add ``set`` before the variable names (``set GITHUB_USERNAME=...``, etc.).
+
 Then make a local clone of your remote fork (``origin``)::
 
     $ cd $INSTALL_LOCATION
@@ -737,6 +740,14 @@ tutorial, you should instead run
 all the documentation and additionally execute just your example or tutorial
 (so you can make sure it runs successfully and generates the output / figures
 you expect).
+
+.. note::
+   On Windows, to use the pattern approach, use the following two lines:
+
+   .. code-block:: python
+
+      set PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>}
+      make html_dev-pattern
 
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. Additional ``make``
