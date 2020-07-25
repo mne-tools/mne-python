@@ -5,10 +5,11 @@
 #
 # License: Simplified BSD
 
+from copy import deepcopy
 from functools import partial
 import numpy as np
 from matplotlib.figure import Figure
-from .utils import plt_show
+from .utils import plt_show, _setup_plot_projector, _events_off
 from ..utils import set_config
 
 
@@ -93,69 +94,27 @@ class MNEBrowseFigure(MNEFigure):
             raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
                             f'got {type(inst)}.')
 
-        # additional params for browse figures (comments indicate name changes)
-        # self.mne.inst = inst                # raw
-
-        # self.mne.info = None
+        # additional params for browse figures
         self.mne.projector = None
-        # self.mne.proj = None
-        # self.mne.noise_cov = None
         # self.mne.event_id_rev = None
         # # channel
-        # self.mne.n_channels = None
-        # self.mne.ch_types = None            # types
         # self.mne.group_by = None
-        # self.mne.data_picks = None
         self.mne.whitened_ch_names = list()
-
-        # # time
-        # self.mne.n_times = None
-        # self.mne.first_time = None
-        # self.mne.event_times = None
-        # self.mne.event_nums = None
-        # self.mne.duration = None
-        # self.mne.decim = None
-        # self.mne.hsel_patch = None
-
         # # annotations
         # self.mne.annotations = None
-        # self.mne.snap_annotations = None
         # self.mne.added_label = None
         # self.mne.annotation_segments      # segments
-
         # # traces
-        # self.mne.traces = None            # lines
-        # self.mne.trace_offsets = None     # offsets
-        # self.mne.ch_order = None     # inds
-        # self.mne.orig_indices = None      # orig_inds
         self.mne.segment_line = None
-        # self.mne.clipping = None
-        # self.mne.butterfly = None
-
-        # # filters
-        # self.mne.remove_dc = None
-        # self.mne.filter_coefs = None      # ba
-        # self.mne.filter_bounds = None     # filt_bounds
-
         # # scalings
-        # self.mne.units = None
-        # self.mne.scalings = None
-        # self.mne.unit_scalings = None
         self.mne.scale_factor = 1.
-        self.mne.scalebars = dict()           # (new)
-        self.mne.scalebar_texts = dict()      # (new)
-
+        self.mne.scalebars = dict()
+        self.mne.scalebar_texts = dict()
         # # ancillary figures
         # self.mne.fig_proj = None
         # self.mne.fig_help = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
-
-        # # UI state variables
-        # self.mne.ch_start = None
-        # self.mne.t_start = None
-        # self.mne.scalebars_visible = None
-        # self.mne.scrollbars_visible = scrollbars_visible
 
         # MAIN AXES: default sizes (inches)
         l_margin = 1.
@@ -217,7 +176,6 @@ class MNEBrowseFigure(MNEFigure):
             # PROJ BUTTON: make it a proper button
             button_proj = Button(ax_proj, 'Prj')
             button_proj.on_clicked(self._toggle_proj_fig)
-            # self.mne.apply_proj = proj  # TODO add proj to init signature?
 
         # SAVE PARAMS
         self.mne.ax_main = ax
@@ -277,51 +235,77 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_proj_fig(self, event):
         """Show/hide the projectors dialog window."""
+        print("_toggle_proj_fig called")
+
         if self.mne.fig_proj is None:
-            self._create_proj_fig(draw_current_state=False)
+            self._create_proj_fig()
         else:
             self.mne.fig_proj.canvas.close_event()
-            del self.mne.proj_checks
             self.mne.fig_proj = None
 
-    def _toggle_proj(self, event, all_=False):
+    def _toggle_proj(self, event, toggle_all=False):
         """Perform operations when proj boxes clicked."""
-        # TODO: get from viz/utils.py lines 308-336
-        pass
+        active = self.mne.projs_active
+        if toggle_all:
+            new_state = [not all(active)] * len(active)
+            with _events_off(self.mne.proj_checkboxes):
+                for ix in range(len(active)):
+                    if active[ix] != new_state[ix]:
+                        self.mne.proj_checkboxes.set_active(ix)
+                        active[ix] = new_state[ix]
+        # don't allow deactivating an already applied projector
+        for ix, proj in enumerate(self.mne.projs):
+            if proj['active'] and not active[ix]:
+                active[ix] = True
+        # actually update
+        if not np.array_equal(active, self.mne.projs_active):
+            self._update_proj()
 
-    def _create_proj_fig(self, draw_current_state):
+    def _update_proj(self):
+        """Update the data after projectors have changed."""
+        inds = np.where(self.mne.projs_active)[0]
+        # update projs in info object (needed for _setup_plot_projector)
+        self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
+        proj, wh_chs = _setup_plot_projector(self.mne.info,
+                                             self.mne.whitened_ch_names,
+                                             True, self.mne.use_noise_cov)
+        self.mne.whitened_ch_names = wh_chs
+        self.mne.projector = proj
+        self._update_data()
+        self._draw_traces()
+        self.canvas.draw()
+
+    def _create_proj_fig(self):
         """Create the projectors dialog window."""
-        # TODO: partially incorporated from _draw_proj_checkbox; untested
         from matplotlib.widgets import Button, CheckButtons
 
-        projs = self.inst.info['projs']
+        print("_create_proj_fig called")
+
+        projs = self.mne.info['projs']
         labels = [p['desc'] for p in projs]
-        actives = ([p['active'] for p in projs] if draw_current_state else
-                   getattr(self.mne, 'proj_bools',
-                           [self.mne.apply_proj] * len(projs)))
         # make figure
-        width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
-        height = (len(projs) + 1) / 6.0 + 1.5
+        width = max([4, max([len(p['desc']) for p in projs]) / 6 + 0.5])
+        height = (len(projs) + 1) / 6 + 1.5
         self.mne.fig_proj = dialog_figure(figsize=(width, height))
         self.mne.fig_proj.canvas.set_window_title('SSP projection vectors')
         # make axes
-        offset = (1. / 6. / height)
+        offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
-        ax_temp = self.mne.fig_proj.add_axes(position, frameon=False)
-        ax_temp.set_title('Projectors marked with "X" are active')
+        ax = self.mne.fig_proj.add_axes(position, frameon=False)
+        ax.set_title('Projectors marked with "X" are active')
         # draw checkboxes
-        self.mne.proj_checks = CheckButtons(ax_temp, labels=labels,
-                                            actives=actives)
-        for rect in self.mne.proj_checks.rectangles:
+        self.mne.proj_checkboxes = CheckButtons(ax, labels=labels,
+                                                actives=self.mne.projs_active)
+        for rect in self.mne.proj_checkboxes.rectangles:
             rect.set_edgecolor('0.5')
-            rect.set_linewidth(1.)
+            rect.set_linewidth(1)
         # change already-applied projectors to red
         for ii, p in enumerate(projs):
             if p['active']:
-                for x in self.mne.proj_checks.lines[ii]:
+                for x in self.mne.proj_checkboxes.lines[ii]:
                     x.set_color('#ff0000')
         # add event listeners
-        self.mne.proj_checks.on_clicked(self._toggle_proj)
+        self.mne.proj_checkboxes.on_clicked(self._toggle_proj)
         # add "toggle all" button
         ax_all = self.mne.fig_proj.add_axes((0, 0, 1, offset), frameon=False)
         self.mne.proj_all = Button(ax_all, 'Toggle all')
@@ -332,7 +316,6 @@ class MNEBrowseFigure(MNEFigure):
             plt_show(fig=self.mne.fig_proj, warn=False)
         except Exception:
             pass
-        # TODO: partially incorporated from _draw_proj_checkbox; untested
 
     def _setup_annotation_colors(self):
         pass
@@ -428,6 +411,27 @@ class MNEBrowseFigure(MNEFigure):
 
     def _onclick_help(self, event):
         pass
+
+    def _buttonpress(self, event):
+        """Triage mouse clicks."""
+        # we don't use middle clicks or scroll wheel events
+        if event.button not in (1, 3):
+            return
+        elif event.button == 1:  # left-click (primary)
+            if event.inaxes is None:  # clicked on channel name
+                pass  # TODO: copy from viz/utils.py lines 1157-1165
+            elif event.inaxes == self.mne.ax_main:
+                pass  # TODO: pass event on to pick_bads_fun
+            elif event.inaxes == self.mne.ax_vscroll:
+                pass  # TODO: copy from viz/utils.py lines 1167-1173
+            elif event.inaxes == self.mne.ax_hscroll:
+                time = event.xdata - self.mne.duration / 2
+                self._update_hscroll_clicked(time)
+                self._update_data()
+                self._draw_traces()
+                self.canvas.draw()
+        else:  # right-click (secondary)
+            pass  # TODO: copy from viz/utils.py lines 1140-1154
 
     def _keypress(self, event):
         """Triage keypress events."""
@@ -527,6 +531,15 @@ class MNEBrowseFigure(MNEFigure):
         """Update the horizontal scrollbar (time) selection indicator."""
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
         self.mne.hsel_patch.set_width(self.mne.duration)
+
+    def _update_hscroll_clicked(self, time):
+        """Handle clicks on horizontal scrollbar."""
+        max_time = (self.mne.n_times / self.mne.info['sfreq'] +
+                    self.mne.first_time - self.mne.duration)
+        time = np.clip(time, self.mne.first_time, max_time)
+        if self.mne.t_start != time:
+            self.mne.t_start = time
+            self._update_hscroll()
 
     def _toggle_scalebars(self, event):
         """Show/hide the scalebars."""
@@ -797,12 +810,14 @@ def browse_figure(inst, **kwargs):
                      fig.mne.ax_main.get_position().xmax)
     fig.mne.zen_h = (fig.mne.ax_main.get_position().ymin -
                      fig.mne.ax_hscroll.get_position().ymin)
+    # if they're supposed to start hidden, set to True and then toggle
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
     # add our custom callbacks
     callbacks = dict(resize_event=fig._resize,
-                     key_press_event=fig._keypress)
+                     key_press_event=fig._keypress,
+                     button_press_event=fig._buttonpress)
     callback_ids = dict()
     for event, callback in callbacks.items():
         callback_ids[event] = fig.canvas.mpl_connect(event, callback)

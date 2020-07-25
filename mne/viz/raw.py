@@ -248,6 +248,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums,
                   # preprocessing
                   projs=projs,
+                  projs_active=[p['active'] for p in projs],
                   remove_dc=remove_dc,
                   filter_coefs=ba,
                   filter_bounds=filt_bounds,
