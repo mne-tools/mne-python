@@ -70,8 +70,13 @@ class RawSNIRF(BaseRaw):
         with h5py.File(fname, 'r') as dat:
 
             if 'data2' in dat['nirs'].keys():
-                print("File contains multiple recordings. "
-                      "This is not supported.")
+                warn("File contains multiple recordings. "
+                     "MNE does not support this feature.")
+
+            if np.array(dat.get('nirs/data1/measurementList1/dataType')) != 1:
+                warn("File does not contain continuous wave data. "
+                     "MNE only supports reading "
+                     "continuous wave amplitude SNIRF files.")
 
             data = np.array(dat.get('/nirs/data1/dataTimeSeries')).T
             last_samps = data.shape[1] - 1
@@ -80,7 +85,7 @@ class RawSNIRF(BaseRaw):
             sampling_rate = 0
             if samplingrate_raw.shape == (2, 1):
                 # specified as onset/samplerate
-                warn("Onset sample rate SNIRF not yet supported")
+                warn("Onset/sample rate SNIRF not yet supported.")
             else:
                 # specified as time points
                 fs_diff = np.around(np.diff(samplingrate_raw), decimals=4)
@@ -89,9 +94,9 @@ class RawSNIRF(BaseRaw):
                     sampling_rate = 1. / np.unique(fs_diff)
                 else:
                     # print(np.unique(fs_diff))
-                    warn("Non uniform sampled data not supported")
+                    warn("Non uniform sampled data not supported.")
             if sampling_rate == 0:
-                warn("Unable to extract sample rate")
+                warn("Unable to extract sample rate from SNIRF file.")
 
             sources = np.array(dat.get('nirs/probe/sourceLabels'))
             detectors = np.array(dat.get('nirs/probe/detectorLabels'))
@@ -104,10 +109,6 @@ class RawSNIRF(BaseRaw):
 
             assert len(sources) == srcPos3D.shape[0]
             assert len(detectors) == detPos3D.shape[0]
-
-            if detPos3D.shape[1] == 2:
-                detPos3D = np.hstack((detPos3D, np.zeros((len(detectors), 1))))
-                srcPos3D = np.hstack((srcPos3D, np.zeros((len(sources), 1))))
 
             # Extract wavelengths
             fnirs_wavelengths = np.array(dat.get('nirs/probe/wavelengths'))

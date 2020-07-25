@@ -85,6 +85,7 @@ def test_snirf_against_nirx():
     assert_allclose([new_chs[idx]['loc'][9] for idx in range(num_chans)],
                     [ori_chs[idx]['loc'][9] for idx in range(num_chans)])
 
+    # Check data is the same
     assert_allclose(raw.get_data(), raw_orig.get_data())
 
 
