@@ -1929,7 +1929,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         If a list of Evokeds, the contents are plotted with their
         ``.comment`` attributes used as condition labels. If no comment is set,
         the index of the respectiv Evoked the list will be used instead,
-        starting with `1` for the first Evoked.
+        starting with ``1`` for the first Evoked.
         If a dict whose values are Evoked objects, the contents are plotted as
         single time series each and the keys are used as labels.
         If a [dict/list] of lists, the unweighted mean is plotted as a time
