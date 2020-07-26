@@ -8,7 +8,8 @@ import numpy as np
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn, check_version
+from ...utils import logger, verbose, fill_doc, warn
+from ...utils.check import _require_version
 
 
 @fill_doc
@@ -59,11 +60,10 @@ class RawSNIRF(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        if not check_version('h5py'):
-            raise ImportError(
-                'The h5py package is required to read raw SNIRF data')
+        _require_version('h5py', 'read raw SNIRF data')
         from ...externals.pymatreader.utils import _import_h5py
         h5py = _import_h5py()
+
         logger.info('Loading %s' % fname)
 
         with h5py.File(fname, 'r') as dat:
