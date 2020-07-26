@@ -8,18 +8,15 @@ import numpy as np
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn, requires_h5py
+from ...utils import logger, verbose, fill_doc, warn, check_version
 
 
-@requires_h5py
 @fill_doc
 def read_raw_snirf(fname, preload=False, verbose=None):
     """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,
               not the .jnirs version.
-              Currently only support for continuous wave SNIRF data is
-              provided.
 
     Parameters
     ----------
@@ -44,10 +41,9 @@ def _open(fname):
     return open(fname, 'r', encoding='latin-1')
 
 
-@requires_h5py
 @fill_doc
 class RawSNIRF(BaseRaw):
-    """Raw object from a SNIRF fNIRS file.
+    """Raw object from a continuous wave SNIRF file.
 
     Parameters
     ----------
@@ -63,23 +59,25 @@ class RawSNIRF(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        if not check_version('h5py'):
+            raise ImportError(
+                'The h5py package is required to read raw SNIRF data')
         from ...externals.pymatreader.utils import _import_h5py
         h5py = _import_h5py()
         logger.info('Loading %s' % fname)
 
         with h5py.File(fname, 'r') as dat:
 
-            if 'data2' in dat['nirs'].keys():
-                warn("File contains multiple recordings. "
-                     "MNE does not support this feature.")
+            if 'data2' in dat['nirs']:
+                raise RuntimeError("File contains multiple recordings. "
+                                   "MNE does not support this feature.")
 
             if np.array(dat.get('nirs/data1/measurementList1/dataType')) != 1:
                 warn("File does not contain continuous wave data. "
                      "MNE only supports reading "
                      "continuous wave amplitude SNIRF files.")
 
-            data = np.array(dat.get('/nirs/data1/dataTimeSeries')).T
-            last_samps = data.shape[1] - 1
+            last_samps = dat.get('/nirs/data1/dataTimeSeries').shape[0] - 1
 
             samplingrate_raw = np.array(dat.get('nirs/data1/time'))
             sampling_rate = 0
@@ -175,10 +173,10 @@ class RawSNIRF(BaseRaw):
 
             # Extract annotations
             annot = Annotations([], [], [])
-            for key in dat['nirs'].keys():
+            for key in dat['nirs']:
                 if 'stim' in key:
                     data = np.array(dat.get('/nirs/' + key + '/data'))
-                    if not data.shape == ():
+                    if data.size > 0:
                         annot.append(data[:, 0], 1.0, key[4:])
             self.set_annotations(annot)
 
@@ -187,7 +185,7 @@ class RawSNIRF(BaseRaw):
             chans = []
             for idx in range(num_chans // 2):
                 chans.append(idx)
-                chans.append(idx + int(num_chans / 2))
+                chans.append(idx + num_chans // 2)
             self.pick(picks=chans)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -195,7 +193,6 @@ class RawSNIRF(BaseRaw):
         import h5py
 
         with h5py.File(self._filenames[0], 'r') as dat:
-            data[:] = np.asarray(
-                dat.get('/nirs/data1/dataTimeSeries')[start:stop].T[idx])
+            data[:] = dat.get('/nirs/data1/dataTimeSeries')[start:stop].T[idx]
 
         return data
