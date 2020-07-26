@@ -2136,13 +2136,12 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
+
         for evk_idx, evk in enumerate(evokeds_copy, start=1):
-            try:
+            label = None
+            if hasattr(evk, 'comment'):
                 label = evk.comment
-            except AttributeError:  # e.g. list of lists or dict of lists
-                label = None
-            if not label:
-                label = str(evk_idx)
+            label = label if label else str(evk_idx)
             evokeds[label] = evk
         del evokeds_copy
 
