@@ -70,7 +70,8 @@ class RawSNIRF(BaseRaw):
 
             if 'data2' in dat['nirs']:
                 warn("File contains multiple recordings. "
-                     "MNE does not support this feature.")
+                     "MNE does not support this feature. "
+                     "Only the first dataset will be processed.")
 
             if np.array(dat.get('nirs/data1/measurementList1/dataType')) != 1:
                 raise RuntimeError('File does not contain continuous wave '
