@@ -185,7 +185,7 @@ class RawSNIRF(BaseRaw):
             # Reorder channels to match expected ordering in MNE
             num_chans = len(self.ch_names)
             chans = []
-            for idx in range(int(num_chans / 2)):
+            for idx in range(num_chans // 2):
                 chans.append(idx)
                 chans.append(idx + int(num_chans / 2))
             self.pick(picks=chans)
