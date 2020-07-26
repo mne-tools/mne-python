@@ -69,13 +69,17 @@ class RawSNIRF(BaseRaw):
         with h5py.File(fname, 'r') as dat:
 
             if 'data2' in dat['nirs']:
-                raise RuntimeError("File contains multiple recordings. "
-                                   "MNE does not support this feature.")
+                warn("File contains multiple recordings. "
+                     "MNE does not support this feature.")
 
             if np.array(dat.get('nirs/data1/measurementList1/dataType')) != 1:
-                warn("File does not contain continuous wave data. "
-                     "MNE only supports reading "
-                     "continuous wave amplitude SNIRF files.")
+                raise RuntimeError('File does not contain continuous wave '
+                                   'data. MNE only supports reading continuous'
+                                   ' wave amplitude SNIRF files. Expected type'
+                                   ' code 1 but received type code %d' %
+                                   (np.array(dat.get(
+                                       'nirs/data1/measurementList1/dataType'
+                                   ))))
 
             last_samps = dat.get('/nirs/data1/dataTimeSeries').shape[0] - 1
 
