@@ -192,8 +192,7 @@ class RawSNIRF(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
-        from ...externals.pymatreader.utils import _import_h5py
-        h5py = _import_h5py()
+        import h5py
 
         with h5py.File(self._filenames[0], 'r') as dat:
             data[:] = np.asarray(
