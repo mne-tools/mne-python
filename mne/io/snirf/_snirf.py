@@ -14,7 +14,7 @@ from ...utils import logger, verbose, fill_doc, warn, requires_h5py
 @requires_h5py
 @fill_doc
 def read_raw_snirf(fname, preload=False, verbose=None):
-    """Reader for a SNIRF fNIRS recording.
+    """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,
               not the .jnirs version.
