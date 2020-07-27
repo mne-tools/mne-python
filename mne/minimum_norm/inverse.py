@@ -1338,7 +1338,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # put the forward solution in correct orientation
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if loose.get('surface', 1.) == 0.:
+    if loose.get('surface', 1.) == 0. and len(loose) == 1:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
@@ -1359,7 +1359,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
         if loose.get('surface', 1.) < 1. and not forward['surf_ori']:
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
-                forward, surf_ori=True, use_cps=True, copy=False)
+                forward, surf_ori=True, use_cps=use_cps, copy=False)
 
     forward, info_picked = _select_orient_forward(forward, info, noise_cov,
                                                   copy=False)
@@ -1373,7 +1373,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov)
 
     # Deal with fixed orientation forward / inverse
-    if loose.get('surface') == 0.:
+    if loose.get('surface', 1.) == 0. and len(loose) == 1:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
@@ -1386,6 +1386,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 forward, surf_ori=True, force_fixed=True,
                 use_cps=use_cps, copy=False)
     else:
+        if loose.get('surface', 1.) < 1:
+            assert forward['surf_ori']
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
         orient_prior = compute_orient_prior(forward, loose=loose)

@@ -390,6 +390,7 @@ def _all_src_types_fwd(_fwd_surf, _fwd_subvolume):
             key = keys[1]
         a[key] = np.concatenate([a[key], b[key]], axis=axis)
     fwd['sol']['ncol'] = fwd['sol']['data'].shape[1]
+    fwd['nsource'] = fwd['sol']['ncol'] // 3
     fwd['src'] = fwd['src'] + f2['src']
     fwds['mixed'] = fwd
 
@@ -416,6 +417,13 @@ def all_src_types_inv_evoked(_all_src_types_inv_evoked):
     invs = {key: val.copy() for key, val in invs.items()}
     evoked = evoked.copy()
     return invs, evoked
+
+
+@pytest.fixture(scope='function')
+def mixed_fwd_cov_evoked(_evoked_cov_sphere, _all_src_types_fwd):
+    """Compute inverses for all source types."""
+    evoked, cov, _ = _evoked_cov_sphere
+    return _all_src_types_fwd['mixed'].copy(), cov.copy(), evoked.copy()
 
 
 @pytest.fixture(scope='session')
