@@ -238,10 +238,6 @@ class _Renderer(_BaseRenderer):
                     colormap = colormap.astype(np.float64) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
-            if 'Normals' in mesh.point_arrays:
-                smooth_shading = False
-            else:
-                smooth_shading = self.figure.smooth_shading
 
             actor = _add_mesh(
                 plotter=self.plotter,
@@ -249,13 +245,10 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=smooth_shading,
+                smooth_shading=self.figure.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
-            if 'Normals' in mesh.point_arrays:
-                prop = actor.GetProperty()
-                prop.SetInterpolationToPhong()
 
             return actor, mesh
 
@@ -333,13 +326,10 @@ class _Renderer(_BaseRenderer):
             if scalars is not None:
                 mesh.point_arrays['scalars'] = scalars
             if normals is not None:
-                smooth_shading = False
                 normals = np.array(normals)
                 mesh.point_arrays["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
-            else:
-                smooth_shading = self.figure.smooth_shading
-            actor = _add_mesh(
+            _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color,
                 rng=[vmin, vmax],
@@ -347,11 +337,8 @@ class _Renderer(_BaseRenderer):
                 opacity=opacity,
                 cmap=cmap,
                 backface_culling=backface_culling,
-                smooth_shading=smooth_shading,
+                smooth_shading=self.figure.smooth_shading,
             )
-            if 'Normals' in mesh.point_arrays:
-                prop = actor.GetProperty()
-                prop.SetInterpolationToPhong()
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -587,7 +574,12 @@ def _compute_normals(mesh):
 
 def _add_mesh(plotter, *args, **kwargs):
     _process_events(plotter)
-    return plotter.add_mesh(*args, **kwargs)
+    mesh = kwargs.get('mesh')
+    actor = plotter.add_mesh(*args, **kwargs)
+    if 'Normals' in mesh.point_arrays:
+        prop = actor.GetProperty()
+        prop.SetInterpolationToPhong()
+    return actor
 
 
 def _add_polydata_actor(plotter, polydata, name=None,
