@@ -184,6 +184,9 @@ contributors. First, edit these two variables for your situation::
     $ # pick where to put your local copy of MNE-Python development version:
     $ INSTALL_LOCATION="/opt"
 
+.. note::
+   On Windows, add ``set`` before the variable names (``set GITHUB_USERNAME=...``, etc.).
+
 Then make a local clone of your remote fork (``origin``)::
 
     $ cd $INSTALL_LOCATION
@@ -231,6 +234,15 @@ MNE-Python, but are needed for locally running our test suite::
 And for building our documentation::
 
     $ pip install -r requirements_doc.txt
+    $ conda install graphviz
+
+To build documentation, you will also require `optipng`_:
+
+- On Linux, use the command ``sudo apt install optipng``.
+
+- On MacOS, optipng can be installed using Homebrew.
+
+- On Windows, unzip optipng.exe from the `optipng for Windows`_ archive into the ``doc`` folder.
 
 You can also choose to install some optional linters for reStructuredText::
 
@@ -729,6 +741,14 @@ all the documentation and additionally execute just your example or tutorial
 (so you can make sure it runs successfully and generates the output / figures
 you expect).
 
+.. note::
+   On Windows, to use the pattern approach, use the following two lines:
+
+   .. code-block:: python
+
+      set PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>}
+      make html_dev-pattern
+
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. Additional ``make``
 recipes are available; run ``make help`` from the :file:`doc` directory or
@@ -918,3 +938,8 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _travis: https://travis-ci.org/mne-tools/mne-python/branches
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 .. _circle: https://circleci.com/gh/mne-tools/mne-python
+
+.. optipng
+
+.. _optipng: http://optipng.sourceforge.net/
+.. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.7-win32.zip?download

@@ -89,6 +89,13 @@ def check_version(library, min_version='0.0'):
     return ok
 
 
+def _require_version(lib, what, version='0.0'):
+    """Require library for a purpose."""
+    if not check_version(lib, version):
+        extra = f' (version >= {version})' if version != '0.0' else ''
+        raise ImportError(f'The {lib} package{extra} is required to {what}')
+
+
 def _check_mayavi_version(min_version='4.3.0'):
     """Check mayavi version."""
     if not check_version('mayavi', min_version):

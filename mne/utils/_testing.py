@@ -21,7 +21,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from scipy import linalg
 
-from ._logging import warn
+from ._logging import warn, ClosingStringIO
 from .numerics import object_diff
 
 
@@ -277,8 +277,8 @@ class ArgvSetter(object):
     def __init__(self, args=(), disable_stdout=True,
                  disable_stderr=True):  # noqa: D102
         self.argv = list(('python',) + args)
-        self.stdout = StringIO() if disable_stdout else sys.stdout
-        self.stderr = StringIO() if disable_stderr else sys.stderr
+        self.stdout = ClosingStringIO() if disable_stdout else sys.stdout
+        self.stderr = ClosingStringIO() if disable_stderr else sys.stderr
 
     def __enter__(self):  # noqa: D105
         self.orig_argv = sys.argv
@@ -298,12 +298,17 @@ class ArgvSetter(object):
 class SilenceStdout(object):
     """Silence stdout."""
 
+    def __init__(self, close=True):
+        self.close = close
+
     def __enter__(self):  # noqa: D105
         self.stdout = sys.stdout
         sys.stdout = StringIO()
         return sys.stdout
 
     def __exit__(self, *args):  # noqa: D105
+        if self.close:
+            sys.stdout.close()
         sys.stdout = self.stdout
 
 

@@ -10,6 +10,9 @@
 import os
 import os.path as op
 import sys
+from collections import OrderedDict
+from copy import deepcopy
+from functools import partial
 
 import numpy as np
 from scipy import sparse
@@ -19,7 +22,7 @@ from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
                      fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info, MontageMixin
+from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
@@ -1578,3 +1581,141 @@ def make_1020_channel_selections(info, midline="z"):
                       for selection, picks in selections.items()}
 
     return selections
+
+
+def combine_channels(inst, groups, method='mean', keep_stim=False,
+                     drop_bad=False):
+    """Combine channels based on specified channel grouping.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs, or Evoked
+        An MNE-Python object to combine the channels for. The object can be of
+        type Raw, Epochs, or Evoked.
+    groups : dict
+        Specifies which channels are aggregated into a single channel, with
+        aggregation method determined by the ``method`` parameter. One new
+        pseudo-channel is made per dict entry; the dict values must be lists of
+        picks (integer indices of ``ch_names``). For example::
+
+            groups=dict(Left=[1, 2, 3, 4], Right=[5, 6, 7, 8])
+
+        Note that within a dict entry all channels must have the same type.
+    method : str | callable
+        Which method to use to combine channels. If a :class:`str`, must be one
+        of 'mean', 'median', or 'std' (standard deviation). If callable, the
+        callable must accept one positional input (data of shape ``(n_channels,
+        n_times)``, or ``(n_epochs, n_channels, n_times)``) and return an
+        :class:`array <numpy.ndarray>` of shape ``(n_times,)``, or ``(n_epochs,
+        n_times)``. For example with an instance of Raw or Evoked::
+
+            method = lambda data: np.mean(data, axis=0)
+
+        Another example with an instance of Epochs::
+
+            method = lambda data: np.median(data, axis=1)
+
+        Defaults to ``'mean'``.
+    keep_stim : bool
+        If ``True``, include stimulus channels in the resulting object.
+        Defaults to ``False``.
+    drop_bad : bool
+        If ``True``, drop channels marked as bad before combining. Defaults to
+        ``False``.
+
+    Returns
+    -------
+    combined_inst : instance of Raw, Epochs, or Evoked
+        An MNE-Python object of the same type as the input ``inst``, containing
+        one virtual channel for each group in ``groups`` (and, if ``keep_stim``
+        is ``True``, also containing stimulus channels).
+    """
+    from ..io import BaseRaw, RawArray
+    from .. import BaseEpochs, EpochsArray, Evoked, EvokedArray
+
+    ch_axis = 1 if isinstance(inst, BaseEpochs) else 0
+    ch_idx = list(range(inst.info['nchan']))
+    ch_names = inst.info['ch_names']
+    ch_types = inst.get_channel_types()
+    inst_data = inst.data if isinstance(inst, Evoked) else inst.get_data()
+    groups = OrderedDict(deepcopy(groups))
+
+    # Convert string values of ``method`` into callables
+    # XXX Possibly de-duplicate with _make_combine_callable of mne/viz/utils.py
+    if isinstance(method, str):
+        method_dict = {key: partial(getattr(np, key), axis=ch_axis)
+                       for key in ('mean', 'median', 'std')}
+        try:
+            method = method_dict[method]
+        except KeyError:
+            raise ValueError('"method" must be a callable, or one of "mean", '
+                             f'"median", or "std"; got "{method}".')
+
+    # Instantiate channel info and data
+    new_ch_names, new_ch_types, new_data = [], [], []
+    if not isinstance(keep_stim, bool):
+        raise TypeError('"keep_stim" must be of type bool, not '
+                        f'{type(keep_stim)}.')
+    if keep_stim:
+        stim_ch_idx = list(pick_types(inst.info, meg=False, stim=True))
+        if stim_ch_idx:
+            new_ch_names = [ch_names[idx] for idx in stim_ch_idx]
+            new_ch_types = [ch_types[idx] for idx in stim_ch_idx]
+            new_data = [np.take(inst_data, idx, axis=ch_axis)
+                        for idx in stim_ch_idx]
+        else:
+            warn('Could not find stimulus channels.')
+
+    # Get indices of bad channels
+    ch_idx_bad = []
+    if not isinstance(drop_bad, bool):
+        raise TypeError('"drop_bad" must be of type bool, not '
+                        f'{type(drop_bad)}.')
+    if drop_bad and inst.info['bads']:
+        ch_idx_bad = pick_channels(ch_names, inst.info['bads'])
+
+    # Check correctness of combinations
+    for this_group, this_picks in groups.items():
+        # Check if channel indices are out of bounds
+        if not all(idx in ch_idx for idx in this_picks):
+            raise ValueError('Some channel indices are out of bounds.')
+        # Check if heterogeneous sensor type combinations
+        this_ch_type = np.array(ch_types)[this_picks]
+        if len(set(this_ch_type)) > 1:
+            types = ', '.join(set(this_ch_type))
+            raise ValueError('Cannot combine sensors of different types; '
+                             f'"{this_group}" contains types {types}.')
+        # Remove bad channels
+        these_bads = [idx for idx in this_picks if idx in ch_idx_bad]
+        this_picks = [idx for idx in this_picks if idx not in ch_idx_bad]
+        if these_bads:
+            logger.info('Dropped the following channels in group '
+                        f'{this_group}: {these_bads}')
+        #  Check if combining less than 2 channel
+        if len(set(this_picks)) < 2:
+            warn(f'Less than 2 channels in group "{this_group}" when '
+                 f'combining by method "{method}".')
+        # If all good create more detailed dict without bad channels
+        groups[this_group] = dict(picks=this_picks, ch_type=this_ch_type[0])
+
+    # Combine channels and add them to the new instance
+    for this_group, this_group_dict in groups.items():
+        new_ch_names.append(this_group)
+        new_ch_types.append(this_group_dict['ch_type'])
+        this_picks = this_group_dict['picks']
+        this_data = np.take(inst_data, this_picks, axis=ch_axis)
+        new_data.append(method(this_data))
+    new_data = np.swapaxes(new_data, 0, ch_axis)
+    info = create_info(sfreq=inst.info['sfreq'], ch_names=new_ch_names,
+                       ch_types=new_ch_types)
+    if isinstance(inst, BaseRaw):
+        combined_inst = RawArray(new_data, info, first_samp=inst.first_samp,
+                                 verbose=inst.verbose)
+    elif isinstance(inst, BaseEpochs):
+        combined_inst = EpochsArray(new_data, info, tmin=inst.times[0],
+                                    verbose=inst.verbose)
+    elif isinstance(inst, Evoked):
+        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
+                                    verbose=inst.verbose)
+
+    return combined_inst

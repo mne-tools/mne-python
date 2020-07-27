@@ -37,4 +37,5 @@ dependencies:
   - nilearn
   - neo
   - python-picard
-  - PyQt5>=5.10
+  - PyQt5>=5.10,<5.14; platform_system == "Darwin"
+  - PyQt5>=5.10; platform_system != "Darwin"

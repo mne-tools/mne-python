@@ -65,6 +65,7 @@ Reading raw data
    read_raw_kit
    read_raw_nicolet
    read_raw_nirx
+   read_raw_snirf
    read_raw_eeglab
    read_raw_brainvision
    read_raw_egi
@@ -339,6 +340,7 @@ Projections:
    rename_channels
    generate_2d_layout
    make_1020_channel_selections
+   combine_channels
 
 :py:mod:`mne.preprocessing`:
 
