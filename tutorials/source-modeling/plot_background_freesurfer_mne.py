@@ -331,7 +331,7 @@ fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
 # sphere, a given vertex in the source (sample) mesh can be mapped easily
 # to the same location in the destination (fsaverage) mesh, and vice-versa.
 
-renderer_kwargs = dict(bgcolor='w')
+renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
 renderer = mne.viz.backends.renderer._get_renderer(
     size=(800, 400), **renderer_kwargs)
 curvs = [

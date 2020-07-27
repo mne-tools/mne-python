@@ -65,7 +65,7 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
-                 name=None, show=False, shape=(1, 1)):
+                 name=None, show=False, shape=(1, 1), smooth_shading=True):
         if bgcolor is not None:
             bgcolor = _check_color(bgcolor)
         self.mlab = _import_mlab()
