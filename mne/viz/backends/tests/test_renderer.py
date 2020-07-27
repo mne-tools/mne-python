@@ -102,7 +102,11 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer.backend._Renderer(size=win_size, bgcolor=win_color)
+    rend = renderer.backend._Renderer(
+        size=win_size,
+        bgcolor=win_color,
+        smooth_shading=True,
+    )
     rend.set_interactive()
 
     # use mesh
@@ -165,20 +169,3 @@ def test_get_3d_backend(renderer):
     orig_backend = renderer.MNE_3D_BACKEND
     assert renderer.get_3d_backend() == orig_backend
     assert renderer.get_3d_backend() == orig_backend
-
-
-def test_smooth_shading(renderer):
-    if renderer._get_3d_backend() == "mayavi":
-        pytest.skip('This parameter is only supported on PyVista')
-    tet_size = 1.0
-    tet_x = np.array([0, tet_size, 0, 0])
-    tet_y = np.array([0, 0, tet_size, 0])
-    tet_z = np.array([0, 0, 0, tet_size])
-    sph_center = np.column_stack((tet_x, tet_y, tet_z))
-    sph_color = 'red'
-    sph_scale = tet_size / 3.0
-
-    rend = renderer._get_renderer(smooth_shading=True)
-    rend.sphere(center=sph_center, color=sph_color,
-                scale=sph_scale, radius=1.0)
-    rend.show()
