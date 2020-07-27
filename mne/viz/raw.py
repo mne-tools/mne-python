@@ -116,10 +116,14 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     from ..io.base import BaseRaw
     from . import browse_figure
 
-    # make a copy of info & remove projection (for now)
+    # make a copy of info. Store projectors in an attr for easy enable/disable,
+    # make another attr for which projectors are currently "on" in the plot,
+    # and disable projs in info if user doesn't want to see them right away.
     info = raw.info.copy()
-    projs = info['projs']  # TODO use these somewhere
-    info['projs'] = []
+    projs = info['projs']
+    projs_on = np.full_like(projs, proj, dtype=bool)
+    if not proj:
+        info['projs'] = list()
 
     # handle defaults
     color = _handle_default('color', color)
@@ -165,20 +169,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         filt_bounds = _annotations_starts_stops(
             raw, ('edge', 'bad_acq_skip'), invert=True)
 
-    # generate window title; allow instances without a filename (e.g., ICA)
-    if title is None:
-        title = raw._filenames
-        if len(title) == 0:  # empty list or absent key
-            title = '<unknown>'
-        elif len(title) == 1:
-            title = title[0]
-        else:  # if len(title) > 1:
-            title = '%s ... (+ %d more) ' % (title[0], len(title) - 1)
-            if len(title) > 60:
-                title = '...' + title[-60:]
-    elif not isinstance(title, str):
-        raise TypeError(f'title must be None or a string, got a {type(title)}')
-
     # compute event times in seconds
     if events is not None:
         event_times = events[:, 0] - raw.first_samp
@@ -219,10 +209,10 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         if key <= 0 and key != -1:
             raise KeyError(f'only key <= 0 allowed is -1 (cannot use {key})')
 
-    # set up projection and data parameters
+    # handle first_samp
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
-    event_id_rev = {val: key for key, val in (event_id or {}).items()}
+    #event_id_rev = {val: key for key, val in (event_id or {}).items()}
 
     # gather parameters and initialize figure
     params = dict(inst=raw,
@@ -248,7 +238,9 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums,
                   # preprocessing
                   projs=projs,
-                  projs_active=[p['active'] for p in projs],
+                  projs_on=projs_on,
+                  projs_active=np.array([p['active'] for p in projs]),
+                  apply_proj=proj,
                   remove_dc=remove_dc,
                   filter_coefs=ba,
                   filter_bounds=filt_bounds,
@@ -261,7 +253,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   # misc
                   fig_proj=None,
                   added_label=list(),
-                  event_id_rev=event_id_rev,
+                  #event_id_rev=event_id_rev,
                   bad_color=bad_color,
                   color_dict=color,
                   # display
@@ -272,6 +264,20 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars)
 
     fig = browse_figure(**params)
+
+    # generate window title; allow instances without a filename (e.g., ICA)
+    if title is None:
+        title = '<unknown>'
+        fnames = raw._filenames.copy()
+        if len(fnames):
+            title = fnames.pop(0)
+            extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
+            title = f'{title}{extra}'
+            prefix = '...' if len(title) > 60 else ''
+            title = f'{prefix}{title[-60:]}'
+    elif not isinstance(title, str):
+        raise TypeError(f'title must be None or a string, got a {type(title)}')
+    _set_window_title(fig, title)
 
     # TODO: figure out how this section works, test it, and maybe refactor
     if group_by in ('selection', 'position'):
@@ -335,21 +341,26 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     fig.mne.traces = fig.mne.ax_main.plot(np.full((1, n_channels), np.nan),
                                           antialiased=True, linewidth=0.5)
     fig.mne.ax_main.set_xlim(fig.mne.t_start,
-                             fig.mne.t_start + fig.mne.duration, False)
+                             fig.mne.t_start + fig.mne.duration, emit=False)
 
     # plot event_line first so it's in the back
     event_lines = [fig.mne.ax_main.plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
 
-    # plot the data
+    # update projector and data, and plot
+    fig._update_projector()
     fig._update_data()
+    # TODO get rid of these params to _draw_traces()
     fig._draw_traces(event_lines=event_lines, event_color=event_color)
 
     # plot annotations
     fig._plot_annotations()
 
-    # TODO: update all these to use fig instead of params
-    params['update_fun'] = partial(_update_raw_data, params=params)
+    # start with projectors dialog open, if requested
+    if show_options:
+        fig._toggle_proj_fig(event=None)
+
+    # TODO: update these to use fig instead of params
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
 

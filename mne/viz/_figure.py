@@ -9,12 +9,13 @@ from copy import deepcopy
 from functools import partial
 import numpy as np
 from matplotlib.figure import Figure
-from .utils import plt_show, _setup_plot_projector, _events_off
+from .utils import (plt_show, _setup_plot_projector, _events_off,
+                    _set_window_title)
 from ..utils import set_config
 
 
 class MNEFigParams:
-    """Container for MNE figure parameters."""
+    """Container object for MNE figure parameters."""
     def __init__(self, **kwargs):
         # default key to close window
         self.close_key = 'escape'
@@ -62,6 +63,7 @@ class MNEDialogFigure(MNEFigure):
         super().__init__(**kwargs)
 
     def _keypress(self, event):
+        """Triage keypress events."""
         from matplotlib.pyplot import close
         if event.key == self.mne.close_key:
             close(self)
@@ -162,7 +164,7 @@ class MNEBrowseFigure(MNEFigure):
         button_help = Button(ax_help, 'Help')
         button_help.on_clicked(self._onclick_help)
         # PROJ BUTTON
-        if len(inst.info['projs']) and not inst.proj:
+        if len(self.mne.projs) and not inst.proj:
             # PROJ BUTTON: compute position
             proj_button_pos = [
                 1 - self._inch_to_rel(r_margin + scroll_width),  # left
@@ -173,9 +175,8 @@ class MNEBrowseFigure(MNEFigure):
             loc = div.new_locator(nx=4, ny=0)
             ax_proj = self.add_axes(proj_button_pos)
             ax_proj.set_axes_locator(loc)
-            # PROJ BUTTON: make it a proper button
+            # PROJ BUTTON: make it a button. onclick handled by _buttonpress()
             button_proj = Button(ax_proj, 'Prj')
-            button_proj.on_clicked(self._toggle_proj_fig)
 
         # SAVE PARAMS
         self.mne.ax_main = ax
@@ -235,81 +236,99 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_proj_fig(self, event):
         """Show/hide the projectors dialog window."""
-        print("_toggle_proj_fig called")
-
         if self.mne.fig_proj is None:
             self._create_proj_fig()
         else:
             self.mne.fig_proj.canvas.close_event()
-            self.mne.fig_proj = None
+            self._clear_proj_fig()
 
     def _toggle_proj(self, event, toggle_all=False):
         """Perform operations when proj boxes clicked."""
-        active = self.mne.projs_active
+        on = self.mne.projs_on
+        applied = self.mne.projs_active
+        new_state = (np.full_like(on, not all(on)) if toggle_all else
+                     np.array(self.mne._proj_checkboxes.get_status()))
+        # update Xs when toggling all
         if toggle_all:
-            new_state = [not all(active)] * len(active)
-            with _events_off(self.mne.proj_checkboxes):
-                for ix in range(len(active)):
-                    if active[ix] != new_state[ix]:
-                        self.mne.proj_checkboxes.set_active(ix)
-                        active[ix] = new_state[ix]
-        # don't allow deactivating an already applied projector
-        for ix, proj in enumerate(self.mne.projs):
-            if proj['active'] and not active[ix]:
-                active[ix] = True
-        # actually update
-        if not np.array_equal(active, self.mne.projs_active):
-            self._update_proj()
+            with _events_off(self.mne._proj_checkboxes):
+                for ix in np.where(on != new_state)[0]:
+                    self.mne._proj_checkboxes.set_active(ix)
+        # don't allow disabling already-applied projs
+        with _events_off(self.mne._proj_checkboxes):
+            for ix in np.where(applied)[0]:
+                if not new_state[ix]:
+                    self.mne._proj_checkboxes.set_active(ix)
+            new_state[applied] = True
+        # update the data if necessary
+        if not np.array_equal(on, new_state):
+            self.mne.projs_on = new_state
+            self._update_projector()
+            self._update_data()
+            self._draw_traces()
+            self.canvas.draw()
 
-    def _update_proj(self):
+    def _update_projector(self):
         """Update the data after projectors have changed."""
-        inds = np.where(self.mne.projs_active)[0]
-        # update projs in info object (needed for _setup_plot_projector)
+        # ignore projectors that are already active
+        inds = np.where(self.mne.projs_on)[0]
+        # copy non-active projs from full list (self.mne.projs) to info object
         self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
+        # compute the projection operator
         proj, wh_chs = _setup_plot_projector(self.mne.info,
                                              self.mne.whitened_ch_names,
                                              True, self.mne.use_noise_cov)
         self.mne.whitened_ch_names = wh_chs
         self.mne.projector = proj
-        self._update_data()
-        self._draw_traces()
-        self.canvas.draw()
+
+    def _clear_proj_fig(self, event=None):
+        """Close the projectors dialog window (via keypress or window [x])."""
+        self.mne.fig_proj = None
 
     def _create_proj_fig(self):
         """Create the projectors dialog window."""
         from matplotlib.widgets import Button, CheckButtons
 
-        print("_create_proj_fig called")
-
-        projs = self.mne.info['projs']
+        projs = self.mne.projs
         labels = [p['desc'] for p in projs]
+        for ix, active in enumerate(self.mne.projs_active):
+            if active:
+                labels[ix] += ' (already applied)'
         # make figure
-        width = max([4, max([len(p['desc']) for p in projs]) / 6 + 0.5])
+        width = max([4, max([len(label) for label in labels]) / 6 + 0.5])
         height = (len(projs) + 1) / 6 + 1.5
-        self.mne.fig_proj = dialog_figure(figsize=(width, height))
-        self.mne.fig_proj.canvas.set_window_title('SSP projection vectors')
+        fig = dialog_figure(figsize=(width, height))
+        _set_window_title(fig, 'SSP projection vectors')
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
-        ax = self.mne.fig_proj.add_axes(position, frameon=False)
-        ax.set_title('Projectors marked with "X" are active')
+        ax = fig.add_axes(position, frameon=False)
+        # make title
+        first_line = ('Projectors already applied to the data are dimmed.\n'
+                      if any(self.mne.projs_active) else '')
+        second_line = 'Projectors marked with "X" are active on the plot.'
+        ax.set_title(f'{first_line}{second_line}')
         # draw checkboxes
-        self.mne.proj_checkboxes = CheckButtons(ax, labels=labels,
-                                                actives=self.mne.projs_active)
-        for rect in self.mne.proj_checkboxes.rectangles:
-            rect.set_edgecolor('0.5')
+        checkboxes = CheckButtons(ax, labels=labels, actives=self.mne.projs_on)
+        # gray-out already applied projectors
+        for label, rect, lines in zip(checkboxes.labels,
+                                      checkboxes.rectangles,
+                                      checkboxes.lines):
+            if label.get_text().endswith('(already applied)'):
+                label.set_color('0.5')
+                rect.set_edgecolor('0.7')
+                [x.set_color('0.7') for x in lines]
             rect.set_linewidth(1)
-        # change already-applied projectors to red
-        for ii, p in enumerate(projs):
-            if p['active']:
-                for x in self.mne.proj_checkboxes.lines[ii]:
-                    x.set_color('#ff0000')
-        # add event listeners
-        self.mne.proj_checkboxes.on_clicked(self._toggle_proj)
         # add "toggle all" button
-        ax_all = self.mne.fig_proj.add_axes((0, 0, 1, offset), frameon=False)
+        ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frameon=True)
         self.mne.proj_all = Button(ax_all, 'Toggle all')
-        self.mne.proj_all.on_clicked(partial(self._toggle_proj, all_=True))
+        # add event listeners
+        fig.canvas.mpl_connect('close_event', self._clear_proj_fig)
+        checkboxes.on_clicked(self._toggle_proj)
+        self.mne.proj_all.on_clicked(partial(self._toggle_proj,
+                                             toggle_all=True))
+        # save params
+        self.mne.fig_proj = fig
+        self.mne._proj_checkboxes = checkboxes
         # show figure (this should work for non-test cases)
         try:
             self.mne.fig_proj.canvas.draw()
@@ -430,6 +449,8 @@ class MNEBrowseFigure(MNEFigure):
                 self._update_data()
                 self._draw_traces()
                 self.canvas.draw()
+            elif event.inaxes == self.mne.ax_proj:
+                self._toggle_proj_fig(event)
         else:  # right-click (secondary)
             pass  # TODO: copy from viz/utils.py lines 1140-1154
 
@@ -440,6 +461,8 @@ class MNEBrowseFigure(MNEFigure):
         key = event.key
         if key == self.mne.close_key:
             close(self)
+            if self.mne.fig_proj is not None:
+                close(self.mne.fig_proj)
             if self.mne.fig_annotation is not None:
                 close(self.mne.fig_annotation)
         elif key in ('down', 'up'):
@@ -505,8 +528,11 @@ class MNEBrowseFigure(MNEFigure):
                 self._setup_annotation_fig()
             else:
                 self.mne.fig_annotation.canvas.close_event()
-        elif key == 'b':  # TODO: toggle butterfly mode
-            pass
+        elif key == 'b':  # toggle butterfly mode
+            self.mne.butterfly = not self.mne.butterfly
+            self._update_data()
+            self._draw_traces()
+            self.canvas.draw()
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
             self._update_data()
@@ -626,10 +652,10 @@ class MNEBrowseFigure(MNEFigure):
         _sl = slice(self.mne.ch_start, self.mne.ch_start + self.mne.n_channels)
         self.mne.picks = self.mne.ch_order[_sl]
 
-    def _load_data(self, picks, start=None, stop=None):
+    def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
         if self.mne.instance_type == 'raw':
-            return self.mne.inst[picks, start:stop]
+            return self.mne.inst[:, start:stop]
         else:
             raise NotImplementedError  # TODO: support epochs, ICA
 
@@ -641,11 +667,14 @@ class MNEBrowseFigure(MNEFigure):
         stop_sec = start_sec + self.mne.duration
         start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
         # get the data
-        self._update_picks()
-        data, times = self._load_data(self.mne.picks, start, stop)
+        # TODO: update picks here, and load only picks?
+        data, times = self._load_data(start, stop)
         # apply projectors
         if self.mne.projector is not None:
-            data = self.mne.projector[self.mne.picks] @ data
+            data = self.mne.projector @ data
+        # get only the channels we're displaying
+        self._update_picks()
+        data = data[self.mne.picks]
         # remove DC
         if self.mne.remove_dc:
             data -= data.mean(axis=1, keepdims=True)
@@ -821,19 +850,19 @@ def browse_figure(inst, **kwargs):
     callback_ids = dict()
     for event, callback in callbacks.items():
         callback_ids[event] = fig.canvas.mpl_connect(event, callback)
-    # store references so they aren't garbage-collected
+    # store callback references so they aren't garbage-collected
     fig.mne._callback_ids = callback_ids
     return fig
 
 
 def dialog_figure(**kwargs):
     """Instantiate a new MNE dialog figure."""
-    fig = _figure(*args, toolbar=False, FigureClass=MNEDialogFigure, **kwargs)
+    fig = _figure(toolbar=False, FigureClass=MNEDialogFigure, **kwargs)
     # add a close event callback
     callbacks = dict(key_press_event=fig._keypress)
     callback_ids = dict()
     for event, callback in callbacks.items():
         callback_ids[event] = fig.canvas.mpl_connect(event, callback)
-    # store references so they aren't garbage-collected
+    # store callback references so they aren't garbage-collected
     fig.mne._callback_ids = callback_ids
     return fig
