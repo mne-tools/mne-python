@@ -2734,7 +2734,11 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     elif mode in ['arrow', 'sphere']:
         from .backends.renderer import _get_renderer
         color = (1., 0., 0.) if color is None else color
-        renderer = _get_renderer(fig=fig, size=(600, 600))
+        renderer = _get_renderer(
+            fig=fig,
+            size=(600, 600),
+            smooth_shading=True,
+        )
         pos = dipoles.pos
         ori = dipoles.ori
         if coord_frame != 'head':
