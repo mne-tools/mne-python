@@ -142,8 +142,8 @@ script:
         pip install -e .;
         python mne/tests/test_evoked.py;
       fi;
-    - echo 'pytest -v mne/viz'
-    - pytest -v mne/viz
+    - echo 'pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}'
+    - pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}
     # run the minimal one with the testing data
     - if [ "${DEPS}" == "minimal" ]; then
         export MNE_SKIP_TESTING_DATASET_TESTS=false;
