@@ -31,7 +31,7 @@ from ..evoked import EvokedArray
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        is_fixed_orient, compute_orient_prior,
                        convert_forward_solution, _select_orient_forward)
-from ..forward.forward import write_forward_meas_info
+from ..forward.forward import write_forward_meas_info, _triage_loose
 from ..source_space import (_read_source_spaces_from_tree, _get_src_nn,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
@@ -1324,33 +1324,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     forward = forward.copy()
 
     # Deal with "fixed" and "loose"
-    src_kind = forward['src'].kind
-    if fixed == 'auto':
-        if loose == 'auto':
-            fixed = False
-            loose = 0.2 if src_kind == 'surface' else 1.
-        else:
-            fixed = True if float(loose) == 0 else False
-    if fixed:
-        if loose not in ['auto', 0.]:
-            raise ValueError('When using fixed=True, loose must be 0. or '
-                             '"auto", got %s' % (loose,))
-        loose = 0.
-    elif loose == 'auto':
-        loose = 0.2 if src_kind == 'surface' else 1.
-    elif loose == 0.:
-        raise ValueError('If loose==0., then fixed must be True or "auto",'
-                         'got %s' % (fixed,))
+    loose = _triage_loose(forward['src'], loose, fixed)
     del fixed
-
-    loose = float(loose)
-    if not 0 <= loose <= 1:
-        raise ValueError('loose must be between 0 and 1, got %s' % loose)
-    if src_kind != 'surface':
-        if loose != 1:
-            raise ValueError('loose parameter has to be 1 or "auto" for '
-                             'non-surface source space (Got loose=%s for %s '
-                             'source space).' % (loose, src_kind))
 
     # Deal with "depth"
     if exp is not None:
@@ -1363,7 +1338,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # put the forward solution in correct orientation
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if loose == 0.:
+    if loose.get('surface', 1.) == 0.:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
@@ -1381,11 +1356,10 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'Forward operator has fixed orientation and can only '
                 'be used to make a fixed-orientation inverse '
                 'operator.')
-        if loose < 1. and not forward['surf_ori']:  # loose ori
+        if loose.get('surface', 1.) < 1. and not forward['surf_ori']:
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=True, copy=False)
-    del src_kind
 
     forward, info_picked = _select_orient_forward(forward, info, noise_cov,
                                                   copy=False)
@@ -1399,7 +1373,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov)
 
     # Deal with fixed orientation forward / inverse
-    if loose == 0.:
+    if loose.get('surface') == 0.:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
@@ -1458,15 +1432,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance matrix.
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation,
-        and fixed must be True or "auto".
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumetric, discrete, or mixed source spaces,
-        unless ``fixed is True`` in which case the value 0. is used.
+    %(loose)s
     %(depth)s
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,

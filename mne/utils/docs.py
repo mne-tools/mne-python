@@ -590,6 +590,21 @@ depth : None | float | dict
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
 """
+docdict['loose'] = """
+loose : float | 'auto' | dict
+    Value that weights the source variances of the dipole components
+    that are parallel (tangential) to the cortical surface. Can be:
+
+    - float between 0 and 1 (inclusive)
+        If 0, then the solution is computed with fixed orientation.
+        If 1, it corresponds to free orientations.
+    - ``'auto'`` (default)
+        Uses 0.2 for surface source spaces (unless ``fixed`` is True) and
+        1.0 for other source spaces (volume or mixed).
+    - dict
+        Mapping from the key for a given source space type (surface, volume,
+        discrete) to the loose value. Useful mostly for mixed source spaces.
+"""
 _pick_ori_novec = """
     Options:
 
