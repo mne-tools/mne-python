@@ -49,14 +49,12 @@ class _Figure(object):
                  size=(600, 600),
                  shape=(1, 1),
                  background_color='black',
-                 smooth_shading=False,
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
         self.plotter_class = plotter_class
         self.display = display
         self.background_color = background_color
-        self.smooth_shading = smooth_shading
         self.notebook = notebook
 
         self.store = dict()
@@ -144,12 +142,11 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=False):
+                 notebook=None):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=notebook,
-                         smooth_shading=smooth_shading)
+                         background_color=bgcolor, notebook=notebook)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.shape = shape
@@ -245,7 +242,6 @@ class _Renderer(_BaseRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=self.figure.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
@@ -308,7 +304,6 @@ class _Renderer(_BaseRenderer):
                 color=color,
                 cmap=colormap,
                 opacity=opacity,
-                smooth_shading=self.figure.smooth_shading
             )
             return actor, contour
 
@@ -341,7 +336,6 @@ class _Renderer(_BaseRenderer):
                 opacity=opacity,
                 cmap=cmap,
                 backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading,
             )
 
     def sphere(self, center, color, scale, opacity=1.0,
@@ -364,7 +358,6 @@ class _Renderer(_BaseRenderer):
                 self.plotter,
                 mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading
             )
             return actor, glyph
 
@@ -392,7 +385,6 @@ class _Renderer(_BaseRenderer):
                     color=color,
                     show_scalar_bar=False,
                     cmap=cmap,
-                    smooth_shading=self.figure.smooth_shading,
                 )
         return tube
 
