@@ -49,7 +49,7 @@ class _Figure(object):
                  size=(600, 600),
                  shape=(1, 1),
                  background_color='black',
-                 smooth_shading=False,
+                 smooth_shading=True,
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
@@ -144,7 +144,7 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=False):
+                 notebook=None, smooth_shading=True):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
@@ -581,8 +581,12 @@ def _compute_normals(mesh):
 def _add_mesh(plotter, *args, **kwargs):
     _process_events(plotter)
     mesh = kwargs.get('mesh')
+    if 'smooth_shading' in kwargs:
+        smooth_shading = kwargs.pop('smooth_shading')
+    else:
+        smooth_shading = True
     actor = plotter.add_mesh(*args, **kwargs)
-    if 'Normals' in mesh.point_arrays:
+    if smooth_shading and 'Normals' in mesh.point_arrays:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
     return actor
