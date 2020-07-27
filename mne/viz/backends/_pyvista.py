@@ -264,6 +264,8 @@ class _Renderer(_BaseRenderer):
             if normals is not None:
                 mesh.point_arrays["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
+            else:
+                _compute_normals(mesh)
         return self._mesh(
             mesh,
             color,
@@ -329,6 +331,8 @@ class _Renderer(_BaseRenderer):
                 normals = np.array(normals)
                 mesh.point_arrays["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
+            else:
+                _compute_normals(mesh)
             _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color,
@@ -568,6 +572,8 @@ class _Renderer(_BaseRenderer):
 def _compute_normals(mesh):
     mesh.compute_normals(
         cell_normals=False,
+        consistent_normals=False,
+        non_manifold_traversal=False,
         inplace=True,
     )
 
