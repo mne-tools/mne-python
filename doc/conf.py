@@ -596,6 +596,7 @@ numpydoc_xref_aliases = {
     'VolSourceEstimate': 'mne.VolSourceEstimate',
     'VolVectorSourceEstimate': 'mne.VolVectorSourceEstimate',
     'MixedSourceEstimate': 'mne.MixedSourceEstimate',
+    'MixedVectorSourceEstimate': 'mne.MixedVectorSourceEstimate',
     'SourceEstimate': 'mne.SourceEstimate', 'Projection': 'mne.Projection',
     'ConductorModel': 'mne.bem.ConductorModel',
     'Dipole': 'mne.Dipole', 'DipoleFixed': 'mne.DipoleFixed',

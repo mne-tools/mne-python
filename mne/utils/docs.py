@@ -1007,7 +1007,34 @@ time_label : str | callable | None
     default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
+docdict["src_trans_volume_options"] = """
+src : instance of SourceSpaces | None
+    The source space corresponding to the source estimate. Only necessary
+    if the STC is a volume or mixed source estimate.
+trans : instance of Transform | None
+    Head to MRI transform. Only needed if ``stc`` is a volume or mixed
+    source estimate and ``src`` is in the head coordinate frame.
+volume_options : float | dict
+    Options for volumetric source estimate plotting, with key/value pairs:
 
+    - ``'resolution'`` : float | None
+        Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+        better at the cost of speed. None (default) uses the volume source
+        space resolution, which is often something like 7 or 5 mm,
+        without resampling.
+    - ``'blending'`` : str
+        Can be "mip" (default) for maximum intensity projection or
+        "composite" for composite blending.
+    - ``'alpha'`` : float
+        Alpha for the volumetric rendering.
+    - ``'surface_alpha'`` : float | None
+        Alpha for the surface enclosing the volume(s). None will use
+        half the volume alpha. Set to zero to avoid plotting the surface.
+
+    A float input (default) will be used for the ``'alpha'`` entry.
+volume_alpha : float
+    Alpha to use for volumetric plotting.
+"""
 
 # STC label time course
 docdict['eltc_labels'] = """
