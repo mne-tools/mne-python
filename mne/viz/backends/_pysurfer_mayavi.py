@@ -95,12 +95,6 @@ class _Renderer(_BaseRenderer):
             self.fig.scene.interactor.interactor_style = \
                 tvtk.InteractorStyleTerrain()
 
-    def _mesh(self, mesh, color, opacity=1.0,
-              backface_culling=False, scalars=None, colormap=None,
-              vmin=None, vmax=None, interpolate_before_map=True,
-              representation='surface', line_width=1., **kwargs):
-        raise NotImplementedError("This feature is not available with mayavi.")
-
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,

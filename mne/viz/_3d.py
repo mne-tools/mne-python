@@ -2568,7 +2568,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                             z=points[:, 2], triangles=use_faces,
                             color=brain_color, opacity=opacity,
                             backface_culling=True, shading=True,
-                            **kwargs)
+                            normals=normals, **kwargs)
 
     # Show time courses
     fig = plt.figure(fig_number)
