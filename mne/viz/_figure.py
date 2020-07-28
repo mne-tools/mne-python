@@ -10,8 +10,11 @@ from functools import partial
 import numpy as np
 from matplotlib.figure import Figure
 from .utils import (plt_show, _setup_plot_projector, _events_off,
-                    _set_window_title)
+                    _set_window_title, _get_active_radio_idx,
+                    _merge_annotations, DraggableLine, _get_color_list,
+                    _annotation_radio_clicked)
 from ..utils import set_config
+from ..annotations import _sync_onset
 
 
 class MNEFigParams:
@@ -86,7 +89,7 @@ class MNEAnnotationFigure(MNEFigure):
             return
         elif len(key) > 1 or key == ';':  # ignore modifier keys
             return
-        elif key == 'backspace':
+        elif key == 'backspace':  # TODO FIXME not working
             text = text[:-1]
         elif key == 'enter':
             self._onclick_new_label(event)
@@ -131,7 +134,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.whitened_ch_names = list()
         # # annotations
         # self.mne.annotations = None
-        # self.mne.added_label = None
+        self.mne.added_labels = list()
         # self.mne.annotation_segments      # segments
         # # traces
         self.mne.segment_line = None
@@ -234,6 +237,51 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
         self.mne.fig_size_px = (new_width, new_height)
+
+    def _hover(self, event):
+        """Handle motion event when annotating."""
+        if not self.mne.snap_annotations:  # don't snap to annotations
+            self._remove_annotation_line()
+            return
+        from matplotlib.patheffects import Stroke, Normal
+        if (event.button is not None or
+                event.inaxes != self.mne.ax_main or event.xdata is None):
+            return
+        for coll in self.mne.ax_main.collections:
+            if coll.contains(event)[0]:
+                path = coll.get_paths()
+                assert len(path) == 1
+                path = path[0]
+                color = coll.get_edgecolors()[0]
+                mn = path.vertices[:, 0].min()
+                mx = path.vertices[:, 0].max()
+                # left/right line
+                x = mn if abs(event.xdata - mn) < abs(event.xdata - mx) else mx
+                mask = path.vertices[:, 0] == x
+                ylim = self.mne.ax_main.get_ylim()
+
+                def drag_callback(x0):
+                    path.vertices[mask, 0] = x0
+
+                if self.mne.segment_line is None:
+                    line = self.mne.ax_main.plot([x, x], ylim, color=color,
+                                                 linewidth=2., picker=True)[0]
+                    line.set_pickradius(5.)
+                    dl = DraggableLine(line, self._modify_annotation,
+                                       drag_callback)
+                    self.mne.segment_line = dl
+                else:
+                    self.mne.segment_line.set_x(x)
+                    self.mne.segment_line.drag_callback = drag_callback
+                line = self.mne.segment_line.line
+                patheff = [Stroke(linewidth=4, foreground=color, alpha=0.5),
+                           Normal()]
+                line.set_path_effects(patheff if line.contains(event)[0] else
+                                      patheff[1:])
+                self.mne.ax_main.selector.active = False
+                self.canvas.draw()
+                return
+        self._remove_annotation_line()
 
     def _toggle_scrollbars(self):
         """Show or hide scrollbars (A.K.A. zen mode)."""
@@ -363,12 +411,98 @@ class MNEBrowseFigure(MNEFigure):
         except Exception:
             pass
 
+    def _add_annotation_label(self, event):
+        """Add new annotation description when 'ADD' button is pressed."""
+        text = self.mne.fig_annotation.label.get_text()[1:-1]
+        self.mne.added_labels.append(text)
+        self._setup_annotation_colors()
+        self._create_annotation_fig()  # TODO FIXME?
+        idx = [label.get_text() for label in
+               self.mne.fig_annotation.radio.labels].index(text)
+        self._set_annotation_radio_button(idx)  # TODO FIXME not defined yet
+
     def _setup_annotation_colors(self):
-        pass
+        """Set up colors for annotations."""
+        from itertools import cycle
+
+        raw = self.mne.inst
+        segment_colors = getattr(self.mne, 'segment_colors', dict())
+        # sort the segments by start time
+        ann_order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[ann_order]
+        color_keys = np.union1d(descriptions, self.mne.added_labels)
+        color_cycle = cycle(_get_color_list(annotations=True))  # no red
+        for key, color in segment_colors.items():
+            if color != '#ff0000' and key in color_keys:
+                next(color_cycle)
+        for idx, key in enumerate(color_keys):
+            if key in segment_colors:
+                continue
+            elif key.lower().startswith('bad') or \
+                    key.lower().startswith('edge'):
+                segment_colors[key] = '#ff0000'
+            else:
+                segment_colors[key] = next(color_cycle)
+        self.mne.segment_colors = segment_colors
+
+    def _set_annotation_radio_button(self, idx):
+        """Set active button in annotation dialog figure."""
+        radio = self.mne.fig_annotation.radio
+        for circle in radio.circles:
+            circle.set_facecolor('white')
+        radio.circles[idx].set_facecolor('#cccccc')
+        _annotation_radio_clicked('', radio, self.mne.ax_main.selector)
+
+    def _annotate_select(self, tmin, tmax):
+        """Handle annotation span selector."""
+        onset = _sync_onset(self.mne.inst, tmin, True) - self.mne.first_time
+        duration = tmax - tmin
+        radio = self.mne.fig_annotation.radio
+        active_idx = _get_active_radio_idx(radio)
+        description = radio.labels[active_idx].get_text()
+        _merge_annotations(onset, onset + duration, description,
+                           self.mne.inst.annotations)
+        self._plot_annotations()
+        #self.canvas.draw()
+
+    def _remove_annotation_line(self):
+        """Remove annotation line from the plot."""
+        if self.mne.segment_line is not None:
+            self.mne.segment_line.remove()
+            self.mne.segment_line = None
+            self.mne.ax_main.selector.active = True
+
+    def _modify_annotation(self, old_x, new_x):
+        """Modify annotation."""
+        segment = np.array(np.where(self.mne.segments == old_x))
+        if segment.shape[1] == 0:
+            return
+        raw = self.mne.inst
+        annotations = raw.annotations
+        first_time = self.mne.first_time
+        idx = [segment[0][0], segment[1][0]]
+        onset = _sync_onset(raw, self.mne.segments[idx[0]][0], True)
+        ann_idx = np.where(annotations.onset == onset - first_time)[0]
+        if idx[1] == 0:  # start of annotation
+            onset = _sync_onset(raw, new_x, True) - first_time
+            duration = annotations.duration[ann_idx] + old_x - new_x
+        else:  # end of annotation
+            onset = annotations.onset[ann_idx]
+            duration = _sync_onset(raw, new_x, True) - onset - first_time
+
+        if duration < 0:
+            onset += duration
+            duration *= -1.
+
+        _merge_annotations(onset, onset + duration,
+                           annotations.description[ann_idx],
+                           annotations, ann_idx)
+        self._plot_annotations()
+        self._remove_annotation_line()
+        self.canvas.draw()
 
     def _plot_annotations(self):
         """."""
-        from ..annotations import _sync_onset
         while len(self.mne.ax_hscroll.collections) > 0:
             self.mne.ax_hscroll.collections.pop()
         segments = list()
@@ -403,7 +537,7 @@ class MNEBrowseFigure(MNEFigure):
 
         annotations = self.mne.inst.annotations
         labels = list(set(annotations.description))
-        labels = np.union1d(labels, self.mne.added_label)
+        labels = np.union1d(labels, self.mne.added_labels)
         # make figure
         width = 4.5
         height = 2.75 + len(labels) * 0.75
@@ -427,7 +561,6 @@ class MNEBrowseFigure(MNEFigure):
                                'Esc - Close window/exit annotation mode',
                      va='top', ha='center')
         text_ax.set_axis_off()
-        # TODO: fig.radio?
         fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
         radius = 0.15
         circles = fig.radio.circles
@@ -438,23 +571,19 @@ class MNEBrowseFigure(MNEFigure):
             label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
         col = ('#ff0000' if len(fig.radio.circles) < 1 else
                circles[0].get_edgecolor())
-        # TODO: fig.button?
         fig.button = Button(button_ax, 'Add label')
         fig.label = label_ax.text(0.5, 0.5, '"BAD_"', va='center', ha='center')
-        fig.button.on_clicked(fig._onclick_new_label)
+        fig.button.on_clicked(self._add_annotation_label)
         plt_show(fig=fig)
-        # TODO: fig._annotate_select not defined
-        cb_onselect = fig._annotate_select
-        selector = SpanSelector(self.mne.ax_main, cb_onselect, 'horizontal',
-                                rectprops=dict(alpha=0.5, facecolor=col),
-                                minspan=0.1)
+        selector = SpanSelector(self.mne.ax_main, self._annotate_select,
+                                'horizontal', minspan=0.1,
+                                rectprops=dict(alpha=0.5, facecolor=col))
         if len(labels) == 0:
             selector.active = False
         self.mne.ax_main.selector = selector
-        # TODO: fig._on_hover not defined
-        hover_callback = fig._on_hover
-        self.mne.hover_callback = self.canvas.mpl_connect(
-            'motion_notify_event', hover_callback)
+        # register hover callback
+        self.mne._callback_ids['motion_notify_event'] = \
+            self.canvas.mpl_connect('motion_notify_event', self._hover)
         # TODO: fig._annotation_radio_clicked not defined
         radio_clicked = partial(_annotation_radio_clicked, radio=fig.radio,
                                 selector=selector)
@@ -876,7 +1005,8 @@ def browse_figure(inst, **kwargs):
     # add event callbacks
     callbacks = dict(resize_event=fig._resize,
                      key_press_event=fig._keypress,
-                     button_press_event=fig._buttonpress)
+                     button_press_event=fig._buttonpress,
+                     motion_notify_event=fig._hover)
     callback_ids = dict()
     for event, callback in callbacks.items():
         callback_ids[event] = fig.canvas.mpl_connect(event, callback)
