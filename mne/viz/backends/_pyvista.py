@@ -217,17 +217,16 @@ class _Renderer(_BaseRenderer):
     def set_interactive(self):
         self.plotter.enable_terrain_style()
 
-    def _mesh(self, mesh, color, opacity=1.0,
-              backface_culling=False, scalars=None, colormap=None,
-              vmin=None, vmax=None, interpolate_before_map=True,
-              representation='surface', line_width=1., **kwargs):
+    def polydata(self, mesh, color, opacity=1.0, normals=None,
+                 backface_culling=False, scalars=None, colormap=None,
+                 vmin=None, vmax=None, interpolate_before_map=True,
+                 representation='surface', line_width=1., **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            n_vertices = mesh.n_points
             rgba = False
-            if color is not None and len(color) == n_vertices:
+            if color is not None and len(color) == mesh.n_points:
                 if color.shape[1] == 3:
-                    scalars = np.c_[color, np.ones(n_vertices)]
+                    scalars = np.c_[color, np.ones(mesh.n_points)]
                 else:
                     scalars = color
                 scalars = (scalars * 255).astype('ubyte')
@@ -238,7 +237,11 @@ class _Renderer(_BaseRenderer):
                     colormap = colormap.astype(np.float64) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
-
+            if normals is not None:
+                mesh.point_arrays["Normals"] = normals
+                mesh.GetPointData().SetActiveNormals("Normals")
+            else:
+                _compute_normals(mesh)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color, scalars=scalars,
@@ -261,23 +264,19 @@ class _Renderer(_BaseRenderer):
             vertices = np.c_[x, y, z]
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
-            if normals is not None:
-                mesh.point_arrays["Normals"] = normals
-                mesh.GetPointData().SetActiveNormals("Normals")
-            else:
-                _compute_normals(mesh)
-        return self._mesh(
-            mesh,
-            color,
-            opacity,
-            backface_culling,
-            scalars,
-            colormap,
-            vmin,
-            vmax,
-            interpolate_before_map,
-            representation,
-            line_width,
+        return self.polydata(
+            mesh=mesh,
+            color=color,
+            opacity=opacity,
+            normals=normals,
+            backface_culling=backface_culling,
+            scalars=scalars,
+            colormap=colormap,
+            vmin=vmin,
+            vmax=vmax,
+            interpolate_before_map=interpolate_before_map,
+            representation=representation,
+            line_width=line_width,
             **kwargs,
         )
 
@@ -318,31 +317,25 @@ class _Renderer(_BaseRenderer):
                 backface_culling=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            cmap = _get_colormap_from_array(colormap, normalized_colormap)
+            normals = surface.get('nn', None)
             vertices = np.array(surface['rr'])
             triangles = np.array(surface['tris'])
-            normals = surface.get('nn', None)
-            n_triangles = len(triangles)
-            triangles = np.c_[np.full(n_triangles, 3), triangles]
+            triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
-            if scalars is not None:
-                mesh.point_arrays['scalars'] = scalars
-            if normals is not None:
-                normals = np.array(normals)
-                mesh.point_arrays["Normals"] = normals
-                mesh.GetPointData().SetActiveNormals("Normals")
-            else:
-                _compute_normals(mesh)
-            _add_mesh(
-                plotter=self.plotter,
-                mesh=mesh, color=color,
-                rng=[vmin, vmax],
-                show_scalar_bar=False,
-                opacity=opacity,
-                cmap=cmap,
-                backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading,
-            )
+        colormap = _get_colormap_from_array(colormap, normalized_colormap)
+        if scalars is not None:
+            mesh.point_arrays['scalars'] = scalars
+        return self.polydata(
+            mesh=mesh,
+            color=color,
+            opacity=opacity,
+            normals=normals,
+            backface_culling=backface_culling,
+            scalars=scalars,
+            colormap=colormap,
+            vmin=vmin,
+            vmax=vmax,
+        )
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -570,12 +563,13 @@ class _Renderer(_BaseRenderer):
 
 
 def _compute_normals(mesh):
-    mesh.compute_normals(
-        cell_normals=False,
-        consistent_normals=False,
-        non_manifold_traversal=False,
-        inplace=True,
-    )
+    if 'Normals' not in mesh.point_arrays:
+        mesh.compute_normals(
+            cell_normals=False,
+            consistent_normals=False,
+            non_manifold_traversal=False,
+            inplace=True,
+        )
 
 
 def _add_mesh(plotter, *args, **kwargs):

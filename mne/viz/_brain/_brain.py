@@ -270,7 +270,7 @@ class _Brain(object):
                         self._hemi_meshes[h] = mesh
                         self._hemi_actors[h] = actor
                     else:
-                        self._renderer._mesh(
+                        self._renderer.polydata(
                             self._hemi_meshes[h],
                             **kwargs,
                         )
@@ -528,7 +528,7 @@ class _Brain(object):
                 self._data[hemi]['actor'] = actor
                 self._data[hemi]['mesh'] = mesh
             else:
-                self._renderer._mesh(
+                self._renderer.polydata(
                     self._data[hemi]['mesh'],
                     **kwargs,
                 )
