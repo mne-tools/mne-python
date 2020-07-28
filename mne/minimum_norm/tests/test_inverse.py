@@ -1150,5 +1150,44 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
                        stc_fixed.data[:n_surf].ravel())[0, 1]
     assert 0.8 < corr < 0.9  # CPS changes it a bit
 
+    # Do a source localization + orientation tests
+    assert not fwd['surf_ori']
+    idx = [fwd['sol']['row_names'].index(name) for name in evoked.ch_names]
+    data = np.dot(fwd['sol']['data'][idx, :3], nn[:1].T)
+    assert data.shape == (len(evoked.ch_names), 1)
+    data = np.concatenate((data, fwd['sol']['data'][idx, -1:]), axis=1)
+    assert data.shape == (len(evoked.ch_names), 2)
+    want_ori = np.concatenate([nn[:1], [[0, 0, 1]]])
+    want_pos = fwd['source_rr'][[0, -1]]
+    evoked_sim = EvokedArray(data, evoked.info)
+    del data
+    # dipole
+    sphere = mne.make_sphere_model('auto', 'auto', evoked.info)
+    dip, _ = mne.fit_dipole(evoked_sim, cov, sphere)
+    assert_allclose(dip.pos, want_pos, atol=1e-2)  # 1 cm
+    ang = np.rad2deg(np.arccos(np.sum(dip.ori * want_ori, axis=1)))
+    assert_array_less(ang, 65)  # not great
+    # MNE
+    stc = apply_inverse(evoked_sim, inv_fixed, pick_ori='vector')
+    stc, nn = stc.project('pca', fwd['src'])
+    idx = stc.data.argmax(0)
+    assert fwd['source_nn'].shape[0] == fwd['source_rr'].shape[0] * 3 == \
+        stc.data.shape[0] * 3 == nn.shape[0] * 3
+    got_ori = nn[idx]
+    got_pos = fwd['source_rr'][idx]
+    assert_allclose(got_pos, want_pos, atol=1.1e-2)  # 1.1 cm
+    ang = np.rad2deg(np.arccos(np.sum(got_ori * want_ori, axis=1)))
+    assert_array_less(ang, 40)  # better than ECD + sphere
+    # MxNE
+    stc = mne.inverse_sparse.mixed_norm(
+        evoked, fwd, cov, 0.05, loose=dict(surface=0., volume=1.),
+        maxit=10, tol=1e-6, active_set_size=2, weights=stc,
+        verbose='error')
+    assert len(stc.data) == 2
+    pos = np.concatenate([fwd['src'][ii]['rr'][v]
+                          for ii, v in enumerate(stc.vertices)])
+    assert pos.shape == (2, 3)
+    assert_allclose(got_pos, want_pos, atol=1.1e-2)
+
 
 run_tests_if_main()
