@@ -563,6 +563,7 @@ class _Renderer(_BaseRenderer):
 
 
 def _compute_normals(mesh):
+    """Patch PyVista compute_normals."""
     if 'Normals' not in mesh.point_arrays:
         mesh.compute_normals(
             cell_normals=False,
@@ -573,6 +574,7 @@ def _compute_normals(mesh):
 
 
 def _add_mesh(plotter, *args, **kwargs):
+    """Patch PyVista add_mesh."""
     _process_events(plotter)
     mesh = kwargs.get('mesh')
     if 'smooth_shading' in kwargs:
