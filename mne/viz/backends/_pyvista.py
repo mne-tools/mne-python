@@ -217,7 +217,7 @@ class _Renderer(_BaseRenderer):
     def set_interactive(self):
         self.plotter.enable_terrain_style()
 
-    def polydata(self, mesh, color, opacity=1.0, normals=None,
+    def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
                  representation='surface', line_width=1., **kwargs):
@@ -583,20 +583,6 @@ def _add_mesh(plotter, *args, **kwargs):
     if smooth_shading and 'Normals' in mesh.point_arrays:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
-    return actor
-
-
-def _add_polydata_actor(plotter, polydata, name=None,
-                        hide=False):
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(polydata)
-
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    if hide:
-        actor.VisibilityOff()
-
-    plotter.add_actor(actor, name=name)
     return actor
 
 
