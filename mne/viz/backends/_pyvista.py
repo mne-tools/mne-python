@@ -49,7 +49,7 @@ class _Figure(object):
                  size=(600, 600),
                  shape=(1, 1),
                  background_color='black',
-                 smooth_shading=False,
+                 smooth_shading=True,
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
@@ -144,7 +144,7 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=False):
+                 notebook=None, smooth_shading=True):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
@@ -217,17 +217,16 @@ class _Renderer(_BaseRenderer):
     def set_interactive(self):
         self.plotter.enable_terrain_style()
 
-    def _mesh(self, mesh, color, opacity=1.0,
-              backface_culling=False, scalars=None, colormap=None,
-              vmin=None, vmax=None, interpolate_before_map=True,
-              representation='surface', line_width=1., **kwargs):
+    def polydata(self, mesh, color=None, opacity=1.0, normals=None,
+                 backface_culling=False, scalars=None, colormap=None,
+                 vmin=None, vmax=None, interpolate_before_map=True,
+                 representation='surface', line_width=1., **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            n_vertices = mesh.n_points
             rgba = False
-            if color is not None and len(color) == n_vertices:
+            if color is not None and len(color) == mesh.n_points:
                 if color.shape[1] == 3:
-                    scalars = np.c_[color, np.ones(n_vertices)]
+                    scalars = np.c_[color, np.ones(mesh.n_points)]
                 else:
                     scalars = color
                 scalars = (scalars * 255).astype('ubyte')
@@ -238,7 +237,11 @@ class _Renderer(_BaseRenderer):
                     colormap = colormap.astype(np.float64) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
-
+            if normals is not None:
+                mesh.point_arrays["Normals"] = normals
+                mesh.GetPointData().SetActiveNormals("Normals")
+            else:
+                _compute_normals(mesh)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color, scalars=scalars,
@@ -247,16 +250,9 @@ class _Renderer(_BaseRenderer):
                 rng=[vmin, vmax], show_scalar_bar=False,
                 smooth_shading=self.figure.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
-                representation=representation, line_width=line_width, **kwargs,
+                style=representation, line_width=line_width, **kwargs,
             )
 
-            try:
-                mesh.point_arrays["Normals"]
-            except KeyError:
-                pass
-            else:
-                prop = actor.GetProperty()
-                prop.SetInterpolationToPhong()
             return actor, mesh
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
@@ -268,21 +264,19 @@ class _Renderer(_BaseRenderer):
             vertices = np.c_[x, y, z]
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
-            if normals is not None:
-                mesh.point_arrays["Normals"] = normals
-                mesh.GetPointData().SetActiveNormals("Normals")
-        return self._mesh(
-            mesh,
-            color,
-            opacity,
-            backface_culling,
-            scalars,
-            colormap,
-            vmin,
-            vmax,
-            interpolate_before_map,
-            representation,
-            line_width,
+        return self.polydata(
+            mesh=mesh,
+            color=color,
+            opacity=opacity,
+            normals=normals,
+            backface_culling=backface_culling,
+            scalars=scalars,
+            colormap=colormap,
+            vmin=vmin,
+            vmax=vmax,
+            interpolate_before_map=interpolate_before_map,
+            representation=representation,
+            line_width=line_width,
             **kwargs,
         )
 
@@ -323,24 +317,25 @@ class _Renderer(_BaseRenderer):
                 backface_culling=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            cmap = _get_colormap_from_array(colormap, normalized_colormap)
+            normals = surface.get('nn', None)
             vertices = np.array(surface['rr'])
             triangles = np.array(surface['tris'])
-            n_triangles = len(triangles)
-            triangles = np.c_[np.full(n_triangles, 3), triangles]
+            triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
-            if scalars is not None:
-                mesh.point_arrays['scalars'] = scalars
-            _add_mesh(
-                plotter=self.plotter,
-                mesh=mesh, color=color,
-                rng=[vmin, vmax],
-                show_scalar_bar=False,
-                opacity=opacity,
-                cmap=cmap,
-                backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading
-            )
+        colormap = _get_colormap_from_array(colormap, normalized_colormap)
+        if scalars is not None:
+            mesh.point_arrays['scalars'] = scalars
+        return self.polydata(
+            mesh=mesh,
+            color=color,
+            opacity=opacity,
+            normals=normals,
+            backface_culling=backface_culling,
+            scalars=scalars,
+            colormap=colormap,
+            vmin=vmin,
+            vmax=vmax,
+        )
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -360,7 +355,7 @@ class _Renderer(_BaseRenderer):
                                factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
-                glyph, color=color, opacity=opacity,
+                mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
                 smooth_shading=self.figure.smooth_shading
             )
@@ -421,9 +416,9 @@ class _Renderer(_BaseRenderer):
             elif mode == 'arrow' or mode == '3darrow':
                 _add_mesh(
                     self.plotter,
-                    grid.glyph(orient='vec',
-                               scale=scale,
-                               factor=factor),
+                    mesh=grid.glyph(orient='vec',
+                                    scale=scale,
+                                    factor=factor),
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -441,10 +436,10 @@ class _Renderer(_BaseRenderer):
                 geom = cone.GetOutput()
                 _add_mesh(
                     self.plotter,
-                    grid.glyph(orient='vec',
-                               scale=scale,
-                               factor=factor,
-                               geom=geom),
+                    mesh=grid.glyph(orient='vec',
+                                    scale=scale,
+                                    factor=factor,
+                                    geom=geom),
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -468,10 +463,10 @@ class _Renderer(_BaseRenderer):
                 geom = trp.GetOutput()
                 _add_mesh(
                     self.plotter,
-                    grid.glyph(orient='vec',
-                               scale=scale,
-                               factor=factor,
-                               geom=geom),
+                    mesh=grid.glyph(orient='vec',
+                                    scale=scale,
+                                    factor=factor,
+                                    geom=geom),
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -567,10 +562,30 @@ class _Renderer(_BaseRenderer):
         self.plotter.renderer.remove_actor(actor)
 
 
+def _compute_normals(mesh):
+    """Patch PyVista compute_normals."""
+    if 'Normals' not in mesh.point_arrays:
+        mesh.compute_normals(
+            cell_normals=False,
+            consistent_normals=False,
+            non_manifold_traversal=False,
+            inplace=True,
+        )
+
+
 def _add_mesh(plotter, *args, **kwargs):
+    """Patch PyVista add_mesh."""
     _process_events(plotter)
-    kwargs['style'] = kwargs.pop('representation', 'wireframe')
-    return plotter.add_mesh(*args, **kwargs)
+    mesh = kwargs.get('mesh')
+    if 'smooth_shading' in kwargs:
+        smooth_shading = kwargs.pop('smooth_shading')
+    else:
+        smooth_shading = True
+    actor = plotter.add_mesh(*args, **kwargs)
+    if smooth_shading and 'Normals' in mesh.point_arrays:
+        prop = actor.GetProperty()
+        prop.SetInterpolationToPhong()
+    return actor
 
 
 def _deg2rad(deg):
@@ -800,20 +815,6 @@ def _update_picking_callback(plotter,
     plotter.picker = picker
 
 
-def _add_polydata_actor(plotter, polydata, name=None,
-                        hide=False):
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(polydata)
-
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    if hide:
-        actor.VisibilityOff()
-
-    plotter.add_actor(actor, name=name)
-    return actor
-
-
 def _arrow_glyph(grid, factor):
     glyph = vtk.vtkGlyphSource2D()
     glyph.SetGlyphTypeToArrow()
@@ -878,7 +879,11 @@ def _sphere(plotter, center, color, radius):
     sphere.SetCenter(center)
     sphere.Update()
     mesh = pyvista.wrap(sphere.GetOutput())
-    actor = _add_mesh(plotter, mesh, color=color)
+    actor = _add_mesh(
+        plotter,
+        mesh=mesh,
+        color=color
+    )
     return actor, mesh
 
 

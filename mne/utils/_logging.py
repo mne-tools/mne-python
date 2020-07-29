@@ -181,13 +181,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         entries will be appended.
     """
     logger = logging.getLogger('mne')
-    handlers = logger.handlers
-    for h in handlers:
-        # only remove our handlers (get along nicely with nose)
-        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
-            if isinstance(h, logging.FileHandler):
-                h.close()
-            logger.removeHandler(h)
+    _remove_close_handlers(logger)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
             # Don't use warn() here because we just want to
@@ -208,6 +202,15 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     lh.setFormatter(logging.Formatter(output_format))
     # actually add the stream handler
     logger.addHandler(lh)
+
+
+def _remove_close_handlers(logger):
+    for h in list(logger.handlers):
+        # only remove our handlers (get along nicely with nose)
+        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+            if isinstance(h, logging.FileHandler):
+                h.close()
+            logger.removeHandler(h)
 
 
 class ClosingStringIO(StringIO):
@@ -233,8 +236,7 @@ class catch_logging(object):
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
         self._lh._mne_file_like = True  # monkey patch for warn() use
-        for lh in logger.handlers:
-            logger.removeHandler(lh)
+        _remove_close_handlers(logger)
         logger.addHandler(self._lh)
         return self._data
 

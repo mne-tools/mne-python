@@ -270,7 +270,7 @@ class _Brain(object):
                         self._hemi_meshes[h] = mesh
                         self._hemi_actors[h] = actor
                     else:
-                        self._renderer._mesh(
+                        self._renderer.polydata(
                             self._hemi_meshes[h],
                             **kwargs,
                         )
@@ -528,7 +528,7 @@ class _Brain(object):
                 self._data[hemi]['actor'] = actor
                 self._data[hemi]['mesh'] = mesh
             else:
-                self._renderer._mesh(
+                self._renderer.polydata(
                     self._data[hemi]['mesh'],
                     **kwargs,
                 )
@@ -1153,8 +1153,7 @@ class _Brain(object):
         self._update()
 
     def update_glyphs(self, hemi, vectors):
-        from ..backends._pyvista import (_set_colormap_range,
-                                         _add_polydata_actor)
+        from ..backends._pyvista import _set_colormap_range
         hemi_data = self._data.get(hemi)
         if hemi_data is not None:
             vertices = hemi_data['vertices']
@@ -1177,14 +1176,11 @@ class _Brain(object):
             )
             if polydata is not None:
                 if hemi_data['glyph_mesh'] is None:
-                    hemi_data['glyph_mesh'] = polydata
-                    glyph_actor = _add_polydata_actor(
-                        plotter=self._renderer.plotter,
-                        polydata=polydata,
-                        hide=True
-                    )
-                    hemi_data['glyph_actor'] = glyph_actor
+                    glyph_actor, _ = self._renderer.polydata(polydata)
+                    glyph_actor.VisibilityOff()
                     glyph_actor.GetProperty().SetLineWidth(2.)
+                    hemi_data['glyph_actor'] = glyph_actor
+                    hemi_data['glyph_mesh'] = polydata
                 else:
                     glyph_actor = hemi_data['glyph_actor']
                     glyph_mesh = hemi_data['glyph_mesh']

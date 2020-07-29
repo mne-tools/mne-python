@@ -420,9 +420,10 @@ def _get_root_dir():
 
 def _get_numpy_libs():
     from ._testing import SilenceStdout
-    with SilenceStdout() as capture:
+    with SilenceStdout(close=False) as capture:
         np.show_config()
     lines = capture.getvalue().split('\n')
+    capture.close()
     libs = []
     for li, line in enumerate(lines):
         for key in ('lapack', 'blas'):

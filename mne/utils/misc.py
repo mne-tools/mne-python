@@ -152,6 +152,8 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     all_err += err
             if do_break:
                 break
+    p.stdout.close()
+    p.stderr.close()
     output = (all_out, all_err)
 
     if return_code:

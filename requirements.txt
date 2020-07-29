@@ -1,7 +1,8 @@
 numpy
 scipy
 matplotlib
-pyqt5
+pyqt5>=5.10,<5.14; platform_system == "Darwin"
+pyqt5>=5.10; platform_system != "Darwin"
 pyqt5-sip
 sip
 scikit-learn

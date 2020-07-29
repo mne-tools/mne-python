@@ -1158,7 +1158,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                     new_data[ci, this_sl] = resamp
 
         self._first_samps = (self._first_samps * ratio).astype(int)
-        self._last_samps = (np.array(self._first_samps) + n_news - 1).tolist()
+        self._last_samps = (np.array(self._first_samps) + n_news - 1)
         self._raw_lengths[ri] = list(n_news)
         assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
         self._data = new_data
