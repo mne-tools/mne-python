@@ -85,7 +85,6 @@ class _Brain(object):
         mostly for generating images or screenshots, but can be buggy.
         Use at your own risk.
     interaction : str
-        Not supported yet.
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
     units : str
@@ -158,14 +157,11 @@ class _Brain(object):
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
-                 offscreen=False, interaction=None, units='mm',
+                 offscreen=False, interaction='trackball', units='mm',
                  show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
         from matplotlib.colors import colorConverter
         from matplotlib.cm import get_cmap
-
-        if interaction is not None:
-            raise ValueError('"interaction" parameter is not supported.')
 
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
@@ -181,6 +177,7 @@ class _Brain(object):
             self._title = subject_id
         else:
             self._title = title
+        self._interaction = 'trackball'
 
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
@@ -287,9 +284,26 @@ class _Brain(object):
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
+        self.interaction = interaction
         self._closed = False
         if show:
             self._renderer.show()
+
+    @property
+    def interaction(self):
+        """The interaction style."""
+        return self._interaction
+
+    @interaction.setter
+    def interaction(self, interaction):
+        """Set the interaction style."""
+        _validate_type(interaction, str, 'interaction')
+        _check_option('interaction', interaction, ('trackball', 'terrain'))
+        for ri, cols, view in self._iter_views:
+            for ci in cols['vol']:
+                self._renderer.subplot(ri, ci)
+                getattr(self._renderer.plotter,
+                        f'enable_{interaction}_style')()
 
     def cortex_colormap(self, cortex):
         """Return the colormap corresponding to the cortex."""
@@ -488,7 +502,7 @@ class _Brain(object):
         self._data['transparent'] = transparent
         # data specific for a hemi
         self._data[hemi] = dict()
-        self._data[hemi]['actor'] = None
+        self._data[hemi]['actors'] = None
         self._data[hemi]['mesh'] = None
         self._data[hemi]['glyph_actor'] = None
         self._data[hemi]['glyph_mesh'] = None
@@ -503,11 +517,19 @@ class _Brain(object):
         self.update_lut()
 
         # 1) add the surfaces first
-        if hemi in ('lh', 'rh'):
-            actor = self._add_surface_data(hemi)
-        else:
-            self._add_volume_data(hemi, src, volume_options)
-            actor = None
+        actor = None
+        for ri, cols, v in self._iter_views:
+            for ci in cols[hemi]:
+                self._renderer.subplot(ri, ci)
+                if hemi in ('lh', 'rh'):
+                    if self._data[hemi]['actors'] is None:
+                        self._data[hemi]['actors'] = list()
+                    actor, mesh = self._add_surface_data(hemi)
+                    self._data[hemi]['actors'].append(actor)
+                    self._data[hemi]['mesh'] = mesh
+                else:
+                    actor = self._add_volume_data(hemi, src, volume_options)
+        assert actor is not None  # should have added one
 
         # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
@@ -516,9 +538,11 @@ class _Brain(object):
         self.set_data_smoothing(self._data['smoothing_steps'])
 
         # 3) add the other actors
-        for ri, v in enumerate(self._views):
-            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
-            if not self._time_label_added and time_label is not None:
+        for ri, cols, v in self._iter_views:
+            self._renderer.subplot(ri, cols[hemi][0])
+            # Add the time label to the bottommost view
+            do = (ri == len(self._views) - 1)
+            if not self._time_label_added and time_label is not None and do:
                 time_actor = self._renderer.text2d(
                     x_window=0.95, y_window=y_txt,
                     color=self._fg_color,
@@ -528,63 +552,57 @@ class _Brain(object):
                 )
                 self._data['time_actor'] = time_actor
                 self._time_label_added = True
-            if colorbar and not self._colorbar_added and actor is not None:
+            if colorbar and not self._colorbar_added and do:
                 self._renderer.scalarbar(source=actor, n_labels=8,
                                          color=self._fg_color,
                                          bgcolor=self._brain_color[:3])
                 self._colorbar_added = True
+            view_hemi = 'lh' if hemi == 'vol' else hemi
+            views_dict = lh_views_dict if view_hemi == 'lh' else rh_views_dict
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
-
         self._update()
 
+    @property
+    def _iter_views(self):
+        # which columns each needs to be added to
+        cols = dict(lh=[0], rh=[1 if self._hemi == 'split' else 0],
+                    vol=[0, 1] if self._hemi == 'split' else [0])
+        for ri, view in enumerate(self._views):
+            yield ri, cols, view
+
     def _add_surface_data(self, hemi):
-        dt_max = self._data['fmax']
-        if self._data['center'] is None:
-            dt_min = self._data['fmin']
+        rng = self._cmap_range
+        kwargs = {
+            "color": None,
+            "colormap": self._data['ctable'],
+            "vmin": rng[0],
+            "vmax": rng[1],
+            "opacity": self._data['alpha'],
+            "scalars": np.zeros(len(self.geo[hemi].coords)),
+        }
+        if self._data[hemi]['mesh'] is not None:
+            actor, mesh = self._renderer.polydata(
+                self._data[hemi]['mesh'],
+                **kwargs,
+            )
+            return actor, mesh
+        mesh_data = self._renderer.mesh(
+            x=self.geo[hemi].coords[:, 0],
+            y=self.geo[hemi].coords[:, 1],
+            z=self.geo[hemi].coords[:, 2],
+            triangles=self.geo[hemi].faces,
+            normals=self.geo[hemi].nn,
+            **kwargs,
+        )
+        if isinstance(mesh_data, tuple):
+            actor, mesh = mesh_data
+            # add metadata to the mesh for picking
+            mesh._hemi = hemi
+            self.resolve_coincident_topology(actor)
         else:
-            dt_min = -self._data['fmin']
-
-        for ri, v in enumerate(self._views):
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            self._renderer.subplot(ri, ci)
-            kwargs = {
-                "color": None,
-                "colormap": self._data['ctable'],
-                "vmin": dt_min,
-                "vmax": dt_max,
-                "opacity": self._data['alpha'],
-                "scalars": np.zeros(len(self.geo[hemi].coords)),
-            }
-            if self._data[hemi]['mesh'] is None:
-                mesh_data = self._renderer.mesh(
-                    x=self.geo[hemi].coords[:, 0],
-                    y=self.geo[hemi].coords[:, 1],
-                    z=self.geo[hemi].coords[:, 2],
-                    triangles=self.geo[hemi].faces,
-                    normals=self.geo[hemi].nn,
-                    **kwargs,
-                )
-                if isinstance(mesh_data, tuple):
-                    actor, mesh = mesh_data
-                    # add metadata to the mesh for picking
-                    mesh._hemi = hemi
-                    self.resolve_coincident_topology(actor)
-                else:
-                    actor, mesh = mesh_data, None
-                self._data[hemi]['actor'] = actor
-                self._data[hemi]['mesh'] = mesh
-            else:
-                self._renderer.polydata(
-                    self._data[hemi]['mesh'],
-                    **kwargs,
-                )
-            del kwargs
-
-        return actor
+            actor, mesh = mesh_data, None
+        return actor, mesh
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
@@ -594,6 +612,12 @@ class _Brain(object):
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
+        volume = self._data[hemi].get('grid_volume')
+        if volume is not None:
+            actor, _ = self._renderer.plotter.add_actor(
+                volume, reset_camera=False, name=None, culling=False,
+                pickable=False)  # setting this pickable segfaults on click...
+            return actor
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
         _validate_type(volume_options, (dict, 'numeric'), 'volume_options')
@@ -641,17 +665,19 @@ class _Brain(object):
         scalars[vertices] = 1.  # for the outer mesh
         if resolution is not None:
             resolution = resolution * mult / 1000.  # to mm
-        grid, volume, mapper, actor = self._add_mesh_object(
+        grid, mapper, volume = self._add_volume_object(
             dimensions, origin, spacing, scalars, alpha, surface_alpha,
             resolution, blending)
         self._data[hemi]['grid'] = grid
-        self._data[hemi]['grid_volume'] = volume
         self._data[hemi]['grid_mapper'] = mapper
-        self._data[hemi]['grid_actor'] = actor
-        self.update_lut()
+        self._data[hemi]['grid_volume'] = volume
+        actor, _ = self._renderer.plotter.add_actor(
+            volume, reset_camera=False, name=None, culling=False,
+            pickable=False)  # setting this pickable segfaults on click...
+        return actor
 
-    def _add_mesh_object(self, dimensions, origin, spacing, scalars,
-                         alpha, surface_alpha, resolution, blending):
+    def _add_volume_object(self, dimensions, origin, spacing, scalars,
+                           alpha, surface_alpha, resolution, blending):
         # Now we can actually construct the visualization
         import vtk
         import pyvista as pv
@@ -700,10 +726,7 @@ class _Brain(object):
         volume.SetMapper(mapper)
         volume.GetProperty().SetScalarOpacityUnitDistance(
             grid.length / (np.mean(grid.dimensions) - 1))
-        actor, _ = self._renderer.plotter.add_actor(
-            volume, reset_camera=False, name=None, culling=False,
-            pickable=False)  # setting this pickable segfaults on click...
-        return grid, volume, mapper, actor
+        return grid, mapper, volume
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -807,11 +830,8 @@ class _Brain(object):
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
 
-        for ri, v in enumerate(self._views):
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
+        for ri, cols, v in self._iter_views:
+            ci = cols[hemi][0]
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             self._renderer.subplot(ri, ci)
             if borders:
@@ -895,12 +915,9 @@ class _Brain(object):
 
         if self._units == 'm':
             scale_factor = scale_factor / 1000.
-        for ri, v in enumerate(self._views):
+        for ri, cols, v in self._iter_views:
+            ci = cols[hemi][0]
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
             self._renderer.sphere(center=coords, color=color,
                                   scale=(10. * scale_factor),
@@ -999,7 +1016,6 @@ class _Brain(object):
                                        self._subject_id,
                                        'label',
                                        ".".join([hemi, annot, 'annot']))
-                    print(filepath)
                     if not os.path.exists(filepath):
                         raise ValueError('Annotation file %s does not exist'
                                          % filepath)
@@ -1140,7 +1156,7 @@ class _Brain(object):
         fmax : float | None
             Maximum value in colormap.
         """
-        from ..backends._pyvista import _set_colormap_range
+        from ..backends._pyvista import _set_colormap_range, _set_volume_range
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
@@ -1163,35 +1179,24 @@ class _Brain(object):
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi_data.get('actor') is not None:
-                    actor = hemi_data['actor']
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar, rng)
+                if hemi_data.get('actors') is not None:
+                    for actor in hemi_data['actors']:
+                        if self._colorbar_added:
+                            scalar_bar = self._renderer.plotter.scalar_bar
+                        else:
+                            scalar_bar = None
+                        _set_colormap_range(actor, ctable, scalar_bar, rng)
 
                 grid_volume = hemi_data.get('grid_volume')
                 if grid_volume is not None:
-                    import vtk
-                    color_tf = vtk.vtkColorTransferFunction()
-                    opacity_tf = vtk.vtkPiecewiseFunction()
-                    ctable = self._data['ctable']
-                    assert ctable.shape == (256, 4)
-                    for ii, color in enumerate(ctable):
-                        loc = ii / 255.
-                        color_tf.AddRGBPoint(loc, *color[:-1])
-                        opacity_tf.AddPoint(
-                            loc, color[-1] * hemi_data['alpha'] / 255. / 255.)
-                    color_tf.ClampingOn()
-                    opacity_tf.ClampingOn()
-                    grid_volume.GetProperty().SetColor(color_tf)
-                    grid_volume.GetProperty().SetScalarOpacity(opacity_tf)
-                    grid_volume.Update()
+                    _set_volume_range(
+                        grid_volume, ctable, hemi_data['alpha'], rng)
+                    self._update_volume_grid_values(hemi_data['grid'])
 
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
-                    _set_colormap_range(glyph_actor, ctable, None, rng)
+                    for glyph_actor_ in glyph_actor:
+                        _set_colormap_range(glyph_actor_, ctable, None, rng)
 
     def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps.
@@ -1262,7 +1267,7 @@ class _Brain(object):
     def set_time_point(self, time_idx):
         """Set the time point shown (can be a float to interpolate)."""
         from ..backends._pyvista import _set_mesh_scalars
-        current_act_data = list()
+        self._current_act_data = dict()
         time_actor = self._data.get('time_actor', None)
         time_label = self._data.get('time_label', None)
         for hemi in ['lh', 'rh', 'vol']:
@@ -1270,6 +1275,7 @@ class _Brain(object):
             if hemi_data is not None:
                 array = hemi_data['array']
                 # interpolate in time
+                vectors = None
                 if array.ndim == 1:
                     act_data = array
                     self._current_time = 0
@@ -1280,24 +1286,14 @@ class _Brain(object):
                         vectors = act_data
                         act_data = np.linalg.norm(act_data, axis=1)
                     self._current_time = self._time_interp_inv(time_idx)
-                current_act_data.append(act_data)
+                self._current_act_data[hemi] = act_data
                 if time_actor is not None and time_label is not None:
                     time_actor.SetInput(time_label(self._current_time))
 
                 # update the volume interpolation
                 grid = hemi_data.get('grid')
                 if grid is not None:
-                    # XXX should probably use some vtk scalars transform...
-                    vals = act_data
-                    rng = self._cmap_range
-                    fill = 0.5 if self._data['center'] is not None else 0.
-                    grid.cell_arrays['values'].fill(fill)
-                    # XXX for sided data, we probably actually need two
-                    # volumes as composite/MIP needs to look at two
-                    # extremes... for now just use abs.
-                    vals = np.clip(
-                        (np.abs(act_data) - rng[0]) / (rng[1] - rng[0]), 0, 1)
-                    grid.cell_arrays['values'][hemi_data['vertices']] = vals
+                    self._update_volume_grid_values(grid)
 
                 # interpolate in space
                 smooth_mat = hemi_data.get('smooth_mat')
@@ -1310,49 +1306,76 @@ class _Brain(object):
                     _set_mesh_scalars(mesh, act_data, 'Data')
 
                 # update the glyphs
-                if array.ndim == 3:
+                if vectors is not None:
                     self.update_glyphs(hemi, vectors)
 
-        self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
         self._update()
+
+    def _update_volume_grid_values(self, grid):
+        # XXX should probably use some vtk scalars transform so that we
+        # don't have to do this in multiple places...
+        vals = self._current_act_data['vol']
+        rng = self._cmap_range
+        fill = 0.5 if self._data['center'] is not None else 0.
+        grid.cell_arrays['values'].fill(fill)
+        # XXX for sided data, we probably actually need two
+        # volumes as composite/MIP needs to look at two
+        # extremes... for now just use abs. Eventually we can add two
+        # volumes if we want.
+        vals = np.clip(
+            (np.abs(vals) - rng[0]) / (rng[1] - rng[0]), 0, 1)
+        grid.cell_arrays['values'][self._data['vol']['vertices']] = vals
 
     def update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import _set_colormap_range
         hemi_data = self._data.get(hemi)
-        if hemi_data is not None:
-            vertices = hemi_data['vertices']
-            ctable = self._data['ctable']
-            vector_alpha = self._data['vector_alpha']
-            scale_factor = self._data['scale_factor']
-            rng = self._cmap_range
-            vertices = slice(None) if vertices is None else vertices
-            x, y, z = np.array(self.geo[hemi].coords)[vertices].T
+        if hemi_data is None:
+            return
+        vertices = hemi_data['vertices']
+        vector_alpha = self._data['vector_alpha']
+        scale_factor = self._data['scale_factor']
+        vertices = slice(None) if vertices is None else vertices
+        x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
-            polydata = self._renderer.quiver3d(
-                x, y, z,
-                vectors[:, 0], vectors[:, 1], vectors[:, 2],
-                color=None,
-                mode='2darrow',
-                scale_mode='vector',
-                scale=scale_factor,
-                opacity=vector_alpha,
-                name=str(hemi) + "_glyph"
-            )
-            if polydata is not None:
-                if hemi_data['glyph_mesh'] is None:
-                    glyph_actor, _ = self._renderer.polydata(polydata)
-                    glyph_actor.VisibilityOff()
-                    glyph_actor.GetProperty().SetLineWidth(2.)
-                    hemi_data['glyph_actor'] = glyph_actor
-                    hemi_data['glyph_mesh'] = polydata
-                else:
-                    glyph_actor = hemi_data['glyph_actor']
-                    glyph_mesh = hemi_data['glyph_mesh']
-                    glyph_mesh.shallow_copy(polydata)
-                _set_colormap_range(glyph_actor, ctable, None, rng)
-                # the glyphs are now ready to be displayed
-                glyph_actor.VisibilityOn()
+        if hemi_data['glyph_mesh'] is None:
+            add = True
+            hemi_data['glyph_mesh'] = list()
+            hemi_data['glyph_actor'] = list()
+        else:
+            add = False
+        count = 0
+        for ri, cols, v in self._iter_views:
+            for ci in cols[hemi]:
+                self._renderer.subplot(ri, ci)
+                polydata = self._renderer.quiver3d(
+                    x, y, z,
+                    vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                    color=None,
+                    mode='2darrow',
+                    scale_mode='vector',
+                    scale=scale_factor,
+                    opacity=vector_alpha,
+                    name=str(hemi) + "_glyph"
+                )
+                if polydata is not None:
+                    if add:
+                        glyph_actor, _ = self._renderer.polydata(polydata)
+                        assert not isinstance(glyph_actor, list)
+                        glyph_actor.VisibilityOff()
+                        glyph_actor.GetProperty().SetLineWidth(2.)
+                        hemi_data['glyph_mesh'].append(polydata)
+                        hemi_data['glyph_actor'].append(glyph_actor)
+                    glyph_actor = hemi_data['glyph_actor'][count]
+                    glyph_mesh = hemi_data['glyph_mesh'][count]
+                    count += 1
+                    if not add:
+                        glyph_mesh.shallow_copy(polydata)
+                    ctable = self._data['ctable']
+                    rng = self._cmap_range
+                    _set_colormap_range(glyph_actor, ctable, None, rng)
+                    # the glyphs are now ready to be displayed
+                    glyph_actor.VisibilityOn()
 
     @property
     def _cmap_range(self):
@@ -1384,7 +1407,8 @@ class _Brain(object):
         colormap = self._data['colormap']
         transparent = self._data['transparent']
         mapdata = _process_clim(
-            clim, colormap, transparent, self._current_act_data,
+            clim, colormap, transparent,
+            np.concatenate(list(self._current_act_data.values())),
             allow_pos_lims)
         diverging = 'pos_lims' in mapdata['clim']
         colormap = mapdata['colormap']
@@ -1606,15 +1630,16 @@ class _Brain(object):
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi_data['actor'] is not None:
-                    actor = hemi_data['actor']
-                    vtk_lut = actor.GetMapper().GetLookupTable()
-                    vtk_lut.SetNumberOfColors(n_col)
-                    vtk_lut.SetRange([fmin, fmax])
-                    vtk_lut.Build()
-                    for i in range(0, n_col):
-                        lt = lut_lst[i]
-                        vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
+                if hemi_data['actors'] is not None:
+                    for actor in hemi_data['actors']:
+                        vtk_lut = actor.GetMapper().GetLookupTable()
+                        vtk_lut.SetNumberOfColors(n_col)
+                        vtk_lut.SetRange([fmin, fmax])
+                        vtk_lut.Build()
+                        for i in range(0, n_col):
+                            lt = lut_lst[i]
+                            vtk_lut.SetTableValue(
+                                i, lt[0], lt[1], lt[2], alpha)
         self._update_fscale(1.0)
 
     def enable_depth_peeling(self):

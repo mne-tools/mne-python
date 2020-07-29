@@ -1684,6 +1684,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         matplotlib figure.
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, set_3d_backend
+    from ..source_estimate import _BaseSourceEstimate
+    _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1722,8 +1724,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options):
     from .backends.renderer import _get_3d_backend
-    from ..source_estimate import _BaseSourceEstimate
-    _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -2437,6 +2437,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     If the current magnitude overlay is not desired, set ``overlay_alpha=0``
     and ``smoothing_steps=1``.
     """
+    from ..source_estimate import _BaseVectorSourceEstimate
+    _validate_type(
+        stc, _BaseVectorSourceEstimate, 'stc', 'vector source estimate')
     return _plot_stc(
         stc, subject=subject, surface='white', hemi=hemi, colormap=colormap,
         time_label=time_label, smoothing_steps=smoothing_steps,

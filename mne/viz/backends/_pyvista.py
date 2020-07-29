@@ -67,6 +67,8 @@ class _Figure(object):
         self.store['off_screen'] = off_screen
         self.store['border'] = False
         self.store['auto_update'] = False
+        # multi_samples > 1 is broked on macOS + volume rendering
+        self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
     def build(self):
         if self.plotter_class is None:
@@ -756,6 +758,22 @@ def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
         lut.SetRange(rng[0], rng[1])
     if scalar_bar is not None:
         scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
+
+
+def _set_volume_range(volume, ctable, alpha, rng):
+    import vtk
+    color_tf = vtk.vtkColorTransferFunction()
+    opacity_tf = vtk.vtkPiecewiseFunction()
+    assert ctable.shape == (256, 4)
+    for ii, color in enumerate(ctable):
+        loc = ii / 255.
+        color_tf.AddRGBPoint(loc, *color[:-1])
+        opacity_tf.AddPoint(
+            loc, color[-1] * alpha / 255. / 255.)
+    color_tf.ClampingOn()
+    opacity_tf.ClampingOn()
+    volume.GetProperty().SetColor(color_tf)
+    volume.GetProperty().SetScalarOpacity(opacity_tf)
 
 
 def _set_mesh_scalars(mesh, scalars, name):

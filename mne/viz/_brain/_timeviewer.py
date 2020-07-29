@@ -618,10 +618,6 @@ class _TimeViewer(object):
     def configure_sliders(self):
         rng = _get_range(self.brain)
         # Orientation slider
-        # default: put orientation slider on the first view
-        if self.brain._hemi in ('split', 'both'):
-            self.plotter.subplot(0, 0)
-
         # Use 'lh' as a reference for orientation for 'both'
         if self.brain._hemi == 'both':
             hemis_ref = ['lh']
@@ -655,9 +651,10 @@ class _TimeViewer(object):
                 self.set_slider_style(orientation_slider, show_label=False)
                 self.orientation_call(view, update_widget=True)
 
-        # necessary because show_view modified subplot
-        if self.brain._hemi in ('split', 'both'):
-            self.plotter.subplot(0, 0)
+        # Put other sliders on the bottom right view
+        ri = len(self.brain.views) - 1
+        ci = 1 if self.brain._hemi == 'split' else 0
+        self.plotter.subplot(ri, ci)
 
         # Smoothing slider
         self.smoothing_call = IntSlider(
@@ -1286,7 +1283,7 @@ class _LinkViewer(object):
 
 
 def _get_range(brain):
-    val = np.abs(brain._current_act_data)
+    val = np.abs(np.concatenate(list(brain._current_act_data.values())))
     return [np.min(val), np.max(val)]
 
 
