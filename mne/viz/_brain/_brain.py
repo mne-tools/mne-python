@@ -21,8 +21,8 @@ from .._3d import _process_clim, _handle_time
 
 from ...defaults import _handle_default
 from ...surface import mesh_edges
-from ...io.constants import FIFF
-from ...transforms import _get_trans, apply_trans
+from ...source_space import SourceSpaces
+from ...transforms import apply_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch)
 
@@ -311,7 +311,7 @@ class _Brain(object):
                  time_label="auto", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 clim=None, verbose=None):
+                 clim=None, src=None, volume_options=0.4, verbose=None):
         """Display data from a numpy array on the surface or volume.
 
         This provides a similar interface to
@@ -391,6 +391,9 @@ class _Brain(object):
             Not supported yet.
             alpha level to control opacity of the arrows. Only used for
             vector-valued data. If None (default), ``alpha`` is used.
+        clim : dict
+            Original clim arguments.
+        %(src_volume_options)s
         %(verbose)s
 
         Notes
@@ -414,7 +417,7 @@ class _Brain(object):
         _check_option('remove_existing', remove_existing, [None])
         _check_option('time_label_size', time_label_size, [None])
 
-        hemi = self._check_hemi(hemi)
+        hemi = self._check_hemi(hemi, extras=['vol'])
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
         self._data['vector_alpha'] = vector_alpha
@@ -497,14 +500,52 @@ class _Brain(object):
         self._data['fmin'] = fmin
         self._data['fmid'] = fmid
         self._data['fmax'] = fmax
-
-        dt_max = fmax
-        dt_min = fmin if center is None else -1 * fmax
         self.update_lut()
 
         # 1) add the surfaces first
+        if hemi in ('lh', 'rh'):
+            actor = self._add_surface_data(hemi)
+        else:
+            self._add_volume_data(hemi, src, volume_options)
+            actor = None
+
+        # 2) update time and smoothing properties
+        # set_data_smoothing calls "set_time_point" for us, which will set
+        # _current_time
+        self.set_time_interpolation(self.time_interpolation)
+        self.set_data_smoothing(self._data['smoothing_steps'])
+
+        # 3) add the other actors
         for ri, v in enumerate(self._views):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
+            if not self._time_label_added and time_label is not None:
+                time_actor = self._renderer.text2d(
+                    x_window=0.95, y_window=y_txt,
+                    color=self._fg_color,
+                    size=time_label_size,
+                    text=time_label(self._current_time),
+                    justification='right'
+                )
+                self._data['time_actor'] = time_actor
+                self._time_label_added = True
+            if colorbar and not self._colorbar_added and actor is not None:
+                self._renderer.scalarbar(source=actor, n_labels=8,
+                                         color=self._fg_color,
+                                         bgcolor=self._brain_color[:3])
+                self._colorbar_added = True
+            self._renderer.set_camera(azimuth=views_dict[v].azim,
+                                      elevation=views_dict[v].elev)
+
+        self._update()
+
+    def _add_surface_data(self, hemi):
+        dt_max = self._data['fmax']
+        if self._data['center'] is None:
+            dt_min = self._data['fmin']
+        else:
+            dt_min = -self._data['fmin']
+
+        for ri, v in enumerate(self._views):
             if self._hemi != 'split':
                 ci = 0
             else:
@@ -515,7 +556,7 @@ class _Brain(object):
                 "colormap": self._data['ctable'],
                 "vmin": dt_min,
                 "vmax": dt_max,
-                "opacity": alpha,
+                "opacity": self._data['alpha'],
                 "scalars": np.zeros(len(self.geo[hemi].coords)),
             }
             if self._data[hemi]['mesh'] is None:
@@ -543,38 +584,7 @@ class _Brain(object):
                 )
             del kwargs
 
-        # 2) update time and smoothing properties
-        # set_data_smoothing calls "set_time_point" for us, which will set
-        # _current_time
-        self.set_time_interpolation(self.time_interpolation)
-        self.set_data_smoothing(smoothing_steps)
-
-        # 3) add the other actors
-        for ri, v in enumerate(self._views):
-            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            if not self._time_label_added and time_label is not None:
-                time_actor = self._renderer.text2d(
-                    x_window=0.95, y_window=y_txt,
-                    color=self._fg_color,
-                    size=time_label_size,
-                    text=time_label(self._current_time),
-                    justification='right'
-                )
-                self._data['time_actor'] = time_actor
-                self._time_label_added = True
-            if colorbar and not self._colorbar_added:
-                self._renderer.scalarbar(source=actor, n_labels=8,
-                                         color=self._fg_color,
-                                         bgcolor=self._brain_color[:3])
-                self._colorbar_added = True
-            self._renderer.set_camera(azimuth=views_dict[v].azim,
-                                      elevation=views_dict[v].elev)
-
-        self._update()
+        return actor
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
@@ -583,67 +593,73 @@ class _Brain(object):
         self._label_data.clear()
         self._update()
 
-    def _add_volume(self, stc_vol, src_vol, trans=None, volume_options=0.4):
-        import vtk
-        import pyvista as pv
-        from ...source_estimate import (
-            VolVectorSourceEstimate, VolSourceEstimate)
-        _validate_type(stc_vol, (VolVectorSourceEstimate, VolSourceEstimate),
-                       'stc_vol')
-        _check_option('src_vol.kind', src_vol.kind, ('volume',))
+    def _add_volume_data(self, hemi, src, volume_options):
+        _validate_type(src, SourceSpaces, 'src')
+        _check_option('src.kind', src.kind, ('volume',))
         _validate_type(volume_options, (dict, 'numeric'), 'volume_options')
+        assert hemi == 'vol'
         if not isinstance(volume_options, dict):
             volume_options = dict(volume_alpha=float(volume_options))
         volume_options = _handle_default('volume_options', volume_options)
         for key, types in (['resolution', (None, 'numeric')],
                            ['blending', (str,)],
-                           ['alpha', ('numeric',)],
+                           ['alpha', ('numeric', None)],
                            ['surface_alpha', (None, 'numeric')]):
             _validate_type(volume_options[key], types,
                            f'volume_options[{repr(key)}]')
         _check_option('volume_options["blending"]', volume_options['blending'],
                       ('composite', 'mip'))
         blending = volume_options['blending']
-        alpha = np.clip(float(volume_options['alpha']), 0., 1.)
+        alpha = volume_options['alpha']
+        if alpha is None:
+            alpha = 0.4 if self._data[hemi]['array'].ndim == 3 else 1.
+        alpha = np.clip(float(alpha), 0., 1.)
         surface_alpha = volume_options['surface_alpha']
         resolution = volume_options['resolution']
         if surface_alpha is None:
             surface_alpha = min(alpha / 2., 0.4)
         del volume_options
-
-        use = src_vol[0]
-        rr = use['rr']
-        vertices = np.concatenate([s['vertno'] for s in src_vol])
-        del src_vol
-        if use['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-            trans, _ = _get_trans(trans, 'head', 'mri', allow_none=False)
-            rr = apply_trans(trans, rr)
-        hemi = 'vol'
-        self._data[hemi] = dict()
-        for key in ('glyph_actor', 'glyph_mesh'):
-            self._data[hemi][key] = None
-        self.geo[hemi] = Bunch()
+        xyz = np.meshgrid(
+            *[np.arange(s) for s in src[0]['shape']], indexing='ij')
+        rr = np.array([c.ravel(order='F') for c in xyz]).T
+        rr = apply_trans(src[0]['src_mri_t'], rr)
+        dimensions = np.array(src[0]['shape'], int)
+        src_mri_t = src[0]['src_mri_t']['trans'].copy()
+        del src
         mult = 1000 if self._units == 'mm' else 1
-        self.geo[hemi]['coords'] = mult * rr
-        self._data[hemi]['vertices'] = vertices
-        self._data[hemi]['alpha'] = alpha
-        assert stc_vol.data.shape[0] == len(vertices)
-        assert np.allclose(stc_vol.times, self._data['time'])
-        self._data[hemi]['array'] = stc_vol.data
+        self.geo[hemi] = Bunch(coords=mult * rr)
+        self._data[hemi]['alpha'] = alpha  # this gets set incorrectly earlier
+        vertices = self._data[hemi]['vertices']
+        assert self._data[hemi]['array'].shape[0] == len(vertices)
         # MNE constructs the source space on a uniform grid in MRI space,
         # but let's make sure
-        n_pts = np.array(use['shape'], int)
-        src_mri_t = use['src_mri_t']['trans'].copy()
         src_mri_t[:3] *= mult
         assert np.allclose(src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
-        grid = pv.UniformGrid()
-        grid.dimensions = n_pts + 1  # inject data on the cells
-        origin = src_mri_t[:3, 3] - np.diag(src_mri_t)[:3] / 2.
-        grid.origin = origin
-        grid.spacing = np.diag(src_mri_t)
-        grid.cell_arrays['values'] = np.zeros(np.prod(n_pts))
-        grid.cell_arrays['values'][vertices] = 1.  # for the outer mesh
+        spacing = np.diag(src_mri_t)[:3]
+        origin = src_mri_t[:3, 3] - spacing / 2.
+        scalars = np.zeros(np.prod(dimensions))
+        scalars[vertices] = 1.  # for the outer mesh
+        if resolution is not None:
+            resolution = resolution * mult / 1000.  # to mm
+        grid, volume, mapper, actor = self._add_mesh_object(
+            dimensions, origin, spacing, scalars, alpha, surface_alpha,
+            resolution, blending)
         self._data[hemi]['grid'] = grid
+        self._data[hemi]['grid_volume'] = volume
+        self._data[hemi]['grid_mapper'] = mapper
+        self._data[hemi]['grid_actor'] = actor
+        self.update_lut()
+
+    def _add_mesh_object(self, dimensions, origin, spacing, scalars,
+                         alpha, surface_alpha, resolution, blending):
+        # Now we can actually construct the visualization
+        import vtk
+        import pyvista as pv
+        grid = pv.UniformGrid()
+        grid.dimensions = dimensions + 1  # inject data on the cells
+        grid.origin = origin
+        grid.spacing = spacing
+        grid.cell_arrays['values'] = scalars
 
         # Add contour of enclosed volume (use GetOutput instead of
         # GetOutputPort below to avoid updating)
@@ -674,8 +690,7 @@ class _Brain(object):
         else:
             upsampler = vtk.vtkImageResample()
             upsampler.SetInterpolationModeToNearestNeighbor()
-            upsampler.SetOutputSpacing(
-                *([resolution * mult / 1000.] * 3))
+            upsampler.SetOutputSpacing(*([resolution] * 3))
             upsampler.SetInputConnection(grid_alg.GetOutputPort())
             mapper.SetInputConnection(upsampler.GetOutputPort())
         # Additive, AverageIntensity, and Composite might also be reasonable
@@ -688,14 +703,7 @@ class _Brain(object):
         actor, _ = self._renderer.plotter.add_actor(
             volume, reset_camera=False, name=None, culling=False,
             pickable=False)  # setting this pickable segfaults on click...
-
-        self._data[hemi]['grid_mapper'] = mapper
-        self._data[hemi]['grid_volume'] = volume
-        self._data[hemi]['grid_actor'] = actor
-        self.update_lut()
-        self.set_time_interpolation(self.time_interpolation)
-        self.set_time_point(self._data['time_idx'])
-        self._update()
+        return grid, volume, mapper, actor
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -1282,8 +1290,13 @@ class _Brain(object):
                     # XXX should probably use some vtk scalars transform...
                     vals = act_data
                     rng = self._cmap_range
+                    fill = 0.5 if self._data['center'] is not None else 0.
+                    grid.cell_arrays['values'].fill(fill)
+                    # XXX for sided data, we probably actually need two
+                    # volumes as composite/MIP needs to look at two
+                    # extremes... for now just use abs.
                     vals = np.clip(
-                        (act_data - rng[0]) / (rng[1] - rng[0]), 0, 1)
+                        (np.abs(act_data) - rng[0]) / (rng[1] - rng[0]), 0, 1)
                     grid.cell_arrays['values'][hemi_data['vertices']] = vals
 
                 # interpolate in space
@@ -1533,7 +1546,7 @@ class _Brain(object):
         except RuntimeError:
             logger.info("No active/running renderer available.")
 
-    def _check_hemi(self, hemi):
+    def _check_hemi(self, hemi, extras=()):
         """Check for safe single-hemi input, returns str."""
         if hemi is None:
             if self._hemi not in ['lh', 'rh']:
@@ -1541,7 +1554,7 @@ class _Brain(object):
                                  'hemispheres are displayed')
             else:
                 hemi = self._hemi
-        elif hemi not in ['lh', 'rh']:
+        elif hemi not in ['lh', 'rh'] + list(extras):
             extra = ' or None' if self._hemi in ['lh', 'rh'] else ''
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))

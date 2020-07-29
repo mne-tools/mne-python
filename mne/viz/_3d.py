@@ -1551,25 +1551,17 @@ def link_brains(brains, time=True, camera=False):
 
 def _triage_stc(stc, src, surface, backend_name, kind='scalar'):
     from ..source_estimate import (
-        VectorSourceEstimate, SourceEstimate,
-        MixedVectorSourceEstimate, MixedSourceEstimate,
-        VolVectorSourceEstimate, VolSourceEstimate)
-    if kind == 'vector':
-        allowed = (VectorSourceEstimate, MixedVectorSourceEstimate,
-                   VolVectorSourceEstimate)
+        _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)
+    if isinstance(stc, _BaseSurfaceSourceEstimate):
+        stc_vol = src_vol = None
     else:
-        assert kind == 'scalar'
-        allowed = (SourceEstimate, MixedSourceEstimate, VolSourceEstimate)
-
-    _validate_type(stc, allowed, 'stc')
-    if isinstance(stc, allowed[1:]):
         if backend_name == 'mayavi':
             raise RuntimeError(
                 'Must use the PyVista 3D backend to plot a mixed or volume '
                 'source estimate')
         _validate_type(src, SourceSpaces, 'src',
                        'src when stc is a mixed or volume source estimate')
-        if isinstance(stc, allowed[1]):
+        if isinstance(stc, _BaseMixedSourceEstimate):
             stc_vol = stc.volume()
             stc = stc.surface()
             # When showing subvolumes, surfaces that preserve geometry must
@@ -1582,8 +1574,6 @@ def _triage_stc(stc, src, surface, backend_name, kind='scalar'):
             stc = None
             src_vol = src
         src_vol = src[2:] if src.kind == 'mixed' else src
-    else:
-        stc_vol = src_vol = None
     return stc, stc_vol, src_vol
 
 
@@ -1597,8 +1587,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto',
-                          src=None, trans=None, volume_options=1.,
-                          verbose=None):
+                          src=None, volume_options=1., verbose=None):
     """Plot SourceEstimate.
 
     Parameters
@@ -1685,7 +1674,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
         .. versionadded:: 0.17.0
     %(show_traces)s
-    %(src_trans_volume_options)s
+    %(src_volume_options)s
     %(verbose)s
 
     Returns
@@ -1723,25 +1712,19 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     return _plot_stc(
         stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
         cortex=cortex, foreground=foreground, size=size, scale_factor=None,
-        show_traces=show_traces, src=src, trans=trans,
-        volume_options=volume_options, **kwargs)
+        show_traces=show_traces, src=src, volume_options=volume_options,
+        **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               smoothing_steps, subjects_dir, views, clim, figure, initial_time,
               time_unit, background, time_viewer, colorbar, transparent,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
-              size, scale_factor, show_traces, src, trans, volume_options):
+              size, scale_factor, show_traces, src, volume_options):
     from .backends.renderer import _get_3d_backend
-    from ..source_estimate import (
-        _BaseSourceEstimate, SourceEstimate, VectorSourceEstimate)
-    _validate_type(stc, _BaseSourceEstimate)
+    from ..source_estimate import _BaseSourceEstimate
+    _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     vec = stc._data_ndim == 3
-    if vec:
-        allowed = VectorSourceEstimate
-    else:
-        allowed = SourceEstimate
-    _validate_type(stc, allowed, 'stc')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1783,6 +1766,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         hemis = ['lh', 'rh']
     else:
         hemis = [hemi]
+    if stc_vol is not None:
+        hemis.append('vol')
 
     if overlay_alpha is None:
         overlay_alpha = brain_alpha
@@ -1815,19 +1800,22 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
     for hemi in hemis:
-        if stc_surf is None:
-            break
-        data = getattr(stc, hemi + '_data')
-        vertices = stc.vertices[0 if hemi == 'lh' else 1]
-        alpha = overlay_alpha
-        if len(data) == 0:
-            continue
+        if hemi == 'vol':
+            data = stc_vol.data
+            vertices = np.concatenate(stc_vol.vertices)
+        else:
+            if stc_surf is None:
+                continue
+            data = getattr(stc_surf, hemi + '_data')
+            vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
+            if len(data) == 0:
+                continue
         kwargs = {
             "array": data, "colormap": colormap,
             "vertices": vertices,
             "smoothing_steps": smoothing_steps,
             "time": times, "time_label": time_label,
-            "alpha": alpha, "hemi": hemi,
+            "alpha": overlay_alpha, "hemi": hemi,
             "colorbar": colorbar,
             "vector_alpha": vector_alpha,
             "scale_factor": scale_factor,
@@ -1845,14 +1833,12 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["fmid"] = scale_pts[1]
             kwargs["fmax"] = scale_pts[2]
             kwargs["clim"] = clim
+            kwargs["volume_options"] = volume_options
+            kwargs["src"] = src_vol
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
-
-    if stc_vol is not None:
-        brain._add_volume(
-            stc_vol, src_vol, trans=trans, volume_options=volume_options)
 
     need_peeling = (brain_alpha < 1.0 and
                     sys.platform != 'darwin' and
@@ -2362,8 +2348,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
-                                 src=None, trans=None, volume_options=0.4,
-                                 verbose=None):
+                                 src=None, volume_options=1., verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2437,7 +2422,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     %(show_traces)s
-    %(src_trans_volume_options)s
+    %(src_volume_options)s
     %(verbose)s
 
     Returns
@@ -2461,7 +2446,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         brain_alpha=brain_alpha, overlay_alpha=overlay_alpha,
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
         size=size, scale_factor=scale_factor, show_traces=show_traces,
-        src=src, trans=trans, volume_options=volume_options)
+        src=src, volume_options=volume_options)
 
 
 @verbose

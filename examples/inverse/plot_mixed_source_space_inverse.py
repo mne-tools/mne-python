@@ -136,9 +136,7 @@ src = inverse_operator['src']
 initial_time = 0.1
 stc_vec = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                         pick_ori='vector')
-brain = stc_vec.plot(hemi='both', views='frontal',
-                     resolution=1.,  # upsample to 1 mm resolution from "pos"
-                     src=inverse_operator['src'], trans=fname_trans,
+brain = stc_vec.plot(hemi='both', src=inverse_operator['src'],
                      initial_time=initial_time, subjects_dir=subjects_dir)
 
 ###############################################################################

@@ -83,7 +83,7 @@ DEFAULTS = dict(
                       combine_xyz='fro', allow_fixed_depth=True),
     interpolation_method=dict(eeg='spline', meg='MNE', fnirs='nearest'),
     volume_options=dict(
-        alpha=0.4, resolution=None, surface_alpha=None, blending='mip'),
+        alpha=None, resolution=1., surface_alpha=None, blending='mip'),
 )
 
 
