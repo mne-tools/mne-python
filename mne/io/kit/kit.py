@@ -575,7 +575,10 @@ def get_kit_info(rawfile, allow_unknown_format):
                     'type': channel_type,
                     # (x, y, z, theta, phi) for all MEG channels. Some channel
                     # types have additional information which we're not using.
-                    'loc': np.fromfile(fid, dtype='d', count=5)
+                    'loc': np.fromfile(fid, dtype='d', count=5),
+                    'baseline': np.fromfile(fid, dtype='d', count=1)[0],
+                    'size': np.fromfile(fid, dtype='d', count=1)[0],
+                    'name': np.fromfile(fid, dtype='|S6', count=1)[0].decode('UTF-8')
                 })
             elif channel_type in KIT.CHANNELS_MISC:
                 channel_no, = unpack('i', fid.read(KIT.INT))
