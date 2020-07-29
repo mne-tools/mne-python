@@ -230,10 +230,6 @@ Each montage and block contains two marker types:
 - 1 = checkerboard reversal
 - 2 = same as 1 but for the first few trials (to keep separate if needed)
 
-.. topic:: Examples
-
-    * :ref:`tut-boxy-processing`
-
 High frequency SEF
 ==================
 :func:`mne.datasets.hf_sef.data_path()`
