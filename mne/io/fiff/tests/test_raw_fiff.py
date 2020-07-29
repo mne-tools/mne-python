@@ -1045,6 +1045,9 @@ def test_resample(tmpdir, preload):
     assert raw1.last_samp == raw3.last_samp
     assert raw1.info['sfreq'] == raw3.info['sfreq']
 
+    # smoke test crop after resample
+    raw4.crop(tmin=raw4.times[1], tmax=raw4.times[-1])
+
     # test resampling of stim channel
 
     # basic decimation

@@ -181,8 +181,9 @@ def test_maxfilter():
                 mne_maxfilter.run()
             finally:
                 del os.environ['_MNE_MAXFILTER_TEST']
+        out = out.stdout.getvalue()
         for check in ('maxfilter', '-trans', '-movecomp'):
-            assert check in out.stdout.getvalue(), check
+            assert check in out, check
 
 
 @pytest.mark.slowtest

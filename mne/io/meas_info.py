@@ -1745,11 +1745,11 @@ def write_info(fname, info, data_type=None, reset_range=True):
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
     """
-    fid = start_file(fname)
-    start_block(fid, FIFF.FIFFB_MEAS)
-    write_meas_info(fid, info, data_type, reset_range)
-    end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
+    with start_file(fname) as fid:
+        start_block(fid, FIFF.FIFFB_MEAS)
+        write_meas_info(fid, info, data_type, reset_range)
+        end_block(fid, FIFF.FIFFB_MEAS)
+        end_file(fid)
 
 
 @verbose

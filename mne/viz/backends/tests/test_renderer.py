@@ -102,7 +102,11 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer.backend._Renderer(size=win_size, bgcolor=win_color)
+    rend = renderer.backend._Renderer(
+        size=win_size,
+        bgcolor=win_color,
+        smooth_shading=True,
+    )
     rend.set_interactive()
 
     # use mesh

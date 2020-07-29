@@ -542,7 +542,7 @@ sphinx_gallery_conf = {
     'abort_on_example_error': False,
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
     'image_scrapers': scrapers,
-    'show_memory': True,
+    'show_memory': not sys.platform.startswith('win'),
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
@@ -636,7 +636,7 @@ numpydoc_xref_ignore = {
     'n_dipoles_fwd',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF',
+    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable

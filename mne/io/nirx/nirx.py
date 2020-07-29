@@ -249,15 +249,10 @@ class RawNIRX(BaseRaw):
             det = int(requested_channels[ch_idx2, 1]) - 1
             info['chs'][ch_idx2 * 2]['loc'][6:9] = det_locs[det, :]
             info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
-            # Store channel location
-            # Channel locations for short channels are bodged,
-            # for short channels use the source location.
-            if det + 1 in short_det:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-            else:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
+            # Store channel location as midpoint between source and detector.
+            midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
+            info['chs'][ch_idx2 * 2]['loc'][:3] = midpoint
+            info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = midpoint
             info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
             info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
 

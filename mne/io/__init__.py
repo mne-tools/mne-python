@@ -47,6 +47,7 @@ from .eeglab import read_raw_eeglab, read_epochs_eeglab
 from .eximia import read_raw_eximia
 from .nirx import read_raw_nirx
 from .boxy import read_raw_boxy
+from .snirf import read_raw_snirf
 from .fieldtrip import (read_raw_fieldtrip, read_epochs_fieldtrip,
                         read_evoked_fieldtrip)
 from ._read_raw import read_raw
