@@ -171,7 +171,7 @@ class RawSNIRF(BaseRaw):
                 info['chs'][idx]['loc'][6:9] = detPos3D[det_idx - 1, :] / scal
                 midpoint = (info['chs'][idx]['loc'][3:6] +
                             info['chs'][idx]['loc'][6:9]) / 2
-                info['chs'][idx]['loc'][0:3] =midpoint
+                info['chs'][idx]['loc'][0:3] = midpoint
                 info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
 
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
