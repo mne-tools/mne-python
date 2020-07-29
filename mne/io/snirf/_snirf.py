@@ -169,6 +169,7 @@ class RawSNIRF(BaseRaw):
                                                chan + '/wavelengthIndex'))[0])
                 info['chs'][idx]['loc'][3:6] = srcPos3D[src_idx - 1, :] / scal
                 info['chs'][idx]['loc'][6:9] = detPos3D[det_idx - 1, :] / scal
+                # Store channel as mid point
                 midpoint = (info['chs'][idx]['loc'][3:6] +
                             info['chs'][idx]['loc'][6:9]) / 2
                 info['chs'][idx]['loc'][0:3] = midpoint
