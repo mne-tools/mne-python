@@ -35,13 +35,13 @@ class MNEFigure(Figure):
         self.mne = MNEFigParams(**kwargs)
 
     def _keypress(self, event):
-        """Triage keypress events."""
+        """Handle keypress events."""
         from matplotlib.pyplot import close
         if event.key == self.mne.close_key:
             close(self)
 
     def _buttonpress(self, event):
-        """Triage buttonpress events."""
+        """Handle buttonpress events."""
         pass
 
     def _resize(self, event):
