@@ -1078,9 +1078,116 @@ def test_inverse_mixed(all_src_types_inv_evoked):
                         stcs[kind].magnitude().data)
         assert_allclose(getattr(stcs['mixed'], kind)().magnitude().data,
                         stcs[kind].magnitude().data)
+    assert not np.allclose(stcs['surface'].data[0], 0., atol=1e-2)
     with pytest.deprecated_call():
         assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
                         stcs['surface'].normal(surf_src).data)
+
+
+def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
+    """Test loose mixed source spaces."""
+    fwd, cov, evoked = mixed_fwd_cov_evoked
+    assert fwd['src'].kind == 'mixed'
+    # with different values for loose
+    bads = [
+        # uniform loose
+        (dict(loose=0.2), r'got loose\["volume"\] = 0.2'),
+        # underspecified
+        (dict(loose=dict(surface=0.2)), r"keys \['surface', 'volume'\]"),
+    ]
+    for kwargs, match in bads:
+        with pytest.raises(ValueError, match=match):
+            make_inverse_operator(evoked.info, fwd, cov, **kwargs)
+    evoked.info.normalize_proj()
+    cov['projs'] = []  # avoid warnings
+    # use_cps=False just to make comparing easier
+    inv_fixed = make_inverse_operator(
+        evoked.info, fwd, cov, use_cps=False,
+        loose=dict(surface=0., volume=1.))
+    inv_fixedish = make_inverse_operator(
+        evoked.info, fwd, cov, use_cps=False,
+        loose=dict(surface=0.001, volume=1.))
+    n_srcs = [s['nuse'] for s in fwd['src']]
+    n_surf = sum(n_srcs[:2])
+    n_vol = sum(n_srcs[2:])
+    n_tot = n_surf + n_vol
+    # Correct priors
+    want_prior = np.ones(n_tot * 3)
+    for this_inv, val in [(inv_fixed, 0.), (inv_fixedish, 0.001)]:
+        want_prior[:n_surf * 3:3] = val
+        want_prior[1:n_surf * 3:3] = val
+        assert_allclose(this_inv['orient_prior']['data'], want_prior)
+    # Correct normals
+    want_surf_nn = np.concatenate(
+        [s['nn'][s['vertno']] for s in fwd['src'][:2]])
+    want_vol_nn = np.tile(np.eye(3)[np.newaxis], (n_vol, 1, 1)).reshape(-1, 3)
+    for this_inv in (inv_fixed, inv_fixedish):
+        assert_allclose(this_inv['source_nn'][2:n_surf * 3:3],
+                        want_surf_nn, atol=1e-6)
+        assert_allclose(this_inv['source_nn'][n_surf * 3:], want_vol_nn)
+    # loose=0. (fixed) similar to loose=0.001
+    stc_fixed = apply_inverse(evoked, inv_fixed)
+    stc_fixedish = apply_inverse(evoked, inv_fixedish)
+    corr = np.corrcoef(stc_fixed.data.ravel(), stc_fixedish.data.ravel())[0, 1]
+    assert 0.9999 < corr < 0.9999999
+    # normal not supported
+    for this_inv in (inv_fixed, inv_fixedish):
+        with pytest.raises(RuntimeError, match='got type mixed'):
+            apply_inverse(evoked, this_inv, pick_ori='normal')
+    # vector supported
+    stc_fixed_vec = apply_inverse(evoked, inv_fixed, pick_ori='vector')
+    assert_allclose(stc_fixed_vec.surface().magnitude().data,
+                    stc_fixed.data[:n_surf])
+    stc_fixed_normal, nn = stc_fixed_vec.surface().project(
+        'normal', inv_fixed['src'][:2], use_cps=False)
+    assert_allclose(nn, want_surf_nn, atol=1e-6)
+    assert stc_fixed_normal.data.min() < -1  # signed
+    assert_allclose(
+        abs(stc_fixed_normal).data, stc_fixed.data[:n_surf], atol=1e-6)
+    stc_fixed_normal_cps, _ = stc_fixed_vec.surface().project(
+        'normal', inv_fixed['src'][:2], use_cps=True)
+    corr = np.corrcoef(abs(stc_fixed_normal_cps).data.ravel(),
+                       stc_fixed.data[:n_surf].ravel())[0, 1]
+    assert 0.8 < corr < 0.9  # CPS changes it a bit
+
+    # Do a source localization + orientation tests
+    assert not fwd['surf_ori']
+    idx = [fwd['sol']['row_names'].index(name) for name in evoked.ch_names]
+    data = np.dot(fwd['sol']['data'][idx, :3], nn[:1].T)
+    assert data.shape == (len(evoked.ch_names), 1)
+    data = np.concatenate((data, fwd['sol']['data'][idx, -1:]), axis=1)
+    assert data.shape == (len(evoked.ch_names), 2)
+    want_ori = np.concatenate([nn[:1], [[0, 0, 1]]])
+    want_pos = fwd['source_rr'][[0, -1]]
+    evoked_sim = EvokedArray(data, evoked.info)
+    del data
+    # dipole
+    sphere = mne.make_sphere_model('auto', 'auto', evoked.info)
+    dip, _ = mne.fit_dipole(evoked_sim, cov, sphere)
+    assert_allclose(dip.pos, want_pos, atol=1e-2)  # 1 cm
+    ang = np.rad2deg(np.arccos(np.sum(dip.ori * want_ori, axis=1)))
+    assert_array_less(ang, 65)  # not great
+    # MNE
+    stc = apply_inverse(evoked_sim, inv_fixed, pick_ori='vector')
+    stc, nn = stc.project('pca', fwd['src'])
+    idx = stc.data.argmax(0)
+    assert fwd['source_nn'].shape[0] == fwd['source_rr'].shape[0] * 3 == \
+        stc.data.shape[0] * 3 == nn.shape[0] * 3
+    got_ori = nn[idx]
+    got_pos = fwd['source_rr'][idx]
+    assert_allclose(got_pos, want_pos, atol=1.1e-2)  # 1.1 cm
+    ang = np.rad2deg(np.arccos(np.sum(got_ori * want_ori, axis=1)))
+    assert_array_less(ang, 40)  # better than ECD + sphere
+    # MxNE
+    stc = mne.inverse_sparse.mixed_norm(
+        evoked, fwd, cov, 0.05, loose=dict(surface=0., volume=1.),
+        maxit=10, tol=1e-6, active_set_size=2, weights=stc,
+        verbose='error')
+    assert len(stc.data) == 2
+    pos = np.concatenate([fwd['src'][ii]['rr'][v]
+                          for ii, v in enumerate(stc.vertices)])
+    assert pos.shape == (2, 3)
+    assert_allclose(got_pos, want_pos, atol=1.1e-2)
 
 
 run_tests_if_main()

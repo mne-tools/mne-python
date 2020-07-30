@@ -118,11 +118,12 @@ noise_cov = mne.read_cov(fname_cov)
 snr = 3.0            # use smaller SNR for raw data
 inv_method = 'dSPM'  # sLORETA, MNE, dSPM
 parc = 'aparc'       # the parcellation to use, e.g., 'aparc' 'aparc.a2009s'
+loose = dict(surface=0.2, volume=1.)
 
 lambda2 = 1.0 / snr ** 2
 
-inverse_operator = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                         depth=None, fixed=False)
+inverse_operator = make_inverse_operator(
+    evoked.info, fwd, noise_cov, depth=None, loose=loose, verbose=True)
 
 stc = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                     pick_ori=None)

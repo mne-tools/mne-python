@@ -25,6 +25,8 @@ Changelog
 
 - :meth:`mne.Epochs.plot_psd_topomap` and :func:`mne.viz.plot_epochs_psd_topomap` now allow joint colorbar limits across subplots, by `Daniel McCloy`_.
 
+- Add support for using loose-orientation surface priors with free-orientation volume priors in mixed source space inverses by `Eric Larson`_
+
 - Add :class:`mne.MixedVectorSourceEstimate` for vector source estimates for mixed source spaces, by `Eric Larson`_
 
 - Add :meth:`mne.MixedSourceEstimate.surface` and :meth:`mne.MixedSourceEstimate.volume` methods to allow surface and volume extraction by `Eric Larson`_

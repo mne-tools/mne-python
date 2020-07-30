@@ -264,13 +264,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     alpha : float in range [0, 100)
         Regularization parameter. 0 means no regularization, 100 would give 0
         active dipole.
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation.
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumic or discrete source space.
+    %(loose)s
     %(depth)s
     maxit : int
         Maximum number of iterations.
@@ -489,13 +483,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation.
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumic or discrete source space.
+    %(loose)s
     %(depth)s
     maxit : int
         Maximum number of iterations.

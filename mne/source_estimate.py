@@ -411,24 +411,23 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
         raise ValueError('vertices has to be either a list with one or more '
                          'arrays or an array')
 
-    # massage the data
+    # Rotate back for vector source estimates
     if vector:
         n_vertices = sum(len(v) for v in vertices)
         assert data.shape[0] in (n_vertices, n_vertices * 3)
-        if src_type == 'surface' and len(data) == n_vertices:
+        if len(data) == n_vertices:
+            assert src_type == 'surface'  # should only be possible for this
             assert source_nn.shape == (n_vertices, 3)
             data = data[:, np.newaxis] * source_nn[:, :, np.newaxis]
         else:
             data = data.reshape((-1, 3, data.shape[-1]))
-            # undo surf_ori, if applicable (only possible for surf-ori for now,
-            # if we eventually allow loose-ori mixed source spaces we'll need
-            # to fix this)
             assert source_nn.shape in ((n_vertices, 3, 3),
                                        (n_vertices * 3, 3))
-            if src_type == 'surface':
-                data = np.matmul(
-                    np.transpose(source_nn.reshape(n_vertices, 3, 3),
-                                 axes=[0, 2, 1]), data)
+            # This will be an identity transform for volumes, but let's keep
+            # the code simple and general and just do the matrix mult
+            data = np.matmul(
+                np.transpose(source_nn.reshape(n_vertices, 3, 3),
+                             axes=[0, 2, 1]), data)
 
     return Klass(
         data=data, vertices=vertices, tmin=tmin, tstep=tstep, subject=subject
