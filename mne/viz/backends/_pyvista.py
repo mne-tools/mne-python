@@ -676,8 +676,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
-        distance = max(bounds[1::2] - bounds[::2]) * 2.0
-    distance = distance / 2.
+        distance = max(bounds[1::2] - bounds[::2]) * 1.5
 
     if focalpoint is not None:
         focalpoint = np.asarray(focalpoint)

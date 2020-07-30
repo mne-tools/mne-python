@@ -853,8 +853,8 @@ class _TimeViewer(object):
         win = self.plotter.app_window
         dpi = win.windowHandle().screen().logicalDotsPerInch()
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        w = self.plotter.geometry().width()
-        h = self.plotter.geometry().height() / ratio
+        w = self.interactor.geometry().width()
+        h = self.interactor.geometry().height() / ratio
         # Get the fractional components for the brain and mpl
         self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi)
         xlim = [np.min(self.brain._data['time']),
@@ -867,11 +867,11 @@ class _TimeViewer(object):
             from PyQt5.QtCore import Qt
             canvas = self.mpl_canvas.canvas
             vlayout = self.plotter.frame.layout()
-            vlayout.removeWidget(self.plotter)
+            vlayout.removeWidget(self.interactor)
             self.splitter = splitter = QSplitter(
                 orientation=Qt.Vertical, parent=self.plotter.frame)
             vlayout.addWidget(splitter)
-            splitter.addWidget(self.plotter)
+            splitter.addWidget(self.interactor)
             splitter.addWidget(canvas)
         self.mpl_canvas.set_color(
             bg_color=self.brain._bg_color,
