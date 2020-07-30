@@ -438,6 +438,11 @@ def test_ica_additional(method):
     # check deprecation warning
     with pytest.warns(DeprecationWarning, match='The default for "threshold"'):
         ica.find_bads_ecg(raw, threshold=None)
+    # check invalid `measure`
+    with pytest.warns(RuntimeWarning, match='longer'):
+        with pytest.raises(ValueError, match='Unknown measure'):
+            ica.find_bads_ecg(raw, method='correlation', measure='unknown',
+                              threshold='auto')
     # check passing a ch_name to find_bads_ecg
     with pytest.warns(RuntimeWarning, match='longer'):
         _, scores_1 = ica.find_bads_ecg(raw, threshold='auto')
