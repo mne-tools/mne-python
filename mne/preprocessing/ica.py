@@ -1067,7 +1067,7 @@ class ICA(ContainsMixin):
                       measure="zscore"):
         """Compute ExG/ref components.
 
-        See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
+        See find_bads_ecg, find_bads_eog, and find_bads_ref for details.
         """
         scores, idx = [], []
         # some magic we need inevitably ...
@@ -1200,7 +1200,7 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-        measure : {'zscore', "cor"}
+        measure : 'zscore' | 'cor'
             Which method to use for finding outliers. 'zscore' (default) is
             the iterated Z-scoring method, and 'cor' is an absolute raw
             correlation threshold with a range of 0 to 1.
@@ -1211,7 +1211,7 @@ class ICA(ContainsMixin):
         Returns
         -------
         ecg_idx : list of int
-            The indices of ECG related components.
+            The indices of ECG-related components.
         scores : np.ndarray of float, shape (``n_components_``)
             If method is 'ctps', the normalized Kuiper index scores. If method
             is 'correlation', the correlation scores.
