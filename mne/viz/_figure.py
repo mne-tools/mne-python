@@ -32,11 +32,6 @@ class MNEFigure(Figure):
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
-        # remove matplotlib default keypress catchers
-        default_cbs = list(
-            self.canvas.callbacks.callbacks.get('key_press_event', {}))
-        for callback in default_cbs:
-            self.canvas.callbacks.disconnect(callback)
         # add our param object
         self.mne = MNEFigParams(**kwargs)
 
@@ -73,6 +68,23 @@ class MNEFigure(Figure):
         w_or_h = fig_w if horiz else fig_h
         return dim_inches / w_or_h
 
+    def _add_default_callbacks(self):
+        """Remove matplotlib default callbacks and add MNE-Python ones."""
+        # Remove matplotlib default keypress catchers
+        default_cbs = list(
+            self.canvas.callbacks.callbacks.get('key_press_event', {}))
+        for callback in default_cbs:
+            self.canvas.callbacks.disconnect(callback)
+        # add our event callbacks
+        callbacks = dict(resize_event=self._resize,
+                         key_press_event=self._keypress,
+                         button_press_event=self._buttonpress)
+        callback_ids = dict()
+        for event, callback in callbacks.items():
+            callback_ids[event] = self.canvas.mpl_connect(event, callback)
+        # store callback references so they aren't garbage-collected
+        self.mne._callback_ids = callback_ids
+
 
 class MNEAnnotationFigure(MNEFigure):
     """Interactive dialog figure for annotations."""
@@ -82,20 +94,20 @@ class MNEAnnotationFigure(MNEFigure):
     def _keypress(self, event):
         """Triage keypress events."""
         from matplotlib.pyplot import close
-        text = self.label.get_text()[1:-1]
+        text = self.label.get_text()
         key = event.key
         if key == self.mne.close_key:
             close(self)
             return
-        elif len(key) > 1 or key == ';':  # ignore modifier keys
-            return
-        elif key == 'backspace':  # TODO FIXME not working
+        elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
-            self._onclick_new_label(event)
+            self._parent_fig._add_annotation_label(event)
+        elif len(key) > 1 or key == ';':  # ignore modifier keys
+            return
         else:
             text = text + key
-        self.label.set_text('"' + text + '"')
+        self.label.set_text(text)
         self.canvas.draw()
 
 
@@ -412,14 +424,14 @@ class MNEBrowseFigure(MNEFigure):
             pass
 
     def _add_annotation_label(self, event):
-        """Add new annotation description when 'ADD' button is pressed."""
-        text = self.mne.fig_annotation.label.get_text()[1:-1]
+        """Add new annotation description."""
+        text = self.mne.fig_annotation.label.get_text()
         self.mne.added_labels.append(text)
         self._setup_annotation_colors()
-        self._create_annotation_fig()  # TODO FIXME?
+        self._update_annotation_fig()
         idx = [label.get_text() for label in
-               self.mne.fig_annotation.radio.labels].index(text)
-        self._set_annotation_radio_button(idx)  # TODO FIXME not defined yet
+               self.mne.fig_annotation.radio_ax.buttons.labels].index(text)
+        self._set_annotation_radio_button(idx)
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations."""
@@ -447,17 +459,20 @@ class MNEBrowseFigure(MNEFigure):
 
     def _set_annotation_radio_button(self, idx):
         """Set active button in annotation dialog figure."""
-        radio = self.mne.fig_annotation.radio
+        radio = self.mne.fig_annotation.radio_ax.buttons
         for circle in radio.circles:
-            circle.set_facecolor('white')
-        radio.circles[idx].set_facecolor('#cccccc')
+            circle.set_facecolor('w')
+        # active circle gets filled in, partially transparent
+        color = list(radio.circles[idx].get_edgecolor())
+        color[-1] = 0.5
+        radio.circles[idx].set_facecolor(color)
         _annotation_radio_clicked('', radio, self.mne.ax_main.selector)
 
     def _annotate_select(self, tmin, tmax):
         """Handle annotation span selector."""
         onset = _sync_onset(self.mne.inst, tmin, True) - self.mne.first_time
         duration = tmax - tmin
-        radio = self.mne.fig_annotation.radio
+        radio = self.mne.fig_annotation.radio_ax.buttons
         active_idx = _get_active_radio_idx(radio)
         description = radio.labels[active_idx].get_text()
         _merge_annotations(onset, onset + duration, description,
@@ -530,66 +545,136 @@ class MNEBrowseFigure(MNEFigure):
     def _clear_annotation_fig(self, event=None):
         """Close the annotation dialog window (via keypress or window [x])."""
         self.mne.fig_annotation = None
+        # disconnect hover callback
+        callback_id = self.mne._callback_ids['motion_notify_event']
+        self.canvas.callbacks.disconnect(callback_id)
 
-    def _create_annotation_fig(self):
-        """Create the annotation dialog window."""
-        from matplotlib.widgets import Button, RadioButtons, SpanSelector
+    def _compute_annotation_figsize(self, n_labels):
+        """Adapt size of Annotation UI to accommodate the number of buttons.
 
-        annotations = self.mne.inst.annotations
-        labels = list(set(annotations.description))
-        labels = np.union1d(labels, self.mne.added_labels)
-        # make figure
+        self._create_annotation_fig() implements the following:
+
+        Fixed part of height:
+        0.1  top margin
+        1.0  instructions
+        0.5  padding below instructions
+        ---  (variable-height axis for label list)
+        0.1  padding above text entry
+        0.3  text entry
+        0.1  padding above button
+        0.3  button
+        0.1  bottom margin
+        ------------------------------------------
+        2.5  total fixed height
+        """
+        pad = 0.1
         width = 4.5
-        height = 2.75 + len(labels) * 0.75
-        fig = dialog_figure(figsize=(width, height),
-                            FigureClass=MNEAnnotationFigure)
-        _set_window_title(fig, 'Annotations')
-        # make axes
-        n_labels = max(len(labels), 1)
-        gs = fig.add_gridspec(n_labels + 2, 2)
-        ax = fig.add_subplot(gs[:n_labels, :2], frameon=False)
-        ax.set_title('Labels')
-        ax.set_aspect('equal')
-        button_ax = fig.add_subplot(gs[n_labels, 1])
-        label_ax = fig.add_subplot(gs[n_labels, 0])
-        label_ax.set_axis_off()
-        text_ax = fig.add_subplot(gs[n_labels + 1, :])
-        text_ax.text(0.5, 0.9, 'Left click & drag - Create/modify annotation\n'
-                               'Right click - Delete annotation\n'
-                               'Letter/number keys - Add character\n'
-                               'Backspace - Delete character\n'
-                               'Esc - Close window/exit annotation mode',
-                     va='top', ha='center')
-        text_ax.set_axis_off()
-        fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
+        var_height = max(pad, 0.7 * n_labels)
+        fixed_height = 2.5
+        return (width, var_height, fixed_height, pad)
+
+    def _update_annotation_fig(self):
+        """Draw or redraw the radio buttons and annotation labels."""
+        from matplotlib.widgets import RadioButtons
+        # define shorthand variables
+        fig = self.mne.fig_annotation
+        ax = fig.radio_ax
+        # get all the labels
+        labels = list(set(self.mne.inst.annotations.description))
+        labels = np.union1d(labels, self.mne.added_labels)
+        # compute new figsize
+        width, var_height, fixed_height, pad = \
+            self._compute_annotation_figsize(len(labels))
+        fig.set_size_inches(width, var_height + fixed_height, forward=True)
+        # populate center axes with labels & radio buttons
+        ax.clear()
+        title = 'Existing labels:' if len(labels) else 'No existing labels'
+        ax.set_title(title, size=None)
+        ax.buttons = RadioButtons(ax, labels)
+        # adjust xlim to keep equal aspect & full width (keep circles round)
+        aspect = (width - 2 * pad) / var_height
+        ax.set_xlim((0, aspect))
+        # style the buttons & adjust spacing
         radius = 0.15
-        circles = fig.radio.circles
-        for circle, label in zip(circles, fig.radio.labels):
+        circles = ax.buttons.circles
+        for circle, label in zip(circles, ax.buttons.labels):
+            circle.set_transform(ax.transData)
+            center = ax.transData.inverted().transform(
+                ax.transAxes.transform((0.1, 0)))
+            circle.set_center((center[0], circle.center[1]))
             circle.set_edgecolor(self.mne.segment_colors[label.get_text()])
             circle.set_linewidth(4)
             circle.set_radius(radius / (len(labels)))
-            label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
-        col = ('#ff0000' if len(fig.radio.circles) < 1 else
-               circles[0].get_edgecolor())
-        fig.button = Button(button_ax, 'Add label')
-        fig.label = label_ax.text(0.5, 0.5, '"BAD_"', va='center', ha='center')
+
+    def _create_annotation_fig(self):
+        """Create the annotation dialog window."""
+        from matplotlib.widgets import Button, SpanSelector
+        from mpl_toolkits.axes_grid1.axes_size import Fixed
+        from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
+        # make figure
+        labels = np.array(sorted(set(self.mne.inst.annotations.description)))
+        width, var_height, fixed_height, pad = \
+            self._compute_annotation_figsize(len(labels))
+        fig = dialog_figure(figsize=(width, var_height + fixed_height),
+                            FigureClass=MNEAnnotationFigure)
+        fig._parent_fig = self
+        _set_window_title(fig, 'Annotations')
+        self.mne.fig_annotation = fig
+        # make main axes
+        left = fig._inch_to_rel(pad)
+        bottom = fig._inch_to_rel(pad, horiz=False)
+        width = 1 - 2 * left
+        height = 1 - 2 * bottom
+        fig.radio_ax = fig.add_axes((left, bottom, width, height),
+                                    frameon=False, aspect='equal')
+        div = make_axes_locatable(fig.radio_ax)
+        self._update_annotation_fig()  # populate w/ radio buttons & labels
+        # append instructions at top
+        instructions_ax = div.append_axes(position='top', size=Fixed(1),
+                                          pad=Fixed(5 * pad))
+        instructions = '\n'.join(
+            [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',
+             r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
+             r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
+             r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
+             r'$\mathbf{Esc:}$ exit annotation mode & close window'])
+        # in case user has usetex=True set in rcParams, pass usetex=False here
+        instructions_ax.text(0, 1, instructions, va='top', ha='left',
+                             usetex=False)
+        instructions_ax.set_axis_off()
+        # append text entry axes at bottom
+        text_entry_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
+                                        pad=Fixed(pad))
+        text_entry_ax.text(0.4, 0.5, 'New label:', va='center', ha='right',
+                           weight='bold')
+        fig.label = text_entry_ax.text(0.5, 0.5, 'BAD_', va='center',
+                                       ha='left')
+        text_entry_ax.set_axis_off()
+        # append button at bottom
+        button_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
+                                    pad=Fixed(pad))
+        fig.button = Button(button_ax, 'Add new label')
         fig.button.on_clicked(self._add_annotation_label)
         plt_show(fig=fig)
+        # setup interactivity in plot window
+        col = ('#ff0000' if len(fig.radio_ax.buttons.circles) < 1 else
+               fig.radio_ax.buttons.circles[0].get_edgecolor())
         selector = SpanSelector(self.mne.ax_main, self._annotate_select,
                                 'horizontal', minspan=0.1,
                                 rectprops=dict(alpha=0.5, facecolor=col))
         if len(labels) == 0:
             selector.active = False
         self.mne.ax_main.selector = selector
-        # register hover callback
+        # add event listeners
+        fig.canvas.mpl_connect('close_event', self._clear_annotation_fig)
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
         # TODO: fig._annotation_radio_clicked not defined
-        radio_clicked = partial(_annotation_radio_clicked, radio=fig.radio,
+        radio_clicked = partial(_annotation_radio_clicked,
+                                radio=fig.radio_ax.buttons,
                                 selector=selector)
-        fig.radio.on_clicked(radio_clicked)
-        # save
-        self.mne.fig_annotation = fig
+        fig.radio_ax.buttons.on_clicked(radio_clicked)
 
     def _onclick_help(self, event):
         pass
@@ -1003,28 +1088,13 @@ def browse_figure(inst, **kwargs):
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
     # add event callbacks
-    callbacks = dict(resize_event=fig._resize,
-                     key_press_event=fig._keypress,
-                     button_press_event=fig._buttonpress,
-                     motion_notify_event=fig._hover)
-    callback_ids = dict()
-    for event, callback in callbacks.items():
-        callback_ids[event] = fig.canvas.mpl_connect(event, callback)
-    # store callback references so they aren't garbage-collected
-    fig.mne._callback_ids = callback_ids
+    fig._add_default_callbacks()
     return fig
 
 
 def dialog_figure(**kwargs):
     """Instantiate a new MNE dialog figure (with event listeners)."""
     fig = _figure(toolbar=False, **kwargs)
-    # add event callbacks
-    callbacks = dict(resize_event=fig._resize,
-                     key_press_event=fig._keypress,
-                     button_press_event=fig._buttonpress)
-    callback_ids = dict()
-    for event, callback in callbacks.items():
-        callback_ids[event] = fig.canvas.mpl_connect(event, callback)
-    # store callback references so they aren't garbage-collected
-    fig.mne._callback_ids = callback_ids
+    # add our event callbacks
+    fig._add_default_callbacks()
     return fig
