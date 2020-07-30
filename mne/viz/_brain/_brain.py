@@ -615,8 +615,7 @@ class _Brain(object):
         volume = self._data[hemi].get('grid_volume')
         if volume is not None:
             actor, _ = self._renderer.plotter.add_actor(
-                volume, reset_camera=False, name=None, culling=False,
-                pickable=False)  # setting this pickable segfaults on click...
+                volume, reset_camera=False, name=None, culling=False)
             return actor
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
@@ -669,11 +668,12 @@ class _Brain(object):
             dimensions, origin, spacing, scalars, alpha, surface_alpha,
             resolution, blending)
         self._data[hemi]['grid'] = grid
+        self._data[hemi]['grid_src_mri_t'] = src_mri_t
+        self._data[hemi]['grid_shape'] = dimensions
         self._data[hemi]['grid_mapper'] = mapper
         self._data[hemi]['grid_volume'] = volume
         actor, _ = self._renderer.plotter.add_actor(
-            volume, reset_camera=False, name=None, culling=False,
-            pickable=False)  # setting this pickable segfaults on click...
+            volume, reset_camera=False, name=None, culling=False)
         return actor
 
     def _add_volume_object(self, dimensions, origin, spacing, scalars,
@@ -1359,18 +1359,18 @@ class _Brain(object):
                     name=str(hemi) + "_glyph"
                 )
                 if polydata is not None:
-                    if add:
+                    if not add:
+                        glyph_actor = hemi_data['glyph_actor'][count]
+                        glyph_mesh = hemi_data['glyph_mesh'][count]
+                        glyph_mesh.shallow_copy(polydata)
+                    else:
                         glyph_actor, _ = self._renderer.polydata(polydata)
                         assert not isinstance(glyph_actor, list)
                         glyph_actor.VisibilityOff()
                         glyph_actor.GetProperty().SetLineWidth(2.)
                         hemi_data['glyph_mesh'].append(polydata)
                         hemi_data['glyph_actor'].append(glyph_actor)
-                    glyph_actor = hemi_data['glyph_actor'][count]
-                    glyph_mesh = hemi_data['glyph_mesh'][count]
                     count += 1
-                    if not add:
-                        glyph_mesh.shallow_copy(polydata)
                     ctable = self._data['ctable']
                     rng = self._cmap_range
                     _set_colormap_range(glyph_actor, ctable, None, rng)

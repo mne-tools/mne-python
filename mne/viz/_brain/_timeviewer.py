@@ -13,11 +13,13 @@ import traceback
 import warnings
 
 import numpy as np
+from scipy import sparse
 
 from . import _Brain
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...externals.decorator import decorator
-from ...source_space import vertex_to_mni
+from ...source_space import vertex_to_mni, _read_talxfm
+from ...transforms import apply_trans
 from ...utils import _ReuseCycle, warn, copy_doc
 
 
@@ -340,9 +342,10 @@ class _TimeViewer(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
-        self.act_data_smooth = {'lh': None, 'rh': None}
+        all_keys = ('lh', 'rh', 'vol')
+        self.act_data_smooth = {key: (None, None) for key in all_keys}
         self.color_cycle = None
-        self.picked_points = {'lh': list(), 'rh': list()}
+        self.picked_points = {key: list() for key in all_keys}
         self._mouse_no_mvt = -1
         self.icons = dict()
         self.actions = dict()
@@ -373,6 +376,7 @@ class _TimeViewer(object):
             self.show_traces = show_traces
             self.separate_canvas = False
 
+        self._spheres = list()
         self.load_icons()
         self.interactor_stretch = 3
         self.configure_time_label()
@@ -845,34 +849,58 @@ class _TimeViewer(object):
         )
         self.mpl_canvas.show()
 
-        # get brain data
-        for idx, hemi in enumerate(['lh', 'rh']):
+        # get data for each hemi
+        for idx, hemi in enumerate(['vol', 'lh', 'rh']):
             hemi_data = self.brain._data.get(hemi)
             if hemi_data is not None:
                 act_data = hemi_data['array']
                 if act_data.ndim == 3:
                     act_data = np.linalg.norm(act_data, axis=1)
                 smooth_mat = hemi_data.get('smooth_mat')
+                vertices = hemi_data['vertices']
+                if hemi == 'vol':
+                    assert smooth_mat is None
+                    smooth_mat = sparse.csr_matrix(
+                        (np.ones(len(vertices)),
+                         (vertices, np.arange(len(vertices)))))
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
-                # simulate a picked renderer
-                if self.brain._hemi == 'split':
-                    self.picked_renderer = self.plotter.renderers[idx]
-                else:
-                    self.picked_renderer = self.plotter.renderers[0]
+        # plot the GFP
+        y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
+                                if v[0] is not None))
+        y = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
+        self.mpl_canvas.axes.plot(
+            self.brain._data['time'], y,
+            lw=3, label='GFP', zorder=3, color=self.brain._fg_color,
+            alpha=0.5, ls=':')
 
-                # initialize the default point
-                color = next(self.color_cycle)
-                ind = np.unravel_index(
-                    np.argmax(self.act_data_smooth[hemi][0], axis=None),
-                    self.act_data_smooth[hemi][0].shape
-                )
-                vertex_id = hemi_data['vertices'][ind[0]]
-                mesh = hemi_data['mesh']
-                line = self.plot_time_course(hemi, vertex_id, color)
-                self.add_point(hemi, mesh, vertex_id, line, color)
-
+        # now plot the time line
         self.plot_time_line()
+
+        # then the picked points
+        for idx, hemi in enumerate(['lh', 'rh', 'vol']):
+            act_data = self.act_data_smooth.get(hemi, [None])[0]
+            if act_data is None:
+                continue
+            hemi_data = self.brain._data[hemi]
+            vertices = hemi_data['vertices']
+
+            # simulate a picked renderer
+            if self.brain._hemi == 'both' or hemi == 'vol':
+                idx = 0
+            self.picked_renderer = self.plotter.renderers[idx]
+
+            # initialize the default point
+            color = next(self.color_cycle)
+            ind = np.unravel_index(np.argmax(act_data, axis=None),
+                                   act_data.shape)
+            if hemi == 'vol':
+                mesh = hemi_data['grid']
+            else:
+                mesh = hemi_data['mesh']
+            vertex_id = vertices[ind[0]]
+            line = self.plot_time_course(hemi, vertex_id, color)
+            self.add_point(hemi, mesh, vertex_id, line, color)
 
         _update_picking_callback(
             self.plotter,
@@ -993,14 +1021,32 @@ class _TimeViewer(object):
         if hasattr(mesh, "_is_point"):
             self.remove_point(mesh)
         elif self._mouse_no_mvt:
-            hemi = mesh._hemi
-            pos = vtk_picker.GetPickPosition()
-            vtk_cell = mesh.GetCell(cell_id)
-            cell = [vtk_cell.GetPointId(point_id) for point_id
-                    in range(vtk_cell.GetNumberOfPoints())]
-            vertices = mesh.points[cell]
-            idx = np.argmin(abs(vertices - pos), axis=0)
-            vertex_id = cell[idx[0]]
+            try:
+                hemi = mesh._hemi
+            except AttributeError:  # volume
+                hemi = 'vol'
+            else:
+                assert hemi in ('lh', 'rh')
+            if self.act_data_smooth[hemi][0] is None:
+                return
+            pos = np.array(vtk_picker.GetPickPosition())
+            if hemi == 'vol':
+                # XXX need to make this pick the max along the ray...
+                grid = mesh = self.brain._data[hemi]['grid']
+                shape = self.brain._data[hemi]['grid_shape']
+                # convert pos to idx; i.e., apply mri_src_t
+                # taking into account the cell vs point difference (spacing/2)
+                spacing = np.array(grid.GetSpacing())
+                shift = np.array(grid.GetOrigin()) + spacing / 2.
+                ijk = np.round((pos - shift) / spacing).astype(int)
+                vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+            else:
+                vtk_cell = mesh.GetCell(cell_id)
+                cell = [vtk_cell.GetPointId(point_id) for point_id
+                        in range(vtk_cell.GetNumberOfPoints())]
+                vertices = mesh.points[cell]
+                idx = np.argmin(abs(vertices - pos), axis=0)
+                vertex_id = cell[idx[0]]
 
             if vertex_id not in self.picked_points[hemi]:
                 color = next(self.color_cycle)
@@ -1013,7 +1059,14 @@ class _TimeViewer(object):
 
     def add_point(self, hemi, mesh, vertex_id, line, color):
         from ..backends._pyvista import _sphere
-        center = mesh.GetPoints().GetPoint(vertex_id)
+        if hemi == 'vol':
+            ijk = np.unravel_index(
+                vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
+            center = np.empty(3)
+            mesh.GetCell(*ijk).GetCentroid(center)
+        else:
+            center = mesh.GetPoints().GetPoint(vertex_id)
+        del mesh
 
         # from the picked renderer to the subplot coords
         rindex = self.plotter.renderers.index(self.picked_renderer)
@@ -1050,10 +1103,7 @@ class _TimeViewer(object):
         self.picked_points[hemi].append(vertex_id)
 
         # this is used for testing only
-        if hasattr(self, "_spheres"):
-            self._spheres += spheres
-        else:
-            self._spheres = spheres
+        self._spheres += spheres
 
     def remove_point(self, mesh):
         mesh._line.remove()
@@ -1068,26 +1118,35 @@ class _TimeViewer(object):
         mesh._actors = None
 
     def clear_points(self):
-        if hasattr(self, "_spheres"):
-            for sphere in self._spheres:
-                vertex_id = sphere._vertex_id
-                hemi = sphere._hemi
-                if vertex_id in self.picked_points[hemi]:
-                    self.remove_point(sphere)
-            self._spheres.clear()
+        for sphere in self._spheres:
+            vertex_id = sphere._vertex_id
+            hemi = sphere._hemi
+            if vertex_id in self.picked_points[hemi]:
+                self.remove_point(sphere)
+        self._spheres.clear()
 
     def plot_time_course(self, hemi, vertex_id, color):
         if not hasattr(self, "mpl_canvas"):
             return
         time = self.brain._data['time'].copy()  # avoid circular ref
-        hemi_str = 'L' if hemi == 'lh' else 'R'
-        hemi_int = 0 if hemi == 'lh' else 1
-        mni = vertex_to_mni(
-            vertices=vertex_id,
-            hemis=hemi_int,
-            subject=self.brain._subject_id,
-            subjects_dir=self.brain._subjects_dir
-        )
+        if hemi == 'vol':
+            hemi_str = 'V'
+            xfm = _read_talxfm(
+                self.brain._subject_id, self.brain._subjects_dir)
+            if self.brain._units == 'm':
+                xfm['trans'][:3, 3] /= 1000.
+            ijk = np.unravel_index(
+                vertex_id, self.brain._data[hemi]['grid_shape'], order='F')
+            src_mri_t = self.brain._data[hemi]['grid_src_mri_t']
+            mni = apply_trans(np.dot(xfm['trans'], src_mri_t), ijk)
+        else:
+            hemi_str = 'L' if hemi == 'lh' else 'R'
+            mni = vertex_to_mni(
+                vertices=vertex_id,
+                hemis=0 if hemi == 'lh' else 1,
+                subject=self.brain._subject_id,
+                subjects_dir=self.brain._subjects_dir
+            )
         label = "{}:{} MNI: {}".format(
             hemi_str, str(vertex_id).ljust(6),
             ', '.join('%5.1f' % m for m in mni))
@@ -1101,7 +1160,8 @@ class _TimeViewer(object):
             act_data,
             label=label,
             lw=1.,
-            color=color
+            color=color,
+            zorder=4,
         )
         return line
 
@@ -1118,9 +1178,8 @@ class _TimeViewer(object):
                     color=self.brain._fg_color,
                     lw=1,
                 )
-            else:
-                self.time_line.set_xdata(current_time)
-                self.mpl_canvas.update_plot()
+            self.time_line.set_xdata(current_time)
+            self.mpl_canvas.update_plot()
 
     def help(self):
         pairs = [
@@ -1189,9 +1248,8 @@ class _TimeViewer(object):
             self.mpl_canvas = None
         self.time_actor = None
         self.picked_renderer = None
-        self.act_data_smooth["lh"] = None
-        self.act_data_smooth["rh"] = None
-        self.act_data_smooth = None
+        for key in list(self.act_data_smooth.keys()):
+            self.act_data_smooth[key] = None
 
 
 class _LinkViewer(object):

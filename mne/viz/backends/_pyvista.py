@@ -830,6 +830,7 @@ def _update_picking_callback(plotter,
         vtk.vtkCommand.EndPickEvent,
         on_pick
     )
+    picker.SetVolumeOpacityIsovalue(0.)
     plotter.picker = picker
 
 
