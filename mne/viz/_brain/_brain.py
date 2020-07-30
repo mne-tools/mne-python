@@ -620,13 +620,13 @@ class _Brain(object):
             volume_options = dict(volume_alpha=float(volume_options))
         volume_options = _handle_default('volume_options', volume_options)
         for key, types in (['resolution', (None, 'numeric')],
-                        ['blending', (str,)],
-                        ['alpha', ('numeric', None)],
-                        ['surface_alpha', (None, 'numeric')]):
+                           ['blending', (str,)],
+                           ['alpha', ('numeric', None)],
+                           ['surface_alpha', (None, 'numeric')]):
             _validate_type(volume_options[key], types,
-                        f'volume_options[{repr(key)}]')
+                           f'volume_options[{repr(key)}]')
         _check_option('volume_options["blending"]', volume_options['blending'],
-                    ('composite', 'mip'))
+                      ('composite', 'mip'))
         blending = volume_options['blending']
         alpha = volume_options['alpha']
         if alpha is None:
@@ -651,12 +651,12 @@ class _Brain(object):
             coords = np.array([c.ravel(order='F') for c in xyz]).T
             coords = apply_trans(src_mri_t, coords)
             self.geo[hemi] = Bunch(coords=coords)
-            self._data[hemi]['alpha'] = alpha  # this gets set incorrectly earlier
             vertices = self._data[hemi]['vertices']
             assert self._data[hemi]['array'].shape[0] == len(vertices)
             # MNE constructs the source space on a uniform grid in MRI space,
             # but let's make sure
-            assert np.allclose(src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
+            assert np.allclose(
+                src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
             spacing = np.diag(src_mri_t)[:3]
             origin = src_mri_t[:3, 3] - spacing / 2.
             scalars = np.zeros(np.prod(dimensions))
@@ -664,6 +664,7 @@ class _Brain(object):
             grid, grid_mesh, mapper, volume = self._add_volume_object(
                 dimensions, origin, spacing, scalars, alpha, surface_alpha,
                 resolution, blending)
+            self._data[hemi]['alpha'] = alpha  # incorrectly set earlier
             self._data[hemi]['grid'] = grid
             self._data[hemi]['grid_mesh'] = grid_mesh
             self._data[hemi]['grid_coords'] = coords
