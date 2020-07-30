@@ -1031,15 +1031,34 @@ class _TimeViewer(object):
                 return
             pos = np.array(vtk_picker.GetPickPosition())
             if hemi == 'vol':
-                # XXX need to make this pick the max along the ray...
+                # VTK will give us the point closest to the viewer in the vol.
+                # We want to pick the point with the maximum value along the
+                # camera-to-click array, which fortunately we can get "just"
+                # by inspecting the points that are sufficiently close to the
+                # ray.
                 grid = mesh = self.brain._data[hemi]['grid']
-                shape = self.brain._data[hemi]['grid_shape']
-                # convert pos to idx; i.e., apply mri_src_t
-                # taking into account the cell vs point difference (spacing/2)
+                vertices = self.brain._data[hemi]['vertices']
+                coords = self.brain._data[hemi]['grid_coords'][vertices]
+                scalars = grid.cell_arrays['values'][vertices]
                 spacing = np.array(grid.GetSpacing())
-                shift = np.array(grid.GetOrigin()) + spacing / 2.
-                ijk = np.round((pos - shift) / spacing).astype(int)
-                vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+                max_dist = np.linalg.norm(spacing) / 2.  # halfway betw centers
+                camera = vtk_picker.GetRenderer().GetActiveCamera()
+                ori = pos - camera.GetPosition()
+                ori /= np.linalg.norm(ori)
+                # the magic formula: distance from a ray to a given point
+                dists = np.linalg.norm(np.cross(ori, coords - pos), axis=1)
+                assert dists.shape == (len(coords),)
+                idx = np.where(dists <= max_dist)[0]
+                if len(idx) == 0:
+                    return  # weird point on edge of volume?
+                idx = idx[np.argmax(np.abs(scalars[idx]))]
+                vertex_id = vertices[idx]
+                # Naive way: convert pos directly to idx; i.e., apply mri_src_t
+                # shape = self.brain._data[hemi]['grid_shape']
+                # taking into account the cell vs point difference (spacing/2)
+                # shift = np.array(grid.GetOrigin()) + spacing / 2.
+                # ijk = np.round((pos - shift) / spacing).astype(int)
+                # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
             else:
                 vtk_cell = mesh.GetCell(cell_id)
                 cell = [vtk_cell.GetPointId(point_id) for point_id

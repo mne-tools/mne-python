@@ -644,30 +644,31 @@ class _Brain(object):
         del volume_options
         xyz = np.meshgrid(
             *[np.arange(s) for s in src[0]['shape']], indexing='ij')
-        rr = np.array([c.ravel(order='F') for c in xyz]).T
-        rr = apply_trans(src[0]['src_mri_t'], rr)
         dimensions = np.array(src[0]['shape'], int)
-        src_mri_t = src[0]['src_mri_t']['trans'].copy()
-        del src
         mult = 1000 if self._units == 'mm' else 1
-        self.geo[hemi] = Bunch(coords=mult * rr)
+        src_mri_t = src[0]['src_mri_t']['trans'].copy()
+        src_mri_t[:3] *= mult
+        if resolution is not None:
+            resolution = resolution * mult / 1000.  # to mm
+        del src, mult
+        coords = np.array([c.ravel(order='F') for c in xyz]).T
+        coords = apply_trans(src_mri_t, coords)
+        self.geo[hemi] = Bunch(coords=coords)
         self._data[hemi]['alpha'] = alpha  # this gets set incorrectly earlier
         vertices = self._data[hemi]['vertices']
         assert self._data[hemi]['array'].shape[0] == len(vertices)
         # MNE constructs the source space on a uniform grid in MRI space,
         # but let's make sure
-        src_mri_t[:3] *= mult
         assert np.allclose(src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
         spacing = np.diag(src_mri_t)[:3]
         origin = src_mri_t[:3, 3] - spacing / 2.
         scalars = np.zeros(np.prod(dimensions))
         scalars[vertices] = 1.  # for the outer mesh
-        if resolution is not None:
-            resolution = resolution * mult / 1000.  # to mm
         grid, mapper, volume = self._add_volume_object(
             dimensions, origin, spacing, scalars, alpha, surface_alpha,
             resolution, blending)
         self._data[hemi]['grid'] = grid
+        self._data[hemi]['grid_coords'] = coords
         self._data[hemi]['grid_src_mri_t'] = src_mri_t
         self._data[hemi]['grid_shape'] = dimensions
         self._data[hemi]['grid_mapper'] = mapper
