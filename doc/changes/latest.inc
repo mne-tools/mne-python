@@ -15,6 +15,8 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
+- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from `reject` and `flat` dictionaries by `Rahul Nadkarni`_
+
 - Allow picking channels in raw instances (e.g., :meth:`mne.io.Raw.pick_types`) without preloading data, by `Eric Larson`_
 
 - :meth:`mne.preprocessing.ICA.plot_sources` now plots annotation markers similar to :meth:`mne.io.Raw.plot` by `Luke Bloy`_

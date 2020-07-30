@@ -3003,4 +3003,20 @@ def test_epochs_get_data_item(preload):
     assert_array_equal(one_data, one_epo.get_data())
 
 
+def test_pick_types_reject_flat_keys():
+    """Test that epochs.pick_types removes keys from reject/flat."""
+    raw, events, _ = _get_data()
+    event_id = {'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4}
+    picks = pick_types(raw.info, meg=True, eeg=True, ecg=True, eog=True)
+    epochs = Epochs(raw, events, event_id, preload=True, picks=picks,
+                    reject=dict(grad=1e-10, mag=1e-10, eeg=1e-3, eog=1e-3),
+                    flat=dict(grad=1e-16, mag=1e-16, eeg=1e-16, eog=1e-16))
+
+    assert sorted(epochs.reject.keys()) == ['eeg', 'eog', 'grad', 'mag']
+    assert sorted(epochs.flat.keys()) == ['eeg', 'eog', 'grad', 'mag']
+    epochs.pick_types(meg=True, eeg=False, ecg=False, eog=False)
+    assert sorted(epochs.reject.keys()) == ['grad', 'mag']
+    assert sorted(epochs.flat.keys()) == ['grad', 'mag']
+
+
 run_tests_if_main()
