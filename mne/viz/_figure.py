@@ -11,8 +11,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from .utils import (plt_show, _setup_plot_projector, _events_off,
                     _set_window_title, _get_active_radio_idx,
-                    _merge_annotations, DraggableLine, _get_color_list,
-                    _annotation_radio_clicked)
+                    _merge_annotations, DraggableLine, _get_color_list)
 from ..utils import set_config
 from ..annotations import _sync_onset
 
@@ -109,6 +108,50 @@ class MNEAnnotationFigure(MNEFigure):
             text = text + key
         self.label.set_text(text)
         self.canvas.draw()
+
+    def _style_annotation_buttons(self, idx):
+        """Set active button in annotation dialog figure."""
+        print(f'_style_annotation_buttons() called with index {idx}')
+        buttons = self.radio_ax.buttons
+        with _events_off(buttons):
+            buttons.set_active(idx)
+        for circle in buttons.circles:
+            circle.set_facecolor('w')
+        # active circle gets filled in, partially transparent
+        color = list(buttons.circles[idx].get_edgecolor())
+        color[-1] = 0.5
+        buttons.circles[idx].set_facecolor(color)
+        self.canvas.draw()
+
+    def _radiopress(self, event):
+        """Handle Radiobutton clicks for Annotation label selection."""
+        # update which button looks active
+        print(f'_radiopress() called with event {event}')
+        buttons = self.radio_ax.buttons
+        labels = [label.get_text() for label in buttons.labels]
+        idx = labels.index(buttons.value_selected)
+        self._style_annotation_buttons(idx)
+        # update click-drag rectangle color
+        color = buttons.circles[idx].get_edgecolor()
+        selector = self._parent_fig.mne.ax_main.selector
+        selector.rect.set_color(color)
+        selector.rectprops.update(dict(facecolor=color))
+
+    def _click_override(self, event):
+        """Override MPL radiobutton click detector to use a transData."""
+        ax = self.radio_ax
+        buttons = ax.buttons
+        if (buttons.ignore(event) or event.button != 1 or event.inaxes != ax):
+            return
+        pclicked = ax.transData.inverted().transform((event.x, event.y))
+        distances = {}
+        for i, (p, t) in enumerate(zip(buttons.circles, buttons.labels)):
+            if (t.get_window_extent().contains(event.x, event.y)
+                    or np.linalg.norm(pclicked - p.center) < p.radius):
+                distances[i] = np.linalg.norm(pclicked - p.center)
+        if len(distances) > 0:
+            closest = min(distances, key=distances.get)
+            buttons.set_active(closest)
 
 
 class MNEBrowseFigure(MNEFigure):
@@ -431,7 +474,7 @@ class MNEBrowseFigure(MNEFigure):
         self._update_annotation_fig()
         idx = [label.get_text() for label in
                self.mne.fig_annotation.radio_ax.buttons.labels].index(text)
-        self._set_annotation_radio_button(idx)
+        self.mne.fig_annotation._style_annotation_buttons(idx)
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations."""
@@ -456,17 +499,6 @@ class MNEBrowseFigure(MNEFigure):
             else:
                 segment_colors[key] = next(color_cycle)
         self.mne.segment_colors = segment_colors
-
-    def _set_annotation_radio_button(self, idx):
-        """Set active button in annotation dialog figure."""
-        radio = self.mne.fig_annotation.radio_ax.buttons
-        for circle in radio.circles:
-            circle.set_facecolor('w')
-        # active circle gets filled in, partially transparent
-        color = list(radio.circles[idx].get_edgecolor())
-        color[-1] = 0.5
-        radio.circles[idx].set_facecolor(color)
-        _annotation_radio_clicked('', radio, self.mne.ax_main.selector)
 
     def _annotate_select(self, tmin, tmax):
         """Handle annotation span selector."""
@@ -605,6 +637,10 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_edgecolor(self.mne.segment_colors[label.get_text()])
             circle.set_linewidth(4)
             circle.set_radius(radius / (len(labels)))
+        # add event listeners
+        ax.buttons.disconnect_events()  # clear MPL default listeners
+        ax.buttons.on_clicked(fig._radiopress)
+        ax.buttons.connect_event('button_press_event', fig._click_override)
 
     def _create_annotation_fig(self):
         """Create the annotation dialog window."""
@@ -670,11 +706,6 @@ class MNEBrowseFigure(MNEFigure):
         fig.canvas.mpl_connect('close_event', self._clear_annotation_fig)
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
-        # TODO: fig._annotation_radio_clicked not defined
-        radio_clicked = partial(_annotation_radio_clicked,
-                                radio=fig.radio_ax.buttons,
-                                selector=selector)
-        fig.radio_ax.buttons.on_clicked(radio_clicked)
 
     def _onclick_help(self, event):
         pass
