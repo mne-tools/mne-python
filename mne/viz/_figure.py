@@ -67,7 +67,7 @@ class MNEFigure(Figure):
         w_or_h = fig_w if horiz else fig_h
         return dim_inches / w_or_h
 
-    def _add_default_callbacks(self):
+    def _add_default_callbacks(self, **kwargs):
         """Remove matplotlib default callbacks and add MNE-Python ones."""
         # Remove matplotlib default keypress catchers
         default_cbs = list(
@@ -78,6 +78,7 @@ class MNEFigure(Figure):
         callbacks = dict(resize_event=self._resize,
                          key_press_event=self._keypress,
                          button_press_event=self._buttonpress)
+        callbacks.update(kwargs)
         callback_ids = dict()
         for event, callback in callbacks.items():
             callback_ids[event] = self.canvas.mpl_connect(event, callback)
@@ -109,24 +110,9 @@ class MNEAnnotationFigure(MNEFigure):
         self.label.set_text(text)
         self.canvas.draw()
 
-    def _style_annotation_buttons(self, idx):
-        """Set active button in annotation dialog figure."""
-        print(f'_style_annotation_buttons() called with index {idx}')
-        buttons = self.radio_ax.buttons
-        with _events_off(buttons):
-            buttons.set_active(idx)
-        for circle in buttons.circles:
-            circle.set_facecolor('w')
-        # active circle gets filled in, partially transparent
-        color = list(buttons.circles[idx].get_edgecolor())
-        color[-1] = 0.5
-        buttons.circles[idx].set_facecolor(color)
-        self.canvas.draw()
-
     def _radiopress(self, event):
         """Handle Radiobutton clicks for Annotation label selection."""
         # update which button looks active
-        print(f'_radiopress() called with event {event}')
         buttons = self.radio_ax.buttons
         labels = [label.get_text() for label in buttons.labels]
         idx = labels.index(buttons.value_selected)
@@ -152,6 +138,19 @@ class MNEAnnotationFigure(MNEFigure):
         if len(distances) > 0:
             closest = min(distances, key=distances.get)
             buttons.set_active(closest)
+
+    def _style_annotation_buttons(self, idx):
+        """Set active button in annotation dialog figure."""
+        buttons = self.radio_ax.buttons
+        with _events_off(buttons):
+            buttons.set_active(idx)
+        for circle in buttons.circles:
+            circle.set_facecolor('w')
+        # active circle gets filled in, partially transparent
+        color = list(buttons.circles[idx].get_edgecolor())
+        color[-1] = 0.5
+        buttons.circles[idx].set_facecolor(color)
+        self.canvas.draw()
 
 
 class MNEBrowseFigure(MNEFigure):
@@ -338,133 +337,268 @@ class MNEBrowseFigure(MNEFigure):
                 return
         self._remove_annotation_line()
 
-    def _toggle_scrollbars(self):
-        """Show or hide scrollbars (A.K.A. zen mode)."""
-        # grow/shrink main axes to take up space from (or make room for)
-        # scrollbars. We can't use ax.set_position() because axes are
-        # locatable, so we use subplots_adjust
-        should_show = not self.mne.scrollbars_visible
-        margins = {side: getattr(self.subplotpars, side)
-                   for side in ('left', 'bottom', 'right', 'top')}
-        # if should_show, bottom margin moves up; right margin moves left
-        margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
-        margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
-        # squeeze a bit more because we don't need space for xlabel now
-        v_delta = self._inch_to_rel(0.16, horiz=False)
-        margins['bottom'] += (1 if should_show else -1) * v_delta
-        self.subplots_adjust(**margins)
-        # show/hide
-        for elem in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
-            butterfly = getattr(self.mne, 'butterfly', False)
-            if elem == 'ax_vscroll' and butterfly:
-                continue
-            # sometimes we don't have a proj button (ax_button)
-            if getattr(self.mne, elem, None) is not None:
-                getattr(self.mne, elem).set_visible(should_show)
-        self.mne.scrollbars_visible = should_show
-        self.canvas.draw()
-
-    def _toggle_proj_fig(self, event):
-        """Show/hide the projectors dialog window."""
-        if self.mne.fig_proj is None:
-            self._create_proj_fig()
-        else:
-            self.mne.fig_proj.canvas.close_event()
-            self._clear_proj_fig()
-
-    def _toggle_proj(self, event, toggle_all=False):
-        """Perform operations when proj boxes clicked."""
-        on = self.mne.projs_on
-        applied = self.mne.projs_active
-        new_state = (np.full_like(on, not all(on)) if toggle_all else
-                     np.array(self.mne._proj_checkboxes.get_status()))
-        # update Xs when toggling all
-        if toggle_all:
-            with _events_off(self.mne._proj_checkboxes):
-                for ix in np.where(on != new_state)[0]:
-                    self.mne._proj_checkboxes.set_active(ix)
-        # don't allow disabling already-applied projs
-        with _events_off(self.mne._proj_checkboxes):
-            for ix in np.where(applied)[0]:
-                if not new_state[ix]:
-                    self.mne._proj_checkboxes.set_active(ix)
-            new_state[applied] = True
-        # update the data if necessary
-        if not np.array_equal(on, new_state):
-            self.mne.projs_on = new_state
-            self._update_projector()
+    def _keypress(self, event):
+        """Triage keypress events."""
+        from matplotlib.pyplot import close, get_current_fig_manager
+        from ..preprocessing import ICA
+        key = event.key
+        if key == self.mne.close_key:
+            close(self)
+            if self.mne.fig_proj is not None:
+                close(self.mne.fig_proj)
+            if self.mne.fig_annotation is not None:
+                close(self.mne.fig_annotation)
+        elif key in ('down', 'up'):
+            if self.mne.butterfly:
+                return
+            elif self.mne.fig_selection is not None:
+                pass  # TODO: change channel group
+            else:
+                ceiling = len(self.mne.ch_names) - self.mne.n_channels
+                direction = -1 if key == 'up' else 1
+                ch_start = self.mne.ch_start + direction * self.mne.n_channels
+                self.mne.ch_start = np.clip(ch_start, 0, ceiling)
+                self._update_data()
+                self._draw_traces()
+                self._update_vscroll()
+            self.canvas.draw()
+        elif key in ('right', 'left', 'shift+right', 'shift+left'):
+            direction = 1 if key.endswith('right') else -1
+            denom = 1 if key.startswith('shift') else 4
+            t_max = self.mne.inst.times[-1] - self.mne.duration
+            t_start = self.mne.t_start + direction * self.mne.duration / denom
+            self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
+            # TODO: only update if changed
+            self._update_data()
+            self._draw_traces()
+            self._update_hscroll()
+            self.canvas.draw()
+        elif key in ('=', '+', '-'):
+            scaler = 1 / 1.1 if key == '-' else 1.1
+            self.mne.scale_factor *= scaler
+            self._draw_traces()
+            self.canvas.draw()
+        elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
+            n_ch_delta = 1 if key == 'pageup' else -1
+            n_ch = self.mne.n_channels + n_ch_delta
+            self.mne.n_channels = np.clip(n_ch, 1, len(self.mne.ch_names))
+            # TODO: only update if changed
+            self._update_trace_offsets()
             self._update_data()
             self._draw_traces()
             self.canvas.draw()
-
-    def _update_projector(self):
-        """Update the data after projectors have changed."""
-        # ignore projectors that are already active
-        inds = np.where(self.mne.projs_on)[0]
-        # copy non-active projs from full list (self.mne.projs) to info object
-        self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
-        # compute the projection operator
-        proj, wh_chs = _setup_plot_projector(self.mne.info,
-                                             self.mne.whitened_ch_names,
-                                             True, self.mne.use_noise_cov)
-        self.mne.whitened_ch_names = wh_chs
-        self.mne.projector = proj
-
-    def _clear_proj_fig(self, event=None):
-        """Close the projectors dialog window (via keypress or window [x])."""
-        self.mne.fig_proj = None
-
-    def _create_proj_fig(self):
-        """Create the projectors dialog window."""
-        from matplotlib.widgets import Button, CheckButtons
-
-        projs = self.mne.projs
-        labels = [p['desc'] for p in projs]
-        for ix, active in enumerate(self.mne.projs_active):
-            if active:
-                labels[ix] += ' (already applied)'
-        # make figure
-        width = max([4, max([len(label) for label in labels]) / 6 + 0.5])
-        height = (len(projs) + 1) / 6 + 1.5
-        fig = dialog_figure(figsize=(width, height))
-        _set_window_title(fig, 'SSP projection vectors')
-        # make axes
-        offset = (1 / 6 / height)
-        position = (0, offset, 1, 0.8 - offset)
-        ax = fig.add_axes(position, frameon=False)
-        # make title
-        first_line = ('Projectors already applied to the data are dimmed.\n'
-                      if any(self.mne.projs_active) else '')
-        second_line = 'Projectors marked with "X" are active on the plot.'
-        ax.set_title(f'{first_line}{second_line}')
-        # draw checkboxes
-        checkboxes = CheckButtons(ax, labels=labels, actives=self.mne.projs_on)
-        # gray-out already applied projectors
-        for label, rect, lines in zip(checkboxes.labels,
-                                      checkboxes.rectangles,
-                                      checkboxes.lines):
-            if label.get_text().endswith('(already applied)'):
-                label.set_color('0.5')
-                rect.set_edgecolor('0.7')
-                [x.set_color('0.7') for x in lines]
-            rect.set_linewidth(1)
-        # add "toggle all" button
-        ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frameon=True)
-        self.mne.proj_all = Button(ax_all, 'Toggle all')
-        # add event listeners
-        fig.canvas.mpl_connect('close_event', self._clear_proj_fig)
-        checkboxes.on_clicked(self._toggle_proj)
-        self.mne.proj_all.on_clicked(partial(self._toggle_proj,
-                                             toggle_all=True))
-        # save params
-        self.mne.fig_proj = fig
-        self.mne._proj_checkboxes = checkboxes
-        # show figure (this should work for non-test cases)
-        try:
-            self.mne.fig_proj.canvas.draw()
-            plt_show(fig=self.mne.fig_proj, warn=False)
-        except Exception:
+        elif key in ('home', 'end'):  # change duration
+            dur_delta = 1 if key == 'end' else -1
+            old_dur = self.mne.duration
+            new_dur = self.mne.duration + dur_delta
+            min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
+            self.mne.duration = np.clip(new_dur, min_dur,
+                                        self.mne.inst.times[-1])
+            if self.mne.duration != old_dur:
+                self._update_data()
+                self._draw_traces()
+                self._update_hscroll()
+                self.canvas.draw()
+        elif key == '?':  # help
+            self._onclick_help(event)
+        elif key == 'f11':  # full screen
+            fig_manager = get_current_fig_manager()
+            fig_manager.full_screen_toggle()
+        elif key == 'a':  # annotation mode
+            if isinstance(self.mne.inst, ICA):
+                return
+            self._toggle_annotation_fig()
+        elif key == 'b':  # toggle butterfly mode
+            self.mne.butterfly = not self.mne.butterfly
+            self._update_data()
+            self._draw_traces()
+            self.canvas.draw()
+        elif key == 'd':  # DC shift
+            self.mne.remove_dc = not self.mne.remove_dc
+            self._update_data()
+            self._draw_traces()
+            self.canvas.draw()
+        elif key == 'p':  # TODO: toggle snap annotations
             pass
+        elif key == 's':  # scalebars
+            self._toggle_scalebars(event)
+        elif key == 'w':  # TODO: toggle noise cov / whitening
+            pass
+        elif key == 'z':  # zen mode: hide scrollbars and buttons
+            self._toggle_scrollbars()
+
+    def _buttonpress(self, event):
+        """Triage mouse clicks."""
+        # we don't use middle clicks or scroll wheel events
+        if event.button not in (1, 3):
+            return
+        elif event.button == 1:  # left-click (primary)
+            if event.inaxes is None:  # clicked on channel name
+                pass  # TODO: copy from viz/utils.py lines 1157-1165
+            elif event.inaxes == self.mne.ax_main:
+                pass  # TODO: pass event on to pick_bads_fun
+            elif event.inaxes == self.mne.ax_vscroll:
+                pass  # TODO: copy from viz/utils.py lines 1167-1173
+            elif event.inaxes == self.mne.ax_hscroll:
+                time = event.xdata - self.mne.duration / 2
+                self._update_hscroll_clicked(time)
+                self._update_data()
+                self._draw_traces()
+                self.canvas.draw()
+            elif event.inaxes == self.mne.ax_proj:
+                self._toggle_proj_fig(event)
+        else:  # right-click (secondary)
+            pass  # TODO: copy from viz/utils.py lines 1140-1154
+
+    def _onclick_help(self, event):
+        """."""
+        # TODO FIXME
+        pass
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # ANNOTATIONS
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _create_annotation_fig(self):
+        """Create the annotation dialog window."""
+        from matplotlib.widgets import Button, SpanSelector
+        from mpl_toolkits.axes_grid1.axes_size import Fixed
+        from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
+        # make figure
+        labels = np.array(sorted(set(self.mne.inst.annotations.description)))
+        width, var_height, fixed_height, pad = \
+            self._compute_annotation_figsize(len(labels))
+        fig = dialog_figure(figsize=(width, var_height + fixed_height),
+                            FigureClass=MNEAnnotationFigure)
+        fig._parent_fig = self
+        _set_window_title(fig, 'Annotations')
+        self.mne.fig_annotation = fig
+        # make main axes
+        left = fig._inch_to_rel(pad)
+        bottom = fig._inch_to_rel(pad, horiz=False)
+        width = 1 - 2 * left
+        height = 1 - 2 * bottom
+        fig.radio_ax = fig.add_axes((left, bottom, width, height),
+                                    frameon=False, aspect='equal')
+        div = make_axes_locatable(fig.radio_ax)
+        self._update_annotation_fig()  # populate w/ radio buttons & labels
+        # append instructions at top
+        instructions_ax = div.append_axes(position='top', size=Fixed(1),
+                                          pad=Fixed(5 * pad))
+        instructions = '\n'.join(
+            [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',
+             r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
+             r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
+             r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
+             r'$\mathbf{Esc:}$ exit annotation mode & close window'])
+        # in case user has usetex=True set in rcParams, pass usetex=False here
+        instructions_ax.text(0, 1, instructions, va='top', ha='left',
+                             usetex=False)
+        instructions_ax.set_axis_off()
+        # append text entry axes at bottom
+        text_entry_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
+                                        pad=Fixed(pad))
+        text_entry_ax.text(0.4, 0.5, 'New label:', va='center', ha='right',
+                           weight='bold')
+        fig.label = text_entry_ax.text(0.5, 0.5, 'BAD_', va='center',
+                                       ha='left')
+        text_entry_ax.set_axis_off()
+        # append button at bottom
+        button_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
+                                    pad=Fixed(pad))
+        fig.button = Button(button_ax, 'Add new label')
+        fig.button.on_clicked(self._add_annotation_label)
+        plt_show(fig=fig)
+        # setup interactivity in plot window
+        col = ('#ff0000' if len(fig.radio_ax.buttons.circles) < 1 else
+               fig.radio_ax.buttons.circles[0].get_edgecolor())
+        selector = SpanSelector(self.mne.ax_main, self._annotate_select,
+                                'horizontal', minspan=0.1,
+                                rectprops=dict(alpha=0.5, facecolor=col))
+        if len(labels) == 0:
+            selector.active = False
+        self.mne.ax_main.selector = selector
+        # add event listeners
+        fig.canvas.mpl_connect('close_event', self._clear_annotation_fig)
+        self.mne._callback_ids['motion_notify_event'] = \
+            self.canvas.mpl_connect('motion_notify_event', self._hover)
+
+    def _update_annotation_fig(self):
+        """Draw or redraw the radio buttons and annotation labels."""
+        from matplotlib.widgets import RadioButtons
+        # define shorthand variables
+        fig = self.mne.fig_annotation
+        ax = fig.radio_ax
+        # get all the labels
+        labels = list(set(self.mne.inst.annotations.description))
+        labels = np.union1d(labels, self.mne.added_labels)
+        # compute new figsize
+        width, var_height, fixed_height, pad = \
+            self._compute_annotation_figsize(len(labels))
+        fig.set_size_inches(width, var_height + fixed_height, forward=True)
+        # populate center axes with labels & radio buttons
+        ax.clear()
+        title = 'Existing labels:' if len(labels) else 'No existing labels'
+        ax.set_title(title, size=None)
+        ax.buttons = RadioButtons(ax, labels)
+        # adjust xlim to keep equal aspect & full width (keep circles round)
+        aspect = (width - 2 * pad) / var_height
+        ax.set_xlim((0, aspect))
+        # style the buttons & adjust spacing
+        radius = 0.15
+        circles = ax.buttons.circles
+        for circle, label in zip(circles, ax.buttons.labels):
+            circle.set_transform(ax.transData)
+            center = ax.transData.inverted().transform(
+                ax.transAxes.transform((0.1, 0)))
+            circle.set_center((center[0], circle.center[1]))
+            circle.set_edgecolor(self.mne.segment_colors[label.get_text()])
+            circle.set_linewidth(4)
+            circle.set_radius(radius / (len(labels)))
+        # add event listeners
+        ax.buttons.disconnect_events()  # clear MPL default listeners
+        ax.buttons.on_clicked(fig._radiopress)
+        ax.buttons.connect_event('button_press_event', fig._click_override)
+
+    def _clear_annotation_fig(self, event=None):
+        """Close the annotation dialog window (via keypress or window [x])."""
+        self.mne.fig_annotation = None
+        # disconnect hover callback
+        callback_id = self.mne._callback_ids['motion_notify_event']
+        self.canvas.callbacks.disconnect(callback_id)
+
+    def _toggle_annotation_fig(self):
+        """Show/hide the annotation dialog window."""
+        if self.mne.fig_annotation is None:
+            self._create_annotation_fig()
+        else:
+            self.mne.fig_annotation.canvas.close_event()
+            self._clear_annotation_fig()
+
+    def _compute_annotation_figsize(self, n_labels):
+        """Adapt size of Annotation UI to accommodate the number of buttons.
+
+        self._create_annotation_fig() implements the following:
+
+        Fixed part of height:
+        0.1  top margin
+        1.0  instructions
+        0.5  padding below instructions
+        ---  (variable-height axis for label list)
+        0.1  padding above text entry
+        0.3  text entry
+        0.1  padding above button
+        0.3  button
+        0.1  bottom margin
+        ------------------------------------------
+        2.5  total fixed height
+        """
+        pad = 0.1
+        width = 4.5
+        var_height = max(pad, 0.7 * n_labels)
+        fixed_height = 2.5
+        return (width, var_height, fixed_height, pad)
 
     def _add_annotation_label(self, event):
         """Add new annotation description."""
@@ -566,262 +700,141 @@ class MNEBrowseFigure(MNEFigure):
         # is included) because that would break click-drag functionality
         self.mne.segments = np.array(segments)
 
-    def _toggle_annotation_fig(self):
-        """Show/hide the annotation dialog window."""
-        if self.mne.fig_annotation is None:
-            self._create_annotation_fig()
-        else:
-            self.mne.fig_annotation.canvas.close_event()
-            self._clear_annotation_fig()
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # PROJECTORS
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    def _clear_annotation_fig(self, event=None):
-        """Close the annotation dialog window (via keypress or window [x])."""
-        self.mne.fig_annotation = None
-        # disconnect hover callback
-        callback_id = self.mne._callback_ids['motion_notify_event']
-        self.canvas.callbacks.disconnect(callback_id)
+    def _create_proj_fig(self):
+        """Create the projectors dialog window."""
+        from matplotlib.widgets import Button, CheckButtons
 
-    def _compute_annotation_figsize(self, n_labels):
-        """Adapt size of Annotation UI to accommodate the number of buttons.
-
-        self._create_annotation_fig() implements the following:
-
-        Fixed part of height:
-        0.1  top margin
-        1.0  instructions
-        0.5  padding below instructions
-        ---  (variable-height axis for label list)
-        0.1  padding above text entry
-        0.3  text entry
-        0.1  padding above button
-        0.3  button
-        0.1  bottom margin
-        ------------------------------------------
-        2.5  total fixed height
-        """
-        pad = 0.1
-        width = 4.5
-        var_height = max(pad, 0.7 * n_labels)
-        fixed_height = 2.5
-        return (width, var_height, fixed_height, pad)
-
-    def _update_annotation_fig(self):
-        """Draw or redraw the radio buttons and annotation labels."""
-        from matplotlib.widgets import RadioButtons
-        # define shorthand variables
-        fig = self.mne.fig_annotation
-        ax = fig.radio_ax
-        # get all the labels
-        labels = list(set(self.mne.inst.annotations.description))
-        labels = np.union1d(labels, self.mne.added_labels)
-        # compute new figsize
-        width, var_height, fixed_height, pad = \
-            self._compute_annotation_figsize(len(labels))
-        fig.set_size_inches(width, var_height + fixed_height, forward=True)
-        # populate center axes with labels & radio buttons
-        ax.clear()
-        title = 'Existing labels:' if len(labels) else 'No existing labels'
-        ax.set_title(title, size=None)
-        ax.buttons = RadioButtons(ax, labels)
-        # adjust xlim to keep equal aspect & full width (keep circles round)
-        aspect = (width - 2 * pad) / var_height
-        ax.set_xlim((0, aspect))
-        # style the buttons & adjust spacing
-        radius = 0.15
-        circles = ax.buttons.circles
-        for circle, label in zip(circles, ax.buttons.labels):
-            circle.set_transform(ax.transData)
-            center = ax.transData.inverted().transform(
-                ax.transAxes.transform((0.1, 0)))
-            circle.set_center((center[0], circle.center[1]))
-            circle.set_edgecolor(self.mne.segment_colors[label.get_text()])
-            circle.set_linewidth(4)
-            circle.set_radius(radius / (len(labels)))
-        # add event listeners
-        ax.buttons.disconnect_events()  # clear MPL default listeners
-        ax.buttons.on_clicked(fig._radiopress)
-        ax.buttons.connect_event('button_press_event', fig._click_override)
-
-    def _create_annotation_fig(self):
-        """Create the annotation dialog window."""
-        from matplotlib.widgets import Button, SpanSelector
-        from mpl_toolkits.axes_grid1.axes_size import Fixed
-        from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-
+        projs = self.mne.projs
+        labels = [p['desc'] for p in projs]
+        for ix, active in enumerate(self.mne.projs_active):
+            if active:
+                labels[ix] += ' (already applied)'
         # make figure
-        labels = np.array(sorted(set(self.mne.inst.annotations.description)))
-        width, var_height, fixed_height, pad = \
-            self._compute_annotation_figsize(len(labels))
-        fig = dialog_figure(figsize=(width, var_height + fixed_height),
-                            FigureClass=MNEAnnotationFigure)
-        fig._parent_fig = self
-        _set_window_title(fig, 'Annotations')
-        self.mne.fig_annotation = fig
-        # make main axes
-        left = fig._inch_to_rel(pad)
-        bottom = fig._inch_to_rel(pad, horiz=False)
-        width = 1 - 2 * left
-        height = 1 - 2 * bottom
-        fig.radio_ax = fig.add_axes((left, bottom, width, height),
-                                    frameon=False, aspect='equal')
-        div = make_axes_locatable(fig.radio_ax)
-        self._update_annotation_fig()  # populate w/ radio buttons & labels
-        # append instructions at top
-        instructions_ax = div.append_axes(position='top', size=Fixed(1),
-                                          pad=Fixed(5 * pad))
-        instructions = '\n'.join(
-            [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',
-             r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
-             r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
-             r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
-             r'$\mathbf{Esc:}$ exit annotation mode & close window'])
-        # in case user has usetex=True set in rcParams, pass usetex=False here
-        instructions_ax.text(0, 1, instructions, va='top', ha='left',
-                             usetex=False)
-        instructions_ax.set_axis_off()
-        # append text entry axes at bottom
-        text_entry_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
-                                        pad=Fixed(pad))
-        text_entry_ax.text(0.4, 0.5, 'New label:', va='center', ha='right',
-                           weight='bold')
-        fig.label = text_entry_ax.text(0.5, 0.5, 'BAD_', va='center',
-                                       ha='left')
-        text_entry_ax.set_axis_off()
-        # append button at bottom
-        button_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
-                                    pad=Fixed(pad))
-        fig.button = Button(button_ax, 'Add new label')
-        fig.button.on_clicked(self._add_annotation_label)
-        plt_show(fig=fig)
-        # setup interactivity in plot window
-        col = ('#ff0000' if len(fig.radio_ax.buttons.circles) < 1 else
-               fig.radio_ax.buttons.circles[0].get_edgecolor())
-        selector = SpanSelector(self.mne.ax_main, self._annotate_select,
-                                'horizontal', minspan=0.1,
-                                rectprops=dict(alpha=0.5, facecolor=col))
-        if len(labels) == 0:
-            selector.active = False
-        self.mne.ax_main.selector = selector
+        width = max([4, max([len(label) for label in labels]) / 6 + 0.5])
+        height = (len(projs) + 1) / 6 + 1.5
+        fig = dialog_figure(figsize=(width, height))
+        _set_window_title(fig, 'SSP projection vectors')
+        # make axes
+        offset = (1 / 6 / height)
+        position = (0, offset, 1, 0.8 - offset)
+        ax = fig.add_axes(position, frameon=False)
+        # make title
+        first_line = ('Projectors already applied to the data are dimmed.\n'
+                      if any(self.mne.projs_active) else '')
+        second_line = 'Projectors marked with "X" are active on the plot.'
+        ax.set_title(f'{first_line}{second_line}')
+        # draw checkboxes
+        checkboxes = CheckButtons(ax, labels=labels, actives=self.mne.projs_on)
+        # gray-out already applied projectors
+        for label, rect, lines in zip(checkboxes.labels,
+                                      checkboxes.rectangles,
+                                      checkboxes.lines):
+            if label.get_text().endswith('(already applied)'):
+                label.set_color('0.5')
+                rect.set_edgecolor('0.7')
+                [x.set_color('0.7') for x in lines]
+            rect.set_linewidth(1)
+        # add "toggle all" button
+        ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frameon=True)
+        self.mne.proj_all = Button(ax_all, 'Toggle all')
         # add event listeners
-        fig.canvas.mpl_connect('close_event', self._clear_annotation_fig)
-        self.mne._callback_ids['motion_notify_event'] = \
-            self.canvas.mpl_connect('motion_notify_event', self._hover)
-
-    def _onclick_help(self, event):
-        pass
-
-    def _buttonpress(self, event):
-        """Triage mouse clicks."""
-        # we don't use middle clicks or scroll wheel events
-        if event.button not in (1, 3):
-            return
-        elif event.button == 1:  # left-click (primary)
-            if event.inaxes is None:  # clicked on channel name
-                pass  # TODO: copy from viz/utils.py lines 1157-1165
-            elif event.inaxes == self.mne.ax_main:
-                pass  # TODO: pass event on to pick_bads_fun
-            elif event.inaxes == self.mne.ax_vscroll:
-                pass  # TODO: copy from viz/utils.py lines 1167-1173
-            elif event.inaxes == self.mne.ax_hscroll:
-                time = event.xdata - self.mne.duration / 2
-                self._update_hscroll_clicked(time)
-                self._update_data()
-                self._draw_traces()
-                self.canvas.draw()
-            elif event.inaxes == self.mne.ax_proj:
-                self._toggle_proj_fig(event)
-        else:  # right-click (secondary)
-            pass  # TODO: copy from viz/utils.py lines 1140-1154
-
-    def _keypress(self, event):
-        """Triage keypress events."""
-        from matplotlib.pyplot import close, get_current_fig_manager
-        from ..preprocessing import ICA
-        key = event.key
-        if key == self.mne.close_key:
-            close(self)
-            if self.mne.fig_proj is not None:
-                close(self.mne.fig_proj)
-            if self.mne.fig_annotation is not None:
-                close(self.mne.fig_annotation)
-        elif key in ('down', 'up'):
-            if self.mne.butterfly:
-                return
-            elif self.mne.fig_selection is not None:
-                pass  # TODO: change channel group
-            else:
-                ceiling = len(self.mne.ch_names) - self.mne.n_channels
-                direction = -1 if key == 'up' else 1
-                ch_start = self.mne.ch_start + direction * self.mne.n_channels
-                self.mne.ch_start = np.clip(ch_start, 0, ceiling)
-                self._update_data()
-                self._draw_traces()
-                self._update_vscroll()
-            self.canvas.draw()
-        elif key in ('right', 'left', 'shift+right', 'shift+left'):
-            direction = 1 if key.endswith('right') else -1
-            denom = 1 if key.startswith('shift') else 4
-            t_max = self.mne.inst.times[-1] - self.mne.duration
-            t_start = self.mne.t_start + direction * self.mne.duration / denom
-            self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
-            # TODO: only update if changed
-            self._update_data()
-            self._draw_traces()
-            self._update_hscroll()
-            self.canvas.draw()
-        elif key in ('=', '+', '-'):
-            scaler = 1 / 1.1 if key == '-' else 1.1
-            self.mne.scale_factor *= scaler
-            self._draw_traces()
-            self.canvas.draw()
-        elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
-            n_ch_delta = 1 if key == 'pageup' else -1
-            n_ch = self.mne.n_channels + n_ch_delta
-            self.mne.n_channels = np.clip(n_ch, 1, len(self.mne.ch_names))
-            # TODO: only update if changed
-            self._update_trace_offsets()
-            self._update_data()
-            self._draw_traces()
-            self.canvas.draw()
-        elif key in ('home', 'end'):  # change duration
-            dur_delta = 1 if key == 'end' else -1
-            old_dur = self.mne.duration
-            new_dur = self.mne.duration + dur_delta
-            min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
-            self.mne.duration = np.clip(new_dur, min_dur,
-                                        self.mne.inst.times[-1])
-            if self.mne.duration != old_dur:
-                self._update_data()
-                self._draw_traces()
-                self._update_hscroll()
-                self.canvas.draw()
-        elif key == '?':  # help
-            self._onclick_help(event)
-        elif key == 'f11':  # full screen
-            fig_manager = get_current_fig_manager()
-            fig_manager.full_screen_toggle()
-        elif key == 'a':  # annotation mode
-            if isinstance(self.mne.inst, ICA):
-                return
-            self._toggle_annotation_fig()
-        elif key == 'b':  # toggle butterfly mode
-            self.mne.butterfly = not self.mne.butterfly
-            self._update_data()
-            self._draw_traces()
-            self.canvas.draw()
-        elif key == 'd':  # DC shift
-            self.mne.remove_dc = not self.mne.remove_dc
-            self._update_data()
-            self._draw_traces()
-            self.canvas.draw()
-        elif key == 'p':  # TODO: toggle snap annotations
+        fig.canvas.mpl_connect('close_event', self._clear_proj_fig)
+        checkboxes.on_clicked(self._toggle_proj_checkbox)
+        self.mne.proj_all.on_clicked(partial(self._toggle_proj_checkbox,
+                                             toggle_all=True))
+        # save params
+        self.mne.fig_proj = fig
+        self.mne._proj_checkboxes = checkboxes
+        # show figure (this should work for non-test cases)
+        try:
+            self.mne.fig_proj.canvas.draw()
+            plt_show(fig=self.mne.fig_proj, warn=False)
+        except Exception:
             pass
-        elif key == 's':  # scalebars
-            self._toggle_scalebars(event)
-        elif key == 'w':  # TODO: toggle noise cov / whitening
-            pass
-        elif key == 'z':  # zen mode: hide scrollbars and buttons
-            self._toggle_scrollbars()
+
+    def _clear_proj_fig(self, event=None):
+        """Close the projectors dialog window (via keypress or window [x])."""
+        self.mne.fig_proj = None
+
+    def _toggle_proj_fig(self, event):
+        """Show/hide the projectors dialog window."""
+        if self.mne.fig_proj is None:
+            self._create_proj_fig()
+        else:
+            self.mne.fig_proj.canvas.close_event()
+            self._clear_proj_fig()
+
+    def _toggle_proj_checkbox(self, event, toggle_all=False):
+        """Perform operations when proj boxes clicked."""
+        on = self.mne.projs_on
+        applied = self.mne.projs_active
+        new_state = (np.full_like(on, not all(on)) if toggle_all else
+                     np.array(self.mne._proj_checkboxes.get_status()))
+        # update Xs when toggling all
+        if toggle_all:
+            with _events_off(self.mne._proj_checkboxes):
+                for ix in np.where(on != new_state)[0]:
+                    self.mne._proj_checkboxes.set_active(ix)
+        # don't allow disabling already-applied projs
+        with _events_off(self.mne._proj_checkboxes):
+            for ix in np.where(applied)[0]:
+                if not new_state[ix]:
+                    self.mne._proj_checkboxes.set_active(ix)
+            new_state[applied] = True
+        # update the data if necessary
+        if not np.array_equal(on, new_state):
+            self.mne.projs_on = new_state
+            self._update_projector()
+            self._update_data()
+            self._draw_traces()
+            self.canvas.draw()
+
+    def _update_projector(self):
+        """Update the data after projectors have changed."""
+        # TODO: maybe merge into _toggle_proj_checkbox?
+        inds = np.where(self.mne.projs_on)[0]  # doesn't include "active" projs
+        # copy projs from full list (self.mne.projs) to info object
+        self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
+        # compute the projection operator
+        proj, wh_chs = _setup_plot_projector(self.mne.info,
+                                             self.mne.whitened_ch_names,
+                                             True, self.mne.use_noise_cov)
+        self.mne.whitened_ch_names = wh_chs
+        self.mne.projector = proj
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # SCROLLBARS
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _toggle_scrollbars(self):
+        """Show or hide scrollbars (A.K.A. zen mode)."""
+        # grow/shrink main axes to take up space from (or make room for)
+        # scrollbars. We can't use ax.set_position() because axes are
+        # locatable, so we use subplots_adjust
+        should_show = not self.mne.scrollbars_visible
+        margins = {side: getattr(self.subplotpars, side)
+                   for side in ('left', 'bottom', 'right', 'top')}
+        # if should_show, bottom margin moves up; right margin moves left
+        margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
+        margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
+        # squeeze a bit more because we don't need space for xlabel now
+        v_delta = self._inch_to_rel(0.16, horiz=False)
+        margins['bottom'] += (1 if should_show else -1) * v_delta
+        self.subplots_adjust(**margins)
+        # show/hide
+        for elem in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
+            butterfly = getattr(self.mne, 'butterfly', False)
+            if elem == 'ax_vscroll' and butterfly:
+                continue
+            # sometimes we don't have a proj button (ax_button)
+            if getattr(self.mne, elem, None) is not None:
+                getattr(self.mne, elem).set_visible(should_show)
+        self.mne.scrollbars_visible = should_show
+        self.canvas.draw()
 
     def _update_vscroll(self):
         """Update the vertical scrollbar (channel) selection indicator."""
@@ -843,31 +856,9 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.t_start = time
             self._update_hscroll()
 
-    def _toggle_scalebars(self, event):
-        """Show/hide the scalebars."""
-        if self.mne.scalebars_visible:
-            self._hide_scalebars()
-        else:
-            if self.mne.butterfly:
-                n_channels = len(self.mne.trace_offsets)
-                ch_start = 0
-            else:
-                n_channels = self.mne.n_channels
-                ch_start = self.mne.ch_start
-            ch_indices = self.mne.ch_order[ch_start:(ch_start + n_channels)]
-            self._show_scalebars(ch_indices)
-        # toggle
-        self.mne.scalebars_visible = not self.mne.scalebars_visible
-        self.canvas.draw()
-
-    def _hide_scalebars(self):
-        """Remove channel scale bars."""
-        for bar in self.mne.scalebars.values():
-            self.mne.ax_main.lines.remove(bar)
-        for text in self.mne.scalebar_texts.values():
-            self.mne.ax_main.texts.remove(text)
-        self.mne.scalebars = dict()
-        self.mne.scalebar_texts = dict()
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # SCALEBARS
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _show_scalebars(self, ch_indices):
         """Add channel scale bars."""
@@ -887,12 +878,37 @@ class MNEBrowseFigure(MNEFigure):
                 y = tuple(np.array([-0.5, 0.5]) + offsets[ii])
                 self._draw_one_scalebar(x, y, this_type)
 
+    def _hide_scalebars(self):
+        """Remove channel scale bars."""
+        for bar in self.mne.scalebars.values():
+            self.mne.ax_main.lines.remove(bar)
+        for text in self.mne.scalebar_texts.values():
+            self.mne.ax_main.texts.remove(text)
+        self.mne.scalebars = dict()
+        self.mne.scalebar_texts = dict()
+
+    def _toggle_scalebars(self, event):
+        """Show/hide the scalebars."""
+        if self.mne.scalebars_visible:
+            self._hide_scalebars()
+        else:
+            if self.mne.butterfly:
+                n_channels = len(self.mne.trace_offsets)
+                ch_start = 0
+            else:
+                n_channels = self.mne.n_channels
+                ch_start = self.mne.ch_start
+            ch_indices = self.mne.ch_order[ch_start:(ch_start + n_channels)]
+            self._show_scalebars(ch_indices)
+        # toggle
+        self.mne.scalebars_visible = not self.mne.scalebars_visible
+        self.canvas.draw()
+
     def _draw_one_scalebar(self, x, y, ch_type):
         """Draw the scalebars."""
         from .utils import _simplify_float
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=5)
-        # TODO: I changed trace spacing from 2 to 1; should this 2 be removed?
         inv_norm = (2 * self.mne.scalings[ch_type] *
                     self.mne.unit_scalings[ch_type] /
                     self.mne.scale_factor)
@@ -903,26 +919,9 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.scalebars[ch_type] = bar
         self.mne.scalebar_texts[ch_type] = text
 
-    def _update_trace_offsets(self):
-        """Compute viewport height and adjust offsets."""
-        # update picks, ylim, and offsets
-        n_channels = self.mne.n_channels
-        self._update_picks()
-        ylim = (n_channels - 0.5, -0.5)  # inverted y axis → new chs at bottom
-        offsets = np.arange(n_channels, dtype=float)
-        # update ylim, ticks, vertline, and scrollbar patch
-        self.mne.ax_main.set_ylim(ylim)
-        self.mne.ax_main.set_yticks(offsets)
-        self.mne.vsel_patch.set_height(n_channels)
-        _x = self.mne.ax_vline._x
-        self.mne.ax_vline.set_data(_x, np.array(ylim))
-        # store new offsets, update axis labels
-        self.mne.trace_offsets = offsets
-        self._update_yaxis_labels()
-
-    def _update_yaxis_labels(self):
-        self.mne.ax_main.set_yticklabels(self.mne.ch_names[self.mne.picks],
-                                         rotation=0)
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # DATA TRACES
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _update_picks(self):
         _sl = slice(self.mne.ch_start, self.mne.ch_start + self.mne.n_channels)
@@ -982,6 +981,23 @@ class MNEBrowseFigure(MNEFigure):
         # save
         self.mne.data = data
         self.mne.times = times
+
+    def _update_trace_offsets(self):
+        """Compute viewport height and adjust offsets."""
+        # update picks, ylim, and offsets
+        n_channels = self.mne.n_channels
+        self._update_picks()
+        ylim = (n_channels - 0.5, -0.5)  # inverted y axis → new chs at bottom
+        offsets = np.arange(n_channels, dtype=float)
+        # update ylim, ticks, vertline, and scrollbar patch
+        self.mne.ax_main.set_ylim(ylim)
+        self.mne.ax_main.set_yticks(offsets)
+        self.mne.vsel_patch.set_height(n_channels)
+        _x = self.mne.ax_vline._x
+        self.mne.ax_vline.set_data(_x, np.array(ylim))
+        # store new offsets, update axis labels
+        self.mne.trace_offsets = offsets
+        self._update_yaxis_labels()
 
     def _draw_traces(self, event_lines=None, event_color=None):
         """Draw (or redraw) the channel data."""
@@ -1080,6 +1096,14 @@ class MNEBrowseFigure(MNEFigure):
             these_event_nums = self.mne.event_nums[mask]
             # plot them
             ylim = self.mne.ax_main.get_ylim()
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # MISCELLANY
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _update_yaxis_labels(self):
+        self.mne.ax_main.set_yticklabels(self.mne.ch_names[self.mne.picks],
+                                         rotation=0)
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
