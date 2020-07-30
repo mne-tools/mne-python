@@ -139,6 +139,7 @@ class MplCanvas(object):
     on_motion_notify = on_button_press  # for now they can be the same
 
     def on_resize(self, event):
+        """Handle resize events."""
         tight_layout(fig=self.axes.figure)
 
 

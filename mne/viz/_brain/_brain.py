@@ -1184,26 +1184,30 @@ class _Brain(object):
         # update our values
         rng = self._cmap_range
         ctable = self._data['ctable']
+        if self._colorbar_added:
+            scalar_bar = self._renderer.plotter.scalar_bar
+        else:
+            scalar_bar = None
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
                 if hemi_data.get('actors') is not None:
                     for actor in hemi_data['actors']:
-                        if self._colorbar_added:
-                            scalar_bar = self._renderer.plotter.scalar_bar
-                        else:
-                            scalar_bar = None
                         _set_colormap_range(actor, ctable, scalar_bar, rng)
+                        scalar_bar = None
 
                 grid_volume = hemi_data.get('grid_volume')
                 if grid_volume is not None:
-                    _set_volume_range(
-                        grid_volume, ctable, hemi_data['alpha'], rng)
+                    _set_volume_range(grid_volume, ctable, hemi_data['alpha'],
+                                      scalar_bar, rng)
+                    scalar_bar = None
 
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
                     for glyph_actor_ in glyph_actor:
-                        _set_colormap_range(glyph_actor_, ctable, None, rng)
+                        _set_colormap_range(
+                            glyph_actor_, ctable, scalar_bar, rng)
+                        scalar_bar = None
 
     def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps.

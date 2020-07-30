@@ -67,7 +67,7 @@ class _Figure(object):
         self.store['off_screen'] = off_screen
         self.store['border'] = False
         self.store['auto_update'] = False
-        # multi_samples > 1 is broked on macOS + volume rendering
+        # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
     def build(self):
@@ -764,8 +764,9 @@ def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
         scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
 
 
-def _set_volume_range(volume, ctable, alpha, rng):
+def _set_volume_range(volume, ctable, alpha, scalar_bar, rng):
     import vtk
+    from vtk.util.numpy_support import numpy_to_vtk
     color_tf = vtk.vtkColorTransferFunction()
     opacity_tf = vtk.vtkPiecewiseFunction()
     for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
@@ -775,6 +776,11 @@ def _set_volume_range(volume, ctable, alpha, rng):
     opacity_tf.ClampingOn()
     volume.GetProperty().SetColor(color_tf)
     volume.GetProperty().SetScalarOpacity(opacity_tf)
+    if scalar_bar is not None:
+        lut = vtk.vtkLookupTable()
+        lut.SetRange(*rng)
+        lut.SetTable(numpy_to_vtk(ctable))
+        scalar_bar.SetLookupTable(lut)
 
 
 def _set_mesh_scalars(mesh, scalars, name):
