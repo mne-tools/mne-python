@@ -612,11 +612,6 @@ class _Brain(object):
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
-        volume = self._data[hemi].get('grid_volume')
-        if volume is not None:
-            actor, _ = self._renderer.plotter.add_actor(
-                volume, reset_camera=False, name=None, culling=False)
-            return actor
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
         _validate_type(volume_options, (dict, 'numeric'), 'volume_options')
@@ -625,13 +620,13 @@ class _Brain(object):
             volume_options = dict(volume_alpha=float(volume_options))
         volume_options = _handle_default('volume_options', volume_options)
         for key, types in (['resolution', (None, 'numeric')],
-                           ['blending', (str,)],
-                           ['alpha', ('numeric', None)],
-                           ['surface_alpha', (None, 'numeric')]):
+                        ['blending', (str,)],
+                        ['alpha', ('numeric', None)],
+                        ['surface_alpha', (None, 'numeric')]):
             _validate_type(volume_options[key], types,
-                           f'volume_options[{repr(key)}]')
+                        f'volume_options[{repr(key)}]')
         _check_option('volume_options["blending"]', volume_options['blending'],
-                      ('composite', 'mip'))
+                    ('composite', 'mip'))
         blending = volume_options['blending']
         alpha = volume_options['alpha']
         if alpha is None:
@@ -642,39 +637,49 @@ class _Brain(object):
         if surface_alpha is None:
             surface_alpha = min(alpha / 2., 0.4)
         del volume_options
-        xyz = np.meshgrid(
-            *[np.arange(s) for s in src[0]['shape']], indexing='ij')
-        dimensions = np.array(src[0]['shape'], int)
-        mult = 1000 if self._units == 'mm' else 1
-        src_mri_t = src[0]['src_mri_t']['trans'].copy()
-        src_mri_t[:3] *= mult
-        if resolution is not None:
-            resolution = resolution * mult / 1000.  # to mm
-        del src, mult
-        coords = np.array([c.ravel(order='F') for c in xyz]).T
-        coords = apply_trans(src_mri_t, coords)
-        self.geo[hemi] = Bunch(coords=coords)
-        self._data[hemi]['alpha'] = alpha  # this gets set incorrectly earlier
-        vertices = self._data[hemi]['vertices']
-        assert self._data[hemi]['array'].shape[0] == len(vertices)
-        # MNE constructs the source space on a uniform grid in MRI space,
-        # but let's make sure
-        assert np.allclose(src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
-        spacing = np.diag(src_mri_t)[:3]
-        origin = src_mri_t[:3, 3] - spacing / 2.
-        scalars = np.zeros(np.prod(dimensions))
-        scalars[vertices] = 1.  # for the outer mesh
-        grid, mapper, volume = self._add_volume_object(
-            dimensions, origin, spacing, scalars, alpha, surface_alpha,
-            resolution, blending)
-        self._data[hemi]['grid'] = grid
-        self._data[hemi]['grid_coords'] = coords
-        self._data[hemi]['grid_src_mri_t'] = src_mri_t
-        self._data[hemi]['grid_shape'] = dimensions
-        self._data[hemi]['grid_mapper'] = mapper
-        self._data[hemi]['grid_volume'] = volume
+        volume = self._data[hemi].get('grid_volume')
+        if volume is None:
+            xyz = np.meshgrid(
+                *[np.arange(s) for s in src[0]['shape']], indexing='ij')
+            dimensions = np.array(src[0]['shape'], int)
+            mult = 1000 if self._units == 'mm' else 1
+            src_mri_t = src[0]['src_mri_t']['trans'].copy()
+            src_mri_t[:3] *= mult
+            if resolution is not None:
+                resolution = resolution * mult / 1000.  # to mm
+            del src, mult
+            coords = np.array([c.ravel(order='F') for c in xyz]).T
+            coords = apply_trans(src_mri_t, coords)
+            self.geo[hemi] = Bunch(coords=coords)
+            self._data[hemi]['alpha'] = alpha  # this gets set incorrectly earlier
+            vertices = self._data[hemi]['vertices']
+            assert self._data[hemi]['array'].shape[0] == len(vertices)
+            # MNE constructs the source space on a uniform grid in MRI space,
+            # but let's make sure
+            assert np.allclose(src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
+            spacing = np.diag(src_mri_t)[:3]
+            origin = src_mri_t[:3, 3] - spacing / 2.
+            scalars = np.zeros(np.prod(dimensions))
+            scalars[vertices] = 1.  # for the outer mesh
+            grid, grid_mesh, mapper, volume = self._add_volume_object(
+                dimensions, origin, spacing, scalars, alpha, surface_alpha,
+                resolution, blending)
+            self._data[hemi]['grid'] = grid
+            self._data[hemi]['grid_mesh'] = grid_mesh
+            self._data[hemi]['grid_coords'] = coords
+            self._data[hemi]['grid_src_mri_t'] = src_mri_t
+            self._data[hemi]['grid_shape'] = dimensions
+            self._data[hemi]['grid_mapper'] = mapper
+            self._data[hemi]['grid_volume'] = volume
         actor, _ = self._renderer.plotter.add_actor(
             volume, reset_camera=False, name=None, culling=False)
+        grid_mesh = self._data[hemi]['grid_mesh']
+        if grid_mesh is not None:
+            _, prop = self._renderer.plotter.add_actor(
+                grid_mesh, reset_camera=False, name=None, culling=False,
+                pickable=False)
+            prop.SetColor(*self._brain_color[:3])
+            prop.SetOpacity(surface_alpha)
         return actor
 
     def _add_volume_object(self, dimensions, origin, spacing, scalars,
@@ -704,11 +709,8 @@ class _Brain(object):
             grid_surface.Update()
             grid_mesh = vtk.vtkPolyDataMapper()
             grid_mesh.SetInputData(grid_surface.GetOutput())
-            _, prop = self._renderer.plotter.add_actor(
-                grid_mesh, reset_camera=False, name=None, culling=False,
-                pickable=False)
-            prop.SetColor(*self._brain_color[:3])
-            prop.SetOpacity(surface_alpha)
+        else:
+            grid_mesh = None
 
         mapper = vtk.vtkSmartVolumeMapper()
         if resolution is None:  # native
@@ -727,7 +729,7 @@ class _Brain(object):
         volume.SetMapper(mapper)
         volume.GetProperty().SetScalarOpacityUnitDistance(
             grid.length / (np.mean(grid.dimensions) - 1))
-        return grid, mapper, volume
+        return grid, grid_mesh, mapper, volume
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
