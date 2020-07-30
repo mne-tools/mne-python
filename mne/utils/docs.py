@@ -990,13 +990,15 @@ interpolation : str | None
     or 'cubic'.
 """
 docdict["show_traces"] = """
-show_traces : bool | str
+show_traces : bool | str | float
     If True, enable interactive picking of a point on the surface of the
-    brain and plot it's time course using the bottom 1/3 of the figure.
+    brain and plot its time course.
     This feature is only available with the PyVista 3d backend, and requires
     ``time_viewer=True``. Defaults to 'auto', which will use True if and
     only if ``time_viewer=True``, the backend is PyVista, and there is more
-    than one time point.
+    than one time point. If float (between zero and one), it specifies what
+    proportion of the total window should be devoted to traces (True is
+    equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
 """
@@ -1007,7 +1009,7 @@ time_label : str | callable | None
     default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
-docdict["src_volume_options"] = """
+docdict["src_volume_options_layout"] = """
 src : instance of SourceSpaces | None
     The source space corresponding to the source estimate. Only necessary
     if the STC is a volume or mixed source estimate.
@@ -1031,6 +1033,9 @@ volume_options : float | dict | None
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
+view_layout : str
+    Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+    the PyVista backend must be used and hemi cannot be "split".
 """
 
 # STC label time course

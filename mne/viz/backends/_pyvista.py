@@ -201,7 +201,7 @@ class _Renderer(_BaseRenderer):
             yield
         finally:
             for _ in range(2):
-                self.plotter.app.processEvents()
+                _process_events(self.plotter)
             self.plotter.interactor.setMinimumSize(0, 0)
 
     def subplot(self, x, y):
@@ -535,9 +535,9 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None):
+                   focalpoint=None, roll=None):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
-                     distance=distance, focalpoint=focalpoint)
+                     distance=distance, focalpoint=focalpoint, roll=roll)
 
     def reset_camera(self):
         self.plotter.reset_camera()
@@ -661,7 +661,7 @@ def _get_camera_direction(focalpoint, position):
     return r, theta, phi, focalpoint
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     position = np.array(figure.plotter.camera_position[0])
     focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
@@ -670,20 +670,19 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         phi = _deg2rad(azimuth)
     if elevation is not None:
         theta = _deg2rad(elevation)
+    if roll is not None:
+        roll = _deg2rad(roll)
 
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
-    if distance is not None:
-        r = distance
-    else:
-        r = max(bounds[1::2] - bounds[::2]) * 2.0
-        distance = r
+    if distance is None:
+        distance = max(bounds[1::2] - bounds[::2]) * 2.0
+    distance = distance / 2.
 
     if focalpoint is not None:
-        cen = np.asarray(focalpoint)
+        focalpoint = np.asarray(focalpoint)
     else:
-        cen = (bounds[1::2] + bounds[::2]) * 0.5
-        focalpoint = cen
+        focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
 
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the
@@ -694,15 +693,19 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         view_up = [np.sin(phi), np.cos(phi), 0]
 
     position = [
-        r * np.cos(phi) * np.sin(theta),
-        r * np.sin(phi) * np.sin(theta),
-        r * np.cos(theta)]
+        distance * np.cos(phi) * np.sin(theta),
+        distance * np.sin(phi) * np.sin(theta),
+        distance * np.cos(theta)]
     figure.plotter.camera_position = [
-        position, cen, view_up]
+        position, focalpoint, view_up]
+    if roll is not None:
+        figure.plotter.camera.SetRoll(roll)
+    # set the distance
 
     figure.plotter.renderer._azimuth = azimuth
     figure.plotter.renderer._elevation = elevation
     figure.plotter.renderer._distance = distance
+    figure.plotter.renderer._roll = roll
 
 
 def _set_3d_title(figure, title, size=16):
@@ -739,7 +742,9 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
 
 def _process_events(plotter, show=False):
     if hasattr(plotter, 'app'):
-        plotter.app.processEvents()
+        with warnings.catch_warnings(record=True):
+            warnings.filterwarnings('ignore', 'constrained_layout')
+            plotter.app.processEvents()
         if show:
             plotter.app_window.show()
 
@@ -764,12 +769,9 @@ def _set_volume_range(volume, ctable, alpha, rng):
     import vtk
     color_tf = vtk.vtkColorTransferFunction()
     opacity_tf = vtk.vtkPiecewiseFunction()
-    assert ctable.shape == (256, 4)
-    for ii, color in enumerate(ctable):
-        loc = ii / 255.
+    for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
         color_tf.AddRGBPoint(loc, *color[:-1])
-        opacity_tf.AddPoint(
-            loc, color[-1] * alpha / 255. / 255.)
+        opacity_tf.AddPoint(loc, color[-1] * alpha / 255. / (len(ctable) - 1))
     color_tf.ClampingOn()
     opacity_tf.ClampingOn()
     volume.GetProperty().SetColor(color_tf)

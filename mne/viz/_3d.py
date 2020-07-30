@@ -1587,7 +1587,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto',
-                          src=None, volume_options=1., verbose=None):
+                          src=None, volume_options=1., view_layout='vertical',
+                          verbose=None):
     """Plot SourceEstimate.
 
     Parameters
@@ -1674,7 +1675,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
         .. versionadded:: 0.17.0
     %(show_traces)s
-    %(src_volume_options)s
+    %(src_volume_options_layout)s
     %(verbose)s
 
     Returns
@@ -1715,14 +1716,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
         cortex=cortex, foreground=foreground, size=size, scale_factor=None,
         show_traces=show_traces, src=src, volume_options=volume_options,
-        **kwargs)
+        view_layout=view_layout, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               smoothing_steps, subjects_dir, views, clim, figure, initial_time,
               time_unit, background, time_viewer, colorbar, transparent,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
-              size, scale_factor, show_traces, src, volume_options):
+              size, scale_factor, show_traces, src, volume_options,
+              view_layout):
     from .backends.renderer import _get_3d_backend
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1739,6 +1741,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         from ._brain import _Brain as Brain
 
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
+    _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
@@ -1784,8 +1787,12 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     }
     if backend in ['pyvista', 'notebook']:
         kwargs["show"] = not time_viewer
+        kwargs["view_layout"] = view_layout
     else:
         kwargs.update(_check_pysurfer_antialias(Brain))
+        if view_layout != 'vertical':
+            raise ValueError('view_layout must be "vertical" when using the '
+                             'mayavi backend')
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
     del kwargs
@@ -1865,8 +1872,10 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     # time_viewer and show_traces
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
-    _check_option('show_traces', show_traces,
-                  (True, False, 'auto', 'separate'))
+    _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
+    if isinstance(show_traces, str):
+        _check_option('show_traces', show_traces, ('auto', 'separate'),
+                      extra='when a string')
     if time_viewer == 'auto':
         time_viewer = not using_mayavi
     if show_traces == 'auto':
@@ -2348,7 +2357,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
-                                 src=None, volume_options=1., verbose=None):
+                                 src=None, volume_options=1.,
+                                 view_layout='vertical', verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2422,7 +2432,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     %(show_traces)s
-    %(src_volume_options)s
+    %(src_volume_options_layout)s
     %(verbose)s
 
     Returns
@@ -2449,7 +2459,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         brain_alpha=brain_alpha, overlay_alpha=overlay_alpha,
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
         size=size, scale_factor=scale_factor, show_traces=show_traces,
-        src=src, volume_options=volume_options)
+        src=src, volume_options=volume_options, view_layout=view_layout)
 
 
 @verbose

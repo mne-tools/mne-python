@@ -16,11 +16,14 @@ import numpy as np
 from scipy import sparse
 
 from . import _Brain
-from ..utils import _check_option, _show_help, _get_color_list, tight_layout
+from .view import _lh_views_dict
+
+from ..utils import _show_help, _get_color_list, tight_layout
 from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni, _read_talxfm
 from ...transforms import apply_trans
-from ...utils import _ReuseCycle, warn, copy_doc
+from ...utils import _ReuseCycle, warn, copy_doc, _validate_type
+from ...fixes import nullcontext
 
 
 @decorator
@@ -45,13 +48,23 @@ class MplCanvas(object):
 
     def __init__(self, time_viewer, width, height, dpi):
         from PyQt5 import QtWidgets
+        from matplotlib import rc_context
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         if time_viewer.separate_canvas:
             parent = None
         else:
             parent = time_viewer.window
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        # prefer constrained layout here but live with tight_layout otherwise
+        try:
+            context = rc_context({'figure.constrained_layout.use': True})
+        except KeyError:
+            context = nullcontext
+            extra_events = ('resize',)
+        else:
+            extra_events = ()
+        with context:
+            self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
@@ -62,11 +75,9 @@ class MplCanvas(object):
             QtWidgets.QSizePolicy.Expanding
         )
         FigureCanvasQTAgg.updateGeometry(self.canvas)
-        # XXX eventually this should be called in the window resize callback
-        tight_layout(fig=self.axes.figure)
         self.time_viewer = time_viewer
         self.time_func = time_viewer.time_call
-        for event in ('button_press', 'motion_notify'):
+        for event in ('button_press', 'motion_notify') + extra_events:
             self.canvas.mpl_connect(
                 event + '_event', getattr(self, 'on_' + event))
 
@@ -91,7 +102,9 @@ class MplCanvas(object):
             facecolor=self.time_viewer.brain._bg_color)
         for text in leg.get_texts():
             text.set_color(self.time_viewer.brain._fg_color)
-        self.canvas.draw()
+        with warnings.catch_warnings(record=True):
+            warnings.filterwarnings('ignore', 'constrained_layout')
+            self.canvas.draw()
 
     def set_color(self, bg_color, fg_color):
         """Set the widget colors."""
@@ -124,6 +137,9 @@ class MplCanvas(object):
             event.xdata, update_widget=True, time_as_index=False)
 
     on_motion_notify = on_button_press  # for now they can be the same
+
+    def on_resize(self, event):
+        tight_layout(fig=self.axes.figure)
 
 
 class IntSlider(object):
@@ -314,16 +330,7 @@ class _TimeViewer(object):
 
         # shared configuration
         self.brain = brain
-        self.orientation = [
-            'lateral',
-            'medial',
-            'rostral',
-            'caudal',
-            'dorsal',
-            'ventral',
-            'frontal',
-            'parietal'
-        ]
+        self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
 
         # detect notebook
@@ -368,17 +375,28 @@ class _TimeViewer(object):
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
-        _check_option('show_traces', type(show_traces), [bool, str])
-        if isinstance(show_traces, str) and show_traces == "separate":
+        _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
+        self.interactor_fraction = 0.25
+        if isinstance(show_traces, str):
+            assert 'show_traces' == 'separate'  # should be guaranteed earlier
             self.show_traces = True
             self.separate_canvas = True
         else:
-            self.show_traces = show_traces
+            if isinstance(show_traces, bool):
+                self.show_traces = show_traces
+            else:
+                show_traces = float(show_traces)
+                if not 0 < show_traces < 1:
+                    raise ValueError(
+                        'show traces, if numeric, must be between 0 and 1, '
+                        f'got {show_traces}')
+                self.show_traces = True
+                self.interactor_fraction = show_traces
             self.separate_canvas = False
+        del show_traces
 
         self._spheres = list()
         self.load_icons()
-        self.interactor_stretch = 3
         self.configure_time_label()
         self.configure_sliders()
         self.configure_scalar_bar()
@@ -395,17 +413,26 @@ class _TimeViewer(object):
 
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
+        from ..backends._pyvista import _process_events
         sz = self.brain._size
         adjust_mpl = self.show_traces and not self.separate_canvas
         if not adjust_mpl:
             yield
         else:
-            self.mpl_canvas.canvas.setMinimumSize(
-                sz[0], int(round(sz[1] / self.interactor_stretch)))
+            mpl_h = int(round((sz[1] * self.interactor_fraction) /
+                              (1 - self.interactor_fraction)))
+            self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
             try:
                 yield
             finally:
+                self.splitter.setSizes([sz[1], mpl_h])
                 self.mpl_canvas.canvas.setMinimumSize(0, 0)
+            _process_events(self.plotter)
+            for hemi in self.brain._hemis:
+                if hemi == 'rh' and self.brain._hemi == 'split':
+                    continue
+                for ri, ci, v in self.brain._iter_views(hemi):
+                    self.brain.show_view(view=v, row=ri, col=ci)
 
     def toggle_interface(self, value=None):
         if value is None:
@@ -628,11 +655,7 @@ class _TimeViewer(object):
         else:
             hemis_ref = self.brain._hemis
         for hemi in hemis_ref:
-            if self.brain._hemi == 'split':
-                ci = 0 if hemi == 'lh' else 1
-            else:
-                ci = 0
-            for ri, view in enumerate(self.brain._views):
+            for ri, ci, view in self.brain._iter_views(hemi):
                 self.plotter.subplot(ri, ci)
                 self.orientation_call = ShowView(
                     plotter=self.plotter,
@@ -656,8 +679,7 @@ class _TimeViewer(object):
                 self.orientation_call(view, update_widget=True)
 
         # Put other sliders on the bottom right view
-        ri = len(self.brain.views) - 1
-        ci = 1 if self.brain._hemi == 'split' else 0
+        ri, ci = np.array(self.brain._subplot_shape) - 1
         self.plotter.subplot(ri, ci)
 
         # Smoothing slider
@@ -830,19 +852,27 @@ class _TimeViewer(object):
         self.color_cycle = _ReuseCycle(_get_color_list())
         win = self.plotter.app_window
         dpi = win.windowHandle().screen().logicalDotsPerInch()
-        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
-        h /= 3  # one third of the window
-        self.mpl_canvas = MplCanvas(self, w, h, dpi)
+        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
+        w = self.plotter.geometry().width()
+        h = self.plotter.geometry().height() / ratio
+        # Get the fractional components for the brain and mpl
+        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi)
         xlim = [np.min(self.brain._data['time']),
                 np.max(self.brain._data['time'])]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             self.mpl_canvas.axes.set(xlim=xlim)
-        vlayout = self.plotter.frame.layout()
         if not self.separate_canvas:
-            vlayout.addWidget(self.mpl_canvas.canvas)
-            vlayout.setStretch(0, self.interactor_stretch)
-            vlayout.setStretch(1, 1)
+            from PyQt5.QtWidgets import QSplitter
+            from PyQt5.QtCore import Qt
+            canvas = self.mpl_canvas.canvas
+            vlayout = self.plotter.frame.layout()
+            vlayout.removeWidget(self.plotter)
+            self.splitter = splitter = QSplitter(
+                orientation=Qt.Vertical, parent=self.plotter.frame)
+            vlayout.addWidget(splitter)
+            splitter.addWidget(self.plotter)
+            splitter.addWidget(canvas)
         self.mpl_canvas.set_color(
             bg_color=self.brain._bg_color,
             fg_color=self.brain._fg_color,
@@ -892,8 +922,14 @@ class _TimeViewer(object):
 
             # initialize the default point
             color = next(self.color_cycle)
-            ind = np.unravel_index(np.argmax(act_data, axis=None),
-                                   act_data.shape)
+            if self.brain._data['initial_time'] is not None:
+                # pick at that time
+                use_data = act_data[
+                    :, [np.round(self.brain._data['time_idx']).astype(int)]]
+            else:
+                use_data = act_data
+            ind = np.unravel_index(np.argmax(np.abs(use_data), axis=None),
+                                   use_data.shape)
             if hemi == 'vol':
                 mesh = hemi_data['grid']
             else:
@@ -1012,69 +1048,89 @@ class _TimeViewer(object):
         self._mouse_no_mvt = 0
 
     def on_pick(self, vtk_picker, event):
+        # vtk_picker is a vtkCellPicker
         cell_id = vtk_picker.GetCellId()
         mesh = vtk_picker.GetDataSet()
 
-        if mesh is None or cell_id == -1:
-            return
+        if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
+            return  # don't pick
 
+        # 1) Check to see if there are any spheres along the ray
+        if len(self._spheres):
+            collection = vtk_picker.GetProp3Ds()
+            found_sphere = None
+            for ii in range(collection.GetNumberOfItems()):
+                actor = collection.GetItemAsObject(ii)
+                for sphere in self._spheres:
+                    if any(a is actor for a in sphere._actors):
+                        found_sphere = sphere
+                        break
+                if found_sphere is not None:
+                    break
+            if found_sphere is not None:
+                assert found_sphere._is_point
+                mesh = found_sphere
+
+        # 2) Remove sphere if it's what we have
         if hasattr(mesh, "_is_point"):
             self.remove_point(mesh)
-        elif self._mouse_no_mvt:
-            try:
-                hemi = mesh._hemi
-            except AttributeError:  # volume
-                hemi = 'vol'
-            else:
-                assert hemi in ('lh', 'rh')
-            if self.act_data_smooth[hemi][0] is None:
-                return
-            pos = np.array(vtk_picker.GetPickPosition())
-            if hemi == 'vol':
-                # VTK will give us the point closest to the viewer in the vol.
-                # We want to pick the point with the maximum value along the
-                # camera-to-click array, which fortunately we can get "just"
-                # by inspecting the points that are sufficiently close to the
-                # ray.
-                grid = mesh = self.brain._data[hemi]['grid']
-                vertices = self.brain._data[hemi]['vertices']
-                coords = self.brain._data[hemi]['grid_coords'][vertices]
-                scalars = grid.cell_arrays['values'][vertices]
-                spacing = np.array(grid.GetSpacing())
-                max_dist = np.linalg.norm(spacing) / 2.  # halfway betw centers
-                camera = vtk_picker.GetRenderer().GetActiveCamera()
-                ori = pos - camera.GetPosition()
-                ori /= np.linalg.norm(ori)
-                # the magic formula: distance from a ray to a given point
-                dists = np.linalg.norm(np.cross(ori, coords - pos), axis=1)
-                assert dists.shape == (len(coords),)
-                idx = np.where(dists <= max_dist)[0]
-                if len(idx) == 0:
-                    return  # weird point on edge of volume?
-                idx = idx[np.argmax(np.abs(scalars[idx]))]
-                vertex_id = vertices[idx]
-                # Naive way: convert pos directly to idx; i.e., apply mri_src_t
-                # shape = self.brain._data[hemi]['grid_shape']
-                # taking into account the cell vs point difference (spacing/2)
-                # shift = np.array(grid.GetOrigin()) + spacing / 2.
-                # ijk = np.round((pos - shift) / spacing).astype(int)
-                # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
-            else:
-                vtk_cell = mesh.GetCell(cell_id)
-                cell = [vtk_cell.GetPointId(point_id) for point_id
-                        in range(vtk_cell.GetNumberOfPoints())]
-                vertices = mesh.points[cell]
-                idx = np.argmin(abs(vertices - pos), axis=0)
-                vertex_id = cell[idx[0]]
+            return
 
-            if vertex_id not in self.picked_points[hemi]:
-                color = next(self.color_cycle)
+        # 3) Otherwise, pick the objects in the scene
+        try:
+            hemi = mesh._hemi
+        except AttributeError:  # volume
+            hemi = 'vol'
+        else:
+            assert hemi in ('lh', 'rh')
+        if self.act_data_smooth[hemi][0] is None:  # no data to add for hemi
+            return
+        pos = np.array(vtk_picker.GetPickPosition())
+        if hemi == 'vol':
+            # VTK will give us the point closest to the viewer in the vol.
+            # We want to pick the point with the maximum value along the
+            # camera-to-click array, which fortunately we can get "just"
+            # by inspecting the points that are sufficiently close to the
+            # ray.
+            grid = mesh = self.brain._data[hemi]['grid']
+            vertices = self.brain._data[hemi]['vertices']
+            coords = self.brain._data[hemi]['grid_coords'][vertices]
+            scalars = grid.cell_arrays['values'][vertices]
+            spacing = np.array(grid.GetSpacing())
+            max_dist = np.linalg.norm(spacing) / 2.  # halfway betw centers
+            camera = vtk_picker.GetRenderer().GetActiveCamera()
+            ori = pos - camera.GetPosition()
+            ori /= np.linalg.norm(ori)
+            # the magic formula: distance from a ray to a given point
+            dists = np.linalg.norm(np.cross(ori, coords - pos), axis=1)
+            assert dists.shape == (len(coords),)
+            idx = np.where(dists <= max_dist)[0]
+            if len(idx) == 0:
+                return  # weird point on edge of volume?
+            idx = idx[np.argmax(np.abs(scalars[idx]))]
+            vertex_id = vertices[idx]
+            # Naive way: convert pos directly to idx; i.e., apply mri_src_t
+            # shape = self.brain._data[hemi]['grid_shape']
+            # taking into account the cell vs point difference (spacing/2)
+            # shift = np.array(grid.GetOrigin()) + spacing / 2.
+            # ijk = np.round((pos - shift) / spacing).astype(int)
+            # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+        else:
+            vtk_cell = mesh.GetCell(cell_id)
+            cell = [vtk_cell.GetPointId(point_id) for point_id
+                    in range(vtk_cell.GetNumberOfPoints())]
+            vertices = mesh.points[cell]
+            idx = np.argmin(abs(vertices - pos), axis=0)
+            vertex_id = cell[idx[0]]
 
-                # update associated time course
-                line = self.plot_time_course(hemi, vertex_id, color)
+        if vertex_id not in self.picked_points[hemi]:
+            color = next(self.color_cycle)
 
-                # add glyph at picked point
-                self.add_point(hemi, mesh, vertex_id, line, color)
+            # update associated time course
+            line = self.plot_time_course(hemi, vertex_id, color)
+
+            # add glyph at picked point
+            self.add_point(hemi, mesh, vertex_id, line, color)
 
     def add_point(self, hemi, mesh, vertex_id, line, color):
         from ..backends._pyvista import _sphere
@@ -1093,8 +1149,8 @@ class _TimeViewer(object):
 
         actors = list()
         spheres = list()
-        for ri, view in enumerate(self.brain._views):
-            self.plotter.subplot(ri, col)
+        for ri, ci, _ in self.brain._iter_views('vol'):
+            self.plotter.subplot(ri, ci)
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
             # 1) renderer.sphere() fails on Windows in a scenario where a lot
             #    of picking requests are done in a short span of time (could be
@@ -1135,6 +1191,7 @@ class _TimeViewer(object):
             self.color_cycle.restore(mesh._color)
         self.plotter.remove_actor(mesh._actors)
         mesh._actors = None
+        self._spheres.pop(self._spheres.index(mesh))
 
     def clear_points(self):
         for sphere in self._spheres:

@@ -209,8 +209,9 @@ lims = [0.3, 0.45, 0.6]
 kwargs = dict(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
               initial_time=0.087, verbose=True)
 
-stc.plot_3d(clim=dict(kind='value', pos_lims=lims), hemi='rh', views='lat',
-            **kwargs)
+stc.plot_3d(clim=dict(kind='value', pos_lims=lims), hemi='both',
+            views=['sagittal', 'coronal', 'axial'], size=(800, 300),
+            view_layout='horizontal', show_traces=0.4, **kwargs)
 
 ###############################################################################
 # On MRI slices (orthoview; 2D)
@@ -232,8 +233,9 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 # sphinx_gallery_thumbnail_number = 5
 
-stc_vec.plot_3d(clim=dict(kind='value', lims=lims), hemi='rh', views='lat',
-                **kwargs)
+stc_vec.plot_3d(clim=dict(kind='value', lims=lims), hemi='both',
+                views=['sagittal', 'coronal', 'axial'], size=(800, 300),
+                view_layout='horizontal', show_traces=0.4, **kwargs)
 
 ###############################################################################
 stc_vec.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)

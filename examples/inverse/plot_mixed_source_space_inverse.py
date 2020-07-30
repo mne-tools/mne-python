@@ -136,8 +136,9 @@ src = inverse_operator['src']
 initial_time = 0.1
 stc_vec = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                         pick_ori='vector')
-brain = stc_vec.plot(hemi='both', src=inverse_operator['src'],
-                     initial_time=initial_time, subjects_dir=subjects_dir)
+brain = stc_vec.plot(
+    hemi='both', src=inverse_operator['src'], views='coronal',
+    initial_time=initial_time, subjects_dir=subjects_dir)
 
 ###############################################################################
 # Plot the surface
