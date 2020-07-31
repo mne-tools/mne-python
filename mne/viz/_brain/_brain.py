@@ -626,14 +626,20 @@ class _Brain(object):
         _validate_type(volume_options, (dict, 'numeric'), 'volume_options')
         assert hemi == 'vol'
         if not isinstance(volume_options, dict):
-            volume_options = dict(volume_alpha=float(volume_options))
+            volume_options = dict(resolution=float(volume_options))
         volume_options = _handle_default('volume_options', volume_options)
-        for key, types in (['resolution', (None, 'numeric')],
-                           ['blending', (str,)],
-                           ['alpha', ('numeric', None)],
-                           ['surface_alpha', (None, 'numeric')]):
+        allowed_types = (
+            ['resolution', (None, 'numeric')],
+            ['blending', (str,)],
+            ['alpha', ('numeric', None)],
+            ['surface_alpha', (None, 'numeric')])
+        for key, types in allowed_types:
             _validate_type(volume_options[key], types,
                            f'volume_options[{repr(key)}]')
+        extra_keys = set(volume_options) - set(a[0] for a in allowed_types)
+        if len(extra_keys):
+            raise ValueError(
+                f'volume_options got unknown keys {sorted(extra_keys)}')
         _check_option('volume_options["blending"]', volume_options['blending'],
                       ('composite', 'mip'))
         blending = volume_options['blending']
@@ -671,9 +677,9 @@ class _Brain(object):
             origin = src_mri_t[:3, 3] - spacing / 2.
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.  # for the outer mesh
-            grid, grid_mesh, mapper, volume_pos, volume_neg = \
+            grid, grid_mesh, volume_pos, volume_neg = \
                 self._add_volume_object(
-                    dimensions, origin, spacing, scalars, alpha, surface_alpha,
+                    dimensions, origin, spacing, scalars, surface_alpha,
                     resolution, blending)
             self._data[hemi]['alpha'] = alpha  # incorrectly set earlier
             self._data[hemi]['grid'] = grid
@@ -681,7 +687,6 @@ class _Brain(object):
             self._data[hemi]['grid_coords'] = coords
             self._data[hemi]['grid_src_mri_t'] = src_mri_t
             self._data[hemi]['grid_shape'] = dimensions
-            self._data[hemi]['grid_mapper'] = mapper
             self._data[hemi]['grid_volume_pos'] = volume_pos
             self._data[hemi]['grid_volume_neg'] = volume_neg
         actor_pos, _ = self._renderer.plotter.add_actor(
@@ -701,7 +706,7 @@ class _Brain(object):
         return actor_pos, actor_neg
 
     def _add_volume_object(self, dimensions, origin, spacing, scalars,
-                           alpha, surface_alpha, resolution, blending):
+                           surface_alpha, resolution, blending):
         # Now we can actually construct the visualization
         import vtk
         import pyvista as pv
@@ -761,7 +766,7 @@ class _Brain(object):
             volume_neg.GetProperty().SetScalarOpacityUnitDistance(dist)
         else:
             volume_neg = None
-        return grid, grid_mesh, mapper, volume_pos, volume_neg
+        return grid, grid_mesh, volume_pos, volume_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):

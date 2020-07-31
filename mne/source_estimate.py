@@ -1943,7 +1943,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         return super().plot(
             subject=subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
-            transparent=transparent, alpha=alpha, subjects_dir=subjects_dir,
+            transparent=transparent, alpha=alpha, time_viewer=time_viewer,
+            subjects_dir=subjects_dir,
             figure=figure, views=views, colorbar=colorbar, clim=clim,
             cortex=cortex, size=size, background=background,
             foreground=foreground, initial_time=initial_time,

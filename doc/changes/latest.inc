@@ -27,6 +27,8 @@ Changelog
 
 - Add :class:`mne.MixedVectorSourceEstimate` for vector source estimates for mixed source spaces, by `Eric Larson`_
 
+- Add mixed and volumetric source estimate plotting using volumetric ray-casting to :meth:`mne.MixedSourceEstimate.plot` and :meth:`mne.VolSourceEstimate.plot_3d` by `Eric Larson`_
+
 - Add :meth:`mne.MixedSourceEstimate.surface` and :meth:`mne.MixedSourceEstimate.volume` methods to allow surface and volume extraction by `Eric Larson`_
 
 - Add :meth:`mne.VectorSourceEstimate.project` to project vector source estimates onto the direction of maximum source power by `Eric Larson`_

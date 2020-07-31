@@ -7,7 +7,7 @@
 #
 # License: Simplified BSD
 
-import os
+from mne.minimum_norm.inverse import apply_inverse
 import os.path as op
 from pathlib import Path
 import sys
@@ -19,11 +19,12 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
-                 read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
+                 read_trans, read_dipole, SourceEstimate,
                  VolSourceEstimate, make_sphere_model, use_coil_def,
                  setup_volume_source_space, read_forward_solution,
                  VolVectorSourceEstimate, convert_forward_solution,
                  compute_source_morph, MixedSourceEstimate)
+from mne.source_estimate import _BaseVolSourceEstimate
 from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
                     read_raw_nirx)
 from mne.io._digitization import write_dig
@@ -689,39 +690,72 @@ def test_plot_volume_source_estimates_morph():
                  clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
-bad_azure_3d = pytest.mark.skipif(
-    os.getenv('AZURE_CI_WINDOWS', 'false') == 'true' and
-    sys.version_info[:2] == (3, 8),
-    reason='Crashes workers on Azure')
-
-
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-@bad_azure_3d
-def test_plot_vector_source_estimates(renderer_interactive):
-    """Test plotting of vector source estimates."""
-    sample_src = read_source_spaces(src_fname)
-
-    vertices = [s['vertno'] for s in sample_src]
-    n_verts = sum(len(v) for v in vertices)
-    n_time = 5
-    data = np.random.RandomState(0).rand(n_verts, 3, n_time)
-    stc = VectorSourceEstimate(data, vertices, 1, 1)
-
-    brain = stc.plot('sample', subjects_dir=subjects_dir, hemi='both',
-                     smoothing_steps=1, verbose='error')
+@pytest.mark.parametrize('pick_ori', ('vector', None))
+@pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
+def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
+                               pick_ori, kind):
+    """Test plotting of scalar and vector source estimates."""
+    invs, evoked = all_src_types_inv_evoked
+    inv = invs[kind]
+    is_pyvista = renderer_interactive._get_3d_backend() == 'pyvista'
+    with pytest.warns(None):  # PCA mag
+        stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
+    stc.data[1] *= -1  # make it signed
+    meth = 'plot_3d' if isinstance(stc, _BaseVolSourceEstimate) else 'plot'
+    meth = getattr(stc, meth)
+    kwargs = dict(subject='sample', subjects_dir=subjects_dir,
+                  time_viewer=False, show_traces=False,  # for speed
+                  smoothing_steps=1, verbose='error', src=inv['src'])
+    if pick_ori != 'vector':
+        kwargs['surface'] = 'white'
+    # Mayavi can't handle non-surface
+    if kind != 'surface' and not is_pyvista:
+        with pytest.raises(RuntimeError, match='PyVista'):
+            meth(**kwargs)
+        return
+    brain = meth(**kwargs)
     brain.close()
     del brain
 
-    with pytest.raises(ValueError, match='use "pos_lims"'):
-        stc.plot('sample', subjects_dir=subjects_dir,
-                 clim=dict(pos_lims=[1, 2, 3]))
+    if pick_ori == 'vector':
+        with pytest.raises(ValueError, match='use "pos_lims"'):
+            meth(**kwargs, clim=dict(pos_lims=[1, 2, 3]))
+    if kind in ('volume', 'mixed'):
+        with pytest.raises(TypeError, match='when stc is a mixed or vol'):
+            these_kwargs = kwargs.copy()
+            these_kwargs.pop('src')
+            meth(**these_kwargs)
 
     with pytest.raises(ValueError, match='cannot be used'):
-        stc.plot('sample', subjects_dir=subjects_dir,
-                 show_traces=True, time_viewer=False)
+        these_kwargs = kwargs.copy()
+        these_kwargs.update(show_traces=True, time_viewer=False)
+        meth(**these_kwargs)
+    if not is_pyvista:
+        with pytest.raises(ValueError, match='view_layout must be'):
+            meth(view_layout='horizontal', **kwargs)
+
+    # just test one for speed
+    if kind != 'mixed':
+        return
+    assert is_pyvista
+    brain = meth(
+        views=['lat', 'med', 'ven'], hemi='lh',
+        view_layout='horizontal', **kwargs)
+    brain.close()
+    assert brain._subplot_shape == (1, 3)
+    del brain
+    with pytest.raises(ValueError, match='mip'):
+        meth(volume_options=dict(blending='foo'), **kwargs)
+    with pytest.raises(ValueError, match='unknown'):
+        meth(volume_options=dict(badkey='foo'), **kwargs)
+    # no resampling
+    brain = meth(volume_options=dict(resolution=None), **kwargs)
+    brain.close()
+    del brain
 
 
 @pytest.mark.slowtest
@@ -786,7 +820,6 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
-@bad_azure_3d
 def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)

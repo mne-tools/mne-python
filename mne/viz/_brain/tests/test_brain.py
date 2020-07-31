@@ -14,8 +14,10 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from mne import SourceEstimate, read_source_estimate
-from mne.source_space import read_source_spaces, vertex_to_mni
+from mne import (read_source_estimate, SourceEstimate, MixedSourceEstimate,
+                 VolSourceEstimate)
+from mne.source_space import (read_source_spaces, vertex_to_mni,
+                              setup_volume_source_space)
 from mne.datasets import testing
 from mne.utils import check_version
 from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer, _BrainScraper
@@ -40,10 +42,13 @@ class _Collection(object):
 class TstVTKPicker(object):
     """Class to test cell picking."""
 
-    def __init__(self, mesh, cell_id):
+    def __init__(self, mesh, cell_id, hemi, brain):
+        assert mesh is not None
         self.mesh = mesh
         self.cell_id = cell_id
         self.point_id = None
+        self.hemi = hemi
+        self.brain = brain
 
     def GetCellId(self):
         """Return the picked cell."""
@@ -55,15 +60,27 @@ class TstVTKPicker(object):
 
     def GetPickPosition(self):
         """Return the picked position."""
-        vtk_cell = self.mesh.GetCell(self.cell_id)
-        cell = [vtk_cell.GetPointId(point_id) for point_id
-                in range(vtk_cell.GetNumberOfPoints())]
-        self.point_id = cell[0]
-        return self.mesh.points[self.point_id]
+        if self.hemi == 'vol':
+            self.point_id = self.cell_id
+            return self.brain._data['vol']['grid_coords'][self.cell_id]
+        else:
+            vtk_cell = self.mesh.GetCell(self.cell_id)
+            cell = [vtk_cell.GetPointId(point_id) for point_id
+                    in range(vtk_cell.GetNumberOfPoints())]
+            self.point_id = cell[0]
+            return self.mesh.points[self.point_id]
 
     def GetProp3Ds(self):
         # XXX should make this actually return some to test it
         return _Collection()
+
+    def GetRenderer(self):
+        return self  # set this to also be the renderer and active camera
+
+    GetActiveCamera = GetRenderer
+
+    def GetPosition(self):
+        return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
 @testing.requires_testing_data
@@ -166,7 +183,7 @@ def test_brain_save_movie(tmpdir, renderer):
     """Test saving a movie of a _Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
-    brain_data = _create_testing_brain(hemi='lh')
+    brain_data = _create_testing_brain(hemi='lh', time_viewer=False)
     filename = str(path.join(tmpdir, "brain_test.mov"))
     brain_data.save_movie(filename, time_dilation=1,
                           interpolation='nearest')
@@ -210,11 +227,13 @@ def test_brain_timeviewer(renderer_interactive):
     pytest.param('split', marks=pytest.mark.slowtest),
     pytest.param('both', marks=pytest.mark.slowtest),
 ])
-def test_brain_timeviewer_traces(renderer_interactive, hemi, tmpdir):
+@pytest.mark.parametrize('src', ('volume', 'mixed', 'surface'))
+def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
-    brain_data = _create_testing_brain(hemi=hemi)
+    brain_data = _create_testing_brain(
+        hemi=hemi, surf='white', src=src)
     time_viewer = _TimeViewer(brain_data, show_traces=True)
     assert hasattr(time_viewer, "picked_points")
     assert hasattr(time_viewer, "_spheres")
@@ -222,21 +241,37 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, tmpdir):
     # test points picked by default
     picked_points = brain_data.get_picked_points()
     spheres = time_viewer._spheres
-    hemi_str = [hemi] if hemi in ('lh', 'rh') else ['lh', 'rh']
+    hemi_str = list()
+    if src in ('surface', 'mixed'):
+        hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
+    if src in ('mixed', 'volume'):
+        hemi_str.extend(['vol'])
     for current_hemi in hemi_str:
         assert len(picked_points[current_hemi]) == 1
-    assert len(spheres) == len(hemi_str)
+    n_spheres = len(hemi_str)
+    if hemi == 'split' and src in ('mixed', 'volume'):
+        n_spheres += 1
+    assert len(spheres) == n_spheres
 
     # test removing points
     time_viewer.clear_points()
-    assert len(picked_points['lh']) == 0
-    assert len(picked_points['rh']) == 0
+    assert len(spheres) == 0
+    for key in ('lh', 'rh', 'vol'):
+        assert len(picked_points[key]) == 0
 
     # test picking a cell at random
+    rng = np.random.RandomState(0)
     for idx, current_hemi in enumerate(hemi_str):
-        current_mesh = brain_data._hemi_meshes[current_hemi]
-        cell_id = np.random.randint(0, current_mesh.n_cells)
-        test_picker = TstVTKPicker(current_mesh, cell_id)
+        if current_hemi == 'vol':
+            current_mesh = brain_data._data['vol']['grid']
+            vertices = brain_data._data['vol']['vertices']
+            values = current_mesh.cell_arrays['values'][vertices]
+            cell_id = vertices[np.argmax(np.abs(values))]
+        else:
+            current_mesh = brain_data._hemi_meshes[current_hemi]
+            cell_id = rng.randint(0, current_mesh.n_cells)
+        test_picker = TstVTKPicker(
+            current_mesh, cell_id, current_hemi, brain_data)
         assert cell_id == test_picker.cell_id
         assert test_picker.point_id is None
         time_viewer.on_pick(test_picker, None)
@@ -248,7 +283,11 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, tmpdir):
         assert vertex_id == test_picker.point_id
         line = sphere._line
 
-        hemi_prefix = 'L' if current_hemi == 'lh' else 'R'
+        hemi_prefix = current_hemi[0].upper()
+        if current_hemi == 'vol':
+            assert hemi_prefix + ':' in line.get_label()
+            assert 'MNI' in line.get_label()
+            continue  # the MNI conversion is more complex
         hemi_int = 0 if current_hemi == 'lh' else 1
         mni = vertex_to_mni(
             vertices=vertex_id,
@@ -261,7 +300,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, tmpdir):
             ', '.join('%5.1f' % m for m in mni))
 
         assert line.get_label() == label
-    assert len(spheres) == len(hemi_str)
+    assert len(spheres) == n_spheres
 
     # and the scraper for it (will close the instance)
     if not check_version('sphinx_gallery'):
@@ -405,30 +444,46 @@ def test_brain_colormap():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
-def _create_testing_brain(hemi, surf='inflated'):
-    sample_src = read_source_spaces(src_fname)
+def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
+                          **kwargs):
+    assert src in ('surface', 'mixed', 'volume')
+    meth = 'plot'
+    if src in ('surface', 'mixed'):
+        sample_src = read_source_spaces(src_fname)
+        klass = MixedSourceEstimate if src == 'mixed' else SourceEstimate
+    if src in ('volume', 'mixed'):
+        vol_src = setup_volume_source_space(
+            subject_id, 7., mri='aseg.mgz',
+            volume_label='Left-Cerebellum-Cortex',
+            subjects_dir=subjects_dir, add_interpolator=False)
+        assert len(vol_src) == 1
+        assert vol_src[0]['nuse'] == 150
+        if src == 'mixed':
+            sample_src = sample_src + vol_src
+        else:
+            sample_src = vol_src
+            klass = VolSourceEstimate
+            meth = 'plot_3d'
+    assert sample_src.kind == src
 
     # dense version
+    rng = np.random.RandomState(0)
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros((n_verts * n_time))
     stc_size = stc_data.size
-    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
-        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = \
+        rng.rand(stc_data.size // 20)
     stc_data.shape = (n_verts, n_time)
-    stc = SourceEstimate(stc_data, vertices, 1, 1)
+    stc = klass(stc_data, vertices, 1, 1)
 
     fmin = stc.data.min()
     fmax = stc.data.max()
-    brain_data = _Brain(subject_id, hemi, surf, size=300,
-                        subjects_dir=subjects_dir)
-    hemi_list = ['lh', 'rh'] if hemi in ['both', 'split'] else [hemi]
-    for hemi_str in hemi_list:
-        hemi_idx = 0 if hemi_str == 'lh' else 1
-        data = getattr(stc, hemi_str + '_data')
-        vertices = stc.vertices[hemi_idx]
-        brain_data.add_data(data, fmin=fmin, hemi=hemi_str, fmax=fmax,
-                            colormap='hot', vertices=vertices,
-                            colorbar=True)
+    fmid = (fmin + fmax) / 2.
+    brain_data = getattr(stc, meth)(
+        subject=subject_id, hemi=hemi, surface=surf, size=size,
+        subjects_dir=subjects_dir, colormap='hot',
+        clim=dict(kind='value', lims=(fmin, fmid, fmax)), src=sample_src,
+        **kwargs)
     return brain_data

@@ -922,7 +922,6 @@ class _TimeViewer(object):
             self.picked_renderer = self.plotter.renderers[idx]
 
             # initialize the default point
-            color = next(self.color_cycle)
             if self.brain._data['initial_time'] is not None:
                 # pick at that time
                 use_data = act_data[
@@ -936,8 +935,7 @@ class _TimeViewer(object):
             else:
                 mesh = hemi_data['mesh']
             vertex_id = vertices[ind[0]]
-            line = self.plot_time_course(hemi, vertex_id, color)
-            self.add_point(hemi, mesh, vertex_id, line, color)
+            self.add_point(hemi, mesh, vertex_id)
 
         _update_picking_callback(
             self.plotter,
@@ -1098,16 +1096,21 @@ class _TimeViewer(object):
             coords = self.brain._data[hemi]['grid_coords'][vertices]
             scalars = grid.cell_arrays['values'][vertices]
             spacing = np.array(grid.GetSpacing())
-            max_dist = np.linalg.norm(spacing) / 2.  # halfway betw centers
-            camera = vtk_picker.GetRenderer().GetActiveCamera()
-            ori = pos - camera.GetPosition()
+            max_dist = np.linalg.norm(spacing) / np.sqrt(3)
+            origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
+            ori = pos - origin
             ori /= np.linalg.norm(ori)
             # the magic formula: distance from a ray to a given point
             dists = np.linalg.norm(np.cross(ori, coords - pos), axis=1)
             assert dists.shape == (len(coords),)
-            idx = np.where(dists <= max_dist)[0]
+            mask = dists <= max_dist
+            idx = np.where(mask)[0]
             if len(idx) == 0:
                 return  # weird point on edge of volume?
+            # useful for debugging the ray by mapping it into the volume:
+            # dists = dists - dists.min()
+            # dists = (1. - dists / dists.max()) * self.brain._cmap_range[1]
+            # grid.cell_arrays['values'][vertices] = dists * mask
             idx = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[idx]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
@@ -1125,16 +1128,12 @@ class _TimeViewer(object):
             vertex_id = cell[idx[0]]
 
         if vertex_id not in self.picked_points[hemi]:
-            color = next(self.color_cycle)
+            self.add_point(hemi, mesh, vertex_id)
 
-            # update associated time course
-            line = self.plot_time_course(hemi, vertex_id, color)
-
-            # add glyph at picked point
-            self.add_point(hemi, mesh, vertex_id, line, color)
-
-    def add_point(self, hemi, mesh, vertex_id, line, color):
+    def add_point(self, hemi, mesh, vertex_id):
         from ..backends._pyvista import _sphere
+        color = next(self.color_cycle)
+        line = self.plot_time_course(hemi, vertex_id, color)
         if hemi == 'vol':
             ijk = np.unravel_index(
                 vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
@@ -1150,7 +1149,7 @@ class _TimeViewer(object):
 
         actors = list()
         spheres = list()
-        for ri, ci, _ in self.brain._iter_views('vol'):
+        for ri, ci, _ in self.brain._iter_views(hemi):
             self.plotter.subplot(ri, ci)
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
             # 1) renderer.sphere() fails on Windows in a scenario where a lot
@@ -1175,13 +1174,14 @@ class _TimeViewer(object):
             sphere._actors = actors
             sphere._color = color
             sphere._vertex_id = vertex_id
+            sphere._spheres = spheres
 
         self.picked_points[hemi].append(vertex_id)
-
-        # this is used for testing only
-        self._spheres += spheres
+        self._spheres.extend(spheres)
 
     def remove_point(self, mesh):
+        if mesh._spheres is None:
+            return  # already removed
         mesh._line.remove()
         self.mpl_canvas.update_plot()
         self.picked_points[mesh._hemi].remove(mesh._vertex_id)
@@ -1190,17 +1190,19 @@ class _TimeViewer(object):
             # entire color cycle
             warnings.simplefilter('ignore')
             self.color_cycle.restore(mesh._color)
+        # remove all actors
         self.plotter.remove_actor(mesh._actors)
         mesh._actors = None
-        self._spheres.pop(self._spheres.index(mesh))
+        # remove all meshes from sphere list
+        for sphere in list(mesh._spheres):  # includes itself, so copy
+            self._spheres.pop(self._spheres.index(sphere))
+            sphere._spheres = sphere._actors = None
 
     def clear_points(self):
-        for sphere in self._spheres:
-            vertex_id = sphere._vertex_id
-            hemi = sphere._hemi
-            if vertex_id in self.picked_points[hemi]:
-                self.remove_point(sphere)
-        self._spheres.clear()
+        for sphere in list(self._spheres):  # will remove itself, so copy
+            self.remove_point(sphere)
+        assert sum(len(v) for v in self.picked_points.values()) == 0
+        assert len(self._spheres) == 0
 
     def plot_time_course(self, hemi, vertex_id, color):
         if not hasattr(self, "mpl_canvas"):
