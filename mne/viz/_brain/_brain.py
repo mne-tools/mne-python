@@ -528,7 +528,7 @@ class _Brain(object):
                 self._data[hemi]['actors'].append(actor)
                 self._data[hemi]['mesh'] = mesh
             else:
-                actor = self._add_volume_data(hemi, src, volume_options)
+                actor, _ = self._add_volume_data(hemi, src, volume_options)
         assert actor is not None  # should have added one
 
         # 2) update time and smoothing properties
@@ -646,8 +646,9 @@ class _Brain(object):
         if surface_alpha is None:
             surface_alpha = min(alpha / 2., 0.4)
         del volume_options
-        volume = self._data[hemi].get('grid_volume')
-        if volume is None:
+        volume_pos = self._data[hemi].get('grid_volume_pos')
+        volume_neg = self._data[hemi].get('grid_volume_neg')
+        if volume_pos is None:
             xyz = np.meshgrid(
                 *[np.arange(s) for s in src[0]['shape']], indexing='ij')
             dimensions = np.array(src[0]['shape'], int)
@@ -670,9 +671,10 @@ class _Brain(object):
             origin = src_mri_t[:3, 3] - spacing / 2.
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.  # for the outer mesh
-            grid, grid_mesh, mapper, volume = self._add_volume_object(
-                dimensions, origin, spacing, scalars, alpha, surface_alpha,
-                resolution, blending)
+            grid, grid_mesh, mapper, volume_pos, volume_neg = \
+                self._add_volume_object(
+                    dimensions, origin, spacing, scalars, alpha, surface_alpha,
+                    resolution, blending)
             self._data[hemi]['alpha'] = alpha  # incorrectly set earlier
             self._data[hemi]['grid'] = grid
             self._data[hemi]['grid_mesh'] = grid_mesh
@@ -680,9 +682,15 @@ class _Brain(object):
             self._data[hemi]['grid_src_mri_t'] = src_mri_t
             self._data[hemi]['grid_shape'] = dimensions
             self._data[hemi]['grid_mapper'] = mapper
-            self._data[hemi]['grid_volume'] = volume
-        actor, _ = self._renderer.plotter.add_actor(
-            volume, reset_camera=False, name=None, culling=False)
+            self._data[hemi]['grid_volume_pos'] = volume_pos
+            self._data[hemi]['grid_volume_neg'] = volume_neg
+        actor_pos, _ = self._renderer.plotter.add_actor(
+            volume_pos, reset_camera=False, name=None, culling=False)
+        if volume_neg is not None:
+            actor_neg, _ = self._renderer.plotter.add_actor(
+                volume_neg, reset_camera=False, name=None, culling=False)
+        else:
+            actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
             _, prop = self._renderer.plotter.add_actor(
@@ -690,7 +698,7 @@ class _Brain(object):
                 pickable=False)
             prop.SetColor(*self._brain_color[:3])
             prop.SetOpacity(surface_alpha)
-        return actor
+        return actor_pos, actor_neg
 
     def _add_volume_object(self, dimensions, origin, spacing, scalars,
                            alpha, surface_alpha, resolution, blending):
@@ -735,11 +743,25 @@ class _Brain(object):
         # Additive, AverageIntensity, and Composite might also be reasonable
         remap = dict(composite='Composite', mip='MaximumIntensity')
         getattr(mapper, f'SetBlendModeTo{remap[blending]}')()
-        volume = vtk.vtkVolume()
-        volume.SetMapper(mapper)
-        volume.GetProperty().SetScalarOpacityUnitDistance(
-            grid.length / (np.mean(grid.dimensions) - 1))
-        return grid, grid_mesh, mapper, volume
+        volume_pos = vtk.vtkVolume()
+        volume_pos.SetMapper(mapper)
+        dist = grid.length / (np.mean(grid.dimensions) - 1)
+        volume_pos.GetProperty().SetScalarOpacityUnitDistance(dist)
+        if self._data['center'] is not None and blending == 'mip':
+            # We need to create a minimum intensity projection for the neg half
+            mapper_neg = vtk.vtkSmartVolumeMapper()
+            if resolution is None:  # native
+                mapper_neg.SetScalarModeToUseCellData()
+                mapper_neg.SetInputDataObject(grid)
+            else:
+                mapper_neg.SetInputConnection(upsampler.GetOutputPort())
+            mapper_neg.SetBlendModeToMinimumIntensity()
+            volume_neg = vtk.vtkVolume()
+            volume_neg.SetMapper(mapper_neg)
+            volume_neg.GetProperty().SetScalarOpacityUnitDistance(dist)
+        else:
+            volume_neg = None
+        return grid, grid_mesh, mapper, volume_pos, volume_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -1201,11 +1223,14 @@ class _Brain(object):
                         _set_colormap_range(actor, ctable, scalar_bar, rng)
                         scalar_bar = None
 
-                grid_volume = hemi_data.get('grid_volume')
-                if grid_volume is not None:
-                    _set_volume_range(grid_volume, ctable, hemi_data['alpha'],
-                                      scalar_bar, rng)
-                    scalar_bar = None
+                grid_volume_pos = hemi_data.get('grid_volume_pos')
+                grid_volume_neg = hemi_data.get('grid_volume_neg')
+                for grid_volume in (grid_volume_pos, grid_volume_neg):
+                    if grid_volume is not None:
+                        _set_volume_range(
+                            grid_volume, ctable, hemi_data['alpha'],
+                            scalar_bar, rng)
+                        scalar_bar = None
 
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
@@ -1310,8 +1335,7 @@ class _Brain(object):
                 grid = hemi_data.get('grid')
                 if grid is not None:
                     vertices = self._data['vol']['vertices']
-                    values = np.abs(self._current_act_data['vol'])
-                    grid.cell_arrays['values'][vertices] = values
+                    values = self._current_act_data['vol']
                     rng = self._cmap_range
                     fill = 0 if self._data['center'] is not None else rng[0]
                     grid.cell_arrays['values'].fill(fill)
