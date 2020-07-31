@@ -41,5 +41,5 @@ rh_views_dict = _rh_views_dict.copy()
 for k, v in _rh_views_dict.items():
     rh_views_dict[k[:3]] = v
 # XXX shouldn't need the both/split
-views_dicts = dict(lh=lh_views_dict, rh=rh_views_dict, vol=lh_views_dict,
-                   both=lh_views_dict, split=lh_views_dict)
+views_dicts = dict(lh=lh_views_dict, vol=lh_views_dict, both=lh_views_dict,
+                   rh=rh_views_dict)

@@ -89,16 +89,18 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.fig
 
-    def set_interactive(self):
+    def set_interaction(self, interaction):
         from tvtk.api import tvtk
         if self.fig.scene is not None:
             self.fig.scene.interactor.interactor_style = \
-                tvtk.InteractorStyleTerrain()
+                getattr(tvtk, f'InteractorStyle{interaction.capitalize()}')()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None, **kwargs):
+             representation='surface', line_width=1., normals=None,
+             pickable=None, **kwargs):
+        # normals and pickable are unused
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \

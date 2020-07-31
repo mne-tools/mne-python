@@ -32,6 +32,11 @@ src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-6-src.fif')
 
 
+class _Collection(object):
+    def GetNumberOfItems(self):
+        return 0
+
+
 class TstVTKPicker(object):
     """Class to test cell picking."""
 
@@ -55,6 +60,10 @@ class TstVTKPicker(object):
                 in range(vtk_cell.GetNumberOfPoints())]
         self.point_id = cell[0]
         return self.mesh.points[self.point_id]
+
+    def GetProp3Ds(self):
+        # XXX should make this actually return some to test it
+        return _Collection()
 
 
 @testing.requires_testing_data

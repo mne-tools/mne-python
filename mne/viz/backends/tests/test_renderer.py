@@ -107,7 +107,8 @@ def test_3d_backend(renderer):
         bgcolor=win_color,
         smooth_shading=True,
     )
-    rend.set_interactive()
+    for interaction in ('terrain', 'trackball'):
+        rend.set_interaction(interaction)
 
     # use mesh
     mesh_data = rend.mesh(

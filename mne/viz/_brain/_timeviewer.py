@@ -429,7 +429,7 @@ class _TimeViewer(object):
                 self.splitter.setSizes([sz[1], mpl_h])
                 self.mpl_canvas.canvas.setMinimumSize(0, 0)
             _process_events(self.plotter)
-            for hemi in self.brain._hemis:
+            for hemi in ('lh', 'rh'):
                 if hemi == 'rh' and self.brain._hemi == 'split':
                     continue
                 for ri, ci, v in self.brain._iter_views(hemi):
@@ -917,7 +917,7 @@ class _TimeViewer(object):
             vertices = hemi_data['vertices']
 
             # simulate a picked renderer
-            if self.brain._hemi == 'both' or hemi == 'vol':
+            if self.brain._hemi in ('both', 'rh') or hemi == 'vol':
                 idx = 0
             self.picked_renderer = self.plotter.renderers[idx]
 

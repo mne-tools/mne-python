@@ -304,8 +304,7 @@ class _Brain(object):
         _check_option('interaction', interaction, ('trackball', 'terrain'))
         for ri, ci, _ in self._iter_views('vol'):  # will traverse all
             self._renderer.subplot(ri, ci)
-            getattr(self._renderer.plotter,
-                    f'enable_{interaction}_style')()
+            self._renderer.set_interaction(interaction)
 
     def cortex_colormap(self, cortex):
         """Return the colormap corresponding to the cortex."""
@@ -1112,6 +1111,12 @@ class _Brain(object):
                   hemi=None):
         """Orient camera to display view."""
         hemi = self._hemi if hemi is None else hemi
+        if hemi == 'split':
+            if (self._view_layout == 'vertical' and col == 1 or
+                    self._view_layout == 'horizontal' and row == 1):
+                hemi = 'rh'
+            else:
+                hemi = 'lh'
         if isinstance(view, str):
             view = views_dicts[hemi].get(view)
         view = view.copy()

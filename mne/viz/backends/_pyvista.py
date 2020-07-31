@@ -216,8 +216,8 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.figure
 
-    def set_interactive(self):
-        self.plotter.enable_terrain_style()
+    def set_interaction(self, interaction):
+        getattr(self.plotter, f'enable_{interaction}_style')()
 
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
