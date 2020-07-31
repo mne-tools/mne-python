@@ -69,7 +69,7 @@ before_install:
     # Always install these via pip so we get the latest possible versions (testing bugfixes)
     - pip install --upgrade -r requirements_testing.txt codecov
     - if [ "${DEPS}" != "minimal" ]; then
-        pip install nitime;
+        pip install nitime pytest-xdist;
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" != "minimal" ]; then
@@ -143,7 +143,7 @@ script:
         python mne/tests/test_evoked.py;
       fi;
     - echo 'pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}'
-    - pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}
+    - pytest -m "${CONDITION}" --tb=short --cov=mne -vv -n 1 ${USE_DIRS}
     # run the minimal one with the testing data
     - if [ "${DEPS}" == "minimal" ]; then
         export MNE_SKIP_TESTING_DATASET_TESTS=false;

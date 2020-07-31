@@ -35,8 +35,14 @@ src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
 
 
 class _Collection(object):
+    def __init__(self, actors):
+        self._actors = actors
+
     def GetNumberOfItems(self):
-        return 0
+        return len(self._actors)
+
+    def GetItemAsObject(self, ii):
+        return self._actors[ii]
 
 
 class TstVTKPicker(object):
@@ -49,6 +55,7 @@ class TstVTKPicker(object):
         self.point_id = None
         self.hemi = hemi
         self.brain = brain
+        self._actors = ()
 
     def GetCellId(self):
         """Return the picked cell."""
@@ -71,8 +78,7 @@ class TstVTKPicker(object):
             return self.mesh.points[self.point_id]
 
     def GetProp3Ds(self):
-        # XXX should make this actually return some to test it
-        return _Collection()
+        return _Collection(self._actors)
 
     def GetRenderer(self):
         return self  # set this to also be the renderer and active camera
@@ -227,7 +233,7 @@ def test_brain_timeviewer(renderer_interactive):
     pytest.param('split', marks=pytest.mark.slowtest),
     pytest.param('both', marks=pytest.mark.slowtest),
 ])
-@pytest.mark.parametrize('src', ('volume', 'mixed', 'surface'))
+@pytest.mark.parametrize('src', ('surface', 'volume', 'mixed'))
 def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
@@ -262,6 +268,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     # test picking a cell at random
     rng = np.random.RandomState(0)
     for idx, current_hemi in enumerate(hemi_str):
+        assert len(spheres) == 0
         if current_hemi == 'vol':
             current_mesh = brain_data._data['vol']['grid']
             vertices = brain_data._data['vol']['vertices']
@@ -278,7 +285,8 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
         assert test_picker.point_id is not None
         assert len(picked_points[current_hemi]) == 1
         assert picked_points[current_hemi][0] == test_picker.point_id
-        sphere = spheres[idx]
+        assert len(spheres) > 0
+        sphere = spheres[-1]
         vertex_id = sphere._vertex_id
         assert vertex_id == test_picker.point_id
         line = sphere._line
@@ -300,7 +308,12 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
             ', '.join('%5.1f' % m for m in mni))
 
         assert line.get_label() == label
-    assert len(spheres) == n_spheres
+
+        # remove the sphere by clicking in its vicinity
+        old_len = len(spheres)
+        test_picker._actors = sum((s._actors for s in spheres), [])
+        time_viewer.on_pick(test_picker, None)
+        assert len(spheres) < old_len
 
     # and the scraper for it (will close the instance)
     if not check_version('sphinx_gallery'):
