@@ -78,14 +78,17 @@ class TstVTKPicker(object):
             return self.mesh.points[self.point_id]
 
     def GetProp3Ds(self):
+        """Return all picked Prop3Ds."""
         return _Collection(self._actors)
 
     def GetRenderer(self):
+        """Return the "renderer"."""
         return self  # set this to also be the renderer and active camera
 
     GetActiveCamera = GetRenderer
 
     def GetPosition(self):
+        """Return the position."""
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
