@@ -434,3 +434,17 @@ def src_volume_labels():
     assert volume_labels[0] == 'Unknown'
     assert lut['Unknown'] == 0  # it will be excluded during label gen
     return src, tuple(volume_labels), lut
+
+
+@pytest.fixture(scope='session')
+def pixel_ratio():
+    """Get the pixel ratio."""
+    try:
+        from PyQt5.QtWidgets import QApplication, QMainWindow
+        _ = QApplication.instance() or QApplication([])
+        window = QMainWindow()
+        ratio = float(window.devicePixelRatio())
+        window.close()
+    except Exception:
+        ratio = 1.
+    return ratio

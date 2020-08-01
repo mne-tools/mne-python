@@ -490,16 +490,16 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
             figure_size = figure._window_size
         else:
             figure_size = figure.scene._renwin.size
-        return np.zeros(tuple(figure_size) + (ndim,), np.uint8)
+        img = np.zeros(tuple(figure_size) + (ndim,), np.uint8)
     else:
         from pyface.api import GUI
         gui = GUI()
         gui.process_events()
         with warnings.catch_warnings(record=True):  # traits
             img = mlab.screenshot(figure, mode=mode)
-        if isinstance(filename, str):
-            _save_figure(img, filename)
-        return img
+    if isinstance(filename, str):
+        _save_figure(img, filename)
+    return img
 
 
 @contextmanager

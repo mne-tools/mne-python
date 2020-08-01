@@ -56,13 +56,13 @@ class MplCanvas(object):
         else:
             parent = time_viewer.window
         # prefer constrained layout here but live with tight_layout otherwise
+        context = nullcontext
+        extra_events = ('resize',)
         try:
             context = rc_context({'figure.constrained_layout.use': True})
-        except KeyError:
-            context = nullcontext
-            extra_events = ('resize',)
-        else:
             extra_events = ()
+        except KeyError:
+            pass
         with context:
             self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.canvas = FigureCanvasQTAgg(self.fig)

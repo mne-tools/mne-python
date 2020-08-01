@@ -623,10 +623,13 @@ class _Brain(object):
     def _add_volume_data(self, hemi, src, volume_options):
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
-        _validate_type(volume_options, (dict, 'numeric'), 'volume_options')
+        _validate_type(
+            volume_options, (dict, 'numeric', None), 'volume_options')
         assert hemi == 'vol'
         if not isinstance(volume_options, dict):
-            volume_options = dict(resolution=float(volume_options))
+            volume_options = dict(
+                resolution=float(volume_options) if volume_options is not None
+                else None)
         volume_options = _handle_default('volume_options', volume_options)
         allowed_types = (
             ['resolution', (None, 'numeric')],
@@ -1362,16 +1365,15 @@ class _Brain(object):
 
                 # update the glyphs
                 if vectors is not None:
-                    self.update_glyphs(hemi, vectors)
+                    self._update_glyphs(hemi, vectors)
 
         self._data['time_idx'] = time_idx
         self._update()
 
-    def update_glyphs(self, hemi, vectors):
+    def _update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import _set_colormap_range
         hemi_data = self._data.get(hemi)
-        if hemi_data is None:
-            return
+        assert hemi_data is not None
         vertices = hemi_data['vertices']
         vector_alpha = self._data['vector_alpha']
         scale_factor = self._data['scale_factor']

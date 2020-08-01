@@ -758,7 +758,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     with pytest.raises(ValueError, match='unknown'):
         meth(**these_kwargs)
     # with resampling (actually downsampling but it's okay)
-    these_kwargs['volume_options'] = dict(resolution=20.)
+    these_kwargs['volume_options'] = dict(resolution=20., surface_alpha=0.)
     brain = meth(**these_kwargs)
     brain.close()
     del brain

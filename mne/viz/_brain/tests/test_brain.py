@@ -24,6 +24,7 @@ from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer, _BrainScraper
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
+import matplotlib.pyplot as plt
 
 data_path = testing.data_path(download=False)
 subject_id = 'sample'
@@ -49,7 +50,6 @@ class TstVTKPicker(object):
     """Class to test cell picking."""
 
     def __init__(self, mesh, cell_id, hemi, brain):
-        assert mesh is not None
         self.mesh = mesh
         self.cell_id = cell_id
         self.point_id = None
@@ -93,7 +93,7 @@ class TstVTKPicker(object):
 
 
 @testing.requires_testing_data
-def test_brain(renderer):
+def test_brain_init(renderer, tmpdir, pixel_ratio):
     """Test initialization of the _Brain instance."""
     from mne.label import read_label
     hemi = 'lh'
@@ -115,7 +115,8 @@ def test_brain(renderer):
         _Brain(hemi='foo', surf=surf, **kwargs)
 
     brain = _Brain(hemi=hemi, surf=surf, size=size, title=title,
-                   cortex=cortex, **kwargs)
+                   cortex=cortex, units='m', **kwargs)
+    assert brain.interaction == 'trackball'
     # add_data
     stc = read_source_estimate(fname_stc)
     fmin = stc.data.min()
@@ -147,18 +148,46 @@ def test_brain(renderer):
         with pytest.raises(ValueError):
             brain.add_data(hemi_data, fmin=fmin, hemi=hemi,
                            fmax=fmax, vertices=None)
+        with pytest.raises(ValueError, match='has shape'):
+            brain.add_data(hemi_data[:, np.newaxis], fmin=fmin, hemi=hemi,
+                           fmax=fmax, vertices=None, time=[0, 1])
 
         brain.add_data(hemi_data, fmin=fmin, hemi=h, fmax=fmax,
                        colormap='hot', vertices=hemi_vertices,
                        smoothing_steps='nearest', colorbar=False, time=None)
-        brain.add_data(hemi_data, fmin=fmin, hemi=h, fmax=fmax,
+        assert brain.data['lh']['array'] is hemi_data
+        assert brain.views == ['lateral']
+        assert brain.hemis == ('lh',)
+        brain.add_data(hemi_data[:, np.newaxis], fmin=fmin, hemi=h, fmax=fmax,
                        colormap='hot', vertices=hemi_vertices,
                        smoothing_steps=1, initial_time=0., colorbar=False,
-                       time=None)
+                       time=[0])
+        brain.set_time_point(0)  # should hit _safe_interp1d
 
+        with pytest.raises(ValueError, match='consistent with'):
+            brain.add_data(hemi_data[:, np.newaxis], fmin=fmin, hemi=h,
+                           fmax=fmax, colormap='hot', vertices=hemi_vertices,
+                           smoothing_steps='nearest', colorbar=False,
+                           time=[1])
+        with pytest.raises(ValueError, match='different from'):
+            brain.add_data(hemi_data[:, np.newaxis][:, [0, 0]],
+                           fmin=fmin, hemi=h, fmax=fmax, colormap='hot',
+                           vertices=hemi_vertices)
+        with pytest.raises(ValueError, match='need shape'):
+            brain.add_data(hemi_data[:, np.newaxis], time=[0, 1],
+                           fmin=fmin, hemi=h, fmax=fmax, colormap='hot',
+                           vertices=hemi_vertices)
+        with pytest.raises(ValueError, match='If array has 3'):
+            brain.add_data(hemi_data[:, np.newaxis, np.newaxis],
+                           fmin=fmin, hemi=h, fmax=fmax, colormap='hot',
+                           vertices=hemi_vertices)
     # add label
     label = read_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
+    brain.remove_labels()
+    brain.add_label(fname_label)
+    brain.add_label('V1', borders=True)
+    brain.remove_labels()
     brain.remove_labels()
 
     # add foci
@@ -168,21 +197,31 @@ def test_brain(renderer):
     # add text
     brain.add_text(x=0, y=0, text='foo')
 
-    # screenshot
-    brain.show_view(view=dict(azimuth=180., elevation=90.))
-    img = brain.screenshot(mode='rgb')
-    assert_allclose(img.shape, (size[0], size[1], 3),
-                    atol=70)  # XXX undo once size is fixed
-
     # add annotation
-    annots = ['aparc', 'PALS_B12_Lobes']
+    annots = ['aparc', path.join(subjects_dir, 'fsaverage', 'label',
+                                 'lh.PALS_B12_Lobes.annot')]
     borders = [True, 2]
     alphas = [1, 0.5]
+    colors = [None, 'r']
     brain = _Brain(subject_id='fsaverage', hemi=hemi, size=size,
                    surf='inflated', subjects_dir=subjects_dir)
-    for a, b, p in zip(annots, borders, alphas):
-        brain.add_annotation(a, b, p)
+    for a, b, p, color in zip(annots, borders, alphas, colors):
+        brain.add_annotation(a, b, p, color=color)
 
+    brain.show_view(dict(focalpoint=(1e-5, 1e-5, 1e-5)), roll=1, distance=500)
+
+    # image and screenshot
+    fname = path.join(str(tmpdir), 'test.png')
+    assert not path.isfile(fname)
+    brain.save_image(fname)
+    assert path.isfile(fname)
+    brain.show_view(view=dict(azimuth=180., elevation=90.))
+    img = brain.screenshot(mode='rgb')
+    if renderer._get_3d_backend() == 'mayavi':
+        pixel_ratio = 1.  # no HiDPI when using the testing backend
+    want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 3])
+    assert_allclose(img.shape, want_size,
+                    atol=70 * pixel_ratio)  # XXX undo once size is fixed
     brain.close()
 
 
@@ -201,7 +240,7 @@ def test_brain_save_movie(tmpdir, renderer):
 
 
 @testing.requires_testing_data
-def test_brain_timeviewer(renderer_interactive):
+def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     """Test _TimeViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
@@ -224,11 +263,16 @@ def test_brain_timeviewer(renderer_interactive):
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+    plt.close('all')
+    time_viewer.help()
+    assert len(plt.get_fignums()) == 1
+    plt.close('all')
 
     # screenshot
     brain_data.show_view(view=dict(azimuth=180., elevation=90.))
     img = brain_data.screenshot(mode='rgb')
-    assert(img.shape == (300, 300, 3))
+    want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
+    assert_allclose(img.shape, want_shape)
 
 
 @testing.requires_testing_data
@@ -248,8 +292,8 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
     brain_data = _create_testing_brain(
-        hemi=hemi, surf='white', src=src,
-        volume_options=dict(resolution=None),  # for speed
+        hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+        volume_options=None,  # for speed, don't upsample
     )
     with pytest.raises(RuntimeError, match='already'):
         _TimeViewer(brain_data)
@@ -291,6 +335,8 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
         else:
             current_mesh = brain_data._hemi_meshes[current_hemi]
             cell_id = rng.randint(0, current_mesh.n_cells)
+        test_picker = TstVTKPicker(None, None, current_hemi, brain_data)
+        assert time_viewer.on_pick(test_picker, None) is None
         test_picker = TstVTKPicker(
             current_mesh, cell_id, current_hemi, brain_data)
         assert cell_id == test_picker.cell_id
