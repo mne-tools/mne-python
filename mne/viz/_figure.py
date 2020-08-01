@@ -98,11 +98,11 @@ class MNEAnnotationFigure(MNEFigure):
         key = event.key
         if key == self.mne.close_key:
             close(self)
-            return
         elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
             self._parent_fig._add_annotation_label(event)
+            return
         elif len(key) > 1 or key == ';':  # ignore modifier keys
             return
         else:
@@ -116,7 +116,7 @@ class MNEAnnotationFigure(MNEFigure):
         buttons = self.radio_ax.buttons
         labels = [label.get_text() for label in buttons.labels]
         idx = labels.index(buttons.value_selected)
-        self._style_annotation_buttons(idx)
+        self._set_active_button(idx)
         # update click-drag rectangle color
         color = buttons.circles[idx].get_edgecolor()
         selector = self._parent_fig.mne.ax_main.selector
@@ -124,7 +124,7 @@ class MNEAnnotationFigure(MNEFigure):
         selector.rectprops.update(dict(facecolor=color))
 
     def _click_override(self, event):
-        """Override MPL radiobutton click detector to use a transData."""
+        """Override MPL radiobutton click detector to use transData."""
         ax = self.radio_ax
         buttons = ax.buttons
         if (buttons.ignore(event) or event.button != 1 or event.inaxes != ax):
@@ -139,7 +139,7 @@ class MNEAnnotationFigure(MNEFigure):
             closest = min(distances, key=distances.get)
             buttons.set_active(closest)
 
-    def _style_annotation_buttons(self, idx):
+    def _set_active_button(self, idx):
         """Set active button in annotation dialog figure."""
         buttons = self.radio_ax.buttons
         with _events_off(buttons):
@@ -190,14 +190,12 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.annotations = None
         self.mne.added_labels = list()
         # self.mne.annotation_segments      # segments
-        # # traces
         self.mne.segment_line = None
         # # scalings
         self.mne.scale_factor = 1.
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
         # # ancillary figures
-        # self.mne.fig_proj = None
         # self.mne.fig_help = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
@@ -608,7 +606,8 @@ class MNEBrowseFigure(MNEFigure):
         self._update_annotation_fig()
         idx = [label.get_text() for label in
                self.mne.fig_annotation.radio_ax.buttons.labels].index(text)
-        self.mne.fig_annotation._style_annotation_buttons(idx)
+        self.mne.fig_annotation._set_active_button(idx)
+        self.mne.fig_annotation.label.set_text('BAD_')
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations."""
