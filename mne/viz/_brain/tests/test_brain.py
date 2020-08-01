@@ -238,7 +238,11 @@ def test_brain_timeviewer(renderer_interactive):
     pytest.param('split', marks=pytest.mark.slowtest),
     pytest.param('both', marks=pytest.mark.slowtest),
 ])
-@pytest.mark.parametrize('src', ('surface', 'volume', 'mixed'))
+@pytest.mark.parametrize('src', [
+    'surface',
+    pytest.param('volume', marks=pytest.mark.slowtest),
+    pytest.param('mixed', marks=pytest.mark.slowtest),
+])
 def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
