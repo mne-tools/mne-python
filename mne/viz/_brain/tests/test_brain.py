@@ -205,9 +205,11 @@ def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
-    brain_data = _create_testing_brain(hemi='both')
+    brain_data = _create_testing_brain(hemi='both', show_traces=False)
 
-    time_viewer = _TimeViewer(brain_data)
+    with pytest.raises(RuntimeError, match='already'):
+        _TimeViewer(brain_data)
+    time_viewer = brain_data.time_viewer
     time_viewer.time_call(value=0)
     time_viewer.orientation_call(value='lat', update_widget=True)
     time_viewer.orientation_call(value='medial', update_widget=True)
@@ -242,8 +244,13 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
     brain_data = _create_testing_brain(
-        hemi=hemi, surf='white', src=src)
-    time_viewer = _TimeViewer(brain_data, show_traces=True)
+        hemi=hemi, surf='white', src=src,
+        volume_options=dict(resolution=None),  # for speed
+    )
+    with pytest.raises(RuntimeError, match='already'):
+        _TimeViewer(brain_data)
+    time_viewer = brain_data.time_viewer
+    assert time_viewer.show_traces
     assert hasattr(time_viewer, "picked_points")
     assert hasattr(time_viewer, "_spheres")
 
@@ -342,8 +349,7 @@ def test_brain_linkviewer(renderer_interactive, travis_macos):
         pytest.skip('Linkviewer only supported on PyVista')
     if travis_macos:
         pytest.skip('Linkviewer tests unstable on Travis macOS')
-    brain_data = _create_testing_brain(hemi='split')
-    _TimeViewer(brain_data)
+    brain_data = _create_testing_brain(hemi='split', show_traces=False)
 
     link_viewer = _LinkViewer(
         [brain_data],

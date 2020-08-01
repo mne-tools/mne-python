@@ -330,6 +330,8 @@ class _TimeViewer(object):
         _require_minimum_version('0.24')
 
         # shared configuration
+        if hasattr(brain, 'time_viewer'):
+            raise RuntimeError('brain already has a TimeViewer')
         self.brain = brain
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]

@@ -709,7 +709,9 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     meth = getattr(stc, meth)
     kwargs = dict(subject='sample', subjects_dir=subjects_dir,
                   time_viewer=False, show_traces=False,  # for speed
-                  smoothing_steps=1, verbose='error', src=inv['src'])
+                  smoothing_steps=1, verbose='error', src=inv['src'],
+                  volume_options=dict(resolution=None),  # for speed
+                  )
     if pick_ori != 'vector':
         kwargs['surface'] = 'white'
     # Mayavi can't handle non-surface
@@ -748,12 +750,16 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     brain.close()
     assert brain._subplot_shape == (1, 3)
     del brain
+    these_kwargs = kwargs.copy()
+    these_kwargs['volume_options'] = dict(blending='foo')
     with pytest.raises(ValueError, match='mip'):
-        meth(volume_options=dict(blending='foo'), **kwargs)
+        meth(**these_kwargs)
+    these_kwargs['volume_options'] = dict(badkey='foo')
     with pytest.raises(ValueError, match='unknown'):
-        meth(volume_options=dict(badkey='foo'), **kwargs)
-    # no resampling
-    brain = meth(volume_options=dict(resolution=None), **kwargs)
+        meth(**these_kwargs)
+    # with resampling (actually downsampling but it's okay)
+    these_kwargs['volume_options'] = dict(resolution=20.)
+    brain = meth(**these_kwargs)
     brain.close()
     del brain
 
