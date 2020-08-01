@@ -220,7 +220,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Returns
         -------
         evoked : instance of Evoked
-            The cropped Evoked object.
+            The cropped Evoked object, modified in-place.
 
         Notes
         -----
