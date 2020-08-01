@@ -102,20 +102,20 @@ def test_brain(renderer):
     title = 'test'
     size = (300, 300)
 
+    kwargs = dict(subject_id=subject_id, subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='"size" parameter must be'):
-        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, size=[1, 2, 3])
+        _Brain(hemi=hemi, surf=surf, size=[1, 2, 3], **kwargs)
     with pytest.raises(TypeError, match='figure'):
-        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure='foo')
+        _Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
     with pytest.raises(TypeError, match='interaction'):
-        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, interaction=0)
+        _Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
     with pytest.raises(ValueError, match='interaction'):
-        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, interaction='foo')
+        _Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
     with pytest.raises(KeyError):
-        _Brain(subject_id=subject_id, hemi='foo', surf=surf)
+        _Brain(hemi='foo', surf=surf, **kwargs)
 
-    brain = _Brain(subject_id, hemi=hemi, surf=surf, size=size,
-                   subjects_dir=subjects_dir, title=title,
-                   cortex=cortex)
+    brain = _Brain(hemi=hemi, surf=surf, size=size, title=title,
+                   cortex=cortex, **kwargs)
     # add_data
     stc = read_source_estimate(fname_stc)
     fmin = stc.data.min()
