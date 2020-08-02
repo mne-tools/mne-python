@@ -208,12 +208,12 @@ def _set_sfreq(ft_struct):
             raise ValueError('No Source for sfreq found')
         else:
             t1, t2 = float(time[0]), float(time[1])
-            sfreq = 1 / abs(t1 - t2)
+            sfreq = 1 / (t2 - t1)
     try:
         sfreq = float(sfreq)
     except TypeError:
         warn('FieldTrip structure contained multiple sample rates, trying the '
-             f'first of:\n{sfreq}')
+             f'first of:\n{sfreq} Hz')
         sfreq = float(sfreq.ravel()[0])
     return sfreq
 
