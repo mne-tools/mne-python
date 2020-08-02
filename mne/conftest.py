@@ -321,6 +321,21 @@ def renderer_notebook():
         yield
 
 
+@pytest.fixture(scope='session')
+def pixel_ratio():
+    """Get the pixel ratio."""
+    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
+                                               has_pyqt5)
+    if not (has_mayavi() or has_pyvista()) or not has_pyqt5():
+        return 1.
+    from PyQt5.QtWidgets import QApplication, QMainWindow
+    _ = QApplication.instance() or QApplication([])
+    window = QMainWindow()
+    ratio = float(window.devicePixelRatio())
+    window.close()
+    return ratio
+
+
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
 def subjects_dir_tmp(tmpdir):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
@@ -434,22 +449,3 @@ def src_volume_labels():
     assert volume_labels[0] == 'Unknown'
     assert lut['Unknown'] == 0  # it will be excluded during label gen
     return src, tuple(volume_labels), lut
-
-
-@pytest.fixture(scope='session')
-def pixel_ratio():
-    """Get the pixel ratio."""
-    try:
-        from PyQt5.QtCore import QT_VERSION_STR
-        # If Qt is too old (e.g., 5.6) this check bombs. So let's pick a
-        # version we actually want to support and go from there
-        if LooseVersion(QT_VERSION_STR) < LooseVersion('5.10'):
-            raise RuntimeError('Too old')  # go to the except
-        from PyQt5.QtWidgets import QApplication, QMainWindow
-        _ = QApplication.instance() or QApplication([])
-        window = QMainWindow()
-        ratio = float(window.devicePixelRatio())
-        window.close()
-    except Exception:
-        ratio = 1.
-    return ratio
