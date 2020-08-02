@@ -440,6 +440,11 @@ def src_volume_labels():
 def pixel_ratio():
     """Get the pixel ratio."""
     try:
+        from PyQt5.QtCore import QT_VERSION_STR
+        # If Qt is too old (e.g., 5.6) this check bombs. So let's pick a
+        # version we actually want to support and go from there
+        if LooseVersion(QT_VERSION_STR) < LooseVersion('5.10'):
+            raise RuntimeError('Too old')  # go to the except
         from PyQt5.QtWidgets import QApplication, QMainWindow
         _ = QApplication.instance() or QApplication([])
         window = QMainWindow()
