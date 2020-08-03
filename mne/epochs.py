@@ -1505,14 +1505,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Returns
         -------
         epochs : instance of Epochs
-            The cropped epochs.
+            The cropped epochs object, modified in-place.
 
         Notes
         -----
-        Unlike Python slices, MNE time intervals include both their end points;
-        crop(tmin, tmax) returns the interval tmin <= t <= tmax.
-
-        Note that the object is modified in place.
+        %(notes_tmax_included_by_default)s
         """
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, 'Modifying data of epochs')

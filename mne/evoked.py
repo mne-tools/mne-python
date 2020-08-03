@@ -220,12 +220,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Returns
         -------
         evoked : instance of Evoked
-            The cropped Evoked object.
+            The cropped Evoked object, modified in-place.
 
         Notes
         -----
-        Unlike Python slices, MNE time intervals include both their end points;
-        crop(tmin, tmax) returns the interval tmin <= t <= tmax.
+        %(notes_tmax_included_by_default)s
         """
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
