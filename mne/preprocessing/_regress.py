@@ -23,7 +23,7 @@ def regress(inst, picks=None, picks_ref='eog', betas=None, copy=True,
     picks_ref : array-like
         Picks to use as the reference channels.
     betas : ndarray, shape (n_picks, n_picks_ref) | None
-        The regression coeffients to use. If None, they will be estimated
+        The regression coefficients to use. If None, they will be estimated
         from the data.
     copy : bool
         If True (default), copy the instance before modifying it.
