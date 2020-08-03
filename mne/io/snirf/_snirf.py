@@ -10,6 +10,7 @@ from ..meas_info import create_info
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
 from ...utils.check import _require_version
+from ..constants import FIFF
 
 
 @fill_doc
@@ -150,6 +151,21 @@ class RawSNIRF(BaseRaw):
             subject_info = {}
             names = np.array(dat.get('nirs/metaDataTags/SubjectID'))
             subject_info['first_name'] = names[0].decode('UTF-8')
+            # Read non standard (but allowed) custom metadata tags
+            if 'lastName' in dat.get('nirs/metaDataTags/'):
+                ln = dat.get('/nirs/metaDataTags/lastName')[0].decode('UTF-8')
+                subject_info['last_name'] = ln
+            if 'middleName' in dat.get('nirs/metaDataTags/'):
+                ln = dat.get('/nirs/metaDataTags/middleName')[0].decode('UTF-8')
+                subject_info['middle_name'] = ln
+            if 'sex' in dat.get('nirs/metaDataTags/'):
+                sex = dat.get('/nirs/metaDataTags/LengthUnit')[0].decode('UTF-8')
+                if sex in {'M', 'Male', '1', 1, 'm'}:
+                    subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
+                elif sex in {'F', 'Female', '2', 2, 'f'}:
+                    subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
+            # End non standard name reading
+            # Update info
             info.update(subject_info=subject_info)
 
             LengthUnit = np.array(dat.get('/nirs/metaDataTags/LengthUnit'))
