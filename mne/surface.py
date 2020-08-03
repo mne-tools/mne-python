@@ -764,6 +764,53 @@ def _read_wavefront_obj(fname):
     return np.array(coords), np.array(faces)
 
 
+def _read_patch(fname):
+    """Load a FreeSurfer binary patch file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+
+    Returns
+    -------
+    rrs : ndarray, shape (n_vertices, 3)
+        The points.
+    tris : ndarray, shape (n_tris, 3)
+        The patches. Not all vertices will be present.
+    """
+    # This is adapted from PySurfer PR #269, Bruce Fischl's read_patch.m,
+    # and PyCortex (BSD)
+    patch = dict()
+    with open(fname, 'r') as fid:
+        ver = np.fromfile(fid, dtype='>i4', count=1)[0]
+        if ver != -1:
+            raise RuntimeError(f'incorrect version # {ver} (not -1) found')
+        npts = np.fromfile(fid, dtype='>i4', count=1)[0]
+        dtype = np.dtype(
+            [('vertno', '>i4'), ('x', '>f'), ('y', '>f'), ('z', '>f')])
+        recs = np.fromfile(fid, dtype=dtype, count=npts)
+    # numpy to dict
+    patch = {key: recs[key] for key in dtype.fields.keys()}
+    patch['vertno'] -= 1
+
+    # read surrogate surface
+    rrs, tris = read_surface(
+        op.join(op.dirname(fname), op.basename(fname)[:3] + 'pial'))
+    orig_tris = tris
+    is_vert = patch['vertno'] > 0  # negative are edges, ignored for now
+    verts = patch['vertno'][is_vert]
+
+    # eliminate invalid tris and zero out unused rrs
+    mask = np.zeros((len(rrs),), dtype=bool)
+    mask[verts] = True
+    rrs[~mask] = 0.
+    tris = tris[mask[tris].all(1)]
+    for ii, key in enumerate(['x', 'y', 'z']):
+        rrs[verts, ii] = patch[key][is_vert]
+    return rrs, tris, orig_tris
+
+
 ##############################################################################
 # SURFACE CREATION
 

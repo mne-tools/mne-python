@@ -1426,6 +1426,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                  'par': {'elev': 30, 'azim': -60}}
     time_viewer = False if time_viewer == 'auto' else time_viewer
     kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
+    views = 'lat' if views == 'auto' else views
     _check_option('views', views, sorted(lh_kwargs.keys()))
     mapdata = _process_clim(clim, colormap, transparent, stc.data)
     _separate_map(mapdata)
@@ -1582,7 +1583,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=True, alpha=1.0,
                           time_viewer='auto', subjects_dir=None, figure=None,
-                          views='lat', colorbar=True, clim='auto',
+                          views='auto', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',

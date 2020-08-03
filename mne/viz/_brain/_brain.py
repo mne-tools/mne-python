@@ -154,13 +154,15 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | view_layout               |              | ✓                     |
        +---------------------------+--------------+-----------------------+
+       | flatmaps                  |              | ✓                     |
+       +---------------------------+--------------+-----------------------+
 
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views=['lateral'], offset=True, show_toolbar=False,
+                 views='auto', offset=True, show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
@@ -196,6 +198,7 @@ class _Brain(object):
 
         if isinstance(views, str):
             views = [views]
+        views = _check_views_hemi_flat(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         shape = (len(views), col_dict[hemi])
         if self._view_layout == 'horizontal':
@@ -1271,7 +1274,7 @@ class _Brain(object):
                 maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
-                        self.geo[hemi].faces,
+                        self.geo[hemi].orig_faces,
                         np.arange(len(self.geo[hemi].coords)),
                         vertices, morph_n_steps, maps, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
@@ -1645,16 +1648,18 @@ class _Brain(object):
             raise ValueError('borders must be a bool or positive integer')
         if borders:
             n_vertices = label.size
-            edges = mesh_edges(self.geo[hemi].faces)
+            edges = mesh_edges(self.geo[hemi].orig_faces)
             edges = edges.tocoo()
             border_edges = label[edges.row] != label[edges.col]
             show = np.zeros(n_vertices, dtype=np.int64)
             keep_idx = np.unique(edges.row[border_edges])
             if isinstance(borders, int):
                 for _ in range(borders):
-                    keep_idx = np.in1d(self.geo[hemi].faces.ravel(), keep_idx)
-                    keep_idx.shape = self.geo[hemi].faces.shape
-                    keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
+                    keep_idx = np.in1d(
+                        self.geo[hemi].orig_faces.ravel(), keep_idx)
+                    keep_idx.shape = self.geo[hemi].orig_faces.shape
+                    keep_idx = self.geo[hemi].orig_faces[
+                        np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
                 if restrict_idx is not None:
                     keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
@@ -1732,3 +1737,14 @@ def _update_limits(fmin, fmid, fmax, center, array):
                            % (fmid, fmax))
 
     return fmin, fmid, fmax
+
+
+def _check_views_hemi_flat(surf, views, hemi):
+    if surf == 'flat':
+        if len(views) != 1 or views[0] != 'auto':
+            raise ValueError(
+                f'views must be "auto" for flat maps, got {views}')
+        views = ['flat']
+    elif len(views) == 1 and views[0] == 'auto':
+        views = ['lat']
+    return views

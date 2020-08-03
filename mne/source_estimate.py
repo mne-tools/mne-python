@@ -615,7 +615,7 @@ class _BaseSourceEstimate(TimeMixin):
              colormap='auto', time_label='auto', smoothing_steps=10,
              transparent=True, alpha=1.0, time_viewer='auto',
              subjects_dir=None,
-             figure=None, views='lat', colorbar=True, clim='auto',
+             figure=None, views='auto', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground=None, initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None, show_traces='auto',

@@ -10,7 +10,8 @@ from os import path as path
 
 import numpy as np
 from ...utils import _check_option, get_subjects_dir
-from ...surface import complete_surface_info, read_surface, read_curvature
+from ...surface import (complete_surface_info, read_surface, read_curvature,
+                        _read_patch)
 
 
 class Surface(object):
@@ -108,9 +109,15 @@ class Surface(object):
         -------
         None
         """
-        surf_path = path.join(self.data_path, 'surf',
-                              '%s.%s' % (self.hemi, self.surf))
-        coords, faces = read_surface(surf_path)
+        if self.surf == 'flat':  # special case
+            coords, faces, orig_faces = _read_patch(
+                path.join(self.data_path, 'surf',
+                          '%s.%s' % (self.hemi, 'cortex.patch.flat')))
+        else:
+            coords, faces = read_surface(
+                path.join(self.data_path, 'surf',
+                          '%s.%s' % (self.hemi, self.surf)))
+            orig_faces = faces
         if self.units == 'm':
             coords /= 1000.
         if self.offset is not None:
@@ -121,15 +128,10 @@ class Surface(object):
         surf = dict(rr=coords, tris=faces)
         complete_surface_info(surf, copy=False, verbose=False)
         nn = surf['nn']
-
-        if self.coords is None:
-            self.coords = coords
-            self.faces = faces
-            self.nn = nn
-        else:
-            self.coords[:] = coords
-            self.faces[:] = faces
-            self.nn[:] = nn
+        self.coords = coords
+        self.faces = faces
+        self.orig_faces = orig_faces
+        self.nn = nn
 
     def __len__(self):
         """Return number of vertices."""

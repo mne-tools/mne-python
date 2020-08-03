@@ -36,9 +36,11 @@ _rh_views_dict = {
 lh_views_dict = _lh_views_dict.copy()
 for k, v in _lh_views_dict.items():
     lh_views_dict[k[:3]] = v
+    lh_views_dict['flat'] = dict(azimuth=250, elevation=0)
 
 rh_views_dict = _rh_views_dict.copy()
 for k, v in _rh_views_dict.items():
     rh_views_dict[k[:3]] = v
+    rh_views_dict['flat'] = dict(azimuth=-70, elevation=0)
 views_dicts = dict(lh=lh_views_dict, vol=lh_views_dict, both=lh_views_dict,
                    rh=rh_views_dict)
