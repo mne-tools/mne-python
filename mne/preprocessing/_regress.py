@@ -44,14 +44,14 @@ def regress(inst, picks=None, picks_ref='eog', betas=None, copy=True,
     original data in two calls like (here for a single-condition ``epochs``
     only):
 
-        >>> epochs_no_ave = epochs.copy().subtract_evoked()
-        >>> _, betas = mne.preprocessing.regress(epochs_no_ave)
-        >>> epochs_clean, _ = mne.preprocessing.regress(epochs, betas=betas)
+        >>> epochs_no_ave = epochs.copy().subtract_evoked()  # doctest:+SKIP
+        >>> _, betas = mne.preprocessing.regress(epochs_no_ave)  # doctest:+SKIP
+        >>> epochs_clean, _ = mne.preprocessing.regress(epochs, betas=betas)  # doctest:+SKIP
 
     References
     ----------
     .. footbibliography::
-    """
+    """  # noqa: E501
     _check_preload(inst, 'regress')
     _validate_type(inst, (BaseEpochs, BaseRaw), 'inst', 'Epochs or Raw')
     picks = _picks_to_idx(inst.info, picks, none='data')
