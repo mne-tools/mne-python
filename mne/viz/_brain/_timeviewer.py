@@ -1098,7 +1098,7 @@ class _TimeViewer(object):
             coords = self.brain._data[hemi]['grid_coords'][vertices]
             scalars = grid.cell_arrays['values'][vertices]
             spacing = np.array(grid.GetSpacing())
-            max_dist = np.linalg.norm(spacing) / np.sqrt(3)
+            max_dist = np.linalg.norm(spacing) / 2.
             origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
             ori = pos - origin
             ori /= np.linalg.norm(ori)
