@@ -160,11 +160,13 @@ class RawSNIRF(BaseRaw):
                 m = dat.get('/nirs/metaDataTags/middleName')[0].decode('UTF-8')
                 subject_info['middle_name'] = m
             if 'sex' in dat.get('nirs/metaDataTags/'):
-                s = dat.get('/nirs/metaDataTags/LengthUnit')[0].decode('UTF-8')
-                if s in {'M', 'Male', '1', 1, 'm'}:
+                s = dat.get('/nirs/metaDataTags/sex')[0].decode('UTF-8')
+                if s in {'M', 'Male', '1', 'm'}:
                     subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
-                elif s in {'F', 'Female', '2', 2, 'f'}:
+                elif s in {'F', 'Female', '2', 'f'}:
                     subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
+                elif s in {'0', 'u'}:
+                    subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
             # End non standard name reading
             # Update info
             info.update(subject_info=subject_info)
