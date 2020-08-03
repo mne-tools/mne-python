@@ -1509,8 +1509,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Unlike Python slices, MNE time intervals include both their end points;
-        crop(tmin, tmax) returns the interval tmin <= t <= tmax.
+        %(notes_tmax_included_by_default)s
         """
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, 'Modifying data of epochs')

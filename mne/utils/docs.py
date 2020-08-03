@@ -57,6 +57,12 @@ include_tmax : bool
 
     .. versionadded:: 0.19
 """
+docdict['notes_tmax_included_by_default'] = """
+Unlike Python slices, MNE time intervals by default include **both**
+their end points; ``crop(tmin, tmax)`` returns the interval
+``tmin <= t <= tmax``. Pass ``include_tmax=False`` to specify the half-open
+interval ``tmin <= t < tmax`` instead.
+"""
 docdict['raw_tmin'] = """
 tmin : float
     Start time of the raw data to use in seconds (must be >= 0).
