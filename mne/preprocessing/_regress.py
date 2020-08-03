@@ -7,7 +7,7 @@ import numpy as np
 from ..epochs import BaseEpochs
 from ..io.pick import _picks_to_idx
 from ..io.base import BaseRaw
-from ..utils import _check_preload, _validate_type, verbose
+from ..utils import _check_preload, _validate_type, _check_option, verbose
 
 
 @verbose
@@ -71,7 +71,8 @@ def regress(inst, picks=None, picks_ref='eog', betas=None, copy=True,
         estimate = True
     else:
         estimate = False
-        assert betas.shape == betas_shape
+        betas = np.asarray(betas, dtype=float)
+        _check_option('betas.shape', betas.shape, (betas_shape,))
     for pi, pick in enumerate(picks):
         this_data = inst._data[..., pick, :]  # view
         orig_shape = this_data.shape
