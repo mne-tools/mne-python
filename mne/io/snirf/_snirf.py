@@ -215,8 +215,7 @@ class RawSNIRF(BaseRaw):
                         ))
                 info['dig'] = _make_dig_points(nasion=nasion, lpa=lpa,
                                                rpa=rpa, hpi=hpi)
-                for ex in _format_dig_points(extra_pos):
-                    info['dig'].append(ex)
+                info['dig'].extend(_format_dig_points(extra_pos))
 
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
                                            last_samps=[last_samps],
