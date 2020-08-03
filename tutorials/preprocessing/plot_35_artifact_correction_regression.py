@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-.. _tut-filter-resample:
+.. _tut-artifact-regression:
 
-EOG/ECG correction using regression
-===================================
+EOG correction using regression
+===============================
 
-This tutorial covers removal of artifacts using regression
+This tutorial covers removal of artifacts using regression as in
 :footcite:`GrattonEtAl1983`.
 
 .. contents:: Page contents
@@ -13,10 +13,12 @@ This tutorial covers removal of artifacts using regression
    :depth: 2
 
 We begin as always by importing the necessary Python modules and loading some
-:ref:`auditory data <tut-brainstorm-auditory>`, crop it to 60 seconds,
+data. In this case we use data from :ref:`brainstorm <tut-brainstorm-auditory>`
+because it has both EOG and ECG electrodes. We then crop it to 60 seconds,
 set some channel information, then process the data.
-Note that there are other corrections that are useful for this dataset, see
-:ref:`tut-brainstorm-auditory` for more information.
+
+That there are other corrections that are useful for this dataset that we will
+not apply here -- see :ref:`tut-brainstorm-auditory` for more information.
 """
 
 import os.path as op
