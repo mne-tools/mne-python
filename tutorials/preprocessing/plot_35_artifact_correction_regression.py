@@ -64,14 +64,16 @@ epochs = mne.Epochs(raw, events, event_id=1, preload=True)
 # evoked response, then use those coefficients to remove the EOG signal:
 
 plot_picks = ['meg', 'eog', 'ecg']
-fig = epochs.average(picks=plot_picks).plot(picks=plot_picks)
+evo_kwargs = dict(picks=plot_picks, spatial_colors=True,
+                  verbose='error')  # ignore warnings about spatial colors
+fig = epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('Auditory epochs')
 fig.tight_layout()
 
 epochs_no_ave = epochs.copy().subtract_evoked()
 _, betas = mne.preprocessing.regress(epochs_no_ave)
 epochs_clean, _ = mne.preprocessing.regress(epochs, betas=betas)
-fig = epochs_clean.average(picks=plot_picks).plot(picks=plot_picks)
+fig = epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('Auditory epochs, EOG regressed')
 fig.tight_layout()
 
@@ -82,13 +84,22 @@ fig.tight_layout()
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 eog_epochs.apply_baseline((None, None))
-raw.plot(events=eog_epochs.events)
-fig = eog_epochs.average(picks=plot_picks).plot(picks=plot_picks)
+order = np.concatenate([  # plotting order: EOG+ECG first, then MEG
+    mne.pick_types(epochs.info, meg=False, eog=True, ecg=True),
+    mne.pick_types(epochs.info, meg=True, ref_meg=False)])
+raw_kwargs = dict(order=order, duration=25, n_channels=40)
+raw.plot(events=eog_epochs.events, **raw_kwargs)
+fig = eog_epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('EOG epochs')
 fig.tight_layout()
 
-eog_epochs_clean, _ = mne.preprocessing.regress(eog_epochs)
-fig = eog_epochs_clean.average(picks=plot_picks).plot(picks=plot_picks)
+###############################################################################
+# And then clean those data:
+
+raw_clean, _ = mne.preprocessing.regress(raw, betas=betas)
+raw_clean.plot(events=eog_epochs.events, **raw_kwargs)
+eog_epochs_clean, _ = mne.preprocessing.regress(eog_epochs, betas=betas)
+fig = eog_epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('EOG epochs, EOG regressed')
 fig.tight_layout()
 
@@ -99,8 +110,8 @@ fig.tight_layout()
 
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.apply_baseline((None, None))
-raw.plot(events=ecg_epochs.events)
-fig = ecg_epochs.average(picks=plot_picks).plot(picks=plot_picks)
+raw.plot(events=ecg_epochs.events, **raw_kwargs)
+fig = ecg_epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('ECG epochs')
 fig.tight_layout()
 
@@ -111,7 +122,7 @@ fig.tight_layout()
 # that each channel does:
 
 ecg_epochs_clean, _ = mne.preprocessing.regress(ecg_epochs, picks_ref='ecg')
-fig = ecg_epochs_clean.average(picks=plot_picks).plot(picks=plot_picks)
+fig = ecg_epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('ECG epochs, ECG regressed')
 fig.tight_layout()
 

@@ -31,7 +31,7 @@ def regress(inst, picks=None, picks_ref='eog', betas=None, copy=True,
 
     Returns
     -------
-    inst : instance of Epochs
+    inst : instance of Epochs | Raw
         The processed data.
     betas : ndarray, shape (n_picks, n_picks_ref)
         The betas used during regression.
