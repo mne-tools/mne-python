@@ -8,6 +8,7 @@
 
 import copy
 from functools import partial
+import warnings
 
 import numpy as np
 
@@ -649,7 +650,9 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     figsize = _get_figsize_from_config()
     params['fig'] = figure_nobar(facecolor=bgcolor, figsize=figsize)
-    params['fig'].canvas.set_window_title(title or "Raw")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        params['fig'].canvas.set_window_title(title or "Raw")
     # most of the axes setup is done in _prepare_mne_browse
     _prepare_mne_browse(params, xlabel='Time (s)')
     ax = params['ax']
@@ -719,7 +722,9 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
                        for _ in range(n_ch)]
-    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+
+    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])] *
+                       len(params['offsets']))
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
@@ -742,7 +747,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         offsets = params['offsets']
     params['bad_color'] = bad_color
     ax = params['ax']
-    labels = ax.yaxis.get_ticklabels()
     # Scalebars
     for bar in params.get('scalebars', {}).values():
         ax.lines.remove(bar)
@@ -751,6 +755,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].texts = []
     # do the plotting
     tick_list = list()
+    tick_colors = list()
     for ii in range(n_channels):
         ch_ind = ii + ch_start
         # let's be generous here and allow users to pass
@@ -798,13 +803,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                         this_z = 2
                     elif params['types'][ii] == 'grad':
                         this_z = 3
-                for label in labels:
-                    label.set_color('black')
             else:
                 # set label color
                 this_color = (bad_color if ch_name in info['bads'] else
                               this_color)
-                labels[ii].set_color(this_color)
+                tick_colors.append(this_color)
             lines[ii].set_zorder(this_z)
             # add a scale bar
             if (params['show_scalebars'] and
@@ -904,6 +907,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         params['ax'].set_yticks(params['offsets'][:len(tick_list)])
         params['ax'].set_yticklabels(tick_list, rotation=0)
         _set_ax_label_style(params['ax'], params)
+    else:
+        tick_colors = ['k'] * len(params['ax'].get_yticks())
+    for tick_color, tick in zip(tick_colors,
+                                params['ax'].yaxis.get_ticklabels()):
+        tick.set_color(tick_color)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
@@ -1055,7 +1063,9 @@ def _setup_browser_selection(raw, kind, selector=True):
     if not selector:
         return order
     fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
-    fig_selection.canvas.set_window_title('Selection')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        fig_selection.canvas.set_window_title('Selection')
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     keys = np.concatenate([keys, ['Custom']])
