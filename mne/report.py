@@ -1704,6 +1704,10 @@ class Report(object):
                                 div_klass=div_klass, id=global_id,
                                 tooltip=fname, color=color, text=ev.comment)
                             global_id += 1
+                        html_toc += toc_list.substitute(
+                            div_klass=div_klass, id=global_id,
+                            tooltip=fname, color=color, text='GFP')
+                        global_id += 1
                         html_toc += u'</ul></li>'
 
                     elif fname.endswith(tuple(VALID_EXTENSIONS +
