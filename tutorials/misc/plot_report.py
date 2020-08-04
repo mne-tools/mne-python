@@ -115,7 +115,11 @@ report.save('report_mri_bem.html')
 
 ###############################################################################
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
-# (we'll skip the MRIs to save computation time):
+# (we'll skip the MRIs to save computation time). The following code will
+# produce butterfly plots, topomaps, and comparisons of the global field
+# power (GFP) for different experimental conditions.
+# The GFP traces for the EEG data clearly look odd, indicating that we probably
+# should do a better job at data cleaning.
 
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(verbose=True)
