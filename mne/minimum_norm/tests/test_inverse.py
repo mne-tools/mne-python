@@ -53,6 +53,7 @@ fname_inv_meeg_diag = op.join(s_path,
 fname_data = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_raw = op.join(s_path, 'sample_audvis_trunc_raw.fif')
+fname_sss = op.join(test_path, 'SSS', 'test_move_anon_raw_sss.fif')
 fname_raw_ctf = op.join(test_path, 'CTF', 'somMDYO-18av.ds')
 fname_event = op.join(s_path, 'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
@@ -1188,6 +1189,26 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
                           for ii, v in enumerate(stc.vertices)])
     assert pos.shape == (2, 3)
     assert_allclose(got_pos, want_pos, atol=1.1e-2)
+
+
+@testing.requires_testing_data
+def test_sss_rank():
+    """Test passing rank explicitly during inverse computation."""
+    # make raw match the fwd and cov, doesn't matter that they are mismatched
+    raw = mne.io.read_raw_fif(fname_sss).pick_types(meg=True)
+    raw.rename_channels(
+        {ch_name: f'{ch_name[:3]} {ch_name[3:]}' for ch_name in raw.ch_names})
+    fwd = mne.read_forward_solution(fname_fwd)
+    cov = mne.read_cov(fname_cov)
+    with pytest.warns(RuntimeWarning, match='rank as it exceeds.*302 > 67'):
+        inv = make_inverse_operator(raw.info, fwd, cov)
+    rank = (inv['noise_cov']['eig'] > 0).sum()
+    assert rank == 302
+    # should not warn
+    inv = make_inverse_operator(raw.info, fwd, cov, rank=dict(meg=67))
+    rank = (inv['noise_cov']['eig'] > 0).sum()
+    assert rank == 67
+
 
 
 run_tests_if_main()

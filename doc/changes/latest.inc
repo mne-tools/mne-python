@@ -226,6 +226,8 @@ Bug
 
 - Fix bug with :func:`mne.viz.plot_bem` and :class:`mne.Report` when plotting BEM contours when MRIs are not in standard FreeSurfer orientation by `Eric Larson`_
 
+- Fix bug with :func:`mne.minimum_norm.make_inverse_operator` where it would warn even when an explicit ``rank`` was used by `Eric Larson`_
+
 - Fix bugs with :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` where:
 
   - Noise normalization factors ``weight_norm='unit-noise-gain'`` and ``weight_norm='nai'`` were computed incorrectly
