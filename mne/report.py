@@ -27,7 +27,8 @@ from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
-from .viz import plot_events, plot_alignment, plot_cov, plot_projs_topomap
+from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
+                  plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from .forward import read_forward_solution
 from .epochs import read_epochs
@@ -1953,7 +1954,7 @@ class Report(object):
                     message='Channel locations not available.*',
                     category=RuntimeWarning)
                 img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
-                                  **kwargs)
+                                  gfp=True, **kwargs)
 
             caption = self._gen_caption(prefix='Evoked',
                                         suffix=f'({ev.comment})',
@@ -1979,6 +1980,22 @@ class Report(object):
                 html.append(image_template.substitute(
                     img=img, div_klass='evoked', img_klass='evoked',
                     caption=caption, show=True, image_format=image_format))
+
+        # Plot GFP comparison.
+        figs = plot_compare_evokeds(evokeds=evokeds, ci=None,
+                                    show_sensors=True, **kwargs)
+        for fig in figs:
+            img = _fig_to_img(fig, image_format)
+            caption = self._gen_caption(prefix='Evoked',
+                                        suffix=f'(GFPs)',
+                                        fname=evoked_fname,
+                                        data_path=data_path)
+            global_id = self._get_id()
+            html.append(image_template.substitute(
+                img=img, id=global_id, div_klass='evoked',
+                img_klass='evoked', caption=caption, show=True,
+                image_format=image_format))
+
         logger.debug('Evoked: done')
         return '\n'.join(html)
 
