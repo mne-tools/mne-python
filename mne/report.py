@@ -1954,7 +1954,7 @@ class Report(object):
                     message='Channel locations not available.*',
                     category=RuntimeWarning)
                 img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
-                                  gfp=True, **kwargs)
+                                  **kwargs)
 
             caption = self._gen_caption(prefix='Evoked',
                                         suffix=f'({ev.comment})',
