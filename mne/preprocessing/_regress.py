@@ -21,8 +21,8 @@ def regress_artifact(inst, picks=None, picks_artifact='eog', betas=None,
         The instance to process.
     %(picks_good_data)s
     picks_artifact : array-like | str
-        Channel picks to use as predictor / explanatory variables capturing
-        the artifact ofinterest (default is "eog").
+        Channel picks to use as predictor/explanatory variables capturing
+        the artifact of interest (default is "eog").
     betas : ndarray, shape (n_picks, n_picks_ref) | None
         The regression coefficients to use. If None (default), they will be
         estimated from the data.

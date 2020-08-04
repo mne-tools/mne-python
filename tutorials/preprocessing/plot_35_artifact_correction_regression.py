@@ -130,7 +130,8 @@ fig.tight_layout()
 # that each channel does:
 
 # Here we operate in place to save memory
-mne.preprocessing.regress_artifact(ecg_epochs, picks_ref='ecg', copy=False)
+mne.preprocessing.regress_artifact(
+    ecg_epochs, picks_artifact='ecg', copy=False)
 fig = ecg_epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('ECG epochs, ECG regressed')
 fig.tight_layout()
