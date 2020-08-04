@@ -1987,7 +1987,7 @@ class Report(object):
         for fig in figs:
             img = _fig_to_img(fig, image_format)
             caption = self._gen_caption(prefix='Evoked',
-                                        suffix=f'(GFPs)',
+                                        suffix='(GFPs)',
                                         fname=evoked_fname,
                                         data_path=data_path)
             global_id = self._get_id()
