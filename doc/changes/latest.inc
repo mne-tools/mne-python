@@ -15,7 +15,7 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
-- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from `reject` and `flat` dictionaries by `Rahul Nadkarni`_
+- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
 
 - Allow picking channels in raw instances (e.g., :meth:`mne.io.Raw.pick_types`) without preloading data, by `Eric Larson`_
 
