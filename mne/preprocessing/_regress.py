@@ -11,8 +11,8 @@ from ..utils import _check_preload, _validate_type, _check_option, verbose
 
 
 @verbose
-def regress(inst, picks=None, picks_ref='eog', betas=None, copy=True,
-            verbose=None):
+def regress_artifact(inst, picks=None, picks_artifact='eog', betas=None,
+                     copy=True, verbose=None):
     """Regress artifacts using reference channels.
 
     Parameters
@@ -20,11 +20,12 @@ def regress(inst, picks=None, picks_ref='eog', betas=None, copy=True,
     inst : instance of Epochs | Raw
         The instance to process.
     %(picks_good_data)s
-    picks_ref : array-like
-        Picks to use as the reference channels.
+    picks_artifact : array-like | str
+        Channel picks to use as predictor / explanatory variables capturing
+        the artifact ofinterest (default is "eog").
     betas : ndarray, shape (n_picks, n_picks_ref) | None
-        The regression coefficients to use. If None, they will be estimated
-        from the data.
+        The regression coefficients to use. If None (default), they will be
+        estimated from the data.
     copy : bool
         If True (default), copy the instance before modifying it.
     %(verbose)s
@@ -55,17 +56,17 @@ def regress(inst, picks=None, picks_ref='eog', betas=None, copy=True,
     _check_preload(inst, 'regress')
     _validate_type(inst, (BaseEpochs, BaseRaw), 'inst', 'Epochs or Raw')
     picks = _picks_to_idx(inst.info, picks, none='data')
-    picks_ref = _picks_to_idx(inst.info, picks_ref, allow_empty=False)
-    if np.in1d(picks_ref, picks).any():
-        raise ValueError('ref_picks cannot be contained in picks')
+    picks_artifact = _picks_to_idx(inst.info, picks_artifact)
+    if np.in1d(picks_artifact, picks).any():
+        raise ValueError('picks_artifact cannot be contained in picks')
     inst = inst.copy() if copy else inst
-    ref_data = inst._data[..., picks_ref, :]
-    ref_data = ref_data - np.mean(ref_data, -1, keepdims=True)
+    artifact_data = inst._data[..., picks_artifact, :]
+    ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
     if ref_data.ndim == 3:
-        ref_data = ref_data.transpose(1, 0, 2).reshape(len(picks_ref), -1)
+        ref_data = ref_data.transpose(1, 0, 2).reshape(len(picks_artifact), -1)
     cov = np.dot(ref_data, ref_data.T)
     # process each one separately to reduce memory load
-    betas_shape = (len(picks), len(picks_ref))
+    betas_shape = (len(picks), len(picks_artifact))
     if betas is None:
         betas = np.empty(betas_shape)
         estimate = True

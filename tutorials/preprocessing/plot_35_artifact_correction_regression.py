@@ -74,8 +74,8 @@ fig.suptitle('Auditory epochs')
 fig.tight_layout()
 
 epochs_no_ave = epochs.copy().subtract_evoked()
-_, betas = mne.preprocessing.regress(epochs_no_ave)
-epochs_clean, _ = mne.preprocessing.regress(epochs, betas=betas)
+_, betas = mne.preprocessing.regress_artifact(epochs_no_ave)
+epochs_clean, _ = mne.preprocessing.regress_artifact(epochs, betas=betas)
 fig = epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('Auditory epochs, EOG regressed')
 fig.tight_layout()
@@ -102,9 +102,10 @@ fig.tight_layout()
 ###############################################################################
 # And then clean those data:
 
-raw_clean, _ = mne.preprocessing.regress(raw, betas=betas)
+raw_clean, _ = mne.preprocessing.regress_artifact(raw, betas=betas)
 raw_clean.plot(events=eog_epochs.events, **raw_kwargs)
-eog_epochs_clean, _ = mne.preprocessing.regress(eog_epochs, betas=betas)
+eog_epochs_clean, _ = mne.preprocessing.regress_artifact(eog_epochs,
+                                                         betas=betas)
 fig = eog_epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('EOG epochs, EOG regressed')
 fig.tight_layout()
@@ -129,7 +130,7 @@ fig.tight_layout()
 # that each channel does:
 
 # Here we operate in place to save memory
-mne.preprocessing.regress(ecg_epochs, picks_ref='ecg', copy=False)
+mne.preprocessing.regress_artifact(ecg_epochs, picks_ref='ecg', copy=False)
 fig = ecg_epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('ECG epochs, ECG regressed')
 fig.tight_layout()

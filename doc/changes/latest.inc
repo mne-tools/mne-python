@@ -69,7 +69,7 @@ Changelog
 
 - Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
 
-- Add function :func:`mne.preprocessing.regress` to remove artifacts using linear regression by `Kyle Mathewson`_ and `Eric Larson`_
+- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression by `Kyle Mathewson`_ and `Eric Larson`_
 
 - Add :func:`mne.stats.ttest_ind_no_p` to mirror :func:`mne.stats.ttest_1samp_no_p` with hat correction by `Eric Larson`_
 

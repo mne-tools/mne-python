@@ -593,19 +593,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def decimate(self, decim, offset=0, verbose=None):
         """Decimate the epochs.
 
-        .. note:: No filtering is performed. To avoid aliasing, ensure
-                  your data are properly lowpassed.
-
         Parameters
         ----------
-        decim : int
-            The amount to decimate data.
-        offset : int
-            Apply an offset to where the decimation starts relative to the
-            sample corresponding to t=0. The offset is in samples at the
-            current sampling rate.
-
-            .. versionadded:: 0.12
+        %(decim)s
+        %(decim_offset)s
         %(verbose_meth)s
 
         Returns
@@ -621,12 +612,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Decimation can be done multiple times. For example,
-        ``epochs.decimate(2).decimate(2)`` will be the same as
-        ``epochs.decimate(4)``.
+        %(decim_notes)s
+
         If ``decim`` is 1, this method does not copy the underlying data.
 
         .. versionadded:: 0.10.0
+
+        References
+        ----------
+        .. footbibliography::
         """
         decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
         start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *

@@ -88,7 +88,7 @@ error_ignores = {
     # XXX should maybe also restore the parameter-desc-length < 800 char check
 }
 error_ignores_specific = {  # specific instances to skip
-    ('regress', 'SS05'),  # "Regress" is actually imperative
+    ('regress_artifact', 'SS05'),  # "Regress" is actually imperative
 }
 subclass_name_ignores = (
     (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',

@@ -378,9 +378,39 @@ window : str | tuple
 """
 docdict['decim'] = """
 decim : int
-    Factor by which to downsample the data from the raw file upon import.
-    Warning: This simply selects every nth sample, data is not filtered
-    here. If data is not properly filtered, aliasing artifacts may occur.
+    Factor by which to subsample the data.
+
+    .. warning:: Low-pass filtering is not performed, this simply selects
+                 every Nᵗʰ sample, i.e., compresses the signal (see Notes).
+                 If the data are not properly filtered, aliasing artifacts
+                 may occur.
+"""
+docdict['decim_offset'] = """
+offset : int
+    Apply an offset to where the decimation starts relative to the
+    sample corresponding to t=0. The offset is in samples at the
+    current sampling rate.
+
+    .. versionadded:: 0.12
+"""
+docdict['decim_notes'] = """
+For historical reasons, ``decim`` / "decimation" refers to simply subselecting
+samples from a given signal. This contrasts with the broader signal processing
+literature, where decimation is defined as (quoting
+:footcite:`OppenheimEtAl1999`, p. 172; which cites
+:footcite:`CrochiereRabiner1983`):
+
+    "... a general system for downsampling by a factor of M is the one shown
+    in Figure 4.23. Such a system is called a decimator, and downsampling
+    by lowpass filtering followed by compression [i.e, subselecting samples]
+    has been termed decimation (Crochiere and Rabiner, 1983)."
+
+Hence "decimation" in MNE is what is considered "compression" in the signal
+processing community.
+
+Decimation can be done multiple times. For example,
+``inst.decimate(2).decimate(2)`` will be the same as
+``inst.decimate(4)``.
 """
 
 # cHPI

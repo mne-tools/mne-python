@@ -233,20 +233,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.data = self.data[:, mask]
         return self
 
-    def decimate(self, decim, offset=0):
+    @verbose
+    def decimate(self, decim, offset=0, verbose=None):
         """Decimate the evoked data.
-
-        .. note:: No filtering is performed. To avoid aliasing, ensure
-                  your data are properly lowpassed.
 
         Parameters
         ----------
-        decim : int
-            The amount to decimate data.
-        offset : int
-            Apply an offset to where the decimation starts relative to the
-            sample corresponding to t=0. The offset is in samples at the
-            current sampling rate.
+        %(decim)s
+        %(decim_offset)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -261,9 +256,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
-        Decimation can be done multiple times. For example,
-        ``evoked.decimate(2).decimate(2)`` will be the same as
-        ``evoked.decimate(4)``.
+        %(decim_notes)s
 
         .. versionadded:: 0.13.0
         """
