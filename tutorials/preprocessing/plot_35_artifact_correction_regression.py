@@ -29,8 +29,11 @@ data_path = mne.datasets.brainstorm.bst_auditory.data_path()
 raw_fname = op.join(data_path, 'MEG', 'bst_auditory', 'S01_AEF_20131218_01.ds')
 raw = mne.io.read_raw_ctf(raw_fname).crop(0, 60)
 raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})
-raw.pick(['meg', 'stim', 'misc', 'eog', 'ecg']).load_data()
+raw.pick_types(meg=True, stim=True, misc=True,
+               eog=True, ecg=True, ref_meg=False).load_data()
 raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
+raw.filter(None, 40)
+decim = 12  # 2400 -> 200 Hz sample rate for epochs
 
 ###############################################################################
 # Removing artifacts by regression
@@ -56,7 +59,7 @@ diffs = np.concatenate([[min_diff + 1], np.diff(onsets)])
 onsets = onsets[diffs > min_diff]
 assert len(onsets) == len(events)
 events[:, 0] = onsets
-epochs = mne.Epochs(raw, events, event_id=1, preload=True)
+epochs = mne.Epochs(raw, events, event_id=1, decim=decim, preload=True)
 
 ###############################################################################
 # Now let's regress our EOG signal and plot the original and processed data.
@@ -76,17 +79,20 @@ epochs_clean, _ = mne.preprocessing.regress(epochs, betas=betas)
 fig = epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('Auditory epochs, EOG regressed')
 fig.tight_layout()
+del epochs, epochs_clean
 
 ###############################################################################
-# The effect is subtle in these evoked data. It's clearer if we create epochs
-# around our (autodetected) EOG events and plot the average across those
-# epochs:
+# The effect is subtle in these evoked data. You can see that a bump toward
+# the end of the window has had its amplitude decreased.
+#
+# The effect is even clearer if we create epochs around our (autodetected) EOG
+# events and plot the average across those epochs:
 
-eog_epochs = mne.preprocessing.create_eog_epochs(raw)
+eog_epochs = mne.preprocessing.create_eog_epochs(raw, decim=decim)
 eog_epochs.apply_baseline((None, None))
 order = np.concatenate([  # plotting order: EOG+ECG first, then MEG
-    mne.pick_types(epochs.info, meg=False, eog=True, ecg=True),
-    mne.pick_types(epochs.info, meg=True, ref_meg=False)])
+    mne.pick_types(raw.info, meg=False, eog=True, ecg=True),
+    mne.pick_types(raw.info, meg=True)])
 raw_kwargs = dict(order=order, duration=25, n_channels=40)
 raw.plot(events=eog_epochs.events, **raw_kwargs)
 fig = eog_epochs.average(picks=plot_picks).plot(**evo_kwargs)
@@ -102,13 +108,14 @@ eog_epochs_clean, _ = mne.preprocessing.regress(eog_epochs, betas=betas)
 fig = eog_epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('EOG epochs, EOG regressed')
 fig.tight_layout()
+del eog_epochs, eog_epochs_clean, raw_clean  # save memory
 
 ###############################################################################
 # ECG
 # ~~~
 # We can follow the same process with ECG:
 
-ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
+ecg_epochs = mne.preprocessing.create_ecg_epochs(raw, decim=decim)
 ecg_epochs.apply_baseline((None, None))
 raw.plot(events=ecg_epochs.events, **raw_kwargs)
 fig = ecg_epochs.average(picks=plot_picks).plot(**evo_kwargs)
@@ -121,8 +128,9 @@ fig.tight_layout()
 # electrode time waveform does not capture the same effective time waveform
 # that each channel does:
 
-ecg_epochs_clean, _ = mne.preprocessing.regress(ecg_epochs, picks_ref='ecg')
-fig = ecg_epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
+# Here we operate in place to save memory
+mne.preprocessing.regress(ecg_epochs, picks_ref='ecg', copy=False)
+fig = ecg_epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('ECG epochs, ECG regressed')
 fig.tight_layout()
 

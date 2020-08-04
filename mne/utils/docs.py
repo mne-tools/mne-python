@@ -376,6 +376,12 @@ window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
 """
+docdict['decim'] = """
+decim : int
+    Factor by which to downsample the data from the raw file upon import.
+    Warning: This simply selects every nth sample, data is not filtered
+    here. If data is not properly filtered, aliasing artifacts may occur.
+"""
 
 # cHPI
 docdict['chpi_t_window'] = """

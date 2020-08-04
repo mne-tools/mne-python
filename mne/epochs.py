@@ -1989,10 +1989,7 @@ class Epochs(BaseEpochs):
         detrending and temporal decimation will be postponed.
         If proj is False no projections will be applied which is the
         recommended value if SSPs are not used for cleaning the data.
-    decim : int
-        Factor by which to downsample the data from the raw file upon import.
-        Warning: This simply selects every nth sample, data is not filtered
-        here. If data is not properly filtered, aliasing artifacts may occur.
+    %(decim)s
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
         the window will start with tmin).
