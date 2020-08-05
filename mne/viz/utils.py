@@ -2219,8 +2219,9 @@ def _get_color_list(annotations=False):
         colors = color_cycle.by_key()['color']
 
     # If we want annotations, red is reserved ... remove if present
-    if annotations and '#ff0000' in colors:
-        colors.remove('#ff0000')
+    for red in ('#ff0000', '#d62728', '#fa8174'):  # MPL old, new, dark mode
+        if annotations and red in colors:
+            colors.remove(red)
 
     return colors
 
