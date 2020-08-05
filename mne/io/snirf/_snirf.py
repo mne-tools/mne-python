@@ -11,7 +11,7 @@ from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
 from ...utils.check import _require_version
 from ..constants import FIFF
-from .._digitization import _make_dig_points, _format_dig_points
+from .._digitization import _make_dig_points
 from ...transforms import _frame_to_str
 
 
@@ -196,7 +196,8 @@ class RawSNIRF(BaseRaw):
                 info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
 
             if 'MNE_coordFrame' in dat.get('nirs/metaDataTags/'):
-                coord_frame = int(dat.get('/nirs/metaDataTags/MNE_coordFrame')[0])
+                coord_frame = int(dat.get('/nirs/metaDataTags/MNE_coordFrame')
+                                  [0])
             else:
                 coord_frame = FIFF.FIFFV_COORD_UNKNOWN
 
@@ -216,7 +217,8 @@ class RawSNIRF(BaseRaw):
                         extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = diglocs[idx]
                 info['dig'] = _make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa,
                                                hpi=hpi, dig_ch_pos=extra_ps,
-                                               coord_frame=_frame_to_str[coord_frame])
+                                               coord_frame=_frame_to_str[
+                                                   coord_frame])
 
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
                                            last_samps=[last_samps],
