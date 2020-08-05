@@ -1390,6 +1390,25 @@ the above fields.
 Operates in place.
 """
 
+# Epochs & Evoked
+docdict['baseline'] = """
+baseline : None | tuple of length 2
+    The time interval to consider as "baseline" when applying baseline
+    correction. If ``None``, do not apply baseline correction.
+    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+    (in seconds), including the endpoints.
+    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+    is ``None``, it is set to the **end** of the interval.
+    If ``(None, None)``, the entire time interval is used.
+    Correction is applied by computing the mean
+    of the baseline period and subtracting it from the data.
+
+    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
+              timepoints ``t`` such that ``a <= t <= b``.
+
+"""
+
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)

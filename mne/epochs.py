@@ -325,7 +325,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         See `Epochs` docstring.
     tmax : float
         See `Epochs` docstring.
-    baseline : None or tuple of length 2 (default (None, 0))
+    baseline : None | tuple of length 2
         See `Epochs` docstring.
     raw : Raw object
         An instance of Raw.
@@ -654,15 +654,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        baseline : tuple of length 2
-            The time interval to apply baseline correction. If None do not
-            apply it. If baseline is (a, b) the interval is between "a (s)" and
-            "b (s)". If a is None the beginning of the data is used and if b is
-            None then b is set to the end of the interval. If baseline is equal
-            to (None, None) all the time interval is used. Correction is
-            applied by computing mean of the baseline period and subtracting it
-            from the data. The baseline (a, b) includes both endpoints, i.e.
-            all timepoints t such that a <= t <= b.
+        %(baseline)s
+            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            time point zero.
         %(verbose_meth)s
 
         Returns
@@ -1949,15 +1943,9 @@ class Epochs(BaseEpochs):
         Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
         End time after event. If nothing is provided, defaults to 0.5.
-    baseline : None or tuple of length 2 (default (None, 0))
-        The time interval to apply baseline correction. If None do not apply
-        it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used and if b is None then b
-        is set to the end of the interval. If baseline is equal to (None, None)
-        all the time interval is used. Correction is applied by computing mean
-        of the baseline period and subtracting it from the data. The baseline
-        (a, b) includes both endpoints, i.e. all timepoints t such that
-        a <= t <= b.
+    %(baseline)s
+        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        time point zero.
     %(picks_all)s
     preload : bool
         Load all epochs from disk when creating the object
@@ -2223,15 +2211,8 @@ class EpochsArray(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    baseline : None or tuple of length 2 (default None)
-        The time interval to apply baseline correction. If None do not apply
-        it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used and if b is None then b
-        is set to the end of the interval. If baseline is equal to (None, None)
-        all the time interval is used. Correction is applied by computing mean
-        of the baseline period and subtracting it from the data. The baseline
-        (a, b) includes both endpoints, i.e. all timepoints t such that
-        a <= t <= b.
+    %(baseline)s
+        Defaults to ``None``, i.e. no baseline correction.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     on_missing : str

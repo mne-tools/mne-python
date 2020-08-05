@@ -869,16 +869,8 @@ class Report(object):
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    baseline : None or tuple of length 2 (default (None, 0))
-        The time interval to apply baseline correction for evokeds.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-        The baseline (a, b) includes both endpoints, i.e. all
-        timepoints t such that a <= t <= b.
+    %(baseline)s
+        Defaults to ``None``, i.e. no baseline correction.
     image_format : str
         Default image format to use (default is 'png').
         SVG uses vector graphics, so fidelity is higher but can increase
