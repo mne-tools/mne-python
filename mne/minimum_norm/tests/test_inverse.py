@@ -1210,5 +1210,4 @@ def test_sss_rank():
     assert rank == 67
 
 
-
 run_tests_if_main()
