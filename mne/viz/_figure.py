@@ -513,7 +513,7 @@ class MNEBrowseFigure(MNEFigure):
         ch_vals = [f'{nd}crease visible {ch_cmp} count' for nd in ('In', 'De')]
         lclick_data = ica_bad if inst == 'ica' else f'Mark/unmark bad {ch_epo}'
         lclick_name = (ica_bad if inst == 'ica' else 'Mark/unmark bad channel')
-        rclick_name = dict(ica='Show scalp field topography for component',
+        rclick_name = dict(ica='Show diagnostics for component',
                            epoch='Show imageplot for channel',
                            raw='Show channel location')[inst]
         ldrag = ('Show spectrum plot for selected time span;\nor (in '
