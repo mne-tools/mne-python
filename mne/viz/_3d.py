@@ -2370,7 +2370,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
         _check_option('views', views, (['auto'], ['flat']))
         views = ['flat']
     elif len(views) == 1 and views[0] == 'auto':
-        views = ['lat']
+        views = ['lateral']
     if views == ['flat']:
         if stc is not None:
             _validate_type(stc, SourceEstimate, 'stc',
@@ -2391,7 +2391,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  transparent=None, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
                                  scale_factor=None, time_viewer='auto',
-                                 subjects_dir=None, figure=None, views='lat',
+                                 subjects_dir=None, figure=None,
+                                 views='lateral',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
