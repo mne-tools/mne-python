@@ -1407,7 +1407,7 @@ baseline : None | tuple of length 2
 docdict['baseline'] = """%(rescale_baseline)s
     Correction is applied by computing the mean
     of the baseline period and subtracting it from the data.
-"""  % docdict
+""" % docdict
 
 
 # Finalize
