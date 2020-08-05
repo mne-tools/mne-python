@@ -127,9 +127,14 @@ report.save('report_evoked.html')
 ###############################################################################
 # You have probably noticed that the EEG recordings look particularly odd. This
 # is because by default, `~mne.Report` does not apply baseline correction
-# before rendering evoked data. To request baseline correction, pass a
-# ``baseline`` argument, which should be a tuple with the starting and ending
-# time of the baseline period. For more details, read the documentation on
+# before rendering evoked data. So if the dataset you wish to add to the report
+# has not been baseline-corrected already, you can request baseline correction
+# here. The MNE sample dataset we're using in this example has **not** been
+# baseline-corrected; so let's do this now for the report!
+#
+# To request baseline correction, pass a ``baseline`` argument to
+# `~mne.Report`, which should be a tuple with the starting and ending time of
+# the baseline period. For more details, see the documentation on
 # `~mne.Evoked.apply_baseline`. Here, we will apply baseline correction for a
 # baseline period from the beginning of the time interval to time point zero.
 
