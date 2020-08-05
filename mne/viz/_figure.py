@@ -5,6 +5,7 @@
 #
 # License: Simplified BSD
 
+import platform
 from copy import deepcopy
 from functools import partial
 import numpy as np
@@ -196,7 +197,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
         # # ancillary figures
-        # self.mne.fig_help = None
+        self.mne.fig_help = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
 
@@ -244,7 +245,7 @@ class MNEBrowseFigure(MNEFigure):
         ax_help.set_axes_locator(loc)
         # HELP BUTTON: make it a proper button
         button_help = Button(ax_help, 'Help')
-        button_help.on_clicked(self._onclick_help)
+        button_help.on_clicked(self._toggle_help_fig)
         # PROJ BUTTON
         if len(self.mne.projs) and not inst.proj:
             # PROJ BUTTON: compute position
@@ -398,7 +399,7 @@ class MNEBrowseFigure(MNEFigure):
                 self._update_hscroll()
                 self.canvas.draw()
         elif key == '?':  # help
-            self._onclick_help(event)
+            self._toggle_help_fig(event)
         elif key == 'f11':  # full screen
             fig_manager = get_current_fig_manager()
             fig_manager.full_screen_toggle()
@@ -448,10 +449,113 @@ class MNEBrowseFigure(MNEFigure):
         else:  # right-click (secondary)
             pass  # TODO: copy from viz/utils.py lines 1140-1154
 
-    def _onclick_help(self, event):
-        """."""
-        # TODO FIXME
-        pass
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # HELP DIALOG
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _create_help_fig(self):
+        """Create help dialog window."""
+        text = {key: val for key, val in self._help_text().items()
+                if val is not None}
+        keys = ''
+        vals = ''
+        for key, val in text.items():
+            newsection = '\n' if key.startswith('_') else ''
+            key = key[1:] if key.startswith('_') else key
+            newlines = '\n' * len(val.split('\n'))  # handle multiline values
+            keys += f'{newsection}{key}      {newlines}'
+            vals += f'{newsection}{val}\n'
+
+        # calc figure size
+        n_lines = len(keys.split('\n'))
+        longest_key = max(len(k) for k in text.keys())
+        longest_val = max(max(len(w) for w in v.split('\n')) if '\n' in v else
+                          len(v) for v in text.values())
+        width = (longest_key + longest_val) / 12
+        height = (n_lines) / 5
+        # create figure and axes
+        fig = dialog_figure(figsize=(width, height))
+        _set_window_title(fig, 'Help')
+        ax = fig.add_axes((0.01, 0.01, 0.98, 0.98))
+        ax.set_axis_off()
+        kwargs = dict(va='top', linespacing=1.5, usetex=False)
+        ax.text(0.44, 1, keys, ma='right', ha='right', **kwargs)
+        ax.text(0.44, 1, vals, ma='left', ha='left', **kwargs)
+        # save
+        self.mne.fig_help = fig
+
+    def _clear_help_fig(self, event=None):
+        """Close the help dialog window (via keypress or window [x])."""
+        self.mne.fig_help = None
+
+    def _toggle_help_fig(self, event):
+        """Show/hide the annotation dialog window."""
+        if self.mne.fig_help is None:
+            self._create_help_fig()
+        else:
+            self.mne.fig_help.canvas.close_event()
+            self._clear_help_fig()
+
+    def _help_text(self):
+        """Generate help dialog text, omitting `None`-valued entries."""
+        is_mac = platform.system() == 'Darwin'
+        inst = self.mne.instance_type
+        ch_cmp = 'component' if inst == 'ica' else 'channel'
+        ch_epo = 'epoch' if inst == 'epochs' else 'channel'
+        ica_bad = 'Mark/unmark component for exclusion'
+        # adapt keys to different platforms
+        dur_keys = ('⌘ + ←', '⌘ + →') if is_mac else ('Home', 'End')
+        ch_keys = ('⌘ + ↑', '⌘ + ↓') if is_mac else ('Page up', 'Page down')
+        # adapt descriptions to different instance types
+        dur_vals = ([f'Show {n} epochs' for n in ('fewer', 'more')]
+                    if inst ==  'epochs' else
+                    [f'Show {d} time window' for d in ('shorter', 'longer')])
+        ch_vals = [f'{nd}crease visible {ch_cmp} count' for nd in ('In', 'De')]
+        lclick_data = ica_bad if inst == 'ica' else f'Mark/unmark bad {ch_epo}'
+        lclick_name = (ica_bad if inst == 'ica' else 'Mark/unmark bad channel')
+        rclick_name = dict(ica='Show scalp field topography for component',
+                           epoch='Show imageplot for channel',
+                           raw='Show channel location')[inst]
+        ldrag = ('Show spectrum plot for selected time span;\nor (in '
+                 'annotation mode) add annotation') if inst == 'raw' else None
+
+        help_text = {
+            # navigation
+            '_NAVIGATION': ' ',
+            '(Shift +) →': 'Scroll right (faster with Shift key)',
+            '(Shift +) ←': 'Scroll left (faster with Shift key)',
+            dur_keys[0]: dur_vals[0],
+            dur_keys[1]: dur_vals[1],
+            '↑': f'Scroll up ({ch_cmp}s)',
+            '↓': f'Scroll down ({ch_cmp}s)',
+            ch_keys[0]: ch_vals[0],
+            ch_keys[1]: ch_vals[1],
+            # signal
+            '_SIGNAL TRANSFORMATIONS': ' ',
+            '+ or =': 'Increase signal scaling',
+            '-': 'Decrease signal scaling',
+            'b': 'Toggle butterfly mode' if inst != 'ica' else None,
+            'd': 'Toggle DC removal' if inst == 'raw' else None,
+            'w': 'Toggle signal whitening',  # TODO only if noise_cov given?
+            'a': 'Toggle annotation mode' if inst == 'raw' else None,
+            'p': 'Toggle annotation snapping' if inst == 'raw' else None,
+            'h': 'Show peak-to-peak histogram' if inst == 'epochs' else None,
+            # UI
+            '_USER INTERFACE': ' ',
+            's': 'Toggle scalebars' if inst != 'ica' else None,
+            'z': 'Toggle scrollbars',
+            'F11': 'Toggle fullscreen',
+            '?': 'Open this help window',
+            'esc': 'Close active figure or dialog window',
+            # mouse
+            '_MOUSE INTERACTION': ' ',
+            f'Left-click {ch_cmp} name': lclick_name,
+            f'Left-click {ch_cmp} data': lclick_data,
+            'Left-click on plot background': 'Place vertical guide',
+            'Left-click-and-drag on plot': ldrag,
+            'Right-click on channel name': rclick_name
+        }
+        return help_text
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # ANNOTATIONS
