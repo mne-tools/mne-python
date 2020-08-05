@@ -857,6 +857,11 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 ###############################################################################
 # Morph for VolSourceEstimate
 
+def _compute_r2(a, b):
+    return 100 * (a.ravel() @ b.ravel()) / \
+        (np.linalg.norm(a) * np.linalg.norm(b))
+
+
 def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     """Get a matrix that morphs data from one subject to another."""
     import nibabel as nib
@@ -902,51 +907,49 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
 
     # translation
     logger.info('Optimizing translation:')
-    with wrapped_stdout(indent='    '):
+    with wrapped_stdout(indent='    ', cull_newlines=True):
         translation = affreg.optimize(
             mri_to, mri_from, transforms.TranslationTransform3D(), None,
             affine, mri_from_affine, starting_affine=c_of_mass.affine)
 
     # rigid body transform (translation + rotation)
     logger.info('Optimizing rigid-body:')
-    with wrapped_stdout(indent='    '):
+    with wrapped_stdout(indent='    ', cull_newlines=True):
         rigid = affreg.optimize(
             mri_to, mri_from, transforms.RigidTransform3D(), None,
             affine, mri_from_affine, starting_affine=translation.affine)
+    mri_from_to = rigid.transform(mri_from)
     dist = np.linalg.norm(rigid.affine[:3, 3])
     angle = np.rad2deg(_angle_between_quats(
         np.zeros(3), rot_to_quat(rigid.affine[:3, :3])))
 
-    logger.info(f'Translation: {dist:5.1f} mm')
-    logger.info(f'Rotation:    {angle:5.1f}°')
-    logger.info('')
+    logger.info(f'    Translation: {dist:6.1f} mm')
+    logger.info(f'    Rotation:    {angle:6.1f}°')
+    logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
 
     # affine transform (translation + rotation + scaling)
     logger.info('Optimizing full affine:')
-    with wrapped_stdout(indent='    '):
+    with wrapped_stdout(indent='    ', cull_newlines=True):
         pre_affine = affreg.optimize(
             mri_to, mri_from, transforms.AffineTransform3D(), None,
             affine, mri_from_affine, starting_affine=rigid.affine)
-
-    # compute mapping
     mri_from_to = pre_affine.transform(mri_from)
+    logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
+
+    # SDR
     shape = tuple(pre_affine.domain_shape)
     if len(niter_sdr):
         sdr = imwarp.SymmetricDiffeomorphicRegistration(
             metrics.CCMetric(3), list(niter_sdr))
         logger.info('Optimizing SDR:')
-        with wrapped_stdout(indent='    '):
+        with wrapped_stdout(indent='    ', cull_newlines=True):
             sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
         assert shape == tuple(sdr_morph.domain_shape)  # should be tuple of int
         mri_from_to = sdr_morph.transform(mri_from_to)
     else:
         sdr_morph = None
 
-    mri_to, mri_from_to = mri_to.ravel(), mri_from_to.ravel()
-    mri_from_to /= np.linalg.norm(mri_from_to)
-    mri_to /= np.linalg.norm(mri_to)
-    r2 = 100 * (mri_to @ mri_from_to)
-    logger.info(f'Variance explained by morph: {r2:0.1f}%')
+    logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
 
     # To debug to_vox_map, this can be used:
     # from nibabel.processing import resample_from_to
