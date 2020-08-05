@@ -130,16 +130,26 @@ stc = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
 src = inverse_operator['src']
 
 ###############################################################################
+# Plot the mixed source estimate
+# ------------------------------
+
+# sphinx_gallery_thumbnail_number = 3
+initial_time = 0.1
+stc_vec = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
+                        pick_ori='vector')
+brain = stc_vec.plot(
+    hemi='both', src=inverse_operator['src'], views='coronal',
+    initial_time=initial_time, subjects_dir=subjects_dir)
+
+###############################################################################
 # Plot the surface
 # ----------------
-initial_time = 0.1
 brain = stc.surface().plot(initial_time=initial_time,
                            subjects_dir=subjects_dir)
 ###############################################################################
 # Plot the volume
 # ----------------
 
-# sphinx_gallery_thumbnail_number = 4
 fig = stc.volume().plot(initial_time=initial_time, src=src,
                         subjects_dir=subjects_dir)
 

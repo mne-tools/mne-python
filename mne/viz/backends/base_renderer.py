@@ -28,8 +28,8 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def set_interactive(self):
-        """Enable interactive mode."""
+    def set_interaction(self, interaction):
+        """Set interaction mode."""
         pass
 
     @abstractclassmethod

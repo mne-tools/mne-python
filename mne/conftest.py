@@ -98,6 +98,7 @@ def pytest_configure(config):
     ignore:.*pandas\.util\.testing is deprecated.*:
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
+    ignore:Unable to enable faulthandler.*:UserWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
@@ -318,6 +319,21 @@ def renderer_notebook():
     from mne.viz.backends.renderer import _use_test_3d_backend
     with _use_test_3d_backend('notebook'):
         yield
+
+
+@pytest.fixture(scope='session')
+def pixel_ratio():
+    """Get the pixel ratio."""
+    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
+                                               has_pyqt5)
+    if not (has_mayavi() or has_pyvista()) or not has_pyqt5():
+        return 1.
+    from PyQt5.QtWidgets import QApplication, QMainWindow
+    _ = QApplication.instance() or QApplication([])
+    window = QMainWindow()
+    ratio = float(window.devicePixelRatio())
+    window.close()
+    return ratio
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])

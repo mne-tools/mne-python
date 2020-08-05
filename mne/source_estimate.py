@@ -610,6 +610,30 @@ class _BaseSourceEstimate(TimeMixin):
                         src_type=self._src_type),
                    title='mnepython', overwrite=True)
 
+    @copy_function_doc_to_method_doc(plot_source_estimates)
+    def plot(self, subject=None, surface='inflated', hemi='lh',
+             colormap='auto', time_label='auto', smoothing_steps=10,
+             transparent=True, alpha=1.0, time_viewer='auto',
+             subjects_dir=None,
+             figure=None, views='lat', colorbar=True, clim='auto',
+             cortex="classic", size=800, background="black",
+             foreground=None, initial_time=None, time_unit='s',
+             backend='auto', spacing='oct6', title=None, show_traces='auto',
+             src=None, volume_options=1., view_layout='vertical',
+             verbose=None):
+        brain = plot_source_estimates(
+            self, subject, surface=surface, hemi=hemi, colormap=colormap,
+            time_label=time_label, smoothing_steps=smoothing_steps,
+            transparent=transparent, alpha=alpha, time_viewer=time_viewer,
+            subjects_dir=subjects_dir, figure=figure, views=views,
+            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
+            background=background, foreground=foreground,
+            initial_time=initial_time, time_unit=time_unit, backend=backend,
+            spacing=spacing, title=title, show_traces=show_traces,
+            src=src, volume_options=volume_options, view_layout=view_layout,
+            verbose=verbose)
+        return brain
+
     @property
     def sfreq(self):
         """Sample rate of the data."""
@@ -1575,28 +1599,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             super().save(fname)
         logger.info('[done]')
 
-    @copy_function_doc_to_method_doc(plot_source_estimates)
-    def plot(self, subject=None, surface='inflated', hemi='lh',
-             colormap='auto', time_label='auto', smoothing_steps=10,
-             transparent=True, alpha=1.0, time_viewer='auto',
-             subjects_dir=None,
-             figure=None, views='lat', colorbar=True, clim='auto',
-             cortex="classic", size=800, background="black",
-             foreground=None, initial_time=None, time_unit='s',
-             backend='auto', spacing='oct6', title=None,
-             show_traces='auto', verbose=None):
-        brain = plot_source_estimates(
-            self, subject, surface=surface, hemi=hemi, colormap=colormap,
-            time_label=time_label, smoothing_steps=smoothing_steps,
-            transparent=transparent, alpha=alpha, time_viewer=time_viewer,
-            subjects_dir=subjects_dir, figure=figure, views=views,
-            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
-            background=background, foreground=foreground,
-            initial_time=initial_time, time_unit=time_unit, backend=backend,
-            spacing=spacing, title=title, show_traces=show_traces,
-            verbose=verbose)
-        return brain
-
     @verbose
     def estimate_snr(self, info, fwd, cov, verbose=None):
         r"""Compute time-varying SNR in the source space.
@@ -1898,11 +1900,56 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             self.verbose)
         return stc, directions
 
+    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
+             smoothing_steps=10, transparent=True, brain_alpha=0.4,
+             overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
+             time_viewer='auto', subjects_dir=None, figure=None, views='lat',
+             colorbar=True, clim='auto', cortex='classic', size=800,
+             background='black', foreground=None, initial_time=None,
+             time_unit='s', show_traces='auto', src=None, volume_options=1.,
+             view_layout='vertical', verbose=None):  # noqa: D102
+        return plot_vector_source_estimates(
+            self, subject=subject, hemi=hemi, colormap=colormap,
+            time_label=time_label, smoothing_steps=smoothing_steps,
+            transparent=transparent, brain_alpha=brain_alpha,
+            overlay_alpha=overlay_alpha, vector_alpha=vector_alpha,
+            scale_factor=scale_factor, time_viewer=time_viewer,
+            subjects_dir=subjects_dir, figure=figure, views=views,
+            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
+            background=background, foreground=foreground,
+            initial_time=initial_time, time_unit=time_unit,
+            show_traces=show_traces, src=src, volume_options=volume_options,
+            view_layout=view_layout, verbose=verbose)
+
 
 class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
     _src_type = 'volume'
     _src_count = None
+
+    @copy_function_doc_to_method_doc(plot_source_estimates)
+    def plot_3d(self, subject=None, surface='white', hemi='both',
+                colormap='auto', time_label='auto', smoothing_steps=10,
+                transparent=True, alpha=0.2, time_viewer='auto',
+                subjects_dir=None,
+                figure=None, views='axial', colorbar=True, clim='auto',
+                cortex="classic", size=800, background="black",
+                foreground=None, initial_time=None, time_unit='s',
+                backend='auto', spacing='oct6', title=None, show_traces='auto',
+                src=None, volume_options=1., view_layout='vertical',
+                verbose=None):
+        return super().plot(
+            subject=subject, surface=surface, hemi=hemi, colormap=colormap,
+            time_label=time_label, smoothing_steps=smoothing_steps,
+            transparent=transparent, alpha=alpha, time_viewer=time_viewer,
+            subjects_dir=subjects_dir,
+            figure=figure, views=views, colorbar=colorbar, clim=clim,
+            cortex=cortex, size=size, background=background,
+            foreground=foreground, initial_time=initial_time,
+            time_unit=time_unit, backend=backend, spacing=spacing, title=title,
+            show_traces=show_traces, src=src, volume_options=volume_options,
+            view_layout=view_layout, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
@@ -2161,8 +2208,8 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
 
 
 @fill_doc
-class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
-                              _BaseVolSourceEstimate):
+class VolVectorSourceEstimate(_BaseVolSourceEstimate,
+                              _BaseVectorSourceEstimate):
     """Container for volume source estimates.
 
     Parameters
@@ -2207,6 +2254,32 @@ class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
     """
 
     _scalar_class = VolSourceEstimate
+
+    # defaults differ: hemi='both', views='axial'
+    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    def plot_3d(self, subject=None, hemi='both', colormap='hot',
+                time_label='auto',
+                smoothing_steps=10, transparent=True, brain_alpha=0.4,
+                overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
+                time_viewer='auto', subjects_dir=None, figure=None,
+                views='axial',
+                colorbar=True, clim='auto', cortex='classic', size=800,
+                background='black', foreground=None, initial_time=None,
+                time_unit='s', show_traces='auto', src=None,
+                volume_options=1., view_layout='vertical',
+                verbose=None):  # noqa: D102
+        return _BaseVectorSourceEstimate.plot(
+            self, subject=subject, hemi=hemi, colormap=colormap,
+            time_label=time_label, smoothing_steps=smoothing_steps,
+            transparent=transparent, brain_alpha=brain_alpha,
+            overlay_alpha=overlay_alpha, vector_alpha=vector_alpha,
+            scale_factor=scale_factor, time_viewer=time_viewer,
+            subjects_dir=subjects_dir, figure=figure, views=views,
+            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
+            background=background, foreground=foreground,
+            initial_time=initial_time, time_unit=time_unit,
+            show_traces=show_traces, src=src, volume_options=volume_options,
+            view_layout=view_layout, verbose=verbose)
 
 
 @fill_doc
@@ -2257,27 +2330,6 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     """
 
     _scalar_class = SourceEstimate
-
-    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
-    def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
-             smoothing_steps=10, transparent=True, brain_alpha=0.4,
-             overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
-             time_viewer='auto', subjects_dir=None, figure=None, views='lat',
-             colorbar=True, clim='auto', cortex='classic', size=800,
-             background='black', foreground=None, initial_time=None,
-             time_unit='s', show_traces='auto', verbose=None):  # noqa: D102
-        return plot_vector_source_estimates(
-            self, subject=subject, hemi=hemi, colormap=colormap,
-            time_label=time_label, smoothing_steps=smoothing_steps,
-            transparent=transparent, brain_alpha=brain_alpha,
-            overlay_alpha=overlay_alpha, vector_alpha=vector_alpha,
-            scale_factor=scale_factor, time_viewer=time_viewer,
-            subjects_dir=subjects_dir, figure=figure, views=views,
-            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
-            background=background, foreground=foreground,
-            initial_time=initial_time, time_unit=time_unit,
-            show_traces=show_traces, verbose=verbose,
-        )
 
 
 ###############################################################################
