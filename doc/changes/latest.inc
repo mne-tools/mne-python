@@ -149,7 +149,7 @@ Changelog
 
 - Improved documentation building instructions and execution on Windows by `Eric Larson`_ and `kalenkovich`_
 
-- When passing a list of `~mne.Evoked` objects to `~mne.viz.plot_compare_evokeds`, each evoked's ``.comment`` attribute will be used to label the trace. If ``.comment`` is empty, a 1-based index is assigned as the label by `Richard Höchenberger`_
+- When passing a list of `~mne.Evoked` objects to `~mne.viz.plot_compare_evokeds`, each evoked's ``.comment`` attribute will be used to label the trace. If ``.comment`` is empty, a 1-based index is assigned as the label by  `Richard Höchenberger`_
 
 Bug
 ~~~
@@ -282,8 +282,6 @@ Bug
 - Fix bug in :func:`mne.read_epochs_fieldtrip` when importing data without a ``trialinfo`` field by `Thomas Hartmann`_
 
 - Fix bug in :meth:`mne.preprocessing.ICA.plot_properties` where time series plot doesn't start at the proper tmin by `Teon Brooks`_
-
-- `~mne.Report` now applies baseline correction by default when rendering (whitended) evoked data, as the documentation always suggested; pass ``baseline=None`` to disable this behavior by `Richard Höchenberger`_
 
 API
 ~~~
