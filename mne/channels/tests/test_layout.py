@@ -256,13 +256,15 @@ def test_find_layout():
     lout = find_layout(raw_kit.info)
     assert_equal(lout.kind, 'KIT-157')
 
-    raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
+    raw_kit.info['bads'] = ['MEG 013', 'MEG 014', 'MEG 015', 'MEG 016']
+    raw_kit.info._check_consistency()
     lout = find_layout(raw_kit.info)
     assert_equal(lout.kind, 'KIT-157')
     # fallback for missing IDs
-    raw_kit.info['kit_system_id'] = 35
-    lout = find_layout(raw_kit.info)
-    assert lout.kind == 'custom'
+    for val in (35, 52, 54, 1001):
+        raw_kit.info['kit_system_id'] = val
+        lout = find_layout(raw_kit.info)
+        assert lout.kind == 'custom'
 
     raw_umd = read_raw_kit(fname_kit_umd)
     lout = find_layout(raw_umd.info)

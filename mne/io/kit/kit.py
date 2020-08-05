@@ -100,6 +100,7 @@ class RawKIT(BaseRaw):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
+    %(standardize_names)s
     %(verbose)s
 
     Notes
@@ -117,12 +118,14 @@ class RawKIT(BaseRaw):
     @verbose
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
-                 allow_unknown_format=False, verbose=None):  # noqa: D102
+                 allow_unknown_format=False, standardize_names=None,
+                 verbose=None):  # noqa: D102
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
         logger.info('Creating Raw.info structure...')
-        info, kit_info = get_kit_info(input_fname, allow_unknown_format)
+        info, kit_info = get_kit_info(
+            input_fname, allow_unknown_format, standardize_names)
         kit_info['slope'] = slope
         kit_info['stimthresh'] = stimthresh
         if kit_info['acq_type'] != KIT.CONTINUOUS:
@@ -359,6 +362,7 @@ class EpochsKIT(BaseEpochs):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
+    %(standardize_names)s
     %(verbose)s
 
     Notes
@@ -377,14 +381,16 @@ class EpochsKIT(BaseEpochs):
     def __init__(self, input_fname, events, event_id=None, tmin=0,
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
-                 allow_unknown_format=False, verbose=None):  # noqa: D102
+                 allow_unknown_format=False, standardize_names=None,
+                 verbose=None):  # noqa: D102
 
         if isinstance(events, str):
             events = read_events(events)
 
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        self.info, kit_info = get_kit_info(input_fname, allow_unknown_format)
+        self.info, kit_info = get_kit_info(
+            input_fname, allow_unknown_format, standardize_names)
         kit_info.update(filename=input_fname)
         self._raw_extras = [kit_info]
         self._filenames = []
@@ -458,8 +464,10 @@ class EpochsKIT(BaseEpochs):
         return data
 
 
-def get_kit_info(rawfile, allow_unknown_format):
-    """Extract all the information from the sqd file.
+@verbose
+def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
+                 verbose=None):
+    """Extract all the information from the sqd/con file.
 
     Parameters
     ----------
@@ -468,6 +476,8 @@ def get_kit_info(rawfile, allow_unknown_format):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
+    %(standardize_names)s
+    %(verbose)s
 
     Returns
     -------
@@ -576,17 +586,17 @@ def get_kit_info(rawfile, allow_unknown_format):
                     # (x, y, z, theta, phi) for all MEG channels. Some channel
                     # types have additional information which we're not using.
                     'loc': np.fromfile(fid, dtype='d', count=5),
-                    'baseline': np.fromfile(fid, dtype='d', count=1)[0],
-                    'size': np.fromfile(fid, dtype='d', count=1)[0],
-                    'name': np.fromfile(fid, dtype='|S6', count=1)[0].decode('UTF-8')
                 })
+                if channel_type in KIT.CHANNEL_NAME_NCHAR:
+                    fid.seek(16, 1)  # misc fields
+                    channels[-1]['name'] = _read_name(fid, channel_type)
             elif channel_type in KIT.CHANNELS_MISC:
                 channel_no, = unpack('i', fid.read(KIT.INT))
-                # name, = unpack('64s', fid.read(64))
-                fid.seek(64, 1)
+                fid.seek(4, 1)
                 channels.append({
                     'type': channel_type,
                     'no': channel_no,
+                    'name': _read_name(fid, channel_type),
                 })
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({'type': channel_type})
@@ -657,6 +667,12 @@ def get_kit_info(rawfile, allow_unknown_format):
             raise IOError("Invalid acquisition type: %i. Your file is neither "
                           "continuous nor epoched data." % (acq_type,))
 
+    all_names = set(ch.get('name', '') for ch in channels)
+    if standardize_names is None and all_names.difference({'', 'EEG'}):
+        standardize_names = True
+        warn('standardize_names defaults to True in 0.21 but will change '
+             'to False in 0.22', DeprecationWarning)
+
     # precompute conversion factor for reading data
     if unsupported_format:
         if sysid not in LEGACY_AMP_PARAMS:
@@ -681,7 +697,9 @@ def get_kit_info(rawfile, allow_unknown_format):
     channel_index = defaultdict(lambda: 0)
     for idx, ch in enumerate(channels, 1):
         if ch['type'] in KIT.CHANNELS_MEG:
-            ch_name = 'MEG %03d' % idx
+            ch_name = ch.get('name', '')
+            if ch_name == '' or standardize_names:
+                ch_name = 'MEG %03d' % idx
             # create three orthogonal vector
             # ch_angles[0]: theta, ch_angles[1]: phi
             theta, phi = np.radians(ch['loc'][3:])
@@ -712,7 +730,10 @@ def get_kit_info(rawfile, allow_unknown_format):
             ch_type_label = KIT.CH_LABEL[ch['type']]
             channel_index[ch_type_label] += 1
             ch_type_index = channel_index[ch_type_label]
-            ch_name = '%s %03i' % (ch_type_label, ch_type_index)
+            ch_name = ch.get('name', '')
+            # some files have all EEG labeled as EEG
+            if ch_name in ('', 'EEG') or standardize_names:
+                ch_name = '%s %03i' % (ch_type_label, ch_type_index)
             unit = FIFF.FIFF_UNIT_V
             loc = np.zeros(12)
         fiff_channels.append(dict(
@@ -725,11 +746,17 @@ def get_kit_info(rawfile, allow_unknown_format):
     return info, sqd
 
 
+def _read_name(fid, ch_type):
+    bytes_ = fid.read(KIT.CHANNEL_NAME_NCHAR[ch_type])
+    return bytes_.split(b'\x00')[0].decode('utf-8')
+
+
 @fill_doc
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
-                 allow_unknown_format=False, verbose=None):
-    """Reader function for KIT conversion to FIF.
+                 allow_unknown_format=False, standardize_names=None,
+                 verbose=None):
+    """Reader function for Ricoh/KIT conversion to FIF.
 
     Parameters
     ----------
@@ -767,6 +794,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
+    %(standardize_names)s
     %(verbose)s
 
     Returns
@@ -786,13 +814,15 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
                   preload=preload, stim_code=stim_code,
-                  allow_unknown_format=allow_unknown_format, verbose=verbose)
+                  allow_unknown_format=allow_unknown_format,
+                  standardize_names=standardize_names, verbose=verbose)
 
 
 @fill_doc
 def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
-                    hsp=None, allow_unknown_format=False, verbose=None):
-    """Reader function for KIT epochs files.
+                    hsp=None, allow_unknown_format=False,
+                    standardize_names=None, verbose=None):
+    """Reader function for Ricoh/KIT epochs files.
 
     Parameters
     ----------
@@ -824,6 +854,7 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
+    %(standardize_names)s
     %(verbose)s
 
     Returns
@@ -838,5 +869,6 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     epochs = EpochsKIT(input_fname=input_fname, events=events,
                        event_id=event_id, mrk=mrk, elp=elp, hsp=hsp,
                        allow_unknown_format=allow_unknown_format,
+                       standardize_names=standardize_names,
                        verbose=verbose)
     return epochs

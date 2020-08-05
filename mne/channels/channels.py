@@ -37,6 +37,8 @@ def _get_meg_system(info):
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
             # Only take first 16 bits, as higher bits store CTF grad comp order
             coil_type = ch['coil_type'] & 0xFFFF
+            nmag = np.sum(
+                [c['kind'] == FIFF.FIFFV_MEG_CH for c in info['chs']])
             if coil_type == FIFF.FIFFV_COIL_NM_122:
                 system = '122m'
                 break
@@ -45,8 +47,6 @@ def _get_meg_system(info):
                 break
             elif (coil_type == FIFF.FIFFV_COIL_MAGNES_MAG or
                   coil_type == FIFF.FIFFV_COIL_MAGNES_GRAD):
-                nmag = np.sum([c['kind'] == FIFF.FIFFV_MEG_CH
-                               for c in info['chs']])
                 system = 'Magnes_3600wh' if nmag > 150 else 'Magnes_2500wh'
                 break
             elif coil_type == FIFF.FIFFV_COIL_CTF_GRAD:
@@ -54,6 +54,9 @@ def _get_meg_system(info):
                 break
             elif coil_type == FIFF.FIFFV_COIL_KIT_GRAD:
                 system = 'KIT'
+                # Our helmet is probably only appropriate for the 157-sensor
+                # system
+                have_helmet = (nmag == 157)
                 break
             elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
                 system = 'BabySQUID'

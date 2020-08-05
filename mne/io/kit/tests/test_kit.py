@@ -42,7 +42,7 @@ sqd_as_path = op.join(data_path, 'KIT', 'test_as-raw.con')
 
 
 @requires_testing_data
-def test_data():
+def test_data(tmpdir):
     """Test reading raw kit files."""
     pytest.raises(TypeError, read_raw_kit, epochs_path)
     pytest.raises(TypeError, read_epochs_kit, sqd_path)
@@ -128,6 +128,22 @@ def test_data():
     assert_equal(raw.info['chs'][160]['kind'], FIFF.FIFFV_EEG_CH)
     assert_equal(raw.info['chs'][160]['coil_type'], FIFF.FIFFV_COIL_EEG)
     assert_array_equal(find_events(raw), [[91, 0, 2]])
+
+    # KIT with channel names (mocked)
+    fname_temp = tmpdir.join('temp.con')
+    with open(fname_temp, 'wb') as fout:
+        with open(sqd_as_path, 'rb') as fin:
+            # offset of the first channel name determined by breakpoint in
+            # reading code
+            fout.write(fin.read(2676))
+            assert fin.read(6) == b'\x00' * 6
+            fout.write('foobar'.encode('ascii'))
+            fout.write(fin.read())
+    with pytest.deprecated_call(match='standardize_names'):
+        raw = read_raw_kit(fname_temp)
+    assert raw.ch_names[0] == 'MEG 001'
+    raw = read_raw_kit(fname_temp, standardize_names=False)
+    assert raw.ch_names[0] == 'foobar'
 
 
 def test_epochs():

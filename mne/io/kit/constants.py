@@ -24,17 +24,19 @@ KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 
 KIT.HPFS = {
     1: (0, 1, 3, 3),
-    2: (0, 1, 3, 0.3),
+    2: (0, 0.03, 0.1, 0.3, 1, 3, 10, 30),
     3: (0, 0.03, 0.1, 0.3, 1, 3, 10, 30),
     4: (0, 1, 3, 10, 30, 100, 200, 500),
 }
 KIT.LPFS = {
     1: (10, 20, 50, 100, 200, 500, 1000, 2000),
+    2: (10, 20, 50, 100, 200, 500, 1000, 2000),
     3: (10, 20, 50, 100, 200, 500, 1000, 10000),
     4: (10, 30, 100, 300, 1000, 2000, 5000, 10000),
 }
 KIT.BEFS = {
     1: (0, 50, 60, 60),
+    2: (0, 0, 0),
     3: (0, 60, 50, 50),
 }
 
@@ -48,6 +50,7 @@ KIT.FLL_SETTINGS = {
     100: (3, 3, 3),  # Low Band Kapper Type
     120: (3, 3, 3),  # Low Band Kapper Type
     200: (4, 4, 3),  # High Band Kapper Type
+    300: (2, 2, 2),  # Kapper Type
 }
 
 # channel types
@@ -86,6 +89,14 @@ KIT.CHANNELS_MISC = (
     KIT.CHANNEL_ECG,
     KIT.CHANNEL_ETC,
 )
+KIT.CHANNEL_NAME_NCHAR = {
+    KIT.CHANNEL_MAGNETOMETER: 6,
+    KIT.CHANNEL_AXIAL_GRADIOMETER: 6,
+    KIT.CHANNEL_TRIGGER: 32,
+    KIT.CHANNEL_EEG: 8,
+    KIT.CHANNEL_ECG: 32,
+    KIT.CHANNEL_ETC: 32,
+}
 KIT.CH_TO_FIFF_COIL = {
     # KIT.CHANNEL_MAGNETOMETER: FIFF.???,
     KIT.CHANNEL_MAGNETOMETER_REFERENCE: FIFF.FIFFV_COIL_KIT_REF_MAG,
@@ -150,6 +161,7 @@ KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
 KIT.SYSTEM_UMD_2019_09 = 54  # UMD September 3, 2019 -
+KIT.SYSTEM_YOKOGAWA_440 = 1001  # no idea
 # Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
@@ -167,6 +179,7 @@ KIT_LAYOUT = {
     KIT.SYSTEM_UMD_2014_07: None,
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
     KIT.SYSTEM_UMD_2019_09: None,
+    KIT.SYSTEM_YOKOGAWA_440: None,
 }
 # Sensor neighbor definitions
 KIT_NEIGHBORS = {
@@ -185,6 +198,7 @@ KIT_NEIGHBORS = {
     KIT.SYSTEM_UMD_2014_07: 'KIT-UMD-2',
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
     KIT.SYSTEM_UMD_2019_09: 'KIT-UMD-4',
+    KIT.SYSTEM_YOKOGAWA_440: None,
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
@@ -202,6 +216,7 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
     KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
     KIT.SYSTEM_UMD_2019_09: 'University of Maryland, 2019-',
+    KIT.SYSTEM_YOKOGAWA_440: 'Yokogawa ??? -',
 }
 
 LEGACY_AMP_PARAMS = {
