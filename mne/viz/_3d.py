@@ -1630,10 +1630,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         length. If int is provided it will be used to identify the Mayavi
         figure by it's id or create a new figure with the given id. If an
         instance of matplotlib figure, mpl backend is used for plotting.
-    views : str | list
-        View to use. See `surfer.Brain`. Supported views: ['lat', 'med', 'ros',
-        'cau', 'dor' 'ven', 'fro', 'par']. Using multiple views is not
-        supported for mpl backend.
+    %(views)s
+
+        When plotting a standard SourceEstimate (not volume, mixed, or vector)
+        and using the PyVista backend, ``views='flat'`` is also supported to
+        plot cortex as a flatmap.
+
+        .. versionchanged:: 0.21.0
+           Support for flatmaps.
     colorbar : bool
         If True, display colorbar on scene.
     %(clim)s
@@ -1684,6 +1688,17 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     figure : instance of surfer.Brain | matplotlib.figure.Figure
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
+
+    Notes
+    -----
+    Flatmaps are available by default for ``fsaverage`` but not for other
+    subjects reconstructed by FreeSurfer. We recommend using
+    :func:`mne.compute_source_morph` to morph source estimates to ``fsaverage``
+    for flatmap plotting. If you want to construct your own flatmap for a given
+    subject, these links might help:
+
+    - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
+    - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, set_3d_backend
     from ..source_estimate import _BaseSourceEstimate
@@ -1740,7 +1755,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         _require_version('surfer', 'stc.plot', '0.9')
     else:  # PyVista
         from ._brain import _Brain as Brain
-
+    views = _check_views(surface, views, hemi, stc, backend)
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -2347,6 +2362,29 @@ def _check_pysurfer_antialias(Brain):
     return kwargs
 
 
+def _check_views(surf, views, hemi, stc=None, backend=None):
+    from ..source_estimate import SourceEstimate
+    _validate_type(views, (list, tuple, str), 'views')
+    views = [views] if isinstance(views, str) else list(views)
+    if surf == 'flat':
+        _check_option('views', views, (['auto'], ['flat']))
+        views = ['flat']
+    elif len(views) == 1 and views[0] == 'auto':
+        views = ['lat']
+    if views == ['flat']:
+        if stc is not None:
+            _validate_type(stc, SourceEstimate, 'stc',
+                           'SourceEstimate when a flatmap is used')
+        if backend is not None:
+            if backend != 'pyvista':
+                raise RuntimeError('The PyVista 3D backend must be used to '
+                                   'plot a flatmap')
+    if (views == ['flat']) ^ (surf == 'flat'):  # exactly only one of the two
+        raise ValueError('surface="flat" must be used with views="flat", got '
+                         f'surface={repr(surf)} and views={repr(views)}')
+    return views
+
+
 @verbose
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
@@ -2407,8 +2445,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the Mayavi
         figure by it's id or create a new figure with the given id.
-    views : str | list
-        View to use. See `surfer.Brain`.
+    %(views)s
     colorbar : bool
         If True, display colorbar on scene.
     %(clim_onesided)s

@@ -17,7 +17,7 @@ from .colormap import calculate_lut
 from .surface import Surface
 from .view import views_dicts
 
-from .._3d import _process_clim, _handle_time
+from .._3d import _process_clim, _handle_time, _check_views
 
 from ...defaults import _handle_default
 from ...surface import mesh_edges
@@ -198,7 +198,7 @@ class _Brain(object):
 
         if isinstance(views, str):
             views = [views]
-        views = _check_views_hemi_flat(surf, views, hemi)
+        views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         shape = (len(views), col_dict[hemi])
         if self._view_layout == 'horizontal':
@@ -1737,14 +1737,3 @@ def _update_limits(fmin, fmid, fmax, center, array):
                            % (fmid, fmax))
 
     return fmin, fmid, fmax
-
-
-def _check_views_hemi_flat(surf, views, hemi):
-    if surf == 'flat':
-        if len(views) != 1 or views[0] != 'auto':
-            raise ValueError(
-                f'views must be "auto" for flat maps, got {views}')
-        views = ['flat']
-    elif len(views) == 1 and views[0] == 'auto':
-        views = ['lat']
-    return views

@@ -53,7 +53,7 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                  clim=dict(kind='value', lims=[3, 6, 9]))
 
 ###############################################################################
-# You can also morph it to fsaverage and visualize it using a flat map:
+# You can also morph it to fsaverage and visualize it using a flatmap:
 
 # sphinx_gallery_thumbnail_number = 2
 

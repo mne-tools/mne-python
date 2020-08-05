@@ -9,7 +9,7 @@
 from os import path as path
 
 import numpy as np
-from ...utils import _check_option, get_subjects_dir
+from ...utils import _check_option, get_subjects_dir, _check_fname
 from ...surface import (complete_surface_info, read_surface, read_curvature,
                         _read_patch)
 
@@ -110,9 +110,11 @@ class Surface(object):
         None
         """
         if self.surf == 'flat':  # special case
-            coords, faces, orig_faces = _read_patch(
-                path.join(self.data_path, 'surf',
-                          '%s.%s' % (self.hemi, 'cortex.patch.flat')))
+            fname = path.join(self.data_path, 'surf',
+                              '%s.%s' % (self.hemi, 'cortex.patch.flat'))
+            _check_fname(fname, overwrite='read', must_exist=True,
+                         name='flatmap surface file')
+            coords, faces, orig_faces = _read_patch(fname)
         else:
             coords, faces = read_surface(
                 path.join(self.data_path, 'surf',

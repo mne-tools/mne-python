@@ -796,7 +796,7 @@ def _read_patch(fname):
 
     # read surrogate surface
     rrs, tris = read_surface(
-        op.join(op.dirname(fname), op.basename(fname)[:3] + 'pial'))
+        op.join(op.dirname(fname), op.basename(fname)[:3] + 'sphere'))
     orig_tris = tris
     is_vert = patch['vertno'] > 0  # negative are edges, ignored for now
     verts = patch['vertno'][is_vert]
