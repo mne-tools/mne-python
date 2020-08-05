@@ -620,6 +620,7 @@ def test_source_space_from_label(tmpdir, pass_ids):
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
+@requires_nibabel()
 def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""
     # these two are neighbors and are quite large, so let's use them to
@@ -639,7 +640,8 @@ def test_source_space_exclusive_complete(src_volume_labels):
     # also check single_volume=True -- should be the same result
     src_single = setup_volume_source_space(
         src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
-        volume_label=volume_labels, single_volume=True, add_interpolator=False)
+        volume_label=volume_labels, single_volume=True, add_interpolator=False,
+        subjects_dir=subjects_dir)
     assert len(src_single) == 1
     assert 'Unknown+Left-Cerebral-White-Matter+Left-' in repr(src_single)
     assert_array_equal(src_full[0]['vertno'], src_single[0]['vertno'])
