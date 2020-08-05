@@ -131,7 +131,7 @@ report.save('report_evoked.html')
 # ``baseline`` argument, which should be a tuple with the starting and ending
 # time of the baseline period. For more details, read the documentation on
 # `~mne.Evoked.apply_baseline`. Here, we will apply baseline correction for a
-# a baseline period from the beginning of the time interval to time point zero.
+# baseline period from the beginning of the time interval to time point zero.
 
 baseline = (None, 0)
 pattern = 'sample_audvis-no-filter-ave.fif'
