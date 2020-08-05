@@ -1403,13 +1403,11 @@ baseline : None | tuple of length 2
 
     .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
                 timepoints ``t`` such that ``a <= t <= b``.
-
 """
-docdict['baseline'] = """
-    %(rescale_baseline)s
+docdict['baseline'] = """%(rescale_baseline)s
     Correction is applied by computing the mean
     of the baseline period and subtracting it from the data.
-"""
+"""  % docdict
 
 
 # Finalize
