@@ -117,9 +117,9 @@ report.save('report_mri_bem.html')
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
 # (we'll skip the MRIs to save computation time). The following code will
 # produce butterfly plots, topomaps, and comparisons of the global field
-# power (GFP) for different experimental conditions.
-# The GFP traces for the EEG data clearly look odd, indicating that we probably
-# should do a better job at data cleaning.
+# power (GFP) for different experimental conditions. When creating the report,
+# MNE applies a baseline correction by default, with a baseline period from the
+# beginning of the time interval to time point zero.
 
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(verbose=True)
