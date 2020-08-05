@@ -15,7 +15,7 @@ import mne
 from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
-from mne.epochs import Epochs
+from mne.epochs import Epochs, EpochsArray
 from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne.source_space import _get_src_nn
@@ -510,12 +510,21 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
         fixed='auto', depth=None)
     apply_inverse(evoked, inv_op_meg, 1 / 9., method='MNE', pick_ori='normal')
 
+    # Test type checking
+    with pytest.raises(TypeError, match='must be an instance of Evoked'):
+        apply_inverse(
+            mne.EpochsArray(evoked.data[np.newaxis], evoked.info), inv_op)
+    with pytest.raises(TypeError, match='must be an instance of Evoked'):
+        apply_inverse(mne.io.RawArray(evoked.data, evoked.info), inv_op)
+
     # Test we get errors when using custom ref or no average proj is present
     evoked.info['custom_ref_applied'] = True
-    pytest.raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+    with pytest.raises(ValueError, match='Custom EEG reference'):
+        apply_inverse(evoked, inv_op, lambda2, "MNE")
     evoked.info['custom_ref_applied'] = False
     evoked.info['projs'] = []  # remove EEG proj
-    pytest.raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+    with pytest.raises(ValueError, match='EEG average reference is mandatory'):
+        apply_inverse(evoked, inv_op, lambda2, "MNE")
 
     # But test that we do not get EEG-related errors on MEG-only inv (gh-4650)
     apply_inverse(evoked, inv_op_meg, 1. / 9.)
@@ -872,7 +881,7 @@ def test_apply_mne_inverse_raw():
     stop = 10
     raw = read_raw_fif(fname_raw)
     label_lh = read_label(fname_label % 'Aud-lh')
-    _, times = raw[0, start:stop]
+    data, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_full)
     with pytest.raises(ValueError, match='has not been prepared'):
         apply_inverse_raw(raw, inverse_operator, lambda2, prepared=True)
@@ -898,6 +907,11 @@ def test_apply_mne_inverse_raw():
         assert_array_almost_equal(stc.times, times)
         assert_array_almost_equal(stc2.times, times)
         assert_array_almost_equal(stc.data, stc2.data)
+
+    with pytest.raises(TypeError, match='must be an instance of BaseRaw'):
+        apply_inverse_raw(
+            EpochsArray(raw.get_data()[np.newaxis], raw.info),
+            inverse_operator, 1.)
 
 
 @testing.requires_testing_data
@@ -1011,6 +1025,11 @@ def test_apply_mne_inverse_epochs():
     label_stc = stcs[0].in_label(label_rh)
     assert (label_stc.subject == 'sample')
     assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
+
+    with pytest.raises(TypeError, match='must be an instance of BaseEpochs'):
+        apply_inverse_epochs(
+            EvokedArray(epochs[0].get_data()[0], epochs.info),
+            inverse_operator, 1.)
 
 
 def test_make_inverse_operator_bads(evoked, noise_cov):
