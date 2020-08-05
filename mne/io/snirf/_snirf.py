@@ -194,6 +194,11 @@ class RawSNIRF(BaseRaw):
                 info['chs'][idx]['loc'][0:3] = midpoint
                 info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
 
+            if 'coordFrame' in dat.get('nirs/metaDataTags/'):
+                coord_frame = int(dat.get('/nirs/metaDataTags/coordFrame')[0])
+            else:
+                coord_frame = FIFF.FIFFV_COORD_UNKNOWN
+
             if 'landmarkPos3D' in dat.get('nirs/probe/'):
                 diglocs = np.array(dat.get('/nirs/probe/landmarkPos3D'))
                 digname = np.array(dat.get('/nirs/probe/landmarkLabels'))
@@ -211,7 +216,7 @@ class RawSNIRF(BaseRaw):
                             kind=FIFF.FIFFV_POINT_EEG,  # as in read_raw_nirx
                             r=diglocs[idx, :],
                             ident=len(extra_pos) + 1,
-                            coord_frame=FIFF.FIFFV_COORD_HEAD,
+                            coord_frame=coord_frame,
                         ))
                 info['dig'] = _make_dig_points(nasion=nasion, lpa=lpa,
                                                rpa=rpa, hpi=hpi)
