@@ -571,10 +571,10 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             fll_type = use_fll_type
 
         # channel information
-        fid.seek(64)
         chan_dir = dirs[KIT.DIR_INDEX_CHANNELS]
         chan_offset, chan_size = chan_dir['offset'], chan_dir['size']
         sqd['channels'] = channels = []
+        exg_gains = list()
         for i in range(channel_count):
             fid.seek(chan_offset + chan_size * i)
             channel_type, = unpack('i', fid.read(KIT.INT))
@@ -605,6 +605,10 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     'no': channel_no,
                     'name': _read_name(fid, channel_type),
                 })
+                if channel_type in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG):
+                    offset = 6 if channel_type == KIT.CHANNEL_EEG else 8
+                    fid.seek(offset, SEEK_CUR)
+                    exg_gains.append(np.fromfile(fid, 'd', 1)[0])
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({'type': channel_type})
             else:
@@ -733,6 +737,9 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     ad_to_volt = adc_range / (2. ** adc_stored)
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
     conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
+    is_exg = [ch['type'] in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG)
+              for ch in channels]
+    conv_factor[is_exg] = exg_gains
     sqd['conv_factor'] = conv_factor[:, np.newaxis]
 
     # Create raw.info dict for raw fif object with SQD data
