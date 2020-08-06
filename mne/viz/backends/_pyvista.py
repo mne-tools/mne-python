@@ -510,18 +510,16 @@ class _Renderer(_BaseRenderer):
                                           shape_opacity=0)
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
-                  bgcolor=None):
+                  bgcolor=None, **extra_kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.add_scalar_bar(color=color, title=title,
-                                        n_labels=n_labels,
-                                        use_opacity=False, n_colors=256,
-                                        position_x=0.15,
-                                        position_y=0.05, width=0.7,
-                                        shadow=False, bold=True,
-                                        label_font_size=22,
-                                        font_family=self.font_family,
-                                        background_color=bgcolor)
+            kwargs = dict(color=color, title=title, n_labels=n_labels,
+                          use_opacity=False, n_colors=256, position_x=0.15,
+                          position_y=0.05, width=0.7, shadow=False, bold=True,
+                          label_font_size=22, font_family=self.font_family,
+                          background_color=bgcolor)
+            kwargs.update(extra_kwargs)
+            self.plotter.add_scalar_bar(**kwargs)
 
     def show(self):
         self.figure.display = self.plotter.show()
@@ -529,6 +527,7 @@ class _Renderer(_BaseRenderer):
             with self.ensure_minimum_sizes():
                 self.plotter.app_window.show()
                 _process_events(self.plotter, show=True)
+            _process_events(self.plotter)
         return self.scene()
 
     def close(self):
@@ -663,7 +662,8 @@ def _get_camera_direction(focalpoint, position):
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     position = np.array(figure.plotter.camera_position[0])
-    focalpoint = np.array(figure.plotter.camera_position[1])
+    if focalpoint is None:
+        focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
 
     if azimuth is not None:

@@ -1589,7 +1589,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto',
                           src=None, volume_options=1., view_layout='vertical',
-                          verbose=None):
+                          add_data_kwargs=None, verbose=None):
     """Plot SourceEstimate.
 
     Parameters
@@ -1681,6 +1681,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         .. versionadded:: 0.17.0
     %(show_traces)s
     %(src_volume_options_layout)s
+    %(add_data_kwargs)s
     %(verbose)s
 
     Returns
@@ -1732,7 +1733,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
         cortex=cortex, foreground=foreground, size=size, scale_factor=None,
         show_traces=show_traces, src=src, volume_options=volume_options,
-        view_layout=view_layout, **kwargs)
+        view_layout=view_layout, add_data_kwargs=add_data_kwargs, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
@@ -1740,7 +1741,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               time_unit, background, time_viewer, colorbar, transparent,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
-              view_layout):
+              view_layout, add_data_kwargs):
     from .backends.renderer import _get_3d_backend
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1858,6 +1859,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["clim"] = clim
             kwargs["volume_options"] = volume_options
             kwargs["src"] = src_vol
+        kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
@@ -2398,7 +2400,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
                                  src=None, volume_options=1.,
-                                 view_layout='vertical', verbose=None):
+                                 view_layout='vertical',
+                                 add_data_kwargs=None, verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2472,6 +2475,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         milliseconds ("ms").
     %(show_traces)s
     %(src_volume_options_layout)s
+    %(add_data_kwargs)s
     %(verbose)s
 
     Returns
@@ -2498,7 +2502,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         brain_alpha=brain_alpha, overlay_alpha=overlay_alpha,
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
         size=size, scale_factor=scale_factor, show_traces=show_traces,
-        src=src, volume_options=volume_options, view_layout=view_layout)
+        src=src, volume_options=volume_options, view_layout=view_layout,
+        add_data_kwargs=add_data_kwargs)
 
 
 @verbose

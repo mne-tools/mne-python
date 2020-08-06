@@ -620,7 +620,7 @@ class _BaseSourceEstimate(TimeMixin):
              foreground=None, initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None, show_traces='auto',
              src=None, volume_options=1., view_layout='vertical',
-             verbose=None):
+             add_data_kwargs=None, verbose=None):
         brain = plot_source_estimates(
             self, subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -631,7 +631,7 @@ class _BaseSourceEstimate(TimeMixin):
             initial_time=initial_time, time_unit=time_unit, backend=backend,
             spacing=spacing, title=title, show_traces=show_traces,
             src=src, volume_options=volume_options, view_layout=view_layout,
-            verbose=verbose)
+            add_data_kwargs=add_data_kwargs, verbose=verbose)
         return brain
 
     @property
@@ -1909,7 +1909,8 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
              colorbar=True, clim='auto', cortex='classic', size=800,
              background='black', foreground=None, initial_time=None,
              time_unit='s', show_traces='auto', src=None, volume_options=1.,
-             view_layout='vertical', verbose=None):  # noqa: D102
+             view_layout='vertical', add_data_kwargs=None,
+             verbose=None):  # noqa: D102
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1921,7 +1922,8 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit,
             show_traces=show_traces, src=src, volume_options=volume_options,
-            view_layout=view_layout, verbose=verbose)
+            view_layout=view_layout, add_data_kwargs=add_data_kwargs,
+            verbose=verbose)
 
 
 class _BaseVolSourceEstimate(_BaseSourceEstimate):
@@ -1939,7 +1941,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
                 foreground=None, initial_time=None, time_unit='s',
                 backend='auto', spacing='oct6', title=None, show_traces='auto',
                 src=None, volume_options=1., view_layout='vertical',
-                verbose=None):
+                add_data_kwargs=None, verbose=None):
         return super().plot(
             subject=subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1950,7 +1952,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             foreground=foreground, initial_time=initial_time,
             time_unit=time_unit, backend=backend, spacing=spacing, title=title,
             show_traces=show_traces, src=src, volume_options=volume_options,
-            view_layout=view_layout, verbose=verbose)
+            view_layout=view_layout, add_data_kwargs=add_data_kwargs,
+            verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
@@ -2268,7 +2271,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
                 background='black', foreground=None, initial_time=None,
                 time_unit='s', show_traces='auto', src=None,
                 volume_options=1., view_layout='vertical',
-                verbose=None):  # noqa: D102
+                add_data_kwargs=None, verbose=None):  # noqa: D102
         return _BaseVectorSourceEstimate.plot(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -2280,7 +2283,8 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
             background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit,
             show_traces=show_traces, src=src, volume_options=volume_options,
-            view_layout=view_layout, verbose=verbose)
+            view_layout=view_layout, add_data_kwargs=add_data_kwargs,
+            verbose=verbose)
 
 
 @fill_doc

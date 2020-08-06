@@ -294,6 +294,10 @@ class _Brain(object):
         self._closed = False
         if show:
             self._renderer.show()
+        # update the views once the geometry is all set
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self.show_view(v, row=ri, col=ci, hemi=h)
 
     @property
     def interaction(self):
@@ -329,7 +333,8 @@ class _Brain(object):
                  time_label="auto", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 clim=None, src=None, volume_options=0.4, verbose=None):
+                 clim=None, src=None, volume_options=0.4, colorbar_kwargs=None,
+                 verbose=None):
         """Display data from a numpy array on the surface or volume.
 
         This provides a similar interface to
@@ -387,7 +392,8 @@ class _Brain(object):
             time points in the data array (if data is 2D or 3D)
         %(time_label)s
         colorbar : bool
-            whether to add a colorbar to the figure
+            whether to add a colorbar to the figure. Can also be a tuple
+            to give the (row, col) index of where to put the colorbar.
         hemi : str | None
             If None, it is assumed to belong to the hemisphere being
             shown. If two hemispheres are being shown, an error will
@@ -412,6 +418,9 @@ class _Brain(object):
         clim : dict
             Original clim arguments.
         %(src_volume_options_layout)s
+        colorbar_kwargs : dict | None
+            Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
+            (e.g., ``dict(title_font_size=10)``).
         %(verbose)s
 
         Notes
@@ -433,7 +442,7 @@ class _Brain(object):
         # those parameters are not supported yet, only None is allowed
         _check_option('thresh', thresh, [None])
         _check_option('remove_existing', remove_existing, [None])
-        _check_option('time_label_size', time_label_size, [None])
+        _validate_type(time_label_size, (None, 'numeric'), 'time_label_size')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
         array = np.asarray(array)
@@ -541,10 +550,13 @@ class _Brain(object):
         self.set_data_smoothing(self._data['smoothing_steps'])
 
         # 3) add the other actors
+        if colorbar is True:
+            # botto left by default
+            colorbar = (self._subplot_shape[0] - 1, 0)
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             # Add the time label to the bottommost view
-            do = (ri == self._subplot_shape[0] - 1)
+            do = (ri, ci) == colorbar
             if not self._time_label_added and time_label is not None and do:
                 time_actor = self._renderer.text2d(
                     x_window=0.95, y_window=y_txt,
@@ -556,9 +568,10 @@ class _Brain(object):
                 self._data['time_actor'] = time_actor
                 self._time_label_added = True
             if colorbar and not self._colorbar_added and do:
-                self._renderer.scalarbar(source=actor, n_labels=8,
-                                         color=self._fg_color,
-                                         bgcolor=self._brain_color[:3])
+                kwargs = dict(source=actor, n_labels=8, color=self._fg_color,
+                              bgcolor=self._brain_color[:3])
+                kwargs.update(colorbar_kwargs or {})
+                self._renderer.scalarbar(**kwargs)
                 self._colorbar_added = True
             self._renderer.set_camera(**views_dicts[hemi][v])
         self._update()
