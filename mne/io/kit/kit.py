@@ -9,7 +9,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 #
 # License: BSD (3-clause)
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from math import sin, cos
 from os import SEEK_CUR, path as op
 from struct import unpack
@@ -48,7 +48,8 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
+        dig_points, dev_head_t = _set_dig_kit(
+            mrk, elp, hsp, kit_info['eeg_dig'])
         info['dig'] = dig_points
         info['dev_head_t'] = dev_head_t
     elif mrk is not None or elp is not None or hsp is not None:
@@ -146,7 +147,7 @@ class RawKIT(BaseRaw):
             info, preload, last_samps=last_samps, filenames=[input_fname],
             raw_extras=self._raw_extras, verbose=verbose)
         self.info = _call_digitization(
-            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info,)
+            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info)
         logger.info('Ready.')
 
     def read_stim_ch(self, buffer_size=1e5):
@@ -236,25 +237,23 @@ class RawKIT(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        params = self._raw_extras[fi]
-        nchan = params['nchan']
+        sqd = self._raw_extras[fi]
+        nchan = sqd['nchan']
         data_left = (stop - start) * nchan
-        conv_factor = params['conv_factor']
+        conv_factor = sqd['conv_factor']
 
-        n_bytes = 2
+        n_bytes = sqd['dtype'].itemsize
+        assert n_bytes in (2, 4)
         # Read up to 100 MB of data at a time.
         blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
-            fid.seek(144)
-            # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
-            pointer = start * nchan * KIT.SHORT
-            fid.seek(data_offset + pointer)
-            stim = params['stim']
+            pointer = start * nchan * n_bytes
+            fid.seek(sqd['dirs'][KIT.DIR_INDEX_RAW_DATA]['offset'] + pointer)
+            stim = sqd['stim']
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
-                block = np.fromfile(fid, dtype='h', count=blk_size)
+                block = np.fromfile(fid, dtype=sqd['dtype'], count=blk_size)
                 block = block.reshape(nchan, -1, order='F').astype(float)
                 blk_stop = blk_start + block.shape[1]
                 data_view = data[:, blk_start:blk_stop]
@@ -263,8 +262,8 @@ class RawKIT(BaseRaw):
                 # Create a synthetic stim channel
                 if stim is not None:
                     stim_ch = _make_stim_channel(
-                        block[stim, :], params['slope'], params['stimthresh'],
-                        params['stim_code'], stim)
+                        block[stim, :], sqd['slope'], sqd['stimthresh'],
+                        sqd['stim_code'], stim)
                     block = np.vstack((block, stim_ch))
 
                 _mult_cal_one(data_view, block, idx, None, mult)
@@ -400,7 +399,6 @@ class EpochsKIT(BaseEpochs):
 
         if self._raw_extras[0]['acq_type'] == KIT.EPOCHS:
             self._raw_extras[0]['data_length'] = KIT.INT
-            self._raw_extras[0]['dtype'] = 'h'
         else:
             raise TypeError('SQD file contains raw data, not epochs or '
                             'average. Wrong reader.')
@@ -445,11 +443,8 @@ class EpochsKIT(BaseEpochs):
         nchan = info['nchan']
 
         with open(filename, 'rb', buffering=0) as fid:
-            fid.seek(144)
-            # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
+            fid.seek(info['dirs'][KIT.DIR_INDEX_RAW_DATA]['offset'])
             count = n_samples * nchan
-            fid.seek(data_offset)
             data = np.fromfile(fid, dtype=dtype, count=count)
         data = data.reshape((n_samples, nchan)).T
         data = data * info['conv_factor']
@@ -491,14 +486,19 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     sqd = dict()
     sqd['rawfile'] = rawfile
     unsupported_format = False
-    dirs = list()
+    sqd['dirs'] = dirs = list()
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
-        # directories are stored in the first 16 bytes, read all the info
+        #
+        # directories (0)
+        #
         dirs.append(_read_dir(fid))
         dirs.extend(_read_dir(fid) for _ in range(dirs[0]['count'] - 1))
         assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
 
-        fid.seek(dirs[KIT.DIR_INDEX_SYSTEM_INFO]['offset'])
+        #
+        # system (1)
+        #
+        fid.seek(dirs[KIT.DIR_INDEX_SYSTEM]['offset'])
         # check file format version
         version, revision = unpack('2i', fid.read(2 * KIT.INT))
         if version < 2 or (version == 2 and revision < 3):
@@ -543,8 +543,9 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         model_name = model_name.replace('\x00', '')
         model_name = model_name.strip().replace('\n', '/')
 
+        full_version = f'V{version:d}R{revision:03d}'
         logger.debug("SQD file basic information:")
-        logger.debug("Meg160 version = V%iR%03i", version, revision)
+        logger.debug("Meg160 version = %s", full_version)
         logger.debug("System ID      = %i", sysid)
         logger.debug("System name    = %s", system_name)
         logger.debug("Model name     = %s", model_name)
@@ -557,6 +558,10 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         logger.debug("ADC range      = +/-%s[V]", adc_range / 2.)
         logger.debug("ADC allocate   = %i[bit]", adc_allocated)
         logger.debug("ADC bit        = %i[bit]", adc_stored)
+        # MGH description: 'acquisition (megacq) VectorView system at NMR-MGH'
+        description = \
+            f'{system_name} ({sysid}) {full_version} {model_name}'
+        sqd['dtype'] = np.dtype(getattr(np, f'int{adc_allocated}'))
 
         # check that we can read this file
         if fll_type not in KIT.FLL_SETTINGS:
@@ -570,7 +575,9 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                  % (system_name, model_name, sysid, fll_type, use_fll_type))
             fll_type = use_fll_type
 
-        # channel information
+        #
+        # channel information (4)
+        #
         chan_dir = dirs[KIT.DIR_INDEX_CHANNELS]
         chan_offset, chan_size = chan_dir['offset'], chan_dir['size']
         sqd['channels'] = channels = []
@@ -600,10 +607,11 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             elif channel_type in KIT.CHANNELS_MISC:
                 channel_no, = unpack('i', fid.read(KIT.INT))
                 fid.seek(4, SEEK_CUR)
+                name = _read_name(fid, channel_type)
                 channels.append({
                     'type': channel_type,
                     'no': channel_no,
-                    'name': _read_name(fid, channel_type),
+                    'name': name,
                 })
                 if channel_type in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG):
                     offset = 6 if channel_type == KIT.CHANNEL_EEG else 8
@@ -613,23 +621,26 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                 channels.append({'type': channel_type})
             else:
                 raise IOError("Unknown KIT channel type: %i" % channel_type)
+        exg_gains = np.array(exg_gains)
 
-        # Channel sensitivity information:
+        #
+        # Channel sensitivity information: (5)
+        #
+
         # only sensor channels requires gain. the additional misc channels
         # (trigger channels, audio and voice channels) are passed
         # through unaffected
-        fid.seek(80)
-        sensitivity_offset, = unpack('i', fid.read(KIT.INT))
-        fid.seek(sensitivity_offset)
+        fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]['offset'])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
         sensitivity = np.fromfile(fid, dtype='d', count=channel_count * 2)
         sensitivity.shape = (channel_count, 2)
         channel_offset, channel_gain = sensitivity.T
+        assert (channel_offset == 0).all()  # otherwise we have a problem
 
-        # amplifier gain
-        fid.seek(112)
-        amp_offset = unpack('i', fid.read(KIT.INT))[0]
-        fid.seek(amp_offset)
+        #
+        # amplifier gain (7)
+        #
+        fid.seek(dirs[KIT.DIR_INDEX_AMP_FILTER]['offset'])
         amp_data = unpack('i', fid.read(KIT.INT))[0]
         if fll_type >= 100:  # Kapper Type
             # gain:             mask           bit
@@ -655,10 +666,10 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         sqd['lowpass'] = KIT.LPFS[lpf_options][lpf]
         sqd['notch'] = KIT.BEFS[bef_options][bef]
 
-        # Acquisition Parameters
-        fid.seek(128)
-        acqcond_offset, = unpack('i', fid.read(KIT.INT))
-        fid.seek(acqcond_offset)
+        #
+        # Acquisition Parameters (8)
+        #
+        fid.seek(dirs[KIT.DIR_INDEX_ACQ_COND]['offset'])
         sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
         sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
         if acq_type == KIT.CONTINUOUS:
@@ -678,35 +689,45 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             raise IOError("Invalid acquisition type: %i. Your file is neither "
                           "continuous nor epoched data." % (acq_type,))
 
-        # Read in digitization information if present
+        #
+        # digitization information (12 and 26)
+        #
         dig_dir = dirs[KIT.DIR_INDEX_DIG_POINTS]
-        cor_dir = dirs[KIT.DIR_INDEX_COREG_INFO]
+        cor_dir = dirs[KIT.DIR_INDEX_COREG]
+        dig = dict()
+        hsp = list()
         if dig_dir['count'] > 0 and cor_dir['count'] > 0:
+            # directories (0)
             fid.seek(dig_dir['offset'])
-            dig = dict(hsp=list())
             for _ in range(dig_dir['count']):
                 name = _read_name(fid, n=8).strip()
+                # Sometimes there are mismatches (e.g., AFz vs AFZ) between
+                # the channel name and its digitized, name, so let's be case
+                # insensitive. It will also prevent collisions with HSP
+                name = name.lower()
                 rr = np.fromfile(fid, 'd', 3)
                 if name:
                     assert name not in dig
                     dig[name] = rr
                 else:
-                    dig['hsp'].append(rr)
+                    hsp.append(rr)
+
             # nasion, lpa, rpa, HPI in native space
-            elp = [dig[key] for key in ('fidnz', 'fidt9', 'fidt10',
-                                        'HPI_1', 'HPI_2', 'HPI_3', 'HPI_4')]
-            if 'HPI_5' in dig and dig['HPI_5'].any():
-                elp.append(dig['HPI_5'])
+            elp = [dig.pop(key) for key in (
+                'fidnz', 'fidt9', 'fidt10',
+                'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4')]
+            if 'hpi_5' in dig and dig['hpi_5'].any():
+                elp.append(dig.pop('hpi_5'))
             elp = np.array(elp)
-            hsp = np.array(dig['hsp'], float).reshape(-1, 3)
+            hsp = np.array(hsp, float).reshape(-1, 3)
             assert elp.shape in ((7, 3), (8, 3))
             # coregistration
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
             for _ in range(cor_dir['count']):
                 done = np.fromfile(fid, np.int32, 1)[0]
-                fid.seek(16 * 8 +  # meg_to_mri (double)
-                         16 * 8,  # mri_to_meg (double)
+                fid.seek(16 * KIT.DOUBLE +  # meg_to_mri
+                         16 * KIT.DOUBLE,  # mri_to_meg
                          SEEK_CUR)
                 marker_count = np.fromfile(fid, np.int32, 1)[0]
                 if not done:
@@ -716,7 +737,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     mri_type, meg_type, mri_done, meg_done = \
                         np.fromfile(fid, np.int32, 4)
                     assert meg_done
-                    fid.seek(8 * 3, SEEK_CUR)  # mri_pos
+                    fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
                     mrk[mi] = np.fromfile(fid, 'd', 3)
                 fid.seek(256, SEEK_CUR)  # marker_file (char)
             sqd.update(hsp=hsp, elp=elp, mrk=mrk)
@@ -734,11 +755,17 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                           (sysid,))
         adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
-    ad_to_volt = adc_range / (2. ** adc_stored)
+    ad_to_volt = adc_range / (2 ** adc_stored)
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
     conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
+    # XXX this is a bit of a hack. Should probably do this more cleanly at
+    # some point... the 2 ** (adc_stored - 14) was emperically determined using
+    # the test files with known amplitudes. The conv_factors need to be
+    # replaced by these values otherwise we're off by a factor off 5000.0
+    # for the EEG data.
     is_exg = [ch['type'] in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG)
               for ch in channels]
+    exg_gains /= 2 ** (adc_stored - 14)
     conv_factor[is_exg] = exg_gains
     sqd['conv_factor'] = conv_factor[:, np.newaxis]
 
@@ -746,12 +773,14 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     info = _empty_info(float(sqd['sfreq']))
     info.update(meas_date=_stamp_to_dt((create_time, 0)),
                 lowpass=sqd['lowpass'],
-                highpass=sqd['highpass'], kit_system_id=sysid)
+                highpass=sqd['highpass'], kit_system_id=sysid,
+                description=description)
 
     # Creates a list of dicts of meg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = fiff_channels = []
     channel_index = defaultdict(lambda: 0)
+    sqd['eeg_dig'] = OrderedDict()
     for idx, ch in enumerate(channels, 1):
         if ch['type'] in KIT.CHANNELS_MEG:
             ch_name = ch.get('name', '')
@@ -788,11 +817,14 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             channel_index[ch_type_label] += 1
             ch_type_index = channel_index[ch_type_label]
             ch_name = ch.get('name', '')
+            eeg_name = ch_name.lower()
             # some files have all EEG labeled as EEG
             if ch_name in ('', 'EEG') or standardize_names:
                 ch_name = '%s %03i' % (ch_type_label, ch_type_index)
             unit = FIFF.FIFF_UNIT_V
             loc = np.zeros(12)
+            if eeg_name and eeg_name in dig:
+                loc[:3] = sqd['eeg_dig'][eeg_name] = dig[eeg_name]
         fiff_channels.append(dict(
             cal=KIT.CALIB_FACTOR, logno=idx, scanno=idx, range=KIT.RANGE,
             unit=unit, unit_mul=KIT.UNIT_MUL, ch_name=ch_name,
@@ -800,7 +832,6 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             coil_type=KIT.CH_TO_FIFF_COIL[ch['type']],
             kind=KIT.CH_TO_FIFF_KIND[ch['type']], loc=loc))
     info._update_redundant()
-
     return info, sqd
 
 

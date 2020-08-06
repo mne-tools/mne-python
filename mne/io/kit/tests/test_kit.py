@@ -41,6 +41,8 @@ data_path = mne.datasets.testing.data_path(download=False)
 sqd_as_path = op.join(data_path, 'KIT', 'test_as-raw.con')
 yokogawa_path = op.join(
     data_path, 'KIT', 'ArtificalSignalData_Yokogawa_1khz.con')
+ricoh_path = op.join(
+    data_path, 'KIT', 'ArtificalSignalData_RICOH_1khz.con')
 
 
 @requires_testing_data
@@ -56,6 +58,8 @@ def test_data(tmpdir):
     # check functionality
     raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_txt_path,
                            hsp_txt_path)
+    assert raw_mrk.info['description'] == \
+        'NYU 160ch System since Jan24 2009 (34) V2R004 EQ1160C'
     raw_py = _test_raw_reader(read_raw_kit, input_fname=sqd_path, mrk=mrk_path,
                               elp=elp_txt_path, hsp=hsp_txt_path,
                               stim=list(range(167, 159, -1)), slope='+',
@@ -108,6 +112,8 @@ def test_data(tmpdir):
     # KIT-UMD data
     _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
     raw = read_raw_kit(sqd_umd_path)
+    assert raw.info['description'] == \
+        'University of Maryland/Kanazawa Institute of Technology/160-channel MEG System (53) V2R004 PQ1160R'  # noqa: E501
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
     # check number/kind of channels
     assert_equal(len(raw.info['chs']), 193)
@@ -118,6 +124,8 @@ def test_data(tmpdir):
 
     # KIT Academia Sinica
     raw = read_raw_kit(sqd_as_path, slope='+')
+    assert raw.info['description'] == \
+        'Academia Sinica/Institute of Linguistics//Magnetoencephalograph System (261) V2R004 PQ1160R-N2'  # noqa: E501
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_AS_2008)
     assert_equal(raw.info['chs'][100]['ch_name'], 'MEG 101')
     assert_equal(raw.info['chs'][100]['kind'], FIFF.FIFFV_MEG_CH)
@@ -132,24 +140,34 @@ def test_data(tmpdir):
     assert_array_equal(find_events(raw), [[91, 0, 2]])
 
 
-def _assert_sinusoid(data, t, freq, amp):
+def _assert_sinusoid(data, t, freq, amp, msg):
     __tracebackhide__ = True
     sinusoid = np.exp(2j * np.pi * freq * t) * amp
     phase = np.angle(np.dot(data, sinusoid))
     sinusoid = np.cos(2 * np.pi * freq * t - phase) * amp
-    assert_allclose(data, sinusoid, rtol=0.05, atol=amp * 1e-3)
+    assert_allclose(data, sinusoid, rtol=0.05, atol=amp * 1e-3, err_msg=msg)
 
 
 @requires_testing_data
-def test_ricoh_data(tmpdir):
+@pytest.mark.parametrize('fname, desc', [
+    (yokogawa_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
+    (ricoh_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
+])
+def test_ricoh_data(tmpdir, fname, desc):
     """Test reading channel names and dig information from Ricoh systems."""
     with pytest.deprecated_call(match='standardize_names'):
-        raw = read_raw_kit(yokogawa_path)
+        raw = read_raw_kit(fname)
     assert raw.ch_names[0] == 'MEG 001'
-    raw = read_raw_kit(yokogawa_path, standardize_names=False)
+    raw = read_raw_kit(fname, standardize_names=False, verbose='debug')
+    assert raw.info['description'] == desc
     assert_allclose(raw.times[-1], 5. - 1. / raw.info['sfreq'])
     assert raw.ch_names[0] == 'LF31'
-    assert len(raw.info['dig']) == 8
+    eeg_picks = pick_types(raw.info, meg=False, eeg=True)
+    assert len(eeg_picks) == 45
+    assert len(raw.info['dig']) == 8 + len(eeg_picks) - 2  # EKG+ and E no pos
+    bad_dig = [ch['ch_name'] for ci, ch in enumerate(raw.info['chs'])
+               if ci in eeg_picks and (ch['loc'][:3] == 0).all()]
+    assert bad_dig == ['EKG+', 'E']
     assert not any(np.allclose(d['r'], 0.) for d in raw.info['dig'])
     assert_allclose(
         raw.info['dev_head_t']['trans'],
@@ -160,19 +178,20 @@ def test_ricoh_data(tmpdir):
     data = raw.get_data()
     # 1 pT 10 Hz on the first channel
     assert raw.info['chs'][0]['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
-    _assert_sinusoid(data[0], raw.times, 10, 1e-12)
-    assert_allclose(data[1:160], 0., atol=1e-20)
+    _assert_sinusoid(data[0], raw.times, 10, 1e-12, '1 pT 10 Hz MEG')
+    assert_allclose(data[1:160], 0., atol=1e-13)
     # 1 V 5 Hz analog
     assert raw.info['chs'][186]['coil_type'] == FIFF.FIFFV_COIL_EEG
-    _assert_sinusoid(data[160], raw.times, 5, 1)
+    _assert_sinusoid(data[160], raw.times, 5, 1, '1 V 5 Hz analog')
     assert_allclose(data[161:185], 0., atol=1e-20)
-    # 50 uV 8 Hz analog plus 1.6 mV offset
+    # 50 uV 8 Hz plus 1.6 mV offset
     assert raw.info['chs'][186]['coil_type'] == FIFF.FIFFV_COIL_EEG
     eeg_data = data[186]
     assert_allclose(eeg_data.mean(), 1.6e-3, atol=1e-5)  # offset
     eeg_data = eeg_data - eeg_data.mean()
-    _assert_sinusoid(eeg_data, raw.times, 8, 50e-6)
-    # assert_allclose(data[187:], 0., atol=1e-20)
+    _assert_sinusoid(eeg_data, raw.times, 8, 50e-6, '50 uV 8 Hz EEG')
+    assert_allclose(data[187:-1], 0., atol=1e-20)
+    assert_allclose(data[-1], 254.5, atol=0.51)
 
 
 def test_epochs():
