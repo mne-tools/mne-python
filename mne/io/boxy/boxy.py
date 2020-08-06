@@ -10,6 +10,7 @@ import numpy as np
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...utils import logger, verbose, fill_doc
+from ...annotations import Annotations
 
 
 @fill_doc
@@ -78,6 +79,11 @@ class RawBOXY(BaseRaw):
 
         # Read header file and grab some info.
         filetype = 'parsed'
+        start_line = 0
+        end_line = 0
+        mrk_col = 0
+        mrk_data = list()
+        col_names = list()
         with open(files[key][0], 'r') as data:
             for line_num, i_line in enumerate(data, 1):
                 if '#DATA ENDS' in i_line:
@@ -95,8 +101,32 @@ class RawBOXY(BaseRaw):
                 elif '#DATA BEGINS' in i_line:
                     # Data should start a couple lines later.
                     start_line = line_num + 2
-                elif 'exmux' in i_line:
-                    filetype = 'non-parsed'
+                if start_line > 0 & end_line == 0:
+                    if line_num == start_line - 1:
+                        # Grab names for each column of data.
+                        col_names = np.asarray(re.findall(
+                            r'\w+\-\w+|\w+\-\d+|\w+', i_line.rsplit(' ')[0]))
+                        if 'exmux' in col_names:
+                            # Change filetype based on data organisation.
+                            filetype = 'non-parsed'
+                        if 'digaux' in col_names:
+                            mrk_col = np.where(col_names == 'digaux')[0][0]
+                    # Need to treat parsed and non-parsed files differently.
+                    elif (mrk_col > 0 and line_num > start_line and
+                          filetype == 'non-parsed'):
+                        # Non-parsed files have different lines lengths.
+                        crnt_line = i_line.rsplit(' ')[0]
+                        temp_data = re.findall(r'[-+]?\d*\.?\d+', crnt_line)
+                        if len(temp_data) == len(col_names):
+                            mrk_data.append(float(
+                                re.findall(r'[-+]?\d*\.?\d+', crnt_line)
+                                [mrk_col]))
+                    elif (mrk_col > 0 and line_num > start_line
+                          and filetype == 'parsed'):
+                        # Parsed files have the same line lengths for data.
+                        crnt_line = i_line.rsplit(' ')[0]
+                        mrk_data.append(float(
+                            re.findall(r'[-+]?\d*\.?\d+', crnt_line)[mrk_col]))
 
         # Label each channel in our data.
         # Data is organised by channels x timepoint, where the first
@@ -126,6 +156,7 @@ class RawBOXY(BaseRaw):
                       'filetype': filetype,
                       'files': files[key][0],
                       'datatype': datatype,
+                      'srate': srate,
                       }
 
         # Make sure data lengths are the same.
@@ -152,6 +183,28 @@ class RawBOXY(BaseRaw):
             info, preload, filenames=[fname], first_samps=[first_samps],
             last_samps=[last_samps - 1],
             raw_extras=[raw_extras], verbose=verbose)
+
+        # Now let's grab our markers, if they are present.
+        if len(mrk_data) != 0:
+            mrk_data = np.asarray(mrk_data)
+            # We only want the first instance of each trigger.
+            prev_mrk = 0
+            mrk_idx = list()
+            duration = list()
+            tmp_dur = 0
+            for i_num, i_mrk in enumerate(mrk_data):
+                if i_mrk != 0 and i_mrk != prev_mrk:
+                    mrk_idx.append(i_num)
+                if i_mrk != 0 and i_mrk == prev_mrk:
+                    tmp_dur += 1
+                if i_mrk == 0 and i_mrk != prev_mrk:
+                    duration.append((tmp_dur + 1) * (1.0 / srate))
+                    tmp_dur = 0
+                prev_mrk = i_mrk
+            onset = [i_mrk * (1.0 / srate) for i_mrk in mrk_idx]
+            description = [float(i_mrk)for i_mrk in mrk_data[mrk_idx]]
+            annot = Annotations(onset, duration, description)
+            self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
@@ -263,9 +316,6 @@ class RawBOXY(BaseRaw):
 
                     # Save our data based on data type.
                     all_data[index_loc, :] = boxy_array[:, channel]
-
-        # Change data to array.
-        all_data = np.asarray(all_data)
 
         print('Blank Data shape: ', data.shape)
         print('Input Data shape: ', all_data.shape)
