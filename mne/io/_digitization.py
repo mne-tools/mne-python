@@ -519,8 +519,8 @@ def _set_dig_kit(mrk, elp, hsp):
             raise ValueError("File %r should contain 8 points; got shape "
                              "%s." % (elp, elp_points.shape))
         elp = elp_points
-    elif len(elp) != 8:
-        raise ValueError("ELP should contain 8 points; got shape "
+    elif len(elp) not in (7, 8):
+        raise ValueError("ELP should contain 7 or 8 points; got shape "
                          "%s." % (elp.shape,))
     if isinstance(mrk, str):
         mrk = read_mrk(mrk)

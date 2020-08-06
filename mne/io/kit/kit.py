@@ -33,7 +33,13 @@ from ...event import read_events
 from .._digitization import _set_dig_kit
 
 
-def _call_digitization(info, mrk, elp, hsp):
+def _call_digitization(info, mrk, elp, hsp, kit_info):
+    # Use values from kit_info only if all others are None
+    if mrk is None and elp is None and hsp is None:
+        mrk = kit_info.get('mrk', None)
+        elp = kit_info.get('elp', None)
+        hsp = kit_info.get('hsp', None)
+
     # prepare mrk
     if isinstance(mrk, list):
         mrk = [read_mrk(marker) if isinstance(marker, str)
@@ -139,13 +145,8 @@ class RawKIT(BaseRaw):
         super(RawKIT, self).__init__(
             info, preload, last_samps=last_samps, filenames=[input_fname],
             raw_extras=self._raw_extras, verbose=verbose)
-
-        self.info = _call_digitization(info=self.info,
-                                       mrk=mrk,
-                                       elp=elp,
-                                       hsp=hsp,
-                                       )
-
+        self.info = _call_digitization(
+            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info,)
         logger.info('Ready.')
 
     def read_stim_ch(self, buffer_size=1e5):
@@ -421,14 +422,8 @@ class EpochsKIT(BaseEpochs):
             self.info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
-
-        # XXX: This should be unified with kitraw
-        self.info = _call_digitization(info=self.info,
-                                       mrk=mrk,
-                                       elp=elp,
-                                       hsp=hsp,
-                                       )
-
+        self.info = _call_digitization(
+            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info)
         logger.info('Ready.')
 
     def _read_kit_data(self):
@@ -464,6 +459,13 @@ class EpochsKIT(BaseEpochs):
         return data
 
 
+def _read_dir(fid):
+    return dict(offset=np.fromfile(fid, np.uint32, 1)[0],
+                size=np.fromfile(fid, np.int32, 1)[0],
+                max_count=np.fromfile(fid, np.int32, 1)[0],
+                count=np.fromfile(fid, np.int32, 1)[0])
+
+
 @verbose
 def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                  verbose=None):
@@ -489,10 +491,14 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     sqd = dict()
     sqd['rawfile'] = rawfile
     unsupported_format = False
+    dirs = list()
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
-        fid.seek(16)
-        basic_offset = unpack('i', fid.read(KIT.INT))[0]
-        fid.seek(basic_offset)
+        # directories are stored in the first 16 bytes, read all the info
+        dirs.append(_read_dir(fid))
+        dirs.extend(_read_dir(fid) for _ in range(dirs[0]['count'] - 1))
+        assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+
+        fid.seek(dirs[KIT.DIR_INDEX_SYSTEM_INFO]['offset'])
         # check file format version
         version, revision = unpack('2i', fid.read(2 * KIT.INT))
         if version < 2 or (version == 2 and revision < 3):
@@ -566,7 +572,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
 
         # channel information
         fid.seek(64)
-        chan_offset, chan_size = unpack('2i', fid.read(2 * KIT.INT))
+        chan_dir = dirs[KIT.DIR_INDEX_CHANNELS]
+        chan_offset, chan_size = chan_dir['offset'], chan_dir['size']
         sqd['channels'] = channels = []
         for i in range(channel_count):
             fid.seek(chan_offset + chan_size * i)
@@ -588,11 +595,11 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     'loc': np.fromfile(fid, dtype='d', count=5),
                 })
                 if channel_type in KIT.CHANNEL_NAME_NCHAR:
-                    fid.seek(16, 1)  # misc fields
+                    fid.seek(16, SEEK_CUR)  # misc fields
                     channels[-1]['name'] = _read_name(fid, channel_type)
             elif channel_type in KIT.CHANNELS_MISC:
                 channel_no, = unpack('i', fid.read(KIT.INT))
-                fid.seek(4, 1)
+                fid.seek(4, SEEK_CUR)
                 channels.append({
                     'type': channel_type,
                     'no': channel_no,
@@ -652,7 +659,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
         if acq_type == KIT.CONTINUOUS:
             # samples_count, = unpack('i', fid.read(KIT.INT))
-            fid.seek(KIT.INT, 1)
+            fid.seek(KIT.INT, SEEK_CUR)
             sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
         elif acq_type == KIT.EVOKED or acq_type == KIT.EPOCHS:
             sqd['frame_length'], = unpack('i', fid.read(KIT.INT))
@@ -666,6 +673,49 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         else:
             raise IOError("Invalid acquisition type: %i. Your file is neither "
                           "continuous nor epoched data." % (acq_type,))
+
+        # Read in digitization information if present
+        dig_dir = dirs[KIT.DIR_INDEX_DIG_POINTS]
+        cor_dir = dirs[KIT.DIR_INDEX_COREG_INFO]
+        if dig_dir['count'] > 0 and cor_dir['count'] > 0:
+            fid.seek(dig_dir['offset'])
+            dig = dict(hsp=list())
+            for _ in range(dig_dir['count']):
+                name = _read_name(fid, n=8).strip()
+                rr = np.fromfile(fid, 'd', 3)
+                if name:
+                    assert name not in dig
+                    dig[name] = rr
+                else:
+                    dig['hsp'].append(rr)
+            # nasion, lpa, rpa, HPI in native space
+            elp = [dig[key] for key in ('fidnz', 'fidt9', 'fidt10',
+                                        'HPI_1', 'HPI_2', 'HPI_3', 'HPI_4')]
+            if 'HPI_5' in dig and dig['HPI_5'].any():
+                elp.append(dig['HPI_5'])
+            elp = np.array(elp)
+            hsp = np.array(dig['hsp'], float).reshape(-1, 3)
+            assert elp.shape in ((7, 3), (8, 3))
+            # coregistration
+            fid.seek(cor_dir['offset'])
+            mrk = np.zeros((elp.shape[0] - 3, 3))
+            for _ in range(cor_dir['count']):
+                done = np.fromfile(fid, np.int32, 1)[0]
+                fid.seek(16 * 8 +  # meg_to_mri (double)
+                         16 * 8,  # mri_to_meg (double)
+                         SEEK_CUR)
+                marker_count = np.fromfile(fid, np.int32, 1)[0]
+                if not done:
+                    continue
+                assert marker_count >= len(mrk)
+                for mi in range(len(mrk)):
+                    mri_type, meg_type, mri_done, meg_done = \
+                        np.fromfile(fid, np.int32, 4)
+                    assert meg_done
+                    fid.seek(8 * 3, SEEK_CUR)  # mri_pos
+                    mrk[mi] = np.fromfile(fid, 'd', 3)
+                fid.seek(256, SEEK_CUR)  # marker_file (char)
+            sqd.update(hsp=hsp, elp=elp, mrk=mrk)
 
     all_names = set(ch.get('name', '') for ch in channels)
     if standardize_names is None and all_names.difference({'', 'EEG'}):
@@ -743,12 +793,13 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             coil_type=KIT.CH_TO_FIFF_COIL[ch['type']],
             kind=KIT.CH_TO_FIFF_KIND[ch['type']], loc=loc))
     info._update_redundant()
+
     return info, sqd
 
 
-def _read_name(fid, ch_type):
-    bytes_ = fid.read(KIT.CHANNEL_NAME_NCHAR[ch_type])
-    return bytes_.split(b'\x00')[0].decode('utf-8')
+def _read_name(fid, ch_type=None, n=None):
+    n = n if ch_type is None else KIT.CHANNEL_NAME_NCHAR[ch_type]
+    return fid.read(n).split(b'\x00')[0].decode('utf-8')
 
 
 @fill_doc

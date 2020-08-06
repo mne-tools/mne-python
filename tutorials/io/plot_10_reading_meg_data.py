@@ -176,6 +176,9 @@ The following input files are optional:
   These points must be given in the same coordinate system as that
   used for the elp file.
 
+Modern Ricoh systems may encode this information it the file itself, in which
+case ``mrk``, ``elp``, and ``hsp`` can all be ``None`` and the data will be
+read from the file itself.
 
 .. note::
    The output fif file will use the Neuromag head coordinate system convention,
