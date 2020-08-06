@@ -387,8 +387,16 @@ class ETSContext(object):
 
 
 @contextlib.contextmanager
-def wrapped_stdout(indent=''):
-    """Wrap stdout writes to logger.info, with an optional indent prefix."""
+def wrapped_stdout(indent='', cull_newlines=False):
+    """Wrap stdout writes to logger.info, with an optional indent prefix.
+
+    Parameters
+    ----------
+    indent : str
+        The indentation to add.
+    cull_newlines : bool
+        If True, cull any new/blank lines at the end.
+    """
     orig_stdout = sys.stdout
     my_out = ClosingStringIO()
     sys.stdout = my_out
@@ -396,5 +404,11 @@ def wrapped_stdout(indent=''):
         yield
     finally:
         sys.stdout = orig_stdout
+        pending_newlines = 0
         for line in my_out.getvalue().split('\n'):
+            if not line.strip() and cull_newlines:
+                pending_newlines += 1
+                continue
+            for _ in range(pending_newlines):
+                logger.info('\n')
             logger.info(indent + line)

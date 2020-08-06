@@ -6,34 +6,39 @@
 #
 # License: Simplified BSD
 
-from collections import namedtuple
-
-
-View = namedtuple('View', 'elev azim')
-
-lh_views_dict = {'lateral': View(azim=180., elev=90.),
-                 'medial': View(azim=0., elev=90.0),
-                 'rostral': View(azim=90., elev=90.),
-                 'caudal': View(azim=270., elev=90.),
-                 'dorsal': View(azim=180., elev=0.),
-                 'ventral': View(azim=180., elev=180.),
-                 'frontal': View(azim=120., elev=80.),
-                 'parietal': View(azim=-120., elev=60.)}
-rh_views_dict = {'lateral': View(azim=180., elev=-90.),
-                 'medial': View(azim=0., elev=-90.0),
-                 'rostral': View(azim=-90., elev=-90.),
-                 'caudal': View(azim=90., elev=-90.),
-                 'dorsal': View(azim=180., elev=0.),
-                 'ventral': View(azim=180., elev=180.),
-                 'frontal': View(azim=60., elev=80.),
-                 'parietal': View(azim=-60., elev=60.)}
+_lh_views_dict = {
+    'lateral': dict(azimuth=180., elevation=90.),
+    'medial': dict(azimuth=0., elevation=90.0),
+    'rostral': dict(azimuth=90., elevation=90.),
+    'caudal': dict(azimuth=270., elevation=90.),
+    'dorsal': dict(azimuth=180., elevation=0.),
+    'ventral': dict(azimuth=180., elevation=180.),
+    'frontal': dict(azimuth=120., elevation=80.),
+    'parietal': dict(azimuth=-120., elevation=60.),
+    'sagittal': dict(azimuth=180., elevation=-90.),
+    'coronal': dict(azimuth=90., elevation=-90.),
+    'axial': dict(azimuth=180., elevation=0., roll=180),
+}
+_rh_views_dict = {
+    'lateral': dict(azimuth=180., elevation=-90.),
+    'medial': dict(azimuth=0., elevation=-90.0),
+    'rostral': dict(azimuth=-90., elevation=-90.),
+    'caudal': dict(azimuth=90., elevation=-90.),
+    'dorsal': dict(azimuth=180., elevation=0.),
+    'ventral': dict(azimuth=180., elevation=180.),
+    'frontal': dict(azimuth=60., elevation=80.),
+    'parietal': dict(azimuth=-60., elevation=60.),
+    'sagittal': dict(azimuth=180., elevation=-90.),
+    'coronal': dict(azimuth=90., elevation=-90.),
+    'axial': dict(azimuth=180., elevation=0., roll=180),
+}
 # add short-size version entries into the dict
-_lh_views_dict = dict()
-for k, v in lh_views_dict.items():
-    _lh_views_dict[k[:3]] = v
-lh_views_dict.update(_lh_views_dict)
+lh_views_dict = _lh_views_dict.copy()
+for k, v in _lh_views_dict.items():
+    lh_views_dict[k[:3]] = v
 
-_rh_views_dict = dict()
-for k, v in rh_views_dict.items():
-    _rh_views_dict[k[:3]] = v
-rh_views_dict.update(_rh_views_dict)
+rh_views_dict = _rh_views_dict.copy()
+for k, v in _rh_views_dict.items():
+    rh_views_dict[k[:3]] = v
+views_dicts = dict(lh=lh_views_dict, vol=lh_views_dict, both=lh_views_dict,
+                   rh=rh_views_dict)

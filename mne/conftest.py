@@ -98,6 +98,7 @@ def pytest_configure(config):
     ignore:.*pandas\.util\.testing is deprecated.*:
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
+    ignore:Unable to enable faulthandler.*:UserWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
@@ -320,6 +321,21 @@ def renderer_notebook():
         yield
 
 
+@pytest.fixture(scope='session')
+def pixel_ratio():
+    """Get the pixel ratio."""
+    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
+                                               has_pyqt5)
+    if not (has_mayavi() or has_pyvista()) or not has_pyqt5():
+        return 1.
+    from PyQt5.QtWidgets import QApplication, QMainWindow
+    _ = QApplication.instance() or QApplication([])
+    window = QMainWindow()
+    ratio = float(window.devicePixelRatio())
+    window.close()
+    return ratio
+
+
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
 def subjects_dir_tmp(tmpdir):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
@@ -390,6 +406,7 @@ def _all_src_types_fwd(_fwd_surf, _fwd_subvolume):
             key = keys[1]
         a[key] = np.concatenate([a[key], b[key]], axis=axis)
     fwd['sol']['ncol'] = fwd['sol']['data'].shape[1]
+    fwd['nsource'] = fwd['sol']['ncol'] // 3
     fwd['src'] = fwd['src'] + f2['src']
     fwds['mixed'] = fwd
 
@@ -416,6 +433,13 @@ def all_src_types_inv_evoked(_all_src_types_inv_evoked):
     invs = {key: val.copy() for key, val in invs.items()}
     evoked = evoked.copy()
     return invs, evoked
+
+
+@pytest.fixture(scope='function')
+def mixed_fwd_cov_evoked(_evoked_cov_sphere, _all_src_types_fwd):
+    """Compute inverses for all source types."""
+    evoked, cov, _ = _evoked_cov_sphere
+    return _all_src_types_fwd['mixed'].copy(), cov.copy(), evoked.copy()
 
 
 @pytest.fixture(scope='session')

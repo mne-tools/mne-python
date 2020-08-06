@@ -740,7 +740,23 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
             selection=selection)
-        return self._pick_drop_channels(idx)
+
+        self._pick_drop_channels(idx)
+
+        # remove dropped channel types from reject and flat
+        if getattr(self, 'reject', None) is not None:
+            # use list(self.reject) to avoid RuntimeError for changing
+            # dictionary size during iteration
+            for ch_type in list(self.reject):
+                if ch_type not in self:
+                    del self.reject[ch_type]
+
+        if getattr(self, 'flat', None) is not None:
+            for ch_type in list(self.flat):
+                if ch_type not in self:
+                    del self.flat[ch_type]
+
+        return self
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick some channels.

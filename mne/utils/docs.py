@@ -57,6 +57,12 @@ include_tmax : bool
 
     .. versionadded:: 0.19
 """
+docdict['notes_tmax_included_by_default'] = """
+Unlike Python slices, MNE time intervals by default include **both**
+their end points; ``crop(tmin, tmax)`` returns the interval
+``tmin <= t <= tmax``. Pass ``include_tmax=False`` to specify the half-open
+interval ``tmin <= t < tmax`` instead.
+"""
 docdict['raw_tmin'] = """
 tmin : float
     Start time of the raw data to use in seconds (must be >= 0).
@@ -590,6 +596,21 @@ depth : None | float | dict
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
 """
+docdict['loose'] = """
+loose : float | 'auto' | dict
+    Value that weights the source variances of the dipole components
+    that are parallel (tangential) to the cortical surface. Can be:
+
+    - float between 0 and 1 (inclusive)
+        If 0, then the solution is computed with fixed orientation.
+        If 1, it corresponds to free orientations.
+    - ``'auto'`` (default)
+        Uses 0.2 for surface source spaces (unless ``fixed`` is True) and
+        1.0 for other source spaces (volume or mixed).
+    - dict
+        Mapping from the key for a given source space type (surface, volume,
+        discrete) to the loose value. Useful mostly for mixed source spaces.
+"""
 _pick_ori_novec = """
     Options:
 
@@ -990,13 +1011,15 @@ interpolation : str | None
     or 'cubic'.
 """
 docdict["show_traces"] = """
-show_traces : bool | str
+show_traces : bool | str | float
     If True, enable interactive picking of a point on the surface of the
-    brain and plot it's time course using the bottom 1/3 of the figure.
+    brain and plot its time course.
     This feature is only available with the PyVista 3d backend, and requires
     ``time_viewer=True``. Defaults to 'auto', which will use True if and
     only if ``time_viewer=True``, the backend is PyVista, and there is more
-    than one time point.
+    than one time point. If float (between zero and one), it specifies what
+    proportion of the total window should be devoted to traces (True is
+    equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
 """
@@ -1007,7 +1030,34 @@ time_label : str | callable | None
     default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
+docdict["src_volume_options_layout"] = """
+src : instance of SourceSpaces | None
+    The source space corresponding to the source estimate. Only necessary
+    if the STC is a volume or mixed source estimate.
+volume_options : float | dict | None
+    Options for volumetric source estimate plotting, with key/value pairs:
 
+    - ``'resolution'`` : float | None
+        Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+        better at the cost of speed. None (default) uses the volume source
+        space resolution, which is often something like 7 or 5 mm,
+        without resampling.
+    - ``'blending'`` : str
+        Can be "mip" (default) for maximum intensity projection or
+        "composite" for composite blending.
+    - ``'alpha'`` : float | None
+        Alpha for the volumetric rendering. Uses 0.4 for vector source
+        estimates and 1.0 for scalar source estimates.
+    - ``'surface_alpha'`` : float | None
+        Alpha for the surface enclosing the volume(s). None will use
+        half the volume alpha. Set to zero to avoid plotting the surface.
+
+    A float input (default 1.) or None will be used for the ``'resolution'``
+    entry.
+view_layout : str
+    Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+    the PyVista backend must be used and hemi cannot be "split".
+"""
 
 # STC label time course
 docdict['eltc_labels'] = """
@@ -1368,6 +1418,26 @@ the above fields.
 
 Operates in place.
 """
+
+# Baseline
+docdict['rescale_baseline'] = """
+baseline : None | tuple of length 2
+    The time interval to consider as "baseline" when applying baseline
+    correction. If ``None``, do not apply baseline correction.
+    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+    (in seconds), including the endpoints.
+    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+    is ``None``, it is set to the **end** of the interval.
+    If ``(None, None)``, the entire time interval is used.
+
+    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
+                timepoints ``t`` such that ``a <= t <= b``.
+"""
+docdict['baseline'] = """%(rescale_baseline)s
+    Correction is applied by computing the mean
+    of the baseline period and subtracting it from the data.
+""" % docdict
+
 
 # Finalize
 docdict = unindent_dict(docdict)
