@@ -161,7 +161,7 @@ KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
 KIT.SYSTEM_UMD_2019_09 = 54  # UMD September 3, 2019 -
-KIT.SYSTEM_YOKOGAWA_440 = 1001  # no idea
+KIT.SYSTEM_YOKOGAWA = 1001  # no idea
 # Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
@@ -179,7 +179,7 @@ KIT_LAYOUT = {
     KIT.SYSTEM_UMD_2014_07: None,
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
     KIT.SYSTEM_UMD_2019_09: None,
-    KIT.SYSTEM_YOKOGAWA_440: None,
+    KIT.SYSTEM_YOKOGAWA: None,
 }
 # Sensor neighbor definitions
 KIT_NEIGHBORS = {
@@ -198,7 +198,7 @@ KIT_NEIGHBORS = {
     KIT.SYSTEM_UMD_2014_07: 'KIT-UMD-2',
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
     KIT.SYSTEM_UMD_2019_09: 'KIT-UMD-4',
-    KIT.SYSTEM_YOKOGAWA_440: None,
+    KIT.SYSTEM_YOKOGAWA: None,
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
@@ -216,7 +216,7 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
     KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
     KIT.SYSTEM_UMD_2019_09: 'University of Maryland, 2019-',
-    KIT.SYSTEM_YOKOGAWA_440: 'Yokogawa ??? -',
+    KIT.SYSTEM_YOKOGAWA: 'Yokogawa ??? -',
 }
 
 LEGACY_AMP_PARAMS = {
