@@ -354,7 +354,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     fig._draw_traces(event_lines=event_lines, event_color=event_color)
 
     # plot annotations
-    fig._plot_annotations()
+    fig._draw_annotations()
 
     # start with projectors dialog open, if requested
     if show_options:

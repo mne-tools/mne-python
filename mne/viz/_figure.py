@@ -111,7 +111,7 @@ class MNEAnnotationFigure(MNEFigure):
         self.label.set_text(text)
         self.canvas.draw()
 
-    def _radiopress(self, event):
+    def _radiopress(self, event=None):
         """Handle Radiobutton clicks for Annotation label selection."""
         # update which button looks active
         buttons = self.radio_ax.buttons
@@ -615,8 +615,8 @@ class MNEBrowseFigure(MNEFigure):
         # setup interactivity in plot window
         col = ('#ff0000' if len(fig.radio_ax.buttons.circles) < 1 else
                fig.radio_ax.buttons.circles[0].get_edgecolor())
-        selector = SpanSelector(self.mne.ax_main, self._annotate_select,
-                                'horizontal', minspan=0.1,
+        selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
+                                'horizontal', minspan=0.1,  # useblit=True, ?
                                 rectprops=dict(alpha=0.5, facecolor=col))
         if len(labels) == 0:
             selector.active = False
@@ -662,6 +662,9 @@ class MNEBrowseFigure(MNEFigure):
         ax.buttons.disconnect_events()  # clear MPL default listeners
         ax.buttons.on_clicked(fig._radiopress)
         ax.buttons.connect_event('button_press_event', fig._click_override)
+        # activate the selector
+        if len(labels):
+            self.mne.ax_main.selector.active = True
 
     def _clear_annotation_fig(self, event=None):
         """Close the annotation dialog window (via keypress or window [x])."""
@@ -711,12 +714,14 @@ class MNEBrowseFigure(MNEFigure):
         idx = [label.get_text() for label in
                self.mne.fig_annotation.radio_ax.buttons.labels].index(text)
         self.mne.fig_annotation._set_active_button(idx)
+        self.mne.fig_annotation._radiopress()
         self.mne.fig_annotation.label.set_text('BAD_')
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations."""
         from itertools import cycle
 
+        # TODO disable for epochs/ica instance types
         raw = self.mne.inst
         segment_colors = getattr(self.mne, 'segment_colors', dict())
         # sort the segments by start time
@@ -737,17 +742,17 @@ class MNEBrowseFigure(MNEFigure):
                 segment_colors[key] = next(color_cycle)
         self.mne.segment_colors = segment_colors
 
-    def _annotate_select(self, tmin, tmax):
+    def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
-        onset = _sync_onset(self.mne.inst, tmin, True) - self.mne.first_time
-        duration = tmax - tmin
+        onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
+        duration = vmax - vmin
         radio = self.mne.fig_annotation.radio_ax.buttons
         active_idx = _get_active_radio_idx(radio)
         description = radio.labels[active_idx].get_text()
         _merge_annotations(onset, onset + duration, description,
                            self.mne.inst.annotations)
-        self._plot_annotations()
-        #self.canvas.draw()
+        self._draw_annotations()
+        self.canvas.draw()
 
     def _remove_annotation_line(self):
         """Remove annotation line from the plot."""
@@ -781,12 +786,12 @@ class MNEBrowseFigure(MNEFigure):
         _merge_annotations(onset, onset + duration,
                            annotations.description[ann_idx],
                            annotations, ann_idx)
-        self._plot_annotations()
+        self._draw_annotations()
         self._remove_annotation_line()
         self.canvas.draw()
 
-    def _plot_annotations(self):
-        """."""
+    def _draw_annotations(self):
+        """Draw (or redraw) the annotation spans."""
         while len(self.mne.ax_hscroll.collections) > 0:
             self.mne.ax_hscroll.collections.pop()
         segments = list()
@@ -1008,7 +1013,7 @@ class MNEBrowseFigure(MNEFigure):
         self.canvas.draw()
 
     def _draw_one_scalebar(self, x, y, ch_type):
-        """Draw the scalebars."""
+        """Draw a scalebar."""
         from .utils import _simplify_float
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=5)
