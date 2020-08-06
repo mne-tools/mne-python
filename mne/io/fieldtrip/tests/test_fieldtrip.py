@@ -86,7 +86,7 @@ def test_read_evoked(cur_system, version, use_info):
 # byte order '<' via buffer interface"
 @pytest.mark.skipif(os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true',
                     reason='Pandas problem on Azure CI')
-def test_read_epochs(cur_system, version, use_info):
+def test_read_epochs(cur_system, version, use_info, monkeypatch):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     pandas = _check_pandas_installed(strict=False)
     has_pandas = pandas is not False
@@ -126,6 +126,19 @@ def test_read_epochs(cur_system, version, use_info):
 
     check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_epoched, epoched_ft, use_info)
+
+    # weird sfreq
+    from mne.externals.pymatreader import read_mat
+
+    def modify_mat(fname, variable_names=None, ignore_fields=None):
+        out = read_mat(fname, variable_names, ignore_fields)
+        if 'fsample' in out['data']:
+            out['data']['fsample'] = np.repeat(out['data']['fsample'], 2)
+        return out
+
+    monkeypatch.setattr(mne.externals.pymatreader, 'read_mat', modify_mat)
+    with pytest.warns(RuntimeWarning, match='multiple'):
+        mne.io.read_epochs_fieldtrip(cur_fname, info)
 
 
 @testing.requires_testing_data

@@ -1565,7 +1565,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
                               add_interpolator=True, sphere_units='m',
-                              verbose=None):
+                              single_volume=False, verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
@@ -1628,6 +1628,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         Defaults to ``"m"``.
 
         .. versionadded:: 0.20
+    single_volume : bool
+        If True, multiple values of ``volume_label`` will be merged into a
+        a single source space instead of occupying multiple source spaces
+        (one for each sub-volume), i.e., ``len(src)`` will be ``1`` instead of
+        ``len(volume_label)``. This can help conserve memory and disk space
+        when many labels are used.
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -1793,10 +1801,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         # Make the grid of sources in MRI space
         sp = _make_volume_source_space(
             surf, pos, exclude, mindist, mri, volume_label,
-            vol_info=vol_info)
+            vol_info=vol_info, single_volume=single_volume)
     del sphere
     assert isinstance(sp, list)
-    assert len(sp) == 1 if volume_label is None else len(volume_label)
+    assert len(sp) == 1 if (volume_label is None or
+                            single_volume) else len(volume_label)
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
     if mri is not None:
@@ -1966,7 +1975,7 @@ def _get_atlas_values(vol_info, rr):
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                               volume_labels=None, do_neighbors=True, n_jobs=1,
-                              vol_info={}):
+                              vol_info={}, single_volume=False):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
     if 'rr' in surf:
@@ -2065,6 +2074,16 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
             sp['mri_file'] = mri
             sps.append(sp)
         assert len(sps) == len(volume_labels)
+        # This will undo some of the work above, but the calculations are
+        # pretty trivial so allow it
+        if single_volume:
+            for sp in sps[1:]:
+                sps[0]['inuse'][sp['vertno']] = True
+            sp = sps[0]
+            sp['seg_name'] = '+'.join(s['seg_name'] for s in sps)
+            sps = sps[:1]
+            sp['vertno'] = np.where(sp['inuse'])[0]
+            sp['nuse'] = len(sp['vertno'])
     del sp, volume_labels
     if not do_neighbors:
         return sps

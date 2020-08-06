@@ -760,7 +760,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         offsets = params['offsets']
     params['bad_color'] = bad_color
     ax = params['ax']
-    labels = ax.yaxis.get_ticklabels()
     # Scalebars
     for bar in params.get('scalebars', {}).values():
         ax.lines.remove(bar)
@@ -769,6 +768,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].texts = []
     # do the plotting
     tick_list = list()
+    tick_colors = list()
     for ii in range(n_channels):
         ch_ind = ii + ch_start
         # let's be generous here and allow users to pass
@@ -824,13 +824,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                         this_z = 2
                     elif params['types'][ii] == 'grad':
                         this_z = 3
-                for label in labels:
-                    label.set_color('black')
             else:
                 # set label color
                 this_color = (bad_color if ch_name in info['bads'] else
                               this_color)
-                labels[ii].set_color(this_color)
+                tick_colors.append(this_color)
             lines[ii].set_zorder(this_z)
             # add a scale bar
             if (params['show_scalebars'] and
@@ -930,6 +928,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         params['ax'].set_yticks(params['offsets'][:len(tick_list)])
         params['ax'].set_yticklabels(tick_list, rotation=0)
         _set_ax_label_style(params['ax'], params)
+    else:
+        tick_colors = ['k'] * len(params['ax'].get_yticks())
+    for tick_color, tick in zip(tick_colors,
+                                params['ax'].yaxis.get_ticklabels()):
+        tick.set_color(tick_color)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()

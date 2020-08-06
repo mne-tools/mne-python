@@ -27,7 +27,7 @@ from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
-                            _read_mri_info)
+                            _read_mri_info, SourceSpaces)
 
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
@@ -953,7 +953,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # initialize figure
     renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
-        renderer.set_interactive()
+        renderer.set_interaction('terrain')
 
     # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
@@ -1549,6 +1549,34 @@ def link_brains(brains, time=True, camera=False):
     _LinkViewer(brains, time, camera)
 
 
+def _triage_stc(stc, src, surface, backend_name, kind='scalar'):
+    from ..source_estimate import (
+        _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)
+    if isinstance(stc, _BaseSurfaceSourceEstimate):
+        stc_vol = src_vol = None
+    else:
+        if backend_name == 'mayavi':
+            raise RuntimeError(
+                'Must use the PyVista 3D backend to plot a mixed or volume '
+                'source estimate')
+        _validate_type(src, SourceSpaces, 'src',
+                       'src when stc is a mixed or volume source estimate')
+        if isinstance(stc, _BaseMixedSourceEstimate):
+            stc_vol = stc.volume()
+            stc = stc.surface()
+            # When showing subvolumes, surfaces that preserve geometry must
+            # be used (i.e., no inflated)
+            _check_option(
+                'surface', surface, ('white', 'pial'),
+                extra='when plotting a mixed source estimate')
+        else:
+            stc_vol = stc
+            stc = None
+            src_vol = src
+        src_vol = src[2:] if src.kind == 'mixed' else src
+    return stc, stc_vol, src_vol
+
+
 @verbose
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
@@ -1558,12 +1586,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, show_traces='auto', verbose=None):
-    """Plot SourceEstimate with PySurfer.
-
-    By default this function uses :mod:`mayavi.mlab` to plot the source
-    estimates. If Mayavi is not installed, the plotting is done with
-    :mod:`matplotlib.pyplot` (much slower, decimated source space by default).
+                          title=None, show_traces='auto',
+                          src=None, volume_options=1., view_layout='vertical',
+                          verbose=None):
+    """Plot SourceEstimate.
 
     Parameters
     ----------
@@ -1649,6 +1675,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
         .. versionadded:: 0.17.0
     %(show_traces)s
+    %(src_volume_options_layout)s
     %(verbose)s
 
     Returns
@@ -1658,9 +1685,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         matplotlib figure.
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, set_3d_backend
-    # import here to avoid circular import problem
-    from ..source_estimate import SourceEstimate
-    _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
+    from ..source_estimate import _BaseSourceEstimate
+    _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1675,6 +1701,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 plot_mpl = True
             else:  # 'mayavi'
                 raise
+        else:
+            backend = _get_3d_backend()
     kwargs = dict(
         subject=subject, surface=surface, hemi=hemi, colormap=colormap,
         time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1687,24 +1715,18 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     return _plot_stc(
         stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
         cortex=cortex, foreground=foreground, size=size, scale_factor=None,
-        show_traces=show_traces, **kwargs)
+        show_traces=show_traces, src=src, volume_options=volume_options,
+        view_layout=view_layout, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               smoothing_steps, subjects_dir, views, clim, figure, initial_time,
               time_unit, background, time_viewer, colorbar, transparent,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
-              size, scale_factor, show_traces):
+              size, scale_factor, show_traces, src, volume_options,
+              view_layout):
     from .backends.renderer import _get_3d_backend
-    from ..source_estimate import (
-        _BaseSourceEstimate, SourceEstimate, VectorSourceEstimate)
-    _validate_type(stc, _BaseSourceEstimate)
     vec = stc._data_ndim == 3
-    if vec:
-        allowed = VectorSourceEstimate
-    else:
-        allowed = SourceEstimate
-    _validate_type(stc, allowed, 'stc')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1719,11 +1741,16 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         from ._brain import _Brain as Brain
 
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
+    _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
     mapdata = _process_clim(clim, colormap, transparent, stc.data,
                             allow_pos_lims=not vec)
+
+    stc_surf, stc_vol, src_vol = _triage_stc(
+        stc, src, surface, backend, 'scalar')
+    del src, stc
 
     # XXX we should only need to do this for PySurfer/Mayavi, the PyVista
     # plotter should be smart enough to do this separation in the cmap-to-ctab
@@ -1742,6 +1769,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         hemis = ['lh', 'rh']
     else:
         hemis = [hemi]
+    if stc_vol is not None:
+        hemis.append('vol')
 
     if overlay_alpha is None:
         overlay_alpha = brain_alpha
@@ -1758,8 +1787,12 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     }
     if backend in ['pyvista', 'notebook']:
         kwargs["show"] = not time_viewer
+        kwargs["view_layout"] = view_layout
     else:
         kwargs.update(_check_pysurfer_antialias(Brain))
+        if view_layout != 'vertical':
+            raise ValueError('view_layout must be "vertical" when using the '
+                             'mayavi backend')
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
     del kwargs
@@ -1774,17 +1807,22 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
     for hemi in hemis:
-        data = getattr(stc, hemi + '_data')
-        vertices = stc.vertices[0 if hemi == 'lh' else 1]
-        alpha = overlay_alpha
-        if len(data) == 0:
-            continue
+        if hemi == 'vol':
+            data = stc_vol.data
+            vertices = np.concatenate(stc_vol.vertices)
+        else:
+            if stc_surf is None:
+                continue
+            data = getattr(stc_surf, hemi + '_data')
+            vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
+            if len(data) == 0:
+                continue
         kwargs = {
             "array": data, "colormap": colormap,
             "vertices": vertices,
             "smoothing_steps": smoothing_steps,
             "time": times, "time_label": time_label,
-            "alpha": alpha, "hemi": hemi,
+            "alpha": overlay_alpha, "hemi": hemi,
             "colorbar": colorbar,
             "vector_alpha": vector_alpha,
             "scale_factor": scale_factor,
@@ -1802,6 +1840,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["fmid"] = scale_pts[1]
             kwargs["fmax"] = scale_pts[2]
             kwargs["clim"] = clim
+            kwargs["volume_options"] = volume_options
+            kwargs["src"] = src_vol
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
@@ -1832,8 +1872,10 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     # time_viewer and show_traces
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
-    _check_option('show_traces', show_traces,
-                  (True, False, 'auto', 'separate'))
+    _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
+    if isinstance(show_traces, str):
+        _check_option('show_traces', show_traces, ('auto', 'separate'),
+                      extra='when a string')
     if time_viewer == 'auto':
         time_viewer = not using_mayavi
     if show_traces == 'auto':
@@ -2315,7 +2357,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
-                                 verbose=None):
+                                 src=None, volume_options=1.,
+                                 view_layout='vertical', verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2325,7 +2368,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     Parameters
     ----------
-    stc : VectorSourceEstimate
+    stc : VectorSourceEstimate | MixedVectorSourceEstimate
         The vector source estimate to plot.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
@@ -2389,6 +2432,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     %(show_traces)s
+    %(src_volume_options_layout)s
     %(verbose)s
 
     Returns
@@ -2403,6 +2447,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     If the current magnitude overlay is not desired, set ``overlay_alpha=0``
     and ``smoothing_steps=1``.
     """
+    from ..source_estimate import _BaseVectorSourceEstimate
+    _validate_type(
+        stc, _BaseVectorSourceEstimate, 'stc', 'vector source estimate')
     return _plot_stc(
         stc, subject=subject, surface='white', hemi=hemi, colormap=colormap,
         time_label=time_label, smoothing_steps=smoothing_steps,
@@ -2411,7 +2458,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         time_viewer=time_viewer, colorbar=colorbar, transparent=transparent,
         brain_alpha=brain_alpha, overlay_alpha=overlay_alpha,
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
-        size=size, scale_factor=scale_factor, show_traces=show_traces)
+        size=size, scale_factor=scale_factor, show_traces=show_traces,
+        src=src, volume_options=volume_options, view_layout=view_layout)
 
 
 @verbose

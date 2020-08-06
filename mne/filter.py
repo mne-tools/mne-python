@@ -1241,10 +1241,10 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     for rm_freqs in freq_list:
         if line_freqs is None:
             if len(rm_freqs) > 0:
-                logger.info('Detected notch frequencies:\n%s'
-                            % ', '.join([str(rm_f) for rm_f in rm_freqs]))
+                found_freqs = ', '.join(str(rm_f) for rm_f in rm_freqs)
             else:
-                logger.info('Detected notch frequecies:\nNone')
+                found_freqs = 'None'
+            logger.info(f'Detected notch frequencies:\n{found_freqs}')
 
     x.shape = orig_shape
     return x

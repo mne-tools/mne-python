@@ -1063,11 +1063,11 @@ class ICA(ContainsMixin):
 
     def _find_bads_ch(self, inst, chs, threshold=3.0, start=None,
                       stop=None, l_freq=None, h_freq=None,
-                      reject_by_annotation=True, prefix="chs",
-                      measure="zscore"):
+                      reject_by_annotation=True, prefix='chs',
+                      measure='zscore'):
         """Compute ExG/ref components.
 
-        See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
+        See find_bads_ecg, find_bads_eog, and find_bads_ref for details.
         """
         scores, idx = [], []
         # some magic we need inevitably ...
@@ -1093,7 +1093,7 @@ class ICA(ContainsMixin):
             # pick last scores
             if measure == "zscore":
                 this_idx = _find_outliers(scores[-1], threshold=threshold)
-            elif measure == "cor":
+            elif measure == "correlation":
                 this_idx = np.where(abs(scores[-1]) > threshold)[0]
             else:
                 raise ValueError("Unknown measure {}".format(measure))
@@ -1149,7 +1149,7 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
-                      reject_by_annotation=True, measure="zscore",
+                      reject_by_annotation=True, measure='zscore',
                       verbose=None):
         """Detect ECG related components.
 
@@ -1200,10 +1200,10 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-        measure : {'zscore', "cor"}
-            Which method to use for finding outliers. 'zscore' (default) is
-            the iterated Z-scoring method, and 'cor' is an absolute raw
-            correlation threshold with a range of 0 to 1.
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers. ``'zscore'`` (default) is
+            the iterated Z-scoring method, and ``'correlation'`` is an absolute
+            raw correlation threshold with a range of 0 to 1.
 
             .. versionadded:: 0.21
         %(verbose_meth)s
@@ -1211,7 +1211,7 @@ class ICA(ContainsMixin):
         Returns
         -------
         ecg_idx : list of int
-            The indices of ECG related components.
+            The indices of ECG-related components.
         scores : np.ndarray of float, shape (``n_components_``)
             If method is 'ctps', the normalized Kuiper index scores. If method
             is 'correlation', the correlation scores.
@@ -1318,15 +1318,15 @@ class ICA(ContainsMixin):
             High pass frequency.
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
-        method : {'together', 'separate'}
+        method : 'together' | 'separate'
             Method to use to identify reference channel related components.
-            Defaults to "together." See notes.
+            Defaults to ``'together'``. See notes.
 
             .. versionadded:: 0.21
-        measure : {'zscore', "cor"}
-            Which method to use for finding outliers. "zscore" (default) is
-            the iterated Z-scoring method, and "cor" is an absolute raw
-            correlation threshold with a range of 0 to 1.
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers. ``'zscore'`` (default) is
+            the iterated Z-scoring method, and ``'correlation'`` is an absolute
+            raw correlation threshold with a range of 0 to 1.
 
             .. versionadded:: 0.21
         %(verbose_meth)s
@@ -1416,7 +1416,7 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
                       stop=None, l_freq=1, h_freq=10,
-                      reject_by_annotation=True, measure="zscore",
+                      reject_by_annotation=True, measure='zscore',
                       verbose=None):
         """Detect EOG related components using correlation.
 
@@ -1450,10 +1450,10 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-        measure : 'zscore' | 'cor'
-            Which method to use for finding outliers. "zscore" (default) is
-            the iterated Z-scoring method, and "cor" is an absolute raw
-            correlation threshold with a range of 0 to 1.
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers. ``'zscore'`` (default) is
+            the iterated Z-scoring method, and ``'correlation'`` is an absolute
+            raw correlation threshold with a range of 0 to 1.
 
             .. versionadded:: 0.21
         %(verbose_meth)s

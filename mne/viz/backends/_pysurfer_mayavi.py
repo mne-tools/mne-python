@@ -89,16 +89,18 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.fig
 
-    def set_interactive(self):
+    def set_interaction(self, interaction):
         from tvtk.api import tvtk
         if self.fig.scene is not None:
             self.fig.scene.interactor.interactor_style = \
-                tvtk.InteractorStyleTerrain()
+                getattr(tvtk, f'InteractorStyle{interaction.capitalize()}')()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None, **kwargs):
+             representation='surface', line_width=1., normals=None,
+             pickable=None, **kwargs):
+        # normals and pickable are unused
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
@@ -299,10 +301,10 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None):
+                   focalpoint=None, roll=None):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
-                     focalpoint=focalpoint)
+                     focalpoint=focalpoint, roll=roll)
 
     def reset_camera(self):
         renderer = getattr(self.fig.scene, 'renderer', None)
@@ -436,12 +438,12 @@ def _close_all():
     mlab.close(all=True)
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     from mayavi import mlab
     with warnings.catch_warnings(record=True):  # traits
         with SilenceStdout():
             mlab.view(azimuth, elevation, distance,
-                      focalpoint=focalpoint, figure=figure)
+                      focalpoint=focalpoint, figure=figure, roll=roll)
             mlab.draw(figure)
 
 
@@ -488,16 +490,16 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
             figure_size = figure._window_size
         else:
             figure_size = figure.scene._renwin.size
-        return np.zeros(tuple(figure_size) + (ndim,), np.uint8)
+        img = np.zeros(tuple(figure_size) + (ndim,), np.uint8)
     else:
         from pyface.api import GUI
         gui = GUI()
         gui.process_events()
         with warnings.catch_warnings(record=True):  # traits
             img = mlab.screenshot(figure, mode=mode)
-        if isinstance(filename, str):
-            _save_figure(img, filename)
-        return img
+    if isinstance(filename, str):
+        _save_figure(img, filename)
+    return img
 
 
 @contextmanager

@@ -203,12 +203,18 @@ def _set_sfreq(ft_struct):
         sfreq = ft_struct['fsample']
     except KeyError:
         try:
-            t1 = ft_struct['time'][0]
-            t2 = ft_struct['time'][1]
-            difference = abs(t1 - t2)
-            sfreq = 1 / difference
+            time = ft_struct['time']
         except KeyError:
             raise ValueError('No Source for sfreq found')
+        else:
+            t1, t2 = float(time[0]), float(time[1])
+            sfreq = 1 / (t2 - t1)
+    try:
+        sfreq = float(sfreq)
+    except TypeError:
+        warn('FieldTrip structure contained multiple sample rates, trying the '
+             f'first of:\n{sfreq} Hz')
+        sfreq = float(sfreq.ravel()[0])
     return sfreq
 
 

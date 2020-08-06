@@ -168,6 +168,8 @@ class RawNIRX(BaseRaw):
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
         elif subject_info['sex'] in {'F', 'Female', '2'}:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
+        else:
+            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
         # NIRStar does not record an id, or handedness by default
 
         # Read information about probe/montage/optodes

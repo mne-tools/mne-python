@@ -110,6 +110,11 @@ def _masked_sum_power(x, c, t_power):
     return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
 
 
+@jit()
+def _sum_cluster_data(data, tstep):
+    return np.sign(data) * np.logical_not(data == 0) * tstep
+
+
 def _get_clusters_spatial(s, neighbors):
     """Form spatial clusters using neighbor lists.
 
@@ -1479,12 +1484,11 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
     data_summary = np.zeros((n_vertices, len(good_cluster_inds) + 1))
     for ii, cluster_ind in enumerate(good_cluster_inds):
         data.fill(0)
-        v_inds = clusters[cluster_ind][1]
-        t_inds = clusters[cluster_ind][0]
+        t_inds, v_inds = clusters[cluster_ind]
         data[v_inds, t_inds] = t_obs[t_inds, v_inds]
         # Store a nice visualization of the cluster by summing across time
-        data = np.sign(data) * np.logical_not(data == 0) * tstep
-        data_summary[:, ii + 1] = np.sum(data, axis=1)
+        data_summary[:, ii + 1] = np.sum(_sum_cluster_data(data, tstep),
+                                         axis=1)
         # Make the first "time point" a sum across all clusters for easy
         # visualization
     data_summary[:, 0] = np.sum(data_summary, axis=1)

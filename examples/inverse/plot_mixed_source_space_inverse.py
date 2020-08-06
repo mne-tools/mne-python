@@ -118,27 +118,38 @@ noise_cov = mne.read_cov(fname_cov)
 snr = 3.0            # use smaller SNR for raw data
 inv_method = 'dSPM'  # sLORETA, MNE, dSPM
 parc = 'aparc'       # the parcellation to use, e.g., 'aparc' 'aparc.a2009s'
+loose = dict(surface=0.2, volume=1.)
 
 lambda2 = 1.0 / snr ** 2
 
-inverse_operator = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                         depth=None, fixed=False)
+inverse_operator = make_inverse_operator(
+    evoked.info, fwd, noise_cov, depth=None, loose=loose, verbose=True)
 
 stc = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                     pick_ori=None)
 src = inverse_operator['src']
 
 ###############################################################################
+# Plot the mixed source estimate
+# ------------------------------
+
+# sphinx_gallery_thumbnail_number = 3
+initial_time = 0.1
+stc_vec = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
+                        pick_ori='vector')
+brain = stc_vec.plot(
+    hemi='both', src=inverse_operator['src'], views='coronal',
+    initial_time=initial_time, subjects_dir=subjects_dir)
+
+###############################################################################
 # Plot the surface
 # ----------------
-initial_time = 0.1
 brain = stc.surface().plot(initial_time=initial_time,
                            subjects_dir=subjects_dir)
 ###############################################################################
 # Plot the volume
 # ----------------
 
-# sphinx_gallery_thumbnail_number = 4
 fig = stc.volume().plot(initial_time=initial_time, src=src,
                         subjects_dir=subjects_dir)
 

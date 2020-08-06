@@ -15,6 +15,8 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
+- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
+
 - Allow picking channels in raw instances (e.g., :meth:`mne.io.Raw.pick_types`) without preloading data, by `Eric Larson`_
 
 - :meth:`mne.preprocessing.ICA.plot_sources` now plots annotation markers similar to :meth:`mne.io.Raw.plot` by `Luke Bloy`_
@@ -25,7 +27,11 @@ Changelog
 
 - :meth:`mne.Epochs.plot_psd_topomap` and :func:`mne.viz.plot_epochs_psd_topomap` now allow joint colorbar limits across subplots, by `Daniel McCloy`_.
 
+- Add support for using loose-orientation surface priors with free-orientation volume priors in mixed source space inverses by `Eric Larson`_
+
 - Add :class:`mne.MixedVectorSourceEstimate` for vector source estimates for mixed source spaces, by `Eric Larson`_
+
+- Add mixed and volumetric source estimate plotting using volumetric ray-casting to :meth:`mne.MixedSourceEstimate.plot` and :meth:`mne.VolSourceEstimate.plot_3d` by `Eric Larson`_
 
 - Add :meth:`mne.MixedSourceEstimate.surface` and :meth:`mne.MixedSourceEstimate.volume` methods to allow surface and volume extraction by `Eric Larson`_
 
@@ -38,6 +44,8 @@ Changelog
 - Add support for mixed source spaces to :func:`mne.compute_source_morph` by `Eric Larson`_
 
 - Add support for omitting the SDR step in volumetric morphing by passing ``n_iter_sdr=()`` to `mne.compute_source_morph` by `Eric Larson`_
+
+- Add ``single_volume`` argument to :func:`mne.setup_volume_source_space` to facilitate creating source spaces with many volumes (e.g., all subvolumes of ``aseg.mgz``) by `Eric Larson`_
 
 - Add support for passing a string argument to ``bg_img`` in `mne.viz.plot_volume_source_estimates` by `Eric Larson`_
 
@@ -147,6 +155,8 @@ Changelog
 
 - When passing a list of `~mne.Evoked` objects to `~mne.viz.plot_compare_evokeds`, each evoked's ``.comment`` attribute will be used to label the trace. If ``.comment`` is empty, a 1-based index is assigned as the label by  `Richard Höchenberger`_
 
+- Speed up :func:`mne.stats.summarize_clusters_stc` using Numba by `Yu-Han Luo`_
+
 Bug
 ~~~
 
@@ -221,6 +231,8 @@ Bug
 - Fix bug with `mne.Epochs.subtract_evoked` where using decimated epochs would lead to an error by `Eric Larson`_
 
 - Fix bug with :func:`mne.viz.plot_bem` and :class:`mne.Report` when plotting BEM contours when MRIs are not in standard FreeSurfer orientation by `Eric Larson`_
+
+- Fix bug with :func:`mne.minimum_norm.make_inverse_operator` where it would warn even when an explicit ``rank`` was used by `Eric Larson`_
 
 - Fix bugs with :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` where:
 
