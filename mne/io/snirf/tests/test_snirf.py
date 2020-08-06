@@ -93,8 +93,7 @@ def test_snirf_against_nirx():
 @requires_h5py
 @requires_testing_data
 def test_snirf_nonstandard(tmpdir):
-    """We have some custom tags to facilitate lossless writing and
-    reading within MNE, here we test those addditional tags."""
+    """Test custom tags."""
     from mne.externals.pymatreader.utils import _import_h5py
     h5py = _import_h5py()
     shutil.copy(fname_snirf_15_2_short, str(tmpdir) + "/mod.snirf")
