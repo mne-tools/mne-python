@@ -711,10 +711,13 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.added_labels.append(text)
         self._setup_annotation_colors()
         self._update_annotation_fig()
+        # automatically activate new label's radio button
         idx = [label.get_text() for label in
                self.mne.fig_annotation.radio_ax.buttons.labels].index(text)
         self.mne.fig_annotation._set_active_button(idx)
+        # simulate a click on the radiobutton → update the span selector color
         self.mne.fig_annotation._radiopress()
+        # reset the text entry box's text
         self.mne.fig_annotation.label.set_text('BAD_')
 
     def _setup_annotation_colors(self):
@@ -752,7 +755,6 @@ class MNEBrowseFigure(MNEFigure):
         _merge_annotations(onset, onset + duration, description,
                            self.mne.inst.annotations)
         self._draw_annotations()
-        self.canvas.draw()
 
     def _remove_annotation_line(self):
         """Remove annotation line from the plot."""
