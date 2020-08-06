@@ -115,7 +115,9 @@ report.save('report_mri_bem.html')
 
 ###############################################################################
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
-# (we'll skip the MRIs to save computation time):
+# (we'll skip the MRIs to save computation time). The following code will
+# produce butterfly plots, topomaps, and comparisons of the global field
+# power (GFP) for different experimental conditions.
 
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(verbose=True)
@@ -123,13 +125,34 @@ report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_evoked.html')
 
 ###############################################################################
-# To render whitened :class:`~mne.Evoked` files with baseline correction, add
-# the noise covariance file. This will display ERP/ERF plots for both the
-# original and whitened :class:`~mne.Evoked` objects, but scalp topomaps only
-# for the original.
+# You have probably noticed that the EEG recordings look particularly odd. This
+# is because by default, `~mne.Report` does not apply baseline correction
+# before rendering evoked data. So if the dataset you wish to add to the report
+# has not been baseline-corrected already, you can request baseline correction
+# here. The MNE sample dataset we're using in this example has **not** been
+# baseline-corrected; so let's do this now for the report!
+#
+# To request baseline correction, pass a ``baseline`` argument to
+# `~mne.Report`, which should be a tuple with the starting and ending time of
+# the baseline period. For more details, see the documentation on
+# `~mne.Evoked.apply_baseline`. Here, we will apply baseline correction for a
+# baseline period from the beginning of the time interval to time point zero.
+
+baseline = (None, 0)
+pattern = 'sample_audvis-no-filter-ave.fif'
+report = mne.Report(baseline=baseline, verbose=True)
+report.parse_folder(path, pattern=pattern, render_bem=False)
+report.save('report_evoked_baseline.html')
+
+###############################################################################
+# To render whitened :class:`~mne.Evoked` files with baseline correction, pass
+# the ``baseline`` argument we just used, and add the noise covariance file.
+# This will display ERP/ERF plots for both the original and whitened
+# :class:`~mne.Evoked` objects, but scalp topomaps only for the original.
 
 cov_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis-cov.fif')
-report = mne.Report(cov_fname=cov_fname, verbose=True)
+baseline = (None, 0)
+report = mne.Report(cov_fname=cov_fname, baseline=baseline, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_evoked_whitened.html')
 

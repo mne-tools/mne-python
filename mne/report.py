@@ -27,7 +27,8 @@ from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
-from .viz import plot_events, plot_alignment, plot_cov, plot_projs_topomap
+from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
+                  plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from .forward import read_forward_solution
 from .epochs import read_epochs
@@ -868,16 +869,8 @@ class Report(object):
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    baseline : None or tuple of length 2 (default (None, 0))
-        The time interval to apply baseline correction for evokeds.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-        The baseline (a, b) includes both endpoints, i.e. all
-        timepoints t such that a <= t <= b.
+    %(baseline)s
+        Defaults to ``None``, i.e. no baseline correction.
     image_format : str
         Default image format to use (default is 'png').
         SVG uses vector graphics, so fidelity is higher but can increase
@@ -1703,6 +1696,10 @@ class Report(object):
                                 div_klass=div_klass, id=global_id,
                                 tooltip=fname, color=color, text=ev.comment)
                             global_id += 1
+                        html_toc += toc_list.substitute(
+                            div_klass=div_klass, id=global_id,
+                            tooltip=fname, color=color, text='GFP')
+                        global_id += 1
                         html_toc += u'</ul></li>'
 
                     elif fname.endswith(tuple(VALID_EXTENSIONS +
@@ -1979,6 +1976,22 @@ class Report(object):
                 html.append(image_template.substitute(
                     img=img, div_klass='evoked', img_klass='evoked',
                     caption=caption, show=True, image_format=image_format))
+
+        # Plot GFP comparison.
+        figs = plot_compare_evokeds(evokeds=evokeds, ci=None,
+                                    show_sensors=True, **kwargs)
+        for fig in figs:
+            img = _fig_to_img(fig, image_format)
+            caption = self._gen_caption(prefix='Evoked',
+                                        suffix='(GFPs)',
+                                        fname=evoked_fname,
+                                        data_path=data_path)
+            global_id = self._get_id()
+            html.append(image_template.substitute(
+                img=img, id=global_id, div_klass='evoked',
+                img_klass='evoked', caption=caption, show=True,
+                image_format=image_format))
+
         logger.debug('Evoked: done')
         return '\n'.join(html)
 

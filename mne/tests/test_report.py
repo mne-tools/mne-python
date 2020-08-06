@@ -85,7 +85,8 @@ def test_render_report(renderer, tmpdir):
     epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
-    epochs.average().crop(0.1, 0.2).save(evoked_fname)
+    evoked = epochs.average().crop(0.1, 0.2)
+    evoked.save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
                     projs=True)
@@ -116,6 +117,10 @@ def test_render_report(renderer, tmpdir):
     assert '<h4>SSP Projectors</h4>' in html
     # Projectors in `proj_fname_new`
     assert f'SSP Projectors: {op.basename(proj_fname_new)}' in html
+    # Evoked in `evoked_fname`
+    assert f'Evoked: {op.basename(evoked_fname)} ({evoked.comment})' in html
+    assert 'Topomap (ch_type =' in html
+    assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
 
     assert_equal(len(report.html), len(fnames))
     assert_equal(len(report.html), len(report.fnames))

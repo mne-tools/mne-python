@@ -14,6 +14,7 @@ from mne.utils import run_tests_if_main, requires_numpydoc, _pl
 public_modules = [
     # the list of modules users need to access for all functionality
     'mne',
+    'mne.baseline',
     'mne.beamformer',
     'mne.chpi',
     'mne.connectivity',

@@ -541,6 +541,19 @@ Sensor Space Data
    read_selection
    rename_channels
 
+:py:mod:`mne.baseline`:
+
+.. automodule:: mne.baseline
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.baseline
+
+.. autosummary::
+   :toctree: generated/
+
+   rescale
+
 
 Covariance computation
 ======================
