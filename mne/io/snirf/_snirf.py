@@ -10,6 +10,9 @@ from ..meas_info import create_info
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
 from ...utils.check import _require_version
+from ..constants import FIFF
+from .._digitization import _make_dig_points
+from ...transforms import _frame_to_str
 
 
 @fill_doc
@@ -150,6 +153,23 @@ class RawSNIRF(BaseRaw):
             subject_info = {}
             names = np.array(dat.get('nirs/metaDataTags/SubjectID'))
             subject_info['first_name'] = names[0].decode('UTF-8')
+            # Read non standard (but allowed) custom metadata tags
+            if 'lastName' in dat.get('nirs/metaDataTags/'):
+                ln = dat.get('/nirs/metaDataTags/lastName')[0].decode('UTF-8')
+                subject_info['last_name'] = ln
+            if 'middleName' in dat.get('nirs/metaDataTags/'):
+                m = dat.get('/nirs/metaDataTags/middleName')[0].decode('UTF-8')
+                subject_info['middle_name'] = m
+            if 'sex' in dat.get('nirs/metaDataTags/'):
+                s = dat.get('/nirs/metaDataTags/sex')[0].decode('UTF-8')
+                if s in {'M', 'Male', '1', 'm'}:
+                    subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
+                elif s in {'F', 'Female', '2', 'f'}:
+                    subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
+                elif s in {'0', 'u'}:
+                    subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
+            # End non standard name reading
+            # Update info
             info.update(subject_info=subject_info)
 
             LengthUnit = np.array(dat.get('/nirs/metaDataTags/LengthUnit'))
@@ -174,6 +194,31 @@ class RawSNIRF(BaseRaw):
                             info['chs'][idx]['loc'][6:9]) / 2
                 info['chs'][idx]['loc'][0:3] = midpoint
                 info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
+
+            if 'MNE_coordFrame' in dat.get('nirs/metaDataTags/'):
+                coord_frame = int(dat.get('/nirs/metaDataTags/MNE_coordFrame')
+                                  [0])
+            else:
+                coord_frame = FIFF.FIFFV_COORD_UNKNOWN
+
+            if 'landmarkPos3D' in dat.get('nirs/probe/'):
+                diglocs = np.array(dat.get('/nirs/probe/landmarkPos3D'))
+                digname = np.array(dat.get('/nirs/probe/landmarkLabels'))
+                nasion, lpa, rpa, hpi = None, None, None, None
+                extra_ps = dict()
+                for idx, dign in enumerate(digname):
+                    if dign == b'LPA':
+                        lpa = diglocs[idx, :]
+                    elif dign == b'NASION':
+                        nasion = diglocs[idx, :]
+                    elif dign == b'RPA':
+                        rpa = diglocs[idx, :]
+                    else:
+                        extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = diglocs[idx]
+                info['dig'] = _make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa,
+                                               hpi=hpi, dig_ch_pos=extra_ps,
+                                               coord_frame=_frame_to_str[
+                                                   coord_frame])
 
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
                                            last_samps=[last_samps],

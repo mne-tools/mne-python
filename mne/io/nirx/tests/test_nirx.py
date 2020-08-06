@@ -18,6 +18,7 @@ from mne.transforms import apply_trans, _get_trans
 from mne.utils import run_tests_if_main
 from mne.preprocessing.nirs import source_detector_distances,\
     short_channels
+from mne.io.constants import FIFF
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirx_15_0_recording')
@@ -236,7 +237,8 @@ def test_nirx_15_0():
 
     # Test info import
     assert raw.info['subject_info'] == {'first_name': 'NIRX',
-                                        'last_name': 'Test', 'sex': '0'}
+                                        'last_name': 'Test',
+                                        'sex': FIFF.FIFFV_SUBJ_SEX_UNKNOWN}
 
     # Test trigger events
     assert_array_equal(raw.annotations.description, ['1.0', '2.0', '2.0'])
