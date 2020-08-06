@@ -117,7 +117,11 @@ fig.suptitle('EOG epochs, EOG regressed')
 fig.tight_layout()
 
 ###############################################################################
-# We can also apply the regression directly to the raw data:
+# We can also apply the regression directly to the raw data. To do this relies
+# on first computing the regression weights *from epoched data with the evoked
+# response subtracted out* (as we did above).  If instead one computed
+# regression weights from the raw data, it is likely that some brain signal
+# would also get removed.
 
 # get ready to plot
 order = np.concatenate([  # plotting order: EOG+ECG first, then MEG
@@ -129,7 +133,7 @@ raw_kwargs = dict(events=eog_epochs.events, order=order, start=20, duration=5,
 # plot original data
 raw.plot(**raw_kwargs)
 
-# regress & plot
+# regress (using betas computed above) & plot
 raw_clean, _ = mne.preprocessing.regress_artifact(raw, betas=betas)
 raw_clean.plot(**raw_kwargs)
 
