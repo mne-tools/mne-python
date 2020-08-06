@@ -4,6 +4,7 @@
 
 import os.path as op
 from numpy.testing import assert_allclose
+import shutil
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.utils import run_tests_if_main, requires_h5py
@@ -87,6 +88,44 @@ def test_snirf_against_nirx():
 
     # Check data is the same
     assert_allclose(raw.get_data(), raw_orig.get_data())
+
+
+@requires_h5py
+@requires_testing_data
+def test_snirf_nonstandard(tmpdir):
+    """We have some custom tags to facilitate lossless writing and
+    reading within MNE, here we test those addditional tags."""
+    from mne.externals.pymatreader.utils import _import_h5py
+    h5py = _import_h5py()
+    shutil.copy(fname_snirf_15_2_short, str(tmpdir) + "/mod.snirf")
+    fname = str(tmpdir) + "/mod.snirf"
+    # Manually mark up the file to match MNE-NIRS custom tags
+    with h5py.File(fname, "r+") as f:
+        f.create_dataset("nirs/metaDataTags/middleName",
+                         data=['X'.encode('UTF-8')])
+        f.create_dataset("nirs/metaDataTags/lastName",
+                         data=['Y'.encode('UTF-8')])
+        f.create_dataset("nirs/metaDataTags/sex",
+                         data=['1'.encode('UTF-8')])
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["middle_name"] == 'X'
+    assert raw.info["subject_info"]["last_name"] == 'Y'
+    assert raw.info["subject_info"]["sex"] == 1
+    with h5py.File(fname, "r+") as f:
+        del f['nirs/metaDataTags/sex']
+        f.create_dataset("nirs/metaDataTags/sex",
+                         data=['2'.encode('UTF-8')])
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["sex"] == 2
+    with h5py.File(fname, "r+") as f:
+        del f['nirs/metaDataTags/sex']
+        f.create_dataset("nirs/metaDataTags/sex",
+                         data=['0'.encode('UTF-8')])
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["sex"] == 0
+
+    with h5py.File(fname, "r+") as f:
+        f.create_dataset("nirs/metaDataTags/MNE_coordFrame", data=[1])
 
 
 @requires_testing_data
