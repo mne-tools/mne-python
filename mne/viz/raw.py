@@ -280,10 +280,9 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # TODO: figure out how this section works, test it, and maybe refactor
     if group_by in ('selection', 'position'):
-        for attr, value in dict(fig_selection=fig_selection,
-                                selections=selections,
-                                radio_clicked=_radio_clicked):
-            setattr(fig.mne, attr, value)
+        vars(fig.mne).update(fig_selection=fig_selection,
+                             selections=selections,
+                             radio_clicked=_radio_clicked)
         fig_selection.radio.on_clicked(_radio_clicked)
         fig_selection.canvas.mpl_connect('lasso_event',
                                          fig._set_custom_selection)
@@ -322,18 +321,17 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     fig.mne.ax_hscroll.add_patch(hsel_patch)
     fig.mne.ax_hscroll.set_xlim(fig.mne.first_time, fig.mne.first_time +
                                 fig.mne.n_times / sfreq)
-    vline_color = (0., 0.75, 0.)
-    ax_vline = fig.mne.ax_main.axvline(0, color=vline_color, zorder=4)
-    ax_vline.ch_name = ''
-    vline_t = fig.mne.ax_hscroll.text(fig.mne.first_time, 1.2, '',
-                                      color=vline_color, fontsize=10,
-                                      va='bottom', ha='right')
-    ax_hscroll_vline = fig.mne.ax_hscroll.axvline(0, color=vline_color,
-                                                  zorder=2)
-    for attr, value in dict(vsel_patch=vsel_patch, hsel_patch=hsel_patch,
-                            ax_vline=ax_vline, vertline_t=vline_t,
-                            ax_hscroll_vline=ax_hscroll_vline).items():
-        setattr(fig.mne, attr, value)
+    vline_color = 'C8'  # used to be (0., 0.75, 0.)
+    vline_kwargs = dict(color=vline_color, visible=False)
+    vline = fig.mne.ax_main.axvline(0, zorder=4, **vline_kwargs)
+    vline.ch_name = ''
+    vline_hscroll = fig.mne.ax_hscroll.axvline(0, zorder=2, **vline_kwargs)
+    vline_text = fig.mne.ax_hscroll.text(fig.mne.first_time, 1.2, '',
+                                         color=vline_color, fontsize=10,
+                                         ha='right', va='bottom')
+    vars(fig.mne).update(vsel_patch=vsel_patch, hsel_patch=hsel_patch,
+                         vline=vline, vline_hscroll=vline_hscroll,
+                         vline_text=vline_text)
 
     # make shells for plotting traces
     fig._update_trace_offsets()

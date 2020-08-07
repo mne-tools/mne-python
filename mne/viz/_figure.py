@@ -23,8 +23,7 @@ class MNEFigParams:
     def __init__(self, **kwargs):
         # default key to close window
         self.close_key = 'escape'
-        for attr, value in kwargs.items():
-            setattr(self, attr, value)
+        vars(self).update(**kwargs)
 
 
 class MNEFigure(Figure):
@@ -48,6 +47,10 @@ class MNEFigure(Figure):
 
     def _resize(self, event):
         """Handle window resize events."""
+        pass
+
+    def _onpick(self, event):
+        """Handle matplotlib artist picking events."""
         pass
 
     def _get_dpi_ratio(self):
@@ -79,7 +82,8 @@ class MNEFigure(Figure):
         # add our event callbacks
         callbacks = dict(resize_event=self._resize,
                          key_press_event=self._keypress,
-                         button_press_event=self._buttonpress)
+                         button_press_event=self._buttonpress,
+                         pick_event=self._onpick)
         callbacks.update(kwargs)
         callback_ids = dict()
         for event, callback in callbacks.items():
@@ -358,9 +362,9 @@ class MNEBrowseFigure(MNEFigure):
                 direction = -1 if key == 'up' else 1
                 ch_start = self.mne.ch_start + direction * self.mne.n_channels
                 self.mne.ch_start = np.clip(ch_start, 0, ceiling)
+                self._update_vscroll()
                 self._update_data()
                 self._draw_traces()
-                self._update_vscroll()
             self.canvas.draw()
         elif key in ('right', 'left', 'shift+right', 'shift+left'):
             direction = 1 if key.endswith('right') else -1
@@ -443,7 +447,14 @@ class MNEBrowseFigure(MNEFigure):
                     return
                 self._label_clicked(x, y)
             elif event.inaxes == self.mne.ax_main:
-                pass  # TODO: pass event on to pick_bads_fun
+                if not self.mne.butterfly:
+                    for line in self.mne.traces:
+                        if line.contains(event)[0]:
+                            idx = self.mne.traces.index(line)
+                            self._toggle_bad_channel(idx)
+                            return
+                # click was not on a data trace, or in butterfly mode
+                self._show_vline(event.xdata)
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
                     # _handle_change_selection(event, params)
@@ -461,15 +472,34 @@ class MNEBrowseFigure(MNEFigure):
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
         else:  # right-click (secondary)
-            pass  # TODO: copy from viz/utils.py lines 1140-1154
+            ax = self.mne.ax_main
+            raw = self.mne.inst
+            if self.mne.fig_annotation is not None:
+                if any(c.contains(event)[0] for c in ax.collections):
+                    xdata = event.xdata - self.mne.first_time
+                    onset = _sync_onset(raw, raw.annotations.onset)
+                    ends = onset + raw.annotations.duration
+                    ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+                    raw.annotations.delete(ann_idx)  # only first one deleted
+                self._remove_annotation_line()
+                self._draw_annotations()
+                self.canvas.draw()
+            elif event.inaxes == ax:  # hide green line
+                self._hide_vline()
 
     def _label_clicked(self, x, y):
-        """Handle left-click on channel names (toggle good/bad channel)."""
+        """Handle left-click on channel names."""
         if self.mne.butterfly:
             return
         idx = np.searchsorted(self.mne.trace_offsets + 0.5, y)
+        self._toggle_bad_channel(idx)
+
+    def _toggle_bad_channel(self, idx):
+        """Mark/unmark bad channels. `idx` is index of *visible* channels."""
+        bads = self.mne.info['bads']
         pick = self.mne.picks[idx]
-        orig_pick = self.mne.ch_order.tolist().index(pick)
+        line = self.mne.traces[idx]
+        vscroll_idx = self.mne.ch_order.tolist().index(pick)
         ch_name = self.mne.ch_names[pick]
         if not len(ch_name):
             return
@@ -477,15 +507,14 @@ class MNEBrowseFigure(MNEFigure):
             # ch_idx = _find_channel_idx(text, params)
             # _handle_topomap_bads(text, params)
             pass  # TODO FIXME
-        bads = self.mne.info['bads']
         if ch_name in bads:
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
-            color = vars(self.mne.traces[idx])['def_color']
+            color = vars(line)['def_color']
         else:
             bads.append(ch_name)
             color = self.mne.bad_color
-        self.mne.ax_vscroll.patches[orig_pick].set_color(color)
+        self.mne.ax_vscroll.patches[vscroll_idx].set_color(color)
         self.mne.info['bads'] = bads
         # redraw
         self._update_projector()
@@ -523,8 +552,8 @@ class MNEBrowseFigure(MNEFigure):
         ax = fig.add_axes((0.01, 0.01, 0.98, 0.98))
         ax.set_axis_off()
         kwargs = dict(va='top', linespacing=1.5, usetex=False)
-        ax.text(0.44, 1, keys, ma='right', ha='right', **kwargs)
-        ax.text(0.44, 1, vals, ma='left', ha='left', **kwargs)
+        ax.text(0.42, 1, keys, ma='right', ha='right', **kwargs)
+        ax.text(0.42, 1, vals, ma='left', ha='left', **kwargs)
         # save
         self.mne.fig_help = fig
 
@@ -595,8 +624,9 @@ class MNEBrowseFigure(MNEFigure):
             ('_MOUSE INTERACTION', ' '),
             (f'Left-click {ch_cmp} name', lclick_name),
             (f'Left-click {ch_cmp} data', lclick_data),
-            ('Left-click on plot background', 'Place vertical guide'),
             ('Left-click-and-drag on plot', ldrag),
+            ('Left-click on plot background', 'Place vertical guide'),
+            ('Right-click on plot background', 'Clear vertical guide'),
             ('Right-click on channel name', rclick_name)
         ])
         return help_text
@@ -1158,8 +1188,8 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.ax_main.set_ylim(ylim)
         self.mne.ax_main.set_yticks(offsets)
         self.mne.vsel_patch.set_height(n_channels)
-        _x = self.mne.ax_vline._x
-        self.mne.ax_vline.set_data(_x, np.array(ylim))
+        _x = self.mne.vline._x
+        self.mne.vline.set_data(_x, np.array(ylim))
         # store new offsets, update axis labels
         self.mne.trace_offsets = offsets
         self._update_yaxis_labels()
@@ -1184,9 +1214,8 @@ class MNEBrowseFigure(MNEFigure):
         bads = self.mne.info['bads']
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         def_colors = [self.mne.color_dict[_type] for _type in ch_types]
-        ch_colors = [self.mne.bad_color if _name in bads else
-                     self.mne.color_dict[_type]
-                     for _name, _type in zip(ch_names, ch_types)]
+        ch_colors = [self.mne.bad_color if _name in bads else def_color
+                     for _name, def_color in zip(ch_names, def_colors)]
         if self.mne.butterfly:
             for label in labels:
                 label.set_color('black')  # TODO make compat. w/ MPL dark style
@@ -1269,7 +1298,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_yaxis_labels(self):
         self.mne.ax_main.set_yticklabels(self.mne.ch_names[self.mne.picks],
-                                         rotation=0)
+                                         rotation=0, picker=True)
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
@@ -1281,6 +1310,22 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.selections['Custom'] = np.where(inds)[0]
         # TODO: not tested; replaces _set_radio_button (old compatibility code)
         self.mne.fig_selection.radio.set_active(labels.index('Custom'))
+
+    def _show_vline(self, xdata):
+        """Show the vertical line."""
+        self.mne.vline.set_xdata(xdata)
+        self.mne.vline_hscroll.set_xdata(xdata)
+        self.mne.vline.set_visible(True)
+        self.mne.vline_hscroll.set_visible(True)
+        self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
+        self.canvas.draw()
+
+    def _hide_vline(self, xdata=None):
+        """Hide the vertical line."""
+        self.mne.vline.set_visible(False)
+        self.mne.vline_hscroll.set_visible(False)
+        self.mne.vline_text.set_text('')
+        self.canvas.draw()
 
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
