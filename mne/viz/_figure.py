@@ -449,20 +449,15 @@ class MNEBrowseFigure(MNEFigure):
                     # _handle_change_selection(event, params)
                     pass  # TODO FIXME
                 else:
-                    new_ch_start = int(event.ydata - self.mne.n_channels / 2)
-                    new_ch_start = max(new_ch_start, 0)
-                    if self.mne.ch_start != new_ch_start:
-                        self.mne.ch_start = new_ch_start
+                    if self._check_update_vscroll_clicked(event):
                         self._update_data()
                         self._draw_traces()
-                        self._update_vscroll()
                         self.canvas.draw()
             elif event.inaxes == self.mne.ax_hscroll:
-                time = event.xdata - self.mne.duration / 2
-                self._update_hscroll_clicked(time)
-                self._update_data()
-                self._draw_traces()
-                self.canvas.draw()
+                if self._check_update_hscroll_clicked(event):
+                    self._update_data()
+                    self._draw_traces()
+                    self.canvas.draw()
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
         else:  # right-click (secondary)
@@ -1005,14 +1000,26 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
         self.mne.hsel_patch.set_width(self.mne.duration)
 
-    def _update_hscroll_clicked(self, time):
+    def _check_update_hscroll_clicked(self, event):
         """Handle clicks on horizontal scrollbar."""
+        time = event.xdata - self.mne.duration / 2
         max_time = (self.mne.n_times / self.mne.info['sfreq'] +
                     self.mne.first_time - self.mne.duration)
         time = np.clip(time, self.mne.first_time, max_time)
         if self.mne.t_start != time:
             self.mne.t_start = time
             self._update_hscroll()
+            return True
+        return False
+
+    def _check_update_vscroll_clicked(self, event):
+        """Update vscroll patch on click, return True if location changed."""
+        new_ch_start = max(0, int(event.ydata - self.mne.n_channels / 2))
+        if self.mne.ch_start != new_ch_start:
+            self.mne.ch_start = new_ch_start
+            self._update_vscroll()
+            return True
+        return False
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # SCALEBARS
