@@ -258,7 +258,8 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
 @fill_doc
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto'):
+                        psd_args=None, figsize=None, show=True, reject='auto',
+                        reject_by_annotation=True):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -390,18 +391,26 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # break up continuous signal into segments
         from ..epochs import make_fixed_length_epochs
-        inst_rejected = make_fixed_length_epochs(inst_rejected,
-                                                 duration=2.,
-                                                 verbose=False,
-                                                 preload=True)
-        inst = make_fixed_length_epochs(inst, duration=2., verbose=False,
-                                        preload=True)
+        inst_rejected = make_fixed_length_epochs(
+            inst_rejected,
+            duration=2.,
+            verbose=False,
+            preload=True,
+            reject_by_annotation=reject_by_annotation)
+        inst = make_fixed_length_epochs(
+            inst,
+            duration=2,
+            preload=True,
+            reject_by_annotation=reject_by_annotation,
+            verbose=False)
         kind = "Segment"
     else:
         drop_inds = None
         inst_rejected = inst
         kind = "Epochs"
-
+    if kind == 'Segment' and reject_by_annotation:
+        # get_sources requires clean epochs
+        inst_rejected.drop_bad()
     epochs_src = ica.get_sources(inst_rejected)
     data = epochs_src.get_data()
 
@@ -415,6 +424,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         dropped_indices = []
 
     # getting ica sources from inst
+    if kind == 'Segment' and reject_by_annotation:
+        # get_sources requires clean epochs
+        inst.drop_bad()
     dropped_src = ica.get_sources(inst).get_data()
     dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
 
