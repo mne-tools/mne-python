@@ -433,7 +433,14 @@ class MNEBrowseFigure(MNEFigure):
             return
         elif event.button == 1:  # left-click (primary)
             if event.inaxes is None:  # clicked on channel name
-                pass  # TODO: copy from viz/utils.py lines 1157-1165
+                if self.mne.n_channels > 100:  # too dense to identify
+                    return
+                ylim = self.mne.ax_main.get_ylim()
+                xy = (event.x, event.y)
+                x, y = self.mne.ax_main.transData.inverted().transform(xy)
+                if x > self.mne.t_start or y < 0 or y > ylim[0]:
+                    return
+                self._label_clicked(x, y)
             elif event.inaxes == self.mne.ax_main:
                 pass  # TODO: pass event on to pick_bads_fun
             elif event.inaxes == self.mne.ax_vscroll:
@@ -448,6 +455,37 @@ class MNEBrowseFigure(MNEFigure):
                 self._toggle_proj_fig(event)
         else:  # right-click (secondary)
             pass  # TODO: copy from viz/utils.py lines 1140-1154
+
+    def _label_clicked(self, x, y):
+        """Handle left-click on channel names (toggle good/bad channel)."""
+        if self.mne.butterfly:
+            return
+        idx = np.searchsorted(self.mne.trace_offsets + 0.5, y)
+        pick = self.mne.picks[idx]
+        orig_pick = self.mne.ch_order.tolist().index(pick)
+        ch_name = self.mne.ch_names[pick]
+        if not len(ch_name):
+            return
+        if self.mne.fig_selection is not None:
+            # ch_idx = _find_channel_idx(text, params)
+            # _handle_topomap_bads(text, params)
+            pass  # TODO FIXME
+        bads = self.mne.info['bads']
+        if ch_name in bads:
+            while ch_name in bads:  # to make sure duplicates are removed
+                bads.remove(ch_name)
+            color = vars(self.mne.traces[idx])['def_color']
+            print(idx, pick, orig_pick, ch_name, color)
+        else:
+            bads.append(ch_name)
+            color = self.mne.bad_color
+        self.mne.ax_vscroll.patches[orig_pick].set_color(color)
+        self.mne.info['bads'] = bads
+        # redraw
+        self._update_projector()
+        self._update_data()
+        self._draw_traces()
+        self.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
@@ -904,8 +942,7 @@ class MNEBrowseFigure(MNEFigure):
             self.canvas.draw()
 
     def _update_projector(self):
-        """Update the data after projectors have changed."""
-        # TODO: maybe merge into _toggle_proj_checkbox?
+        """Update the data after projectors (or bads) have changed."""
         inds = np.where(self.mne.projs_on)[0]  # doesn't include "active" projs
         # copy projs from full list (self.mne.projs) to info object
         self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
@@ -1069,7 +1106,7 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(self.mne.picks, self.mne.data_picks))
+                _picks = np.where(np.in1d(self.mne.picks, self.mne.picks_data))
                 this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(
@@ -1128,6 +1165,7 @@ class MNEBrowseFigure(MNEFigure):
         # colors
         bads = self.mne.info['bads']
         labels = self.mne.ax_main.yaxis.get_ticklabels()
+        def_colors = [self.mne.color_dict[_type] for _type in ch_types]
         ch_colors = [self.mne.bad_color if _name in bads else
                      self.mne.color_dict[_type]
                      for _name, _type in zip(ch_names, ch_types)]
@@ -1139,7 +1177,7 @@ class MNEBrowseFigure(MNEFigure):
                 label.set_color(color)
         # decim
         decim = np.ones_like(self.mne.picks)
-        data_picks_mask = np.in1d(self.mne.picks, self.mne.data_picks)
+        data_picks_mask = np.in1d(self.mne.picks, self.mne.picks_data)
         decim[data_picks_mask] = self.mne.decim
         # decim can vary by channel type, so compute different times vectors
         decim_times_dict = {decim_value:
@@ -1185,7 +1223,7 @@ class MNEBrowseFigure(MNEFigure):
             this_line.set_color(ch_colors[ii])
             # add attributes to traces
             vars(this_line)['ch_name'] = this_name
-            vars(this_line)['def_color'] = ch_colors[ii]
+            vars(this_line)['def_color'] = def_colors[ii]
             # set z-order
             this_z = 0 if this_name in bads else 1
             if self.mne.butterfly:

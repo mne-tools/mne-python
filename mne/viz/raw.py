@@ -131,7 +131,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  duration=duration)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     _validate_type(clipping, (None, 'numeric', str), 'clipping')
-    decim, data_picks = _handle_decim(info, decim, lowpass)
+    decim, picks_data = _handle_decim(info, decim, lowpass)
     noise_cov = _check_cov(noise_cov, info)
     units = _handle_default('units', None)
     unit_scalings = _handle_default('scalings', None)
@@ -224,7 +224,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   picks=order[:n_channels],
                   orig_indices=order.copy(),  # TODO: still needed?
                   n_channels=n_channels,
-                  data_picks=data_picks,
+                  picks_data=picks_data,
                   group_by=group_by,
                   ch_start=0,
                   # time
@@ -252,7 +252,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   unit_scalings=unit_scalings,
                   # misc
                   fig_proj=None,
-                  added_label=list(),
                   #event_id_rev=event_id_rev,
                   bad_color=bad_color,
                   color_dict=color,
