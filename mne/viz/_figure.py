@@ -445,7 +445,18 @@ class MNEBrowseFigure(MNEFigure):
             elif event.inaxes == self.mne.ax_main:
                 pass  # TODO: pass event on to pick_bads_fun
             elif event.inaxes == self.mne.ax_vscroll:
-                pass  # TODO: copy from viz/utils.py lines 1167-1173
+                if self.mne.fig_selection is not None:
+                    # _handle_change_selection(event, params)
+                    pass  # TODO FIXME
+                else:
+                    new_ch_start = int(event.ydata - self.mne.n_channels / 2)
+                    new_ch_start = max(new_ch_start, 0)
+                    if self.mne.ch_start != new_ch_start:
+                        self.mne.ch_start = new_ch_start
+                        self._update_data()
+                        self._draw_traces()
+                        self._update_vscroll()
+                        self.canvas.draw()
             elif event.inaxes == self.mne.ax_hscroll:
                 time = event.xdata - self.mne.duration / 2
                 self._update_hscroll_clicked(time)
