@@ -8,6 +8,7 @@
 import platform
 from copy import deepcopy
 from functools import partial
+from collections import OrderedDict
 import numpy as np
 from matplotlib.figure import Figure
 from .utils import (plt_show, _setup_plot_projector, _events_off,
@@ -557,42 +558,42 @@ class MNEBrowseFigure(MNEFigure):
         ldrag = ('Show spectrum plot for selected time span;\nor (in '
                  'annotation mode) add annotation') if inst == 'raw' else None
 
-        help_text = {
+        help_text = OrderedDict([
             # navigation
-            '_NAVIGATION': ' ',
-            '(Shift +) →': 'Scroll right (faster with Shift key)',
-            '(Shift +) ←': 'Scroll left (faster with Shift key)',
-            dur_keys[0]: dur_vals[0],
-            dur_keys[1]: dur_vals[1],
-            '↑': f'Scroll up ({ch_cmp}s)',
-            '↓': f'Scroll down ({ch_cmp}s)',
-            ch_keys[0]: ch_vals[0],
-            ch_keys[1]: ch_vals[1],
+            ('_NAVIGATION', ' '),
+            ('→', 'Scroll ¼ window right (scroll full window with Shift + →)'),
+            ('←', 'Scroll ¼ window left (scroll full window with Shift + ←)'),
+            (dur_keys[0], dur_vals[0]),
+            (dur_keys[1], dur_vals[1]),
+            ('↑', f'Scroll up ({ch_cmp}s)'),
+            ('↓', f'Scroll down ({ch_cmp}s)'),
+            (ch_keys[0], ch_vals[0]),
+            (ch_keys[1], ch_vals[1]),
             # signal
-            '_SIGNAL TRANSFORMATIONS': ' ',
-            '+ or =': 'Increase signal scaling',
-            '-': 'Decrease signal scaling',
-            'b': 'Toggle butterfly mode' if inst != 'ica' else None,
-            'd': 'Toggle DC removal' if inst == 'raw' else None,
-            'w': 'Toggle signal whitening',  # TODO only if noise_cov given?
-            'a': 'Toggle annotation mode' if inst == 'raw' else None,
-            'p': 'Toggle annotation snapping' if inst == 'raw' else None,
-            'h': 'Show peak-to-peak histogram' if inst == 'epochs' else None,
+            ('_SIGNAL TRANSFORMATIONS', ' '),
+            ('+ or =', 'Increase signal scaling'),
+            ('-', 'Decrease signal scaling'),
+            ('b', 'Toggle butterfly mode' if inst != 'ica' else None),
+            ('d', 'Toggle DC removal' if inst == 'raw' else None),
+            ('w', 'Toggle signal whitening'),  # TODO only if noise_cov given?
+            ('a', 'Toggle annotation mode' if inst == 'raw' else None),
+            ('p', 'Toggle annotation snapping' if inst == 'raw' else None),
+            ('h', 'Show peak-to-peak histogram' if inst == 'epochs' else None),
             # UI
-            '_USER INTERFACE': ' ',
-            's': 'Toggle scalebars' if inst != 'ica' else None,
-            'z': 'Toggle scrollbars',
-            'F11': 'Toggle fullscreen',
-            '?': 'Open this help window',
-            'esc': 'Close active figure or dialog window',
+            ('_USER INTERFACE', ' '),
+            ('s', 'Toggle scalebars' if inst != 'ica' else None),
+            ('z', 'Toggle scrollbars'),
+            ('F11', 'Toggle fullscreen'),
+            ('?', 'Open this help window'),
+            ('esc', 'Close focused figure or dialog window'),
             # mouse
-            '_MOUSE INTERACTION': ' ',
-            f'Left-click {ch_cmp} name': lclick_name,
-            f'Left-click {ch_cmp} data': lclick_data,
-            'Left-click on plot background': 'Place vertical guide',
-            'Left-click-and-drag on plot': ldrag,
-            'Right-click on channel name': rclick_name
-        }
+            ('_MOUSE INTERACTION', ' '),
+            (f'Left-click {ch_cmp} name', lclick_name),
+            (f'Left-click {ch_cmp} data', lclick_data),
+            ('Left-click on plot background', 'Place vertical guide'),
+            ('Left-click-and-drag on plot', ldrag),
+            ('Right-click on channel name', rclick_name)
+        ])
         return help_text
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
