@@ -429,7 +429,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _buttonpress(self, event):
         """Triage mouse clicks."""
-        # we don't use middle clicks or scroll wheel events
+        # ignore middle clicks or scroll wheel events
         if event.button not in (1, 3):
             return
         elif event.button == 1:  # left-click (primary)
@@ -487,7 +487,6 @@ class MNEBrowseFigure(MNEFigure):
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
             color = vars(self.mne.traces[idx])['def_color']
-            print(idx, pick, orig_pick, ch_name, color)
         else:
             bads.append(ch_name)
             color = self.mne.bad_color
