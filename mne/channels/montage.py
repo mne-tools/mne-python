@@ -11,10 +11,11 @@
 #
 # License: Simplified BSD
 
-import os.path as op
-import re
+from collections import OrderedDict
 from copy import deepcopy
 from functools import partial
+import os.path as op
+import re
 
 import numpy as np
 
@@ -289,7 +290,7 @@ class DigMontage(object):
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
         assert len(self.ch_names) == len(pos)
-        return dict(zip(self.ch_names, pos))
+        return OrderedDict(zip(self.ch_names, pos))
 
     def _get_dig_names(self):
         NAMED_KIND = (FIFF.FIFFV_POINT_EEG,)
@@ -302,9 +303,12 @@ class DigMontage(object):
         return dig_names
 
 
-def _check_unit_and_get_scaling(unit, valid_scales):
-    _check_option('unit', unit, list(valid_scales.keys()))
-    return valid_scales[unit]
+VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+
+
+def _check_unit_and_get_scaling(unit):
+    _check_option('unit', unit, sorted(VALID_SCALES.keys()))
+    return VALID_SCALES[unit]
 
 
 def transform_to_head(montage):
@@ -514,8 +518,7 @@ def read_dig_hpts(fname, unit='mm'):
 
     """
     from ._standard_montage_utils import _str_names, _str
-    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+    _scale = _check_unit_and_get_scaling(unit)
 
     out = np.genfromtxt(fname, comments='#',
                         dtype=(_str, _str, 'f8', 'f8', 'f8'))
@@ -705,7 +708,8 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
             info_names_use = info_names
             dig_names_use = dig_names
         else:
-            ch_pos_use = {name.lower(): pos for name, pos in ch_pos.items()}
+            ch_pos_use = OrderedDict(
+                (name.lower(), pos) for name, pos in ch_pos.items())
             info_names_use = [name.lower() for name in info_names]
             dig_names_use = [name.lower() if name is not None else name
                              for name in dig_names]
@@ -738,15 +742,14 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
                 logger.info(missing_coord_msg)
 
             # set ch coordinates and names from digmontage or nan coords
-            _ch_pos_use = dict(ch_pos_use)  # make a copy
-            for name in info_names:
-                if name not in ch_pos_use:
-                    _ch_pos_use[name] = [np.nan, np.nan, np.nan]
-            ch_pos_use = _ch_pos_use
+            ch_pos_use = dict(
+                (name, ch_pos_use.get(name, [np.nan] * 3))
+                for name in info_names)  # order does not matter here
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
             _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
+        del ch_pos_use
 
         # XXX this is probably wrong as it uses the order from the montage
         # rather than the order of our info['ch_names'] ...
@@ -868,8 +871,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     read_dig_fif
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
-    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+    _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
     _check_option('fname', ext, VALID_FILE_EXT)
@@ -892,7 +894,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     else:
         points = data.pop('points')
         if points.shape[0] == len(ch_names):
-            data['ch_pos'] = dict(zip(ch_names, points))
+            data['ch_pos'] = OrderedDict(zip(ch_names, points))
         else:
             raise ValueError((
                 "Length of ``ch_names`` does not match the number of points"
@@ -938,8 +940,7 @@ def read_polhemus_fastscan(fname, unit='mm'):
     make_dig_montage
     """
     VALID_FILE_EXT = ['.txt']
-    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+    _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
     _check_option('fname', ext, VALID_FILE_EXT)
@@ -1031,7 +1032,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         pos *= scale
 
         montage = make_dig_montage(
-            ch_pos=dict(zip(ch_names, pos)),
+            ch_pos=OrderedDict(zip(ch_names, pos)),
             coord_frame='head',
         )
 
