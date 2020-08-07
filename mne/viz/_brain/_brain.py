@@ -443,6 +443,11 @@ class _Brain(object):
         _check_option('thresh', thresh, [None])
         _check_option('remove_existing', remove_existing, [None])
         _validate_type(time_label_size, (None, 'numeric'), 'time_label_size')
+        if time_label_size is not None:
+            time_label_size = float(time_label_size)
+            if time_label_size < 0:
+                raise ValueError('time_label_size must be positive, got '
+                                 f'{time_label_size}')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
         array = np.asarray(array)
@@ -491,6 +496,8 @@ class _Brain(object):
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
+        if colormap == 'auto':
+            colormap = 'mne' if center is not None else 'hot'
 
         if smoothing_steps is None:
             smoothing_steps = 7
@@ -1235,10 +1242,9 @@ class _Brain(object):
         # update our values
         rng = self._cmap_range
         ctable = self._data['ctable']
-        if self._colorbar_added:
-            scalar_bar = self._renderer.plotter.scalar_bar
-        else:
-            scalar_bar = None
+        # in testing, no plotter; if colorbar=False, no scalar_bar
+        scalar_bar = getattr(
+            getattr(self._renderer, 'plotter', None), 'scalar_bar', None)
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
