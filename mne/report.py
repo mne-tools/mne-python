@@ -1502,10 +1502,10 @@ class Report(object):
         if render_bem:
             if self.subjects_dir is not None and self.subject is not None:
                 logger.info('Rendering BEM')
-                self.html.append(self._render_bem(
-                    self.subject, self.subjects_dir, mri_decim, n_jobs))
                 self.fnames.append('bem')
-                self._sectionlabels.append('bem')
+                self.add_bem_to_section(
+                    self.subject, decim=mri_decim, n_jobs=n_jobs,
+                    subjects_dir=self.subjects_dir)
             else:
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
@@ -2110,16 +2110,13 @@ class Report(object):
         html = []
 
         global_id = self._get_id()
-
-        if section == 'bem' and 'bem' not in self.sections:
-            self.sections.append('bem')
-            self._sectionvars['bem'] = 'bem'
+        klass = _clean_varnames(section)
+        if section == 'bem':  # special case for bulitin one
+            if 'bem' not in self.sections:
+                self.sections.append('bem')
+                self._sectionvars['bem'] = 'bem'
             klass = 'bem'
-        else:
-            klass = 'report_' + _clean_varnames(section)
-
         name = caption
-
         html += u'<li class="%s" id="%d">\n' % (klass, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
