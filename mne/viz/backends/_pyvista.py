@@ -527,6 +527,7 @@ class _Renderer(_BaseRenderer):
             with self.ensure_minimum_sizes():
                 self.plotter.app_window.show()
                 _process_events(self.plotter, show=True)
+                _process_events(self.plotter)
             _process_events(self.plotter)
         return self.scene()
 
