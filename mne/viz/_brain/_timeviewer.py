@@ -429,6 +429,7 @@ class _TimeViewer(object):
                 yield
             finally:
                 self.splitter.setSizes([sz[1], mpl_h])
+                _process_events(self.plotter)
                 self.mpl_canvas.canvas.setMinimumSize(0, 0)
             _process_events(self.plotter)
             for hemi in ('lh', 'rh'):
@@ -436,6 +437,7 @@ class _TimeViewer(object):
                     continue
                 for ri, ci, v in self.brain._iter_views(hemi):
                     self.brain.show_view(view=v, row=ri, col=ci)
+            _process_events(self.plotter)
 
     def toggle_interface(self, value=None):
         if value is None:
