@@ -30,6 +30,7 @@ from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _handle_decim, _setup_plot_projector, _check_cov,
                     _set_ax_label_style, _draw_vert_line, _simplify_float,
                     _check_psd_fmax, _set_window_title)
+from ..annotations import _sync_onset
 
 
 def _plot_update_raw_proj(params, bools):
@@ -350,7 +351,12 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # TODO get rid of these params to _draw_traces()
     fig._draw_traces(event_lines=event_lines, event_color=event_color)
 
-    # plot annotations
+    # plot annotations (if any)
+    if len(raw.annotations):
+        for idx, annot in enumerate(raw.annotations):
+            annot_start = (_sync_onset(raw, annot['onset']) + raw.first_time)
+            annot_end = annot_start + annot['duration']
+            fig.mne.annotation_segments.append((annot_start, annot_end))
     fig._draw_annotations()
 
     # start with projectors dialog open, if requested

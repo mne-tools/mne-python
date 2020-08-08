@@ -12,8 +12,8 @@ from collections import OrderedDict
 import numpy as np
 from matplotlib.figure import Figure
 from .utils import (plt_show, _setup_plot_projector, _events_off,
-                    _set_window_title, _get_active_radio_idx,
-                    _merge_annotations, DraggableLine, _get_color_list)
+                    _set_window_title, _merge_annotations, DraggableLine,
+                    _get_color_list)
 from ..utils import set_config
 from ..annotations import _sync_onset
 
@@ -193,9 +193,8 @@ class MNEBrowseFigure(MNEFigure):
         # self.mne.group_by = None
         self.mne.whitened_ch_names = list()
         # # annotations
-        # self.mne.annotations = None
+        self.mne.annotation_segments = list()
         self.mne.added_labels = list()
-        # self.mne.annotation_segments      # segments
         self.mne.segment_line = None
         # # scalings
         self.mne.scale_factor = 1.
@@ -433,6 +432,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _buttonpress(self, event):
         """Triage mouse clicks."""
+        annotating = self.mne.fig_annotation is not None
         # ignore middle clicks or scroll wheel events
         if event.button not in (1, 3):
             return
@@ -446,14 +446,14 @@ class MNEBrowseFigure(MNEFigure):
                 if x > self.mne.t_start or y < 0 or y > ylim[0]:
                     return
                 self._label_clicked(x, y)
-            elif event.inaxes == self.mne.ax_main:
+            elif event.inaxes == self.mne.ax_main and not annotating:
                 if not self.mne.butterfly:
                     for line in self.mne.traces:
                         if line.contains(event)[0]:
                             idx = self.mne.traces.index(line)
                             self._toggle_bad_channel(idx)
                             return
-                # click was not on a data trace, or in butterfly mode
+                # in butterfly mode, or click was not on a data trace
                 self._show_vline(event.xdata)
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
@@ -474,12 +474,12 @@ class MNEBrowseFigure(MNEFigure):
         else:  # right-click (secondary)
             ax = self.mne.ax_main
             raw = self.mne.inst
-            if self.mne.fig_annotation is not None:
+            if annotating:
                 if any(c.contains(event)[0] for c in ax.collections):
                     xdata = event.xdata - self.mne.first_time
-                    onset = _sync_onset(raw, raw.annotations.onset)
-                    ends = onset + raw.annotations.duration
-                    ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+                    start = _sync_onset(raw, raw.annotations.onset)
+                    end = start + raw.annotations.duration
+                    ann_idx = np.where((xdata > start) & (xdata < end))[0]
                     raw.annotations.delete(ann_idx)  # only first one deleted
                 self._remove_annotation_line()
                 self._draw_annotations()
@@ -824,9 +824,9 @@ class MNEBrowseFigure(MNEFigure):
         onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
         duration = vmax - vmin
         radio = self.mne.fig_annotation.radio_ax.buttons
-        active_idx = _get_active_radio_idx(radio)
-        description = radio.labels[active_idx].get_text()
-        _merge_annotations(onset, onset + duration, description,
+        labels = [label.get_text() for label in radio.labels]
+        active_idx = labels.index(radio.value_selected)
+        _merge_annotations(onset, onset + duration, labels[active_idx],
                            self.mne.inst.annotations)
         self._draw_annotations()
 
@@ -866,23 +866,63 @@ class MNEBrowseFigure(MNEFigure):
         self._remove_annotation_line()
         self.canvas.draw()
 
+    def _clear_annotations(self):
+        """Clear all annotations from the figure."""
+        for ax in (self.mne.ax_main, self.mne.ax_hscroll):
+            while len(ax.collections) > 0:
+                self.mne.ax_main.collections.pop()
+            # TODO why not just ax.collections = list() ?
+
     def _draw_annotations(self):
         """Draw (or redraw) the annotation spans."""
-        while len(self.mne.ax_hscroll.collections) > 0:
-            self.mne.ax_hscroll.collections.pop()
-        segments = list()
-        self._setup_annotation_colors()
-        for idx, annot in enumerate(self.mne.inst.annotations):
-            annot_start = (_sync_onset(self.mne.inst, annot['onset']) +
-                           self.mne.first_time)
-            annot_end = annot_start + annot['duration']
-            segments.append([annot_start, annot_end])
-            self.mne.ax_hscroll.fill_betweenx(
-                (0., 1.), annot_start, annot_end, alpha=0.3,
-                color=self.mne.segment_colors[annot['description']])
-        # Do not adjust ½ sample backward (even though it would clarify what
-        # is included) because that would break click-drag functionality
-        self.mne.segments = np.array(segments)
+        self._clear_annotations()
+        self._update_annotation_segments()
+        segments = self.mne.annotation_segments
+        times = self.mne.times
+        ax = self.mne.ax_main
+        ylim = ax.get_ylim()
+        for idx, (seg_start, seg_end) in enumerate(segments):
+            if seg_start > times[-1]:
+                break  # Since the segments are sorted by t_start
+            if seg_end < times[0]:
+                continue
+            start = max(seg_start, times[0])
+            end = min(times[-1], seg_end)
+            dscr = self.mne.inst.annotations.description[idx]
+            segment_color = self.mne.segment_colors[dscr]
+            kwargs = dict(x1=start, x2=end, color=segment_color, alpha=0.3)
+            ax.fill_betweenx(ylim, **kwargs)
+            ax.text((start + end) / 2, ylim[1] - 0.1, dscr, ha='center',
+                    color=segment_color)
+            # also add to ax_hscroll
+            self.mne.ax_hscroll.fill_betweenx((0, 1), **kwargs)
+            self.canvas.draw()
+
+    def _update_annotation_segments(self):
+        """."""
+        raw = self.mne.inst
+        if len(raw.annotations):
+            for idx, annot in enumerate(raw.annotations):
+                annot_start = _sync_onset(raw, annot['onset'])
+                annot_end = annot_start + annot['duration']
+                self.mne.annotation_segments.append((annot_start, annot_end))
+
+
+    #def _update_annotation_segments(self):
+    #    segments = list()
+    #    self._setup_annotation_colors()
+    #    for idx, annot in enumerate(self.mne.inst.annotations):
+    #        annot_start = (_sync_onset(self.mne.inst, annot['onset']) +
+    #                       self.mne.first_time)
+    #        annot_end = annot_start + annot['duration']
+    #        segments.append((annot_start, annot_end))
+    #        self.mne.ax_hscroll.fill_betweenx(
+    #            (0., 1.), annot_start, annot_end, alpha=0.3,
+    #            color=self.mne.segment_colors[annot['description']])
+    #    # Do not adjust ½ sample backward (even though it would clarify what
+    #    # is included) because that would break click-drag functionality
+    #    self.mne.segments = np.array(segments)
+    #    self.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTORS
