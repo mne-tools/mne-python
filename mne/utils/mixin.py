@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-
+from collections import OrderedDict
 from copy import deepcopy
 import logging
 import json
@@ -413,7 +413,7 @@ def _prepare_read_metadata(metadata):
         pd = _check_pandas_installed(strict=False)
         # use json.loads because this preserves ordering
         # (which is necessary for round-trip equivalence)
-        metadata = json.loads(metadata, object_pairs_hook=dict)
+        metadata = json.loads(metadata, object_pairs_hook=OrderedDict)
         assert isinstance(metadata, list)
         if pd:
             metadata = pd.DataFrame.from_records(metadata)

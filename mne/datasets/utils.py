@@ -5,6 +5,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 # License: BSD Style.
 
+from collections import OrderedDict
 import os
 import os.path as op
 import shutil
@@ -701,7 +702,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
             return
         # otherwise, let's make them
         logger.info('Creating combined labels')
-        groups = dict([
+        groups = OrderedDict([
             ('Primary Visual Cortex (V1)',
              ('V1',)),
             ('Early Visual Cortex',
