@@ -22,7 +22,7 @@ import mne
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
                  write_evokeds, create_info, make_fixed_length_events,
-                 combine_evoked)
+                 make_fixed_length_epochs, combine_evoked)
 from mne.baseline import rescale
 from mne.fixes import rfft, rfftfreq
 from mne.preprocessing import maxwell_filter
@@ -3017,6 +3017,21 @@ def test_pick_types_reject_flat_keys():
     epochs.pick_types(meg=True, eeg=False, ecg=False, eog=False)
     assert sorted(epochs.reject.keys()) == ['grad', 'mag']
     assert sorted(epochs.flat.keys()) == ['grad', 'mag']
+
+
+@testing.requires_testing_data
+def test_make_fixed_length_epochs():
+    """Test dividing raw data into equal-sized consecutive epochs."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    epochs = make_fixed_length_epochs(raw, duration=1, preload=True)
+    # Test Raw with annotations
+    annot = Annotations(onset=[0], duration=[5], description=['BAD'])
+    raw_annot = raw.set_annotations(annot)
+    epochs_annot = make_fixed_length_epochs(raw_annot, duration=1.0,
+                                            preload=True)
+    assert len(epochs.events) > 10
+    assert len(epochs_annot.events) > 10
+    assert len(epochs.events) > len(epochs_annot.events)
 
 
 run_tests_if_main()

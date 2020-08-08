@@ -3288,6 +3288,12 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
     %(preload)s
+    reject_by_annotation : bool
+        Whether to reject based on annotations. If ``True`` (default), epochs
+        overlapping with segments whose description begins with ``'bad'`` are
+        rejected. If ``False``, no rejection based on annotations is performed.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -3301,6 +3307,6 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     """
     events = make_fixed_length_events(raw, 1, duration=duration)
     delta = 1. / raw.info['sfreq']
-    return Epochs(raw, events, event_id=[1], tmin=0., tmax=duration - delta,
-                  baseline=None, reject_by_annotation=reject_by_annotation,
-                  verbose=verbose)
+    return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
+                  baseline=None, preload=preload,
+                  reject_by_annotation=reject_by_annotation, verbose=verbose)

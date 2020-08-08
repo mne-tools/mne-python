@@ -310,6 +310,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
+    reject_by_annotation : bool
+        Whether to omit bad segments from the data. If ``True`` (default),
+        annotated segments with a description that starts with ``'bad'`` are
+        omitted. Has no effect if ``inst`` is an Epochs object.
+
+        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -393,10 +399,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         from ..epochs import make_fixed_length_epochs
         inst_rejected = make_fixed_length_epochs(
             inst_rejected,
-            duration=2.,
-            verbose=False,
+            duration=2,
             preload=True,
-            reject_by_annotation=reject_by_annotation)
+            reject_by_annotation=reject_by_annotation,
+            verbose=False)
         inst = make_fixed_length_epochs(
             inst,
             duration=2,
@@ -408,9 +414,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         drop_inds = None
         inst_rejected = inst
         kind = "Epochs"
-    if kind == 'Segment' and reject_by_annotation:
-        # get_sources requires clean epochs
-        inst_rejected.drop_bad()
+
     epochs_src = ica.get_sources(inst_rejected)
     data = epochs_src.get_data()
 
@@ -424,9 +428,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         dropped_indices = []
 
     # getting ica sources from inst
-    if kind == 'Segment' and reject_by_annotation:
-        # get_sources requires clean epochs
-        inst.drop_bad()
     dropped_src = ica.get_sources(inst).get_data()
     dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
 
