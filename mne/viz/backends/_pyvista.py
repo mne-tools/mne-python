@@ -198,11 +198,24 @@ class _Renderer(_BaseRenderer):
         # plotter.ren_win:    vtkXOpenGLRenderWindow
         self.plotter.interactor.setMinimumSize(*sz)
         try:
-            yield
+            yield  # show
         finally:
-            for _ in range(2):
-                _process_events(self.plotter)
+            # 1. Process events
+            _process_events(self.plotter)
+            _process_events(self.plotter)
+            # 2. Get the window size that accommodates the size
+            sz = self.plotter.app_window.size()
+            # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+            self.plotter.window_size = (sz.width(), sz.height())
+            # 4. Undo the min size setting and process events
             self.plotter.interactor.setMinimumSize(0, 0)
+            _process_events(self.plotter)
+            _process_events(self.plotter)
+            # 5. Resize the window (again!) to the correct size
+            #    (not sure why, but this is required on macOS at least)
+            self.plotter.window_size = (sz.width(), sz.height())
+            _process_events(self.plotter)
+            _process_events(self.plotter)
 
     def subplot(self, x, y):
         x = np.max([0, np.min([x, self.shape[0] - 1])])
@@ -526,9 +539,6 @@ class _Renderer(_BaseRenderer):
         if hasattr(self.plotter, "app_window"):
             with self.ensure_minimum_sizes():
                 self.plotter.app_window.show()
-                _process_events(self.plotter, show=True)
-                _process_events(self.plotter)
-            _process_events(self.plotter)
         return self.scene()
 
     def close(self):
@@ -740,13 +750,11 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
             filename=filename)
 
 
-def _process_events(plotter, show=False):
+def _process_events(plotter):
     if hasattr(plotter, 'app'):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings('ignore', 'constrained_layout')
             plotter.app.processEvents()
-        if show:
-            plotter.app_window.show()
 
 
 def _set_colormap_range(actor, ctable, scalar_bar, rng=None):

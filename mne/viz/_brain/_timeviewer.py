@@ -430,11 +430,12 @@ class _TimeViewer(object):
             finally:
                 self.splitter.setSizes([sz[1], mpl_h])
                 _process_events(self.plotter)
+                _process_events(self.plotter)
                 self.mpl_canvas.canvas.setMinimumSize(0, 0)
             _process_events(self.plotter)
+            _process_events(self.plotter)
+            # sizes could change, update views
             for hemi in ('lh', 'rh'):
-                if hemi == 'rh' and self.brain._hemi == 'split':
-                    continue
                 for ri, ci, v in self.brain._iter_views(hemi):
                     self.brain.show_view(view=v, row=ri, col=ci)
             _process_events(self.plotter)

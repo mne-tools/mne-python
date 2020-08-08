@@ -223,8 +223,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
     if renderer._get_3d_backend() == 'mayavi':
         pixel_ratio = 1.  # no HiDPI when using the testing backend
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 3])
-    assert_allclose(img.shape, want_size,
-                    atol=70 * pixel_ratio)  # XXX undo once size is fixed
+    assert_allclose(img.shape, want_size)
     brain.close()
 
 
