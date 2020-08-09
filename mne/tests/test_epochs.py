@@ -3029,9 +3029,9 @@ def test_make_fixed_length_epochs():
     raw_annot = raw.set_annotations(annot)
     epochs_annot = make_fixed_length_epochs(raw_annot, duration=1.0,
                                             preload=True)
-    assert len(epochs.events) > 10
-    assert len(epochs_annot.events) > 10
-    assert len(epochs.events) > len(epochs_annot.events)
+    assert len(epochs) > 10
+    assert len(epochs_annot) > 10
+    assert len(epochs) > len(epochs_annot)
 
 
 run_tests_if_main()
