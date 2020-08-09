@@ -604,11 +604,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
-    reject_by_annotation : bool
-        Whether to omit bad segments from the data while computing the
-        PSD. If True, annotated segments with a description that starts
-        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
-        Evoked object. Defaults to True.
+    %(reject_by_annotation_raw)s
     %(plot_psd_picks_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.

@@ -165,8 +165,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     return_ecg : bool
         Return ecg channel if synthesized. Defaults to False. If True and
         and ecg exists this will yield None.
-    reject_by_annotation : bool
-        Whether to omit data that is annotated as bad.
+    %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -329,10 +328,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
         Defaults to False.
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14.0
     %(verbose)s

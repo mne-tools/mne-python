@@ -310,10 +310,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
-    reject_by_annotation : bool
-        Whether to omit bad segments from the data. If ``True`` (default),
-        annotated segments with a description that starts with ``'bad'`` are
-        omitted. Has no effect if ``inst`` is an Epochs object.
+    %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.21.0
 

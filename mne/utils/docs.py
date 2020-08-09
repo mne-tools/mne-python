@@ -72,6 +72,24 @@ tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
 """
 
+
+# Reject by annotation
+docdict['reject_by_annotation_all'] = """
+reject_by_annotation : bool
+    Whether to omit bad segments from the data before fitting. If ``True``
+    (default), annotated segments whose description begins with ``'bad'`` are
+    omitted. If ``False``, no rejection based on annotations is performed.
+"""
+docdict['reject_by_annotation_epochs'] = """
+reject_by_annotation : bool
+    Whether to reject based on annotations. If ``True`` (default), epochs
+    overlapping with segments whose description begins with ``'bad'`` are
+    rejected. If ``False``, no rejection based on annotations is performed.
+"""
+docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
+    Has no effect if ``inst`` is not a :class:`mne.io.Raw` object."""
+
+
 # General plotting
 docdict["show"] = """
 show : bool

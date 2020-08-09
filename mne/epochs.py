@@ -2002,10 +2002,7 @@ class Epochs(BaseEpochs):
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` specifying metadata about each epoch.
         If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
@@ -3288,10 +3285,7 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
     %(preload)s
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If ``True`` (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If ``False``, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.21.0
     %(verbose)s
