@@ -1404,8 +1404,7 @@ class _Brain(object):
             else:
                 glyph_actor = hemi_data['glyph_actor']
                 glyph_dataset = hemi_data['glyph_dataset']
-                glyph_dataset.point_arrays['vec'] = \
-                    np.c_[vectors[:, 0], vectors[:, 1], vectors[:, 2]]
+                glyph_dataset.point_arrays['vec'] = vectors
             _set_colormap_range(
                 actor=glyph_actor,
                 ctable=self._data['ctable'],
