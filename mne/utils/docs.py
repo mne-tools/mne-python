@@ -525,7 +525,7 @@ Some common referencing schemes and the corresponding value for the
 
 
 # Maxwell filtering
-docdict['maxwell_origin_int_ext_calibration_cross'] = """
+docdict['maxwell_origin_int_ext_calibration'] = """
 origin : array-like, shape (3,) | str
     Origin of internal and external multipolar moment space in meters.
     The default is ``'auto'``, which means ``(0., 0., 0.)`` when
@@ -543,6 +543,8 @@ calibration : str | None
     Path to the ``'.dat'`` file with fine calibration coefficients.
     File can have 1D or 3D gradiometer imbalance correction.
     This file is machine/site-specific.
+"""
+docdict['maxwell_cross'] = """
 cross_talk : str | None
     Path to the FIF file with cross-talk correction information.
 """

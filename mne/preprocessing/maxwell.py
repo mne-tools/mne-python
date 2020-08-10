@@ -62,7 +62,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(maxwell_origin_int_ext_calibration_cross)s
+    %(maxwell_origin_int_ext_calibration)s
+    %(maxwell_cross)s
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -333,28 +334,8 @@ def _prep_maxwell_filter(
     #
     # Cross-talk processing
     #
-    sss_ctc = dict()
-    ctc = None
-    if cross_talk is not None:
-        sss_ctc = _read_ctc(cross_talk)
-        ctc_chs = sss_ctc['proj_items_chs']
-        meg_ch_names = [info['ch_names'][p] for p in meg_picks]
-        # checking for extra space ambiguity in channel names
-        # between old and new fif files
-        if meg_ch_names[0] not in ctc_chs:
-            ctc_chs = _clean_names(ctc_chs, remove_whitespace=True)
-            meg_ch_names = _clean_names(meg_ch_names, remove_whitespace=True)
-        missing = sorted(list(set(meg_ch_names) - set(ctc_chs)))
-        if len(missing) != 0:
-            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
-                               % missing)
-        missing = sorted(list(set(ctc_chs) - set(meg_ch_names)))
-        if len(missing) > 0:
-            warn('Not all cross-talk channels in raw:\n%s' % missing)
-        ctc_picks = [ctc_chs.index(name) for name in meg_ch_names]
-        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
-        # I have no idea why, but MF transposes this for storage..
-        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
+    meg_ch_names = [info['ch_names'][p] for p in meg_picks]
+    ctc, sss_ctc = _read_cross_talk(cross_talk, meg_ch_names)
     update_kwargs['sss_ctc'] = sss_ctc
     del sss_ctc
 
@@ -1625,6 +1606,21 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
+def _orth_rot(cal_loc, info_loc):
+    cal_loc = cal_loc.copy()
+    ch_coil_rot = _loc_to_coil_trans(info_loc)[:3, :3]
+    cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
+    adjusted = False
+    if np.max([np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
+               for ii in range(2)]) > 1e-6:  # X or Y not orthogonal
+        adjusted = True
+        # find the rotation matrix that goes from one to the other
+        this_trans = _find_vector_rotation(
+            ch_coil_rot[:, 2], cal_coil_rot[:, 2])
+        cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
+    return cal_loc, adjusted
+
+
 def _update_sensor_geometry(info, fine_cal, ignore_ref):
     """Replace sensor geometry information and reorder cal_chs."""
     from ._fine_cal import read_fine_calibration
@@ -1682,18 +1678,11 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         # Some .dat files might only rotate EZ, so we must check first that
         # EX and EY are orthogonal to EZ. If not, we find the rotation between
         # the original and fine-cal ez, and rotate EX and EY accordingly:
-        ch_coil_rot = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
-        cal_loc = fine_cal['locs'][ci].copy()
-        cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
-        if np.max([np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
-                   for ii in range(2)]) > 1e-6:  # X or Y not orthogonal
-            if not adjust_logged:
-                logger.info('        Adjusting non-orthogonal EX and EY')
-                adjust_logged = True
-            # find the rotation matrix that goes from one to the other
-            this_trans = _find_vector_rotation(ch_coil_rot[:, 2],
-                                               cal_coil_rot[:, 2])
-            cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
+        cal_loc, adjusted = _orth_rot(
+            fine_cal['locs'][ci], info_ch['loc'])
+        if adjusted and not adjust_logged:
+            logger.info('        Adjusting non-orthogonal EX and EY')
+            adjust_logged = True
 
         # calculate shift angle
         v1 = _loc_to_coil_trans(cal_loc)[:3, :3]
@@ -1977,7 +1966,8 @@ def find_bad_channels_maxwell(
                      developers.
 
         .. versionadded:: 0.21
-    %(maxwell_origin_int_ext_calibration_cross)s
+    %(maxwell_origin_int_ext_calibration)s
+    %(maxwell_cross)s
     %(maxwell_coord)s
     %(maxwell_reg_ref_cond_pos)s
     %(maxwell_mag)s
@@ -2250,3 +2240,28 @@ def find_bad_channels_maxwell(
         return noisy_chs, flat_chs, scores
     else:
         return noisy_chs, flat_chs
+
+
+def _read_cross_talk(cross_talk, ch_names):
+    sss_ctc = dict()
+    ctc = None
+    if cross_talk is not None:
+        sss_ctc = _read_ctc(cross_talk)
+        ctc_chs = sss_ctc['proj_items_chs']
+        # checking for extra space ambiguity in channel names
+        # between old and new fif files
+        if ch_names[0] not in ctc_chs:
+            ctc_chs = _clean_names(ctc_chs, remove_whitespace=True)
+            ch_names = _clean_names(ch_names, remove_whitespace=True)
+        missing = sorted(list(set(ch_names) - set(ctc_chs)))
+        if len(missing) != 0:
+            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
+                               % missing)
+        missing = sorted(list(set(ctc_chs) - set(ch_names)))
+        if len(missing) > 0:
+            warn('Not all cross-talk channels in raw:\n%s' % missing)
+        ctc_picks = [ctc_chs.index(name) for name in ch_names]
+        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
+        # I have no idea why, but MF transposes this for storage..
+        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
+    return ctc, sss_ctc
