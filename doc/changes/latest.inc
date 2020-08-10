@@ -157,9 +157,7 @@ Changelog
 
 - Speed up :func:`mne.stats.summarize_clusters_stc` using Numba by `Yu-Han Luo`_
 
-- Add ``reject_by_annotation=True`` to :func:`mne.make_fixed_length_epochs` to reject bad epochs based on annotation by `Yu-Han Luo`_
-
-- Add ``reject_by_annotation=True`` to :meth:`mne.preprocessing.ICA.plot_properties` to reject bad data segments based on annotation by `Yu-Han Luo`_
+- Add ``reject_by_annotation=True`` to :func:`mne.make_fixed_length_epochs` and :meth:`mne.preprocessing.ICA.plot_properties` to reject bad data segments based on annotation by `Yu-Han Luo`_
 
 Bug
 ~~~
