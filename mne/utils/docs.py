@@ -1076,6 +1076,21 @@ view_layout : str
     Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
     the PyVista backend must be used and hemi cannot be "split".
 """
+docdict['add_data_kwargs'] = """
+add_data_kwargs : dict | None
+    Additional arguments to brain.add_data (e.g.,
+    ``dict(time_label_size=10)``).
+"""
+docdict['views'] = """
+views : str | list
+    View to use. Can be any of::
+
+        ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral',
+         'frontal', 'parietal', 'axial', 'sagittal', 'coronal']
+
+    Three letter abbreviations (e.g., ``'lat'``) are also supported.
+    Using multiple views (list) is not supported for mpl backend.
+"""
 
 # STC label time course
 docdict['eltc_labels'] = """
