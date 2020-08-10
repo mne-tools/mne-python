@@ -1344,7 +1344,7 @@ class _TimeViewer(object):
 class _LinkViewer(object):
     """Class to link multiple _TimeViewer objects."""
 
-    def __init__(self, brains, time=True, camera=False):
+    def __init__(self, brains, time=True, camera=False, picking=False):
         self.brains = brains
         self.time_viewers = [brain.time_viewer for brain in brains]
 
@@ -1386,6 +1386,15 @@ class _LinkViewer(object):
             for time_viewer in self.time_viewers:
                 if time_viewer.show_traces:
                     time_viewer.mpl_canvas.time_func = _func
+
+        if picking:
+            def _func(*args, **kwargs):
+                for time_viewer in self.time_viewers:
+                    time_viewer._add_point(*args, **kwargs)
+
+            for time_viewer in self.time_viewers:
+                time_viewer._add_point = time_viewer.add_point
+                time_viewer.add_point = _func
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
