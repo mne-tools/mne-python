@@ -1242,9 +1242,10 @@ class _Brain(object):
 
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
-                    _set_colormap_range(
-                        glyph_actor, ctable, scalar_bar, rng)
-                    scalar_bar = None
+                    for glyph_actor_ in glyph_actor:
+                        _set_colormap_range(
+                            glyph_actor_, ctable, scalar_bar, rng)
+                        scalar_bar = None
 
     def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps.
@@ -1379,10 +1380,16 @@ class _Brain(object):
         vertices = slice(None) if vertices is None else vertices
         x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
-        glyph_actor = hemi_data['glyph_actor']
+        if hemi_data['glyph_actor'] is None:
+            add = True
+            hemi_data['glyph_actor'] = list()
+            hemi_data['glyph_dataset'] = list()
+        else:
+            add = False
+        count = 0
         for ri, ci, _ in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
-            if glyph_actor is None:
+            if add:
                 glyph_alg, glyph_dataset = self._renderer.quiver3d(
                     x, y, z,
                     vectors[:, 0], vectors[:, 1], vectors[:, 2],
@@ -1393,18 +1400,19 @@ class _Brain(object):
                     opacity=vector_alpha,
                     name=str(hemi) + "_glyph"
                 )
-                hemi_data['glyph_dataset'] = glyph_dataset
+                hemi_data['glyph_dataset'].append(glyph_dataset)
                 glyph_actor = _add_mesh(
                     plotter=self._renderer.plotter,
                     mesh=glyph_alg,
                     connected_pipeline=True,
                 )
                 glyph_actor.GetProperty().SetLineWidth(2.)
-                hemi_data['glyph_actor'] = glyph_actor
+                hemi_data['glyph_actor'].append(glyph_actor)
             else:
-                glyph_actor = hemi_data['glyph_actor']
-                glyph_dataset = hemi_data['glyph_dataset']
+                glyph_actor = hemi_data['glyph_actor'][count]
+                glyph_dataset = hemi_data['glyph_dataset'][count]
                 glyph_dataset.point_arrays['vec'] = vectors
+            count += 1
             _set_colormap_range(
                 actor=glyph_actor,
                 ctable=self._data['ctable'],
