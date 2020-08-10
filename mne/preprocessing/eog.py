@@ -210,11 +210,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         interval is used. If None, no correction is applied.
     preload : bool
         Preload epochs or not.
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), segments
-        whose description begins with ``'bad'`` are not used for finding
-        artifacts and epochs overlapping with them are rejected. If False, no
-        rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14.0
     thresh : float

@@ -206,11 +206,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
     %(n_jobs)s
-    reject_by_annotation : bool
-        Whether to omit bad segments from the data while computing the
-        PSD. If True, annotated segments with a description that starts
-        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
-        Evoked object. Defaults to True.
+    %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.15.0
     average : str | None

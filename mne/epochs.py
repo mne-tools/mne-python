@@ -2002,10 +2002,7 @@ class Epochs(BaseEpochs):
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` specifying metadata about each epoch.
         If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
@@ -3277,8 +3274,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 
 @verbose
-def make_fixed_length_epochs(raw, duration=1.,
-                             preload=False, verbose=None):
+def make_fixed_length_epochs(raw, duration=1., preload=False,
+                             reject_by_annotation=True, verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3288,6 +3285,9 @@ def make_fixed_length_epochs(raw, duration=1.,
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
     %(preload)s
+    %(reject_by_annotation_epochs)s
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -3301,6 +3301,6 @@ def make_fixed_length_epochs(raw, duration=1.,
     """
     events = make_fixed_length_events(raw, 1, duration=duration)
     delta = 1. / raw.info['sfreq']
-    return Epochs(raw, events, event_id=[1], tmin=0.,
-                  tmax=duration - delta,
-                  verbose=verbose, baseline=None)
+    return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
+                  baseline=None, preload=preload,
+                  reject_by_annotation=reject_by_annotation, verbose=verbose)
