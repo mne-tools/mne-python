@@ -578,25 +578,12 @@ def _compute_normals(mesh):
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
     _process_events(plotter)
+    mesh = kwargs.get('mesh')
     if 'smooth_shading' in kwargs:
         smooth_shading = kwargs.pop('smooth_shading')
     else:
         smooth_shading = True
-    if 'connected_pipeline' in kwargs:
-        connected_pipeline = kwargs.pop('connected_pipeline')
-    else:
-        connected_pipeline = False
-    if connected_pipeline:
-        alg = kwargs.get('mesh')
-        mesh = pyvista.wrap(alg.GetOutput())
-        mapper = vtk.vtkDataSetMapper()
-        mapper.SetInputConnection(alg.GetOutputPort())
-        actor = vtk.vtkActor()
-        actor.SetMapper(mapper)
-        plotter.add_actor(actor)
-    else:
-        actor = plotter.add_mesh(*args, **kwargs)
-        mesh = kwargs.get('mesh')
+    actor = plotter.add_mesh(*args, **kwargs)
     if smooth_shading and 'Normals' in mesh.point_arrays:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()

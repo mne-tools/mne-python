@@ -505,8 +505,9 @@ class _Brain(object):
         self._data[hemi] = dict()
         self._data[hemi]['actors'] = None
         self._data[hemi]['mesh'] = None
-        self._data[hemi]['glyph_actor'] = None
         self._data[hemi]['glyph_dataset'] = None
+        self._data[hemi]['glyph_mapper'] = None
+        self._data[hemi]['glyph_actor'] = None
         self._data[hemi]['array'] = array
         self._data[hemi]['vertices'] = vertices
         self._data['alpha'] = alpha
@@ -1371,7 +1372,8 @@ class _Brain(object):
         self._update()
 
     def _update_glyphs(self, hemi, vectors):
-        from ..backends._pyvista import _set_colormap_range, _add_mesh
+        import vtk
+        from ..backends._pyvista import _set_colormap_range
         hemi_data = self._data.get(hemi)
         assert hemi_data is not None
         vertices = hemi_data['vertices']
@@ -1381,15 +1383,15 @@ class _Brain(object):
         x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
         if hemi_data['glyph_actor'] is None:
-            add = True
             hemi_data['glyph_actor'] = list()
-            hemi_data['glyph_dataset'] = list()
+            add = True
         else:
             add = False
+
         count = 0
         for ri, ci, _ in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
-            if add:
+            if hemi_data['glyph_dataset'] is None:
                 glyph_alg, glyph_dataset = self._renderer.quiver3d(
                     x, y, z,
                     vectors[:, 0], vectors[:, 1], vectors[:, 2],
@@ -1400,18 +1402,22 @@ class _Brain(object):
                     opacity=vector_alpha,
                     name=str(hemi) + "_glyph"
                 )
-                hemi_data['glyph_dataset'].append(glyph_dataset)
-                glyph_actor = _add_mesh(
-                    plotter=self._renderer.plotter,
-                    mesh=glyph_alg,
-                    connected_pipeline=True,
-                )
+                hemi_data['glyph_dataset'] = glyph_dataset
+                glyph_mapper = vtk.vtkDataSetMapper()
+                glyph_mapper.SetInputConnection(glyph_alg.GetOutputPort())
+                hemi_data['glyph_mapper'] = glyph_mapper
+            else:
+                glyph_dataset = hemi_data['glyph_dataset']
+                glyph_dataset.point_arrays['vec'] = vectors
+                glyph_mapper = hemi_data['glyph_mapper']
+            if add:
+                glyph_actor = vtk.vtkActor()
+                glyph_actor.SetMapper(glyph_mapper)
                 glyph_actor.GetProperty().SetLineWidth(2.)
+                self._renderer.plotter.add_actor(glyph_actor)
                 hemi_data['glyph_actor'].append(glyph_actor)
             else:
                 glyph_actor = hemi_data['glyph_actor'][count]
-                glyph_dataset = hemi_data['glyph_dataset'][count]
-                glyph_dataset.point_arrays['vec'] = vectors
             count += 1
             _set_colormap_range(
                 actor=glyph_actor,
