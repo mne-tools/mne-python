@@ -414,7 +414,7 @@ class _Renderer(_BaseRenderer):
             else:
                 scale = False
             if mode == '2darrow':
-                return _arrow_glyph(grid, factor)
+                return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow' or mode == '3darrow':
                 _add_mesh(
                     self.plotter,
@@ -846,26 +846,24 @@ def _arrow_glyph(grid, factor):
     glyph.SetGlyphTypeToArrow()
     glyph.FilledOff()
     glyph.Update()
-    geom = glyph.GetOutput()
 
     # fix position
     tr = vtk.vtkTransform()
     tr.Translate(0.5, 0., 0.)
     trp = vtk.vtkTransformPolyDataFilter()
-    trp.SetInputData(geom)
+    trp.SetInputConnection(glyph.GetOutputPort())
     trp.SetTransform(tr)
     trp.Update()
-    geom = trp.GetOutput()
 
-    polydata = _glyph(
+    alg = _glyph(
         grid,
         scale_mode='vector',
         scalars=False,
         orient='vec',
         factor=factor,
-        geom=geom,
+        geom=trp.GetOutputPort(),
     )
-    return pyvista.wrap(polydata)
+    return alg
 
 
 def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
@@ -875,7 +873,7 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
         arrow.Update()
         geom = arrow.GetOutput()
     alg = vtk.vtkGlyph3D()
-    alg.SetSourceData(geom)
+    alg.SetSourceConnection(geom)
     if isinstance(scalars, str):
         dataset.active_scalars_name = scalars
     if isinstance(orient, str):
@@ -894,7 +892,7 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     alg.SetScaleFactor(factor)
     alg.SetClamping(clamping)
     alg.Update()
-    return alg.GetOutput()
+    return alg
 
 
 def _sphere(plotter, center, color, radius):

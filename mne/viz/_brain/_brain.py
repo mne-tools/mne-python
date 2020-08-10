@@ -506,7 +506,8 @@ class _Brain(object):
         self._data[hemi]['actors'] = None
         self._data[hemi]['mesh'] = None
         self._data[hemi]['glyph_actor'] = None
-        self._data[hemi]['glyph_mesh'] = None
+        self._data[hemi]['glyph_alg'] = None
+        self._data[hemi]['glyph_dataset'] = None
         self._data[hemi]['array'] = array
         self._data[hemi]['vertices'] = vertices
         self._data['alpha'] = alpha
@@ -1242,10 +1243,9 @@ class _Brain(object):
 
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
-                    for glyph_actor_ in glyph_actor:
-                        _set_colormap_range(
-                            glyph_actor_, ctable, scalar_bar, rng)
-                        scalar_bar = None
+                    _set_colormap_range(
+                        glyph_actor, ctable, scalar_bar, rng)
+                    scalar_bar = None
 
     def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps.
@@ -1380,38 +1380,39 @@ class _Brain(object):
         vertices = slice(None) if vertices is None else vertices
         x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
-        if hemi_data['glyph_mesh'] is None:
-            add = True
-            hemi_data['glyph_mesh'] = list()
-            hemi_data['glyph_actor'] = list()
-        else:
-            add = False
-        count = 0
+        glyph_alg = hemi_data['glyph_alg']
+        glyph_actor = hemi_data['glyph_actor']
         for ri, ci, _ in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
-            polydata = self._renderer.quiver3d(
-                x, y, z,
-                vectors[:, 0], vectors[:, 1], vectors[:, 2],
-                color=None,
-                mode='2darrow',
-                scale_mode='vector',
-                scale=scale_factor,
-                opacity=vector_alpha,
-                name=str(hemi) + "_glyph"
-            )
-            if polydata is not None:
-                if not add:
-                    glyph_actor = hemi_data['glyph_actor'][count]
-                    glyph_mesh = hemi_data['glyph_mesh'][count]
-                    glyph_mesh.shallow_copy(polydata)
-                else:
-                    glyph_actor, _ = self._renderer.polydata(polydata)
-                    assert not isinstance(glyph_actor, list)
+            if glyph_alg is None:
+                glyph_alg, glyph_dataset = self._renderer.quiver3d(
+                    x, y, z,
+                    vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                    color=None,
+                    mode='2darrow',
+                    scale_mode='vector',
+                    scale=scale_factor,
+                    opacity=vector_alpha,
+                    name=str(hemi) + "_glyph"
+                )
+                hemi_data['glyph_alg'] = glyph_alg
+                hemi_data['glyph_dataset'] = glyph_dataset
+            if glyph_alg is not None:
+                if glyph_actor is None:
+                    import vtk
+                    mapper = vtk.vtkPolyDataMapper()
+                    mapper.SetInputConnection(glyph_alg.GetOutputPort())
+                    glyph_actor = vtk.vtkActor()
+                    glyph_actor.SetMapper(mapper)
                     glyph_actor.VisibilityOff()
                     glyph_actor.GetProperty().SetLineWidth(2.)
-                    hemi_data['glyph_mesh'].append(polydata)
-                    hemi_data['glyph_actor'].append(glyph_actor)
-                count += 1
+                    self._renderer.plotter.add_actor(glyph_actor)
+                    hemi_data['glyph_actor'] = glyph_actor
+                else:
+                    glyph_actor = hemi_data['glyph_actor']
+                    glyph_dataset = hemi_data['glyph_dataset']
+                    glyph_dataset.point_arrays['vec'] = \
+                        np.c_[vectors[:, 0], vectors[:, 1], vectors[:, 2]]
                 ctable = self._data['ctable']
                 rng = self._cmap_range
                 _set_colormap_range(glyph_actor, ctable, None, rng)
