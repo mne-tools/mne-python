@@ -1409,8 +1409,6 @@ class _Brain(object):
             ctable = self._data['ctable']
             rng = self._cmap_range
             _set_colormap_range(glyph_actor, ctable, None, rng)
-            # the glyphs are now ready to be displayed
-            glyph_actor.VisibilityOn()
 
     @property
     def _cmap_range(self):
