@@ -62,7 +62,9 @@ stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,
 brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                     clim=dict(kind='value', lims=[3, 6, 9]),
                     surface='flat', hemi='split', size=(1000, 500),
-                    smoothing_steps=5)
+                    smoothing_steps=5, time_viewer=False,
+                    add_data_kwargs=dict(
+                        colorbar_kwargs=dict(label_font_size=10)))
 
 ###############################################################################
 #
