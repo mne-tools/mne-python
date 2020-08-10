@@ -506,7 +506,6 @@ class _Brain(object):
         self._data[hemi]['actors'] = None
         self._data[hemi]['mesh'] = None
         self._data[hemi]['glyph_actor'] = None
-        self._data[hemi]['glyph_alg'] = None
         self._data[hemi]['glyph_dataset'] = None
         self._data[hemi]['array'] = array
         self._data[hemi]['vertices'] = vertices
@@ -1380,11 +1379,10 @@ class _Brain(object):
         vertices = slice(None) if vertices is None else vertices
         x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
-        glyph_alg = hemi_data['glyph_alg']
         glyph_actor = hemi_data['glyph_actor']
         for ri, ci, _ in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
-            if glyph_alg is None:
+            if glyph_actor is None:
                 glyph_alg, glyph_dataset = self._renderer.quiver3d(
                     x, y, z,
                     vectors[:, 0], vectors[:, 1], vectors[:, 2],
@@ -1395,27 +1393,24 @@ class _Brain(object):
                     opacity=vector_alpha,
                     name=str(hemi) + "_glyph"
                 )
-                hemi_data['glyph_alg'] = glyph_alg
                 hemi_data['glyph_dataset'] = glyph_dataset
-            if glyph_alg is not None:
-                if glyph_actor is None:
-                    glyph_actor = _add_mesh(
-                        plotter=self._renderer.plotter,
-                        mesh=glyph_alg,
-                        connected_pipeline=True,
-                    )
-                    glyph_actor.GetProperty().SetLineWidth(2.)
-                    hemi_data['glyph_actor'] = glyph_actor
-                else:
-                    glyph_actor = hemi_data['glyph_actor']
-                    glyph_dataset = hemi_data['glyph_dataset']
-                    glyph_dataset.point_arrays['vec'] = \
-                        np.c_[vectors[:, 0], vectors[:, 1], vectors[:, 2]]
-                ctable = self._data['ctable']
-                rng = self._cmap_range
-                _set_colormap_range(glyph_actor, ctable, None, rng)
-                # the glyphs are now ready to be displayed
-                glyph_actor.VisibilityOn()
+                glyph_actor = _add_mesh(
+                    plotter=self._renderer.plotter,
+                    mesh=glyph_alg,
+                    connected_pipeline=True,
+                )
+                glyph_actor.GetProperty().SetLineWidth(2.)
+                hemi_data['glyph_actor'] = glyph_actor
+            else:
+                glyph_actor = hemi_data['glyph_actor']
+                glyph_dataset = hemi_data['glyph_dataset']
+                glyph_dataset.point_arrays['vec'] = \
+                    np.c_[vectors[:, 0], vectors[:, 1], vectors[:, 2]]
+            ctable = self._data['ctable']
+            rng = self._cmap_range
+            _set_colormap_range(glyph_actor, ctable, None, rng)
+            # the glyphs are now ready to be displayed
+            glyph_actor.VisibilityOn()
 
     @property
     def _cmap_range(self):
