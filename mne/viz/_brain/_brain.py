@@ -1406,9 +1406,12 @@ class _Brain(object):
                 glyph_dataset = hemi_data['glyph_dataset']
                 glyph_dataset.point_arrays['vec'] = \
                     np.c_[vectors[:, 0], vectors[:, 1], vectors[:, 2]]
-            ctable = self._data['ctable']
-            rng = self._cmap_range
-            _set_colormap_range(glyph_actor, ctable, None, rng)
+            _set_colormap_range(
+                actor=glyph_actor,
+                ctable=self._data['ctable'],
+                scalar_bar=None,
+                rng=self._cmap_range,
+            )
 
     @property
     def _cmap_range(self):
