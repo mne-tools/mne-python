@@ -1371,7 +1371,7 @@ class _Brain(object):
         self._update()
 
     def _update_glyphs(self, hemi, vectors):
-        from ..backends._pyvista import _set_colormap_range
+        from ..backends._pyvista import _set_colormap_range, _add_mesh
         hemi_data = self._data.get(hemi)
         assert hemi_data is not None
         vertices = hemi_data['vertices']
@@ -1399,14 +1399,12 @@ class _Brain(object):
                 hemi_data['glyph_dataset'] = glyph_dataset
             if glyph_alg is not None:
                 if glyph_actor is None:
-                    import vtk
-                    mapper = vtk.vtkPolyDataMapper()
-                    mapper.SetInputConnection(glyph_alg.GetOutputPort())
-                    glyph_actor = vtk.vtkActor()
-                    glyph_actor.SetMapper(mapper)
-                    glyph_actor.VisibilityOff()
+                    glyph_actor = _add_mesh(
+                        plotter=self._renderer.plotter,
+                        mesh=glyph_alg,
+                        connected_pipeline=True,
+                    )
                     glyph_actor.GetProperty().SetLineWidth(2.)
-                    self._renderer.plotter.add_actor(glyph_actor)
                     hemi_data['glyph_actor'] = glyph_actor
                 else:
                     glyph_actor = hemi_data['glyph_actor']
