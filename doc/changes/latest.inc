@@ -157,6 +157,10 @@ Changelog
 
 - Speed up :func:`mne.stats.summarize_clusters_stc` using Numba by `Yu-Han Luo`_
 
+- Add ``reject_by_annotation=True`` to :func:`mne.make_fixed_length_epochs` to reject bad epochs based on annotation by `Yu-Han Luo`_
+
+- Add ``reject_by_annotation=True`` to :meth:`mne.preprocessing.ICA.plot_properties` to reject bad data segments based on annotation by `Yu-Han Luo`_
+
 Bug
 ~~~
 
@@ -290,6 +294,8 @@ Bug
 - Fix bug in :func:`mne.read_epochs_fieldtrip` when importing data without a ``trialinfo`` field by `Thomas Hartmann`_
 
 - Fix bug in :meth:`mne.preprocessing.ICA.plot_properties` where time series plot doesn't start at the proper tmin by `Teon Brooks`_
+
+- Fix bug with :meth:`mne.preprocessing.ICA.plot_properties` where a :class:`mne.io.Raw` object with annotations would lead to an error by `Yu-Han Luo`_
 
 API
 ~~~
