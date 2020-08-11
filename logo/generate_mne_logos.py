@@ -113,6 +113,10 @@ plt.draw()
 static_dir = op.join(op.dirname(__file__), '..', 'doc', '_static')
 assert op.isdir(static_dir)
 plt.savefig(op.join(static_dir, 'mne_logo.svg'), transparent=True)
+data_dir = op.join(op.dirname(__file__), '..', 'mne', 'icons')
+ax.patches.pop(-1)  # no tag line for our icon
+fig.set_size_inches((512 / dpi, 512 / dpi))
+plt.savefig(op.join(data_dir, 'mne_icon.png'), transparent=True)
 plt.close()
 
 # 92x22 image

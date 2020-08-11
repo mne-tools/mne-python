@@ -85,6 +85,13 @@ class _Figure(object):
             plotter = self.plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
+            if self.plotter_class is BackgroundPlotter and \
+                    hasattr(BackgroundPlotter, 'set_icon'):
+                # guaranteed to be importable by PyVista
+                from imageio import imread
+                plotter.set_icon(imread(os.path.join(
+                    os.path.dirname(__file__), '..', '..', 'icons',
+                    'mne_icon.png')))
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
