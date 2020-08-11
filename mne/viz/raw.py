@@ -30,7 +30,6 @@ from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _handle_decim, _setup_plot_projector, _check_cov,
                     _set_ax_label_style, _draw_vert_line, _simplify_float,
                     _check_psd_fmax, _set_window_title)
-from ..annotations import _sync_onset
 
 
 def _plot_update_raw_proj(params, bools):
@@ -145,11 +144,11 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         clipping = float(clipping)
 
     # be forgiving if user asks for too many channels / too much time
-    n_channels = min(raw.info['nchan'], n_channels)
+    n_channels = min(info['nchan'], n_channels)
     duration = min(raw.times[-1], float(duration))
 
     # convenience
-    sfreq = raw.info['sfreq']
+    sfreq = info['sfreq']
 
     # determine IIR filtering parameters
     if highpass is not None and highpass <= 0:
@@ -213,7 +212,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # handle first_samp
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
-    #event_id_rev = {val: key for key, val in (event_id or {}).items()}
+    event_id_rev = {v: k for k, v in (event_id or {}).items()}  # TODO needed?
 
     # gather parameters and initialize figure
     params = dict(inst=raw,
@@ -227,7 +226,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_channels=n_channels,
                   picks_data=picks_data,
                   group_by=group_by,
-                  ch_start=0,
+                  ch_start=0,  # TODO move to init?
                   # time
                   t_start=start,
                   duration=duration,
@@ -252,14 +251,14 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   units=units,
                   unit_scalings=unit_scalings,
                   # misc
-                  fig_proj=None,
-                  #event_id_rev=event_id_rev,
+                  fig_proj=None,  # TODO Move to init?
+                  event_id_rev=event_id_rev,  # TODO still needed?
                   bad_color=bad_color,
                   color_dict=color,
                   # display
                   butterfly=butterfly,
                   clipping=clipping,
-                  snap_annotations=False,
+                  snap_annotations=False,  # TODO Move to init?
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars)
 
@@ -352,20 +351,13 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     fig._draw_traces(event_lines=event_lines, event_color=event_color)
 
     # plot annotations (if any)
-    if len(raw.annotations):
-        for idx, annot in enumerate(raw.annotations):
-            annot_start = (_sync_onset(raw, annot['onset']) + raw.first_time)
-            annot_end = annot_start + annot['duration']
-            fig.mne.annotation_segments.append((annot_start, annot_end))
+    fig._setup_annotation_colors()
+    fig._update_annotation_segments()
     fig._draw_annotations()
 
     # start with projectors dialog open, if requested
     if show_options:
-        fig._toggle_proj_fig(event=None)
-
-    # TODO: update these to use fig instead of params
-    params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
-    params['label_click_fun'] = partial(_label_clicked, params=params)
+        fig._toggle_proj_fig()
 
     return fig
 

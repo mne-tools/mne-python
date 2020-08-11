@@ -35,11 +35,15 @@ class MNEFigure(Figure):
         # add our param object
         self.mne = MNEFigParams(**kwargs)
 
+    def _close(self, event):
+        """Handle close events."""
+        from matplotlib.pyplot import close
+        close(self)
+
     def _keypress(self, event):
         """Handle keypress events."""
-        from matplotlib.pyplot import close
         if event.key == self.mne.close_key:
-            close(self)
+            self._close(event)
 
     def _buttonpress(self, event):
         """Handle buttonpress events."""
@@ -83,6 +87,7 @@ class MNEFigure(Figure):
         callbacks = dict(resize_event=self._resize,
                          key_press_event=self._keypress,
                          button_press_event=self._buttonpress,
+                         close_event=self._close,
                          pick_event=self._onpick)
         callbacks.update(kwargs)
         callback_ids = dict()
@@ -99,11 +104,10 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _keypress(self, event):
         """Triage keypress events."""
-        from matplotlib.pyplot import close
         text = self.label.get_text()
         key = event.key
         if key == self.mne.close_key:
-            close(self)
+            self._close()
         elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
@@ -194,7 +198,9 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.whitened_ch_names = list()
         # # annotations
         self.mne.annotation_segments = list()
+        self.mne.annotation_texts = list()
         self.mne.added_labels = list()
+        self.mne.segment_colors = dict()
         self.mne.segment_line = None
         # # scalings
         self.mne.scale_factor = 1.
@@ -249,7 +255,6 @@ class MNEBrowseFigure(MNEFigure):
         ax_help.set_axes_locator(loc)
         # HELP BUTTON: make it a proper button
         button_help = Button(ax_help, 'Help')
-        button_help.on_clicked(self._toggle_help_fig)
         # PROJ BUTTON
         if len(self.mne.projs) and not inst.proj:
             # PROJ BUTTON: compute position
@@ -273,6 +278,16 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.ax_vscroll = ax_vscroll
         self.mne.button_help = button_help
         self.mne.button_proj = button_proj
+
+    def _close(self, event=None):
+        """Clean up auxiliary figures when main figure is closed."""
+        from matplotlib.pyplot import close
+        aux_figs = ('fig_annotation', 'fig_help', 'fig_proj', 'fig_selection')
+        for fig in aux_figs:
+            if getattr(self.mne, fig, None) is not None:
+                getattr(self.mne, fig).canvas.close_event()
+                setattr(self.mne, fig, None)
+        close(self)
 
     def _resize(self, event):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
@@ -342,15 +357,11 @@ class MNEBrowseFigure(MNEFigure):
 
     def _keypress(self, event):
         """Triage keypress events."""
-        from matplotlib.pyplot import close, get_current_fig_manager
+        from matplotlib.pyplot import get_current_fig_manager
         from ..preprocessing import ICA
         key = event.key
         if key == self.mne.close_key:
-            close(self)
-            if self.mne.fig_proj is not None:
-                close(self.mne.fig_proj)
-            if self.mne.fig_annotation is not None:
-                close(self.mne.fig_annotation)
+            self._close()
         elif key in ('down', 'up'):
             if self.mne.butterfly:
                 return
@@ -366,16 +377,18 @@ class MNEBrowseFigure(MNEFigure):
                 self._draw_traces()
             self.canvas.draw()
         elif key in ('right', 'left', 'shift+right', 'shift+left'):
+            old_t_start  = self.mne.t_start
             direction = 1 if key.endswith('right') else -1
             denom = 1 if key.startswith('shift') else 4
             t_max = self.mne.inst.times[-1] - self.mne.duration
             t_start = self.mne.t_start + direction * self.mne.duration / denom
             self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
-            # TODO: only update if changed
-            self._update_data()
-            self._draw_traces()
-            self._update_hscroll()
-            self.canvas.draw()
+            if self.mne.t_start != old_t_start:
+                self._update_data()
+                self._draw_traces()
+                self._update_hscroll()
+                self._draw_annotations()
+                self.canvas.draw()
         elif key in ('=', '+', '-'):
             scaler = 1 / 1.1 if key == '-' else 1.1
             self.mne.scale_factor *= scaler
@@ -471,6 +484,8 @@ class MNEBrowseFigure(MNEFigure):
                     self.canvas.draw()
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
+            elif event.inaxes == self.mne.ax_help:
+                self._toggle_help_fig(event)
         else:  # right-click (secondary)
             ax = self.mne.ax_main
             raw = self.mne.inst
@@ -554,7 +569,8 @@ class MNEBrowseFigure(MNEFigure):
         kwargs = dict(va='top', linespacing=1.5, usetex=False)
         ax.text(0.42, 1, keys, ma='right', ha='right', **kwargs)
         ax.text(0.42, 1, vals, ma='left', ha='left', **kwargs)
-        # save
+        # add event listeners, and save
+        fig.canvas.mpl_connect('close_event', self._clear_help_fig)
         self.mne.fig_help = fig
 
     def _clear_help_fig(self, event=None):
@@ -610,11 +626,11 @@ class MNEBrowseFigure(MNEFigure):
             ('b', 'Toggle butterfly mode' if inst != 'ica' else None),
             ('d', 'Toggle DC removal' if inst == 'raw' else None),
             ('w', 'Toggle signal whitening'),  # TODO only if noise_cov given?
-            ('a', 'Toggle annotation mode' if inst == 'raw' else None),
-            ('p', 'Toggle annotation snapping' if inst == 'raw' else None),
             ('h', 'Show peak-to-peak histogram' if inst == 'epochs' else None),
             # UI
             ('_USER INTERFACE', ' '),
+            ('a', 'Toggle annotation mode' if inst == 'raw' else None),
+            ('p', 'Toggle annotation snapping' if inst == 'raw' else None),
             ('s', 'Toggle scalebars' if inst != 'ica' else None),
             ('z', 'Toggle scrollbars'),
             ('F11', 'Toggle fullscreen'),
@@ -692,8 +708,6 @@ class MNEBrowseFigure(MNEFigure):
         selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
                                 'horizontal', minspan=0.1,  # useblit=True, ?
                                 rectprops=dict(alpha=0.5, facecolor=col))
-        if len(labels) == 0:
-            selector.active = False
         self.mne.ax_main.selector = selector
         # add event listeners
         fig.canvas.mpl_connect('close_event', self._clear_annotation_fig)
@@ -732,20 +746,23 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_edgecolor(self.mne.segment_colors[label.get_text()])
             circle.set_linewidth(4)
             circle.set_radius(radius / (len(labels)))
+        # style the selected button
+        if len(labels):
+            fig._set_active_button(0)
         # add event listeners
         ax.buttons.disconnect_events()  # clear MPL default listeners
         ax.buttons.on_clicked(fig._radiopress)
         ax.buttons.connect_event('button_press_event', fig._click_override)
-        # activate the selector
-        if len(labels):
-            self.mne.ax_main.selector.active = True
 
     def _clear_annotation_fig(self, event=None):
         """Close the annotation dialog window (via keypress or window [x])."""
         self.mne.fig_annotation = None
+        # disable span selector
+        self.mne.ax_main.selector.active = False
         # disconnect hover callback
         callback_id = self.mne._callback_ids['motion_notify_event']
         self.canvas.callbacks.disconnect(callback_id)
+        # clear annotation fig attribute
 
     def _toggle_annotation_fig(self):
         """Show/hide the annotation dialog window."""
@@ -829,6 +846,7 @@ class MNEBrowseFigure(MNEFigure):
         _merge_annotations(onset, onset + duration, labels[active_idx],
                            self.mne.inst.annotations)
         self._draw_annotations()
+        self.canvas.draw()
 
     def _remove_annotation_line(self):
         """Remove annotation line from the plot."""
@@ -869,9 +887,11 @@ class MNEBrowseFigure(MNEFigure):
     def _clear_annotations(self):
         """Clear all annotations from the figure."""
         for ax in (self.mne.ax_main, self.mne.ax_hscroll):
-            while len(ax.collections) > 0:
-                self.mne.ax_main.collections.pop()
-            # TODO why not just ax.collections = list() ?
+            while len(ax.collections):
+                ax.collections.pop()
+        while len(self.mne.annotation_texts):
+            text = self.mne.annotation_texts.pop()
+            self.mne.ax_main.texts.remove(text)
 
     def _draw_annotations(self):
         """Draw (or redraw) the annotation spans."""
@@ -881,48 +901,30 @@ class MNEBrowseFigure(MNEFigure):
         times = self.mne.times
         ax = self.mne.ax_main
         ylim = ax.get_ylim()
-        for idx, (seg_start, seg_end) in enumerate(segments):
-            if seg_start > times[-1]:
-                break  # Since the segments are sorted by t_start
-            if seg_end < times[0]:
-                continue
-            start = max(seg_start, times[0])
-            end = min(times[-1], seg_end)
+        for idx, (start, end) in enumerate(segments):
             dscr = self.mne.inst.annotations.description[idx]
             segment_color = self.mne.segment_colors[dscr]
-            kwargs = dict(x1=start, x2=end, color=segment_color, alpha=0.3)
-            ax.fill_betweenx(ylim, **kwargs)
-            ax.text((start + end) / 2, ylim[1] - 0.1, dscr, ha='center',
-                    color=segment_color)
-            # also add to ax_hscroll
-            self.mne.ax_hscroll.fill_betweenx((0, 1), **kwargs)
-            self.canvas.draw()
+            kwargs = dict(color=segment_color, alpha=0.3)
+            # draw all segments on ax_hscroll
+            self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
+            # draw only visible segments on ax_main
+            visible_segment = np.clip([start, end], times[0], times[-1])
+            if np.diff(visible_segment) > 0:
+                ax.fill_betweenx(ylim, *visible_segment, **kwargs)
+                text = ax.text(visible_segment.mean(), ylim[1] - 0.1, dscr,
+                               ha='center', color=segment_color)
+                self.mne.annotation_texts.append(text)
 
     def _update_annotation_segments(self):
-        """."""
+        """Update the array of annotation start/end times."""
+        segments = list()
         raw = self.mne.inst
         if len(raw.annotations):
             for idx, annot in enumerate(raw.annotations):
                 annot_start = _sync_onset(raw, annot['onset'])
                 annot_end = annot_start + annot['duration']
-                self.mne.annotation_segments.append((annot_start, annot_end))
-
-
-    #def _update_annotation_segments(self):
-    #    segments = list()
-    #    self._setup_annotation_colors()
-    #    for idx, annot in enumerate(self.mne.inst.annotations):
-    #        annot_start = (_sync_onset(self.mne.inst, annot['onset']) +
-    #                       self.mne.first_time)
-    #        annot_end = annot_start + annot['duration']
-    #        segments.append((annot_start, annot_end))
-    #        self.mne.ax_hscroll.fill_betweenx(
-    #            (0., 1.), annot_start, annot_end, alpha=0.3,
-    #            color=self.mne.segment_colors[annot['description']])
-    #    # Do not adjust ½ sample backward (even though it would clarify what
-    #    # is included) because that would break click-drag functionality
-    #    self.mne.segments = np.array(segments)
-    #    self.canvas.draw()
+                segments.append((annot_start, annot_end))
+        self.mne.annotation_segments = np.array(segments)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTORS
@@ -984,7 +986,7 @@ class MNEBrowseFigure(MNEFigure):
         """Close the projectors dialog window (via keypress or window [x])."""
         self.mne.fig_proj = None
 
-    def _toggle_proj_fig(self, event):
+    def _toggle_proj_fig(self, event=None):
         """Show/hide the projectors dialog window."""
         if self.mne.fig_proj is None:
             self._create_proj_fig()
@@ -1049,11 +1051,10 @@ class MNEBrowseFigure(MNEFigure):
         margins['bottom'] += (1 if should_show else -1) * v_delta
         self.subplots_adjust(**margins)
         # show/hide
-        for elem in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
-            butterfly = getattr(self.mne, 'butterfly', False)
-            if elem == 'ax_vscroll' and butterfly:
+        for elem in ('ax_hscroll', 'ax_vscroll', 'ax_proj', 'ax_help'):
+            if elem == 'ax_vscroll' and self.mne.butterfly:
                 continue
-            # sometimes we don't have a proj button (ax_button)
+            # sometimes we don't have a proj button (ax_proj)
             if getattr(self.mne, elem, None) is not None:
                 getattr(self.mne, elem).set_visible(should_show)
         self.mne.scrollbars_visible = should_show
