@@ -304,7 +304,8 @@ def _set_aspect_equal(ax):
 
 @verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1, fig=None, verbose=None):
+                      n_jobs=1, fig=None, vmax=None, n_contours=21,
+                      verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -316,7 +317,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     time : float | None
         The time point at which the field map shall be displayed. If None,
         the average peak latency (across sensor types) is used.
-    time_label : str
+    time_label : str | None
         How to print info about the time instant visualized.
     %(n_jobs)s
     fig : instance of mayavi.core.api.Scene | None
@@ -324,6 +325,14 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         plot into the given figure.
 
         .. versionadded:: 0.20
+    vmax : float | None
+        Maximum intensity. Can be None to use the max(abs(data)).
+
+        .. versionadded:: 0.21
+    n_contours : int
+        The number of contours.
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -334,6 +343,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     # Update the backend
     from .backends.renderer import _get_renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
+    _validate_type(vmax, (None, 'numeric'), 'vmax')
+    n_contours = _ensure_int(n_contours, 'n_contours')
 
     time_idx = None
     if time is None:
@@ -382,23 +393,27 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         data = np.dot(map_data, evoked.data[pick, time_idx])
 
         # Make a solid surface
-        vlim = np.max(np.abs(data))
+        if vmax is None:
+            vmax = np.max(np.abs(data))
+            print(vmax)
+        vmax = float(vmax)
         alpha = alphas[ii]
         renderer.surface(surface=surf, color=colors[ii],
                          opacity=alpha)
 
         # Now show our field pattern
-        renderer.surface(surface=surf, vmin=-vlim, vmax=vlim,
+        renderer.surface(surface=surf, vmin=-vmax, vmax=vmax,
                          scalars=data, colormap=colormap)
 
         # And the field lines on top
-        renderer.contour(surface=surf, scalars=data, contours=21,
-                         vmin=-vlim, vmax=vlim, opacity=alpha,
+        renderer.contour(surface=surf, scalars=data, contours=n_contours,
+                         vmin=-vmax, vmax=vmax, opacity=alpha,
                          colormap=colormap_lines)
 
-    if '%' in time_label:
-        time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text2d(x_window=0.01, y_window=0.01, text=time_label)
+    if time_label is not None:
+        if '%' in time_label:
+            time_label %= (1e3 * evoked.times[time_idx])
+        renderer.text2d(x_window=0.01, y_window=0.01, text=time_label)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
