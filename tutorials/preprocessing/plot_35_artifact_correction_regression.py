@@ -18,7 +18,7 @@ regression. Blink artifacts captured by bipolar EOG channels serve as a good
 example of this, so we will demonstrate this here.
 
 Although ECG signals are well captured by bipolar ECG electrodes,
-regression-based removal usually of ECG artifacts does not work very well.
+regression-based removal of ECG artifacts usually does not work very well.
 This is likely because the heart acts like a rotating dipole, and
 therefore the ECG channel time waveform recorded from the ECG electrode sites
 does not reflect the same temporal dynamics that manifest at each MEG channel
@@ -149,7 +149,7 @@ mne.viz.tight_layout()
 # following the Gratton method requires first computing the regression weights
 # *from epoched data with the evoked response subtracted out* (as we did
 # above). It is possible to instead compute regression weights directly from
-# the raw data, but it this could bias the evoked response more than computing
+# the raw data, but this could bias the evoked response more than computing
 # the weights from data with the evoked response removed.
 
 # get ready to plot
