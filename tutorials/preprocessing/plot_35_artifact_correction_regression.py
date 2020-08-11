@@ -6,7 +6,7 @@ Repairing artifacts with regression
 ===================================
 
 This tutorial covers removal of artifacts using regression as in Gratton et al.
-1983 :footcite:`GrattonEtAl1983`.
+(1983) :footcite:`GrattonEtAl1983`.
 
 .. contents:: Page contents
    :local:
@@ -14,16 +14,16 @@ This tutorial covers removal of artifacts using regression as in Gratton et al.
 
 Generally speaking, artifacts that result in time waveforms on the sensors
 that are accurately reflected by some reference signal can be removed by
-regression. One example of this is blink artifacts captured by (typically
-bipolar) EOG channels, which we will examine here.
+regression. Blink artifacts captured by bipolar EOG channels serve as a good
+example of this, so we will demonstrate this here.
 
-Although ECG signals are typically well captured by ECG electrodes,
-regression-based removal usually does not perform very well.
+Although ECG signals are well captured by bipolar ECG electrodes,
+regression-based removal usually of ECG artifacts does not work very well.
 This is likely because the heart acts like a rotating dipole, and
-therefore the ECG channel time waveform (typically based on a bipolar
-ECG recording) does not reflect the same temporal dynamics that manifest at
-each MEG channel (obtained by sampling some component of the related magnetic
-vector field). Other approaches like :ref:`ICA <tut-artifact-ica>` or
+therefore the ECG channel time waveform recorded from the ECG electrode sites
+does not reflect the same temporal dynamics that manifest at each MEG channel
+(obtained by sampling some component of the related magnetic vector field).
+Other approaches like :ref:`ICA <tut-artifact-ica>` or
 :ref:`SSP <tut-artifact-ssp>` will likely work better for ECG.
 
 Prepare the data
@@ -145,11 +145,12 @@ mne.viz.tight_layout()
 ###############################################################################
 # Visualize the effect on raw data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# We can also apply the regression directly to the raw data. To do this relies
-# on first computing the regression weights *from epoched data with the evoked
-# response subtracted out* (as we did above).  If instead one computed
-# regression weights from the raw data, it is likely that some brain signal
-# would also get removed.
+# We can also apply the regression directly to the raw data. To do this
+# following the Gratton method requires first computing the regression weights
+# *from epoched data with the evoked response subtracted out* (as we did
+# above). It is possible to instead compute regression weights directly from
+# the raw data, but it this could bias the evoked response more than computing
+# the weights from data with the evoked response removed.
 
 # get ready to plot
 order = np.concatenate([  # plotting order: EOG+ECG first, then MEG
