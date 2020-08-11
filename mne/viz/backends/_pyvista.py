@@ -76,12 +76,18 @@ class _Figure(object):
         if self.notebook:
             self.plotter_class = Plotter
 
-        if self.plotter_class == Plotter:
+        if self.plotter_class is Plotter:
             self.store.pop('show', None)
             self.store.pop('title', None)
             self.store.pop('auto_update', None)
 
         if self.plotter is None:
+            if self.plotter_class is BackgroundPlotter:
+                from PyQt5.QtWidgets import QApplication
+                app = QApplication.instance()
+                if app is None:
+                    app = QApplication(["MNE"])
+                self.store['app'] = app
             plotter = self.plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
