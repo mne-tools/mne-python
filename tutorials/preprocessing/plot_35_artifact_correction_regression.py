@@ -5,20 +5,37 @@
 Repairing artifacts with regression
 ===================================
 
-This tutorial covers removal of artifacts using regression as in
-:footcite:`GrattonEtAl1983`.
+This tutorial covers removal of artifacts using regression as in Gratton et al.
+1983 :footcite:`GrattonEtAl1983`.
 
 .. contents:: Page contents
    :local:
    :depth: 2
 
+Generally speaking, artifacts that result in time waveforms on the sensors
+that are accurately reflected by some reference signal can be removed by
+regression. One example of this is blink artifacts captured by (typically
+bipolar) EOG channels, which we will examine here.
+
+Although ECG signals are typically well captured by ECG electrodes,
+regression-based removal usually does not perform very well.
+This is likely because the heart acts like a rotating dipole, and
+therefore the ECG channel time waveform (typically based on a bipolar
+ECG recording) does not reflect the same temporal dynamics that manifest at
+each MEG channel (obtained by sampling some component of the related magnetic
+vector field). Other approaches like :ref:`ICA <tut-artifact-ica>` or
+:ref:`SSP <tut-artifact-ssp>` will likely work better for ECG.
+
+Prepare the data
+^^^^^^^^^^^^^^^^
+
 We begin as always by importing the necessary Python modules and loading some
-data. In this case we use data from :ref:`brainstorm <tut-brainstorm-auditory>`
-because it has both EOG and ECG electrodes. We then crop it to 60 seconds,
-set some channel information, then process the data.
+data. In this case we use data from :ref:`Brainstorm <tut-brainstorm-auditory>`
+because it has some clear, large blink artifacts. We then crop it to 60
+seconds, set some channel information, then process the auditory evoked data.
 
 Note that there are other corrections that are useful for this dataset that we
-will not apply here — see :ref:`tut-brainstorm-auditory` for more information.
+will not apply here (see :ref:`tut-brainstorm-auditory` for more information).
 """
 
 import os.path as op
@@ -36,19 +53,7 @@ raw.filter(None, 40)
 decim = 12  # 2400 -> 200 Hz sample rate for epochs
 
 ###############################################################################
-# Removing artifacts by regression
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Generally speaking, artifacts whose time waveforms on the sensors are
-# accurately reflected by some reference signal can be removed by regression.
-# Two examples of this are blink artifacts (captured by EOG channels), and
-# heartbeat artifacts (captured by ECG electrodes).
-#
-#
-# Example: EOG artifacts
-# ~~~~~~~~~~~~~~~~~~~~~~
-#
-# First let's epoch our data the normal way, using just event type 1 (only the
+# For this dataset and example we'll use just event type 1 (only the
 # "standard" trials) for simplicity. Event timing is adjusted by comparing the
 # trigger times on detected sound onsets on channel UADC001-4408.
 
@@ -63,29 +68,44 @@ events[:, 0] = onsets
 epochs = mne.Epochs(raw, events, event_id=1, decim=decim, preload=True)
 
 ###############################################################################
+# Compute and apply EOG regression
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Next we'll compare the `~mne.Evoked` data (average across epochs) before and
-# after we regress out the EOG signal. We do this by estimating the regression
-# coefficients on epoch data with the evoked response subtracted out, then use
-# those coefficients to remove the EOG signal from the original data:
+# after we regress out the EOG signal. We do this by first estimating the
+# regression coefficients on epoch data with the evoked response subtracted
+# out. As long as the EOG artifacts are in the epochs, then the algorithm
+# should be able to estimate regression coefficients. The EOG artifacts do not
+# need to be time-locked to the stimulus/epoch event timing of the epochs.
 
 # do regression
 _, betas = mne.preprocessing.regress_artifact(epochs.copy().subtract_evoked())
+
+###############################################################################
+# We then use those coefficients to remove the EOG signal from the original
+# data:
+
 epochs_clean, _ = mne.preprocessing.regress_artifact(epochs, betas=betas)
 
+###############################################################################
+# Visualize the effect on auditory epochs
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Now we can plot the auditory evoked response before and after regression:
+
 # get ready to plot
-plot_picks = ['meg', 'eog', 'ecg']
+plot_picks = ['meg', 'eog']
 evo_kwargs = dict(picks=plot_picks, spatial_colors=True,
                   verbose='error')  # ignore warnings about spatial colors
 
+evo_kwargs['ylim'] = dict(mag=[-350, 300], eog=[-35, 5])
 # plot original data (averaged across epochs)
 fig = epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('Auditory epochs')
-fig.tight_layout()
+mne.viz.tight_layout()
 
 # plot regressed data
 fig = epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('Auditory epochs, EOG regressed')
-fig.tight_layout()
+mne.viz.tight_layout()
 
 # clean up
 del epochs, epochs_clean
@@ -94,11 +114,17 @@ del epochs, epochs_clean
 # The effect is subtle in these evoked data, but you can see that a bump toward
 # the end of the window has had its amplitude decreased.
 #
+# Visualize the effect on EOG epochs
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 # The effect is clearer if we create epochs around (autodetected) blink events,
-# and plot the average blink artifact before and after the regression (note
-# that the y-axis limits change between the left and right plots):
+# and plot the average blink artifact before and after the regression based on
+# the same regression coefficients we computed earlier. If the resulting
+# blink evoked data are reduced to near zero, it helps validate
+# that the regression efficiently removes blink artifacts.
 
 # extract epochs around each blink
+evo_kwargs['ylim'].update(mag=[-4000, 3000], eog=[-600, 100])
 eog_epochs = mne.preprocessing.create_eog_epochs(raw, decim=decim)
 eog_epochs.apply_baseline((None, None))
 
@@ -109,14 +135,16 @@ eog_epochs_clean, _ = mne.preprocessing.regress_artifact(eog_epochs,
 # plot original blink epochs
 fig = eog_epochs.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('EOG epochs')
-fig.tight_layout()
+mne.viz.tight_layout()
 
 # plot regressed blink epochs
 fig = eog_epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('EOG epochs, EOG regressed')
-fig.tight_layout()
+mne.viz.tight_layout()
 
 ###############################################################################
+# Visualize the effect on raw data
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We can also apply the regression directly to the raw data. To do this relies
 # on first computing the regression weights *from epoched data with the evoked
 # response subtracted out* (as we did above).  If instead one computed
@@ -136,36 +164,6 @@ raw.plot(**raw_kwargs)
 # regress (using betas computed above) & plot
 raw_clean, _ = mne.preprocessing.regress_artifact(raw, betas=betas)
 raw_clean.plot(**raw_kwargs)
-
-del eog_epochs, eog_epochs_clean, raw_clean  # save memory
-
-###############################################################################
-# Example: ECG artifacts
-# ~~~~~~~~~~~~~~~~~~~~~~
-# We can follow the same process with ECG, although it turns out not to work as
-# well. This is likely because the ECG signal is like a rotating dipole, and
-# therefore the ECG electrode's time waveform does not reflect the same
-# temporal dynamics that manifest at each MEG channel. Other approaches like
-# :ref:`ICA <tut-artifact-ica>` or :ref:`SSP <tut-artifact-ssp>` may work
-# better with this dataset.
-
-# extract epochs around each heartbeat
-ecg_epochs = mne.preprocessing.create_ecg_epochs(raw, decim=decim)
-ecg_epochs.apply_baseline((None, None))
-
-# plot original heartbeat epochs
-fig = ecg_epochs.average(picks=plot_picks).plot(**evo_kwargs)
-fig.suptitle('ECG epochs')
-fig.tight_layout()
-
-# regress (here we operate in place to save memory)
-mne.preprocessing.regress_artifact(
-    ecg_epochs, picks_artifact='ecg', copy=False)
-
-# plot regressed heartbeat epochs
-fig = ecg_epochs.average(picks=plot_picks).plot(**evo_kwargs)
-fig.suptitle('ECG epochs, ECG regressed')
-fig.tight_layout()
 
 ###############################################################################
 # References
