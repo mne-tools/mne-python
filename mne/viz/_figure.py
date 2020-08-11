@@ -192,7 +192,6 @@ class MNEBrowseFigure(MNEFigure):
 
         # additional params for browse figures
         self.mne.projector = None
-        # self.mne.event_id_rev = None
         # # channel
         # self.mne.group_by = None
         self.mne.whitened_ch_names = list()
@@ -282,6 +281,9 @@ class MNEBrowseFigure(MNEFigure):
     def _close(self, event=None):
         """Clean up auxiliary figures when main figure is closed."""
         from matplotlib.pyplot import close
+        # write temporary info object back to instance (bads, active projs)
+        self.mne.inst.info = self.mne.info
+        # close ancillary figs
         aux_figs = ('fig_annotation', 'fig_help', 'fig_proj', 'fig_selection')
         for fig in aux_figs:
             if getattr(self.mne, fig, None) is not None:
