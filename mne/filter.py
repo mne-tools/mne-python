@@ -1303,6 +1303,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
     """
+    assert x.ndim == 1
     if x.shape[-1] != window_fun.shape[-1]:
         window_fun, threshold = get_thresh(x.shape[-1])
     # drop the even tapers
@@ -1351,8 +1352,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
         # specify frequencies
         indices_1 = np.unique([np.argmin(np.abs(freqs - lf))
                                for lf in line_freqs])
-        notch_widths /= 2.0
-        indices_2 = [np.logical_and(freqs > lf - nw, freqs < lf + nw)
+        indices_2 = [np.logical_and(freqs > lf - nw / 2., freqs < lf + nw / 2.)
                      for lf, nw in zip(line_freqs, notch_widths)]
         indices_2 = np.where(np.any(np.array(indices_2), axis=0))[0]
         indices = np.unique(np.r_[indices_1, indices_2])
@@ -1368,7 +1368,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
         datafit = 0.0
     else:
         # fitted sinusoids are summed, and subtracted from data
-        datafit = np.sum(np.atleast_2d(fits), axis=0)
+        datafit = np.sum(fits, axis=0)
 
     return x - datafit, rm_freqs
 
