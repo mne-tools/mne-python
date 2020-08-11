@@ -38,6 +38,9 @@ class MNEFigure(Figure):
     def _close(self, event):
         """Handle close events."""
         from matplotlib.pyplot import close
+        # remove reference from parent fig to ancillary fig
+        if getattr(self.mne, 'parent_fig', None) is not None:
+            setattr(self.mne.parent_fig.mne, self.mne.figure_type, None)
         close(self)
 
     def _keypress(self, event):
@@ -77,7 +80,7 @@ class MNEFigure(Figure):
         return dim_inches / w_or_h
 
     def _add_default_callbacks(self, **kwargs):
-        """Remove matplotlib default callbacks and add MNE-Python ones."""
+        """Remove some matplotlib default callbacks and add MNE-Python ones."""
         # Remove matplotlib default keypress catchers
         default_cbs = list(
             self.canvas.callbacks.callbacks.get('key_press_event', {}))
@@ -105,11 +108,11 @@ class MNEAnnotationFigure(MNEFigure):
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
         from matplotlib.pyplot import close
-        parent = self._parent_fig
+        parent = self.mne.parent_fig
         # disable span selector
         parent.mne.ax_main.selector.active = False
         # disconnect hover callback
-        callback_id = self._parent_fig.mne._callback_ids['motion_notify_event']
+        callback_id = parent.mne._callback_ids['motion_notify_event']
         parent.canvas.callbacks.disconnect(callback_id)
         # remove reference to self & close
         parent.mne.fig_annotation = None
@@ -124,7 +127,7 @@ class MNEAnnotationFigure(MNEFigure):
         elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
-            self._parent_fig._add_annotation_label(event)
+            self.mne.parent_fig._add_annotation_label(event)
             return
         elif len(key) > 1 or key == ';':  # ignore modifier keys
             return
@@ -142,7 +145,7 @@ class MNEAnnotationFigure(MNEFigure):
         self._set_active_button(idx)
         # update click-drag rectangle color
         color = buttons.circles[idx].get_edgecolor()
-        selector = self._parent_fig.mne.ax_main.selector
+        selector = self.mne.parent_fig.mne.ax_main.selector
         selector.rect.set_color(color)
         selector.rectprops.update(dict(facecolor=color))
 
@@ -301,7 +304,6 @@ class MNEBrowseFigure(MNEFigure):
         for fig in aux_figs:
             if getattr(self.mne, fig, None) is not None:
                 getattr(self.mne, fig).canvas.close_event()
-                setattr(self.mne, fig, None)
         close(self)
 
     def _resize(self, event):
@@ -577,7 +579,8 @@ class MNEBrowseFigure(MNEFigure):
         width = (longest_key + longest_val) / 12
         height = (n_lines) / 5
         # create figure and axes
-        fig = dialog_figure(figsize=(width, height))
+        fig = dialog_figure(figsize=(width, height), figure_type='fig_help',
+                            parent_fig=self)
         _set_window_title(fig, 'Help')
         ax = fig.add_axes((0.01, 0.01, 0.98, 0.98))
         ax.set_axis_off()
@@ -585,12 +588,7 @@ class MNEBrowseFigure(MNEFigure):
         ax.text(0.42, 1, keys, ma='right', ha='right', **kwargs)
         ax.text(0.42, 1, vals, ma='left', ha='left', **kwargs)
         # add event listeners, and save
-        fig.canvas.mpl_connect('close_event', self._clear_help_fig)
         self.mne.fig_help = fig
-
-    def _clear_help_fig(self, event=None):
-        """Close the help dialog window (via keypress or window [x])."""
-        self.mne.fig_help = None
 
     def _toggle_help_fig(self, event):
         """Show/hide the annotation dialog window."""
@@ -598,7 +596,6 @@ class MNEBrowseFigure(MNEFigure):
             self._create_help_fig()
         else:
             self.mne.fig_help.canvas.close_event()
-            self._clear_help_fig()
 
     def _help_text(self):
         """Generate help dialog text, omitting `None`-valued entries."""
@@ -677,8 +674,9 @@ class MNEBrowseFigure(MNEFigure):
         width, var_height, fixed_height, pad = \
             self._compute_annotation_figsize(len(labels))
         fig = dialog_figure(figsize=(width, var_height + fixed_height),
-                            FigureClass=MNEAnnotationFigure)
-        fig._parent_fig = self
+                            FigureClass=MNEAnnotationFigure,
+                            figure_type='fig_annotation',
+                            parent_fig=self)
         _set_window_title(fig, 'Annotations')
         self.mne.fig_annotation = fig
         # make main axes
@@ -945,7 +943,8 @@ class MNEBrowseFigure(MNEFigure):
         # make figure
         width = max([4, max([len(label) for label in labels]) / 6 + 0.5])
         height = (len(projs) + 1) / 6 + 1.5
-        fig = dialog_figure(figsize=(width, height))
+        fig = dialog_figure(figsize=(width, height), figure_type='fig_proj',
+                            parent_fig=self)
         _set_window_title(fig, 'SSP projection vectors')
         # make axes
         offset = (1 / 6 / height)
@@ -971,7 +970,6 @@ class MNEBrowseFigure(MNEFigure):
         ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frameon=True)
         self.mne.proj_all = Button(ax_all, 'Toggle all')
         # add event listeners
-        fig.canvas.mpl_connect('close_event', self._clear_proj_fig)
         checkboxes.on_clicked(self._toggle_proj_checkbox)
         self.mne.proj_all.on_clicked(partial(self._toggle_proj_checkbox,
                                              toggle_all=True))
@@ -985,17 +983,12 @@ class MNEBrowseFigure(MNEFigure):
         except Exception:
             pass
 
-    def _clear_proj_fig(self, event=None):
-        """Close the projectors dialog window (via keypress or window [x])."""
-        self.mne.fig_proj = None
-
     def _toggle_proj_fig(self, event=None):
         """Show/hide the projectors dialog window."""
         if self.mne.fig_proj is None:
             self._create_proj_fig()
         else:
             self.mne.fig_proj.canvas.close_event()
-            self._clear_proj_fig()
 
     def _toggle_proj_checkbox(self, event, toggle_all=False):
         """Perform operations when proj boxes clicked."""
@@ -1342,7 +1335,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_yaxis_labels(self):
         self.mne.ax_main.set_yticklabels(self.mne.ch_names[self.mne.picks],
-                                         rotation=0, picker=True)
+                                         rotation=0)
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
@@ -1404,6 +1397,7 @@ def browse_figure(inst, **kwargs):
 
 def dialog_figure(**kwargs):
     """Instantiate a new MNE dialog figure (with event listeners)."""
+    # TODO convert to method of MNEBrowseFig? we always need parent_fig=self...
     fig = _figure(toolbar=False, **kwargs)
     # add our event callbacks
     fig._add_default_callbacks()
