@@ -308,8 +308,12 @@ filter_length : str | int
 """
 docdict['filter_length_notch'] = docdict['filter_length'] + """
     When ``method=='spectrum_fit'``, this sets the effective window duration
-    over which fits are computed. The default in 0.21 is None, but this will
-    change to 10. in 0.22.
+    over which fits are computed. See :func:`mne.filter.create_filter`
+    for options. Longer window lengths will give more stable frequency
+    estimates, but require (potentially much) more processing and are not able
+    to adapt as well to non-stationarities.
+
+    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
 """
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str

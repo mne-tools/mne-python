@@ -152,7 +152,19 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
 # width, transition bandwidth and other aspects of the filter. See the
 # docstring for details.
 #
-#
+# It's also possible to try to use spectral estimation to notch filter, but
+# it does not perform well for the MNE sample dataset:
+
+raw_notch_auto = raw.copy().notch_filter(
+    freqs=freqs, picks=meg_picks,
+    method='spectrum_fit', filter_length='10s', verbose=True)
+for title, data in zip(['Un', 'spectrum_fit '], [raw, raw_notch_auto]):
+    fig = data.plot_psd(fmax=250, average=True)
+    fig.subplots_adjust(top=0.85)
+    fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
+    add_arrows(fig.axes[:2])
+
+###############################################################################
 # Resampling
 # ^^^^^^^^^^
 #
