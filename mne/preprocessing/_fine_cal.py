@@ -11,7 +11,7 @@ from scipy import linalg
 from ..io.pick import pick_info, pick_types
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..transforms import _find_vector_rotation, apply_trans
-from ..utils import (logger, verbose, check_fname, _check_fname,
+from ..utils import (logger, verbose, check_fname, _check_fname, _pl,
                      _ensure_int, _check_option, _validate_type)
 
 from .maxwell import (_col_norm_pinv, _trans_sss_basis, _prep_mf_coils,
@@ -89,6 +89,7 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
         time_idxs[-1] = len(raw.times)
     ext_order = 3
     count = 0
+    locs = np.array([ch['loc'] for ch in info['chs']])
     if len(mag_picks) > 0:
         cal_list = list()
         z_list = list()
@@ -108,23 +109,16 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
         count = len(cal_list)
         if count == 0:
             raise RuntimeError('No usable segments found')
-        cals[mag_picks] = np.mean(cal_list, axis=0)
-        zs = np.mean(z_list, axis=0)
-        info_ch_locs = np.array([ch['loc'] for ch in info['chs']])
+        cals = np.mean(cal_list, axis=0)
+        zs = np.mean(z_list, axis=0)[mag_picks]
+        zs /= np.linalg.norm(zs, axis=1, keepdims=True)
         for ii, new_z in enumerate(zs):
-            info_loc = info_ch_locs[mag_picks[ii]]
+            z_loc = locs[mag_picks[ii]]
             # Find sensors with same NZ and R0 (should be three for VV)
-            idxs = np.where([np.allclose(info_loc[-3:], info_ch_loc[-3:]) and
-                             np.allclose(info_loc[:3], info_ch_loc[:3])
-                             for info_ch_loc in info_ch_locs])[0]
+            idxs = _matched_loc_idx(z_loc, locs)
             # Rotate the direction vectors to the plane defined by new normal
-            rot = np.eye(4)
-            rot[:3, :3] = _find_vector_rotation(info_loc[-3:], new_z)
-            for ci in idxs:
-                this_trans = _loc_to_coil_trans(info_ch_locs[ci])
-                this_trans[:3, :3] = apply_trans(rot, this_trans[:3, :3])
-                info['chs'][ci]['loc'][:] = _coil_trans_to_loc(this_trans)
-    locs = np.array([ch['loc'] for ch in info['chs']])
+            _rotate_locs(locs, idxs, new_z)
+        del zs
 
     #
     # Estimate imbalance parameters
@@ -156,6 +150,23 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
     return fine_cal, count
 
 
+def _matched_loc_idx(mag_loc, all_loc):
+    return np.where([np.allclose(mag_loc[-3:], loc[-3:]) and
+                     np.allclose(mag_loc[:3], loc[:3]) for loc in all_loc])[0]
+
+
+def _rotate_locs(locs, idxs, new_z):
+    assert len(idxs) == 3  # XXX remove this after testing is done
+    old_z = locs[idxs[0]][-3:]
+    old_z = old_z / np.linalg.norm(old_z)
+    rot = np.eye(4)
+    rot[:3, :3] = _find_vector_rotation(old_z, new_z)
+    for ci in idxs:
+        this_trans = _loc_to_coil_trans(locs[ci])
+        this_trans[:3, :3] = apply_trans(rot, this_trans[:3, :3])
+        locs[ci][:] = _coil_trans_to_loc(this_trans)
+
+
 def _vector_angle(x, y):
     """Get the angle between two vectors in degrees."""
     return np.abs(np.arccos(
@@ -167,42 +178,50 @@ def _vector_angle(x, y):
 def _adjust_mag_normals(info, data, origin, ext_order):
     """Adjust coil normals using magnetometers and empty-room data."""
     from scipy.optimize import fmin_cobyla
-    picks_mag = pick_types(info, meg='mag', exclude=())
-    picks_mag_good = pick_types(info, meg='mag', exclude='bads')
-    all_zs = np.array([info['chs'][pick]['loc'][9:12]
-                       for pick in picks_mag], float)
-    good_subpicks = np.searchsorted(picks_mag, picks_mag_good)
-    zs = all_zs[good_subpicks]
+    # allow using just mag or mag+grad
+    mag_scale = 100.
+    picks_good = pick_types(info, meg=True, exclude='bads')
+    info = pick_info(info, picks_good)  # copy
+    data = data[picks_good]
+    del picks_good
+    cals = np.ones((len(data), 1))
+    angles = np.zeros(len(cals))
+    picks_mag = pick_types(info, meg='mag')
+    data[picks_mag] *= mag_scale
     # Transform variables so we're only dealing with good mags
-    info = pick_info(info, picks_mag_good)
-    data = data[picks_mag_good]
-    del picks_mag, picks_mag_good
-    # Now get our good sub-picks
-    zs /= np.linalg.norm(zs, axis=1, keepdims=True)  # ensure we're unit len
-    orig_zs = zs.copy()
-    cals = np.ones((len(data), 1))  # this is now true
     exp = dict(int_order=0, ext_order=ext_order, origin=origin)
     all_coils = _prep_mf_coils(info, ignore_ref=True)
     S_tot = _trans_sss_basis(exp, all_coils)
     first_err = _data_err(data, S_tot, cals)
     count = 0
     # two passes: first do the worst, then do all in order
-    angles = np.zeros(len(cals))
+    zs = np.array([ch['loc'][-3:] for ch in info['chs']])
+    zs /= np.linalg.norm(zs, axis=-1, keepdims=True)
+    orig_zs = zs.copy()
+    match_idx = dict()
+    locs = np.array([ch['loc'] for ch in info['chs']])
+    for pick in picks_mag:
+        match_idx[pick] = _matched_loc_idx(locs[pick], locs)
     for ki, kind in enumerate(('worst first', 'in order')):
         logger.info(f'        Magnetometer normal adjustment ({kind}) ...')
         S_tot = _trans_sss_basis(exp, all_coils)
-        for ii in range(len(cals)):
+        for pick in picks_mag:
             err = _data_err(data, S_tot, cals, axis=1)
 
             # First pass: do worst; second pass: do all in order
-            cal_idx = np.argmax(err) if ki == 0 else ii
-            if ki == 0 and err[cal_idx] < 2.5:
-                break  # move on to second loop
+            if ki == 0:
+                cal_idx = np.argmax(err[picks_mag])
+                if err[picks_mag[cal_idx]] < 2.5:
+                    break  # move on to second loop
+                cal_idx = picks_mag[cal_idx]
+            else:
+                cal_idx = pick
+            assert cal_idx in picks_mag
             count += 1
             old_z = zs[cal_idx].copy()
             objective = partial(
                 _cal_sss_target, old_z=old_z, all_coils=all_coils,
-                cal_idx=cal_idx, data=data, cals=cals,
+                cal_idx=cal_idx, data=data, cals=cals, match_idx=match_idx,
                 S_tot=S_tot, origin=origin, ext_order=ext_order)
 
             # Figure out the additive term for z-component
@@ -211,8 +230,10 @@ def _adjust_mag_normals(info, data, origin, ext_order):
                 disp=False)
 
             # Do in-place adjustment to all_coils
-            _adjust_coils(zs[cal_idx], old_z, all_coils, cal_idx, inplace=True)
             cals[cal_idx] = 1. / np.linalg.norm(zs[cal_idx])
+            zs[cal_idx] *= cals[cal_idx]
+            for idx in match_idx[cal_idx]:
+                _rotate_coil(zs[cal_idx], old_z, all_coils, idx, inplace=True)
 
             # Recalculate S_tot, taking into account rotations
             S_tot = _trans_sss_basis(exp, all_coils)
@@ -233,7 +254,7 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     max_angle = np.max(angles)
     if max_angle >= 5.:
         reason.append(f'max angle {max_angle:0.2f} >= 5°')
-    each_err = _data_err(data, S_tot, cals, axis=-1)
+    each_err = _data_err(data, S_tot, cals, axis=-1)[picks_mag]
     n_bad = (each_err > 5.).sum()
     if n_bad:
         reason.append(f'{n_bad} residual{_pl(n_bad)} > 5%')
@@ -241,16 +262,15 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     if reason:
         reason = f' ({reason})'
     good = not bool(reason)
-    zs *= cals
     assert np.allclose(np.linalg.norm(zs, axis=1), 1.)
     logger.info(f'        Fit mismatch {first_err:0.2f}→{last_err:0.2f}%')
     logger.info('        Data segment '
                 f'{"" if good else "un"}usable{reason}')
     # Reformat zs and cals to be the n_mags (including bads)
-    all_cals = np.ones(len(all_zs))
-    all_zs[good_subpicks] = zs
-    all_cals[good_subpicks] = cals[:, 0]
-    return all_zs, all_cals, good
+    assert zs.shape == (len(data), 3)
+    assert cals.shape == (len(data), 1)
+    # XXX should reindex someday in case there are bad channels
+    return zs, cals[:, 0], good
 
 
 def _data_err(data, S_tot, cals, idx=None, axis=None):
@@ -264,40 +284,41 @@ def _data_err(data, S_tot, cals, idx=None, axis=None):
     return err
 
 
-def _adjust_coils(new_z, old_z, all_coils, cal_idx, inplace=False):
+def _rotate_coil(new_z, old_z, all_coils, idx, inplace=False):
     """Adjust coils."""
     # Turn NX and NY to the plane determined by NZ
     old_z = old_z / np.linalg.norm(old_z)
     new_z = new_z / np.linalg.norm(new_z)
     rot = _find_vector_rotation(old_z, new_z)  # additional coil rotation
-    this_sl = all_coils[5][cal_idx]
+    this_sl = all_coils[5][idx]
     this_rmag = np.dot(rot, all_coils[0][this_sl].T).T
     this_cosmag = np.dot(rot, all_coils[1][this_sl].T).T
     if inplace:
         all_coils[0][this_sl] = this_rmag
         all_coils[1][this_sl] = this_cosmag
     subset = (this_rmag, this_cosmag, np.zeros(this_rmag.shape[0], int),
-              1, np.array([True]), {0: this_sl})
+              1, all_coils[4][[idx]], {0: this_sl})
     return subset
 
 
 def _cal_sss_target(new_z, old_z, all_coils, cal_idx, data, cals,
-                    S_tot, origin, ext_order):
+                    S_tot, origin, ext_order, match_idx):
     """Evaluate objective function for SSS-based magnetometer calibration."""
     cals[cal_idx] = 1. / np.linalg.norm(new_z)
-    # Rotate necessary coils properly and adjust correct element in c
-    these_coils = _adjust_coils(new_z, old_z, all_coils, cal_idx)
-    # Replace correct row of S_tot with new value
     exp = dict(int_order=0, ext_order=ext_order, origin=origin)
     S_tot = S_tot.copy()
-    S_tot[cal_idx] = _trans_sss_basis(exp, these_coils)
+    # Rotate necessary coils properly and adjust correct element in c
+    for idx in match_idx[cal_idx]:
+        this_coil = _rotate_coil(new_z, old_z, all_coils, idx)
+        # Replace correct row of S_tot with new value
+        S_tot[idx] = _trans_sss_basis(exp, this_coil)
     # Get the GOF
     return _data_err(data, S_tot, cals, idx=cal_idx)
 
 
-def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order,
-                        mag_scale=100.):
+def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order):
     """Estimate gradiometer imbalance parameters."""
+    mag_scale = 100.
     n_iterations = 4
     mag_picks = pick_types(info, meg='mag', exclude=())
     grad_picks = pick_types(info, meg='grad', exclude=())
@@ -317,7 +338,7 @@ def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order,
     this_cs = np.array([mag_scale], float)
     S_pt = np.array([_trans_sss_basis(exp, coils, None, this_cs)
                      for coils in grad_point_coils])
-    for k in range(n_iterations, 1):
+    for k in range(n_iterations):
         S_tot = S_orig.copy()
         S_grad = S_tot[grad_picks]
 
@@ -338,7 +359,7 @@ def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order,
             imb[pick, :] = np.dot(linalg.pinv(khi_pts[ii]),
                                   data[pick] - khis[ii])
         deltas = np.sqrt(np.mean((imb - old_imbs) ** 2, axis=1))
-        logger.debug(f'        Iteration {k}/{n_iterations}: '
+        logger.debug(f'        Iteration {k + 1}/{n_iterations}: '
                      f'max ∆={deltas.max():0.6f}')
     return imb
 
