@@ -217,6 +217,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.added_labels = list()
         self.mne.segment_colors = dict()
         self.mne.segment_line = None
+        self.mne.draggable_annotations = False
         # # scalings
         self.mne.scale_factor = 1.
         self.mne.scalebars = dict()
@@ -329,39 +330,39 @@ class MNEBrowseFigure(MNEFigure):
 
     def _hover(self, event):
         """Handle motion event when annotating."""
-        if not self.mne.snap_annotations:  # don't snap to annotations
-            self._remove_annotation_line()
-            return
-        from matplotlib.patheffects import Stroke, Normal
         if (event.button is not None or
                 event.inaxes != self.mne.ax_main or event.xdata is None):
             return
+        if not self.mne.draggable_annotations:
+            self._remove_annotation_line()
+            return
+        from matplotlib.patheffects import Stroke, Normal
         for coll in self.mne.ax_main.collections:
             if coll.contains(event)[0]:
                 path = coll.get_paths()
                 assert len(path) == 1
                 path = path[0]
                 color = coll.get_edgecolors()[0]
-                mn = path.vertices[:, 0].min()
-                mx = path.vertices[:, 0].max()
-                # left/right line
-                x = mn if abs(event.xdata - mn) < abs(event.xdata - mx) else mx
-                mask = path.vertices[:, 0] == x
                 ylim = self.mne.ax_main.get_ylim()
+                # are we on the left or right edge?
+                _l = path.vertices[:, 0].min()
+                _r = path.vertices[:, 0].max()
+                x = _l if abs(event.xdata - _l) < abs(event.xdata - _r) else _r
+                mask = path.vertices[:, 0] == x
 
                 def drag_callback(x0):
                     path.vertices[mask, 0] = x0
 
+                # create or update the DraggableLine
                 if self.mne.segment_line is None:
                     line = self.mne.ax_main.plot([x, x], ylim, color=color,
-                                                 linewidth=2., picker=True)[0]
-                    line.set_pickradius(5.)
-                    dl = DraggableLine(line, self._modify_annotation,
-                                       drag_callback)
-                    self.mne.segment_line = dl
+                                                 linewidth=2, picker=5.)[0]
+                    self.mne.segment_line = DraggableLine(
+                        line, self._modify_annotation, drag_callback)
                 else:
                     self.mne.segment_line.set_x(x)
                     self.mne.segment_line.drag_callback = drag_callback
+                # style the line
                 line = self.mne.segment_line.line
                 patheff = [Stroke(linewidth=4, foreground=color, alpha=0.5),
                            Normal()]
@@ -375,7 +376,6 @@ class MNEBrowseFigure(MNEFigure):
     def _keypress(self, event):
         """Triage keypress events."""
         from matplotlib.pyplot import get_current_fig_manager
-        from ..preprocessing import ICA
         key = event.key
         if key == self.mne.close_key:
             self._close()
@@ -412,14 +412,16 @@ class MNEBrowseFigure(MNEFigure):
             self._draw_traces()
             self.canvas.draw()
         elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
+            old_n_channels = self.mne.n_channels
             n_ch_delta = 1 if key == 'pageup' else -1
             n_ch = self.mne.n_channels + n_ch_delta
             self.mne.n_channels = np.clip(n_ch, 1, len(self.mne.ch_names))
-            # TODO: only update if changed
-            self._update_trace_offsets()
-            self._update_data()
-            self._draw_traces()
-            self.canvas.draw()
+            if self.mne.n_channels != old_n_channels:
+                self._update_trace_offsets()
+                self._update_data()
+                self._draw_traces()
+                self._draw_annotations()
+                self.canvas.draw()
         elif key in ('home', 'end'):  # change duration
             dur_delta = 1 if key == 'end' else -1
             old_dur = self.mne.duration
@@ -435,12 +437,10 @@ class MNEBrowseFigure(MNEFigure):
         elif key == '?':  # help
             self._toggle_help_fig(event)
         elif key == 'f11':  # full screen
-            fig_manager = get_current_fig_manager()
-            fig_manager.full_screen_toggle()
+            get_current_fig_manager().full_screen_toggle()
         elif key == 'a':  # annotation mode
-            if isinstance(self.mne.inst, ICA):
-                return
-            self._toggle_annotation_fig()
+            if self.mne.instance_type == 'raw':
+                self._toggle_annotation_fig()
         elif key == 'b':  # toggle butterfly mode
             self.mne.butterfly = not self.mne.butterfly
             self._update_data()
@@ -451,8 +451,8 @@ class MNEBrowseFigure(MNEFigure):
             self._update_data()
             self._draw_traces()
             self.canvas.draw()
-        elif key == 'p':  # TODO: toggle snap annotations
-            pass
+        elif key == 'p':  # toggle draggable annotations
+            self.mne.draggable_annotations = not self.mne.draggable_annotations
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # TODO: toggle noise cov / whitening
@@ -850,22 +850,23 @@ class MNEBrowseFigure(MNEFigure):
         self.canvas.draw()
 
     def _remove_annotation_line(self):
-        """Remove annotation line from the plot."""
+        """Remove annotation line from the plot and reactivate selector."""
         if self.mne.segment_line is not None:
             self.mne.segment_line.remove()
             self.mne.segment_line = None
             self.mne.ax_main.selector.active = True
+            self.canvas.draw()
 
     def _modify_annotation(self, old_x, new_x):
         """Modify annotation."""
-        segment = np.array(np.where(self.mne.segments == old_x))
+        segment = np.array(np.where(self.mne.annotation_segments == old_x))
         if segment.shape[1] == 0:
             return
         raw = self.mne.inst
         annotations = raw.annotations
         first_time = self.mne.first_time
         idx = [segment[0][0], segment[1][0]]
-        onset = _sync_onset(raw, self.mne.segments[idx[0]][0], True)
+        onset = _sync_onset(raw, self.mne.annotation_segments[idx[0]][0], True)
         ann_idx = np.where(annotations.onset == onset - first_time)[0]
         if idx[1] == 0:  # start of annotation
             onset = _sync_onset(raw, new_x, True) - first_time

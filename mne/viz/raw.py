@@ -258,7 +258,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   # display
                   butterfly=butterfly,
                   clipping=clipping,
-                  snap_annotations=False,  # TODO Move to init?
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars)
 
