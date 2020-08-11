@@ -102,12 +102,25 @@ class MNEAnnotationFigure(MNEFigure):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    def _close(self, event):
+        """Handle close events (via keypress or window [x])."""
+        from matplotlib.pyplot import close
+        parent = self._parent_fig
+        # disable span selector
+        parent.mne.ax_main.selector.active = False
+        # disconnect hover callback
+        callback_id = self._parent_fig.mne._callback_ids['motion_notify_event']
+        parent.canvas.callbacks.disconnect(callback_id)
+        # remove reference to self & close
+        parent.mne.fig_annotation = None
+        close(self)
+
     def _keypress(self, event):
         """Triage keypress events."""
         text = self.label.get_text()
         key = event.key
         if key == self.mne.close_key:
-            self._close()
+            self._close(event)
         elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
@@ -712,7 +725,6 @@ class MNEBrowseFigure(MNEFigure):
                                 rectprops=dict(alpha=0.5, facecolor=col))
         self.mne.ax_main.selector = selector
         # add event listeners
-        fig.canvas.mpl_connect('close_event', self._clear_annotation_fig)
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
 
@@ -756,23 +768,12 @@ class MNEBrowseFigure(MNEFigure):
         ax.buttons.on_clicked(fig._radiopress)
         ax.buttons.connect_event('button_press_event', fig._click_override)
 
-    def _clear_annotation_fig(self, event=None):
-        """Close the annotation dialog window (via keypress or window [x])."""
-        self.mne.fig_annotation = None
-        # disable span selector
-        self.mne.ax_main.selector.active = False
-        # disconnect hover callback
-        callback_id = self.mne._callback_ids['motion_notify_event']
-        self.canvas.callbacks.disconnect(callback_id)
-        # clear annotation fig attribute
-
     def _toggle_annotation_fig(self):
         """Show/hide the annotation dialog window."""
         if self.mne.fig_annotation is None:
             self._create_annotation_fig()
         else:
             self.mne.fig_annotation.canvas.close_event()
-            self._clear_annotation_fig()
 
     def _compute_annotation_figsize(self, n_labels):
         """Adapt size of Annotation UI to accommodate the number of buttons.
