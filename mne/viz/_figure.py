@@ -560,7 +560,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _create_help_fig(self):
         """Create help dialog window."""
-        text = {key: val for key, val in self._help_text().items()
+        text = {key: val for key, val in self._get_help_text().items()
                 if val is not None}
         keys = ''
         vals = ''
@@ -597,8 +597,8 @@ class MNEBrowseFigure(MNEFigure):
         else:
             self.mne.fig_help.canvas.close_event()
 
-    def _help_text(self):
-        """Generate help dialog text, omitting `None`-valued entries."""
+    def _get_help_text(self):
+        """Generate help dialog text. `None`-valued entries removed later."""
         is_mac = platform.system() == 'Darwin'
         inst = self.mne.instance_type
         ch_cmp = 'component' if inst == 'ica' else 'channel'
@@ -620,6 +620,7 @@ class MNEBrowseFigure(MNEFigure):
         ldrag = ('Show spectrum plot for selected time span;\nor (in '
                  'annotation mode) add annotation') if inst == 'raw' else None
 
+        # below, value " " is a hack to make "\n".split(value) have length 1
         help_text = OrderedDict([
             # navigation
             ('_NAVIGATION', ' '),
@@ -718,8 +719,9 @@ class MNEBrowseFigure(MNEFigure):
         # setup interactivity in plot window
         col = ('#ff0000' if len(fig.radio_ax.buttons.circles) < 1 else
                fig.radio_ax.buttons.circles[0].get_edgecolor())
+        # TODO: we would like useblit=True here, but MPL #9660 prevents it
         selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
-                                'horizontal', minspan=0.1,  # useblit=True, ?
+                                'horizontal', minspan=0.1, useblit=False,
                                 rectprops=dict(alpha=0.5, facecolor=col))
         self.mne.ax_main.selector = selector
         # add event listeners
@@ -874,11 +876,9 @@ class MNEBrowseFigure(MNEFigure):
         else:  # end of annotation
             onset = annotations.onset[ann_idx]
             duration = _sync_onset(raw, new_x, True) - onset - first_time
-
         if duration < 0:
             onset += duration
             duration *= -1.
-
         _merge_annotations(onset, onset + duration,
                            annotations.description[ann_idx],
                            annotations, ann_idx)
@@ -888,6 +888,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _clear_annotations(self):
         """Clear all annotations from the figure."""
+        # TODO merge into _draw_annotations
         for ax in (self.mne.ax_main, self.mne.ax_hscroll):
             while len(ax.collections):
                 ax.collections.pop()
