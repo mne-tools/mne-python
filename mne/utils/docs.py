@@ -381,7 +381,8 @@ decim : int
     Factor by which to subsample the data.
 
     .. warning:: Low-pass filtering is not performed, this simply selects
-                 every Nᵗʰ sample, i.e., compresses the signal (see Notes).
+                 every Nth sample (where N is the value passed to
+                 ``decim``), i.e., it compresses the signal (see Notes).
                  If the data are not properly filtered, aliasing artifacts
                  may occur.
 """
