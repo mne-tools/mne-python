@@ -191,7 +191,7 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     # Transform variables so we're only dealing with good mags
     exp = dict(int_order=0, ext_order=ext_order, origin=origin)
     all_coils = _prep_mf_coils(info, ignore_ref=True)
-    S_tot = _trans_sss_basis(exp, all_coils)
+    S_tot = _trans_sss_basis(exp, all_coils, coil_scale=mag_scale)
     first_err = _data_err(data, S_tot, cals)
     count = 0
     # two passes: first do the worst, then do all in order
@@ -204,7 +204,7 @@ def _adjust_mag_normals(info, data, origin, ext_order):
         match_idx[pick] = _matched_loc_idx(locs[pick], locs)
     for ki, kind in enumerate(('worst first', 'in order')):
         logger.info(f'        Magnetometer normal adjustment ({kind}) ...')
-        S_tot = _trans_sss_basis(exp, all_coils)
+        S_tot = _trans_sss_basis(exp, all_coils, coil_scale=mag_scale)
         for pick in picks_mag:
             err = _data_err(data, S_tot, cals, axis=1)
 
