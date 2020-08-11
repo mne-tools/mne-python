@@ -216,8 +216,7 @@ def test_plot_alignment(tmpdir, renderer):
     # no-head version
     renderer.backend._close_all()
     # all coord frames
-    pytest.raises(ValueError, plot_alignment, info)
-    plot_alignment(info, surfaces=[])
+    plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                              coord_frame=coord_frame, trans=Path(trans_fname),

@@ -54,9 +54,8 @@ def _get_meg_system(info):
                 break
             elif coil_type == FIFF.FIFFV_COIL_KIT_GRAD:
                 system = 'KIT'
-                # Our helmet is probably only appropriate for the 157-sensor
-                # system
-                have_helmet = (nmag == 157)
+                # Our helmet does not match very well, so let's just create it
+                have_helmet = False
                 break
             elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
                 system = 'BabySQUID'
