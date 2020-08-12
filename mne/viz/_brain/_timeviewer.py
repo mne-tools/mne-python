@@ -27,14 +27,6 @@ from ...fixes import nullcontext
 
 
 @decorator
-def run_once(fun, *args, **kwargs):
-    """Run the function only once."""
-    if not hasattr(fun, "_has_run"):
-        fun._has_run = True
-        return fun(*args, **kwargs)
-
-
-@decorator
 def safe_event(fun, *args, **kwargs):
     """Protect against PyQt5 exiting on event-handling errors."""
     try:
@@ -955,6 +947,7 @@ class _TimeViewer(object):
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
+        from ..backends._pyvista import _init_resources
         _init_resources()
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
@@ -1443,9 +1436,3 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
-
-
-@run_once
-def _init_resources():
-    from ...icons import resources
-    resources.qInitResources()

@@ -23,6 +23,8 @@ import vtk
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
+from ...externals.decorator import decorator
+
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -93,11 +95,8 @@ class _Figure(object):
             self.plotter = plotter
             if self.plotter_class is BackgroundPlotter and \
                     hasattr(BackgroundPlotter, 'set_icon'):
-                # guaranteed to be importable by PyVista
-                from imageio import imread
-                plotter.set_icon(imread(os.path.join(
-                    os.path.dirname(__file__), '..', '..', 'icons',
-                    'mne_icon.png')))
+                _init_resources()
+                plotter.set_icon(":/mne-icon.png")
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
@@ -970,3 +969,17 @@ def _disabled_depth_peeling():
         yield
     finally:
         rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
+
+
+@decorator
+def run_once(fun, *args, **kwargs):
+    """Run the function only once."""
+    if not hasattr(fun, "_has_run"):
+        fun._has_run = True
+        return fun(*args, **kwargs)
+
+
+@run_once
+def _init_resources():
+    from ...icons import resources
+    resources.qInitResources()
