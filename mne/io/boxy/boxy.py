@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-import glob as glob
 import re as re
 
 import numpy as np
@@ -20,7 +19,7 @@ def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
     Parameters
     ----------
     fname : str
-        Path to the BOXY data folder.
+        Path to the BOXY data file.
     datatype : str
         Type of data to return (AC, DC, or Ph).
     %(preload)s
@@ -45,7 +44,7 @@ class RawBOXY(BaseRaw):
     Parameters
     ----------
     fname : str
-        Path to the BOXY data folder.
+        Path to the BOXY data file.
     datatype : str
         Type of data to return (AC, DC, or Ph).
     %(preload)s
@@ -60,19 +59,6 @@ class RawBOXY(BaseRaw):
     def __init__(self, fname, datatype='AC', preload=False, verbose=None):
         logger.info('Loading %s' % fname)
 
-        # Check if required files exist and store names for later use.
-        files = dict()
-        key = '*.txt'
-        print(fname)
-        files[key] = [glob.glob('%s/*%s' % (fname, key))]
-
-        # Make sure filenames are in order.
-        files[key][0].sort()
-        if len(files[key]) != 1:
-            raise RuntimeError('Expect one %s file, got %d' %
-                               (key, len(files[key]),))
-        files[key] = files[key][0]
-
         # Determine which data type to return.
         if datatype not in ['AC', 'DC', 'Ph']:
             raise RuntimeError('Expect AC, DC, or Ph, got %s' % datatype)
@@ -84,7 +70,7 @@ class RawBOXY(BaseRaw):
         mrk_col = 0
         mrk_data = list()
         col_names = list()
-        with open(files[key][0], 'r') as data:
+        with open(fname, 'r') as data:
             for line_num, i_line in enumerate(data, 1):
                 if '#DATA ENDS' in i_line:
                     # Data ends just before this.
@@ -154,7 +140,7 @@ class RawBOXY(BaseRaw):
                       'start_line': start_line,
                       'end_line': end_line,
                       'filetype': filetype,
-                      'files': files[key][0],
+                      'file': fname,
                       'datatype': datatype,
                       'srate': srate,
                       }
@@ -219,7 +205,7 @@ class RawBOXY(BaseRaw):
         end_line = self._raw_extras[fi]['end_line']
         filetype = self._raw_extras[fi]['filetype']
         datatype = self._raw_extras[fi]['datatype']
-        boxy_files = self._raw_extras[fi]['files']
+        boxy_file = self._raw_extras[fi]['file']
 
         # Possible detector names.
         detectors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
@@ -230,7 +216,7 @@ class RawBOXY(BaseRaw):
         boxy_data = list()
 
         # Loop through our data.
-        with open(boxy_files, 'r') as data_file:
+        with open(boxy_file, 'r') as data_file:
             for line_num, i_line in enumerate(data_file, 1):
                 if line_num == (start_line - 1):
 

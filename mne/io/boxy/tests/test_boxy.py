@@ -19,18 +19,20 @@ def test_boxy_load():
     thresh = 1e-10
 
     # Load AC, DC, and Phase data.
-    boxy_raw_dir = os.path.join(data_path(download=False),
-                                'BOXY', 'boxy_short_recording')
+    boxy_file = os.path.join(data_path(download=False),
+                             'BOXY', 'boxy_0_40_recording',
+                             'boxy_0_40_notriggers_unparsed.txt')
 
-    mne_dc = mne.io.read_raw_boxy(boxy_raw_dir, 'DC', verbose=True).load_data()
-    mne_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
-    mne_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
+    mne_dc = mne.io.read_raw_boxy(boxy_file, 'DC', verbose=True).load_data()
+    mne_ac = mne.io.read_raw_boxy(boxy_file, 'AC', verbose=True).load_data()
+    mne_ph = mne.io.read_raw_boxy(boxy_file, 'Ph', verbose=True).load_data()
 
     # Load p_pod data.
-    p_pod_dir = os.path.join(data_path(download=False),
-                             'BOXY', 'boxy_short_recording',
-                             'boxy_p_pod_files', '1anc071a_001.mat')
-    ppod_data = spio.loadmat(p_pod_dir)
+    p_pod_file = os.path.join(data_path(download=False),
+                              'BOXY', 'boxy_0_40_recording',
+                              'p_pod_10_6_3_loaded_data',
+                              'p_pod_10_6_3_notriggers_unparsed.mat')
+    ppod_data = spio.loadmat(p_pod_file)
 
     ppod_ac = np.transpose(ppod_data['ac'])
     ppod_dc = np.transpose(ppod_data['dc'])
@@ -64,18 +66,20 @@ def test_boxy_filetypes():
     thresh = 1e-10
 
     # Load AC, DC, and Phase data.
-    boxy_raw_dir = os.path.join(data_path(download=False),
-                                'BOXY', 'boxy_digaux_recording', 'unparsed')
+    boxy_file = os.path.join(data_path(download=False),
+                             'BOXY', 'boxy_0_84_digaux_recording',
+                             'boxy_0_84_triggers_unparsed.txt')
 
-    unp_dc = mne.io.read_raw_boxy(boxy_raw_dir, 'DC', verbose=True).load_data()
-    unp_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
-    unp_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
+    unp_dc = mne.io.read_raw_boxy(boxy_file, 'DC', verbose=True).load_data()
+    unp_ac = mne.io.read_raw_boxy(boxy_file, 'AC', verbose=True).load_data()
+    unp_ph = mne.io.read_raw_boxy(boxy_file, 'Ph', verbose=True).load_data()
 
     # Load p_pod data.
-    p_pod_dir = os.path.join(data_path(download=False),
-                             'BOXY', 'boxy_digaux_recording', 'p_pod',
-                             'p_pod_digaux_unparsed.mat')
-    ppod_data = spio.loadmat(p_pod_dir)
+    p_pod_file = os.path.join(data_path(download=False),
+                              'BOXY', 'boxy_0_84_digaux_recording',
+                              'p_pod_10_6_3_loaded_data',
+                              'p_pod_10_6_3_triggers_unparsed.mat')
+    ppod_data = spio.loadmat(p_pod_file)
 
     ppod_ac = np.transpose(ppod_data['ac'])
     ppod_dc = np.transpose(ppod_data['dc'])
@@ -87,12 +91,13 @@ def test_boxy_filetypes():
     assert (abs(ppod_ph - unp_ph._data) <= thresh).all()
 
     # Now let's load our parsed data.
-    boxy_raw_dir = os.path.join(data_path(download=False),
-                                'BOXY', 'boxy_digaux_recording', 'parsed')
+    boxy_file = os.path.join(data_path(download=False),
+                             'BOXY', 'boxy_0_84_digaux_recording',
+                             'boxy_0_84_triggers_unparsed.txt')
 
-    par_dc = mne.io.read_raw_boxy(boxy_raw_dir, 'DC', verbose=True).load_data()
-    par_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
-    par_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
+    par_dc = mne.io.read_raw_boxy(boxy_file, 'DC', verbose=True).load_data()
+    par_ac = mne.io.read_raw_boxy(boxy_file, 'AC', verbose=True).load_data()
+    par_ph = mne.io.read_raw_boxy(boxy_file, 'Ph', verbose=True).load_data()
 
     # Compare parsed and unparsed data.
     assert (abs(unp_dc._data - par_dc._data) == 0).all()
@@ -109,13 +114,14 @@ def test_boxy_digaux():
     srate = 79.4722
 
     # Load AC, DC, and Phase data from a parsed file first.
-    boxy_raw_dir = os.path.join(data_path(download=False),
-                                'BOXY', 'boxy_digaux_recording', 'parsed')
+    boxy_file = os.path.join(data_path(download=False),
+                             'BOXY', 'boxy_0_84_digaux_recording',
+                             'boxy_0_84_triggers_parsed.txt')
 
     # The type of data shouldn't matter, but we'll test all three.
-    par_dc = mne.io.read_raw_boxy(boxy_raw_dir, 'DC', verbose=True).load_data()
-    par_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
-    par_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
+    par_dc = mne.io.read_raw_boxy(boxy_file, 'DC', verbose=True).load_data()
+    par_ac = mne.io.read_raw_boxy(boxy_file, 'AC', verbose=True).load_data()
+    par_ph = mne.io.read_raw_boxy(boxy_file, 'Ph', verbose=True).load_data()
 
     # Check that our event order matches what we expect.
     event_list = ['1.0', '2.0', '3.0', '4.0', '5.0']
@@ -131,13 +137,14 @@ def test_boxy_digaux():
     assert_allclose(par_ph.annotations.onset, event_onset, atol=thresh)
 
     # Now we'll load data from an unparsed file.
-    boxy_raw_dir = os.path.join(data_path(download=False),
-                                'BOXY', 'boxy_digaux_recording', 'unparsed')
+    boxy_file = os.path.join(data_path(download=False),
+                             'BOXY', 'boxy_0_84_digaux_recording',
+                             'boxy_0_84_triggers_unparsed.txt')
 
     # The type of data shouldn't matter, but we'll test all three.
-    unp_dc = mne.io.read_raw_boxy(boxy_raw_dir, 'DC', verbose=True).load_data()
-    unp_ac = mne.io.read_raw_boxy(boxy_raw_dir, 'AC', verbose=True).load_data()
-    unp_ph = mne.io.read_raw_boxy(boxy_raw_dir, 'Ph', verbose=True).load_data()
+    unp_dc = mne.io.read_raw_boxy(boxy_file, 'DC', verbose=True).load_data()
+    unp_ac = mne.io.read_raw_boxy(boxy_file, 'AC', verbose=True).load_data()
+    unp_ph = mne.io.read_raw_boxy(boxy_file, 'Ph', verbose=True).load_data()
 
     # Check that our event order matches what we expect.
     event_list = ['1.0', '2.0', '3.0', '4.0', '5.0']
@@ -154,11 +161,12 @@ def test_boxy_digaux():
 
     # Now let's compare parsed and unparsed events to p_pod loaded digaux.
     # Load our p_pod data.
-    p_pod_dir = os.path.join(data_path(download=False),
-                             'BOXY', 'boxy_digaux_recording',
-                             'p_pod', 'p_pod_digaux_unparsed.mat')
+    p_pod_file = os.path.join(data_path(download=False),
+                              'BOXY', 'boxy_0_84_digaux_recording',
+                              'p_pod_10_6_3_loaded_data',
+                              'p_pod_10_6_3_triggers_unparsed.mat')
 
-    ppod_data = spio.loadmat(p_pod_dir)
+    ppod_data = spio.loadmat(p_pod_file)
     ppod_digaux = np.transpose(ppod_data['digaux'])[0]
 
     # Now let's get our triggers from the p_pod digaux.
