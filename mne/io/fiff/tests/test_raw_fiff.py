@@ -856,8 +856,10 @@ def test_filter():
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
     # now use the sinusoidal fitting
+    assert raw.times[-1] < 10  # catch error with filter_length > n_times
     raw_notch = raw.copy().notch_filter(
-        None, picks=picks, n_jobs=2, method='spectrum_fit')
+        None, picks=picks, n_jobs=2, method='spectrum_fit',
+        filter_length='10s')
     data_notch, _ = raw_notch[picks, :]
     data, _ = raw[picks, :]
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)

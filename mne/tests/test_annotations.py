@@ -2,6 +2,7 @@
 #
 # License: BSD 3 clause
 
+from collections import OrderedDict
 from datetime import datetime, timezone
 from itertools import repeat
 import sys
@@ -967,7 +968,7 @@ def test_annotations_simple_iteration():
                         orig_time=None)
 
     for ii, elements in enumerate(annot[:2]):
-        assert isinstance(elements, dict)
+        assert isinstance(elements, OrderedDict)
         expected_values = (ii, ii, str(ii))
         for elem, expected_type, expected_value in zip(elements.values(),
                                                        EXPECTED_ELEMENTS_TYPE,

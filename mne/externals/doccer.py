@@ -69,7 +69,7 @@ def docformat(docstring, docdict=None):
             indented[name] = dstr
     try:
         return docstring % indented
-    except TypeError as exp:
+    except (TypeError, KeyError) as exp:
         raise TypeError('Error documenting %s:\n%s'
                         % (docstring.split('\n')[0], str(exp)))
 

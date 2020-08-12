@@ -968,7 +968,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Europe. None can only be used with the mode 'spectrum_fit',
             where an F test is used to find sinusoidal components.
         %(picks_all_data)s
-        %(filter_length)s
+        %(filter_length_notch)s
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, freqs / 200 is used.

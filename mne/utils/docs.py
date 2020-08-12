@@ -72,6 +72,24 @@ tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
 """
 
+
+# Reject by annotation
+docdict['reject_by_annotation_all'] = """
+reject_by_annotation : bool
+    Whether to omit bad segments from the data before fitting. If ``True``
+    (default), annotated segments whose description begins with ``'bad'`` are
+    omitted. If ``False``, no rejection based on annotations is performed.
+"""
+docdict['reject_by_annotation_epochs'] = """
+reject_by_annotation : bool
+    Whether to reject based on annotations. If ``True`` (default), epochs
+    overlapping with segments whose description begins with ``'bad'`` are
+    rejected. If ``False``, no rejection based on annotations is performed.
+"""
+docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
+    Has no effect if ``inst`` is not a :class:`mne.io.Raw` object."""
+
+
 # General plotting
 docdict["show"] = """
 show : bool
@@ -288,6 +306,15 @@ filter_length : str | int
     * **int**: Specified length in samples. For fir_design="firwin",
       this should not be used.
 """
+docdict['filter_length_notch'] = docdict['filter_length'] + """
+    When ``method=='spectrum_fit'``, this sets the effective window duration
+    over which fits are computed. See :func:`mne.filter.create_filter`
+    for options. Longer window lengths will give more stable frequency
+    estimates, but require (potentially much) more processing and are not able
+    to adapt as well to non-stationarities.
+
+    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
+"""
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str
     Width of the transition band at the low cut-off frequency in Hz
@@ -375,6 +402,43 @@ docdict['window-resample'] = """
 window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
+"""
+docdict['decim'] = """
+decim : int
+    Factor by which to subsample the data.
+
+    .. warning:: Low-pass filtering is not performed, this simply selects
+                 every Nth sample (where N is the value passed to
+                 ``decim``), i.e., it compresses the signal (see Notes).
+                 If the data are not properly filtered, aliasing artifacts
+                 may occur.
+"""
+docdict['decim_offset'] = """
+offset : int
+    Apply an offset to where the decimation starts relative to the
+    sample corresponding to t=0. The offset is in samples at the
+    current sampling rate.
+
+    .. versionadded:: 0.12
+"""
+docdict['decim_notes'] = """
+For historical reasons, ``decim`` / "decimation" refers to simply subselecting
+samples from a given signal. This contrasts with the broader signal processing
+literature, where decimation is defined as (quoting
+:footcite:`OppenheimEtAl1999`, p. 172; which cites
+:footcite:`CrochiereRabiner1983`):
+
+    "... a general system for downsampling by a factor of M is the one shown
+    in Figure 4.23. Such a system is called a decimator, and downsampling
+    by lowpass filtering followed by compression [i.e, subselecting samples]
+    has been termed decimation (Crochiere and Rabiner, 1983)."
+
+Hence "decimation" in MNE is what is considered "compression" in the signal
+processing community.
+
+Decimation can be done multiple times. For example,
+``inst.decimate(2).decimate(2)`` will be the same as
+``inst.decimate(4)``.
 """
 
 # cHPI
@@ -1057,6 +1121,21 @@ volume_options : float | dict | None
 view_layout : str
     Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
     the PyVista backend must be used and hemi cannot be "split".
+"""
+docdict['add_data_kwargs'] = """
+add_data_kwargs : dict | None
+    Additional arguments to brain.add_data (e.g.,
+    ``dict(time_label_size=10)``).
+"""
+docdict['views'] = """
+views : str | list
+    View to use. Can be any of::
+
+        ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral',
+         'frontal', 'parietal', 'axial', 'sagittal', 'coronal']
+
+    Three letter abbreviations (e.g., ``'lat'``) are also supported.
+    Using multiple views (list) is not supported for mpl backend.
 """
 
 # STC label time course

@@ -116,6 +116,24 @@ nitpick_ignore = [
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
 ]
+for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
+            'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
+            'SourceEstimate', 'SourceMorph', 'VectorSourceEstimate',
+            'VolSourceEstimate', 'VolVectorSourceEstimate',
+            'channels.DigMontage', 'channels.Layout',
+            'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
+            'decoding.GeneralizingEstimator', 'decoding.LinearModel',
+            'decoding.PSDEstimator', 'decoding.ReceptiveField',
+            'decoding.SPoC', 'decoding.Scaler', 'decoding.SlidingEstimator',
+            'decoding.TemporalFilter', 'decoding.TimeDelayingRidge',
+            'decoding.TimeFrequency', 'decoding.UnsupervisedSpatialFilter',
+            'decoding.Vectorizer',
+            'preprocessing.ICA', 'preprocessing.Xdawn',
+            'simulation.SourceSimulator',
+            'time_frequency.CrossSpectralDensity',
+            'utils.deprecated',
+            'viz.ClickableImage'):
+    nitpick_ignore.append(('py:obj', f'mne.{key}.__hash__'))
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 # The version info for the project you're documenting, acts as replacement for
@@ -634,7 +652,7 @@ numpydoc_xref_ignore = {
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
-    'n_dipoles_fwd',
+    'n_dipoles_fwd', 'n_picks_ref',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF',

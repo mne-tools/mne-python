@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 import os.path as op
 import re
@@ -249,7 +250,7 @@ class Annotations(object):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            return dict(zip(out_keys, out_vals))
+            return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],

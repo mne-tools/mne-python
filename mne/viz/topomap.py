@@ -2484,12 +2484,12 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                   sphere=None):
     """Plot arrow map.
 
-    Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
-    these arrows represents an estimation of the current flow underneath
-    the MEG sensors. They are a poor man's MNE.
+    Compute arrowmaps, based upon the Hosaka-Cohen transformation
+    :footcite:`CohenHosaka1976`, these arrows represents an estimation of the
+    current flow underneath the MEG sensors. They are a poor man's MNE.
 
     Since planar gradiometers takes gradients along latitude and longitude,
-    they need to be projected to the flatten manifold span by magnetometer
+    they need to be projected to the flattened manifold span by magnetometer
     or radial gradiometers before taking the gradients in the 2D Cartesian
     coordinate system for visualization on the 2D topoplot. You can use the
     ``info_from`` and ``info_to`` parameters to interpolate from
@@ -2569,10 +2569,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
 
     References
     ----------
-    .. [1] D. Cohen, H. Hosaka
-       "Part II magnetic field produced by a current dipole",
-       Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
-       DOI: 10.1016/S0022-0736(76)80041-6
+    .. footbibliography::
     """
     from matplotlib import pyplot as plt
     from ..forward import _map_meg_or_eeg_channels

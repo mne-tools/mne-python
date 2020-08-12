@@ -63,6 +63,8 @@ Changelog
 
 - Add :func:`mne.read_freesurfer_lut` to make it easier to work with volume atlases by `Eric Larson`_
 
+- Add support for overlap-add processing when ``method='spectrum_fit'`` in :func:`mne.io.Raw.notch_filter` by `Eric Larson`_
+
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
 - Add ability to interpolate EEG channels using minimum-norm projection in :meth:`mne.io.Raw.interpolate_bads` and related functions with ``method=dict(eeg='MNE')`` by `Eric Larson`_
@@ -74,6 +76,8 @@ Changelog
 - Add support to in :meth:`mne.io.Raw.plot` for passing ``clipping`` as a float to clip to a proportion of the dedicated channel range by `Eric Larson`_
 
 - Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
+
+- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression by `Kyle Mathewson`_ and `Eric Larson`_
 
 - Add :func:`mne.stats.ttest_ind_no_p` to mirror :func:`mne.stats.ttest_1samp_no_p` with hat correction by `Eric Larson`_
 
@@ -157,6 +161,8 @@ Changelog
 
 - Speed up :func:`mne.stats.summarize_clusters_stc` using Numba by `Yu-Han Luo`_
 
+- Add ``reject_by_annotation=True`` to :func:`mne.make_fixed_length_epochs` and :meth:`mne.preprocessing.ICA.plot_properties` to reject bad data segments based on annotation by `Yu-Han Luo`_
+
 Bug
 ~~~
 
@@ -187,6 +193,8 @@ Bug
 - Fix bug with :func:`mne.preprocessing.compute_current_source_density` where values were not properly computed; maps should now be more focal, by `Alex Rockhill`_ and `Eric Larson`_
 
 - Fix bug with :func:`mne.combine_evoked` where equal-weighted averages were wrongly computed as equal-weighted sums, by `Daniel McCloy`_
+
+- Fix bug with setting HTML classes when using :meth:`mne.Report.add_bem_to_section` by `Eric Larson`_
 
 - Fix to enable interactive plotting with no colorbar with :func:`mne.viz.plot_evoked_topomap` by `Daniel McCloy`_
 
@@ -291,6 +299,8 @@ Bug
 
 - Fix bug in :meth:`mne.preprocessing.ICA.plot_properties` where time series plot doesn't start at the proper tmin by `Teon Brooks`_
 
+- Fix bug with :meth:`mne.preprocessing.ICA.plot_properties` where a :class:`mne.io.Raw` object with annotations would lead to an error by `Yu-Han Luo`_
+
 API
 ~~~
 
@@ -308,6 +318,8 @@ API
 - Add ``n_cols`` parameter to :meth:`mne.preprocessing.ICA.plot_scores` to allow plotting scores in multiple columns, by `Luke Bloy`_
 
 - In :func:`mne.stats.permutation_cluster_test` and :func:`mne.stats.permutation_cluster_1samp_test` the default parameter value ``out_type='mask'`` has changed to ``None``, which in 0.21 means ``'mask'`` but will change to mean ``'indices'`` in the next version, by `Daniel McCloy`_
+
+- The default window size set by ``filter_length`` when ``method='spectrum_fit'`` in :meth:`mne.io.Raw.notch_filter` will change from ``None`` (use whole file) to ``'10s'`` in 0.22, by `Eric Larson`_
 
 - ``vmin`` and ``vmax`` parameters are deprecated in :meth:`mne.Epochs.plot_psd_topomap` and :func:`mne.viz.plot_epochs_psd_topomap`; use new ``vlim`` parameter instead, by `Daniel McCloy`_.
 

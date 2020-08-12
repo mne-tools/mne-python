@@ -250,6 +250,11 @@ def test_render_add_sections(renderer, tmpdir):
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
     assert (repr(report))
+    fname = op.join(str(tmpdir), 'test.html')
+    report.save(fname, open_browser=False)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert html.count('<li class="report_custom"') == 8  # several
 
 
 @pytest.mark.slowtest
@@ -264,15 +269,19 @@ def test_render_mri(renderer, tmpdir):
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
-    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname, open_browser=False)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert html.count('<li class="bem"') == 2  # left and content
     assert repr(report)
     report.add_bem_to_section('sample', caption='extra', section='foo',
                               subjects_dir=subjects_dir, decim=30)
-    fname = op.join(tempdir, 'report.html')
     report.save(fname, open_browser=False, overwrite=True)
     with open(fname, 'r') as fid:
         html = fid.read()
-    assert 'class="report_foo"' in html
+    assert 'report_report' not in html
+    assert html.count('<li class="report_foo"') == 2
 
 
 @testing.requires_testing_data
@@ -288,6 +297,7 @@ def test_render_mri_without_bem(tmpdir):
     report.parse_folder(tempdir, render_bem=False)
     with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
         report.parse_folder(tempdir, render_bem=True, mri_decim=20)
+    assert 'bem' in report.fnames
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
