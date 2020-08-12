@@ -13,7 +13,7 @@ from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
 from mne.surface import (read_morph_map, _compute_nearest, _tessellate_sphere,
                          fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf, _normal_orth)
+                         get_meg_helmet_surf, _normal_orth, _read_patch)
 from mne.utils import (_TempDir, requires_vtk, catch_logging,
                        run_tests_if_main, object_diff, requires_freesurfer)
 from mne.io import read_info
@@ -182,6 +182,12 @@ def test_io_surface():
                                     read_metadata=False)
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
+
+    # reading patches (just a smoke test, let the flatmap viz tests be more
+    # complete)
+    fname_patch = op.join(
+        data_path, 'subjects', 'fsaverage', 'surf', 'rh.cortex.patch.flat')
+    _read_patch(fname_patch)
 
 
 @testing.requires_testing_data

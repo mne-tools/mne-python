@@ -593,19 +593,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def decimate(self, decim, offset=0, verbose=None):
         """Decimate the epochs.
 
-        .. note:: No filtering is performed. To avoid aliasing, ensure
-                  your data are properly lowpassed.
-
         Parameters
         ----------
-        decim : int
-            The amount to decimate data.
-        offset : int
-            Apply an offset to where the decimation starts relative to the
-            sample corresponding to t=0. The offset is in samples at the
-            current sampling rate.
-
-            .. versionadded:: 0.12
+        %(decim)s
+        %(decim_offset)s
         %(verbose_meth)s
 
         Returns
@@ -621,12 +612,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Decimation can be done multiple times. For example,
-        ``epochs.decimate(2).decimate(2)`` will be the same as
-        ``epochs.decimate(4)``.
+        %(decim_notes)s
+
         If ``decim`` is 1, this method does not copy the underlying data.
 
         .. versionadded:: 0.10.0
+
+        References
+        ----------
+        .. footbibliography::
         """
         decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
         start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
@@ -1977,10 +1971,7 @@ class Epochs(BaseEpochs):
         detrending and temporal decimation will be postponed.
         If proj is False no projections will be applied which is the
         recommended value if SSPs are not used for cleaning the data.
-    decim : int
-        Factor by which to downsample the data from the raw file upon import.
-        Warning: This simply selects every nth sample, data is not filtered
-        here. If data is not properly filtered, aliasing artifacts may occur.
+    %(decim)s
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
         the window will start with tmin).
@@ -2002,10 +1993,7 @@ class Epochs(BaseEpochs):
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` specifying metadata about each epoch.
         If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
@@ -3277,8 +3265,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 
 @verbose
-def make_fixed_length_epochs(raw, duration=1.,
-                             preload=False, verbose=None):
+def make_fixed_length_epochs(raw, duration=1., preload=False,
+                             reject_by_annotation=True, verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3288,6 +3276,9 @@ def make_fixed_length_epochs(raw, duration=1.,
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
     %(preload)s
+    %(reject_by_annotation_epochs)s
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -3301,6 +3292,6 @@ def make_fixed_length_epochs(raw, duration=1.,
     """
     events = make_fixed_length_events(raw, 1, duration=duration)
     delta = 1. / raw.info['sfreq']
-    return Epochs(raw, events, event_id=[1], tmin=0.,
-                  tmax=duration - delta,
-                  verbose=verbose, baseline=None)
+    return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
+                  baseline=None, preload=preload,
+                  reject_by_annotation=reject_by_annotation, verbose=verbose)

@@ -21,7 +21,6 @@ import webbrowser
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .fixes import _get_img_fdata
 from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
@@ -239,9 +238,9 @@ def _get_toc_property(fname):
         tooltip = 'MRI'
         text = 'MRI'
     elif fname.endswith(('bem')):
-        div_klass = 'mri'
-        tooltip = 'MRI'
-        text = 'MRI'
+        div_klass = 'bem'
+        tooltip = 'BEM'
+        text = 'BEM'
     elif fname.endswith('(whitened)'):
         div_klass = 'evoked'
         tooltip = fname
@@ -1502,10 +1501,10 @@ class Report(object):
         if render_bem:
             if self.subjects_dir is not None and self.subject is not None:
                 logger.info('Rendering BEM')
-                self.html.append(self._render_bem(
-                    self.subject, self.subjects_dir, mri_decim, n_jobs))
                 self.fnames.append('bem')
-                self._sectionlabels.append('bem')
+                self.add_bem_to_section(
+                    self.subject, decim=mri_decim, n_jobs=n_jobs,
+                    subjects_dir=self.subjects_dir)
             else:
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
@@ -1794,30 +1793,6 @@ class Report(object):
         html.append(u'</div>')
         return '\n'.join(html)
 
-    def _render_image_png(self, image, cmap='gray', n_jobs=1):
-        """Render one slice of mri without bem as a PNG."""
-        import nibabel as nib
-
-        global_id = self._get_id()
-
-        if 'mri' not in self.sections:
-            self.sections.append('mri')
-            self._sectionvars['mri'] = 'mri'
-
-        nim = nib.load(image)
-        data = _get_img_fdata(nim)
-        shape = data.shape
-        limits = {'sagittal': range(0, shape[0], 2),
-                  'axial': range(0, shape[1], 2),
-                  'coronal': range(0, shape[2], 2)}
-        name = op.basename(image)
-        html = u'<li class="mri" id="%d">\n' % global_id
-        html += u'<h4>%s</h4>\n' % name
-        html += self._render_array(data, global_id=global_id,
-                                   cmap=cmap, limits=limits, n_jobs=n_jobs)
-        html += u'</li>\n'
-        return html
-
     def _render_raw(self, raw_fname, data_path):
         """Render raw (only text)."""
         import matplotlib.pyplot as plt
@@ -2104,22 +2079,17 @@ class Report(object):
         surfaces = _get_bem_plotting_surfaces(bem_path)
         if len(surfaces) == 0:
             warn('No BEM surfaces found, rendering empty MRI')
-            return self._render_image_png(mri_fname, cmap='gray',
-                                          n_jobs=n_jobs)
 
         html = []
 
         global_id = self._get_id()
-
-        if section == 'bem' and 'bem' not in self.sections:
-            self.sections.append('bem')
-            self._sectionvars['bem'] = 'bem'
+        klass = _clean_varnames(section)
+        if section == 'bem':  # special case for bulitin one
+            if 'bem' not in self.sections:
+                self.sections.append('bem')
+                self._sectionvars['bem'] = 'bem'
             klass = 'bem'
-        else:
-            klass = 'report_' + _clean_varnames(section)
-
         name = caption
-
         html += u'<li class="%s" id="%d">\n' % (klass, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
