@@ -119,7 +119,7 @@ class MNEAnnotationFigure(MNEFigure):
         close(self)
 
     def _keypress(self, event):
-        """Triage keypress events."""
+        """Handle keypress events."""
         text = self.label.get_text()
         key = event.key
         if key == self.mne.close_key:
@@ -611,7 +611,8 @@ class MNEBrowseFigure(MNEFigure):
         dur_vals = ([f'Show {n} epochs' for n in ('fewer', 'more')]
                     if inst ==  'epochs' else
                     [f'Show {d} time window' for d in ('shorter', 'longer')])
-        ch_vals = [f'{nd}crease visible {ch_cmp} count' for nd in ('In', 'De')]
+        ch_vals = [f'{inc_dec} number of visible {ch_cmp}s' for inc_dec in
+                   ('Increase', 'Decrease')]
         lclick_data = ica_bad if inst == 'ica' else f'Mark/unmark bad {ch_epo}'
         lclick_name = (ica_bad if inst == 'ica' else 'Mark/unmark bad channel')
         rclick_name = dict(ica='Show diagnostics for component',
@@ -643,7 +644,7 @@ class MNEBrowseFigure(MNEFigure):
             # UI
             ('_USER INTERFACE', ' '),
             ('a', 'Toggle annotation mode' if inst == 'raw' else None),
-            ('p', 'Toggle annotation snapping' if inst == 'raw' else None),
+            ('p', 'Toggle draggable annotations' if inst == 'raw' else None),
             ('s', 'Toggle scalebars' if inst != 'ica' else None),
             ('z', 'Toggle scrollbars'),
             ('F11', 'Toggle fullscreen'),
@@ -669,7 +670,6 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.widgets import Button, SpanSelector
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-
         # make figure
         labels = np.array(sorted(set(self.mne.inst.annotations.description)))
         width, var_height, fixed_height, pad = \
@@ -759,7 +759,7 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_center((center[0], circle.center[1]))
             circle.set_edgecolor(self.mne.segment_colors[label.get_text()])
             circle.set_linewidth(4)
-            circle.set_radius(radius / (len(labels)))
+            circle.set_radius(radius / len(labels))
         # style the selected button
         if len(labels):
             fig._set_active_button(0)
