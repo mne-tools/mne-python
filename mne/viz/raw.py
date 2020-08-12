@@ -8,6 +8,7 @@
 
 import copy
 from functools import partial
+from collections import OrderedDict
 
 import numpy as np
 
@@ -125,19 +126,22 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if not proj:
         info['projs'] = list()
 
-    # handle defaults
+    # handle defaults / check arg validity
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
                                  duration=duration)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
-    _validate_type(clipping, (None, 'numeric', str), 'clipping')
     decim, picks_data = _handle_decim(info, decim, lowpass)
     noise_cov = _check_cov(noise_cov, info)
     units = _handle_default('units', None)
     unit_scalings = _handle_default('scalings', None)
+    _check_option('group_by', group_by,
+                  ('selection', 'position', 'original', 'type'))
 
+    # clipping
+    _validate_type(clipping, (None, 'numeric', str), 'clipping')
     if isinstance(clipping, str):
-        _check_option('clipping', clipping, ['clamp', 'transparent'],
+        _check_option('clipping', clipping, ('clamp', 'transparent'),
                       extra='when a string')
         clipping = 1. if clipping == 'transparent' else clipping
     elif clipping is not None:
@@ -188,16 +192,15 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     elif not isinstance(order, (np.ndarray, list, tuple)):
         raise ValueError('order should be array-like; got '
                          f'"{order}" ({type(order)}).')
-    order = np.asarray(order)
+    order = (np.arange(len(order)) if group_by == 'original' else
+             np.asarray(order))
+    # adjust order based on channel selection, if needed
+    selections = None
     if group_by in ('selection', 'position'):
-        # TODO: refactor _setup_browser_selection
-        selections, fig_selection = _setup_browser_selection(raw, group_by)
-        selections = {k: np.intersect1d(v, order) for k, v in
-                      selections.items()}
-    elif group_by == 'original':
-        order = np.arange(len(order))
-    elif group_by != 'type':
-        raise ValueError('Unknown group_by type %s' % group_by)
+        selections = _setup_channel_selections(raw, group_by)
+        order = np.concatenate(list(selections.values()))
+        default_selection = list(selections)[0]
+        n_channels = max([len(selections[default_selection]), n_channels])
 
     # handle event colors
     # TODO: could this be a defaultdict?
@@ -227,6 +230,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   picks_data=picks_data,
                   group_by=group_by,
                   ch_start=0,  # TODO move to init?
+                  ch_selections=selections,
                   # time
                   t_start=start,
                   duration=duration,
@@ -277,38 +281,20 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         raise TypeError(f'title must be None or a string, got a {type(title)}')
     _set_window_title(fig, title)
 
-    # TODO: figure out how this section works, test it, and maybe refactor
+    # generate the channel selection dialog, if requested
     if group_by in ('selection', 'position'):
-        vars(fig.mne).update(fig_selection=fig_selection,
-                             selections=selections,
-                             radio_clicked=_radio_clicked)
-        fig_selection.radio.on_clicked(_radio_clicked)
-        fig_selection.canvas.mpl_connect('lasso_event',
-                                         fig._set_custom_selection)
-        labels = [label._text for label in fig_selection.radio.labels]
-        # Flatten the selections dict to a list
-        sels = [selections[label] for label in labels]
-        cis = [item for sublist in sels for item in sublist]
-        for idx, ci in enumerate(cis):
-            this_color = (bad_color if info['ch_names'][ci] in
-                          info['bads'] else color)
-            if isinstance(this_color, dict):
-                this_color = this_color[fig.mne.ch_types[ci]]
-            fig.mne.ax_vscroll.add_patch(Rectangle((0, idx), 1, 1,
-                                                   facecolor=this_color,
-                                                   edgecolor=this_color))
-        fig.mne.ax_vscroll.set_ylim(len(cis), 0)
-        fig.mne.n_channels = max([len(selections[labels[0]]), n_channels])
-    else:
-        for ch_ix in range(len(order)):
-            this_color = (bad_color if info['ch_names'][order[ch_ix]] in
-                          info['bads'] else color)
-            if isinstance(this_color, dict):
-                this_color = this_color[fig.mne.ch_types[order[ch_ix]]]
-            fig.mne.ax_vscroll.add_patch(Rectangle((0, ch_ix), 1, 1,
-                                         facecolor=this_color,
-                                         edgecolor=this_color))
-        fig.mne.ax_vscroll.set_ylim(len(order), 0)
+        fig._create_selection_fig(group_by)
+
+    # draw vertical scrollbar patches
+    for ch_ix in range(len(order)):
+        this_color = (bad_color if info['ch_names'][order[ch_ix]] in
+                      info['bads'] else color)
+        if isinstance(this_color, dict):
+            this_color = this_color[fig.mne.ch_types[order[ch_ix]]]
+        fig.mne.ax_vscroll.add_patch(Rectangle((0, ch_ix), 1, 1,
+                                     facecolor=this_color,
+                                     edgecolor=this_color))
+    fig.mne.ax_vscroll.set_ylim(len(order), 0)
 
     # scrollbar selection patches and lines
     vsel_patch = Rectangle((0, 0), 1, fig.mne.n_channels, alpha=0.5,
@@ -1355,3 +1341,42 @@ def _setup_browser_selection(raw, kind, selector=True):
         circle.set_edgecolor('gray')  # make sure the buttons are visible
 
     return order, fig_selection
+
+
+def _setup_channel_selections(raw, kind):
+    """Get dictionary of channel groupings."""
+    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
+                             _divide_to_regions)
+    from ..utils import _get_stim_channel
+    _check_option('group_by', kind, ('position', 'selection'))
+    if kind == 'position':
+        selections_dict = _divide_to_regions(raw.info)
+        keys = _SELECTIONS[1:]  # omit 'Vertex'
+    else:  # kind == 'selection'
+        from ..io import RawFIF, RawArray
+        from ..io.pick import pick_channels, pick_types
+        if not isinstance(raw, (RawFIF, RawArray)):
+            raise ValueError("order='selection' only works for Neuromag "
+                             "data. Use order='position' instead.")
+        selections_dict = OrderedDict()
+        # get stim channel (if any)
+        stim_ch = _get_stim_channel(None, raw.info, raise_error=False)
+        stim_ch = stim_ch if len(stim_ch) else ['']
+        stim_ch = pick_channels(raw.ch_names, stim_ch)
+        # loop over regions
+        keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
+        for key in keys:
+            channels = read_selection(key, info=raw.info)
+            picks = pick_channels(raw.ch_names, channels)
+            if not len(picks):
+                continue  # omit empty selections
+            selections_dict[key] = np.concatenate([picks, stim_ch])
+    # add misc channels
+    misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
+                      ecg=True, emg=True, ref_meg=False, misc=True,
+                      resp=True, chpi=True, exci=True, ias=True, syst=True,
+                      seeg=False, bio=True, ecog=False, fnirs=False,
+                      exclude=())
+    if len(misc):
+        selections_dict['Misc'] = misc
+    return selections_dict

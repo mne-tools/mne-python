@@ -11,10 +11,10 @@ from functools import partial
 from collections import OrderedDict
 import numpy as np
 from matplotlib.figure import Figure
-from .utils import (plt_show, _setup_plot_projector, _events_off,
+from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list)
-from ..utils import set_config
+from ..utils import set_config, _check_option
 from ..annotations import _sync_onset
 
 
@@ -136,7 +136,7 @@ class MNEAnnotationFigure(MNEFigure):
         self.label.set_text(text)
         self.canvas.draw()
 
-    def _radiopress(self, event=None):
+    def _radiopress(self, event):
         """Handle Radiobutton clicks for Annotation label selection."""
         # update which button looks active
         buttons = self.radio_ax.buttons
@@ -177,6 +177,28 @@ class MNEAnnotationFigure(MNEFigure):
         color[-1] = 0.5
         buttons.circles[idx].set_facecolor(color)
         self.canvas.draw()
+
+
+class MNESelectionFigure(MNEFigure):
+    """Interactive dialog figure for channel selections."""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def _radiopress(self, event):
+        """Handle Radiobutton clicks for channel selection groups."""
+        self.mne.parent_fig._update_selection()
+        #self._set_custom_selection()
+
+    def _set_custom_selection(self):
+        """Set custom selection by lasso selector."""
+        chs = self.lasso.selection
+        if len(chs) == 0:
+            return
+        labels = [label._text for label in self.radio_ax.buttons.labels]
+        inds = np.in1d(self.inst.ch_names, chs)
+        self.mne.selections['Custom'] = np.where(inds)[0]
+        # TODO: not tested; replaces _set_radio_button (old compatibility code)
+        self.mne.fig_selection.radio.set_active(labels.index('Custom'))
 
 
 class MNEBrowseFigure(MNEFigure):
@@ -810,7 +832,7 @@ class MNEBrowseFigure(MNEFigure):
                self.mne.fig_annotation.radio_ax.buttons.labels].index(text)
         self.mne.fig_annotation._set_active_button(idx)
         # simulate a click on the radiobutton → update the span selector color
-        self.mne.fig_annotation._radiopress()
+        self.mne.fig_annotation._radiopress(event=None)
         # reset the text entry box's text
         self.mne.fig_annotation.label.set_text('BAD_')
 
@@ -843,9 +865,9 @@ class MNEBrowseFigure(MNEFigure):
         """Handle annotation span selector."""
         onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
         duration = vmax - vmin
-        radio = self.mne.fig_annotation.radio_ax.buttons
-        labels = [label.get_text() for label in radio.labels]
-        active_idx = labels.index(radio.value_selected)
+        buttons = self.mne.fig_annotation.radio_ax.buttons
+        labels = [label.get_text() for label in buttons.labels]
+        active_idx = labels.index(buttons.value_selected)
         _merge_annotations(onset, onset + duration, labels[active_idx],
                            self.mne.inst.annotations)
         self._draw_annotations()
@@ -928,6 +950,61 @@ class MNEBrowseFigure(MNEFigure):
                 annot_end = annot_start + annot['duration']
                 segments.append((annot_start, annot_end))
         self.mne.annotation_segments = np.array(segments)
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # CHANNEL SELECTIONS
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _create_selection_fig(self, kind):
+        """Organize browser selections."""
+        from matplotlib import rcParams
+        from matplotlib.colors import to_rgb
+        from matplotlib.widgets import RadioButtons
+        selections_dict = self.mne.ch_selections
+        # make figure
+        fig = dialog_figure(figsize=(3, 6), FigureClass=MNESelectionFigure,
+                            figure_type='fig_selection', parent_fig=self)
+        _set_window_title(fig, 'Channel selection')
+        self.mne.fig_selection = fig
+        gs = fig.add_gridspec(3, 1)
+        # add sensor plot at top
+        fig.sensor_ax = fig.add_subplot(gs[0])
+        plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
+                     axes=fig.sensor_ax, ch_groups=kind, show=False)
+        # add radio button axes
+        fig.radio_ax = fig.add_subplot(gs[1:], frameon=False, aspect='equal')
+        # assemble the labels
+        selections_dict.update(Custom=list())  # custom selection with lasso
+        labels = list(selections_dict)
+        edgecolor = rcParams['axes.edgecolor']
+        activecolor = to_rgb(edgecolor) + (0.5,)
+        fig.radio_ax.buttons = RadioButtons(fig.radio_ax, labels,
+                                            activecolor=activecolor)
+        # style the radio buttons
+        for circle in fig.radio_ax.buttons.circles:
+            circle.set_radius(0.25 / len(labels))
+            circle.set_linewidth(2)
+            circle.set_edgecolor(edgecolor)
+        # add event listeners
+        fig.radio_ax.buttons.on_clicked(fig._radiopress)
+        fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
+
+    def _update_selection(self):
+        """Update visible channels based on selection dialog interaction."""
+        selections_dict = self.mne.ch_selections
+        ch_order = np.concatenate(list(selections_dict.values()))
+        label = self.mne.fig_selection.radio_ax.buttons.value_selected
+        # TODO location after update_vscroll behaves errantly; np.where might
+        # be wrong here
+        ch_start = np.where(ch_order == selections_dict[label][0])[0][0]
+        self.mne.ch_start = ch_start
+        # TODO channel labels on y axis not updating
+        # TODO lasso not handled at all
+        self._update_vscroll()
+        self._update_picks()
+        self._update_data()
+        self._draw_traces()
+        self.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTORS
@@ -1338,17 +1415,6 @@ class MNEBrowseFigure(MNEFigure):
     def _update_yaxis_labels(self):
         self.mne.ax_main.set_yticklabels(self.mne.ch_names[self.mne.picks],
                                          rotation=0)
-
-    def _set_custom_selection(self):
-        """Set custom selection by lasso selector."""
-        chs = self.mne.fig_selection.lasso.selection
-        if len(chs) == 0:
-            return
-        labels = [label._text for label in self.mne.fig_selection.radio.labels]
-        inds = np.in1d(self.inst.ch_names, chs)
-        self.mne.selections['Custom'] = np.where(inds)[0]
-        # TODO: not tested; replaces _set_radio_button (old compatibility code)
-        self.mne.fig_selection.radio.set_active(labels.index('Custom'))
 
     def _show_vline(self, xdata):
         """Show the vertical line."""
