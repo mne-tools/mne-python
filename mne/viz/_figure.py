@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list)
-from ..utils import set_config, _check_option
+from ..utils import set_config
 from ..annotations import _sync_onset
 
 
@@ -107,16 +107,14 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
-        from matplotlib.pyplot import close
         parent = self.mne.parent_fig
         # disable span selector
         parent.mne.ax_main.selector.active = False
         # disconnect hover callback
         callback_id = parent.mne._callback_ids['motion_notify_event']
         parent.canvas.callbacks.disconnect(callback_id)
-        # remove reference to self & close
-        parent.mne.fig_annotation = None
-        close(self)
+        # remove parent reference to self, and close
+        super()._close(event)
 
     def _keypress(self, event):
         """Handle keypress events."""
@@ -183,6 +181,12 @@ class MNESelectionFigure(MNEFigure):
     """Interactive dialog figure for channel selections."""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def _close(self, event):
+        """Handle close events."""
+        super()._close(event)
+        # selection fig and main plot fig are linked; closing one closes both.
+        self.mne.parent_fig._close(event)
 
     def _radiopress(self, event):
         """Handle Radiobutton clicks for channel selection groups."""
@@ -411,6 +415,7 @@ class MNEBrowseFigure(MNEFigure):
                 direction = -1 if key == 'up' else 1
                 ch_start = self.mne.ch_start + direction * self.mne.n_channels
                 self.mne.ch_start = np.clip(ch_start, 0, ceiling)
+                self._update_picks()
                 self._update_vscroll()
                 self._update_data()
                 self._draw_traces()
@@ -992,18 +997,38 @@ class MNEBrowseFigure(MNEFigure):
     def _update_selection(self):
         """Update visible channels based on selection dialog interaction."""
         selections_dict = self.mne.ch_selections
-        ch_order = np.concatenate(list(selections_dict.values()))
         label = self.mne.fig_selection.radio_ax.buttons.value_selected
-        # TODO location after update_vscroll behaves errantly; np.where might
-        # be wrong here
-        ch_start = np.where(ch_order == selections_dict[label][0])[0][0]
+        self.mne.picks = selections_dict[label]
+        self.mne.n_channels = len(self.mne.picks)
+        # if "Vertex" is defined, some channels appear twice, so if "Vertex"
+        # is selected, ch_start should be the *first* match; otherwise it
+        # should be the *last* match (since "Vertex" is always the first
+        # selection group, if it exists).
+        index = 0 if label == 'Vertex' else -1
+        ch_order = np.concatenate(list(selections_dict.values()))
+        ch_start = np.where(ch_order == self.mne.picks[0])[0][index]
         self.mne.ch_start = ch_start
-        # TODO channel labels on y axis not updating
-        # TODO lasso not handled at all
-        self._update_vscroll()
-        self._update_picks()
+        print('UPDATE PICKS (MANUALLY)')
+        print(f'ch_start: {self.mne.ch_start}, n_channels: '
+              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
+        self._update_trace_offsets()
+        print('UPDATE TRACE OFFSETS')
+        print(f'ch_start: {self.mne.ch_start}, n_channels: '
+              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
         self._update_data()
+        print('UPDATE DATA')
+        print(f'ch_start: {self.mne.ch_start}, n_channels: '
+              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
         self._draw_traces()
+        print('DRAW TRACES')
+        print(f'ch_start: {self.mne.ch_start}, n_channels: '
+              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
+        print('UPDATE VSCROLL')
+        self._update_vscroll()
+        print(f'ch_start: {self.mne.ch_start}, n_channels: '
+              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
+        print()
+        # TODO lasso not handled at all
         self.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1163,6 +1188,7 @@ class MNEBrowseFigure(MNEFigure):
         new_ch_start = max(0, int(event.ydata - self.mne.n_channels / 2))
         if self.mne.ch_start != new_ch_start:
             self.mne.ch_start = new_ch_start
+            self._update_picks()
             self._update_vscroll()
             return True
         return False
@@ -1171,11 +1197,11 @@ class MNEBrowseFigure(MNEFigure):
     # SCALEBARS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    def _show_scalebars(self, ch_indices):
+    def _show_scalebars(self):
         """Add channel scale bars."""
         offsets = (self.mne.trace_offsets[self.mne.ch_order]
                    if self.mne.butterfly else self.mne.trace_offsets)
-        for ii, ch_ix in enumerate(ch_indices):
+        for ii, ch_ix in enumerate(self.mne.picks):
             this_name = self.mne.ch_names[ch_ix]
             this_type = self.mne.ch_types[ch_ix]
             if (this_name not in self.mne.info['bads'] and
@@ -1203,14 +1229,17 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.scalebars_visible:
             self._hide_scalebars()
         else:
-            if self.mne.butterfly:
-                n_channels = len(self.mne.trace_offsets)
-                ch_start = 0
-            else:
-                n_channels = self.mne.n_channels
-                ch_start = self.mne.ch_start
-            ch_indices = self.mne.ch_order[ch_start:(ch_start + n_channels)]
-            self._show_scalebars(ch_indices)
+            # TODO I think this has become unnecessary
+            #if self.mne.butterfly:
+            #    n_channels = len(self.mne.trace_offsets)
+            #    ch_start = 0
+            #else:
+            #    n_channels = self.mne.n_channels
+            #    ch_start = self.mne.ch_start
+            #ch_indices = self.mne.ch_order[ch_start:(ch_start + n_channels)]
+            #self._show_scalebars(ch_indices)
+            self._update_picks()
+            self._show_scalebars()
         # toggle
         self.mne.scalebars_visible = not self.mne.scalebars_visible
         self.canvas.draw()
@@ -1258,7 +1287,6 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.projector is not None:
             data = self.mne.projector @ data
         # get only the channels we're displaying
-        self._update_picks()
         data = data[self.mne.picks]
         # remove DC
         if self.mne.remove_dc:
@@ -1297,7 +1325,6 @@ class MNEBrowseFigure(MNEFigure):
         """Compute viewport height and adjust offsets."""
         # update picks, ylim, and offsets
         n_channels = self.mne.n_channels
-        self._update_picks()
         ylim = (n_channels - 0.5, -0.5)  # inverted y axis → new chs at bottom
         offsets = np.arange(n_channels, dtype=float)
         # update ylim, ticks, vertline, and scrollbar patch
@@ -1321,7 +1348,7 @@ class MNEBrowseFigure(MNEFigure):
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
-        # TODO: clear event and annotation texts
+        # TODO: clear event texts
         #
         # get indices of currently visible channels
         ch_names = self.mne.ch_names[self.mne.picks]
@@ -1342,7 +1369,7 @@ class MNEBrowseFigure(MNEFigure):
         decim = np.ones_like(self.mne.picks)
         data_picks_mask = np.in1d(self.mne.picks, self.mne.picks_data)
         decim[data_picks_mask] = self.mne.decim
-        # decim can vary by channel type, so compute different times vectors
+        # decim can vary by channel type, so compute different `times` vectors
         decim_times_dict = {decim_value:
                             self.mne.times[::decim_value] + self.mne.first_time
                             for decim_value in set(decim)}
@@ -1352,13 +1379,13 @@ class MNEBrowseFigure(MNEFigure):
             new_traces = self.mne.ax_main.plot(np.full((1, n_new_chs), np.nan),
                                                antialiased=True, linewidth=0.5)
             self.mne.traces.extend(new_traces)
+        # remove extra traces if needed
+        extra_traces = self.mne.traces[len(self.mne.picks):]
+        for trace in extra_traces:
+            self.mne.ax_main.lines.remove(trace)
+        self.mne.traces = self.mne.traces[:len(self.mne.picks)]
         # loop over channels
         for ii, this_line in enumerate(self.mne.traces):
-            # remove extra traces if needed
-            if ii >= len(self.mne.picks):
-                self.mne.ax_main.lines.remove(this_line)
-                _ = self.mne.traces.pop(ii)
-                continue
             this_name = ch_names[ii]
             this_type = ch_types[ii]
             this_times = decim_times_dict[decim[ii]]
@@ -1398,7 +1425,7 @@ class MNEBrowseFigure(MNEFigure):
             this_line.set_zorder(this_z)
         # draw scalebars maybe
         if self.mne.scalebars_visible:
-            self._show_scalebars(self.mne.picks)
+            self._show_scalebars()
         # TODO: WIP event lines
         if self.mne.event_times is not None:
             mask = np.logical_and(self.mne.event_times >= self.mne.times[0],
