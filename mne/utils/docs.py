@@ -72,6 +72,13 @@ tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
 """
 
+# Raw
+docdict['standardize_names'] = """
+standardize_names : bool
+    If True (default in 0.21), standardize MEG and EEG channel names to be
+    ``"MEG ###"`` and ``"EEG ###"``. If False (default in 0.22), native
+    channel names in the file will be used when possible.
+"""
 
 # Reject by annotation
 docdict['reject_by_annotation_all'] = """
@@ -87,13 +94,14 @@ reject_by_annotation : bool
     rejected. If ``False``, no rejection based on annotations is performed.
 """
 docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
-    Has no effect if ``inst`` is not a :class:`mne.io.Raw` object."""
-
+    Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
+"""
 
 # General plotting
 docdict["show"] = """
 show : bool
-    Show figure if True."""
+    Show figure if True.
+"""
 docdict["plot_proj"] = """
 proj : bool | 'interactive' | 'reconstruct'
     If true SSP projections are applied before display. If 'interactive',
