@@ -189,7 +189,7 @@ class MNESelectionFigure(MNEFigure):
     def _close(self, event):
         """Handle close events."""
         super()._close(event)
-        # selection fig and main plot fig are linked; closing one closes both.
+        # selection fig & main fig tightly integrated; closing one closes both
         self.mne.parent_fig._close(event)
 
     def _radiopress(self, event):
@@ -982,13 +982,13 @@ class MNEBrowseFigure(MNEFigure):
                                      fig_name='fig_selection',
                                      window_title='Channel selection')
         self.mne.fig_selection = fig
-        gs = fig.add_gridspec(3, 1)
+        gs = fig.add_gridspec(6, 1)
         # add sensor plot at top
-        fig.sensor_ax = fig.add_subplot(gs[0])
+        fig.sensor_ax = fig.add_subplot(gs[:2])
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
                      axes=fig.sensor_ax, ch_groups=kind, show=False)
         # add radio button axes
-        fig.radio_ax = fig.add_subplot(gs[1:], frameon=False, aspect='equal')
+        fig.radio_ax = fig.add_subplot(gs[2:-1], frameon=False, aspect='equal')
         # assemble the labels
         selections_dict.update(Custom=list())  # custom selection with lasso
         labels = list(selections_dict)
@@ -1001,6 +1001,18 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_radius(0.25 / len(labels))
             circle.set_linewidth(2)
             circle.set_edgecolor(edgecolor)
+        # add instructions at bottom
+        instructions = '\n'.join(
+            ['To use a custom selection, click-drag',
+             'on the sensor plot to "lasso" the',
+             'sensors you want to select. Hold Ctrl',
+             'while click-dragging to add to (rather',
+             'than replace) an existing selection.'
+             ])
+        instructions_ax = fig.add_subplot(gs[-1], frameon=False)
+        instructions_ax.text(0.05, 1, instructions, va='top', ha='left',
+                             ma='left')
+        instructions_ax.set_axis_off()
         # add event listeners
         fig.radio_ax.buttons.on_clicked(fig._radiopress)
         fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
@@ -1010,8 +1022,6 @@ class MNEBrowseFigure(MNEFigure):
         selections_dict = self.mne.ch_selections
         label = self.mne.fig_selection.radio_ax.buttons.value_selected
         if label == 'Custom' and not len(selections_dict['Custom']):
-            # TODO: display message on selection plot (or on main plot?):
-            # 'Use lasso to select sensors on topoplot to define "custom"'
             return
         self.mne.picks = selections_dict[label]
         self.mne.n_channels = len(self.mne.picks)
