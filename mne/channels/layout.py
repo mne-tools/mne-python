@@ -434,10 +434,11 @@ def find_layout(info, ch_type=None, exclude='bads'):
 
     # If no known layout is found, fall back on automatic layout
     if layout_name is None:
-        xy = _find_topomap_coords(info, picks=range(info['nchan']),
-                                  ignore_overlap=True)
-        return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
-                                  normalize=False)
+        picks = _picks_to_idx(info, 'data', exclude=(), with_ref_meg=False)
+        ch_names = [info['ch_names'][pick] for pick in picks]
+        xy = _find_topomap_coords(info, picks=picks, ignore_overlap=True)
+        return generate_2d_layout(xy, ch_names=ch_names, name='custom',
+                                  normalize=True)
 
     layout = read_layout(layout_name)
     if not is_old_vv:

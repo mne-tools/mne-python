@@ -7,7 +7,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import Counter
+from collections import Counter, OrderedDict
 
 import datetime
 import os.path as op
@@ -470,7 +470,7 @@ def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
 
 ##############################################################################
 # From mne.io.kit
-def _set_dig_kit(mrk, elp, hsp):
+def _set_dig_kit(mrk, elp, hsp, eeg):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -489,6 +489,8 @@ def _set_dig_kit(mrk, elp, hsp):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
+    eeg : dict
+        Ordered dict of EEG dig points.
 
     Returns
     -------
@@ -519,8 +521,8 @@ def _set_dig_kit(mrk, elp, hsp):
             raise ValueError("File %r should contain 8 points; got shape "
                              "%s." % (elp, elp_points.shape))
         elp = elp_points
-    elif len(elp) != 8:
-        raise ValueError("ELP should contain 8 points; got shape "
+    elif len(elp) not in (7, 8):
+        raise ValueError("ELP should contain 7 or 8 points; got shape "
                          "%s." % (elp.shape,))
     if isinstance(mrk, str):
         mrk = read_mrk(mrk)
@@ -531,6 +533,7 @@ def _set_dig_kit(mrk, elp, hsp):
     nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     elp = apply_trans(nmtrans, elp)
     hsp = apply_trans(nmtrans, hsp)
+    eeg = OrderedDict((k, apply_trans(nmtrans, p)) for k, p in eeg.items())
 
     # device head transform
     trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
@@ -538,7 +541,7 @@ def _set_dig_kit(mrk, elp, hsp):
     nasion, lpa, rpa = elp[:3]
     elp = elp[3:]
 
-    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
+    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp, dig_ch_pos=eeg)
     dev_head_t = Transform('meg', 'head', trans)
 
     return dig_points, dev_head_t

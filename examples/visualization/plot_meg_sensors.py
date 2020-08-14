@@ -42,7 +42,6 @@ for system, raw in sorted(raws.items()):
     # We don't have coil definitions for KIT refs, so exclude them
     if system != 'KIT':
         meg.append('ref')
-    fig = plot_alignment(raw.info, trans=None, dig=False, eeg=False,
-                         surfaces=[], meg=meg, coord_frame='meg',
-                         verbose=True)
+    fig = plot_alignment(raw.info, eeg=False, meg=('helmet', 'sensors'),
+                         coord_frame='meg', show_axes=True, verbose=True)
     set_3d_title(figure=fig, title=system)
