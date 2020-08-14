@@ -975,43 +975,44 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib import rcParams
         from matplotlib.colors import to_rgb
         from matplotlib.widgets import RadioButtons
+        # convenience
         selections_dict = self.mne.ch_selections
         # make figure
-        fig = self._new_child_figure(figsize=(3, 6),
+        fig = self._new_child_figure(figsize=(3, 7),
                                      FigureClass=MNESelectionFigure,
                                      fig_name='fig_selection',
                                      window_title='Channel selection')
         self.mne.fig_selection = fig
-        gs = fig.add_gridspec(6, 1)
+        gs = fig.add_gridspec(15, 1)
         # add sensor plot at top
-        fig.sensor_ax = fig.add_subplot(gs[:2])
+        fig.sensor_ax = fig.add_subplot(gs[:5])
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
                      axes=fig.sensor_ax, ch_groups=kind, show=False)
+        # style the sensors so their facecolor is easier to distinguish
+        fig.sensor_ax.collections[0].set_linewidth(1)
         # add radio button axes
-        fig.radio_ax = fig.add_subplot(gs[2:-1], frameon=False, aspect='equal')
-        # assemble the labels
+        fig.radio_ax = fig.add_subplot(gs[5:-3], frameon=False, aspect='equal')
         selections_dict.update(Custom=list())  # custom selection with lasso
         labels = list(selections_dict)
+        # make & style the radio buttons
         edgecolor = rcParams['axes.edgecolor']
         activecolor = to_rgb(edgecolor) + (0.5,)
         fig.radio_ax.buttons = RadioButtons(fig.radio_ax, labels,
                                             activecolor=activecolor)
-        # style the radio buttons
         for circle in fig.radio_ax.buttons.circles:
             circle.set_radius(0.25 / len(labels))
             circle.set_linewidth(2)
             circle.set_edgecolor(edgecolor)
         # add instructions at bottom
-        instructions = '\n'.join(
-            ['To use a custom selection, click-drag',
-             'on the sensor plot to "lasso" the',
-             'sensors you want to select. Hold Ctrl',
-             'while click-dragging to add to (rather',
-             'than replace) an existing selection.'
-             ])
-        instructions_ax = fig.add_subplot(gs[-1], frameon=False)
-        instructions_ax.text(0.05, 1, instructions, va='top', ha='left',
-                             ma='left')
+        instructions = (
+            'To use a custom selection, click-drag on the sensor plot to '
+            '"lasso" the sensors you want to select, or hold Ctrl while '
+            'clicking individual sensors. Holding Ctrl while click-dragging '
+            'allows lasso selection that adds to (rather than replacing) an '
+            'existing selection.')
+        instructions_ax = fig.add_subplot(gs[-3:], frameon=False)
+        instructions_ax.text(0.04, 0.08, instructions, va='bottom', ha='left',
+                             ma='left', wrap=True)
         instructions_ax.set_axis_off()
         # add event listeners
         fig.radio_ax.buttons.on_clicked(fig._radiopress)
@@ -1025,6 +1026,10 @@ class MNEBrowseFigure(MNEFigure):
             return
         self.mne.picks = selections_dict[label]
         self.mne.n_channels = len(self.mne.picks)
+        # update the sensor plot to show what is selected
+        inds = np.in1d(self.mne.fig_selection.lasso.ch_names,
+                       self.mne.ch_names[self.mne.picks])
+        self.mne.fig_selection.lasso.select_many(inds.nonzero()[0])
         # if "Vertex" is defined, some channels appear twice, so if "Vertex"
         # is selected, ch_start should be the *first* match; otherwise it
         # should be the *last* match (since "Vertex" is always the first

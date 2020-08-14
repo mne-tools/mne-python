@@ -2122,17 +2122,8 @@ class SelectFromCollection(object):
             inters = set(inds) - set(sels)
             inds = list(inters.union(set(sels) - set(inds)))
 
-        while len(self.selection) > 0:
-            self.selection.pop(0)
-        self.selection.extend(self.ch_names[inds])
-        self.fc[:, -1] = self.alpha_other
-        self.fc[inds, -1] = 1
-        self.collection.set_facecolors(self.fc)
-
-        self.ec[:, -1] = self.alpha_other
-        self.ec[inds, -1] = 1
-        self.collection.set_edgecolors(self.ec)
-        self.canvas.draw_idle()
+        self.selection = self.ch_names[inds]
+        self.style_sensors(inds)
         self.canvas.callbacks.process('lasso_event')
 
     def select_one(self, ind):
@@ -2141,16 +2132,27 @@ class SelectFromCollection(object):
         if ch_name in self.selection:
             sel_ind = self.selection.index(ch_name)
             self.selection.pop(sel_ind)
-            this_alpha = self.alpha_other
         else:
             self.selection.append(ch_name)
-            this_alpha = 1
-        self.fc[ind, -1] = this_alpha
-        self.ec[ind, -1] = this_alpha
+        inds = np.in1d(self.ch_names, self.selection).nonzero()[0]
+        self.style_sensors(inds)
+        self.canvas.callbacks.process('lasso_event')
+
+    def select_many(self, inds):
+        """Select many sensors using indices (for predefined selections)."""
+        self.selection = np.array(self.ch_names)[inds].tolist()
+        self.style_sensors(inds)
+
+    def style_sensors(self, inds, reset=True):
+        """Style selected sensors as "active", optionally resetting others."""
+        if reset:
+            self.fc[:, -1] = self.alpha_other
+            self.ec[:, -1] = self.alpha_other
+        self.fc[inds, -1] = 1
+        self.ec[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
-        self.canvas.callbacks.process('lasso_event')
 
     def disconnect(self):
         """Disconnect the lasso selector."""
