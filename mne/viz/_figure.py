@@ -20,6 +20,7 @@ from ..annotations import _sync_onset
 
 class MNEFigParams:
     """Container object for MNE figure parameters."""
+
     def __init__(self, **kwargs):
         # default key to close window
         self.close_key = 'escape'
@@ -28,6 +29,7 @@ class MNEFigParams:
 
 class MNEFigure(Figure):
     """Wrapper of matplotlib.figure.Figure; adds MNE-Python figure params."""
+
     def __init__(self, **kwargs):
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
@@ -40,7 +42,7 @@ class MNEFigure(Figure):
         from matplotlib.pyplot import close
         # remove reference from parent fig to ancillary fig
         if getattr(self.mne, 'parent_fig', None) is not None:
-            setattr(self.mne.parent_fig.mne, self.mne.figure_type, None)
+            setattr(self.mne.parent_fig.mne, self.mne.fig_name, None)
         close(self)
 
     def _keypress(self, event):
@@ -102,6 +104,7 @@ class MNEFigure(Figure):
 
 class MNEAnnotationFigure(MNEFigure):
     """Interactive dialog figure for annotations."""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -179,6 +182,7 @@ class MNEAnnotationFigure(MNEFigure):
 
 class MNESelectionFigure(MNEFigure):
     """Interactive dialog figure for channel selections."""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -207,6 +211,7 @@ class MNESelectionFigure(MNEFigure):
 
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
+
     def __init__(self, inst, xlabel='Time (s)', **kwargs):
         from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_size import Fixed
@@ -321,6 +326,12 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.button_help = button_help
         self.mne.button_proj = button_proj
 
+    def _new_child_figure(self, **kwargs):
+        """Instantiate a new MNE dialog figure (with event listeners)."""
+        fig = _figure(toolbar=False, parent_fig=self, **kwargs)
+        fig._add_default_callbacks()
+        return fig
+
     def _close(self, event=None):
         """Clean up auxiliary figures when main figure is closed."""
         from matplotlib.pyplot import close
@@ -421,7 +432,7 @@ class MNEBrowseFigure(MNEFigure):
                 self._draw_traces()
             self.canvas.draw()
         elif key in ('right', 'left', 'shift+right', 'shift+left'):
-            old_t_start  = self.mne.t_start
+            old_t_start = self.mne.t_start
             direction = 1 if key.endswith('right') else -1
             denom = 1 if key.startswith('shift') else 4
             t_max = self.mne.inst.times[-1] - self.mne.duration
@@ -606,16 +617,15 @@ class MNEBrowseFigure(MNEFigure):
         width = (longest_key + longest_val) / 12
         height = (n_lines) / 5
         # create figure and axes
-        fig = dialog_figure(figsize=(width, height), figure_type='fig_help',
-                            parent_fig=self)
-        _set_window_title(fig, 'Help')
+        fig = self._new_child_figure(figsize=(width, height),
+                                     fig_name='fig_help',
+                                     window_title='Help')
+        self.mne.fig_help = fig
         ax = fig.add_axes((0.01, 0.01, 0.98, 0.98))
         ax.set_axis_off()
         kwargs = dict(va='top', linespacing=1.5, usetex=False)
         ax.text(0.42, 1, keys, ma='right', ha='right', **kwargs)
         ax.text(0.42, 1, vals, ma='left', ha='left', **kwargs)
-        # add event listeners, and save
-        self.mne.fig_help = fig
 
     def _toggle_help_fig(self, event):
         """Show/hide the annotation dialog window."""
@@ -636,7 +646,7 @@ class MNEBrowseFigure(MNEFigure):
         ch_keys = ('⌘ + ↑', '⌘ + ↓') if is_mac else ('Page up', 'Page down')
         # adapt descriptions to different instance types
         dur_vals = ([f'Show {n} epochs' for n in ('fewer', 'more')]
-                    if inst ==  'epochs' else
+                    if inst == 'epochs' else
                     [f'Show {d} time window' for d in ('shorter', 'longer')])
         ch_vals = [f'{inc_dec} number of visible {ch_cmp}s' for inc_dec in
                    ('Increase', 'Decrease')]
@@ -701,11 +711,11 @@ class MNEBrowseFigure(MNEFigure):
         labels = np.array(sorted(set(self.mne.inst.annotations.description)))
         width, var_height, fixed_height, pad = \
             self._compute_annotation_figsize(len(labels))
-        fig = dialog_figure(figsize=(width, var_height + fixed_height),
-                            FigureClass=MNEAnnotationFigure,
-                            figure_type='fig_annotation',
-                            parent_fig=self)
-        _set_window_title(fig, 'Annotations')
+        figsize = (width, var_height + fixed_height)
+        fig = self._new_child_figure(figsize=figsize,
+                                     FigureClass=MNEAnnotationFigure,
+                                     fig_name='fig_annotation',
+                                     window_title='Annotations')
         self.mne.fig_annotation = fig
         # make main axes
         left = fig._inch_to_rel(pad)
@@ -967,9 +977,10 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.widgets import RadioButtons
         selections_dict = self.mne.ch_selections
         # make figure
-        fig = dialog_figure(figsize=(3, 6), FigureClass=MNESelectionFigure,
-                            figure_type='fig_selection', parent_fig=self)
-        _set_window_title(fig, 'Channel selection')
+        fig = self._new_child_figure(figsize=(3, 6),
+                                     FigureClass=MNESelectionFigure,
+                                     fig_name='fig_selection',
+                                     window_title='Channel selection')
         self.mne.fig_selection = fig
         gs = fig.add_gridspec(3, 1)
         # add sensor plot at top
@@ -1047,9 +1058,10 @@ class MNEBrowseFigure(MNEFigure):
         # make figure
         width = max([4, max([len(label) for label in labels]) / 6 + 0.5])
         height = (len(projs) + 1) / 6 + 1.5
-        fig = dialog_figure(figsize=(width, height), figure_type='fig_proj',
-                            parent_fig=self)
-        _set_window_title(fig, 'SSP projection vectors')
+        fig = self._new_child_figure(figsize=(width, height),
+                                     fig_name='fig_proj',
+                                     window_title='SSP projection vectors')
+        self.mne.fig_proj = fig
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
@@ -1078,7 +1090,6 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.proj_all.on_clicked(partial(self._toggle_proj_checkbox,
                                              toggle_all=True))
         # save params
-        self.mne.fig_proj = fig
         self.mne._proj_checkboxes = checkboxes
         # show figure (this should work for non-test cases)
         try:
@@ -1464,9 +1475,12 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
     from matplotlib.pyplot import figure
+    title = kwargs.pop('window_title', None)  # extract title before init
     rc = dict() if toolbar else dict(toolbar='none')
     with rc_context(rc=rc):
         fig = figure(FigureClass=FigureClass, **kwargs)
+    if title is not None:
+        _set_window_title(fig, title)
     return fig
 
 
@@ -1486,14 +1500,5 @@ def browse_figure(inst, **kwargs):
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
     # add event callbacks
-    fig._add_default_callbacks()
-    return fig
-
-
-def dialog_figure(**kwargs):
-    """Instantiate a new MNE dialog figure (with event listeners)."""
-    # TODO convert to method of MNEBrowseFig? we always need parent_fig=self...
-    fig = _figure(toolbar=False, **kwargs)
-    # add our event callbacks
     fig._add_default_callbacks()
     return fig
