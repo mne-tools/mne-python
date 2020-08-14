@@ -195,7 +195,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # deal with compensation (only relevant for CTF data, either CTF
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
-        if self._read_comp_grade is not None:
+        if self._read_comp_grade is not None and len(info['comps']):
             logger.info('Current compensation grade : %d'
                         % self._read_comp_grade)
         self._comp = None
