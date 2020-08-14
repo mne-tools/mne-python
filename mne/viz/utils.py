@@ -2071,6 +2071,8 @@ class SelectFromCollection(object):
         To highlight a selection, this tool sets all selected points to an
         alpha value of 1 and non-selected points to ``alpha_other``.
         Defaults to 0.3.
+    linewidth_other : float
+        Linewidth to use for non-selected sensors. Default is 1.
 
     Notes
     -----
@@ -2078,8 +2080,8 @@ class SelectFromCollection(object):
     (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
     """
 
-    def __init__(self, ax, collection, ch_names,
-                 alpha_other=0.3):
+    def __init__(self, ax, collection, ch_names, alpha_other=0.3,
+                 linewidth_other=1):
         from matplotlib import __version__
         if LooseVersion(__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
@@ -2090,6 +2092,7 @@ class SelectFromCollection(object):
         self.collection = collection
         self.ch_names = ch_names
         self.alpha_other = alpha_other
+        self.linewidth_other = linewidth_other
 
         self.xys = collection.get_offsets()
         self.Npts = len(self.xys)
@@ -2097,6 +2100,7 @@ class SelectFromCollection(object):
         # Ensure that we have separate colors for each object
         self.fc = collection.get_facecolors()
         self.ec = collection.get_edgecolors()
+        self.lw = collection.get_linewidths()
         if len(self.fc) == 0:
             raise ValueError('Collection must have a facecolor')
         elif len(self.fc) == 1:
@@ -2104,9 +2108,10 @@ class SelectFromCollection(object):
             self.ec = np.tile(self.ec, self.Npts).reshape(self.Npts, -1)
         self.fc[:, -1] = self.alpha_other  # deselect in the beginning
         self.ec[:, -1] = self.alpha_other
+        self.lw = np.full(self.Npts, self.linewidth_other)
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
-                                   lineprops={'color': 'red', 'linewidth': .5})
+                                   lineprops=dict(color='red', linewidth=0.5))
         self.selection = list()
 
     def on_select(self, verts):
@@ -2143,15 +2148,19 @@ class SelectFromCollection(object):
         self.selection = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
 
-    def style_sensors(self, inds, reset=True):
-        """Style selected sensors as "active", optionally resetting others."""
-        if reset:
-            self.fc[:, -1] = self.alpha_other
-            self.ec[:, -1] = self.alpha_other
+    def style_sensors(self, inds):
+        """Style selected sensors as "active"."""
+        # reset
+        self.fc[:, -1] = self.alpha_other
+        self.ec[:, -1] = self.alpha_other
+        self.lw[:] = self.linewidth_other
+        # style sensors at `inds`
         self.fc[inds, -1] = 1
         self.ec[inds, -1] = 1
+        self.lw[inds] = 2
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
+        self.collection.set_linewidths(self.lw)
         self.canvas.draw_idle()
 
     def disconnect(self):

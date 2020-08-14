@@ -990,6 +990,7 @@ class MNEBrowseFigure(MNEFigure):
                      axes=fig.sensor_ax, ch_groups=kind, show=False)
         # style the sensors so their facecolor is easier to distinguish
         fig.sensor_ax.collections[0].set_linewidth(1)
+        self._update_highlighted_sensors()
         # add radio button axes
         fig.radio_ax = fig.add_subplot(gs[5:-3], frameon=False, aspect='equal')
         selections_dict.update(Custom=list())  # custom selection with lasso
@@ -1008,7 +1009,7 @@ class MNEBrowseFigure(MNEFigure):
             'To use a custom selection, click-drag on the sensor plot to '
             '"lasso" the sensors you want to select, or hold Ctrl while '
             'clicking individual sensors. Holding Ctrl while click-dragging '
-            'allows lasso selection that adds to (rather than replacing) an '
+            'allows a lasso selection adding to (rather than replacing) the '
             'existing selection.')
         instructions_ax = fig.add_subplot(gs[-3:], frameon=False)
         instructions_ax.text(0.04, 0.08, instructions, va='bottom', ha='left',
@@ -1026,10 +1027,7 @@ class MNEBrowseFigure(MNEFigure):
             return
         self.mne.picks = selections_dict[label]
         self.mne.n_channels = len(self.mne.picks)
-        # update the sensor plot to show what is selected
-        inds = np.in1d(self.mne.fig_selection.lasso.ch_names,
-                       self.mne.ch_names[self.mne.picks])
-        self.mne.fig_selection.lasso.select_many(inds.nonzero()[0])
+        self._update_highlighted_sensors()
         # if "Vertex" is defined, some channels appear twice, so if "Vertex"
         # is selected, ch_start should be the *first* match; otherwise it
         # should be the *last* match (since "Vertex" is always the first
@@ -1043,6 +1041,12 @@ class MNEBrowseFigure(MNEFigure):
         self._draw_traces()
         self._update_vscroll()
         self.canvas.draw()
+
+    def _update_highlighted_sensors(self):
+        """Update the sensor plot to show what is selected."""
+        inds = np.in1d(self.mne.fig_selection.lasso.ch_names,
+                       self.mne.ch_names[self.mne.picks])
+        self.mne.fig_selection.lasso.select_many(inds.nonzero()[0])
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTORS
