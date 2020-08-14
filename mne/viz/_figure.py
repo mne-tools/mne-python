@@ -193,20 +193,20 @@ class MNESelectionFigure(MNEFigure):
         self.mne.parent_fig._close(event)
 
     def _radiopress(self, event):
-        """Handle Radiobutton clicks for channel selection groups."""
+        """Handle RadioButton clicks for channel selection groups."""
         self.mne.parent_fig._update_selection()
-        #self._set_custom_selection()
+        # TODO update topomap indicating which sensors are being shown
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
         chs = self.lasso.selection
-        if len(chs) == 0:
+        if not len(chs):
             return
         labels = [label._text for label in self.radio_ax.buttons.labels]
-        inds = np.in1d(self.inst.ch_names, chs)
-        self.mne.selections['Custom'] = np.where(inds)[0]
-        # TODO: not tested; replaces _set_radio_button (old compatibility code)
-        self.mne.fig_selection.radio.set_active(labels.index('Custom'))
+        inds = np.in1d(self.mne.parent_fig.mne.ch_names, chs)
+        self.mne.parent_fig.mne.ch_selections['Custom'] = np.where(inds)[0]
+        buttons = self.radio_ax.buttons
+        buttons.set_active(labels.index('Custom'))
 
 
 class MNEBrowseFigure(MNEFigure):
@@ -1009,6 +1009,10 @@ class MNEBrowseFigure(MNEFigure):
         """Update visible channels based on selection dialog interaction."""
         selections_dict = self.mne.ch_selections
         label = self.mne.fig_selection.radio_ax.buttons.value_selected
+        if label == 'Custom' and not len(selections_dict['Custom']):
+            # TODO: display message on selection plot (or on main plot?):
+            # 'Use lasso to select sensors on topoplot to define "custom"'
+            return
         self.mne.picks = selections_dict[label]
         self.mne.n_channels = len(self.mne.picks)
         # if "Vertex" is defined, some channels appear twice, so if "Vertex"
@@ -1019,27 +1023,10 @@ class MNEBrowseFigure(MNEFigure):
         ch_order = np.concatenate(list(selections_dict.values()))
         ch_start = np.where(ch_order == self.mne.picks[0])[0][index]
         self.mne.ch_start = ch_start
-        print('UPDATE PICKS (MANUALLY)')
-        print(f'ch_start: {self.mne.ch_start}, n_channels: '
-              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
         self._update_trace_offsets()
-        print('UPDATE TRACE OFFSETS')
-        print(f'ch_start: {self.mne.ch_start}, n_channels: '
-              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
         self._update_data()
-        print('UPDATE DATA')
-        print(f'ch_start: {self.mne.ch_start}, n_channels: '
-              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
         self._draw_traces()
-        print('DRAW TRACES')
-        print(f'ch_start: {self.mne.ch_start}, n_channels: '
-              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
-        print('UPDATE VSCROLL')
         self._update_vscroll()
-        print(f'ch_start: {self.mne.ch_start}, n_channels: '
-              f'{self.mne.n_channels}, n_traces: {len(self.mne.traces)}')
-        print()
-        # TODO lasso not handled at all
         self.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
