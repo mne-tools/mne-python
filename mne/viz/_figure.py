@@ -1239,6 +1239,7 @@ class MNEBrowseFigure(MNEFigure):
         offsets = self.mne.trace_offsets
         picks = (np.arange(self.mne.data.shape[0]) if self.mne.butterfly else
                  self.mne.picks)
+        # TODO if butterfly, don't loop over all picks, just loop over offsets
         for ii, ch_ix in enumerate(picks):
             this_name = self.mne.ch_names[ch_ix]
             this_type = self.mne.ch_types[ch_ix]
@@ -1437,6 +1438,7 @@ class MNEBrowseFigure(MNEFigure):
         for trace in extra_traces:
             self.mne.ax_main.lines.remove(trace)
         self.mne.traces = self.mne.traces[:n_picks]
+        # TODO if butterfly, see if MPL linecollection is faster
         # loop over channels
         for ii, this_line in enumerate(self.mne.traces):
             this_name = ch_names[ii]
