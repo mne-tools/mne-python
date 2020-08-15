@@ -313,3 +313,5 @@
 .. _Johann Benerradi: https://github.com/HanBnrd
 
 .. _Rahul Nadkarni: https://github.com/rahuln
+
+.. _Jonathan Kuziek:  https://github.com/kuziekj

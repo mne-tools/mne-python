@@ -1,6 +1,6 @@
 """fNIRS module for conversion to FIF."""
 
-# Author: Robert Luke <mail@robertluke.net>
+# Authors: Kyle Mathewson, Jonathan Kuziek <kuziek@ualberta.ca>
 #
 # License: BSD (3-clause)
 

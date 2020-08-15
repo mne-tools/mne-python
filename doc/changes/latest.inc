@@ -12,6 +12,10 @@
 Current (0.21.dev0)
 -------------------
 
+- Add reader for BOXY data in :func:`mne.io.read_raw_boxy` by `Kyle Mathewson`_ and `Jonathan Kuziek`_
+
+
+
 Changelog
 ~~~~~~~~~
 

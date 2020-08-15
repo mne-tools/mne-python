@@ -37,6 +37,21 @@ using :func:`mne.io.read_raw_snirf`.
              stored in the .snirf format.
 
 
+.. _import-boxy:
+
+BOXY (.txt)
+================================
+
+BOXY recordings can be read in using :func:`mne.io.read_raw_boxy`.
+The BOXY software and Imagent devices store data in a single .txt file
+containing DC, AC, and Phase information for each source and detector
+combination. These raw data files can be saved as parsed or unparsed .txt
+files, which affects how the data in the file is organised.
+MNE will read either file type and extract the raw DC, AC, and Phase data.
+If triggers are sent using the 'digaux' port of the recording hardware, MNE
+will also read the 'digaux' data and create annotations for any triggers.
+
+
 Storing of optode locations
 ===========================
 

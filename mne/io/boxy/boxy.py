@@ -1,4 +1,4 @@
-# Authors: Kyle Mathewson, Jonathan Kuziek <kuziekj@ualberta.ca>
+# Authors: Kyle Mathewson, Jonathan Kuziek <kuziek@ualberta.ca>
 #
 # License: BSD (3-clause)
 
