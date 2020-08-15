@@ -16,6 +16,7 @@ from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _get_color_list)
 from ..utils import set_config
 from ..annotations import _sync_onset
+from ..io.pick import _DATA_CH_TYPES_ORDER_DEFAULT
 
 
 class MNEFigParams:
@@ -195,7 +196,6 @@ class MNESelectionFigure(MNEFigure):
     def _radiopress(self, event):
         """Handle RadioButton clicks for channel selection groups."""
         self.mne.parent_fig._update_selection()
-        # TODO update topomap indicating which sensors are being shown
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
@@ -239,21 +239,19 @@ class MNEBrowseFigure(MNEFigure):
 
         # additional params for browse figures
         self.mne.projector = None
-        # # channel
-        # self.mne.group_by = None
         self.mne.whitened_ch_names = list()
-        # # annotations
+        # annotations
         self.mne.annotation_segments = list()
         self.mne.annotation_texts = list()
         self.mne.added_labels = list()
         self.mne.segment_colors = dict()
         self.mne.segment_line = None
         self.mne.draggable_annotations = False
-        # # scalings
-        self.mne.scale_factor = 1.
+        # scalings
+        self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
-        # # ancillary figures
+        # ancillary figures
         self.mne.fig_help = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
@@ -335,7 +333,9 @@ class MNEBrowseFigure(MNEFigure):
     def _close(self, event=None):
         """Clean up auxiliary figures when main figure is closed."""
         from matplotlib.pyplot import close
-        # write temporary info object back to instance (bads, active projs)
+        # write temporary info object back to instance (for bads, but don't
+        # persist changes to proj checkboxes)
+        self.mne.info['projs'] = self.mne.inst.info['projs']
         self.mne.inst.info = self.mne.info
         # close ancillary figs
         aux_figs = ('fig_annotation', 'fig_help', 'fig_proj', 'fig_selection')
@@ -480,9 +480,12 @@ class MNEBrowseFigure(MNEFigure):
             if self.mne.instance_type == 'raw':
                 self._toggle_annotation_fig()
         elif key == 'b':  # toggle butterfly mode
+            self.mne.ax_vscroll.set_visible(self.mne.butterfly)
             self.mne.butterfly = not self.mne.butterfly
+            self._update_trace_offsets()
             self._update_data()
             self._draw_traces()
+            self._draw_annotations()
             self.canvas.draw()
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
@@ -942,8 +945,8 @@ class MNEBrowseFigure(MNEFigure):
         ax = self.mne.ax_main
         ylim = ax.get_ylim()
         for idx, (start, end) in enumerate(segments):
-            dscr = self.mne.inst.annotations.description[idx]
-            segment_color = self.mne.segment_colors[dscr]
+            descr = self.mne.inst.annotations.description[idx]
+            segment_color = self.mne.segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3)
             # draw all segments on ax_hscroll
             self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
@@ -951,8 +954,10 @@ class MNEBrowseFigure(MNEFigure):
             visible_segment = np.clip([start, end], times[0], times[-1])
             if np.diff(visible_segment) > 0:
                 ax.fill_betweenx(ylim, *visible_segment, **kwargs)
-                text = ax.text(visible_segment.mean(), ylim[1] - 0.1, dscr,
-                               ha='center', color=segment_color)
+                xy = (visible_segment.mean(), ylim[1])
+                text = ax.annotate(descr, xy, xytext=(0, 4),
+                                   textcoords='offset points', ha='center',
+                                   va='baseline', color=segment_color)
                 self.mne.annotation_texts.append(text)
 
     def _update_annotation_segments(self):
@@ -1216,9 +1221,10 @@ class MNEBrowseFigure(MNEFigure):
 
     def _show_scalebars(self):
         """Add channel scale bars."""
-        offsets = (self.mne.trace_offsets[self.mne.ch_order]
-                   if self.mne.butterfly else self.mne.trace_offsets)
-        for ii, ch_ix in enumerate(self.mne.picks):
+        offsets = self.mne.trace_offsets
+        picks = (np.arange(self.mne.data.shape[0]) if self.mne.butterfly else
+                 self.mne.picks)
+        for ii, ch_ix in enumerate(picks):
             this_name = self.mne.ch_names[ch_ix]
             this_type = self.mne.ch_types[ch_ix]
             if (this_name not in self.mne.info['bads'] and
@@ -1229,7 +1235,8 @@ class MNEBrowseFigure(MNEFigure):
                     this_type in getattr(self.mne, 'unit_scalings', {}) and
                     this_type not in self.mne.scalebars):
                 x = (self.mne.times[0] + self.mne.first_time,) * 2
-                y = tuple(np.array([-0.5, 0.5]) + offsets[ii])
+                denom = 4 if self.mne.butterfly else 2
+                y = tuple(np.array([-1, 1]) / denom + offsets[ii])
                 self._draw_one_scalebar(x, y, this_type)
 
     def _hide_scalebars(self):
@@ -1266,7 +1273,9 @@ class MNEBrowseFigure(MNEFigure):
         from .utils import _simplify_float
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=5)
-        inv_norm = (2 * self.mne.scalings[ch_type] *
+        scaler = 1 if self.mne.butterfly else 2
+        inv_norm = (scaler *
+                    self.mne.scalings[ch_type] *
                     self.mne.unit_scalings[ch_type] /
                     self.mne.scale_factor)
         bar = self.mne.ax_main.plot(x, y, lw=4, **kwargs)[0]
@@ -1304,7 +1313,9 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.projector is not None:
             data = self.mne.projector @ data
         # get only the channels we're displaying
-        data = data[self.mne.picks]
+        picks = (np.arange(data.shape[0]) if self.mne.butterfly else
+                 self.mne.picks)
+        data = data[picks]
         # remove DC
         if self.mne.remove_dc:
             data -= data.mean(axis=1, keepdims=True)
@@ -1315,7 +1326,7 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(self.mne.picks, self.mne.picks_data))
+                _picks = np.where(np.in1d(picks, self.mne.picks_data))
                 this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(
@@ -1325,7 +1336,7 @@ class MNEBrowseFigure(MNEFigure):
                         this_data, self.mne.filter_coefs, None, 1, False)
                 data[_picks, _start:_stop] = this_data
         # scale the data for display in a 1-vertical-axis-unit slot
-        for trace_ix, pick in enumerate(self.mne.picks):
+        for trace_ix, pick in enumerate(picks):
             if self.mne.ch_types[pick] == 'stim':
                 norm = max(data[trace_ix])
             elif self.mne.ch_names[pick] in self.mne.whitened_ch_names and \
@@ -1340,14 +1351,22 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_trace_offsets(self):
         """Compute viewport height and adjust offsets."""
-        # update picks, ylim, and offsets
-        n_channels = self.mne.n_channels
-        ylim = (n_channels - 0.5, -0.5)  # inverted y axis → new chs at bottom
-        offsets = np.arange(n_channels, dtype=float)
+        # update offsets
+        if self.mne.butterfly:
+            this_ch_types = set(self.mne.ch_types)
+            n_offsets = len(this_ch_types)
+            ch_type_order = [_type for _type in _DATA_CH_TYPES_ORDER_DEFAULT
+                             if _type in this_ch_types]
+            offsets = np.array([ch_type_order.index(ch_type)
+                                for ch_type in self.mne.ch_types])
+        else:
+            n_offsets = self.mne.n_channels
+            offsets = np.arange(n_offsets, dtype=float)
         # update ylim, ticks, vertline, and scrollbar patch
+        ylim = (n_offsets - 0.5, -0.5)  # inverted y axis → new chs at bottom
         self.mne.ax_main.set_ylim(ylim)
-        self.mne.ax_main.set_yticks(offsets)
-        self.mne.vsel_patch.set_height(n_channels)
+        self.mne.ax_main.set_yticks(np.unique(offsets))
+        self.mne.vsel_patch.set_height(self.mne.n_channels)
         _x = self.mne.vline._x
         self.mne.vline.set_data(_x, np.array(ylim))
         # store new offsets, update axis labels
@@ -1357,56 +1376,58 @@ class MNEBrowseFigure(MNEFigure):
     def _draw_traces(self, event_lines=None, event_color=None):
         """Draw (or redraw) the channel data."""
         from matplotlib.patches import Rectangle
-
-        if self.mne.butterfly:
-            offsets = self.mne.trace_offsets[self.mne.ch_order]
-        else:
-            offsets = self.mne.trace_offsets
+        from matplotlib import rcParams
+        # convenience
+        butterfly = self.mne.butterfly
+        offsets = self.mne.trace_offsets
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
-        # TODO: clear event texts
+        # TODO: clear event texts?
         #
         # get indices of currently visible channels
-        ch_names = self.mne.ch_names[self.mne.picks]
-        ch_types = self.mne.ch_types[self.mne.picks]
+        picks = (np.arange(self.mne.data.shape[0]) if butterfly else
+                 self.mne.picks)
+        ch_names = self.mne.ch_names[picks]
+        ch_types = self.mne.ch_types[picks]
         # colors
         bads = self.mne.info['bads']
-        labels = self.mne.ax_main.yaxis.get_ticklabels()
         def_colors = [self.mne.color_dict[_type] for _type in ch_types]
         ch_colors = [self.mne.bad_color if _name in bads else def_color
                      for _name, def_color in zip(ch_names, def_colors)]
-        if self.mne.butterfly:
+        labels = self.mne.ax_main.yaxis.get_ticklabels()
+        if butterfly:
             for label in labels:
-                label.set_color('black')  # TODO make compat. w/ MPL dark style
+                label.set_color(rcParams['axes.edgecolor'])
         else:
             for label, color in zip(labels, ch_colors):
                 label.set_color(color)
         # decim
-        decim = np.ones_like(self.mne.picks)
-        data_picks_mask = np.in1d(self.mne.picks, self.mne.picks_data)
+        decim = np.ones_like(picks)
+        data_picks_mask = np.in1d(picks, self.mne.picks_data)
         decim[data_picks_mask] = self.mne.decim
         # decim can vary by channel type, so compute different `times` vectors
         decim_times_dict = {decim_value:
                             self.mne.times[::decim_value] + self.mne.first_time
                             for decim_value in set(decim)}
         # add more traces if needed
-        if len(self.mne.picks) > len(self.mne.traces):
-            n_new_chs = len(self.mne.picks) - len(self.mne.traces)
+        n_picks = len(picks)
+        if n_picks > len(self.mne.traces):
+            n_new_chs = n_picks - len(self.mne.traces)
             new_traces = self.mne.ax_main.plot(np.full((1, n_new_chs), np.nan),
                                                antialiased=True, linewidth=0.5)
             self.mne.traces.extend(new_traces)
         # remove extra traces if needed
-        extra_traces = self.mne.traces[len(self.mne.picks):]
+        extra_traces = self.mne.traces[n_picks:]
         for trace in extra_traces:
             self.mne.ax_main.lines.remove(trace)
-        self.mne.traces = self.mne.traces[:len(self.mne.picks)]
+        self.mne.traces = self.mne.traces[:n_picks]
         # loop over channels
         for ii, this_line in enumerate(self.mne.traces):
             this_name = ch_names[ii]
             this_type = ch_types[ii]
             this_times = decim_times_dict[decim[ii]]
-            # do not update data in-place!
+            # do not scale data in-place!
             this_data = self.mne.data[ii] * self.mne.scale_factor
             # clip
             if self.mne.clipping == 'clamp':
@@ -1415,8 +1436,9 @@ class MNEBrowseFigure(MNEFigure):
                 l, w = this_times[0], this_times[-1] - this_times[0]
                 ylim = self.mne.ax_main.get_ylim()
                 assert ylim[1] <= ylim[0]  # inverted
-                b = offsets[ii] - self.mne.clipping
-                h = 2 * self.mne.clipping
+                clip = self.mne.clipping * (0.2 if butterfly else 1)
+                b = offsets[ii] - clip
+                h = 2 * clip
                 b = max(b, ylim[1])
                 h = min(h, ylim[0] - b)
                 rect = Rectangle((l, b), w, h,
@@ -1425,7 +1447,6 @@ class MNEBrowseFigure(MNEFigure):
             # update trace data
             # subtraction yields correct orientation given inverted ylim
             this_line.set_xdata(this_times)
-            self.mne.ax_main.set_xlim(this_times[0], this_times[-1])
             this_line.set_ydata(offsets[ii] - this_data[..., ::decim[ii]])
             this_line.set_color(ch_colors[ii])
             # add attributes to traces
@@ -1433,13 +1454,14 @@ class MNEBrowseFigure(MNEFigure):
             vars(this_line)['def_color'] = def_colors[ii]
             # set z-order
             this_z = 0 if this_name in bads else 1
-            if self.mne.butterfly:
+            if butterfly:
                 if this_name not in bads:
                     if this_type == 'mag':
                         this_z = 2
                     elif this_type == 'grad':
                         this_z = 3
             this_line.set_zorder(this_z)
+        self.mne.ax_main.set_xlim(this_times[0], this_times[-1])
         # draw scalebars maybe
         if self.mne.scalebars_visible:
             self._show_scalebars()
@@ -1457,8 +1479,14 @@ class MNEBrowseFigure(MNEFigure):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _update_yaxis_labels(self):
-        self.mne.ax_main.set_yticklabels(self.mne.ch_names[self.mne.picks],
-                                         rotation=0)
+        if self.mne.butterfly:
+            _, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
+                                       self.mne.ch_types, return_indices=True)
+            ixs.sort()
+            ticklabels = np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[ixs]
+        else:
+            ticklabels = self.mne.ch_names[self.mne.picks]
+        self.mne.ax_main.set_yticklabels(ticklabels, rotation=0)
 
     def _show_vline(self, xdata):
         """Show the vertical line."""

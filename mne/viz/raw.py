@@ -200,7 +200,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         selections = _setup_channel_selections(raw, group_by)
         order = np.concatenate(list(selections.values()))
         default_selection = list(selections)[0]
-        n_channels = max([len(selections[default_selection]), n_channels])
+        n_channels = len(selections[default_selection])
 
     # handle event colors
     # TODO: could this be a defaultdict?
@@ -295,6 +295,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                      facecolor=this_color,
                                      edgecolor=this_color))
     fig.mne.ax_vscroll.set_ylim(len(order), 0)
+    fig.mne.ax_vscroll.set_visible(not butterfly)
 
     # scrollbar selection patches and lines
     vsel_patch = Rectangle((0, 0), 1, fig.mne.n_channels, alpha=0.5,
@@ -318,16 +319,17 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                          vline=vline, vline_hscroll=vline_hscroll,
                          vline_text=vline_text)
 
+    # plot event_lines first so they're in the back
+    event_lines = [fig.mne.ax_main.plot([np.nan], color=event_color[ev_num])[0]
+                   for ev_num in sorted(event_color)]
+
     # make shells for plotting traces
     fig._update_trace_offsets()
-    fig.mne.traces = fig.mne.ax_main.plot(np.full((1, n_channels), np.nan),
+    n_traces = len(ch_names) if butterfly else n_channels
+    fig.mne.traces = fig.mne.ax_main.plot(np.full((1, n_traces), np.nan),
                                           antialiased=True, linewidth=0.5)
     fig.mne.ax_main.set_xlim(fig.mne.t_start,
                              fig.mne.t_start + fig.mne.duration, emit=False)
-
-    # plot event_line first so it's in the back
-    event_lines = [fig.mne.ax_main.plot([np.nan], color=event_color[ev_num])[0]
-                   for ev_num in sorted(event_color.keys())]
 
     # update projector and data, and plot
     fig._update_projector()
