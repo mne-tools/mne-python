@@ -141,7 +141,7 @@ class MNEAnnotationFigure(MNEFigure):
     def _radiopress(self, event):
         """Handle Radiobutton clicks for Annotation label selection."""
         # update which button looks active
-        buttons = self.radio_ax.buttons
+        buttons = self.mne.radio_ax.buttons
         labels = [label.get_text() for label in buttons.labels]
         idx = labels.index(buttons.value_selected)
         self._set_active_button(idx)
@@ -153,7 +153,7 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _click_override(self, event):
         """Override MPL radiobutton click detector to use transData."""
-        ax = self.radio_ax
+        ax = self.mne.radio_ax
         buttons = ax.buttons
         if (buttons.ignore(event) or event.button != 1 or event.inaxes != ax):
             return
@@ -169,7 +169,7 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _set_active_button(self, idx):
         """Set active button in annotation dialog figure."""
-        buttons = self.radio_ax.buttons
+        buttons = self.mne.radio_ax.buttons
         with _events_off(buttons):
             buttons.set_active(idx)
         for circle in buttons.circles:
@@ -202,10 +202,10 @@ class MNESelectionFigure(MNEFigure):
         chs = self.lasso.selection
         if not len(chs):
             return
-        labels = [label._text for label in self.radio_ax.buttons.labels]
+        labels = [label._text for label in self.mne.radio_ax.buttons.labels]
         inds = np.in1d(self.mne.parent_fig.mne.ch_names, chs)
         self.mne.parent_fig.mne.ch_selections['Custom'] = np.where(inds)[0]
-        buttons = self.radio_ax.buttons
+        buttons = self.mne.radio_ax.buttons
         buttons.set_active(labels.index('Custom'))
 
 
@@ -326,6 +326,8 @@ class MNEBrowseFigure(MNEFigure):
 
     def _new_child_figure(self, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
+        if 'fig_name' not in kwargs:
+            raise ValueError('parameter "fig_name" is required.')
         fig = _figure(toolbar=False, parent_fig=self, **kwargs)
         fig._add_default_callbacks()
         return fig
@@ -725,9 +727,9 @@ class MNEBrowseFigure(MNEFigure):
         bottom = fig._inch_to_rel(pad, horiz=False)
         width = 1 - 2 * left
         height = 1 - 2 * bottom
-        fig.radio_ax = fig.add_axes((left, bottom, width, height),
-                                    frameon=False, aspect='equal')
-        div = make_axes_locatable(fig.radio_ax)
+        fig.mne.radio_ax = fig.add_axes((left, bottom, width, height),
+                                        frameon=False, aspect='equal')
+        div = make_axes_locatable(fig.mne.radio_ax)
         self._update_annotation_fig()  # populate w/ radio buttons & labels
         # append instructions at top
         instructions_ax = div.append_axes(position='top', size=Fixed(1),
@@ -757,8 +759,8 @@ class MNEBrowseFigure(MNEFigure):
         fig.button.on_clicked(self._add_annotation_label)
         plt_show(fig=fig)
         # setup interactivity in plot window
-        col = ('#ff0000' if len(fig.radio_ax.buttons.circles) < 1 else
-               fig.radio_ax.buttons.circles[0].get_edgecolor())
+        col = ('#ff0000' if len(fig.mne.radio_ax.buttons.circles) < 1 else
+               fig.mne.radio_ax.buttons.circles[0].get_edgecolor())
         # TODO: we would like useblit=True here, but MPL #9660 prevents it
         selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
                                 'horizontal', minspan=0.1, useblit=False,
@@ -773,7 +775,7 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.widgets import RadioButtons
         # define shorthand variables
         fig = self.mne.fig_annotation
-        ax = fig.radio_ax
+        ax = fig.mne.radio_ax
         # get all the labels
         labels = list(set(self.mne.inst.annotations.description))
         labels = np.union1d(labels, self.mne.added_labels)
@@ -847,7 +849,7 @@ class MNEBrowseFigure(MNEFigure):
         self._update_annotation_fig()
         # automatically activate new label's radio button
         idx = [label.get_text() for label in
-               self.mne.fig_annotation.radio_ax.buttons.labels].index(text)
+               self.mne.fig_annotation.mne.radio_ax.buttons.labels].index(text)
         self.mne.fig_annotation._set_active_button(idx)
         # simulate a click on the radiobutton → update the span selector color
         self.mne.fig_annotation._radiopress(event=None)
@@ -883,7 +885,7 @@ class MNEBrowseFigure(MNEFigure):
         """Handle annotation span selector."""
         onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
         duration = vmax - vmin
-        buttons = self.mne.fig_annotation.radio_ax.buttons
+        buttons = self.mne.fig_annotation.mne.radio_ax.buttons
         labels = [label.get_text() for label in buttons.labels]
         active_idx = labels.index(buttons.value_selected)
         _merge_annotations(onset, onset + duration, labels[active_idx],
@@ -990,22 +992,22 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.fig_selection = fig
         gs = fig.add_gridspec(15, 1)
         # add sensor plot at top
-        fig.sensor_ax = fig.add_subplot(gs[:5])
+        fig.mne.sensor_ax = fig.add_subplot(gs[:5])
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
-                     axes=fig.sensor_ax, ch_groups=kind, show=False)
+                     axes=fig.mne.sensor_ax, ch_groups=kind, show=False)
         # style the sensors so their facecolor is easier to distinguish
-        fig.sensor_ax.collections[0].set_linewidth(1)
         self._update_highlighted_sensors()
         # add radio button axes
-        fig.radio_ax = fig.add_subplot(gs[5:-3], frameon=False, aspect='equal')
+        radio_ax = fig.add_subplot(gs[5:-3], frameon=False, aspect='equal')
+        fig.mne.radio_ax = radio_ax
         selections_dict.update(Custom=list())  # custom selection with lasso
         labels = list(selections_dict)
         # make & style the radio buttons
         edgecolor = rcParams['axes.edgecolor']
         activecolor = to_rgb(edgecolor) + (0.5,)
-        fig.radio_ax.buttons = RadioButtons(fig.radio_ax, labels,
-                                            activecolor=activecolor)
-        for circle in fig.radio_ax.buttons.circles:
+        radio_ax.buttons = RadioButtons(radio_ax, labels,
+                                        activecolor=activecolor)
+        for circle in radio_ax.buttons.circles:
             circle.set_radius(0.25 / len(labels))
             circle.set_linewidth(2)
             circle.set_edgecolor(edgecolor)
@@ -1021,13 +1023,13 @@ class MNEBrowseFigure(MNEFigure):
                              ma='left', wrap=True)
         instructions_ax.set_axis_off()
         # add event listeners
-        fig.radio_ax.buttons.on_clicked(fig._radiopress)
+        radio_ax.buttons.on_clicked(fig._radiopress)
         fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
 
     def _update_selection(self):
         """Update visible channels based on selection dialog interaction."""
         selections_dict = self.mne.ch_selections
-        label = self.mne.fig_selection.radio_ax.buttons.value_selected
+        label = self.mne.fig_selection.mne.radio_ax.buttons.value_selected
         if label == 'Custom' and not len(selections_dict['Custom']):
             return
         self.mne.picks = selections_dict[label]
