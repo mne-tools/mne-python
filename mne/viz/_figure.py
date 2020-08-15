@@ -422,7 +422,20 @@ class MNEBrowseFigure(MNEFigure):
             if self.mne.butterfly:
                 return
             elif self.mne.fig_selection is not None:
-                pass  # TODO: change channel group
+                buttons = self.mne.fig_selection.mne.radio_ax.buttons
+                labels = [label.get_text() for label in buttons.labels]
+                current_label = buttons.value_selected
+                current_idx = labels.index(current_label)
+                if key == 'up' and current_idx > 0:
+                    buttons.set_active(current_idx - 1)
+                    self.canvas.draw()
+                elif key == 'down' and current_idx < (len(labels) - 2):
+                    buttons.set_active(current_idx + 1)
+                    self.canvas.draw()
+                elif key == 'down' and current_idx == (len(labels) - 1) and \
+                        len(self.mne.ch_selections.get('Custom', list())):
+                    buttons.set_active(current_idx + 1)
+                    self.canvas.draw()
             else:
                 ceiling = len(self.mne.ch_names) - self.mne.n_channels
                 direction = -1 if key == 'up' else 1
