@@ -193,6 +193,13 @@ class MNESelectionFigure(MNEFigure):
         # selection fig & main fig tightly integrated; closing one closes both
         self.mne.parent_fig._close(event)
 
+    def _keypress(self, event):
+        """Handle keypress events."""
+        if event.key in ('up', 'down'):
+            self.mne.parent_fig._keypress(event)
+        else:  # check for close key
+            super()._keypress(event)
+
     def _radiopress(self, event):
         """Handle RadioButton clicks for channel selection groups."""
         self.mne.parent_fig._update_selection()
