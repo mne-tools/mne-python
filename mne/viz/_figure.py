@@ -202,6 +202,13 @@ class MNESelectionFigure(MNEFigure):
 
     def _radiopress(self, event):
         """Handle RadioButton clicks for channel selection groups."""
+        selections_dict = self.mne.parent_fig.mne.ch_selections
+        buttons = self.mne.radio_ax.buttons
+        this_label = buttons.value_selected
+        if this_label == 'Custom' and not len(selections_dict['Custom']):
+            with _events_off(buttons):
+                buttons.set_active(self.mne.old_selection)
+            return
         self.mne.parent_fig._update_selection()
 
     def _set_custom_selection(self):
@@ -209,7 +216,8 @@ class MNESelectionFigure(MNEFigure):
         chs = self.lasso.selection
         if not len(chs):
             return
-        labels = [label._text for label in self.mne.radio_ax.buttons.labels]
+        labels = [label.get_text() for label in
+                  self.mne.radio_ax.buttons.labels]
         inds = np.in1d(self.mne.parent_fig.mne.ch_names, chs)
         self.mne.parent_fig.mne.ch_selections['Custom'] = np.where(inds)[0]
         buttons = self.mne.radio_ax.buttons
@@ -420,12 +428,11 @@ class MNEBrowseFigure(MNEFigure):
         self._remove_annotation_line()
 
     def _keypress(self, event):
-        """Triage keypress events."""
+        """Handle keypress events."""
         from matplotlib.pyplot import get_current_fig_manager
         key = event.key
-        if key == self.mne.close_key:
-            self._close()
-        elif key in ('down', 'up'):
+        if key in ('down', 'up'):
+            direction = -1 if key == 'up' else 1
             if self.mne.butterfly:
                 return
             elif self.mne.fig_selection is not None:
@@ -433,26 +440,27 @@ class MNEBrowseFigure(MNEFigure):
                 labels = [label.get_text() for label in buttons.labels]
                 current_label = buttons.value_selected
                 current_idx = labels.index(current_label)
-                if key == 'up' and current_idx > 0:
-                    buttons.set_active(current_idx - 1)
-                    self.canvas.draw()
-                elif key == 'down' and current_idx < (len(labels) - 2):
-                    buttons.set_active(current_idx + 1)
-                    self.canvas.draw()
-                elif key == 'down' and current_idx == (len(labels) - 1) and \
-                        len(self.mne.ch_selections.get('Custom', list())):
-                    buttons.set_active(current_idx + 1)
-                    self.canvas.draw()
+                # conditions
+                selections_dict = self.mne.ch_selections
+                penult = current_idx < (len(labels) - 1)
+                antepenult = current_idx < (len(labels) - 2)
+                has_custom = selections_dict.get('Custom', None) is not None
+                def_custom = len(selections_dict.get('Custom', list()))
+                up_ok = key == 'up' and current_idx > 0
+                down_ok = key == 'down' and (
+                    antepenult or
+                    (penult and not has_custom) or
+                    (penult and has_custom and def_custom))
+                if up_ok or down_ok:
+                    buttons.set_active(current_idx + direction)
+                    self.canvas.draw_idle()
             else:
                 ceiling = len(self.mne.ch_names) - self.mne.n_channels
-                direction = -1 if key == 'up' else 1
                 ch_start = self.mne.ch_start + direction * self.mne.n_channels
                 self.mne.ch_start = np.clip(ch_start, 0, ceiling)
                 self._update_picks()
                 self._update_vscroll()
-                self._update_data()
-                self._draw_traces()
-            self.canvas.draw()
+                self._redraw()
         elif key in ('right', 'left', 'shift+right', 'shift+left'):
             old_t_start = self.mne.t_start
             direction = 1 if key.endswith('right') else -1
@@ -461,11 +469,8 @@ class MNEBrowseFigure(MNEFigure):
             t_start = self.mne.t_start + direction * self.mne.duration / denom
             self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
             if self.mne.t_start != old_t_start:
-                self._update_data()
-                self._draw_traces()
                 self._update_hscroll()
-                self._draw_annotations()
-                self.canvas.draw()
+                self._redraw(annotations=True)
         elif key in ('=', '+', '-'):
             scaler = 1 / 1.1 if key == '-' else 1.1
             self.mne.scale_factor *= scaler
@@ -477,11 +482,9 @@ class MNEBrowseFigure(MNEFigure):
             n_ch = self.mne.n_channels + n_ch_delta
             self.mne.n_channels = np.clip(n_ch, 1, len(self.mne.ch_names))
             if self.mne.n_channels != old_n_channels:
+                self._update_picks()
                 self._update_trace_offsets()
-                self._update_data()
-                self._draw_traces()
-                self._draw_annotations()
-                self.canvas.draw()
+                self._redraw(annotations=True)
         elif key in ('home', 'end'):  # change duration
             dur_delta = 1 if key == 'end' else -1
             old_dur = self.mne.duration
@@ -490,10 +493,8 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.duration = np.clip(new_dur, min_dur,
                                         self.mne.inst.times[-1])
             if self.mne.duration != old_dur:
-                self._update_data()
-                self._draw_traces()
                 self._update_hscroll()
-                self.canvas.draw()
+                self._redraw()
         elif key == '?':  # help
             self._toggle_help_fig(event)
         elif key == 'f11':  # full screen
@@ -501,19 +502,15 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'a':  # annotation mode
             if self.mne.instance_type == 'raw':
                 self._toggle_annotation_fig()
-        elif key == 'b':  # toggle butterfly mode
+        elif key == 'b':  # butterfly mode
             self.mne.ax_vscroll.set_visible(self.mne.butterfly)
             self.mne.butterfly = not self.mne.butterfly
             self._update_trace_offsets()
-            self._update_data()
-            self._draw_traces()
             self._draw_annotations()
-            self.canvas.draw()
+            self._redraw()
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
-            self._update_data()
-            self._draw_traces()
-            self.canvas.draw()
+            self._redraw()
         elif key == 'p':  # toggle draggable annotations
             self.mne.draggable_annotations = not self.mne.draggable_annotations
         elif key == 's':  # scalebars
@@ -522,6 +519,8 @@ class MNEBrowseFigure(MNEFigure):
             pass
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
+        else:  # check for close key
+            super()._keypress(event)
 
     def _buttonpress(self, event):
         """Triage mouse clicks."""
@@ -554,14 +553,10 @@ class MNEBrowseFigure(MNEFigure):
                     pass  # TODO FIXME
                 else:
                     if self._check_update_vscroll_clicked(event):
-                        self._update_data()
-                        self._draw_traces()
-                        self.canvas.draw()
+                        self._redraw()
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._update_data()
-                    self._draw_traces()
-                    self.canvas.draw()
+                    self._redraw()
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
             elif event.inaxes == self.mne.ax_help:
@@ -613,9 +608,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.info['bads'] = bads
         # redraw
         self._update_projector()
-        self._update_data()
-        self._draw_traces()
-        self.canvas.draw()
+        self._redraw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
@@ -1027,14 +1020,15 @@ class MNEBrowseFigure(MNEFigure):
         activecolor = to_rgb(edgecolor) + (0.5,)
         radio_ax.buttons = RadioButtons(radio_ax, labels,
                                         activecolor=activecolor)
+        fig.mne.old_selection = 0
         for circle in radio_ax.buttons.circles:
             circle.set_radius(0.25 / len(labels))
             circle.set_linewidth(2)
             circle.set_edgecolor(edgecolor)
         # add instructions at bottom
         instructions = (
-            'To use a custom selection, click-drag on the sensor plot to '
-            '"lasso" the sensors you want to select, or hold Ctrl while '
+            'To use a custom selection, first click-drag on the sensor plot '
+            'to "lasso" the sensors you want to select, or hold Ctrl while '
             'clicking individual sensors. Holding Ctrl while click-dragging '
             'allows a lasso selection adding to (rather than replacing) the '
             'existing selection.')
@@ -1050,8 +1044,9 @@ class MNEBrowseFigure(MNEFigure):
         """Update visible channels based on selection dialog interaction."""
         selections_dict = self.mne.ch_selections
         label = self.mne.fig_selection.mne.radio_ax.buttons.value_selected
-        if label == 'Custom' and not len(selections_dict['Custom']):
-            return
+        labels = [label.get_text() for label in
+                  self.mne.fig_selection.mne.radio_ax.buttons.labels]
+        self.mne.fig_selection.mne.old_selection = labels.index(label)
         self.mne.picks = selections_dict[label]
         self.mne.n_channels = len(self.mne.picks)
         self._update_highlighted_sensors()
@@ -1064,10 +1059,8 @@ class MNEBrowseFigure(MNEFigure):
         ch_start = np.where(ch_order == self.mne.picks[0])[0][index]
         self.mne.ch_start = ch_start
         self._update_trace_offsets()
-        self._update_data()
-        self._draw_traces()
         self._update_vscroll()
-        self.canvas.draw()
+        self._redraw()
 
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
@@ -1159,9 +1152,7 @@ class MNEBrowseFigure(MNEFigure):
         if not np.array_equal(on, new_state):
             self.mne.projs_on = new_state
             self._update_projector()
-            self._update_data()
-            self._draw_traces()
-            self.canvas.draw()
+            self._redraw()
 
     def _update_projector(self):
         """Update the data after projectors (or bads) have changed."""
@@ -1497,6 +1488,13 @@ class MNEBrowseFigure(MNEFigure):
             these_event_nums = self.mne.event_nums[mask]
             # plot them
             ylim = self.mne.ax_main.get_ylim()
+
+    def _redraw(self, annotations=False):
+        self._update_data()
+        self._draw_traces()
+        if annotations:
+            self._draw_annotations()
+        self.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # MISCELLANY
