@@ -29,7 +29,7 @@ class MNEFigParams:
 
 
 class MNEFigure(Figure):
-    """Wrapper of matplotlib.figure.Figure; adds MNE-Python figure params."""
+    """Base class for our figures/dialogs; wraps matplotlib.figure.Figure."""
 
     def __init__(self, **kwargs):
         # figsize is the only kwarg we pass to matplotlib Figure()
@@ -348,13 +348,13 @@ class MNEBrowseFigure(MNEFigure):
         return fig
 
     def _close(self, event=None):
-        """Clean up auxiliary figures when main figure is closed."""
+        """Handle close events (via keypress or window [x])."""
         from matplotlib.pyplot import close
         # write temporary info object back to instance (for bads, but don't
         # persist changes to proj checkboxes)
         self.mne.info['projs'] = self.mne.inst.info['projs']
         self.mne.inst.info = self.mne.info
-        # close ancillary figs
+        # Clean up auxiliary figures too
         aux_figs = ('fig_annotation', 'fig_help', 'fig_proj', 'fig_selection')
         for fig in aux_figs:
             if getattr(self.mne, fig, None) is not None:
@@ -523,7 +523,7 @@ class MNEBrowseFigure(MNEFigure):
             super()._keypress(event)
 
     def _buttonpress(self, event):
-        """Triage mouse clicks."""
+        """Handle mouse clicks."""
         annotating = self.mne.fig_annotation is not None
         # ignore middle clicks or scroll wheel events
         if event.button not in (1, 3):
@@ -585,7 +585,7 @@ class MNEBrowseFigure(MNEFigure):
         self._toggle_bad_channel(idx)
 
     def _toggle_bad_channel(self, idx):
-        """Mark/unmark bad channels. `idx` is index of *visible* channels."""
+        """Mark/unmark bad channels; `idx` is index of *visible* channels."""
         bads = self.mne.info['bads']
         pick = self.mne.picks[idx]
         line = self.mne.traces[idx]
@@ -646,14 +646,14 @@ class MNEBrowseFigure(MNEFigure):
         ax.text(0.42, 1, vals, ma='left', ha='left', **kwargs)
 
     def _toggle_help_fig(self, event):
-        """Show/hide the annotation dialog window."""
+        """Show/hide the help dialog window."""
         if self.mne.fig_help is None:
             self._create_help_fig()
         else:
             self.mne.fig_help.canvas.close_event()
 
     def _get_help_text(self):
-        """Generate help dialog text. `None`-valued entries removed later."""
+        """Generate help dialog text; `None`-valued entries removed later."""
         is_mac = platform.system() == 'Darwin'
         inst = self.mne.instance_type
         ch_cmp = 'component' if inst == 'ica' else 'channel'
@@ -991,7 +991,7 @@ class MNEBrowseFigure(MNEFigure):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _create_selection_fig(self, kind):
-        """Organize browser selections."""
+        """Create channel selection dialog window."""
         from matplotlib import rcParams
         from matplotlib.colors import to_rgb
         from matplotlib.widgets import RadioButtons
@@ -1490,6 +1490,7 @@ class MNEBrowseFigure(MNEFigure):
             ylim = self.mne.ax_main.get_ylim()
 
     def _redraw(self, annotations=False):
+        """Redraw (convenience method for frequently grouped actions)."""
         self._update_data()
         self._draw_traces()
         if annotations:
