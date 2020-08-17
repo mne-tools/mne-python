@@ -429,11 +429,16 @@ class _Renderer(_BaseRenderer):
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor)
             elif mode == 'arrow' or mode == '3darrow':
+                mesh = _glyph(
+                    grid,
+                    orient='vec',
+                    scalars=scale,
+                    factor=factor
+                )
+                mesh = pyvista.wrap(mesh)
                 _add_mesh(
                     self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor),
+                    mesh=mesh,
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
