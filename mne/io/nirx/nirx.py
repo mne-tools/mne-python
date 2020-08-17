@@ -107,10 +107,12 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
-                   ["\"15.0\"", "\"15.2\"", "\"15.3\""]):
+        if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
             raise RuntimeError('MNE does not support this NIRStar version'
                                ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
+        if hdr['GeneralInfo']['NIRStar'] in ['"15.3"']:
+            warn("Full MNE support for NIRStar version 15.3 currently under development.")        
+
         if "NIRScout" not in hdr['GeneralInfo']['Device']:
             warn("Only import of data from NIRScout devices have been "
                  "thoroughly tested. You are using a %s device. " %
