@@ -1414,12 +1414,29 @@ class _LinkViewer(object):
                 for time_viewer in self.time_viewers:
                     time_viewer._remove_point(*args, **kwargs)
 
+            # save initial picked points
+            initial_points = dict()
+            for hemi in ('lh', 'rh'):
+                initial_points[hemi] = set()
+                for time_viewer in self.time_viewers:
+                    initial_points[hemi] |= \
+                        set(time_viewer.picked_points[hemi])
+
+            # link the viewers
             for time_viewer in self.time_viewers:
                 time_viewer.clear_points()
                 time_viewer._add_point = time_viewer.add_point
                 time_viewer.add_point = _func_add
                 time_viewer._remove_point = time_viewer.remove_point
                 time_viewer.remove_point = _func_remove
+
+            # link the initial points
+            leader = self.time_viewers[0]  # select a time_viewer as leader
+            for hemi in initial_points.keys():
+                if hemi in time_viewer.brain._hemi_meshes:
+                    mesh = time_viewer.brain._hemi_meshes[hemi]
+                    for vertex_id in initial_points[hemi]:
+                        leader.add_point(hemi, mesh, vertex_id)
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
