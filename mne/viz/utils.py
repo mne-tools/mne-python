@@ -149,6 +149,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     for w in ws:
         w_msg = str(w.message) if hasattr(w, 'message') else w.get_message()
         if not w_msg.startswith('This figure includes Axes'):
+            raise RuntimeError(w_msg)
             warn(w_msg, w.category, 'matplotlib')
 
 

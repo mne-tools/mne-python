@@ -13,7 +13,7 @@ from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
 from mne.surface import (read_morph_map, _compute_nearest, _tessellate_sphere,
                          fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf, _normal_orth)
+                         get_meg_helmet_surf, _normal_orth, _read_patch)
 from mne.utils import (_TempDir, requires_vtk, catch_logging,
                        run_tests_if_main, object_diff, requires_freesurfer)
 from mne.io import read_info
@@ -50,11 +50,11 @@ def test_helmet():
         artemis_info['chs'][pick]['coil_type'] = \
             FIFF.FIFFV_COIL_ARTEMIS123_GRAD
     for info, n, name in [(read_info(fname_raw), 304, '306m'),
-                          (read_info(fname_kit_raw), 304, 'KIT'),
+                          (read_info(fname_kit_raw), 150, 'KIT'),  # Delaunay
                           (read_info(fname_bti_raw), 304, 'Magnes'),
                           (read_info(fname_ctf_raw), 342, 'CTF'),
-                          (new_info, 102, 'unknown'),
-                          (artemis_info, 102, 'ARTEMIS123')
+                          (new_info, 102, 'unknown'),  # Delaunay
+                          (artemis_info, 102, 'ARTEMIS123'),  # Delaunay
                           ]:
         with catch_logging() as log:
             helmet = get_meg_helmet_surf(info, trans, verbose=True)
@@ -182,6 +182,12 @@ def test_io_surface():
                                     read_metadata=False)
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
+
+    # reading patches (just a smoke test, let the flatmap viz tests be more
+    # complete)
+    fname_patch = op.join(
+        data_path, 'subjects', 'fsaverage', 'surf', 'rh.cortex.patch.flat')
+    _read_patch(fname_patch)
 
 
 @testing.requires_testing_data

@@ -406,7 +406,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
-                   surfaces='head', coord_frame='head',
+                   surfaces='auto', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
@@ -433,7 +433,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * brain: one of 'pial', 'white', 'inflated', or 'brain'
           (alias for 'pial').
 
-        Defaults to 'head'.
+        Defaults to 'auto', which will look for a head surface and plot
+        it if found.
 
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
@@ -655,14 +656,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     sphere_level = 4
     head = False
     for s in surfaces:
-        if s in ('head', 'outer_skin', 'head-dense', 'seghead'):
+        if s in ('auto', 'head', 'outer_skin', 'head-dense', 'seghead'):
             if head:
                 raise ValueError('Can only supply one head-like surface name')
             surfaces.pop(surfaces.index(s))
             head = True
             head_surf = None
             # Try the BEM if applicable
-            if s in ('head', 'outer_skin'):
+            if s in ('auto', 'head', 'outer_skin'):
                 if bem is not None:
                     head_missing = (
                         'Could not find the surface for '
@@ -687,6 +688,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                             logger.info(head_missing)
             if head_surf is None:
                 if subject is None:
+                    if s == 'auto':
+                        # ignore
+                        continue
                     raise ValueError('To plot the head surface, the BEM/sphere'
                                      ' model must contain a head surface '
                                      'or "subject" must be provided (got '
@@ -1426,6 +1430,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                  'par': {'elev': 30, 'azim': -60}}
     time_viewer = False if time_viewer == 'auto' else time_viewer
     kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
+    views = 'lat' if views == 'auto' else views
     _check_option('views', views, sorted(lh_kwargs.keys()))
     mapdata = _process_clim(clim, colormap, transparent, stc.data)
     _separate_map(mapdata)
@@ -1587,13 +1592,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=True, alpha=1.0,
                           time_viewer='auto', subjects_dir=None, figure=None,
-                          views='lat', colorbar=True, clim='auto',
+                          views='auto', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground=None, initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto',
                           src=None, volume_options=1., view_layout='vertical',
-                          verbose=None):
+                          add_data_kwargs=None, verbose=None):
     """Plot SourceEstimate.
 
     Parameters
@@ -1634,10 +1639,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         length. If int is provided it will be used to identify the Mayavi
         figure by it's id or create a new figure with the given id. If an
         instance of matplotlib figure, mpl backend is used for plotting.
-    views : str | list
-        View to use. See `surfer.Brain`. Supported views: ['lat', 'med', 'ros',
-        'cau', 'dor' 'ven', 'fro', 'par']. Using multiple views is not
-        supported for mpl backend.
+    %(views)s
+
+        When plotting a standard SourceEstimate (not volume, mixed, or vector)
+        and using the PyVista backend, ``views='flat'`` is also supported to
+        plot cortex as a flatmap.
+
+        .. versionchanged:: 0.21.0
+           Support for flatmaps.
     colorbar : bool
         If True, display colorbar on scene.
     %(clim)s
@@ -1681,6 +1690,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         .. versionadded:: 0.17.0
     %(show_traces)s
     %(src_volume_options_layout)s
+    %(add_data_kwargs)s
     %(verbose)s
 
     Returns
@@ -1688,6 +1698,17 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     figure : instance of surfer.Brain | matplotlib.figure.Figure
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
+
+    Notes
+    -----
+    Flatmaps are available by default for ``fsaverage`` but not for other
+    subjects reconstructed by FreeSurfer. We recommend using
+    :func:`mne.compute_source_morph` to morph source estimates to ``fsaverage``
+    for flatmap plotting. If you want to construct your own flatmap for a given
+    subject, these links might help:
+
+    - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
+    - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, set_3d_backend
     from ..source_estimate import _BaseSourceEstimate
@@ -1721,7 +1742,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
         cortex=cortex, foreground=foreground, size=size, scale_factor=None,
         show_traces=show_traces, src=src, volume_options=volume_options,
-        view_layout=view_layout, **kwargs)
+        view_layout=view_layout, add_data_kwargs=add_data_kwargs, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
@@ -1729,7 +1750,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               time_unit, background, time_viewer, colorbar, transparent,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
-              view_layout):
+              view_layout, add_data_kwargs):
     from .backends.renderer import _get_3d_backend
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1744,7 +1765,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         _require_version('surfer', 'stc.plot', '0.9')
     else:  # PyVista
         from ._brain import _Brain as Brain
-
+    views = _check_views(surface, views, hemi, stc, backend)
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -1847,6 +1868,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["clim"] = clim
             kwargs["volume_options"] = volume_options
             kwargs["src"] = src_vol
+        kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
@@ -2351,19 +2373,44 @@ def _check_pysurfer_antialias(Brain):
     return kwargs
 
 
+def _check_views(surf, views, hemi, stc=None, backend=None):
+    from ..source_estimate import SourceEstimate
+    _validate_type(views, (list, tuple, str), 'views')
+    views = [views] if isinstance(views, str) else list(views)
+    if surf == 'flat':
+        _check_option('views', views, (['auto'], ['flat']))
+        views = ['flat']
+    elif len(views) == 1 and views[0] == 'auto':
+        views = ['lateral']
+    if views == ['flat']:
+        if stc is not None:
+            _validate_type(stc, SourceEstimate, 'stc',
+                           'SourceEstimate when a flatmap is used')
+        if backend is not None:
+            if backend != 'pyvista':
+                raise RuntimeError('The PyVista 3D backend must be used to '
+                                   'plot a flatmap')
+    if (views == ['flat']) ^ (surf == 'flat'):  # exactly only one of the two
+        raise ValueError('surface="flat" must be used with views="flat", got '
+                         f'surface={repr(surf)} and views={repr(views)}')
+    return views
+
+
 @verbose
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
                                  scale_factor=None, time_viewer='auto',
-                                 subjects_dir=None, figure=None, views='lat',
+                                 subjects_dir=None, figure=None,
+                                 views='lateral',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground=None, initial_time=None,
                                  time_unit='s', show_traces='auto',
                                  src=None, volume_options=1.,
-                                 view_layout='vertical', verbose=None):
+                                 view_layout='vertical',
+                                 add_data_kwargs=None, verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2411,8 +2458,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the Mayavi
         figure by it's id or create a new figure with the given id.
-    views : str | list
-        View to use. See `surfer.Brain`.
+    %(views)s
     colorbar : bool
         If True, display colorbar on scene.
     %(clim_onesided)s
@@ -2438,6 +2484,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         milliseconds ("ms").
     %(show_traces)s
     %(src_volume_options_layout)s
+    %(add_data_kwargs)s
     %(verbose)s
 
     Returns
@@ -2464,7 +2511,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         brain_alpha=brain_alpha, overlay_alpha=overlay_alpha,
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
         size=size, scale_factor=scale_factor, show_traces=show_traces,
-        src=src, volume_options=volume_options, view_layout=view_layout)
+        src=src, volume_options=volume_options, view_layout=view_layout,
+        add_data_kwargs=add_data_kwargs)
 
 
 @verbose

@@ -429,13 +429,16 @@ class _TimeViewer(object):
                 yield
             finally:
                 self.splitter.setSizes([sz[1], mpl_h])
+                _process_events(self.plotter)
+                _process_events(self.plotter)
                 self.mpl_canvas.canvas.setMinimumSize(0, 0)
             _process_events(self.plotter)
+            _process_events(self.plotter)
+            # sizes could change, update views
             for hemi in ('lh', 'rh'):
-                if hemi == 'rh' and self.brain._hemi == 'split':
-                    continue
                 for ri, ci, v in self.brain._iter_views(hemi):
                     self.brain.show_view(view=v, row=ri, col=ci)
+            _process_events(self.plotter)
 
     def toggle_interface(self, value=None):
         if value is None:
@@ -660,6 +663,9 @@ class _TimeViewer(object):
         for hemi in hemis_ref:
             for ri, ci, view in self.brain._iter_views(hemi):
                 self.plotter.subplot(ri, ci)
+                if view == 'flat':
+                    self.orientation_call = None
+                    continue
                 self.orientation_call = ShowView(
                     plotter=self.plotter,
                     brain=self.brain,
@@ -1297,9 +1303,10 @@ class _TimeViewer(object):
         self.reps = None
         self._time_slider = None
         self._playback_speed_slider = None
-        self.orientation_call.plotter = None
-        self.orientation_call.brain = None
-        self.orientation_call = None
+        if self.orientation_call is not None:
+            self.orientation_call.plotter = None
+            self.orientation_call.brain = None
+            self.orientation_call = None
         self.smoothing_call.plotter = None
         self.smoothing_call = None
         if self.time_call is not None:

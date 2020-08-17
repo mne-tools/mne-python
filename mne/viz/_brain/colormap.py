@@ -11,6 +11,7 @@ import numpy as np
 def create_lut(cmap, n_colors=256, center=None):
     """Return a colormap suitable for setting as a LUT."""
     from matplotlib import cm
+    assert not (isinstance(cmap, str) and cmap == 'auto')
     cmap = cm.get_cmap(cmap)
     lut = np.round(cmap(np.linspace(0, 1, n_colors)) * 255.0).astype(np.int64)
     return lut
