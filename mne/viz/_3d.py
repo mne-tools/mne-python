@@ -1521,7 +1521,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
-def link_brains(brains, time=True, camera=False):
+def link_brains(brains, time=True, camera=False, colorbar=True):
     """Plot multiple SourceEstimate objects with PyVista.
 
     Parameters
@@ -1551,7 +1551,7 @@ def link_brains(brains, time=True, camera=False):
             raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
     # link brains properties
-    _LinkViewer(brains, time, camera)
+    _LinkViewer(brains, time, camera, colorbar)
 
 
 def _triage_stc(stc, src, surface, backend_name, kind='scalar'):
