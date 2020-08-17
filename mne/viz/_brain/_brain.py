@@ -17,7 +17,7 @@ from .colormap import calculate_lut
 from .surface import Surface
 from .view import views_dicts
 
-from .._3d import _process_clim, _handle_time
+from .._3d import _process_clim, _handle_time, _check_views
 
 from ...defaults import _handle_default
 from ...surface import mesh_edges
@@ -154,13 +154,15 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | view_layout               |              | ✓                     |
        +---------------------------+--------------+-----------------------+
+       | flatmaps                  |              | ✓                     |
+       +---------------------------+--------------+-----------------------+
 
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views=['lateral'], offset=True, show_toolbar=False,
+                 views='auto', offset=True, show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
@@ -196,6 +198,7 @@ class _Brain(object):
 
         if isinstance(views, str):
             views = [views]
+        views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         shape = (len(views), col_dict[hemi])
         if self._view_layout == 'horizontal':
@@ -291,6 +294,10 @@ class _Brain(object):
         self._closed = False
         if show:
             self._renderer.show()
+        # update the views once the geometry is all set
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self.show_view(v, row=ri, col=ci, hemi=h)
 
     @property
     def interaction(self):
@@ -326,7 +333,8 @@ class _Brain(object):
                  time_label="auto", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 clim=None, src=None, volume_options=0.4, verbose=None):
+                 clim=None, src=None, volume_options=0.4, colorbar_kwargs=None,
+                 verbose=None):
         """Display data from a numpy array on the surface or volume.
 
         This provides a similar interface to
@@ -384,7 +392,8 @@ class _Brain(object):
             time points in the data array (if data is 2D or 3D)
         %(time_label)s
         colorbar : bool
-            whether to add a colorbar to the figure
+            whether to add a colorbar to the figure. Can also be a tuple
+            to give the (row, col) index of where to put the colorbar.
         hemi : str | None
             If None, it is assumed to belong to the hemisphere being
             shown. If two hemispheres are being shown, an error will
@@ -409,6 +418,9 @@ class _Brain(object):
         clim : dict
             Original clim arguments.
         %(src_volume_options_layout)s
+        colorbar_kwargs : dict | None
+            Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
+            (e.g., ``dict(title_font_size=10)``).
         %(verbose)s
 
         Notes
@@ -430,7 +442,12 @@ class _Brain(object):
         # those parameters are not supported yet, only None is allowed
         _check_option('thresh', thresh, [None])
         _check_option('remove_existing', remove_existing, [None])
-        _check_option('time_label_size', time_label_size, [None])
+        _validate_type(time_label_size, (None, 'numeric'), 'time_label_size')
+        if time_label_size is not None:
+            time_label_size = float(time_label_size)
+            if time_label_size < 0:
+                raise ValueError('time_label_size must be positive, got '
+                                 f'{time_label_size}')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
         array = np.asarray(array)
@@ -479,6 +496,8 @@ class _Brain(object):
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
+        if colormap == 'auto':
+            colormap = 'mne' if center is not None else 'hot'
 
         if smoothing_steps is None:
             smoothing_steps = 7
@@ -539,10 +558,13 @@ class _Brain(object):
         self.set_data_smoothing(self._data['smoothing_steps'])
 
         # 3) add the other actors
+        if colorbar is True:
+            # botto left by default
+            colorbar = (self._subplot_shape[0] - 1, 0)
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             # Add the time label to the bottommost view
-            do = (ri == self._subplot_shape[0] - 1)
+            do = (ri, ci) == colorbar
             if not self._time_label_added and time_label is not None and do:
                 time_actor = self._renderer.text2d(
                     x_window=0.95, y_window=y_txt,
@@ -554,9 +576,10 @@ class _Brain(object):
                 self._data['time_actor'] = time_actor
                 self._time_label_added = True
             if colorbar and not self._colorbar_added and do:
-                self._renderer.scalarbar(source=actor, n_labels=8,
-                                         color=self._fg_color,
-                                         bgcolor=self._brain_color[:3])
+                kwargs = dict(source=actor, n_labels=8, color=self._fg_color,
+                              bgcolor=self._brain_color[:3])
+                kwargs.update(colorbar_kwargs or {})
+                self._renderer.scalarbar(**kwargs)
                 self._colorbar_added = True
             self._renderer.set_camera(**views_dicts[hemi][v])
         self._update()
@@ -1220,10 +1243,9 @@ class _Brain(object):
         # update our values
         rng = self._cmap_range
         ctable = self._data['ctable']
-        if self._colorbar_added:
-            scalar_bar = self._renderer.plotter.scalar_bar
-        else:
-            scalar_bar = None
+        # in testing, no plotter; if colorbar=False, no scalar_bar
+        scalar_bar = getattr(
+            getattr(self._renderer, 'plotter', None), 'scalar_bar', None)
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -1272,7 +1294,7 @@ class _Brain(object):
                 maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
-                        self.geo[hemi].faces,
+                        self.geo[hemi].orig_faces,
                         np.arange(len(self.geo[hemi].coords)),
                         vertices, morph_n_steps, maps, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
@@ -1653,16 +1675,18 @@ class _Brain(object):
             raise ValueError('borders must be a bool or positive integer')
         if borders:
             n_vertices = label.size
-            edges = mesh_edges(self.geo[hemi].faces)
+            edges = mesh_edges(self.geo[hemi].orig_faces)
             edges = edges.tocoo()
             border_edges = label[edges.row] != label[edges.col]
             show = np.zeros(n_vertices, dtype=np.int64)
             keep_idx = np.unique(edges.row[border_edges])
             if isinstance(borders, int):
                 for _ in range(borders):
-                    keep_idx = np.in1d(self.geo[hemi].faces.ravel(), keep_idx)
-                    keep_idx.shape = self.geo[hemi].faces.shape
-                    keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
+                    keep_idx = np.in1d(
+                        self.geo[hemi].orig_faces.ravel(), keep_idx)
+                    keep_idx.shape = self.geo[hemi].orig_faces.shape
+                    keep_idx = self.geo[hemi].orig_faces[
+                        np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
                 if restrict_idx is not None:
                     keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]

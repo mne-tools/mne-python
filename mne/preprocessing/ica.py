@@ -474,11 +474,7 @@ class ICA(ContainsMixin):
         tstep : float
             Length of data chunks for artifact rejection in seconds.
             It only applies if ``inst`` is of type Raw.
-        reject_by_annotation : bool
-            Whether to omit bad segments from the data before fitting. If True,
-            annotated segments with a description that starts with 'bad' are
-            omitted. Has no effect if ``inst`` is an Epochs or Evoked object.
-            Defaults to True.
+        %(reject_by_annotation_raw)s
 
             .. versionadded:: 0.14.0
         %(verbose_meth)s
@@ -986,8 +982,7 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
         %(verbose_meth)s
@@ -1196,8 +1191,7 @@ class ICA(ContainsMixin):
             threshold components will be masked and the z-score will
             be recomputed until no supra-threshold component remains.
             Defaults to 'ctps'.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
         measure : 'zscore' | 'correlation'
@@ -1316,8 +1310,7 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
         method : 'together' | 'separate'
             Method to use to identify reference channel related components.
             Defaults to ``'together'``. See notes.
@@ -1446,8 +1439,7 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
         measure : 'zscore' | 'correlation'
@@ -1749,12 +1741,14 @@ class ICA(ContainsMixin):
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto'):
+                        psd_args=None, figsize=None, show=True, reject='auto',
+                        reject_by_annotation=True):
         return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   figsize=figsize, show=show, reject=reject)
+                                   figsize=figsize, show=show, reject=reject,
+                                   reject_by_annotation=reject_by_annotation)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, start=None,

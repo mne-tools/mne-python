@@ -138,14 +138,17 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
         with pytest.raises(ValueError, match='remove_existing'):
             brain.add_data(hemi_data, hemi=h, remove_existing=-1)
         with pytest.raises(ValueError, match='time_label_size'):
-            brain.add_data(hemi_data, hemi=h, time_label_size=-1)
+            brain.add_data(hemi_data, hemi=h, time_label_size=-1,
+                           vertices=hemi_vertices)
         with pytest.raises(ValueError, match='is positive'):
-            brain.add_data(hemi_data, hemi=h, smoothing_steps=-1)
+            brain.add_data(hemi_data, hemi=h, smoothing_steps=-1,
+                           vertices=hemi_vertices)
         with pytest.raises(TypeError, match='int or NoneType'):
             brain.add_data(hemi_data, hemi=h, smoothing_steps='foo')
-        with pytest.raises(ValueError):
-            brain.add_data(array=np.array([0, 1, 2]), hemi=h)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='dimension mismatch'):
+            brain.add_data(array=np.array([0, 1, 2]), hemi=h,
+                           vertices=hemi_vertices)
+        with pytest.raises(ValueError, match='vertices parameter must not be'):
             brain.add_data(hemi_data, fmin=fmin, hemi=hemi,
                            fmax=fmax, vertices=None)
         with pytest.raises(ValueError, match='has shape'):
@@ -154,7 +157,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
 
         brain.add_data(hemi_data, fmin=fmin, hemi=h, fmax=fmax,
                        colormap='hot', vertices=hemi_vertices,
-                       smoothing_steps='nearest', colorbar=False, time=None)
+                       smoothing_steps='nearest', colorbar=(0, 0), time=None)
         assert brain.data['lh']['array'] is hemi_data
         assert brain.views == ['lateral']
         assert brain.hemis == ('lh',)
@@ -220,8 +223,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
     if renderer._get_3d_backend() == 'mayavi':
         pixel_ratio = 1.  # no HiDPI when using the testing backend
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 3])
-    assert_allclose(img.shape, want_size,
-                    atol=70 * pixel_ratio)  # XXX undo once size is fixed
+    assert_allclose(img.shape, want_size)
     brain.close()
 
 

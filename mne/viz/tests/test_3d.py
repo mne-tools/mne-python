@@ -216,8 +216,7 @@ def test_plot_alignment(tmpdir, renderer):
     # no-head version
     renderer.backend._close_all()
     # all coord frames
-    pytest.raises(ValueError, plot_alignment, info)
-    plot_alignment(info, surfaces=[])
+    plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                              coord_frame=coord_frame, trans=Path(trans_fname),
@@ -705,9 +704,10 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     with pytest.warns(None):  # PCA mag
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
     stc.data[1] *= -1  # make it signed
-    meth = 'plot_3d' if isinstance(stc, _BaseVolSourceEstimate) else 'plot'
-    meth = getattr(stc, meth)
-    kwargs = dict(subject='sample', subjects_dir=subjects_dir,
+    meth_key = 'plot_3d' if isinstance(stc, _BaseVolSourceEstimate) else 'plot'
+    stc.subject = 'sample'
+    meth = getattr(stc, meth_key)
+    kwargs = dict(subjects_dir=subjects_dir,
                   time_viewer=False, show_traces=False,  # for speed
                   smoothing_steps=1, verbose='error', src=inv['src'],
                   volume_options=dict(resolution=None),  # for speed
@@ -739,6 +739,31 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     if not is_pyvista:
         with pytest.raises(ValueError, match='view_layout must be'):
             meth(view_layout='horizontal', **kwargs)
+
+    # flatmaps (mostly a lot of error checking)
+    these_kwargs = kwargs.copy()
+    these_kwargs.update(surface='flat', views='auto')
+    if kind == 'surface' and pick_ori != 'vector' and is_pyvista:
+        with pytest.raises(FileNotFoundError, match='flatmap'):
+            meth(**these_kwargs)  # sample does not have them
+    fs_stc = stc.copy()
+    fs_stc.subject = 'fsaverage'  # this is wrong, but don't have to care
+    flat_meth = getattr(fs_stc, meth_key)
+    these_kwargs.pop('src')
+    if pick_ori == 'vector':
+        pass  # can't even pass "surface" variable
+    elif kind != 'surface':
+        with pytest.raises(TypeError, match='SourceEstimate when a flatmap'):
+            flat_meth(**these_kwargs)
+    elif not is_pyvista:
+        with pytest.raises(RuntimeError, match='PyVista 3D backend.*flatmap'):
+            flat_meth(**these_kwargs)
+    else:
+        brain = flat_meth(**these_kwargs)
+        brain.close()
+        these_kwargs.update(surface='inflated', views='flat')
+        with pytest.raises(ValueError, match='surface="flat".*views="flat"'):
+            flat_meth(**these_kwargs)
 
     # just test one for speed
     if kind != 'mixed':

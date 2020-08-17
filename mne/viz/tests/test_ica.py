@@ -181,6 +181,25 @@ def test_plot_ica_properties():
         ica.plot_properties(epochs)
     plt.close('all')
 
+    # Test Raw with annotations
+    annot = Annotations(onset=[1], duration=[1], description=['BAD'])
+    raw_annot = _get_raw(preload=True).set_annotations(annot)
+
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw_annot)
+    # drop bad data segments
+    ica.plot_properties(raw_annot)
+    # don't drop
+    ica.plot_properties(raw_annot, reject_by_annotation=False)
+    # fitting with bad data
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw_annot, reject_by_annotation=False)
+    # drop bad data when plotting
+    ica.plot_properties(raw_annot)
+    # don't drop bad data when plotting
+    ica.plot_properties(raw_annot, reject_by_annotation=False)
+    plt.close('all')
+
 
 @requires_sklearn
 def test_plot_ica_sources():

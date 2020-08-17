@@ -165,8 +165,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     return_ecg : bool
         Return ecg channel if synthesized. Defaults to False. If True and
         and ecg exists this will yield None.
-    reject_by_annotation : bool
-        Whether to omit data that is annotated as bad.
+    %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -274,7 +273,7 @@ def _get_ecg_channel_index(ch_name, inst):
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
                       baseline=None, preload=True, keep_ecg=False,
-                      reject_by_annotation=True, verbose=None):
+                      reject_by_annotation=True, decim=1, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
 
     Parameters
@@ -329,12 +328,12 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
         Defaults to False.
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14.0
+    %(decim)s
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -369,7 +368,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         reject_by_annotation=reject_by_annotation,
-                        preload=preload)
+                        preload=preload, decim=decim)
 
     if keep_ecg:
         # We know we have created a synthetic channel and epochs are preloaded
@@ -384,7 +383,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
                             event_id=event_id, tmin=tmin, tmax=tmax,
                             proj=False, picks=[0], baseline=baseline,
-                            preload=True)
+                            decim=decim, preload=True)
         ecg_epochs = ecg_epochs.add_channels([syn_epochs])
 
     return ecg_epochs
