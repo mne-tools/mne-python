@@ -1532,6 +1532,8 @@ def link_brains(brains, time=True, camera=False, picking=False):
         If True, link the time controllers. Defaults to True.
     camera : bool
         If True, link the camera controls. Defaults to False.
+    picking : bool
+        If True, link the vertices picked with the mouse. Defaults to False.
     """
     from .backends.renderer import _get_3d_backend
     if _get_3d_backend() != 'pyvista':
