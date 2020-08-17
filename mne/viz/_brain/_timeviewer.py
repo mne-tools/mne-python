@@ -1140,6 +1140,9 @@ class _TimeViewer(object):
             self.add_point(hemi, mesh, vertex_id)
 
     def add_point(self, hemi, mesh, vertex_id):
+        # skip if the wrong hemi is selected
+        if self.act_data_smooth[hemi][0] is None:
+            return
         from ..backends._pyvista import _sphere
         color = next(self.color_cycle)
         line = self.plot_time_course(hemi, vertex_id, color)
@@ -1405,17 +1408,18 @@ class _LinkViewer(object):
             def _func_add(*args, **kwargs):
                 for time_viewer in self.time_viewers:
                     time_viewer._add_point(*args, **kwargs)
+                    time_viewer.plotter.update()
 
             def _func_remove(*args, **kwargs):
                 for time_viewer in self.time_viewers:
                     time_viewer._remove_point(*args, **kwargs)
 
             for time_viewer in self.time_viewers:
+                time_viewer.clear_points()
                 time_viewer._add_point = time_viewer.add_point
                 time_viewer.add_point = _func_add
                 time_viewer._remove_point = time_viewer.remove_point
                 time_viewer.remove_point = _func_remove
-                time_viewer.plotter.update()
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
