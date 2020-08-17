@@ -584,6 +584,16 @@ class _TimeViewer(object):
                 self.brain.set_time_point(0)  # first index
             self._last_tick = time.time()
 
+    def reset(self):
+        self.brain.reset_view()
+        max_time = len(self.brain._data['time']) - 1
+        if max_time > 0:
+            self.time_call(
+                self.brain._data["initial_time_idx"],
+                update_widget=True,
+            )
+        self.plotter.update()
+
     def set_playback_speed(self, speed):
         self.playback_speed = speed
 
@@ -987,6 +997,10 @@ class _TimeViewer(object):
             self.icons["play"],
             "Play/Pause",
             self.toggle_playback
+        )
+        self.actions["reset"] = self.tool_bar.addAction(
+            "Reset",
+            self.reset
         )
         self.actions["scale"] = self.tool_bar.addAction(
             self.icons["scale"],
