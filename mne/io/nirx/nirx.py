@@ -110,8 +110,9 @@ class RawNIRX(BaseRaw):
         if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
             raise RuntimeError('MNE does not support this NIRStar version'
                                ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
-        if hdr['GeneralInfo']['NIRStar'] in ['"15.3"']:
-            warn("Full MNE support for NIRStar version 15.3 currently under development.")        
+        if hdr['GeneralInfo']['NIRStar'] == '"15.3"':
+            warn("Full support for NIRStar version 15.3 is currently under "
+                 "development.")
 
         if "NIRScout" not in hdr['GeneralInfo']['Device']:
             warn("Only import of data from NIRScout devices have been "
