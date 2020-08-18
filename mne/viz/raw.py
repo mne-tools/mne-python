@@ -8,7 +8,7 @@
 
 import copy
 from functools import partial
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 import numpy as np
 
@@ -175,7 +175,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # compute event times in seconds
     if events is not None:
-        event_times = events[:, 0] - raw.first_samp
+        event_times = (events[:, 0] - raw.first_samp).astype(float)
         event_times /= sfreq
         event_nums = events[:, 2]
     else:
@@ -202,15 +202,21 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
 
-    # handle event colors
-    # TODO: could this be a defaultdict?
-    if not isinstance(event_color, dict):
-        event_color = {-1: event_color}
-    event_color = {_ensure_int(key, 'event_color key'): event_color[key]
-                   for key in event_color}
-    for key in event_color:
-        if key <= 0 and key != -1:
-            raise KeyError(f'only key <= 0 allowed is -1 (cannot use {key})')
+    # event_color is a dict
+    if isinstance(event_color, dict):
+        event_color = {_ensure_int(key, 'event_color key'): value
+                       for key, value in event_color.items()}
+        default_factory = None
+        for key, value in event_color.items():
+            if key == -1:
+                default_factory = lambda: value  # noqa E731
+            elif key < 1:
+                raise KeyError('event_color keys must be strictly positive, '
+                               f'or -1 (cannot use {key})')
+        event_color_dict = defaultdict(default_factory, **event_color)
+    # event_color is a string or other MPL color-like thing
+    else:
+        event_color_dict = defaultdict(lambda: event_color)
 
     # handle first_samp
     first_time = raw._first_time if show_first_samp else 0
@@ -238,8 +244,10 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   first_time=first_time,
                   decim=decim,
                   # events
+                  event_color_dict=event_color_dict,
                   event_times=event_times,
                   event_nums=event_nums,
+                  event_id_rev=event_id_rev,  # TODO still needed?
                   # preprocessing
                   projs=projs,
                   projs_on=projs_on,
@@ -255,10 +263,8 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   units=units,
                   unit_scalings=unit_scalings,
                   # misc
-                  fig_proj=None,  # TODO Move to init?
-                  event_id_rev=event_id_rev,  # TODO still needed?
-                  bad_color=bad_color,
-                  color_dict=color,
+                  ch_color_bad=bad_color,
+                  ch_color_dict=color,
                   # display
                   butterfly=butterfly,
                   clipping=clipping,
@@ -319,10 +325,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                          vline=vline, vline_hscroll=vline_hscroll,
                          vline_text=vline_text)
 
-    # plot event_lines first so they're in the back
-    event_lines = [fig.mne.ax_main.plot([np.nan], color=event_color[ev_num])[0]
-                   for ev_num in sorted(event_color)]
-
     # make shells for plotting traces
     fig._update_trace_offsets()
     n_traces = len(ch_names) if butterfly else n_channels
@@ -334,8 +336,8 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # update projector and data, and plot
     fig._update_projector()
     fig._update_data()
-    # TODO get rid of these params to _draw_traces()
-    fig._draw_traces(event_lines=event_lines, event_color=event_color)
+    #fig._draw_event_lines()  # plot event_lines first so they're in the back
+    fig._draw_traces()
 
     # plot annotations (if any)
     fig._setup_annotation_colors()

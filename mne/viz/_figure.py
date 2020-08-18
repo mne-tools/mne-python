@@ -253,6 +253,7 @@ class MNEBrowseFigure(MNEFigure):
                             f'got {type(inst)}.')
 
         # additional params for browse figures
+        self.mne.event_lines = None
         self.mne.projector = None
         self.mne.whitened_ch_names = list()
         # annotations
@@ -266,8 +267,9 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
-        # ancillary figures
+        # ancillary child figures
         self.mne.fig_help = None
+        self.mne.fig_proj = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
 
@@ -392,7 +394,7 @@ class MNEBrowseFigure(MNEFigure):
             return
         from matplotlib.patheffects import Stroke, Normal
         for coll in self.mne.ax_main.collections:
-            if coll.contains(event)[0]:
+            if coll.contains(event)[0] and coll != self.mne.event_lines:
                 path = coll.get_paths()
                 assert len(path) == 1
                 path = path[0]
@@ -431,16 +433,18 @@ class MNEBrowseFigure(MNEFigure):
         """Handle keypress events."""
         from matplotlib.pyplot import get_current_fig_manager
         key = event.key
+        # scroll up/down
         if key in ('down', 'up'):
             direction = -1 if key == 'up' else 1
+            # butterfly case
             if self.mne.butterfly:
                 return
+            # group_by case
             elif self.mne.fig_selection is not None:
                 buttons = self.mne.fig_selection.mne.radio_ax.buttons
                 labels = [label.get_text() for label in buttons.labels]
                 current_label = buttons.value_selected
                 current_idx = labels.index(current_label)
-                # conditions
                 selections_dict = self.mne.ch_selections
                 penult = current_idx < (len(labels) - 1)
                 antepenult = current_idx < (len(labels) - 2)
@@ -454,6 +458,7 @@ class MNEBrowseFigure(MNEFigure):
                 if up_ok or down_ok:
                     buttons.set_active(current_idx + direction)
                     self.canvas.draw_idle()
+            # normal case
             else:
                 ceiling = len(self.mne.ch_names) - self.mne.n_channels
                 ch_start = self.mne.ch_start + direction * self.mne.n_channels
@@ -461,6 +466,7 @@ class MNEBrowseFigure(MNEFigure):
                 self._update_picks()
                 self._update_vscroll()
                 self._redraw()
+        # scroll left/right
         elif key in ('right', 'left', 'shift+right', 'shift+left'):
             old_t_start = self.mne.t_start
             direction = 1 if key.endswith('right') else -1
@@ -471,11 +477,13 @@ class MNEBrowseFigure(MNEFigure):
             if self.mne.t_start != old_t_start:
                 self._update_hscroll()
                 self._redraw(annotations=True)
+        # scale traces
         elif key in ('=', '+', '-'):
             scaler = 1 / 1.1 if key == '-' else 1.1
             self.mne.scale_factor *= scaler
             self._draw_traces()
             self.canvas.draw()
+        # change number of visible channels
         elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
             old_n_channels = self.mne.n_channels
             n_ch_delta = 1 if key == 'pageup' else -1
@@ -485,7 +493,8 @@ class MNEBrowseFigure(MNEFigure):
                 self._update_picks()
                 self._update_trace_offsets()
                 self._redraw(annotations=True)
-        elif key in ('home', 'end'):  # change duration
+        # change duration
+        elif key in ('home', 'end'):
             dur_delta = 1 if key == 'end' else -1
             old_dur = self.mne.duration
             new_dur = self.mne.duration + dur_delta
@@ -500,14 +509,12 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'f11':  # full screen
             get_current_fig_manager().full_screen_toggle()
         elif key == 'a':  # annotation mode
-            if self.mne.instance_type == 'raw':
-                self._toggle_annotation_fig()
+            self._toggle_annotation_fig()
         elif key == 'b':  # butterfly mode
             self.mne.ax_vscroll.set_visible(self.mne.butterfly)
             self.mne.butterfly = not self.mne.butterfly
             self._update_trace_offsets()
-            self._draw_annotations()
-            self._redraw()
+            self._redraw(annotations=True)
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
             self._redraw()
@@ -603,7 +610,7 @@ class MNEBrowseFigure(MNEFigure):
             color = vars(line)['def_color']
         else:
             bads.append(ch_name)
-            color = self.mne.bad_color
+            color = self.mne.ch_color_bad
         self.mne.ax_vscroll.patches[vscroll_idx].set_color(color)
         self.mne.info['bads'] = bads
         # redraw
@@ -954,6 +961,7 @@ class MNEBrowseFigure(MNEFigure):
     def _draw_annotations(self):
         """Draw (or redraw) the annotation spans."""
         self._clear_annotations()
+        self._draw_event_lines()
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
         times = self.mne.times
@@ -1387,7 +1395,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.trace_offsets = offsets
         self._update_yaxis_labels()
 
-    def _draw_traces(self, event_lines=None, event_color=None):
+    def _draw_traces(self):
         """Draw (or redraw) the channel data."""
         from matplotlib.patches import Rectangle
         from matplotlib import rcParams
@@ -1406,8 +1414,8 @@ class MNEBrowseFigure(MNEFigure):
         ch_types = self.mne.ch_types[picks]
         # colors
         bads = self.mne.info['bads']
-        def_colors = [self.mne.color_dict[_type] for _type in ch_types]
-        ch_colors = [self.mne.bad_color if _name in bads else def_color
+        def_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
+        ch_colors = [self.mne.ch_color_bad if _name in bads else def_color
                      for _name, def_color in zip(ch_names, def_colors)]
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         if butterfly:
@@ -1480,14 +1488,9 @@ class MNEBrowseFigure(MNEFigure):
         # draw scalebars maybe
         if self.mne.scalebars_visible:
             self._show_scalebars()
-        # TODO: WIP event lines
+        # redraw event lines
         if self.mne.event_times is not None:
-            mask = np.logical_and(self.mne.event_times >= self.mne.times[0],
-                                  self.mne.event_times <= self.mne.times[-1])
-            these_event_times = self.mne.event_times[mask]
-            these_event_nums = self.mne.event_nums[mask]
-            # plot them
-            ylim = self.mne.ax_main.get_ylim()
+            self._draw_event_lines()
 
     def _redraw(self, annotations=False):
         """Redraw (convenience method for frequently grouped actions)."""
@@ -1495,6 +1498,50 @@ class MNEBrowseFigure(MNEFigure):
         self._draw_traces()
         if annotations:
             self._draw_annotations()
+        self.canvas.draw()
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # EVENT LINES AND MARKER LINES
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _draw_event_lines(self):
+        """Draw the event lines and their labels."""
+        from matplotlib.colors import to_rgba_array
+        from matplotlib.collections import LineCollection
+        if self.mne.event_times is not None:
+            mask = np.logical_and(self.mne.event_times >= self.mne.times[0],
+                                  self.mne.event_times <= self.mne.times[-1])
+            this_event_times = self.mne.event_times[mask]
+            this_event_nums = self.mne.event_nums[mask]
+            n_visible_events = len(this_event_times)
+            colors = to_rgba_array([self.mne.event_color_dict[n]
+                                    for n in this_event_nums])
+            # plot them
+            ylim = self.mne.ax_main.get_ylim()
+            xs = np.repeat(this_event_times, 2)
+            ys = np.tile(ylim, n_visible_events)
+            segs = np.vstack([xs, ys]).T.reshape(n_visible_events, 2, 2)
+            event_lines = LineCollection(segs, linewidths=0.5,
+                                         colors=colors, zorder=0)
+            self.mne.ax_main.add_collection(event_lines)
+            self.mne.event_lines = event_lines
+            # TODO add labels
+            self.canvas.draw_idle()
+
+    def _show_vline(self, xdata):
+        """Show the vertical line."""
+        self.mne.vline.set_xdata(xdata)
+        self.mne.vline_hscroll.set_xdata(xdata)
+        self.mne.vline.set_visible(True)
+        self.mne.vline_hscroll.set_visible(True)
+        self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
+        self.canvas.draw_idle()
+
+    def _hide_vline(self, xdata=None):
+        """Hide the vertical line."""
+        self.mne.vline.set_visible(False)
+        self.mne.vline_hscroll.set_visible(False)
+        self.mne.vline_text.set_text('')
         self.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1510,22 +1557,6 @@ class MNEBrowseFigure(MNEFigure):
         else:
             ticklabels = self.mne.ch_names[self.mne.picks]
         self.mne.ax_main.set_yticklabels(ticklabels, rotation=0)
-
-    def _show_vline(self, xdata):
-        """Show the vertical line."""
-        self.mne.vline.set_xdata(xdata)
-        self.mne.vline_hscroll.set_xdata(xdata)
-        self.mne.vline.set_visible(True)
-        self.mne.vline_hscroll.set_visible(True)
-        self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
-        self.canvas.draw()
-
-    def _hide_vline(self, xdata=None):
-        """Hide the vertical line."""
-        self.mne.vline.set_visible(False)
-        self.mne.vline_hscroll.set_visible(False)
-        self.mne.vline_text.set_text('')
-        self.canvas.draw()
 
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
