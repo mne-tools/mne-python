@@ -247,8 +247,6 @@ def test_nirx_15_3_short():
         mni_locs[21], [-0.0394, -0.0483, 0.0928], atol=allowed_dist_error)
 
 
-
-
 @requires_testing_data
 def test_encoding(tmpdir):
     """Test NIRx encoding."""
