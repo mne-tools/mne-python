@@ -299,7 +299,7 @@ class _Brain(object):
                 self.show_view(v, row=ri, col=ci, hemi=h)
 
         if surf == 'flat':
-            self._renderer.plotter.interactor.SetInteractorStyle(None)
+            self._renderer.set_interaction("rubber_band")
 
     @property
     def interaction(self):
