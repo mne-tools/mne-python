@@ -12,8 +12,8 @@ import copy as cp
 import numpy as np
 from scipy import linalg
 
-from .mixin import TransformerMixin
 from .base import BaseEstimator
+from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
 from ..utils import fill_doc, _check_option
 
@@ -65,6 +65,11 @@ class CSP(TransformerMixin, BaseEstimator):
     %(rank_None)s
 
         .. versionadded:: 0.17
+    cov_decomposition : 'eigen' | 'pham' | None, (default None)
+        If 'eigen' use eigenvalue decomposition for covariance matrices.
+        If 'pham' use Pham's approximate joint diagonalization.
+        If None, automatically use 'eigen' for two classes and 'pham' for more
+        than two classes.
 
     Attributes
     ----------
@@ -97,7 +102,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
                  transform_into='average_power', norm_trace=False,
-                 cov_method_params=None, rank=None):
+                 cov_method_params=None, rank=None, cov_decomposition=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
@@ -132,6 +137,7 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError('norm_trace must be a bool.')
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
+        self.cov_decomposition = cov_decomposition
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -160,83 +166,33 @@ class CSP(TransformerMixin, BaseEstimator):
             Returns the modified instance.
         """
         self._check_Xy(X, y)
-        n_channels = X.shape[1]
 
         self._classes = np.unique(y)
         n_classes = len(self._classes)
         if n_classes < 2:
             raise ValueError("n_classes must be >= 2.")
 
-        covs = np.zeros((n_classes, n_channels, n_channels))
-        sample_weights = list()
-        for class_idx, this_class in enumerate(self._classes):
-            if self.cov_est == "concat":  # concatenate epochs
-                class_ = np.transpose(X[y == this_class], [1, 0, 2])
-                class_ = class_.reshape(n_channels, -1)
-                cov = _regularized_covariance(
-                    class_, reg=self.reg, method_params=self.cov_method_params,
-                    rank=self.rank)
-                weight = sum(y == this_class)
-            elif self.cov_est == "epoch":
-                class_ = X[y == this_class]
-                cov = np.zeros((n_channels, n_channels))
-                for this_X in class_:
-                    cov += _regularized_covariance(
-                        this_X, reg=self.reg,
-                        method_params=self.cov_method_params,
-                        rank=self.rank)
-                cov /= len(class_)
-                weight = len(class_)
-
-            covs[class_idx] = cov
-            if self.norm_trace:
-                # Append covariance matrix and weight. Prior to version 0.15,
-                # trace normalization was applied, but was breaking results for
-                # some usecases by changing the apparent ranking of patterns.
-                # Trace normalization of the covariance matrix was removed
-                # without signigificant effect on patterns or performances.
-                # If the user interested in this feature, we suggest trace
-                # normalization of the epochs prior to the CSP.
-                covs[class_idx] /= np.trace(cov)
-
-            sample_weights.append(weight)
-
-        if n_classes == 2:
-            eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
-            # sort eigenvectors
-            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
+        if self.cov_decomposition is None:
+            if n_classes == 2:
+                decompose_method = 'eigen'
+            else:
+                decompose_method = 'pham'
         else:
-            # The multiclass case is adapted from
-            # http://github.com/alexandrebarachant/pyRiemann
-            eigen_vectors, D = _ajd_pham(covs)
+            if n_classes > 2 and self.cov_decomposition != 'pham':
+                raise ValueError("cov_decomposition must be 'pham'"
+                                 " in the multi-class case")
+            decompose_method = self.cov_decomposition
 
-            # Here we apply an euclidean mean. See pyRiemann for other metrics
-            mean_cov = np.average(covs, axis=0, weights=sample_weights)
-            eigen_vectors = eigen_vectors.T
+        covs, sample_weights = self._compute_covariance_matrices(X, y)
 
-            # normalize
-            for ii in range(eigen_vectors.shape[1]):
-                tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
-                             eigen_vectors[:, ii])
-                eigen_vectors[:, ii] /= np.sqrt(tmp)
+        eigen_vectors, eigen_values = self._decompose_covs(covs, decompose_method)
 
-            # class probability
-            class_probas = [np.mean(y == _class) for _class in self._classes]
+        eigen_vectors = self._normalize_eigenvectors(eigen_vectors, covs,
+                                                     sample_weights)
 
-            # mutual information
-            mutual_info = []
-            for jj in range(eigen_vectors.shape[1]):
-                aa, bb = 0, 0
-                for (cov, prob) in zip(covs, class_probas):
-                    tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov),
-                                 eigen_vectors[:, jj])
-                    aa += prob * np.log(np.sqrt(tmp))
-                    bb += prob * (tmp ** 2 - 1)
-                mi = - (aa + (3.0 / 16) * (bb ** 2))
-                mutual_info.append(mi)
-            ix = np.argsort(mutual_info)[::-1]
+        ix = self._order_components(covs, sample_weights,
+                                    eigen_vectors, eigen_values)
 
-        # sort eigenvectors
         eigen_vectors = eigen_vectors[:, ix]
 
         self.filters_ = eigen_vectors.T
@@ -245,7 +201,7 @@ class CSP(TransformerMixin, BaseEstimator):
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
-        # compute features (mean band power)
+        # compute features (mean power)
         X = (X ** 2).mean(axis=2)
 
         # To standardize features
@@ -544,6 +500,109 @@ class CSP(TransformerMixin, BaseEstimator):
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
             image_interp=image_interp, show=show, average=average)
+
+    def _compute_covariance_matrices(self, X, y):
+        _, n_channels, _ = X.shape
+
+        if self.cov_est == "concat":
+            cov_estimator = self._concat_cov
+        elif self.cov_est == "epoch":
+            cov_estimator = self._epoch_cov
+
+        covs = []
+        sample_weights = []
+        for this_class in self._classes:
+            cov, weight = cov_estimator(X[y == this_class])
+
+            if self.norm_trace:
+                cov /= np.trace(cov)
+
+            covs.append(cov)
+            sample_weights.append(weight)
+
+        return np.stack(covs), np.array(sample_weights)
+
+    def _concat_cov(self, x_class):
+        """Concatenate epochs before computing the covariance"""
+        _, n_channels, _ = x_class.shape
+
+        x_class = np.transpose(x_class, [1, 0, 2])
+        x_class = x_class.reshape(n_channels, -1)
+        cov = _regularized_covariance(
+            x_class, reg=self.reg, method_params=self.cov_method_params,
+            rank=self.rank)
+        weight = x_class.shape[0]
+
+        return cov, weight
+
+    def _epoch_cov(self, x_class):
+        """Mean of per-epoch covariances"""
+        cov = sum(_regularized_covariance(
+            this_X, reg=self.reg,
+            method_params=self.cov_method_params,
+            rank=self.rank) for this_X in x_class)
+        cov /= len(x_class)
+        weight = len(x_class)
+
+        return cov, weight
+
+    def _decompose_covs(self, covs, method):
+        if method == 'eigen':
+            eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
+        elif method == 'pham':
+            # The multiclass case is adapted from
+            # http://github.com/alexandrebarachant/pyRiemann
+            eigen_vectors, D = _ajd_pham(covs)
+            eigen_vectors = eigen_vectors.T
+            eigen_values = None
+        else:
+            raise ValueError("unknown cov_decomposition: {}".format(method))
+        return eigen_vectors, eigen_values
+
+    def _compute_mutual_info(self, covs, sample_weights, eigen_vectors):
+        # class probability
+        class_probas = sample_weights / sample_weights.sum()
+
+        # mutual information
+        mutual_info = []
+        for jj in range(eigen_vectors.shape[1]):
+            aa, bb = 0, 0
+            for (cov, prob) in zip(covs, class_probas):
+                tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov),
+                             eigen_vectors[:, jj])
+                aa += prob * np.log(np.sqrt(tmp))
+                bb += prob * (tmp ** 2 - 1)
+            mi = - (aa + (3.0 / 16) * (bb ** 2))
+            mutual_info.append(mi)
+
+        return mutual_info
+
+    def _normalize_eigenvectors(self, eigen_vectors, covs, sample_weights):
+        # Here we apply an euclidean mean. See pyRiemann for other metrics
+        mean_cov = np.average(covs, axis=0, weights=sample_weights)
+
+        # normalize
+        for ii in range(eigen_vectors.shape[1]):
+            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
+                         eigen_vectors[:, ii])
+            eigen_vectors[:, ii] /= np.sqrt(tmp)
+        return eigen_vectors
+
+    def _order_components(self, covs, sample_weights, eigen_vectors, eigen_values):
+        n_classes = len(covs)
+        if n_classes == 2:
+            if eigen_values is None:
+                a = covs[0][0, :] @ eigen_vectors
+                b = covs.sum(0)[0, :] @ eigen_vectors
+                eigen_values = a / b
+
+            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
+            # ix = np.argsort(eigen_values)
+        else:
+            mutual_info = self._compute_mutual_info(covs, sample_weights,
+                                                    eigen_vectors)
+            ix = np.argsort(mutual_info)[::-1]
+        return ix
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):

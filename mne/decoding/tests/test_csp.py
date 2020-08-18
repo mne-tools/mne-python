@@ -5,7 +5,6 @@
 #
 # License: BSD (3-clause)
 
-import itertools
 import os.path as op
 
 import numpy as np
@@ -334,3 +333,19 @@ def test_csp_twoclass_symmetry():
 
     assert_array_almost_equal(log_power_ratio_ab,
                               log_power_ratio_ba)
+
+
+def test_csp_decomposition_selection():
+    x, y = deterministic_toy_data(['class_a', 'class_b'])
+
+    csp = CSP(cov_decomposition='eigen')
+    log_power_eigen = csp.fit_transform(x, y)
+
+    csp = CSP(cov_decomposition='pham')
+    log_power_pham = csp.fit_transform(x, y)
+
+    assert_array_almost_equal(log_power_eigen, log_power_pham)
+
+    with pytest.raises(ValueError):
+        csp = CSP(cov_decomposition='eigen')
+        csp.fit(np.random.randn(3, 5, 10), np.array(['A', 'B', 'C']))
