@@ -135,6 +135,9 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X should be of type ndarray (got %s)."
+                             % type(X))
         if y is not None:
             if len(X) != len(y) or len(y) < 1:
                 raise ValueError('X and y must have the same length.')
@@ -156,9 +159,6 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
         self._check_Xy(X, y)
         n_channels = X.shape[1]
 
@@ -722,9 +722,6 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
         self._check_Xy(X, y)
 
         if len(np.unique(y)) < 2:
