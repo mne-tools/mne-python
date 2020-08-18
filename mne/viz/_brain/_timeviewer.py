@@ -969,6 +969,7 @@ class _TimeViewer(object):
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
+        self.icons["reset"] = QIcon(":/reset.svg")
         self.icons["scale"] = QIcon(":/scale.svg")
         self.icons["clear"] = QIcon(":/clear.svg")
         self.icons["movie"] = QIcon(":/movie.svg")
@@ -999,6 +1000,7 @@ class _TimeViewer(object):
             self.toggle_playback
         )
         self.actions["reset"] = self.tool_bar.addAction(
+            self.icons["reset"],
             "Reset",
             self.reset
         )
