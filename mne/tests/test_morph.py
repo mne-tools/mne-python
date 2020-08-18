@@ -174,15 +174,18 @@ def test_xhemi_morph():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('smooth, lower, upper, n_warn', [
-    (None, 0.959, 0.963, 0),
-    (3, 0.968, 0.971, 2),
-    ('nearest', 0.98, 0.99, 0),
+@pytest.mark.parametrize('smooth, lower, upper, n_warn, dtype', [
+    (None, 0.959, 0.963, 0, float),
+    (3, 0.968, 0.971, 2, complex),
+    ('nearest', 0.98, 0.99, 0, float),
 ])
-def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn):
+def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     """Test round-trip morphing yields similar STCs."""
     kwargs = dict(smooth=smooth, warn=True, subjects_dir=subjects_dir)
     stc = mne.read_source_estimate(fname_smorph)
+    if dtype is complex:
+        stc.data = 1j * stc.data
+        assert_array_equal(stc.data.real, 0.)
     if smooth == 'nearest' and not check_version('scipy', '1.3'):
         with pytest.raises(ValueError, match='required to use nearest'):
             morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
@@ -206,9 +209,14 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn):
 def assert_power_preserved(orig, new, limits=(1., 1.05)):
     """Assert that the power is preserved during a round-trip morph."""
     __tracebackhide__ = True
-    power_ratio = np.linalg.norm(orig.data) / np.linalg.norm(new.data)
-    min_, max_ = limits
-    assert min_ < power_ratio < max_, 'Power ratio'
+    for kind in ('real', 'imag'):
+        numer = np.linalg.norm(getattr(orig.data, kind))
+        denom = np.linalg.norm(getattr(new.data, kind))
+        if numer == denom == 0.:  # no data of this type
+            continue
+        power_ratio = numer / denom
+        min_, max_ = limits
+        assert min_ < power_ratio < max_, f'Power ratio {kind}'
 
 
 @requires_h5py
@@ -451,13 +459,13 @@ def test_volume_source_morph(tmpdir):
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.parametrize('subject_from, subject_to, lower, upper', [
-    ('sample', 'fsaverage', 8.5, 9),
-    ('fsaverage', 'fsaverage', 7, 7.5),
-    ('sample', 'sample', 6, 7),
+@pytest.mark.parametrize('subject_from, subject_to, lower, upper, dtype', [
+    ('sample', 'fsaverage', 8.5, 9, float),
+    ('fsaverage', 'fsaverage', 7, 7.5, float),
+    ('sample', 'sample', 6, 7, complex),
 ])
 def test_volume_source_morph_round_trip(
-        tmpdir, subject_from, subject_to, lower, upper):
+        tmpdir, subject_from, subject_to, lower, upper, dtype):
     """Test volume source estimate morph round-trips well."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
@@ -492,8 +500,10 @@ def test_volume_source_morph_round_trip(
     morph_to_from = compute_source_morph(
         src=src_to, src_to=src_from, subject_to=subject_from, **kwargs)
     use = np.linspace(0, src_from[0]['nuse'] - 1, 10).round().astype(int)
-    stc_from = VolSourceEstimate(
-        np.eye(src_from[0]['nuse'])[:, use], [src_from[0]['vertno']], 0, 1)
+    data = np.eye(src_from[0]['nuse'])[:, use]
+    if dtype is complex:
+        data = data * 1j
+    stc_from = VolSourceEstimate(data, [src_from[0]['vertno']], 0, 1)
     stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
     maxs = np.argmax(stc_from_rt.data, axis=0)
     src_rr = src_from[0]['rr'][src_from[0]['vertno']]
@@ -518,7 +528,8 @@ def test_volume_source_morph_round_trip(
     if subject_from == subject_to == 'sample':
         for stc in [stc_from, stc_from_rt]:
             img = stc.as_volume(src_from, mri_resolution=True)
-            img = nib.Nifti1Image(_get_img_fdata(img)[:, :, :, 0], img.affine)
+            img = nib.Nifti1Image(  # abs to convert complex
+                np.abs(_get_img_fdata(img)[:, :, :, 0]), img.affine)
             img = _get_img_fdata(resample_from_to(img, brain, order=1))
             assert img.shape == mask.shape
             in_ = img[mask].astype(bool).mean()
