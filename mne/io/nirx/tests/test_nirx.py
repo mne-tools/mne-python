@@ -183,8 +183,7 @@ def test_nirx_15_3_short():
         sex=0, first_name="testMontage\\0ATestMontage")
 
     # Test distance between optodes matches values from
-    # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
-    # step 4 figure 2
+    # https://github.com/mne-tools/mne-testing-data/pull/72
     allowed_distance_error = 0.001
     distances = source_detector_distances(raw.info)
     assert_allclose(distances[::2], [
@@ -194,7 +193,7 @@ def test_nirx_15_3_short():
 
     # Test which channels are short
     # These are the ones marked as red at
-    # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
+    # https://github.com/mne-tools/mne-testing-data/pull/72
     is_short = short_channels(raw.info)
     assert_array_equal(is_short[:9:2], [False, True, False, True, False])
     is_short = short_channels(raw.info, threshold=0.003)
@@ -208,12 +207,8 @@ def test_nirx_15_3_short():
     # Test location of detectors
     # The locations of detectors can be seen in the first
     # figure on this page...
-    # https://github.com/mne-tools/mne-testing-data/pull/51
+    # https://github.com/mne-tools/mne-testing-data/pull/72
     # And have been manually copied below
-    # These values were reported in mm, but according to this page...
-    # https://mne.tools/stable/auto_tutorials/intro/plot_40_sensor_locations.html
-    # 3d locations should be specified in meters, so that's what's tested below
-    # Detector locations are stored in the third three loc values
     allowed_dist_error = 0.0002
     locs = [ch['loc'][6:9] for ch in raw.info['chs']]
     head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
