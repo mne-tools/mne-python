@@ -1532,6 +1532,8 @@ def link_brains(brains, time=True, camera=False, colorbar=True):
         If True, link the time controllers. Defaults to True.
     camera : bool
         If True, link the camera controls. Defaults to False.
+    colorbar : bool
+        If True, link the colorbar controllers. Defaults to True.
     """
     from .backends.renderer import _get_3d_backend
     if _get_3d_backend() != 'pyvista':
