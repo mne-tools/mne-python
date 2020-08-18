@@ -1521,7 +1521,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
-def link_brains(brains, time=True, camera=False, picking=False):
+def link_brains(brains, time=True, camera=False, colorbar=True,
+                picking=False):
     """Plot multiple SourceEstimate objects with PyVista.
 
     Parameters
@@ -1532,6 +1533,8 @@ def link_brains(brains, time=True, camera=False, picking=False):
         If True, link the time controllers. Defaults to True.
     camera : bool
         If True, link the camera controls. Defaults to False.
+    colorbar : bool
+        If True, link the colorbar controllers. Defaults to True.
     picking : bool
         If True, link the vertices picked with the mouse. Defaults to False.
     """
@@ -1557,6 +1560,7 @@ def link_brains(brains, time=True, camera=False, picking=False):
         brains=brains,
         time=time,
         camera=camera,
+        colorbar=colorbar,
         picking=picking,
     )
 

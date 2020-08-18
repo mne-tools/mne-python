@@ -96,6 +96,7 @@ if __name__ == "__main__":
               op.join('html', '*.js'),
               op.join('html', '*.css'),
               op.join('icons', '*.svg'),
+              op.join('icons', '*.png'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
           ]},
