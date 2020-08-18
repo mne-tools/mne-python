@@ -407,6 +407,7 @@ def test_brain_linkviewer(renderer_interactive, travis_macos):
         [brain_data],
         time=True,
         camera=True,
+        picking=True,
     )
     link_viewer.set_time_point(value=0)
     link_viewer.set_playback_speed(value=0.1)
