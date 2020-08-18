@@ -27,6 +27,8 @@ fname_nirx_15_2 = op.join(data_path(download=False),
 fname_nirx_15_2_short = op.join(data_path(download=False),
                                 'NIRx', 'nirscout',
                                 'nirx_15_2_recording_w_short')
+fname_nirx_15_3_short = op.join(data_path(download=False),
+                                'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
 @requires_testing_data
@@ -43,7 +45,7 @@ def test_nirx_hdr_load():
 @requires_testing_data
 def test_nirx_missing_warn():
     """Test reading NIRX files when missing data."""
-    with pytest.raises(RuntimeError, match='The path you'):
+    with pytest.raises(FileNotFoundError, match='The path you'):
         read_raw_nirx(fname_nirx_15_2_short + "1", preload=True)
 
 
@@ -156,6 +158,94 @@ def test_nirx_15_2_short():
     assert raw.info['ch_names'][21][3:5] == 'D7'
     assert_allclose(
         mni_locs[21], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+
+
+@requires_testing_data
+def test_nirx_15_3_short():
+    """Test reading NIRX files."""
+    raw = read_raw_nirx(fname_nirx_15_3_short, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (26, 220)
+    assert raw.info['sfreq'] == 12.5
+
+    # Test channel naming
+    assert raw.info['ch_names'][:4] == ["S1_D2 760", "S1_D2 850",
+                                        "S1_D9 760", "S1_D9 850"]
+    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
+
+    # Test frequency encoding
+    assert raw.info['chs'][0]['loc'][9] == 760
+    assert raw.info['chs'][1]['loc'][9] == 850
+
+    # Test info import
+    assert raw.info['subject_info'] == dict(
+        sex=0, first_name="testMontage\\0ATestMontage")
+
+    # Test distance between optodes matches values from
+    # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
+    # step 4 figure 2
+    allowed_distance_error = 0.001
+    distances = source_detector_distances(raw.info)
+    assert_allclose(distances[::2], [
+        0.0304, 0.0078, 0.0310, 0.0086, 0.0416,
+        0.0072, 0.0389, 0.0075, 0.0558, 0.0562,
+        0.0561, 0.0565, 0.0077], atol=allowed_distance_error)
+
+    # Test which channels are short
+    # These are the ones marked as red at
+    # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
+    is_short = short_channels(raw.info)
+    assert_array_equal(is_short[:9:2], [False, True, False, True, False])
+    is_short = short_channels(raw.info, threshold=0.003)
+    assert_array_equal(is_short[:3:2], [False, False])
+    is_short = short_channels(raw.info, threshold=50)
+    assert_array_equal(is_short[:3:2], [True, True])
+
+    # Test trigger events
+    assert_array_equal(raw.annotations.description, ['4.0', '2.0', '1.0'])
+
+    # Test location of detectors
+    # The locations of detectors can be seen in the first
+    # figure on this page...
+    # https://github.com/mne-tools/mne-testing-data/pull/51
+    # And have been manually copied below
+    # These values were reported in mm, but according to this page...
+    # https://mne.tools/stable/auto_tutorials/intro/plot_40_sensor_locations.html
+    # 3d locations should be specified in meters, so that's what's tested below
+    # Detector locations are stored in the third three loc values
+    allowed_dist_error = 0.0002
+    locs = [ch['loc'][6:9] for ch in raw.info['chs']]
+    head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
+    mni_locs = apply_trans(head_mri_t, locs)
+
+    assert raw.info['ch_names'][0][3:5] == 'D2'
+    assert_allclose(
+        mni_locs[0], [-0.0841, -0.0464, -0.0129], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][4][3:5] == 'D1'
+    assert_allclose(
+        mni_locs[4], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][8][3:5] == 'D3'
+    assert_allclose(
+        mni_locs[8], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][12][3:5] == 'D4'
+    assert_allclose(
+        mni_locs[12], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][16][3:5] == 'D5'
+    assert_allclose(
+        mni_locs[16], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][19][3:5] == 'D6'
+    assert_allclose(
+        mni_locs[19], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][21][3:5] == 'D7'
+    assert_allclose(
+        mni_locs[21], [-0.0394, -0.0483, 0.0928], atol=allowed_dist_error)
 
 
 @requires_testing_data

@@ -73,7 +73,7 @@ class RawNIRX(BaseRaw):
             fname = op.dirname(op.abspath(fname))
 
         if not op.isdir(fname):
-            raise RuntimeError('The path you specified does not exist.')
+            raise FileNotFoundError('The path you specified does not exist.')
 
         # Check if required files exist and store names for later use
         files = dict()
@@ -107,8 +107,7 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
-                   ["\"15.0\"", "\"15.2\""]):
+        if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
             raise RuntimeError('MNE does not support this NIRStar version'
                                ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
         if "NIRScout" not in hdr['GeneralInfo']['Device']:
