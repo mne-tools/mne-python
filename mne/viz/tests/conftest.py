@@ -34,7 +34,7 @@ def fnirs_evoked():
 def fnirs_epochs():
     """Create an fnirs epoch structure."""
     fname = op.join(data_path(download=False),
-                    'NIRx', 'nirx_15_2_recording_w_overlap')
+                    'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
     raw_haemo = beer_lambert_law(raw_od)

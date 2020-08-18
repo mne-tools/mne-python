@@ -11,5 +11,6 @@
     <file alias="clear.svg">clear-black-18dp.svg</file>
     <file alias="screenshot.svg">screenshot-black-18dp.svg</file>
     <file alias="movie.svg">movie-black-18dp.svg</file>
+    <file alias="mne-icon.png">mne-circle-black.png</file>
 </qresource>
 </RCC>
