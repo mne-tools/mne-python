@@ -441,13 +441,13 @@ class _Renderer(_BaseRenderer):
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow' or mode == '3darrow':
-                mesh = _glyph(
+                alg = _glyph(
                     grid,
                     orient='vec',
                     scalars=scale,
                     factor=factor
                 )
-                mesh = pyvista.wrap(mesh)
+                mesh = pyvista.wrap(alg.GetOutput())
                 _add_mesh(
                     self.plotter,
                     mesh=mesh,
@@ -897,12 +897,9 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     if geom is None:
         arrow = vtk.vtkArrowSource()
         arrow.Update()
-        geom = arrow.GetOutput()
+        geom = arrow.GetOutputPort()
     alg = vtk.vtkGlyph3D()
-    if isinstance(geom, vtk.vtkDataSet):
-        alg.SetSourceData(geom)
-    else:
-        alg.SetSourceConnection(geom)
+    alg.SetSourceConnection(geom)
     if isinstance(scalars, str):
         dataset.active_scalars_name = scalars
     if isinstance(orient, str):
@@ -921,10 +918,7 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     alg.SetScaleFactor(factor)
     alg.SetClamping(clamping)
     alg.Update()
-    if isinstance(geom, vtk.vtkDataSet):
-        return alg.GetOutput()
-    else:
-        return alg
+    return alg
 
 
 def _sphere(plotter, center, color, radius):
