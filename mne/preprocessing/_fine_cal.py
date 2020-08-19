@@ -13,7 +13,7 @@ from ..io.pick import pick_info, pick_types
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..transforms import _find_vector_rotation
 from ..utils import (logger, verbose, check_fname, _check_fname, _pl,
-                     _ensure_int, _check_option, _validate_type)
+                     _ensure_int, _check_option, _validate_type, _reg_pinv)
 
 from .maxwell import (_col_norm_pinv, _trans_sss_basis, _prep_mf_coils,
                       _get_grad_point_coilsets, _read_cross_talk,
@@ -309,8 +309,7 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     good = not bool(reason)
     assert np.allclose(np.linalg.norm(zs, axis=1), 1.)
     logger.info(f'        Fit mismatch {first_err:0.2f}→{last_err:0.2f}%')
-    logger.info('        Data segment '
-                f'{"" if good else "un"}usable{reason}')
+    logger.info(f'        Data segment {"" if good else "un"}usable{reason}')
     # Reformat zs and cals to be the n_mags (including bads)
     assert zs.shape == (len(data), 3)
     assert cals.shape == (len(data), 1)
@@ -404,16 +403,14 @@ def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order):
         assert khi_pts.shape == (len(grad_picks), data.shape[1], n_imbalance)
         residual = data[grad_picks] - data_recon
         assert residual.shape == (len(grad_picks), data.shape[1])
-        # This code is (probably) equivalent but not as efficient/clear:
-        #
-        #     d = np.sum(khi_pts * residual[:, :, np.newaxis], axis=1)
-        #     assert d.shape == (len(grad_picks), n_imbalance)
-        #     dinv = np.linalg.pinv(khi_pts.swapaxes(-1, -2) @ khi_pts)
-        #     assert dinv.shape == (len(grad_picks), n_imbalance, n_imbalance)
-        #     grad_imb[:] = (d[:, np.newaxis] @ dinv)[:, 0]
-        #
-        grad_imb[:] = np.sum(  # dot product across the time dim
-            np.linalg.pinv(khi_pts) * residual[:, np.newaxis], axis=-1)
+        d = (residual[:, np.newaxis, :] @ khi_pts)[:, 0]
+        assert d.shape == (len(grad_picks), n_imbalance)
+        dinv, _, _ = _reg_pinv(khi_pts.swapaxes(-1, -2) @ khi_pts, rcond=1e-6)
+        assert dinv.shape == (len(grad_picks), n_imbalance, n_imbalance)
+        grad_imb[:] = (d[:, np.newaxis] @ dinv)[:, 0]
+        # This code is equivalent but hits a np.linalg.pinv bug on old NumPy:
+        # grad_imb[:] = np.sum(  # dot product across the time dim
+        #     np.linalg.pinv(khi_pts) * residual[:, np.newaxis], axis=-1)
         deltas = (np.linalg.norm(grad_imb - prev_imb) /
                   max(np.linalg.norm(grad_imb), np.linalg.norm(prev_imb)))
         logger.debug(f'        Iteration {k + 1}/{n_iterations}: '
