@@ -358,10 +358,9 @@ def _validate_sos(sos):
 
 # Deal with nibabel 2.5 img.get_data() deprecation
 def _get_img_fdata(img):
-    try:
-        return img.get_fdata()
-    except AttributeError:
-        return img.get_data().astype(float)
+    data = np.asanyarray(img.dataobj)
+    dtype = np.complex128 if np.iscomplexobj(data) else np.float64
+    return data.astype(dtype)
 
 
 def _read_volume_info(fobj):
