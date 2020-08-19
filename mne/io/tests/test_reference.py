@@ -249,7 +249,8 @@ def test_set_eeg_reference_rest():
     picks = np.setdiff1d(np.arange(len(raw.ch_names)), same)
     trans = None
     sphere = make_sphere_model('auto', 'auto', raw.info)
-    src = setup_volume_source_space(pos=7., sphere=sphere)
+    src = setup_volume_source_space(pos=20., sphere=sphere, exclude=30.)
+    assert src[0]['nuse'] == 223  # low but fast
     fwd = make_forward_solution(raw.info, trans, src, sphere)
     orig_data = raw.get_data()
     avg_data = raw.copy().set_eeg_reference('average').get_data()
@@ -262,8 +263,8 @@ def test_set_eeg_reference_rest():
                             orig_data[picks].ravel())[0, 1]
     avg_corr = np.corrcoef(rest_data[picks].ravel(),
                            avg_data[picks].ravel())[0, 1]
-    assert -0.55 < orig_corr < -0.45
-    assert 0.25 < avg_corr < 0.3
+    assert -0.6 < orig_corr < -0.4
+    assert 0.15 < avg_corr < 0.35
     # and applying an avg ref after should work
     avg_after = raw.set_eeg_reference('average').get_data()
     assert_allclose(avg_after, avg_data, atol=1e-12)
