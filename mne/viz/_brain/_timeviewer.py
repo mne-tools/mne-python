@@ -608,8 +608,8 @@ class _TimeViewer(object):
         if time_point == max_time:
             self.toggle_playback(value=False)
 
-    def set_slider_style(self, slider, show_label=True, show_cap=False):
-        if slider is not None:
+    def set_slider_style(self):
+        for slider in self.sliders.values():
             slider_rep = slider.GetRepresentation()
             slider_rep.SetSliderLength(self.slider_length)
             slider_rep.SetSliderWidth(self.slider_width)
@@ -622,10 +622,7 @@ class _TimeViewer(object):
             slider_rep.GetTitleProperty().ShallowCopy(
                 slider_rep.GetLabelProperty()
             )
-            if not show_cap:
-                slider_rep.GetCapProperty().SetOpacity(0)
-            if not show_label:
-                slider_rep.ShowSliderLabelOff()
+            slider_rep.GetCapProperty().SetOpacity(0)
 
     def configure_notebook(self):
         from ._notebook import _NotebookInteractor
@@ -656,11 +653,12 @@ class _TimeViewer(object):
             hemis_ref = self.brain._hemis
         for hemi in hemis_ref:
             for ri, ci, view in self.brain._iter_views(hemi):
+                orientation_name = f"orientation_{hemi}_{ri}_{ci}"
                 self.plotter.subplot(ri, ci)
                 if view == 'flat':
-                    self.callbacks["orientation"] = None
+                    self.callbacks[orientation_name] = None
                     continue
-                self.callbacks["orientation"] = ShowView(
+                self.callbacks[orientation_name] = ShowView(
                     plotter=self.plotter,
                     brain=self.brain,
                     orientation=self.orientation,
@@ -668,20 +666,20 @@ class _TimeViewer(object):
                     row=ri,
                     col=ci,
                 )
-                self.sliders["orientation"] = \
+                self.sliders[orientation_name] = \
                     self.plotter.add_text_slider_widget(
-                    self.callbacks["orientation"],
+                    self.callbacks[orientation_name],
                     value=0,
                     data=self.orientation,
                     pointa=(0.82, 0.74),
                     pointb=(0.98, 0.74),
                     event_type='always'
                 )
-                self.callbacks["orientation"].slider_rep = \
-                    self.sliders["orientation"].GetRepresentation()
-                self.set_slider_style(self.sliders["orientation"],
-                                      show_label=False)
-                self.callbacks["orientation"](view, update_widget=True)
+                orientation_rep = \
+                    self.sliders[orientation_name].GetRepresentation()
+                orientation_rep.ShowSliderLabelOff()
+                self.callbacks[orientation_name].slider_rep = orientation_rep
+                self.callbacks[orientation_name](view, update_widget=True)
 
         # Put other sliders on the bottom right view
         ri, ci = np.array(self.brain._subplot_shape) - 1
@@ -802,25 +800,13 @@ class _TimeViewer(object):
             self.sliders["fscale"].GetRepresentation()
 
         # register colorbar slider representations
-        self.reps = {
-            "fmin": self.sliders["fmin"].GetRepresentation(),
-            "fmid": self.sliders["fmid"].GetRepresentation(),
-            "fmax": self.sliders["fmax"].GetRepresentation(),
-        }
-        self.callbacks["fmin"].reps = self.reps
-        self.callbacks["fmid"].reps = self.reps
-        self.callbacks["fmax"].reps = self.reps
-        self.callbacks["fscale"].reps = self.reps
+        self.reps = \
+            {key: self.sliders[key].GetRepresentation() for key in self.keys}
+        for name in ("fmin", "fmid", "fmax", "fscale"):
+            self.callbacks[name].reps = self.reps
 
         # set the slider style
-        self.set_slider_style(self.sliders["smoothing"])
-        self.set_slider_style(self.sliders["fmin"])
-        self.set_slider_style(self.sliders["fmid"])
-        self.set_slider_style(self.sliders["fmax"])
-        self.set_slider_style(self.sliders["fscale"])
-        if self.sliders["time"] is not None:
-            self.set_slider_style(self.sliders["playback_speed"])
-            self.set_slider_style(self.sliders["time"])
+        self.set_slider_style()
 
     def configure_playback(self):
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
