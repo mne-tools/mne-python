@@ -128,6 +128,14 @@ class MplCanvas(object):
         self.time_func(
             event.xdata, update_widget=True, time_as_index=False)
 
+    def clear(self):
+        """Clear internal variables."""
+        self.close()
+        self.axes.clear()
+        self.fig.clear()
+        self.time_viewer = None
+        self.canvas = None
+
     on_motion_notify = on_button_press  # for now they can be the same
 
     def on_resize(self, event):
@@ -347,6 +355,7 @@ class _TimeViewer(object):
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
         self.color_cycle = None
+        self.mpl_canvas = None
         self.picked_points = {key: list() for key in all_keys}
         self.pick_table = dict()
         self._mouse_no_mvt = -1
@@ -1189,7 +1198,7 @@ class _TimeViewer(object):
         assert len(self._spheres) == 0
 
     def plot_time_course(self, hemi, vertex_id, color):
-        if not hasattr(self, "mpl_canvas"):
+        if self.mpl_canvas is None:
             return
         time = self.brain._data['time'].copy()  # avoid circular ref
         if hemi == 'vol':
@@ -1229,7 +1238,7 @@ class _TimeViewer(object):
         return line
 
     def plot_time_line(self):
-        if not hasattr(self, "mpl_canvas"):
+        if self.mpl_canvas is None:
             return
         if isinstance(self.show_traces, bool) and self.show_traces:
             # add time information
@@ -1290,12 +1299,8 @@ class _TimeViewer(object):
         self.tool_bar = None
         self.status_bar = None
         self.interactor = None
-        if hasattr(self, "mpl_canvas"):
-            self.mpl_canvas.close()
-            self.mpl_canvas.axes.clear()
-            self.mpl_canvas.fig.clear()
-            self.mpl_canvas.time_viewer = None
-            self.mpl_canvas.canvas = None
+        if self.mpl_canvas is not None:
+            self.mpl_canvas.clear()
             self.mpl_canvas = None
         self.time_actor = None
         self.picked_renderer = None
