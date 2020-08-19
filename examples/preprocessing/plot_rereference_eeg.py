@@ -75,7 +75,8 @@ evoked_custom.plot(axes=ax3, titles=dict(eeg='Custom reference'),
 # Re-reference using REST :footcite:`Yao2001`. To do this, we need a forward
 # solution, which we can quickly create:
 sphere = mne.make_sphere_model('auto', 'auto', raw.info)
-src = mne.setup_volume_source_space(sphere=sphere)
+src = mne.setup_volume_source_space(sphere=sphere, exclude=30.,
+                                    pos=15.)  # large "pos" just for speed!
 forward = mne.make_forward_solution(raw.info, trans=None, src=src, bem=sphere)
 raw.set_eeg_reference('REST', forward=forward)
 evoked_rest = mne.Epochs(raw, **epochs_params).average()
