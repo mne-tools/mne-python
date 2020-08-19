@@ -463,21 +463,33 @@ class SourceMorph(object):
         assert img_to.ndim == 4 and img_to.shape[-1] == 1
         img_to = img_to[:, :, :, 0]
 
-        # reslice to match morph
-        img_to, img_to_affine = reslice(
-            img_to, self.affine, _get_zooms_orig(self), self.zooms)
+        attrs = ('real', 'imag') if np.iscomplexobj(img_to) else ('real',)
+        img_complex = 0.
+        for attr in attrs:
+            # reslice to match morph
+            img_real, _ = reslice(
+                getattr(img_to, attr), self.affine,
+                _get_zooms_orig(self), self.zooms)
 
-        # morph data
-        img_to = self.pre_affine.transform(img_to)
-        if self.sdr_morph is not None:
-            img_to = self.sdr_morph.transform(img_to)
+            # morph data
+            img_real = self.pre_affine.transform(img_real)
+            if self.sdr_morph is not None:
+                img_real = self.sdr_morph.transform(img_real)
 
-        # subselect the correct cube if src_to is provided
-        if self.src_data['to_vox_map'] is not None:
-            # order=0 (nearest) should be fine since it's just subselecting
-            img_to = SpatialImage(img_to, self.affine)
-            img_to = resample_from_to(img_to, self.src_data['to_vox_map'], 1)
-            img_to = _get_img_fdata(img_to)
+            # subselect the correct cube if src_to is provided
+            if self.src_data['to_vox_map'] is not None:
+                # order=0 (nearest) should be fine since it's just subselecting
+                img_real = SpatialImage(img_real, self.affine)
+                img_real = resample_from_to(
+                    img_real, self.src_data['to_vox_map'], 1)
+                img_real = _get_img_fdata(img_real)
+
+            # combine real and complex parts
+            if attr == 'real':
+                img_complex = img_complex + img_real
+            else:
+                img_complex = img_complex + 1j * img_real
+        img_to = img_complex
 
         # reshape to nvoxel x nvol:
         # in the MNE definition of volume source spaces,
@@ -800,7 +812,9 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 
     n_times = stc.data.shape[1]
     shape = morph.src_data['src_shape'][::-1] + (n_times,)  # SAR->RAST
-    vols = np.zeros((np.prod(shape[:3]), shape[3]), order='F')  # flatten
+    dtype = np.complex128 if np.iscomplexobj(stc.data) else np.float64
+    # order='F' so that F-order flattening is faster
+    vols = np.zeros((np.prod(shape[:3]), shape[3]), dtype=dtype, order='F')
     n_vertices_seen = 0
     for this_inuse in inuse:
         this_inuse = this_inuse.astype(bool)
@@ -818,7 +832,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         shape = morph.src_data['src_shape_full'][::-1] + (n_times,)
         vols = _csr_dot(
             morph.src_data['interpolator'], vols,
-            np.zeros((np.prod(shape[:3]), shape[3]), order='F'))
+            np.zeros((np.prod(shape[:3]), shape[3]), dtype=dtype, order='F'))
 
     # reshape back to proper shape
     vols = np.reshape(vols, shape, order='F')

@@ -1521,7 +1521,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
-def link_brains(brains, time=True, camera=False):
+def link_brains(brains, time=True, camera=False, colorbar=True,
+                picking=False):
     """Plot multiple SourceEstimate objects with PyVista.
 
     Parameters
@@ -1532,6 +1533,10 @@ def link_brains(brains, time=True, camera=False):
         If True, link the time controllers. Defaults to True.
     camera : bool
         If True, link the camera controls. Defaults to False.
+    colorbar : bool
+        If True, link the colorbar controllers. Defaults to True.
+    picking : bool
+        If True, link the vertices picked with the mouse. Defaults to False.
     """
     from .backends.renderer import _get_3d_backend
     if _get_3d_backend() != 'pyvista':
@@ -1551,7 +1556,13 @@ def link_brains(brains, time=True, camera=False):
             raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
     # link brains properties
-    _LinkViewer(brains, time, camera)
+    _LinkViewer(
+        brains=brains,
+        time=time,
+        camera=camera,
+        colorbar=colorbar,
+        picking=picking,
+    )
 
 
 def _triage_stc(stc, src, surface, backend_name, kind='scalar'):

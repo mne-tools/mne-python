@@ -23,6 +23,8 @@ import vtk
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
+from ...externals.decorator import decorator
+
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -76,15 +78,25 @@ class _Figure(object):
         if self.notebook:
             self.plotter_class = Plotter
 
-        if self.plotter_class == Plotter:
+        if self.plotter_class is Plotter:
             self.store.pop('show', None)
             self.store.pop('title', None)
             self.store.pop('auto_update', None)
 
         if self.plotter is None:
+            if self.plotter_class is BackgroundPlotter:
+                from PyQt5.QtWidgets import QApplication
+                app = QApplication.instance()
+                if app is None:
+                    app = QApplication(["MNE"])
+                self.store['app'] = app
             plotter = self.plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
+            if self.plotter_class is BackgroundPlotter and \
+                    hasattr(BackgroundPlotter, 'set_icon'):
+                _init_resources()
+                plotter.set_icon(":/mne-icon.png")
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
@@ -429,11 +441,16 @@ class _Renderer(_BaseRenderer):
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow' or mode == '3darrow':
+                mesh = _glyph(
+                    grid,
+                    orient='vec',
+                    scalars=scale,
+                    factor=factor
+                )
+                mesh = pyvista.wrap(mesh)
                 _add_mesh(
                     self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor),
+                    mesh=mesh,
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -955,3 +972,17 @@ def _disabled_depth_peeling():
         yield
     finally:
         rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
+
+
+@decorator
+def run_once(fun, *args, **kwargs):
+    """Run the function only once."""
+    if not hasattr(fun, "_has_run"):
+        fun._has_run = True
+        return fun(*args, **kwargs)
+
+
+@run_once
+def _init_resources():
+    from ...icons import resources
+    resources.qInitResources()
