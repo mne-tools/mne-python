@@ -13,7 +13,9 @@ import pytest
 
 from mne import (pick_channels, pick_types, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
-                 add_reference_channels, create_info)
+                 add_reference_channels, create_info, make_sphere_model,
+                 make_forward_solution, setup_volume_source_space,
+                 pick_channels_forward)
 from mne.epochs import BaseEpochs
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
@@ -236,6 +238,40 @@ def test_set_eeg_reference():
     raw = RawArray(data, create_info(3, 1000., ['ecog'] * 2 + ['misc']))
     reref, ref_data = set_eeg_reference(raw.copy())
     _test_reference(raw, reref, ref_data, ['0', '1'])
+
+
+def test_set_eeg_reference_rest():
+    """Test setting a REST reference."""
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick_types(
+        meg=False, eeg=True, exclude=()).load_data()
+    raw.info['bads'] = ['EEG 057']  # should be excluded
+    same = [raw.ch_names.index(raw.info['bads'][0])]
+    picks = np.setdiff1d(np.arange(len(raw.ch_names)), same)
+    trans = None
+    sphere = make_sphere_model('auto', 'auto', raw.info)
+    src = setup_volume_source_space(pos=7., sphere=sphere)
+    fwd = make_forward_solution(raw.info, trans, src, sphere)
+    orig_data = raw.get_data()
+    avg_data = raw.copy().set_eeg_reference('average').get_data()
+    assert_array_equal(avg_data[same], orig_data[same])  # not processed
+    raw.set_eeg_reference('REST', forward=fwd)
+    rest_data = raw.get_data()
+    assert_array_equal(rest_data[same], orig_data[same])
+    # should be more similar to an avg ref than nose ref
+    orig_corr = np.corrcoef(rest_data[picks].ravel(),
+                            orig_data[picks].ravel())[0, 1]
+    avg_corr = np.corrcoef(rest_data[picks].ravel(),
+                           avg_data[picks].ravel())[0, 1]
+    assert -0.55 < orig_corr < -0.45
+    assert 0.25 < avg_corr < 0.3
+    # and applying an avg ref after should work
+    avg_after = raw.set_eeg_reference('average').get_data()
+    assert_allclose(avg_after, avg_data, atol=1e-12)
+    with pytest.raises(TypeError, match='forward when ref_channels="REST"'):
+        raw.set_eeg_reference('REST')
+    fwd_bad = pick_channels_forward(fwd, raw.ch_names[:-1])
+    with pytest.raises(ValueError, match='Missing channels'):
+        raw.set_eeg_reference('REST', forward=fwd_bad)
 
 
 @testing.requires_testing_data
