@@ -3,14 +3,14 @@
 
 # License: BSD (3-clause)
 
+from collections import defaultdict
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 
 from ..io.pick import pick_info, pick_types
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
-from ..transforms import _find_vector_rotation, apply_trans
+from ..transforms import _find_vector_rotation
 from ..utils import (logger, verbose, check_fname, _check_fname, _pl,
                      _ensure_int, _check_option, _validate_type)
 
@@ -19,8 +19,8 @@ from .maxwell import (_col_norm_pinv, _trans_sss_basis, _prep_mf_coils,
 
 
 @verbose
-def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
-                               cross_talk=None, verbose=None):
+def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
+                             cross_talk=None, verbose=None):
     """Compute fine calibration from empty-room data.
 
     Parameters
@@ -34,9 +34,10 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
     t_window : float
         Time window to use for surface normal rotation in seconds.
         Default is 10.
+    ext_order : int
+        External order to use. Default is 2.
     %(maxwell_cross)s
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose)
+    %(verbose)s
 
     Returns
     -------
@@ -53,13 +54,16 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
     Notes
     -----
     MaxFilter processes at most 120 seconds of data, so consider cropping
-    your instance.
+    your raw instance prior to processing. It also checks to make sure that
+    there were some minimal usable ``count`` number of segments (default 5)
+    that were included in the estimate.
 
     .. versionadded:: 0.21
     """
     n_imbalance = _ensure_int(n_imbalance, 'n_imbalance')
     _check_option('n_imbalance', n_imbalance, (1, 3))
-    origin = np.zeros(3)
+    ext_order = _ensure_int(ext_order, 'ext_order')
+    origin = np.zeros(3)  # eventually could be a parameter
     _validate_type(raw, BaseRaw, 'raw')
     raw = raw.copy().pick_types(meg=True, ref_meg=False, exclude=())
     _check_option("raw.info['bads']", raw.info['bads'], ([],))
@@ -67,9 +71,7 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
         raise ValueError('info["dev_head_t"] is not None, suggesting that the '
                          'data are not from an empty-room recording')
 
-    # Resample to speed up processing
-    logger.info('Downsampling to 90 Hz ...')
-    raw.resample(90., verbose=False)  # also loads the data
+    raw.load_data()
     info = raw.info  # already copied raw, okay to modify this in place
     mag_picks = pick_types(info, meg='mag', exclude=())
     grad_picks = pick_types(info, meg='grad', exclude=())
@@ -87,7 +89,6 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
         time_idxs = np.array([0, len(raw.times)], int)
     else:
         time_idxs[-1] = len(raw.times)
-    ext_order = 3
     count = 0
     locs = np.array([ch['loc'] for ch in info['chs']])
     if len(mag_picks) > 0:
@@ -109,8 +110,8 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
         count = len(cal_list)
         if count == 0:
             raise RuntimeError('No usable segments found')
-        cals = np.mean(cal_list, axis=0)
-        zs = np.mean(z_list, axis=0)[mag_picks]
+        cals[:] = np.mean(cal_list, axis=0)
+        zs = np.mean(z_list, axis=0)
         zs /= np.linalg.norm(zs, axis=1, keepdims=True)
         for ii, new_z in enumerate(zs):
             z_loc = locs[mag_picks[ii]]
@@ -119,6 +120,8 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
             # Rotate the direction vectors to the plane defined by new normal
             _rotate_locs(locs, idxs, new_z)
         del zs
+    for ci, loc in enumerate(locs):
+        info['chs'][ci]['loc'][:] = loc
 
     #
     # Estimate imbalance parameters
@@ -140,7 +143,10 @@ def calculate_fine_calibration(raw, n_imbalance=3, t_window=10.,
         imb = np.mean(imb_list, axis=0)
     else:
         imb = np.zeros((len(info['ch_names']), n_imbalance))
-    # Put in appropriate structure
+
+    #
+    # Put in output structure
+    #
     assert len(np.intersect1d(mag_picks, grad_picks)) == 0
     imb_cals = [cals[ii:ii + 1] if ii in mag_picks else imb[ii]
                 for ii in range(len(info['ch_names']))]
@@ -156,15 +162,15 @@ def _matched_loc_idx(mag_loc, all_loc):
 
 
 def _rotate_locs(locs, idxs, new_z):
-    assert len(idxs) == 3  # XXX remove this after testing is done
+    new_z = new_z / np.linalg.norm(new_z)
     old_z = locs[idxs[0]][-3:]
     old_z = old_z / np.linalg.norm(old_z)
-    rot = np.eye(4)
-    rot[:3, :3] = _find_vector_rotation(old_z, new_z)
+    rot = _find_vector_rotation(old_z, new_z)
     for ci in idxs:
         this_trans = _loc_to_coil_trans(locs[ci])
-        this_trans[:3, :3] = apply_trans(rot, this_trans[:3, :3])
+        this_trans[:3, :3] = np.dot(rot, this_trans[:3, :3])
         locs[ci][:] = _coil_trans_to_loc(this_trans)
+        np.testing.assert_allclose(locs[ci][-3:], new_z, atol=1e-4)
 
 
 def _vector_angle(x, y):
@@ -178,12 +184,13 @@ def _vector_angle(x, y):
 def _adjust_mag_normals(info, data, origin, ext_order):
     """Adjust coil normals using magnetometers and empty-room data."""
     from scipy.optimize import fmin_cobyla
-    # allow using just mag or mag+grad
+    # in principle we could allow using just mag or mag+grad, but MF uses
+    # just mag so let's follow suit
     mag_scale = 100.
-    picks_good = pick_types(info, meg=True, exclude='bads')
-    info = pick_info(info, picks_good)  # copy
-    data = data[picks_good]
-    del picks_good
+    picks_use = pick_types(info, meg='mag', exclude='bads')
+    picks_meg = pick_types(info, meg=True, exclude=())
+    info = pick_info(info, picks_use)  # copy
+    data = data[picks_use]
     cals = np.ones((len(data), 1))
     angles = np.zeros(len(cals))
     picks_mag = pick_types(info, meg='mag')
@@ -202,20 +209,26 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     locs = np.array([ch['loc'] for ch in info['chs']])
     for pick in picks_mag:
         match_idx[pick] = _matched_loc_idx(locs[pick], locs)
+    counts = defaultdict(lambda: 0)
     for ki, kind in enumerate(('worst first', 'in order')):
         logger.info(f'        Magnetometer normal adjustment ({kind}) ...')
         S_tot = _trans_sss_basis(exp, all_coils, coil_scale=mag_scale)
         for pick in picks_mag:
             err = _data_err(data, S_tot, cals, axis=1)
 
-            # First pass: do worst; second pass: do all in order
+            # First pass: do worst; second pass: do all in order (up to 3x/sen)
             if ki == 0:
-                cal_idx = np.argmax(err[picks_mag])
-                if err[picks_mag[cal_idx]] < 2.5:
+                order = list(np.argsort(err[picks_mag]))
+                cal_idx = 0
+                while len(order) > 0:
+                    cal_idx = picks_mag[order.pop(-1)]
+                    if counts[cal_idx] < 3:
+                        break
+                if err[cal_idx] < 2.5:
                     break  # move on to second loop
-                cal_idx = picks_mag[cal_idx]
             else:
                 cal_idx = pick
+            counts[cal_idx] += 1
             assert cal_idx in picks_mag
             count += 1
             old_z = zs[cal_idx].copy()
@@ -245,7 +258,8 @@ def _adjust_mag_normals(info, data, origin, ext_order):
                 zs[cal_idx], orig_zs[cal_idx])))
             ch_name = info['ch_names'][cal_idx]
             logger.debug(
-                f'        Optimization step {count:3d} ｜ {ch_name} ｜ '
+                f'        Optimization step {count:3d} ｜ '
+                f'{ch_name} ({counts[cal_idx]}) ｜ '
                 f'res {old_err:5.2f}→{new_err:5.2f}% ｜ '
                 f'×{cals[cal_idx, 0]:0.3f} ｜ {angles[cal_idx]:0.2f}°')
     last_err = _data_err(data, S_tot, cals)
@@ -269,8 +283,9 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     # Reformat zs and cals to be the n_mags (including bads)
     assert zs.shape == (len(data), 3)
     assert cals.shape == (len(data), 1)
-    # XXX should reindex someday in case there are bad channels
-    return zs, cals[:, 0], good
+    imb_cals = np.ones(len(picks_meg))
+    imb_cals[picks_mag] = cals[:, 0]
+    return zs, imb_cals, good
 
 
 def _data_err(data, S_tot, cals, idx=None, axis=None):
@@ -319,15 +334,14 @@ def _cal_sss_target(new_z, old_z, all_coils, cal_idx, data, cals,
 def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order):
     """Estimate gradiometer imbalance parameters."""
     mag_scale = 100.
-    n_iterations = 4
+    n_iterations = 3
     mag_picks = pick_types(info, meg='mag', exclude=())
     grad_picks = pick_types(info, meg='grad', exclude=())
     data = data.copy()
     data[mag_picks, :] *= mag_scale
     del mag_picks
-    data_good = data.copy()
 
-    imb = np.zeros((len(data), n_imbalance))
+    grad_imb = np.zeros((len(grad_picks), n_imbalance))
     exp = dict(origin=origin, int_order=0, ext_order=ext_order)
     all_coils = _prep_mf_coils(info, ignore_ref=True)
     grad_point_coils = _get_grad_point_coilsets(
@@ -340,27 +354,41 @@ def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order):
                      for coils in grad_point_coils])
     for k in range(n_iterations):
         S_tot = S_orig.copy()
-        S_grad = S_tot[grad_picks]
+        # In theory we could zero out the homogeneous components with:
+        #     S_tot[grad_picks, :3] = 0
+        # But in practice it doesn't seem to matter
+        S_recon = S_tot[grad_picks]
 
         # Add influence of point magnetometers
-        S_tot[grad_picks, :] += np.einsum('ji,ijk->jk', imb[grad_picks], S_pt)
+        S_tot[grad_picks, :] += np.einsum('ij,ijk->jk', grad_imb.T, S_pt)
 
         # Compute multipolar moments
-        mm = np.dot(_col_norm_pinv(S_tot.copy())[0], data_good)
+        mm = np.dot(_col_norm_pinv(S_tot.copy())[0], data)
 
         # Use good channels to recalculate
-        S_grad[:, :3] = 0  # Homogeneous components
-        khis = np.dot(S_grad, mm)
+        prev_imb = grad_imb.copy()
+        data_recon = np.dot(S_recon, mm)
         assert S_pt.shape == (n_imbalance, len(grad_picks), S_tot.shape[1])
-        khi_pts = np.dot(S_pt, mm).transpose(1, 2, 0)
+        khi_pts = (S_pt @ mm).transpose(1, 2, 0)
         assert khi_pts.shape == (len(grad_picks), data.shape[1], n_imbalance)
-        old_imbs = imb.copy()
-        for ii, pick in enumerate(grad_picks):
-            imb[pick, :] = np.dot(linalg.pinv(khi_pts[ii]),
-                                  data[pick] - khis[ii])
-        deltas = np.sqrt(np.mean((imb - old_imbs) ** 2, axis=1))
+        residual = data[grad_picks] - data_recon
+        assert residual.shape == (len(grad_picks), data.shape[1])
+        # This code is (probably) equivalent but not as efficient/clear:
+        #
+        #     d = np.sum(khi_pts * residual[:, :, np.newaxis], axis=1)
+        #     assert d.shape == (len(grad_picks), n_imbalance)
+        #     dinv = np.linalg.pinv(khi_pts.swapaxes(-1, -2) @ khi_pts)
+        #     assert dinv.shape == (len(grad_picks), n_imbalance, n_imbalance)
+        #     grad_imb[:] = (d[:, np.newaxis] @ dinv)[:, 0]
+        #
+        grad_imb[:] = np.sum(  # dot product across the time dim
+            np.linalg.pinv(khi_pts) * residual[:, np.newaxis], axis=-1)
+        deltas = (np.linalg.norm(grad_imb - prev_imb) /
+                  max(np.linalg.norm(grad_imb), np.linalg.norm(prev_imb)))
         logger.debug(f'        Iteration {k + 1}/{n_iterations}: '
-                     f'max ∆={deltas.max():0.6f}')
+                     f'max ∆ = {100 * deltas.max():7.3f}%')
+    imb = np.zeros((len(data), n_imbalance))
+    imb[grad_picks] = grad_imb
     return imb
 
 
