@@ -221,7 +221,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # handle first_samp
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
-    event_id_rev = {v: k for k, v in (event_id or {}).items()}  # TODO needed?
+    event_id_rev = {v: k for k, v in (event_id or {}).items()}
 
     # gather parameters and initialize figure
     params = dict(inst=raw,
@@ -247,7 +247,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_color_dict=event_color_dict,
                   event_times=event_times,
                   event_nums=event_nums,
-                  event_id_rev=event_id_rev,  # TODO still needed?
+                  event_id_rev=event_id_rev,
                   # preprocessing
                   projs=projs,
                   projs_on=projs_on,
@@ -336,7 +336,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # update projector and data, and plot
     fig._update_projector()
     fig._update_data()
-    #fig._draw_event_lines()  # plot event_lines first so they're in the back
     fig._draw_traces()
 
     # plot annotations (if any)
