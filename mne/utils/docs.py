@@ -525,7 +525,7 @@ Some common referencing schemes and the corresponding value for the
 
 
 # Maxwell filtering
-docdict['maxwell_origin_int_ext_calibration'] = """
+docdict['maxwell_origin'] = """
 origin : array-like, shape (3,) | str
     Origin of internal and external multipolar moment space in meters.
     The default is ``'auto'``, which means ``(0., 0., 0.)`` when
@@ -535,10 +535,16 @@ origin : array-like, shape (3,) | str
     to having too few digitization points),
     consider separately calling the fitting function with different
     options or specifying the origin manually.
+"""
+docdict['maxwell_int'] = """
 int_order : int
     Order of internal component of spherical expansion.
+"""
+docdict['maxwell_ext'] = """
 ext_order : int
     Order of external component of spherical expansion.
+"""
+docdict['maxwell_cal'] = """
 calibration : str | None
     Path to the ``'.dat'`` file with fine calibration coefficients.
     File can have 1D or 3D gradiometer imbalance correction.
@@ -555,22 +561,38 @@ coord_frame : str
     a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
     frame should be used.
 """
-docdict['maxwell_reg_ref_cond_pos'] = """
+docdict['maxwell_reg'] = """
 regularize : str | None
     Basis regularization type, must be "in" or None.
     "in" is the same algorithm as the "-regularize in" option in
     MaxFilter™.
+"""
+docdict['maxwell_ref'] = """
 ignore_ref : bool
     If True, do not include reference channels in compensation. This
     option should be True for KIT files, since Maxwell filtering
     with reference channels is not currently supported.
+"""
+docdict['maxwell_cond'] = """
 bad_condition : str
     How to deal with ill-conditioned SSS matrices. Can be "error"
     (default), "warning", "info", or "ignore".
+"""
+docdict['maxwell_pos'] = """
 head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
     parameters as returned by e.g. ``read_head_pos``.
+"""
+docdict['maxwell_dest'] = """
+destination : str | array-like, shape (3,) | None
+    The destination location for the head. Can be ``None``, which
+    will not change the head position, or a string path to a FIF file
+    containing a MEG device<->head transformation, or a 3-element array
+    giving the coordinates to translate to (with no rotations).
+    For example, ``destination=(0, 0, 0.04)`` would translate the bases
+    as ``--trans default`` would in MaxFilter™ (i.e., to the default
+    head location).
 """
 docdict['maxwell_st_fixed_only'] = """
 st_fixed : bool

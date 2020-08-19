@@ -62,7 +62,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(maxwell_origin_int_ext_calibration)s
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
     %(maxwell_cross)s
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
@@ -78,15 +81,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
     %(maxwell_coord)s
-    destination : str | array-like, shape (3,) | None
-        The destination location for the head. Can be ``None``, which
-        will not change the head position, or a string path to a FIF file
-        containing a MEG device<->head transformation, or a 3-element array
-        giving the coordinates to translate to (with no rotations).
-        For example, ``destination=(0, 0, 0.04)`` would translate the bases
-        as ``--trans default`` would in MaxFilter™ (i.e., to the default
-        head location).
-    %(maxwell_reg_ref_cond_pos)s
+    %(maxwell_dest)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_pos)s
 
         .. versionadded:: 0.12
     %(maxwell_st_fixed_only)s
@@ -1621,40 +1620,49 @@ def _orth_rot(cal_loc, info_loc):
     return cal_loc, adjusted
 
 
-def _update_sensor_geometry(info, fine_cal, ignore_ref):
-    """Replace sensor geometry information and reorder cal_chs."""
+def _prep_fine_cal(info, fine_cal):
     from ._fine_cal import read_fine_calibration
-    logger.info('    Using fine calibration %s' % op.basename(fine_cal))
-    fine_cal = read_fine_calibration(fine_cal)  # filename -> dict
+    _validate_type(fine_cal, (dict, 'path-like'))
+    if not isinstance(fine_cal, dict):
+        fine_cal = read_fine_calibration(fine_cal)
+        extra = op.basename(str(fine_cal))
+    else:
+        extra = 'dict'
+    logger.info(f'    Using fine calibration {extra}')
     ch_names = _clean_names(info['ch_names'], remove_whitespace=True)
     info_to_cal = dict()
     missing = list()
-    for ci, name in enumerate(fine_cal['ch_names']):
+    for name in fine_cal:
         if name not in ch_names:
             missing.append(name)
         else:
             oi = ch_names.index(name)
-            info_to_cal[oi] = ci
+            info_to_cal[oi] = name
     meg_picks = pick_types(info, meg=True, exclude=[])
     if len(info_to_cal) != len(meg_picks):
         raise RuntimeError(
             'Not all MEG channels found in fine calibration file, missing:\n%s'
             % sorted(list({ch_names[pick] for pick in meg_picks} -
-                          set(fine_cal['ch_names']))))
+                          set(fine_cal))))
     if len(missing):
         warn('Found cal channel%s not in data: %s' % (_pl(missing), missing))
+    return info_to_cal, fine_cal, ch_names
+
+
+def _update_sensor_geometry(info, fine_cal, ignore_ref):
+    """Replace sensor geometry information and reorder cal_chs."""
+    info_to_cal, fine_cal, ch_names = _prep_fine_cal(info, fine_cal)
     grad_picks = pick_types(info, meg='grad', exclude=())
     mag_picks = pick_types(info, meg='mag', exclude=())
 
     # Determine gradiometer imbalances and magnetometer calibrations
-    grad_imbalances = np.array([fine_cal['imb_cals'][info_to_cal[gi]]
+    grad_imbalances = np.array([fine_cal[info_to_cal[gi]]['imb']
                                 for gi in grad_picks]).T
     if grad_imbalances.shape[0] not in [0, 1, 3]:
         raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
                          'magnetometers. Currently have %i' %
                          grad_imbalances.shape[0])
-    mag_cals = np.array([fine_cal['imb_cals'][info_to_cal[mi]]
-                         for mi in mag_picks])
+    mag_cals = np.array([fine_cal[info_to_cal[mi]]['imb'] for mi in mag_picks])
     # Now let's actually construct our point-like adjustment coils for grads
     grad_coilsets = _get_grad_point_coilsets(
         info, n_types=len(grad_imbalances), ignore_ref=ignore_ref)
@@ -1662,24 +1670,23 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
                        grad_coilsets=grad_coilsets, mag_cals=mag_cals)
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = np.zeros((len(fine_cal['ch_names']), 3))
+    ang_shift = list()
     used = np.zeros(len(info['chs']), bool)
     cal_corrs = list()
     cal_chans = list()
     adjust_logged = False
-    for oi, ci in info_to_cal.items():
-        assert ch_names[oi] == fine_cal['ch_names'][ci]
+    for oi, name in info_to_cal.items():
+        assert ch_names[oi] == name
         assert not used[oi]
         used[oi] = True
         info_ch = info['chs'][oi]
-        ch_num = int(fine_cal['ch_names'][ci].lstrip('MEG').lstrip('0'))
+        ch_num = int(name.lstrip('MEG').lstrip('0'))
         cal_chans.append([ch_num, info_ch['coil_type']])
 
         # Some .dat files might only rotate EZ, so we must check first that
         # EX and EY are orthogonal to EZ. If not, we find the rotation between
         # the original and fine-cal ez, and rotate EX and EY accordingly:
-        cal_loc, adjusted = _orth_rot(
-            fine_cal['locs'][ci], info_ch['loc'])
+        cal_loc, adjusted = _orth_rot(fine_cal[name]['loc'], info_ch['loc'])
         if adjusted and not adjust_logged:
             logger.info('        Adjusting non-orthogonal EX and EY')
             adjust_logged = True
@@ -1689,25 +1696,26 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         _normalize_vectors(v1)
         v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
         _normalize_vectors(v2)
-        ang_shift[ci] = np.sum(v1 * v2, axis=0)
+        ang_shift.append(np.sum(v1 * v2, axis=0))
         if oi in grad_picks:
-            extra = [1., fine_cal['imb_cals'][ci][0]]
+            extra = [1., fine_cal[name]['imb'][0]]
         else:
-            extra = [fine_cal['imb_cals'][ci][0], 0.]
+            extra = [fine_cal[name]['imb'][0], 0.]
         cal_corrs.append(np.concatenate([extra, cal_loc]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
         info_ch['loc'][3:] = cal_loc[3:]
         assert (info_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)
+    meg_picks = pick_types(info, meg=True, exclude=())
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
-    ang_shift = ang_shift[list(info_to_cal.values())]  # subselect used ones
     # This gets written to the Info struct
     sss_cal = dict(cal_corrs=np.array(cal_corrs),
                    cal_chans=np.array(cal_chans))
 
     # Log quantification of sensor changes
     # Deal with numerical precision giving absolute vals slightly more than 1.
+    ang_shift = np.array(ang_shift)
     np.clip(ang_shift, -1., 1., ang_shift)
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
     logger.info('        Adjusted coil positions by (μ ± σ): '
@@ -1966,10 +1974,16 @@ def find_bad_channels_maxwell(
                      developers.
 
         .. versionadded:: 0.21
-    %(maxwell_origin_int_ext_calibration)s
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
     %(maxwell_cross)s
     %(maxwell_coord)s
-    %(maxwell_reg_ref_cond_pos)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_pos)s
     %(maxwell_mag)s
     %(maxwell_skip)s
     h_freq : float | None

@@ -3059,59 +3059,27 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     ----------
     epochs : instance of Epochs
         The epochs to operate on.
-    head_pos : array | tuple | None
-        The array should be of shape ``(N, 10)``, holding the position
-        parameters as returned by e.g. ``read_head_pos``. For backward
-        compatibility, this can also be a tuple of ``(trans, rot t)``
-        as returned by ``head_pos_to_trans_rot_t``.
+    %(maxwell_pos)s
     orig_sfreq : float | None
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
     %(picks_all_data)s
-    origin : array-like, shape (3,) | str
-        Origin of internal and external multipolar moment space in head
-        coords and in meters. The default is ``'auto'``, which means
-        a head-digitization-based origin fit.
+    %(maxwell_origin)s
     weight_all : bool
         If True, all channels are weighted by the SSS basis weights.
         If False, only MEG channels are weighted, other channels
         receive uniform weight per epoch.
-    int_order : int
-        Order of internal component of spherical expansion.
-    ext_order : int
-        Order of external component of spherical expansion.
-    regularize : str | None
-        Basis regularization type, must be "in" or None.
-        See :func:`mne.preprocessing.maxwell_filter` for details.
-        Regularization is chosen based only on the destination position.
-    destination : str | array-like, shape (3,) | None
-        The destination location for the head. Can be ``None``, which
-        will not change the head position, or a string path to a FIF file
-        containing a MEG device<->head transformation, or a 3-element array
-        giving the coordinates to translate to (with no rotations).
-        For example, ``destination=(0, 0, 0.04)`` would translate the bases
-        as ``--trans default`` would in MaxFilter™ (i.e., to the default
-        head location).
-
-        .. versionadded:: 0.12
-
-    ignore_ref : bool
-        If True, do not include reference channels in compensation. This
-        option should be True for KIT files, since Maxwell filtering
-        with reference channels is not currently supported.
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_reg)s
+    %(maxwell_dest)s
+    %(maxwell_ref)s
     return_mapping : bool
         If True, return the mapping matrix.
-    mag_scale : float | str
-        The magenetometer scale-factor used to bring the magnetometers
-        to approximately the same order of magnitude as the gradiometers
-        (default 100.), as they have different units (T vs T/m).
-        Can be ``'auto'`` to use the reciprocal of the physical distance
-        between the gradiometer pickup loops (e.g., 0.0168 m yields
-        59.5 for VectorView).
+    %(maxwell_mag)s
 
         .. versionadded:: 0.13
-
     %(verbose)s
 
     Returns

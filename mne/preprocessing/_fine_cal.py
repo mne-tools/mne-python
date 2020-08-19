@@ -3,11 +3,12 @@
 
 # License: BSD (3-clause)
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from functools import partial
 
 import numpy as np
 
+from ..bem import _check_origin
 from ..io.pick import pick_info, pick_types
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..transforms import _find_vector_rotation
@@ -15,12 +16,14 @@ from ..utils import (logger, verbose, check_fname, _check_fname, _pl,
                      _ensure_int, _check_option, _validate_type)
 
 from .maxwell import (_col_norm_pinv, _trans_sss_basis, _prep_mf_coils,
-                      _get_grad_point_coilsets, _read_cross_talk)
+                      _get_grad_point_coilsets, _read_cross_talk,
+                      _prep_fine_cal)
 
 
 @verbose
 def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
-                             cross_talk=None, verbose=None):
+                             origin=(0., 0., 0.), cross_talk=None,
+                             fine_cal=None, verbose=None):
     """Compute fine calibration from empty-room data.
 
     Parameters
@@ -34,9 +37,16 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
     t_window : float
         Time window to use for surface normal rotation in seconds.
         Default is 10.
-    ext_order : int
-        External order to use. Default is 2.
+    %(maxwell_ext)s
+        Default is 2, which is lower than the default (3) for
+        :func:`mne.preprocessing.maxwell_filter` because it tends to yield
+        more stable parameter estimates.
+    %(maxwell_origin)s
     %(maxwell_cross)s
+    fine_cal : dict | None
+        Dictionary with existing calibration. If provided, the magnetometer
+        imbalances and adjusted normals will be used and only the gradiometer
+        imbalances will be estimated (see step 2 in Notes below).
     %(verbose)s
 
     Returns
@@ -53,6 +63,19 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
 
     Notes
     -----
+    This algorithm proceeds in two steps, both optimizing the fit between the
+    data and a reconstruction of the data based only on an external multipole
+    expansion:
+
+    1. Estimate magnetometer normal directions and scale factors. All
+       coils (mag and matching grad) are rotated by the adjusted normal
+       direction.
+    2. Estimate gradiometer imbalance factors. These add point magnetometers
+       in just the gradiometer difference direction or in all three directions
+       (depending on ``n_imbalance``).
+
+    Step (1) is typically the most time consuming step, so step (2) can be
+    iteratively performed using 1 or 3 directions by passing ``calibration``
     MaxFilter processes at most 120 seconds of data, so consider cropping
     your raw instance prior to processing. It also checks to make sure that
     there were some minimal usable ``count`` number of segments (default 5)
@@ -62,27 +85,29 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
     """
     n_imbalance = _ensure_int(n_imbalance, 'n_imbalance')
     _check_option('n_imbalance', n_imbalance, (1, 3))
-    ext_order = _ensure_int(ext_order, 'ext_order')
-    origin = np.zeros(3)  # eventually could be a parameter
     _validate_type(raw, BaseRaw, 'raw')
-    raw = raw.copy().pick_types(meg=True, ref_meg=False, exclude=())
+    ext_order = _ensure_int(ext_order, 'ext_order')
+    origin = _check_origin(origin, raw.info, 'meg', disp=True)
     _check_option("raw.info['bads']", raw.info['bads'], ([],))
+    picks = pick_types(raw.info, meg=True, ref_meg=False)
     if raw.info['dev_head_t'] is not None:
         raise ValueError('info["dev_head_t"] is not None, suggesting that the '
                          'data are not from an empty-room recording')
 
-    raw.load_data()
-    info = raw.info  # already copied raw, okay to modify this in place
+    info = pick_info(raw.info, picks)  # make a copy and pick MEG channels
     mag_picks = pick_types(info, meg='mag', exclude=())
     grad_picks = pick_types(info, meg='grad', exclude=())
 
     # Get cross-talk
     ctc, _ = _read_cross_talk(cross_talk, info['ch_names'])
 
+    # Check fine cal
+    _validate_type(fine_cal, (dict, None), fine_cal)
+
     #
-    # Rotate surface normals using magnetometer information (if present)
+    # 1. Rotate surface normals using magnetometer information (if present)
     #
-    cals = np.ones(len(raw.ch_names))
+    cals = np.ones(len(info['ch_names']))
     time_idxs = raw.time_as_index(
         np.arange(0., raw.times[-1], t_window))
     if len(time_idxs) <= 1:
@@ -91,7 +116,13 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
         time_idxs[-1] = len(raw.times)
     count = 0
     locs = np.array([ch['loc'] for ch in info['chs']])
-    if len(mag_picks) > 0:
+    zs = locs[mag_picks, -3:].copy()
+    if fine_cal is not None:
+        _, fine_cal, _ = _prep_fine_cal(info, fine_cal)
+        for pi, pick in enumerate(mag_picks):
+            cals[pick] = fine_cal[info['ch_names'][pick]]['imb']
+            zs[pi] = fine_cal[info['ch_names'][pick]]['loc'][-3:]
+    elif len(mag_picks) > 0:
         cal_list = list()
         z_list = list()
         logger.info('Adjusting normals for %s magnetometers '
@@ -100,7 +131,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
             logger.info('    Processing interval %0.3f - %0.3f sec'
                         % (start / info['sfreq'], stop / info['sfreq']))
-            data = raw[:, start:stop][0]
+            data = raw[picks, start:stop][0]
             if ctc is not None:
                 data = ctc.dot(data)
             z, cal, good = _adjust_mag_normals(info, data, origin, ext_order)
@@ -111,20 +142,20 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
         if count == 0:
             raise RuntimeError('No usable segments found')
         cals[:] = np.mean(cal_list, axis=0)
-        zs = np.mean(z_list, axis=0)
-        zs /= np.linalg.norm(zs, axis=1, keepdims=True)
+        zs[:] = np.mean(z_list, axis=0)
+    if len(mag_picks) > 0:
         for ii, new_z in enumerate(zs):
             z_loc = locs[mag_picks[ii]]
             # Find sensors with same NZ and R0 (should be three for VV)
             idxs = _matched_loc_idx(z_loc, locs)
             # Rotate the direction vectors to the plane defined by new normal
             _rotate_locs(locs, idxs, new_z)
-        del zs
     for ci, loc in enumerate(locs):
         info['chs'][ci]['loc'][:] = loc
+    del fine_cal, zs
 
     #
-    # Estimate imbalance parameters
+    # 2. Estimate imbalance parameters (always done)
     #
     if len(grad_picks) > 0:
         extra = 'X direction' if n_imbalance == 1 else ('XYZ directions')
@@ -134,7 +165,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
             logger.info('    Processing interval %0.3f - %0.3f sec'
                         % (start / info['sfreq'], stop / info['sfreq']))
-            data = raw[:, start:stop][0]
+            data = raw[picks, start:stop][0]
             if ctc is not None:
                 data = ctc.dot(data)
             out = _estimate_imbalance(info, data, cals,
@@ -150,10 +181,10 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
     assert len(np.intersect1d(mag_picks, grad_picks)) == 0
     imb_cals = [cals[ii:ii + 1] if ii in mag_picks else imb[ii]
                 for ii in range(len(info['ch_names']))]
-    ch_names = [ch_dict['ch_name'] for ch_dict in info['chs']]
-    fine_cal = dict(ch_names=ch_names, locs=locs, imb_cals=imb_cals)
-
-    return fine_cal, count
+    calibration = OrderedDict(
+        (ch_name, dict(loc=loc, imb=imb))
+        for ch_name, loc, imb in zip(info['ch_names'], locs, imb_cals))
+    return calibration, count
 
 
 def _matched_loc_idx(mag_loc, all_loc):
@@ -405,15 +436,14 @@ def read_fine_calibration(fname):
 
     Returns
     -------
-    calibration : dict
-        Fine calibration information.
+    fine_cal : dict
+        Fine calibration information. Each channel (key) in ``calibration`` is
+        a dict with ``'loc'`` and ``'imb'`` keys.
     """
     # Read new sensor locations
     fname = _check_fname(fname, overwrite='read', must_exist=True)
     check_fname(fname, 'cal', ('.dat',))
-    ch_names = list()
-    locs = list()
-    imb_cals = list()
+    cal = OrderedDict()
     with open(fname, 'r') as fid:
         for line in fid:
             if line[0] in '#\n':
@@ -433,37 +463,28 @@ def read_fine_calibration(fname):
                     pass
                 else:
                     ch_name = 'MEG' + '%04d' % ch_name
-            ch_names.append(ch_name)
             # (x, y, z), x-norm 3-vec, y-norm 3-vec, z-norm 3-vec
-            locs.append(np.array([float(x) for x in vals[1:13]]))
             # and 1 or 3 imbalance terms
-            imb_cals.append([float(x) for x in vals[13:]])
-    locs = np.array(locs)
-    return dict(ch_names=ch_names, locs=locs, imb_cals=imb_cals)
+            cal[ch_name] = dict(
+                loc=np.array([float(x) for x in vals[1:13]]),
+                imb=np.array([float(x) for x in vals[13:]]))
+    return cal
 
 
-def write_fine_calibration(fname, calibration):
+def write_fine_calibration(fname, fine_cal):
     """Write fine calibration information to a .dat file.
 
     Parameters
     ----------
     fname : str
         The filename to write out.
-    calibration : dict
+    fine_cal : dict
         Fine calibration information.
     """
     fname = _check_fname(fname, overwrite=True)
     check_fname(fname, 'cal', ('.dat',))
-
     with open(fname, 'wb') as cal_file:
-        for ci, chan in enumerate(calibration['ch_names']):
-            # Write string containing 1) channel, 2) loc info, 3) calib info
-            # with field widths (e.g., %.6f) chosen to match how Elekta writes
-            # them out
-            cal_line = np.concatenate([calibration['locs'][ci],
-                                       calibration['imb_cals'][ci]]).round(6)
-            # Write string containing 1) channel, 2) loc info, 3) calib info
-            cal_str = str(chan) + ' ' + ' '.join(map(lambda x: "%.6f" % x,
-                                                     cal_line))
-
-            cal_file.write((cal_str + '\n').encode('ASCII'))
+        for ch_name, cal in fine_cal.items():
+            cal_line = np.concatenate([cal['loc'], cal['imb']]).round(6)
+            cal_line = ' '.join(f'{c:0.6f}' for c in cal_line)
+            cal_file.write(f'{ch_name} {cal_line}\n'.encode('ASCII'))
