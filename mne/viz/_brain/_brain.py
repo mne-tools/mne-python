@@ -299,7 +299,7 @@ class _Brain(object):
                 self.show_view(v, row=ri, col=ci, hemi=h)
 
         if surf == 'flat':
-            self._renderer.set_interaction("rubber_band")
+            self._renderer.set_interaction("rubber_band_2d")
 
     @property
     def interaction(self):

@@ -242,11 +242,14 @@ class _Renderer(_BaseRenderer):
         return self.figure
 
     def set_interaction(self, interaction):
-        if interaction == "rubber_band":
+        if interaction == "rubber_band_2d":
             for renderer in self.plotter.renderers:
                 renderer.enable_parallel_projection()
-            style = vtk.vtkInteractorStyleRubberBand2D()
-            self.plotter.interactor.SetInteractorStyle(style)
+            if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
+                self.plotter.enable_rubber_band_2d_style()
+            else:
+                style = vtk.vtkInteractorStyleRubberBand2D()
+                self.plotter.interactor.SetInteractorStyle(style)
         else:
             for renderer in self.plotter.renderers:
                 renderer.disable_parallel_projection()
