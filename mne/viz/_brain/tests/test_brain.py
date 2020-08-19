@@ -251,17 +251,23 @@ def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     with pytest.raises(RuntimeError, match='already'):
         _TimeViewer(brain_data)
     time_viewer = brain_data.time_viewer
-    time_viewer.time_call(value=0)
-    time_viewer.orientation_call(value='lat', update_widget=True)
-    time_viewer.orientation_call(value='medial', update_widget=True)
-    time_viewer.smoothing_call(value=1)
-    time_viewer.fmin_call(value=12.0)
-    time_viewer.fmax_call(value=4.0)
-    time_viewer.fmid_call(value=6.0)
-    time_viewer.fmid_call(value=4.0)
-    time_viewer.fscale_call(value=1.1)
+    time_viewer.callbacks["time"](value=0)
+    time_viewer.callbacks["orientation_lh_0_0"](
+        value='lat',
+        update_widget=True
+    )
+    time_viewer.callbacks["orientation_lh_0_0"](
+        value='medial',
+        update_widget=True
+    )
+    time_viewer.callbacks["smoothing"](value=1)
+    time_viewer.callbacks["fmin"](value=12.0)
+    time_viewer.callbacks["fmax"](value=4.0)
+    time_viewer.callbacks["fmid"](value=6.0)
+    time_viewer.callbacks["fmid"](value=4.0)
+    time_viewer.callbacks["fscale"](value=1.1)
     time_viewer.toggle_interface()
-    time_viewer.playback_speed_call(value=0.1)
+    time_viewer.callbacks["playback_speed"](value=0.1)
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
