@@ -899,7 +899,10 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
         arrow.Update()
         geom = arrow.GetOutput()
     alg = vtk.vtkGlyph3D()
-    alg.SetSourceConnection(geom)
+    if isinstance(geom, vtk.vtkDataSet):
+        alg.SetSourceData(geom)
+    else:
+        alg.SetSourceConnection(geom)
     if isinstance(scalars, str):
         dataset.active_scalars_name = scalars
     if isinstance(orient, str):
@@ -918,7 +921,10 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     alg.SetScaleFactor(factor)
     alg.SetClamping(clamping)
     alg.Update()
-    return alg
+    if isinstance(geom, vtk.vtkDataSet):
+        return alg.GetOutput()
+    else:
+        return alg
 
 
 def _sphere(plotter, center, color, radius):
