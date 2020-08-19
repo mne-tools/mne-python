@@ -98,7 +98,7 @@ def test_compute_fine_cal():
             # file
             assert 66 < want_orig_max_angle < 68, want_orig_max_angle
             assert 70 < got_orig_max_angle < 107, got_orig_max_angle
-            assert 53 < got_want_max_angle < 55, got_want_max_angle
+            assert 53 < got_want_max_angle < 60, got_want_max_angle
 
     kwargs = dict(bad_condition='warning', cross_talk=ctc, coord_frame='meg')
     raw_sss = maxwell_filter(raw, **kwargs)
