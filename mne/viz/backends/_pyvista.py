@@ -591,6 +591,14 @@ class _Renderer(_BaseRenderer):
         self.plotter.renderer.remove_actor(actor)
 
 
+def _create_actor(mapper=None):
+    """Create a vtkActor."""
+    actor = vtk.vtkActor()
+    if mapper is not None:
+        actor.SetMapper(mapper)
+    return actor
+
+
 def _compute_normals(mesh):
     """Patch PyVista compute_normals."""
     if 'Normals' not in mesh.point_arrays:
@@ -889,7 +897,9 @@ def _arrow_glyph(grid, factor):
         factor=factor,
         geom=trp.GetOutputPort(),
     )
-    return alg
+    mapper = vtk.vtkDataSetMapper()
+    mapper.SetInputConnection(alg.GetOutputPort())
+    return mapper
 
 
 def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
@@ -935,6 +945,68 @@ def _sphere(plotter, center, color, radius):
         color=color
     )
     return actor, mesh
+
+
+def _volume(dimensions, origin, spacing, scalars,
+            surface_alpha, resolution, blending, center):
+    # Now we can actually construct the visualization
+    grid = pyvista.UniformGrid()
+    grid.dimensions = dimensions + 1  # inject data on the cells
+    grid.origin = origin
+    grid.spacing = spacing
+    grid.cell_arrays['values'] = scalars
+
+    # Add contour of enclosed volume (use GetOutput instead of
+    # GetOutputPort below to avoid updating)
+    grid_alg = vtk.vtkCellDataToPointData()
+    grid_alg.SetInputDataObject(grid)
+    grid_alg.SetPassCellData(False)
+    grid_alg.Update()
+
+    if surface_alpha > 0:
+        grid_surface = vtk.vtkMarchingContourFilter()
+        grid_surface.ComputeNormalsOn()
+        grid_surface.ComputeScalarsOff()
+        grid_surface.SetInputData(grid_alg.GetOutput())
+        grid_surface.SetValue(0, 0.1)
+        grid_surface.Update()
+        grid_mesh = vtk.vtkPolyDataMapper()
+        grid_mesh.SetInputData(grid_surface.GetOutput())
+    else:
+        grid_mesh = None
+
+    mapper = vtk.vtkSmartVolumeMapper()
+    if resolution is None:  # native
+        mapper.SetScalarModeToUseCellData()
+        mapper.SetInputDataObject(grid)
+    else:
+        upsampler = vtk.vtkImageResample()
+        upsampler.SetInterpolationModeToNearestNeighbor()
+        upsampler.SetOutputSpacing(*([resolution] * 3))
+        upsampler.SetInputConnection(grid_alg.GetOutputPort())
+        mapper.SetInputConnection(upsampler.GetOutputPort())
+    # Additive, AverageIntensity, and Composite might also be reasonable
+    remap = dict(composite='Composite', mip='MaximumIntensity')
+    getattr(mapper, f'SetBlendModeTo{remap[blending]}')()
+    volume_pos = vtk.vtkVolume()
+    volume_pos.SetMapper(mapper)
+    dist = grid.length / (np.mean(grid.dimensions) - 1)
+    volume_pos.GetProperty().SetScalarOpacityUnitDistance(dist)
+    if center is not None and blending == 'mip':
+        # We need to create a minimum intensity projection for the neg half
+        mapper_neg = vtk.vtkSmartVolumeMapper()
+        if resolution is None:  # native
+            mapper_neg.SetScalarModeToUseCellData()
+            mapper_neg.SetInputDataObject(grid)
+        else:
+            mapper_neg.SetInputConnection(upsampler.GetOutputPort())
+        mapper_neg.SetBlendModeToMinimumIntensity()
+        volume_neg = vtk.vtkVolume()
+        volume_neg.SetMapper(mapper_neg)
+        volume_neg.GetProperty().SetScalarOpacityUnitDistance(dist)
+    else:
+        volume_neg = None
+    return grid, grid_mesh, volume_pos, volume_neg
 
 
 def _require_minimum_version(version_required):
