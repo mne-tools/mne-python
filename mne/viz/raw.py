@@ -202,19 +202,19 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
 
-    # event_color is a dict
+    # if event_color is a dict
     if isinstance(event_color, dict):
         event_color = {_ensure_int(key, 'event_color key'): value
                        for key, value in event_color.items()}
-        default_factory = None
+        default = event_color.pop(-1, None)
+        default_factory = None if default is None else lambda: default
+        event_color_dict = defaultdict(default_factory)
         for key, value in event_color.items():
-            if key == -1:
-                default_factory = lambda: value  # noqa E731
-            elif key < 1:
+            if key < 1:
                 raise KeyError('event_color keys must be strictly positive, '
                                f'or -1 (cannot use {key})')
-        event_color_dict = defaultdict(default_factory, **event_color)
-    # event_color is a string or other MPL color-like thing
+            event_color_dict[key] = value
+    # if event_color is a string or other MPL color-like thing
     else:
         event_color_dict = defaultdict(lambda: event_color)
 
@@ -390,9 +390,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     bad_color : color object
         Color to make bad channels.
     event_color : color object | dict
-        Color to use for events. Can also be a dict with
-        ``{event_number: color}`` pairings. Use ``event_number==-1`` for
-        any event numbers in the events list that are not in the dictionary.
+        Color(s) to use for events. For all events in the same color, pass any
+        matplotlib-compatible color. Can also be a `dict` mapping event numbers
+        to colors, but if so it must include all events or include a "fallback"
+        entry with key ``-1``.
     scalings : dict | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
         the scaling factor is set to match the 99.5th percentile of a subset of
