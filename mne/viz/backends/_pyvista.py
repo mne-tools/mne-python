@@ -242,7 +242,18 @@ class _Renderer(_BaseRenderer):
         return self.figure
 
     def set_interaction(self, interaction):
-        getattr(self.plotter, f'enable_{interaction}_style')()
+        if interaction == "rubber_band_2d":
+            for renderer in self.plotter.renderers:
+                renderer.enable_parallel_projection()
+            if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
+                self.plotter.enable_rubber_band_2d_style()
+            else:
+                style = vtk.vtkInteractorStyleRubberBand2D()
+                self.plotter.interactor.SetInteractorStyle(style)
+        else:
+            for renderer in self.plotter.renderers:
+                renderer.disable_parallel_projection()
+            getattr(self.plotter, f'enable_{interaction}_style')()
 
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
