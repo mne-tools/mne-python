@@ -372,7 +372,8 @@ def test_combine_channels():
 
     # Test good cases
     combine_channels(raw, good)
-    combine_channels(epochs, good)
+    combined_epochs = combine_channels(epochs, good)
+    assert np.array_equal(combined_epochs.events, epochs.events)
     combine_channels(evoked, good)
     combine_channels(raw, good, drop_bad=True)
     combine_channels(raw_ch_bad, good, drop_bad=True)

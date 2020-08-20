@@ -1732,6 +1732,7 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     elif isinstance(inst, BaseEpochs):
         combined_inst = EpochsArray(new_data, info, tmin=inst.times[0],
                                     verbose=inst.verbose)
+        combined_inst.events = inst.events
     elif isinstance(inst, Evoked):
         combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
                                     verbose=inst.verbose)
