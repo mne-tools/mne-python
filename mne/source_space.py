@@ -70,9 +70,23 @@ def _get_lut(fname=None):
     _validate_type(fname, ('path-like', None), 'fname')
     if fname is None:
         fname = op.join(op.dirname(__file__), 'data', 'FreeSurferColorLUT.txt')
-    dtype = [('id', '<i8'), ('name', 'U47'),
+    _check_fname(fname, 'read', must_exist=True)
+    dtype = [('id', '<i8'), ('name', 'U'),
              ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
-    return np.genfromtxt(fname, dtype=dtype)
+    lut = {d[0]: list() for d in dtype}
+    with open(fname, 'r') as fid:
+        for line in fid:
+            line = line.strip()
+            if line.startswith('#') or not line:
+                continue
+            line = line.split()
+            if len(line) != len(dtype):
+                raise RuntimeError(f'LUT is improperly formatted: {fname}')
+            for d, part in zip(dtype, line):
+                lut[d[0]].append(part)
+    lut = {d[0]: np.array(lut[d[0]], dtype=d[1]) for d in dtype}
+    assert len(lut['name']) > 0
+    return lut
 
 
 def _get_lut_id(lut, label):
