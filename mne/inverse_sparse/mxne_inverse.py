@@ -8,7 +8,7 @@ from scipy import linalg
 
 from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
-                                    _check_reference)
+                                    _check_reference, _log_exp_var)
 from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
@@ -98,9 +98,10 @@ def _compute_residual(forward, evoked, X, active_set, info):
             non_active_projs.append(p)
 
     if len(active_projs) > 0:
-        r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True)
-        r_tmp.apply_proj()
-        r_tmp.add_proj(non_active_projs, remove_existing=False)
+        r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True,
+                                              verbose=False)
+        r_tmp.apply_proj(verbose=False)
+        r_tmp.add_proj(non_active_projs, remove_existing=False, verbose=False)
 
     residual.data -= r_tmp.data
 
@@ -161,8 +162,9 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
         active_idx = np.unique(active_idx // n_dip_per_pos)
 
     gof = np.zeros(M_est.shape[1])
-    M_norm2 = np.sum(M ** 2, axis=0)
-    R_norm2 = np.sum((M - M_est) ** 2, axis=0)
+    M_norm2 = np.sum((M * M.conj()).real, axis=0)
+    res = M - M_est
+    R_norm2 = np.sum((res * res.conj()).real, axis=0)
     gof[M_norm2 > 0.0] = 1. - R_norm2[M_norm2 > 0.0] / M_norm2[M_norm2 > 0.0]
     gof *= 100.
 
@@ -430,6 +432,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             residual.append(_compute_residual(forward, e, Xe, active_set,
                                               gain_info))
 
+    _log_exp_var(M, M_estimated, prefix='')
     logger.info('[done]')
 
     if len(outs) == 1:

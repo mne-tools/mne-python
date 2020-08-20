@@ -51,6 +51,8 @@ Changelog
 
 - Add support for providing the destination surface source space in the ``src_to`` argument of :func:`mne.compute_source_morph` by `Eric Larson`_
 
+- Add explained variance logging to :func:`mne.inverse_sparse.mixed_norm` by `Eric Larson`_
+
 - Add ``tol_kind`` option to :func:`mne.compute_rank` by `Eric Larson`_
 
 - Allow resampling raw data with :func:`mne.io.Raw.resample` without preloading data, by `Eric Larson`_

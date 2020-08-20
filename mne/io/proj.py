@@ -152,8 +152,13 @@ class ProjMixin(object):
                                              check_active=False, sort=False)
         return self
 
-    def apply_proj(self):
+    @verbose
+    def apply_proj(self, verbose=None):
         """Apply the signal space projection (SSP) operators to the data.
+
+        Parameters
+        ----------
+        %(verbose_meth)s
 
         Returns
         -------

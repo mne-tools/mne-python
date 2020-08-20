@@ -16,7 +16,8 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import assert_stcs_equal, run_tests_if_main
+from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
+from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
 
@@ -101,34 +102,48 @@ def test_mxne_inverse_standard():
         mixed_norm(evoked_l21, forward, cov, alpha, loose=0, maxit=2,
                    pick_ori='vector')
 
-    with pytest.warns(None):  # CD
+    with pytest.warns(None), catch_logging() as log:  # CD
         dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                           weights=stc_dspm, weights_min=weights_min,
-                          solver='cd', return_as_dipoles=True)
+                          solver='cd', return_as_dipoles=True, verbose=True)
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert isinstance(dips[0], Dipole)
     assert stc_dip.subject == "sample"
     assert_stcs_equal(stc_cd, stc_dip)
+    assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
 
-    with pytest.warns(None):  # CD
+    # Single time point things should match
+    with pytest.warns(None), catch_logging() as log:
+        dips = mixed_norm(evoked_l21.copy().crop(0.081, 0.081),
+                          forward, cov, alpha, loose=loose,
+                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+                          weights=stc_dspm, weights_min=weights_min,
+                          solver='cd', return_as_dipoles=True, verbose=True)
+    assert_var_exp_log(log.getvalue(), 37, 39)  # 37.9
+    gof = sum(dip.gof[0] for dip in dips)
+    assert_allclose(gof, 37.9)  # XXX fails, get 75.87...
+
+    with pytest.warns(None), catch_logging() as log:
         stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
                             weights=stc_dspm,  # gh-6382
                             active_set_size=10, return_residual=True,
-                            solver='cd')
+                            solver='cd', verbose=True)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
+    assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
 
     # irMxNE tests
-    with pytest.warns(None):  # CD
+    with pytest.warns(None), catch_logging() as log:  # CD
         stc = mixed_norm(evoked_l21, forward, cov, alpha,
                          n_mxne_iter=5, loose=loose, depth=depth,
                          maxit=300, tol=1e-8, active_set_size=10,
-                         solver='cd')
+                         solver='cd', verbose=True)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
     assert stc.vertices == [[63152], [79017]]
+    assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter
@@ -190,11 +205,13 @@ def test_mxne_vol_sphere():
                   maxit=3, tol=1e-8, active_set_size=10)
 
     # irMxNE tests
-    stc = mixed_norm(evoked_l21, fwd, cov, alpha,
-                     n_mxne_iter=1, maxit=30, tol=1e-8,
-                     active_set_size=10)
+    with catch_logging() as log:
+        stc = mixed_norm(evoked_l21, fwd, cov, alpha,
+                         n_mxne_iter=1, maxit=30, tol=1e-8,
+                         active_set_size=10, verbose=True)
     assert isinstance(stc, VolSourceEstimate)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
+    assert_var_exp_log(log.getvalue(), 9, 11)  # 10.2
 
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole

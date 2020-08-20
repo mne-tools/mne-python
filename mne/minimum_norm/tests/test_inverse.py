@@ -577,6 +577,16 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
     assert vmin < R2 < vmax
 
 
+def assert_var_exp_log(log, lower, upper):
+    """Assert a variance explained log value."""
+    __tracebackhide__ = True
+    exp_var = re.match(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*',
+                       log.replace('\n', ' '))
+    assert exp_var is not None, f'No explained variance found:\n{log}'
+    exp_var = float(exp_var.group(1))
+    assert lower <= exp_var <= upper
+
+
 @pytest.mark.parametrize('method', INVERSE_METHODS)
 def test_inverse_residual(evoked, method):
     """Test MNE inverse application."""
@@ -586,7 +596,6 @@ def test_inverse_residual(evoked, method):
     fwd = read_forward_solution(fname_fwd)
     pick_channels_forward(fwd, evoked.ch_names, copy=False)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
-    matcher = re.compile(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*')
 
     # make it complex to ensure we handle it properly
     evoked.data = 1j * evoked.data
@@ -598,11 +607,7 @@ def test_inverse_residual(evoked, method):
     residual.data = (-1j * residual.data).real
     evoked.data = (-1j * evoked.data).real
     # continue testing
-    log = log.getvalue()
-    match = matcher.match(log.replace('\n', ' '))
-    assert match is not None
-    match = float(match.group(1))
-    assert 45 < match < 50
+    assert_var_exp_log(log.getvalue(), 45, 50)
     if method not in ('dSPM', 'sLORETA'):
         # revert effects of STC being forced to be complex
         recon = apply_forward(fwd, stc, evoked.info)
@@ -619,11 +624,7 @@ def test_inverse_residual(evoked, method):
         with catch_logging() as log:
             _, residual = apply_inverse(
                 evoked, inv, 0., method, return_residual=True, verbose=True)
-        log = log.getvalue()
-        match = matcher.match(log.replace('\n', ' '))
-        assert match is not None
-        match = float(match.group(1))
-        assert match == 100.
+        assert_var_exp_log(log.getvalue(), 100, 100)
         assert_array_less(np.abs(residual.data), 1e-15)
 
 
