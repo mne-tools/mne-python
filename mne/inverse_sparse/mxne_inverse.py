@@ -156,17 +156,15 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
         active_idx = np.where(active_set)[0]
     else:
         active_idx = active_set
+    assert len(M_est) == len(active_idx)
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)
 
-    gof = np.zeros(M_est.shape[1])
     M_norm2 = np.sum((M * M.conj()).real, axis=0)
-    res = M - M_est
-    R_norm2 = np.sum((res * res.conj()).real, axis=0)
-    gof[M_norm2 > 0.0] = 1. - R_norm2[M_norm2 > 0.0] / M_norm2[M_norm2 > 0.0]
-    gof *= 100.
+    mask = M_norm2 <= 0.0
+    M_norm2[mask] = 1
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
@@ -187,7 +185,18 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
             i_ori[amplitude > 0.] = (X_[:, amplitude > 0.] /
                                      amplitude[amplitude > 0.]).T
 
+        # XXX not correct, needs to be partialed out somehow...
+        res = M - M_est[k]
+        R_norm2 = np.sum((res * res.conj()).real, axis=0)
+        gof = np.where(mask, 0., 100 * (1. - R_norm2 / M_norm2))
+
         dipoles.append(Dipole(times, i_pos, amplitude, i_ori, gof))
+
+    res - M - M_est.sum(0)
+    R_norm2 = np.sum(res * res, axis=0)
+    gof = 100 - 100 * R_norm2 / M_norm2
+    gof2 = sum(dip.gof for dip in dipoles)
+    np.testing.assert_allclose(gof, gof2)
 
     return dipoles
 
@@ -395,8 +404,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         X = np.dot(X, Vh)
         M = np.dot(M, Vh)
 
-    # Compute estimated whitened sensor data
-    M_estimated = np.dot(gain[:, active_set], X)
+    # Compute estimated whitened sensor data for each dipole (dip, ch, time)
+    M_estimates = (gain[:, active_set, np.newaxis] * X).transpose(1, 0, 2)
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
@@ -421,7 +430,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             out = _make_dipoles_sparse(
                 Xe, active_set, forward, tmin, tstep,
                 M[:, cnt:(cnt + len(e.times))],
-                M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
+                M_estimates[..., cnt:(cnt + len(e.times))], verbose=None)
         else:
             out = _make_sparse_stc(
                 Xe, active_set, forward, tmin, tstep, pick_ori=pick_ori)
@@ -432,7 +441,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             residual.append(_compute_residual(forward, e, Xe, active_set,
                                               gain_info))
 
-    _log_exp_var(M, M_estimated, prefix='')
+    ev = _log_exp_var(M, M_estimates.sum(0), prefix='')
     logger.info('[done]')
 
     if len(outs) == 1:
@@ -649,8 +658,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         raise Exception("No active dipoles found. "
                         "alpha_space/alpha_time are too big.")
 
-    # Compute estimated whitened sensor data
-    M_estimated = np.dot(gain[:, active_set], X)
+    # Compute estimated whitened sensor data for each dipole (dip, ch, time)
+    M_estimates = (gain[:, active_set, np.newaxis] * X).transpose(1, 0, 2)
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
@@ -667,7 +676,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     if return_as_dipoles:
         out = _make_dipoles_sparse(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
-            M, M_estimated, verbose=None)
+            M, M_estimates, verbose=None)
     else:
         out = _make_sparse_stc(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],

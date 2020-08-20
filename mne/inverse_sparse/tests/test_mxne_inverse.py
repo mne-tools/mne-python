@@ -120,9 +120,9 @@ def test_mxne_inverse_standard():
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                           weights=stc_dspm, weights_min=weights_min,
                           solver='cd', return_as_dipoles=True, verbose=True)
-    assert_var_exp_log(log.getvalue(), 37, 39)  # 37.9
-    gof = sum(dip.gof[0] for dip in dips)
-    assert_allclose(gof, 37.9)  # XXX fails, get 75.87...
+    assert_var_exp_log(log.getvalue(), 37.8, 38.0)  # 37.9
+    gof = sum(dip.gof[0] for dip in dips)  # these are now partial exp vars
+    assert_allclose(gof, 37.9, atol=0.1)
 
     with pytest.warns(None), catch_logging() as log:
         stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,

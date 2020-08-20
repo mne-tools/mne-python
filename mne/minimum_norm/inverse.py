@@ -882,7 +882,9 @@ def _log_exp_var(data, est, prefix='    '):
     res = data - est
     var_exp = 1 - ((res * res.conj()).sum().real /
                    (data * data.conj()).sum().real)
-    logger.info(f'{prefix}Explained {100 * var_exp:5.1f}% variance')
+    var_exp *= 100
+    logger.info(f'{prefix}Explained {var_exp:5.1f}% variance')
+    return var_exp
 
 
 def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
