@@ -1342,11 +1342,10 @@ class _Brain(object):
         x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
         if hemi_data['glyph_actor'] is None:
-            hemi_data['glyph_actor'] = list()
             add = True
+            hemi_data['glyph_actor'] = list()
         else:
             add = False
-
         count = 0
         for ri, ci, _ in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
