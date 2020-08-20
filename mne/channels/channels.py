@@ -1730,9 +1730,8 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
         combined_inst = RawArray(new_data, info, first_samp=inst.first_samp,
                                  verbose=inst.verbose)
     elif isinstance(inst, BaseEpochs):
-        combined_inst = EpochsArray(new_data, info, tmin=inst.times[0],
-                                    verbose=inst.verbose)
-        combined_inst.events = inst.events
+        combined_inst = EpochsArray(new_data, info, events=inst.events,
+                                    tmin=inst.times[0], verbose=inst.verbose)
     elif isinstance(inst, Evoked):
         combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
                                     verbose=inst.verbose)
