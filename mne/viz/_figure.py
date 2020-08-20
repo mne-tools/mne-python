@@ -557,8 +557,7 @@ class MNEBrowseFigure(MNEFigure):
                 self._show_vline(event.xdata)
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
-                    # _handle_change_selection(event, params)
-                    pass  # TODO FIXME
+                    self._change_selection_vscroll(event)
                 else:
                     if self._check_update_vscroll_clicked(event):
                         self._redraw()
@@ -1048,6 +1047,20 @@ class MNEBrowseFigure(MNEFigure):
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
         fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
+
+    def _change_selection_vscroll(self, event):
+        """Handle clicks on vertical scrollbar when using selections."""
+        buttons = self.mne.fig_selection.mne.radio_ax.buttons
+        labels = [label.get_text() for label in buttons.labels]
+        offset = 0
+        selections_dict = self.mne.ch_selections
+        for idx, label in enumerate(labels):
+            offset += len(selections_dict[label])
+            if event.ydata < offset:
+                with _events_off(buttons):
+                    buttons.set_active(idx)
+                self.mne.fig_selection._radiopress(event)
+                return
 
     def _update_selection(self):
         """Update visible channels based on selection dialog interaction."""
