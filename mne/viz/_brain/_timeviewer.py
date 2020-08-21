@@ -1406,6 +1406,15 @@ class _LinkViewer(object):
                         leader.add_point(hemi, mesh, vertex_id)
 
         if colorbar:
+            leader = self.time_viewers[0]  # select a time_viewer as leader
+            fmin = leader.brain._data["fmin"]
+            fmid = leader.brain._data["fmid"]
+            fmax = leader.brain._data["fmax"]
+            for time_viewer in self.time_viewers:
+                time_viewer.callbacks["fmin"](fmin)
+                time_viewer.callbacks["fmid"](fmid)
+                time_viewer.callbacks["fmax"](fmax)
+
             for slider_name in ('fmin', 'fmid', 'fmax'):
                 func = getattr(self, "set_" + slider_name)
                 self.link_sliders(
