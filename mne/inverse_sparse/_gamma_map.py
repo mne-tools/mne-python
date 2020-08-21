@@ -258,7 +258,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         raise Exception("No active dipoles found. alpha is too big.")
 
     # Compute estimated whitened sensor data
-    M_estimated = np.dot(gain[:, active_set], X)
+    gain_active = gain[:, active_set]
+    M_estimated = np.dot(gain_active, X)
 
     # Reapply weights to have correct unit
     X = _reapply_source_weighting(X, source_weighting, active_set)
@@ -287,7 +288,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     if return_as_dipoles:
         out = _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
-                                   M_estimated, active_is_idx=True)
+                                   M_estimated, gain_active,
+                                   active_is_idx=True)
     else:
         out = _make_sparse_stc(X, active_set, forward, tmin, tstep,
                                active_is_idx=True, pick_ori=pick_ori,

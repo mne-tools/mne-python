@@ -5,7 +5,8 @@
 
 import os.path as op
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_less)
 import pytest
 
 import mne
@@ -14,7 +15,7 @@ from mne.label import read_label
 from mne import (read_cov, read_forward_solution, read_evokeds,
                  convert_forward_solution)
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
-from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
+from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles, _split_gof
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
 from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
@@ -32,10 +33,17 @@ label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
+@pytest.fixture(scope='module', params=[testing._pytest_param])
+def forward():
+    """Get a forward solution."""
+    # module scope it for speed (but don't overwrite in use!)
+    return read_forward_solution(fname_fwd)
+
+
 @pytest.mark.timeout(150)  # ~30 sec on Travis Linux
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_mxne_inverse_standard():
+def test_mxne_inverse_standard(forward):
     """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
     cov = read_cov(fname_cov)
@@ -52,7 +60,6 @@ def test_mxne_inverse_standard():
     label = read_label(fname_label)
     assert label.hemi == 'rh'
 
-    forward = read_forward_solution(fname_fwd)
     forward = convert_forward_solution(forward, surf_ori=True)
 
     # Reduce source space to make test computation faster
@@ -244,6 +251,65 @@ def test_mxne_vol_sphere():
                            l1_ratio=l1_ratio, return_residual=True)
     assert isinstance(stc, VolSourceEstimate)
     assert_array_almost_equal(stc.times, evoked.times, 5)
+
+
+@pytest.mark.parametrize('mod', (None, 'mult', 'augment', 'sign'))
+def test_split_gof_basic(mod):
+    """Test splitting the goodness of fit."""
+    # first a trivial case
+    gain = np.array([[0., 1., 1.], [1., 1., 0.]]).T
+    x = np.ones(3)
+    x_est = np.array([1., 2., 1.])  # a reasonable estimate
+    if mod == 'mult':
+        gain *= [1., -0.5]
+    elif mod == 'augment':
+        gain = np.concatenate((gain, np.zeros((3, 1))), axis=1)
+    elif mod == 'sign':
+        gain[1] *= -1
+        x[1] *= -1
+        x_est[1] *= -1
+    else:
+        assert mod is None
+    res = x - x_est
+    gof = 100 * (1. - (res * res).sum() / (x * x).sum())
+    gof_split = _split_gof(x, x - x_est, gain)
+    assert_allclose(gof_split.sum(), gof)
+    want = gof_split[[0, 0]]
+    if mod == 'augment':
+        want = np.concatenate((want, [0]))
+    assert_allclose(gof_split, want, atol=1e-12)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('idx, weights', [
+    # empirically determined approximately orthogonal columns: 0, 15157, 19448
+    ([0], [1]),
+    ([0, 15157], [1, 1]),
+    ([0, 15157], [1, 3]),
+    ([0, 15157], [5, -1]),
+    ([0, 15157, 19448], [1, 1, 1]),
+    ([0, 15157, 19448], [1e-2, 1, 5]),
+])
+def test_gof_split_meg(forward, idx, weights):
+    """Test GOF splitting on MEG data."""
+    gain = forward['sol']['data'][:, idx]
+    # close to orthogonal
+    norms = np.linalg.norm(gain, axis=0)
+    triu = np.triu_indices(len(idx), 1)
+    prods = np.abs(np.dot(gain.T, gain) / np.outer(norms, norms))[triu]
+    assert_array_less(prods, 5e-3)  # approximately orthogonal
+    # first, split across time (one dipole per time point)
+    x = gain * weights
+    gof_split = _split_gof(x.T, np.zeros_like(x.T), gain)
+    assert_allclose(gof_split.sum(0), 100., atol=1e-5)  # all sum to 100
+    assert_allclose(gof_split, 100 * np.eye(len(weights)), atol=1)  # loc
+    # next, summed to a single time point (all dipoles active at one time pt)
+    x = np.dot(gain, weights)
+    gof_split = _split_gof(x, np.zeros_like(x), gain)
+    want = (norms * weights) ** 2
+    want = 100 * want / want.sum()
+    assert_allclose(gof_split, want, atol=1e-3, rtol=1e-3)
+    assert_allclose(gof_split.sum(), 100, atol=1e-6)
 
 
 run_tests_if_main()
