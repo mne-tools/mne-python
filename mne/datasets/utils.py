@@ -577,7 +577,6 @@ def _download_all_example_data(verbose=True):
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor, refmeg_noise)
-
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
