@@ -17,7 +17,8 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles, _split_gof
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
+from mne.minimum_norm.tests.test_inverse import \
+    assert_var_exp_log, assert_stc_res
 from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
@@ -132,25 +133,28 @@ def test_mxne_inverse_standard(forward):
     assert_allclose(gof, 37.9, atol=0.1)
 
     with pytest.warns(None), catch_logging() as log:
-        stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                            depth=depth, maxit=300, tol=1e-8,
-                            weights=stc_dspm,  # gh-6382
-                            active_set_size=10, return_residual=True,
-                            solver='cd', verbose=True)
+        stc, res = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                              depth=depth, maxit=300, tol=1e-8,
+                              weights=stc_dspm,  # gh-6382
+                              active_set_size=10, return_residual=True,
+                              solver='cd', verbose=True)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
     assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
+    assert stc.data.min() < -1e-9  # signed
+    assert_stc_res(evoked_l21, stc, forward, res)
 
     # irMxNE tests
     with pytest.warns(None), catch_logging() as log:  # CD
-        stc = mixed_norm(evoked_l21, forward, cov, alpha,
-                         n_mxne_iter=5, loose=loose, depth=depth,
-                         maxit=300, tol=1e-8, active_set_size=10,
-                         solver='cd', verbose=True)
+        stc, residual = mixed_norm(
+            evoked_l21, forward, cov, alpha, n_mxne_iter=5, loose=0.0001,
+            depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+            solver='cd', return_residual=True, pick_ori='vector', verbose=True)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
     assert stc.vertices == [[63152], [79017]]
     assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
+    assert_stc_res(evoked_l21, stc, forward, residual)
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter
@@ -169,11 +173,11 @@ def test_mxne_inverse_standard(forward):
         evoked, forward, cov, loose=1, depth=depth, maxit=2, tol=1e-4,
         tstep=4, wsize=16, window=0.1, weights=stc_dspm,
         weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio)
-    stc_vec = tf_mixed_norm(
+    stc_vec, residual = tf_mixed_norm(
         evoked, forward, cov, loose=1, depth=depth, maxit=2, tol=1e-4,
         tstep=4, wsize=16, window=0.1, weights=stc_dspm,
         weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio,
-        pick_ori='vector')
+        pick_ori='vector', return_residual=True)
     assert_stcs_equal(stc_vec.magnitude(), stc_nrm)
 
     pytest.raises(ValueError, tf_mixed_norm, evoked, forward, cov,

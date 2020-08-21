@@ -190,6 +190,9 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
         active_idx = active_set
 
     # Compute the GOF split amongst the dipoles
+    assert M.shape == (gain_active.shape[0], len(times))
+    assert gain_active.shape[1] == len(active_idx)
+    assert M.shape == M_est.shape
     gof_split = _split_gof(M.T, M_est.T, gain_active).T
     assert gof_split.shape == (len(active_idx), len(times))
 

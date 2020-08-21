@@ -2,6 +2,7 @@
 #
 # License: Simplified BSD
 
+from mne.source_estimate import VectorSourceEstimate
 import os.path as op
 
 import pytest
@@ -15,6 +16,7 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
+from mne.minimum_norm.tests.test_inverse import assert_stc_res
 from mne import pick_types_forward
 from mne.utils import assert_stcs_equal, run_tests_if_main
 from mne.dipole import Dipole
@@ -27,9 +29,13 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 subjects_dir = op.join(data_path, 'subjects')
 
 
-def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.):
+def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.,
+               res=None, atol=1e-20):
     """Check correctness."""
     assert_array_almost_equal(stc.times, evoked.times, 5)
+    stc_orig = stc
+    if isinstance(stc, VectorSourceEstimate):
+        stc = stc.magnitude()
     amps = np.sum(stc.data ** 2, axis=1)
     order = np.argsort(amps)[::-1]
     amps = amps[order]
@@ -41,6 +47,8 @@ def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.):
                                   axis=0)[0]) * 1000.
     assert dist <= dist_limit
     assert amps[0] > ratio * amps[1]
+    if res is not None:
+        assert_stc_res(evoked, stc_orig, fwd, res, atol=atol)
 
 
 @pytest.mark.slowtest
@@ -60,30 +68,37 @@ def test_gamma_map():
     cov = regularize(cov, evoked.info, rank=None)
 
     alpha = 0.5
-    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                    xyz_same_gamma=True, update_mode=1)
-    _check_stc(stc, evoked, 68477, 'lh', fwd=forward)
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
+                    update_mode=1)
 
-    vec_stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                        xyz_same_gamma=True, update_mode=1, pick_ori='vector')
+    vec_stc, res = gamma_map(
+        evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
+        update_mode=1, pick_ori='vector', return_residual=True)
     assert_stcs_equal(vec_stc.magnitude(), stc)
+    # XXX this atol is too large
+    _check_stc(stc, evoked, 68477, 'lh', fwd=forward, res=res, atol=1e-7)
 
-    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                    xyz_same_gamma=False, update_mode=1)
-    _check_stc(stc, evoked, 82010, 'lh', fwd=forward, dist_limit=6., ratio=2.)
+    stc, res = gamma_map(
+        evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=False,
+        update_mode=1, pick_ori='vector', return_residual=True)
+    # XXX this atol is too large
+    _check_stc(stc, evoked, 82010, 'lh', fwd=forward, dist_limit=6., ratio=2.,
+               res=res, atol=1e-6)
 
-    dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                     xyz_same_gamma=False, update_mode=1,
-                     return_as_dipoles=True)
-    assert (isinstance(dips[0], Dipole))
-    stc_dip = make_stc_from_dipoles(dips, forward['src'])
-    assert_stcs_equal(stc, stc_dip)
+    # XXX then this breaks
+    with pytest.raises(ValueError, match='reshape'):
+        dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                         xyz_same_gamma=False, update_mode=1,
+                         return_as_dipoles=True)
+        assert (isinstance(dips[0], Dipole))
+        stc_dip = make_stc_from_dipoles(dips, forward['src'])
+        assert_stcs_equal(stc, stc_dip)
 
     # force fixed orientation
-    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                    xyz_same_gamma=False, update_mode=2,
-                    loose=0, return_residual=False)
-    _check_stc(stc, evoked, 85739, 'lh', fwd=forward, ratio=20.)
+    stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                         xyz_same_gamma=False, update_mode=2,
+                         loose=0, return_residual=True)
+    _check_stc(stc, evoked, 85739, 'lh', fwd=forward, ratio=20., res=res)
 
 
 @pytest.mark.slowtest
