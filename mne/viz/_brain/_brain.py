@@ -245,7 +245,6 @@ class _Brain(object):
                                        bgcolor=background,
                                        shape=shape,
                                        fig=figure)
-
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
@@ -298,6 +297,9 @@ class _Brain(object):
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
                 self.show_view(v, row=ri, col=ci, hemi=h)
+
+        if surf == 'flat':
+            self._renderer.set_interaction("rubber_band_2d")
 
     @property
     def interaction(self):
@@ -518,6 +520,7 @@ class _Brain(object):
         self._data['time'] = time
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
+        self._data['initial_time_idx'] = time_idx
         self._data['time_idx'] = time_idx
         self._data['transparent'] = transparent
         # data specific for a hemi
@@ -1120,6 +1123,13 @@ class _Brain(object):
         self._renderer.set_camera(**view)
         self._renderer.reset_camera()
         self._update()
+
+    def reset_view(self):
+        """Reset the camera."""
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self._renderer.subplot(ri, ci)
+                self._renderer.set_camera(**views_dicts[h][v])
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.
