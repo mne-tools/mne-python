@@ -592,7 +592,7 @@ class _TimeViewer(object):
         self.brain.reset_view()
         max_time = len(self.brain._data['time']) - 1
         if max_time > 0:
-            self.time_call(
+            self.callbacks["time"](
                 self.brain._data["initial_time_idx"],
                 update_widget=True,
             )
