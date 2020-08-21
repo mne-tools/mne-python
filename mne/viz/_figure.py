@@ -514,7 +514,10 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'b':  # butterfly mode
             self.mne.ax_vscroll.set_visible(self.mne.butterfly)
             self.mne.butterfly = not self.mne.butterfly
+            self.mne.scale_factor *= 0.5 if self.mne.butterfly else 2.
+            self._update_picks()
             self._update_trace_offsets()
+            self._update_data()
             self._redraw(annotations=True)
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
@@ -1021,7 +1024,7 @@ class MNEBrowseFigure(MNEFigure):
         # add radio button axes
         radio_ax = fig.add_subplot(gs[5:-3], frameon=False, aspect='equal')
         fig.mne.radio_ax = radio_ax
-        selections_dict.update(Custom=list())  # custom selection with lasso
+        selections_dict.update(Custom=np.array([], dtype=int))  # for lasso
         labels = list(selections_dict)
         # make & style the radio buttons
         edgecolor = rcParams['axes.edgecolor']
@@ -1072,10 +1075,10 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.picks = selections_dict[label]
         self.mne.n_channels = len(self.mne.picks)
         self._update_highlighted_sensors()
-        # if "Vertex" is defined, some channels appear twice, so if "Vertex"
-        # is selected, ch_start should be the *first* match; otherwise it
-        # should be the *last* match (since "Vertex" is always the first
-        # selection group, if it exists).
+        # if "Vertex" is defined, some channels appear twice, so if
+        # "Vertex" is selected, ch_start should be the *first* match;
+        # otherwise it should be the *last* match (since "Vertex" is
+        # always the first selection group, if it exists).
         index = 0 if label == 'Vertex' else -1
         ch_order = np.concatenate(list(selections_dict.values()))
         ch_start = np.where(ch_order == self.mne.picks[0])[0][index]
@@ -1083,6 +1086,23 @@ class MNEBrowseFigure(MNEFigure):
         self._update_trace_offsets()
         self._update_vscroll()
         self._redraw()
+
+    def _make_butterfly_selections_dict(self):
+        """Make an altered copy of the selections dict for butterfly mode."""
+        from ..utils import _get_stim_channel
+        selections_dict = deepcopy(self.mne.ch_selections)
+        # remove potential duplicates
+        for selection_group in ('Vertex', 'Custom'):
+            selections_dict.pop(selection_group, None)
+        # if present, remove stim channel from non-misc selection groups
+        stim_ch = _get_stim_channel(None, self.mne.info, raise_error=False)
+        if len(stim_ch):
+            stim_pick = self.mne.ch_names.tolist().index(stim_ch[0])
+            for _sel, _picks in selections_dict.items():
+                if _sel != 'Misc':
+                    stim_mask = np.in1d(_picks, [stim_pick], invert=True)
+                    selections_dict[_sel] = _picks[stim_mask]
+        return selections_dict
 
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
@@ -1326,8 +1346,16 @@ class MNEBrowseFigure(MNEFigure):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _update_picks(self):
-        _sl = slice(self.mne.ch_start, self.mne.ch_start + self.mne.n_channels)
-        self.mne.picks = self.mne.ch_order[_sl]
+        """Compute which channel indices to show."""
+        if self.mne.butterfly and self.mne.ch_selections is not None:
+            selections_dict = self._make_butterfly_selections_dict()
+            self.mne.picks = np.concatenate(tuple(selections_dict.values()))
+        elif self.mne.butterfly:
+            self.mne.picks = np.arange(self.mne.ch_names.shape[0])
+        else:
+            _slice = slice(self.mne.ch_start,
+                           self.mne.ch_start + self.mne.n_channels)
+            self.mne.picks = self.mne.ch_order[_slice]
 
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
@@ -1349,8 +1377,7 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.projector is not None:
             data = self.mne.projector @ data
         # get only the channels we're displaying
-        picks = (np.arange(data.shape[0]) if self.mne.butterfly else
-                 self.mne.picks)
+        picks = self.mne.picks
         data = data[picks]
         # remove DC
         if self.mne.remove_dc:
@@ -1387,14 +1414,26 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_trace_offsets(self):
         """Compute viewport height and adjust offsets."""
-        # update offsets
-        if self.mne.butterfly:
+        # simultaneous selection and butterfly modes
+        if self.mne.butterfly and self.mne.ch_selections is not None:
+            self._update_picks()
+            selections_dict = self._make_butterfly_selections_dict()
+            n_offsets = len(selections_dict)
+            sel_order = list(selections_dict)
+            offsets = np.array([])
+            for pick in self.mne.picks:
+                for sel in sel_order:
+                    if pick in selections_dict[sel]:
+                        offsets = np.append(offsets, sel_order.index(sel))
+        # butterfly only
+        elif self.mne.butterfly:
             this_ch_types = set(self.mne.ch_types)
             n_offsets = len(this_ch_types)
             ch_type_order = [_type for _type in _DATA_CH_TYPES_ORDER_DEFAULT
                              if _type in this_ch_types]
             offsets = np.array([ch_type_order.index(ch_type)
                                 for ch_type in self.mne.ch_types])
+        # normal mode
         else:
             n_offsets = self.mne.n_channels
             offsets = np.arange(n_offsets, dtype=float)
@@ -1419,11 +1458,8 @@ class MNEBrowseFigure(MNEFigure):
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
-        # TODO: clear event texts?
-        #
         # get indices of currently visible channels
-        picks = (np.arange(self.mne.data.shape[0]) if butterfly else
-                 self.mne.picks)
+        picks = self.mne.picks
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
         # colors
@@ -1572,7 +1608,15 @@ class MNEBrowseFigure(MNEFigure):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _update_yaxis_labels(self):
-        if self.mne.butterfly:
+        """Change the y-axis labels."""
+        if self.mne.butterfly and self.mne.fig_selection is not None:
+            exclude = ('Vertex', 'Custom')
+            ticklabels = list(self.mne.ch_selections)
+            keep_mask = np.in1d(ticklabels, exclude, invert=True)
+            ticklabels = [t.replace('Left-', 'L-').replace('Right-', 'R-')
+                          for t in ticklabels]  # avoid having to rotate labels
+            ticklabels = np.array(ticklabels)[keep_mask]
+        elif self.mne.butterfly:
             _, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
                                        self.mne.ch_types, return_indices=True)
             ixs.sort()

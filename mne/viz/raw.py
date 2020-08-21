@@ -231,7 +231,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   ch_types=ch_types,
                   ch_order=order,
                   picks=order[:n_channels],
-                  orig_indices=order.copy(),  # TODO: still needed?
                   n_channels=n_channels,
                   picks_data=picks_data,
                   group_by=group_by,
@@ -272,6 +271,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars)
 
     fig = browse_figure(**params)
+    fig._update_picks()
 
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
