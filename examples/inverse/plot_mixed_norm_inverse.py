@@ -62,6 +62,12 @@ dipoles, residual = mixed_norm(
     weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True,
     return_as_dipoles=True, verbose=True)
 
+t = 0.083
+tidx = evoked.time_as_index(t)
+for di, dip in enumerate(dipoles, 1):
+    print(f'Dipole #{di} GOF at {1000 * t:0.1f} ms: '
+          f'{float(dip.gof[tidx]):0.1f}')
+
 ###############################################################################
 # Plot dipole activations
 plot_dipole_amplitudes(dipoles)

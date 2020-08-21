@@ -272,7 +272,7 @@ def test_split_gof_basic(mod):
         assert mod is None
     res = x - x_est
     gof = 100 * (1. - (res * res).sum() / (x * x).sum())
-    gof_split = _split_gof(x, x - x_est, gain)
+    gof_split = _split_gof(x, x_est, gain)
     assert_allclose(gof_split.sum(), gof)
     want = gof_split[[0, 0]]
     if mod == 'augment':
@@ -300,12 +300,12 @@ def test_gof_split_meg(forward, idx, weights):
     assert_array_less(prods, 5e-3)  # approximately orthogonal
     # first, split across time (one dipole per time point)
     x = gain * weights
-    gof_split = _split_gof(x.T, np.zeros_like(x.T), gain)
+    gof_split = _split_gof(x.T, x.T, gain)
     assert_allclose(gof_split.sum(0), 100., atol=1e-5)  # all sum to 100
     assert_allclose(gof_split, 100 * np.eye(len(weights)), atol=1)  # loc
     # next, summed to a single time point (all dipoles active at one time pt)
     x = np.dot(gain, weights)
-    gof_split = _split_gof(x, np.zeros_like(x), gain)
+    gof_split = _split_gof(x, x, gain)
     want = (norms * weights) ** 2
     want = 100 * want / want.sum()
     assert_allclose(gof_split, want, atol=1e-3, rtol=1e-3)

@@ -147,10 +147,13 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
         vector=vector, source_nn=source_nn)
 
 
-def _split_gof(x, res, gain):
+def _split_gof(x, x_est, gain):
     # parse out the variance explained using an orthogonal basis
     # assuming x is estimated using elements of gain, with residual res
     # along the last axis
+    assert x.shape == x_est.shape
+    res = x - x_est
+    assert gain.shape[0] == x.shape[-1]
     norm = np.linalg.norm(gain, axis=0, keepdims=True)
     norm[norm == 0] = 1.
     gain = gain / norm
@@ -169,6 +172,10 @@ def _split_gof(x, res, gain):
     gof_back = 100 * (
         (fit_back * fit_back.conj()).real -
         (res_back * res_back.conj()).real) / norm
+    # Can check with this:
+    # orig_gof = 100 * (
+    #    (x * x.conj()).real - (res * res.conj()).real).sum(-1) / norm.T
+    # np.testing.assert_allclose(orig_gof, gof_back.sum(-1, keepdims=True).T)
     return gof_back
 
 
@@ -182,12 +189,18 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
     else:
         active_idx = active_set
 
+    # Compute the GOF split amongst the dipoles
+    gof_split = _split_gof(M.T, M_est.T, gain_active).T
+    assert gof_split.shape == (len(active_idx), len(times))
+
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)
+        gof_split.shape = (len(active_idx), n_dip_per_pos, len(times))
+        gof_split = gof_split.sum(1)
+        assert (gof_split < 100).all()
+    assert gof_split.shape == (len(active_idx), len(times))
 
-    # Compute the GOF split amongst the dipoles
-    gof_split = _split_gof(M.T, (M - M_est).T, gain_active).T
     dipoles = []
     for k, i_dip in enumerate(active_idx):
         i_pos = forward['source_rr'][i_dip][np.newaxis, :]
