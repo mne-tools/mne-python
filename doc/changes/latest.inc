@@ -309,6 +309,8 @@ Bug
 
 - Fix bug with :meth:`mne.preprocessing.ICA.plot_properties` where a :class:`mne.io.Raw` object with annotations would lead to an error by `Yu-Han Luo`_
 
+- Fix bug with :func:`mne.channels.combine_channels` where events of class:`mne.Epochs` were not preserved by `Johann Benerradi`_
+
 API
 ~~~
 
