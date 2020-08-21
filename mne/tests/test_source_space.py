@@ -549,7 +549,7 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     None,
     op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
 ])
-def test_read_freesurfer_lut(fname):
+def test_read_freesurfer_lut(fname, tmpdir):
     """Test reading volume label names."""
     atlas_ids, colors = read_freesurfer_lut(fname)
     assert list(atlas_ids).count('Brain-Stem') == 1
@@ -569,6 +569,33 @@ def test_read_freesurfer_lut(fname):
     label_names_2 = get_volume_labels_from_aseg(
         aseg_fname, atlas_ids=atlas_ids)
     assert label_names == label_names_2
+    # long name (only test on one run)
+    if fname is not None:
+        return
+    fname = str(tmpdir.join('long.txt'))
+    names = ['Anterior_Cingulate_and_Medial_Prefrontal_Cortex-' + hemi
+             for hemi in ('lh', 'rh')]
+    ids = np.arange(1, len(names) + 1)
+    colors = [(id_,) * 4 for id_ in ids]
+    with open(fname, 'w') as fid:
+        for name, id_, color in zip(names, ids, colors):
+            out_color = ' '.join('%3d' % x for x in color)
+            line = '%d    %s %s\n' % (id_, name, out_color)
+            fid.write(line)
+    lut, got_colors = read_freesurfer_lut(fname)
+    assert len(lut) == len(got_colors) == len(names) == len(ids)
+    for name, id_, color in zip(names, ids, colors):
+        assert name in lut
+        assert name in got_colors
+        assert_array_equal(got_colors[name][:3], color[:3])
+        assert lut[name] == id_
+    with open(fname, 'w') as fid:
+        for name, id_, color in zip(names, ids, colors):
+            out_color = ' '.join('%3d' % x for x in color[:3])  # wrong length!
+            line = '%d    %s %s\n' % (id_, name, out_color)
+            fid.write(line)
+    with pytest.raises(RuntimeError, match='formatted'):
+        read_freesurfer_lut(fname)
 
 
 @testing.requires_testing_data

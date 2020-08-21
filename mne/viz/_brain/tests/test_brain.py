@@ -265,6 +265,7 @@ def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+    time_viewer.reset()
     plt.close('all')
     time_viewer.help()
     assert len(plt.get_fignums()) == 1
@@ -407,6 +408,7 @@ def test_brain_linkviewer(renderer_interactive, travis_macos):
         [brain_data],
         time=True,
         camera=True,
+        picking=True,
     )
     link_viewer.set_time_point(value=0)
     link_viewer.set_playback_speed(value=0.1)

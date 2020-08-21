@@ -16,7 +16,7 @@ fname_snirf_15_2_short = op.join(data_path(download=False),
                                  'snirf_1_3_nirx_15_2_recording_w_short.snirf')
 
 fname_original = op.join(data_path(download=False),
-                         'NIRx', 'nirx_15_2_recording_w_short')
+                         'NIRx', 'nirscout', 'nirx_15_2_recording_w_short')
 
 
 @requires_testing_data
