@@ -373,7 +373,7 @@ def test_combine_channels():
     # Test good cases
     combine_channels(raw, good)
     combined_epochs = combine_channels(epochs, good)
-    assert np.array_equal(combined_epochs.events, epochs.events)
+    assert_array_equal(combined_epochs.events, epochs.events)
     combine_channels(evoked, good)
     combine_channels(raw, good, drop_bad=True)
     combine_channels(raw_ch_bad, good, drop_bad=True)
@@ -391,12 +391,12 @@ def test_combine_channels():
     foo_mean = np.mean(raw.get_data()[good_single['foo']], axis=0)
     foo_median = np.median(raw.get_data()[good_single['foo']], axis=0)
     foo_std = np.std(raw.get_data()[good_single['foo']], axis=0)
-    assert np.array_equal(combined_mean.get_data(),
-                          np.expand_dims(foo_mean, axis=0))
-    assert np.array_equal(combined_median.get_data(),
-                          np.expand_dims(foo_median, axis=0))
-    assert np.array_equal(combined_std.get_data(),
-                          np.expand_dims(foo_std, axis=0))
+    assert_array_equal(combined_mean.get_data(),
+                       np.expand_dims(foo_mean, axis=0))
+    assert_array_equal(combined_median.get_data(),
+                       np.expand_dims(foo_median, axis=0))
+    assert_array_equal(combined_std.get_data(),
+                       np.expand_dims(foo_std, axis=0))
 
     # Test bad cases
     bad1 = dict(foo=[0, 376], bar=[5, 2])  # out of bounds
