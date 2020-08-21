@@ -206,6 +206,8 @@ Bug
 
 - Fix bug with convex-hull based MEG helmet creation where the face area could be covered up, by `Eric Larson`_
 
+- Fix bug with :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.gamma_map` with ``return_as_dipoles=True`` where ``dip.gof`` was the same for all dipoles. GOF values / explained variance across all dipoles now gets split among the dipoles using SVD of the lead fields. To get the total GOF, ``sum(dip.gof for dip in dipoles)`` can be used, by `Eric Larson`_
+
 - Fix to enable interactive plotting with no colorbar with :func:`mne.viz.plot_evoked_topomap` by `Daniel McCloy`_
 
 - Fix plotting with :func:`mne.viz.plot_evoked_topomap` to pre-existing axes by `Daniel McCloy`_
