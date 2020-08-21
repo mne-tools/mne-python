@@ -145,12 +145,7 @@ class RawBOXY(BaseRaw):
                       'srate': srate,
                       }
 
-        # Make sure data lengths are the same.
-        print('Start Line: ', start_line)
-        print('End Line: ', end_line)
-        print('Original Difference: ', end_line - start_line)
-        first_samps = start_line
-        print('New first_samps: ', first_samps)
+        # Determine how long our data is.
         diff = end_line - (start_line)
 
         # Number if rows in data file depends on data file type.
@@ -161,9 +156,6 @@ class RawBOXY(BaseRaw):
 
         # First sample is technically sample 0, not the start line in the file.
         first_samps = 0
-
-        print('New last_samps: ', last_samps)
-        print('New Difference: ', last_samps - first_samps)
 
         super(RawBOXY, self).__init__(
             info, preload, filenames=[fname], first_samps=[first_samps],
@@ -302,9 +294,6 @@ class RawBOXY(BaseRaw):
 
                     # Save our data based on data type.
                     all_data[index_loc, :] = boxy_array[:, channel]
-
-        print('Blank Data shape: ', data.shape)
-        print('Input Data shape: ', all_data.shape)
 
         # Place our data into the data object in place.
         data[:] = all_data

@@ -212,23 +212,6 @@ The tapping lasts 5 seconds, and there are 30 trials of each condition.
 .. topic:: Examples
 
     * :ref:`tut-fnirs-processing`
-    
-.. _boxy-example-dataset:
-
-BOXY Example
-============
-:func:`mne.datasets.boxy_example.data_path`
-
-This dataset is of a single participant.
-Recorded at the University of Illinois at Urbana-Champaign.
-Sources and detectors are placed over the occipital lobe.
-The participant was shown a checkerboard pattern, alternating at 1Hz.
-This reversal starts half-way through the recording.
-This set contains data for two montages, each with two blocks.
-Each montage and block contains two marker types:
-
-- 1 = checkerboard reversal
-- 2 = same as 1 but for the first few trials (to keep separate if needed)
 
 High frequency SEF
 ==================
