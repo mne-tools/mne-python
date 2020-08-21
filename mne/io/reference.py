@@ -6,7 +6,6 @@
 
 from copy import deepcopy
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
@@ -15,6 +14,7 @@ from .pick import pick_types, pick_channels, pick_channels_forward
 from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
+from ..fixes import _safe_svd
 from ..utils import (logger, warn, verbose, _validate_type, _check_preload,
                      _check_option)
 from ..defaults import DEFAULTS
@@ -122,8 +122,10 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None):
             assert G.shape[0] == len(ref_names)
             # 4. Compute the forward (G) and average-reference it (Ga):
             Ga = G - np.mean(G, axis=0, keepdims=True)
-            # 5. Compute the Ga_inv by SVD
-            Ga_inv = linalg.pinv2(Ga, rcond=0.05)
+            # 5. Compute the Ga_inv by SVD (old SciPy / NumPy has bugs)
+            u, s, v = _safe_svd(Ga, full_matrices=False)
+            mask = s >= s[0] * 0.05
+            Ga_inv = np.dot(v[mask].T * (1. / s[mask]), u.T[mask])
             # 6. Compute Ra = (G @ Ga_inv) in eq (8) from G and Ga_inv
             Ra = G @ Ga_inv
             # 7-8. Compute Vp = Ra @ Va; then Vpa=average(Vp)

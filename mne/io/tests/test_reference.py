@@ -263,8 +263,8 @@ def test_set_eeg_reference_rest():
                             orig_data[picks].ravel())[0, 1]
     avg_corr = np.corrcoef(rest_data[picks].ravel(),
                            avg_data[picks].ravel())[0, 1]
-    assert -0.6 < orig_corr < -0.4
-    assert 0.15 < avg_corr < 0.35
+    assert 0.05 < orig_corr < 0.1
+    assert 0.7 < avg_corr < 0.8
     # and applying an avg ref after should work
     avg_after = raw.set_eeg_reference('average').get_data()
     assert_allclose(avg_after, avg_data, atol=1e-12)
