@@ -54,7 +54,8 @@ src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
-nirx_fname = op.join(data_dir, 'NIRx', 'nirx_15_2_recording_w_short')
+nirx_fname = op.join(data_dir, 'NIRx', 'nirscout',
+                     'nirx_15_2_recording_w_short')
 
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
