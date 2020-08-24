@@ -395,7 +395,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # Make a solid surface
         if vmax is None:
             vmax = np.max(np.abs(data))
-            print(vmax)
         vmax = float(vmax)
         alpha = alphas[ii]
         renderer.surface(surface=surf, color=colors[ii],
@@ -408,7 +407,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # And the field lines on top
         renderer.contour(surface=surf, scalars=data, contours=n_contours,
                          vmin=-vmax, vmax=vmax, opacity=alpha,
-                         colormap=colormap_lines)
+                         colormap=colormap_lines, kind='tube',
+                         width=0.001)
 
     if time_label is not None:
         if '%' in time_label:
