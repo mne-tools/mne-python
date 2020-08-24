@@ -513,7 +513,7 @@ ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
 """
 docdict['set_eeg_reference_forward'] = """
 forward : instance of Forward | None
-    Forward to use. Only used with ``ref_channels='REST'``.
+    Forward solution to use. Only used with ``ref_channels='REST'``.
 
     .. versionadded:: 0.21
 """
