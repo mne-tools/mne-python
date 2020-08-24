@@ -2,7 +2,6 @@
 #
 # License: Simplified BSD
 
-from mne.source_estimate import VectorSourceEstimate
 import os.path as op
 
 import pytest
@@ -12,7 +11,7 @@ from numpy.testing import assert_array_almost_equal
 import mne
 from mne.datasets import testing
 from mne import (read_cov, read_forward_solution, read_evokeds,
-                 convert_forward_solution)
+                 convert_forward_solution, VectorSourceEstimate)
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
