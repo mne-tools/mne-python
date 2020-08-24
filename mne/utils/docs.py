@@ -487,7 +487,8 @@ ref_channels : list of str | str
 
     - The name(s) of the channel(s) used to construct the reference.
     - ``'average'`` to apply an average reference (default)
-    - ``'REST'`` to use :footcite:`Yao2001`.
+    - ``'REST'`` to use the Reference Electrode Standardization Technique
+      infinity reference :footcite:`Yao2001`.
     - An empty list, in which case MNE will not attempt any re-referencing of
       the data
 """
