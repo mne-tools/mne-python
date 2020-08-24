@@ -1205,7 +1205,7 @@ def _write_evokeds(fname, evoked, check=True):
             for k in range(e.info['nchan']):
                 decal[k] = 1.0 / (e.info['chs'][k]['cal'] *
                                   e.info['chs'][k].get('scale', 1.0))
-            
+
             if np.iscomplexobj(e.data):
                 write_function = write_complex_float_matrix
             else:
