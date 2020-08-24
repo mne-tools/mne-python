@@ -387,28 +387,32 @@ def test_io_stc(tmpdir):
 
 
 @requires_h5py
-def test_io_stc_h5(tmpdir):
+@pytest.mark.parametrize('is_complex', (True, False))
+@pytest.mark.parametrize('vector', (True, False))
+def test_io_stc_h5(tmpdir, is_complex, vector):
     """Test IO for STC files using HDF5."""
-    for stc in [_fake_stc(is_complex=True), _fake_vec_stc(is_complex=True),
-                _fake_stc(is_complex=False), _fake_vec_stc(is_complex=False)]:
-        pytest.raises(ValueError, stc.save, tmpdir.join('tmp'),
-                      ftype='foo')
-        out_name = tmpdir.join('tmp')
-        stc.save(out_name, ftype='h5')
-        stc.save(out_name, ftype='h5')  # test overwrite
-        stc3 = read_source_estimate(out_name)
-        stc4 = read_source_estimate(out_name + '-stc')
-        stc5 = read_source_estimate(out_name + '-stc.h5')
-        pytest.raises(RuntimeError, read_source_estimate, out_name,
-                      subject='bar')
-        for stc_new in stc3, stc4, stc5:
-            assert_equal(stc_new.subject, stc.subject)
-            assert_array_equal(stc_new.data, stc.data)
-            assert_array_equal(stc_new.tmin, stc.tmin)
-            assert_array_equal(stc_new.tstep, stc.tstep)
-            assert_equal(len(stc_new.vertices), len(stc.vertices))
-            for v1, v2 in zip(stc_new.vertices, stc.vertices):
-                assert_array_equal(v1, v2)
+    if vector:
+        stc = _fake_vec_stc(is_complex=is_complex)
+    else:
+        stc = _fake_stc(is_complex=is_complex)
+    pytest.raises(ValueError, stc.save, tmpdir.join('tmp'),
+                  ftype='foo')
+    out_name = tmpdir.join('tmp')
+    stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5')  # test overwrite
+    stc3 = read_source_estimate(out_name)
+    stc4 = read_source_estimate(out_name + '-stc')
+    stc5 = read_source_estimate(out_name + '-stc.h5')
+    pytest.raises(RuntimeError, read_source_estimate, out_name,
+                  subject='bar')
+    for stc_new in stc3, stc4, stc5:
+        assert_equal(stc_new.subject, stc.subject)
+        assert_array_equal(stc_new.data, stc.data)
+        assert_array_equal(stc_new.tmin, stc.tmin)
+        assert_array_equal(stc_new.tstep, stc.tstep)
+        assert_equal(len(stc_new.vertices), len(stc.vertices))
+        for v1, v2 in zip(stc_new.vertices, stc.vertices):
+            assert_array_equal(v1, v2)
 
 
 def test_io_w(tmpdir):
