@@ -74,7 +74,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
        in just the gradiometer difference direction or in all three directions
        (depending on ``n_imbalance``).
 
-    Magnetometer normal and coefficent estimation (1) is typically the most
+    Magnetometer normal and coefficient estimation (1) is typically the most
     time consuming step. Gradiometer imbalance parameters (2) can be
     iteratively reestimated (for example, first using ``n_imbalance=1`` then
     subsequently ``n_imbalance=3``) by passing the previous ``calibration``
