@@ -262,6 +262,7 @@ def test_expand():
 
 
 def _fake_stc(n_time=10, is_complex=False):
+    np.random.seed(7)
     verts = [np.arange(10), np.arange(90)]
     data = np.random.rand(100, n_time)
     if is_complex:
@@ -270,6 +271,7 @@ def _fake_stc(n_time=10, is_complex=False):
 
 
 def _fake_vec_stc(n_time=10, is_complex=False):
+    np.random.seed(7)
     verts = [np.arange(10), np.arange(90)]
     data = np.random.rand(100, 3, n_time)
     if is_complex:
