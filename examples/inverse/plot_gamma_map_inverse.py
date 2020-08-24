@@ -3,14 +3,7 @@
 Compute a sparse inverse solution using the Gamma-Map empirical Bayesian method
 ===============================================================================
 
-See [1]_ for details.
-
-References
-----------
-.. [1] D. Wipf, S. Nagarajan
-   "A unified Bayesian framework for MEG/EEG source imaging",
-   Neuroimage, Volume 44, Number 3, pp. 947-966, Feb. 2009.
-   DOI: 10.1016/j.neuroimage.2008.02.059
+See :footcite:`WipfNagarajan2009` for details.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
@@ -49,7 +42,7 @@ cov = mne.cov.regularize(cov, evoked.info, rank=None)
 # Run the Gamma-MAP method with dipole output
 alpha = 0.5
 dipoles, residual = gamma_map(
-    evoked, forward, cov, alpha, xyz_same_gamma=False, return_residual=True,
+    evoked, forward, cov, alpha, xyz_same_gamma=True, return_residual=True,
     return_as_dipoles=True)
 
 ###############################################################################
@@ -93,3 +86,8 @@ plot_sparse_source_estimates(
     forward['src'], stc, bgcolor=(1, 1, 1),
     modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),
     fig_name="Gamma-MAP")
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

@@ -171,7 +171,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     Models each source time course using a zero-mean Gaussian prior with an
     unknown variance (gamma) parameter. During estimation, most gammas are
     driven to zero, resulting in a sparse source estimate, as in
-    [1]_ and [2]_.
+    :footcite:`WipfEtAl2007` and :footcite:`WipfNagarajan2009`.
 
     For fixed-orientation forward operators, a separate gamma is used for each
     source time course, while for free-orientation forward operators, the same
@@ -224,14 +224,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     References
     ----------
-    .. [1] Wipf et al. Analysis of Empirical Bayesian Methods for
-           Neuroelectromagnetic Source Localization, Advances in Neural
-           Information Process. Systems (2007)
-
-    .. [2] D. Wipf, S. Nagarajan
-           "A unified Bayesian framework for MEG/EEG source imaging",
-           Neuroimage, Volume 44, Number 3, pp. 947-966, Feb. 2009.
-           DOI: 10.1016/j.neuroimage.2008.02.059
+    .. footbibliography::
     """
     _check_reference(evoked)
 
