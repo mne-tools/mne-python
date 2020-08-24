@@ -1329,10 +1329,6 @@ class _LinkViewer(object):
 
     def __init__(self, brains, time=True, camera=False, colorbar=True,
                  picking=False):
-        subjects = [brain._subject_id for brain in brains]
-        if subjects.count(subjects[0]) != len(subjects):
-            raise RuntimeError("Cannot link brains from different subjects.")
-
         self.brains = brains
         self.time_viewers = [brain.time_viewer for brain in brains]
 
