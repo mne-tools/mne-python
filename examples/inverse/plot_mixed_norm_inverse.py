@@ -66,7 +66,7 @@ t = 0.083
 tidx = evoked.time_as_index(t)
 for di, dip in enumerate(dipoles, 1):
     print(f'Dipole #{di} GOF at {1000 * t:0.1f} ms: '
-          f'{float(dip.gof[tidx]):0.1f}')
+          f'{float(dip.gof[tidx]):0.1f}%')
 
 ###############################################################################
 # Plot dipole activations
