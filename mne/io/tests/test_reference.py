@@ -15,7 +15,7 @@ from mne import (pick_channels, pick_types, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
                  add_reference_channels, create_info, make_sphere_model,
                  make_forward_solution, setup_volume_source_space,
-                 pick_channels_forward)
+                 pick_channels_forward, read_evokeds)
 from mne.epochs import BaseEpochs
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
@@ -27,7 +27,7 @@ from mne.utils import run_tests_if_main
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 eve_fname = op.join(data_dir, 'sample_audvis_trunc_raw-eve.fif')
-ave_fname = op.join(data_dir, 'sample_audvis_trunc-ave.fif')
+ave_fname = op.join(data_dir, 'sample_audvis-ave.fif')
 
 
 def _test_reference(raw, reref, ref_data, ref_from):
@@ -263,8 +263,8 @@ def test_set_eeg_reference_rest():
                             orig_data[picks].ravel())[0, 1]
     avg_corr = np.corrcoef(rest_data[picks].ravel(),
                            avg_data[picks].ravel())[0, 1]
-    assert 0.05 < orig_corr < 0.1
-    assert 0.7 < avg_corr < 0.8
+    assert -0.6 < orig_corr < -0.5
+    assert 0.1 < avg_corr < 0.2
     # and applying an avg ref after should work
     avg_after = raw.set_eeg_reference('average').get_data()
     assert_allclose(avg_after, avg_data, atol=1e-12)
@@ -273,6 +273,29 @@ def test_set_eeg_reference_rest():
     fwd_bad = pick_channels_forward(fwd, raw.ch_names[:-1])
     with pytest.raises(ValueError, match='Missing channels'):
         raw.set_eeg_reference('REST', forward=fwd_bad)
+    # compare to FieldTrip
+    evoked = read_evokeds(ave_fname, baseline=(None, 0))[0]
+    evoked.info['bads'] = []
+    evoked.pick_types(meg=False, eeg=True, exclude=())
+    assert len(evoked.ch_names) == 60
+    # Data obtained from FieldTrip with something like (after evoked.save'ing
+    # then scipy.io.savemat'ing fwd['sol']['data']):
+    # dat = ft_read_data('ft-ave.fif');
+    # load('leadfield.mat', 'G');
+    # dat_ref = ft_preproc_rereference(dat, 'all', 'rest', true, G);
+    # sprintf('%g ', dat_ref(:, 171));
+    want = np.array('-3.3265e-05 -3.2419e-05 -3.18758e-05 -3.24079e-05 -3.39801e-05 -3.40573e-05 -3.24163e-05 -3.26896e-05 -3.33814e-05 -3.54734e-05 -3.51289e-05 -3.53229e-05 -3.51532e-05 -3.53149e-05 -3.4505e-05 -3.03462e-05 -2.81848e-05 -3.08895e-05 -3.27158e-05 -3.4605e-05 -3.47728e-05 -3.2459e-05 -3.06552e-05 -2.53255e-05 -2.69671e-05 -2.83425e-05 -3.12836e-05 -3.30965e-05 -3.34099e-05 -3.32766e-05 -3.32256e-05 -3.36385e-05 -3.20796e-05 -2.7108e-05 -2.47054e-05 -2.49589e-05 -2.7382e-05 -3.09774e-05 -3.12003e-05 -3.1246e-05 -3.07572e-05 -2.64942e-05 -2.25505e-05 -2.67194e-05 -2.86e-05 -2.94903e-05 -2.96249e-05 -2.92653e-05 -2.86472e-05 -2.81016e-05 -2.69737e-05 -2.48076e-05 -3.00473e-05 -2.73404e-05 -2.60153e-05 -2.41608e-05 -2.61937e-05 -2.5539e-05 -2.47104e-05 -2.35194e-05'.split(' '), float)  # noqa: E501
+    norm = np.linalg.norm(want)
+    idx = np.argmin(np.abs(evoked.times - 0.083))
+    assert idx == 170
+    old = evoked.data[:, idx].ravel()
+    exp_var = 1 - np.linalg.norm(want - old) / norm
+    assert 0.006 < exp_var < 0.008
+    evoked.set_eeg_reference('REST', forward=fwd)
+    exp_var_old = 1 - np.linalg.norm(evoked.data[:, idx] - old) / norm
+    assert 0.005 < exp_var_old <= 0.009
+    exp_var = 1 - np.linalg.norm(evoked.data[:, idx] - want) / norm
+    assert 0.9999 < exp_var <= 1
 
 
 @testing.requires_testing_data
