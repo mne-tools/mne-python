@@ -568,10 +568,8 @@ class CSP(TransformerMixin, BaseEstimator):
         return eigen_vectors, eigen_values
 
     def _compute_mutual_info(self, covs, sample_weights, eigen_vectors):
-        # class probability
         class_probas = sample_weights / sample_weights.sum()
 
-        # mutual information
         mutual_info = []
         for jj in range(eigen_vectors.shape[1]):
             aa, bb = 0, 0
@@ -589,7 +587,6 @@ class CSP(TransformerMixin, BaseEstimator):
         # Here we apply an euclidean mean. See pyRiemann for other metrics
         mean_cov = np.average(covs, axis=0, weights=sample_weights)
 
-        # normalize
         for ii in range(eigen_vectors.shape[1]):
             tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
                          eigen_vectors[:, ii])
