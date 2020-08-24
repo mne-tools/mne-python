@@ -2195,6 +2195,9 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         if ftype != 'h5' and len(self.vertices) != 1:
             raise ValueError('Can only write to .stc or .w if a single volume '
                              'source space was used, use .h5 instead')
+        if ftype != 'h5' and self.data.dtype == 'complex':
+            raise ValueError('Can only write non-complex data to .stc or .w' 
+                             ', use .h5 instead')
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
             if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):
