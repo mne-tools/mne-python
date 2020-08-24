@@ -65,11 +65,17 @@ class CSP(TransformerMixin, BaseEstimator):
     %(rank_None)s
 
         .. versionadded:: 0.17
-    cov_decomposition : 'eigen' | 'pham' | None, (default None)
-        If 'eigen' use eigenvalue decomposition for covariance matrices.
-        If 'pham' use Pham's approximate joint diagonalization.
-        If None, automatically use 'eigen' for two classes and 'pham' for more
-        than two classes.
+    component_order : 'mutual_info' | 'new' | 'old' | 'None' (default None)
+        If 'mutual_info' components are ordered by decreasing mutual information.
+        If 'old' components are ordered by starting with the largest
+        eigenvalue, followed by the smallest, the second-to-largest, the
+        second-to-smallest, and so on [2]_.
+        If 'new' components are ordered by decreasing absolute deviation
+        of the eigenvalues from 0.5 [4]_.
+        If the parameter is not set, component order is selected based on the
+        number of classes. The two-class case defaults to 'new' and the
+        multi-class case defaults to 'mutual_info'.
+        Note that 'old' and 'new' can only be used with the two-class case.
 
     Attributes
     ----------
@@ -98,11 +104,15 @@ class CSP(TransformerMixin, BaseEstimator):
     .. [3] Grosse-Wentrup, Moritz, and Martin Buss. Multiclass common spatial
            patterns and information theoretic feature extraction. IEEE
            Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
+    .. [4] Alexandre Barachant, Stephane Bonnet, Marco Congedo, Christian
+           Jutten. Common Spatial Pattern revisited by Riemannian Geometry.
+           IEEE International Workshop on Multimedia Signal Processing (MMSP),
+           pp.472, 2010.
     """
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
                  transform_into='average_power', norm_trace=False,
-                 cov_method_params=None, rank=None, cov_decomposition=None):
+                 cov_method_params=None, rank=None, component_order=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
@@ -137,7 +147,7 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError('norm_trace must be a bool.')
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
-        self.cov_decomposition = cov_decomposition
+        self.component_order = component_order
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -172,26 +182,24 @@ class CSP(TransformerMixin, BaseEstimator):
         if n_classes < 2:
             raise ValueError("n_classes must be >= 2.")
 
-        if self.cov_decomposition is None:
-            if n_classes == 2:
-                decompose_method = 'eigen'
-            else:
-                decompose_method = 'pham'
+        if n_classes == 2:
+            component_order = self.component_order or 'new'
+            if component_order not in ['new', 'old', 'mutual_info']:
+                raise ValueError("'{}' is not a valid component order. Valid "
+                                 "values are 'mutual_info', 'new', 'old'."
+                                 .format(component_order))
         else:
-            if n_classes > 2 and self.cov_decomposition != 'pham':
-                raise ValueError("cov_decomposition must be 'pham'"
-                                 " in the multi-class case")
-            decompose_method = self.cov_decomposition
+            component_order = self.component_order or 'mutual_info'
+            if not component_order == 'mutual_info':
+                raise ValueError("'{}' is not a valid component order for "
+                                 "n_classes > 2. Use 'mutual_info' instead."
+                                 .format(component_order))
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
-
-        eigen_vectors, eigen_values = self._decompose_covs(covs, decompose_method)
-
-        eigen_vectors = self._normalize_eigenvectors(eigen_vectors, covs,
-                                                     sample_weights)
-
+        eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
         ix = self._order_components(covs, sample_weights,
-                                    eigen_vectors, eigen_values)
+                                    eigen_vectors, eigen_values,
+                                    component_order)
 
         eigen_vectors = eigen_vectors[:, ix]
 
@@ -546,17 +554,17 @@ class CSP(TransformerMixin, BaseEstimator):
 
         return cov, weight
 
-    def _decompose_covs(self, covs, method):
-        if method == 'eigen':
+    def _decompose_covs(self, covs, sample_weights):
+        n_classes = len(covs)
+        if n_classes == 2:
             eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
-        elif method == 'pham':
+        else:
             # The multiclass case is adapted from
             # http://github.com/alexandrebarachant/pyRiemann
             eigen_vectors, D = _ajd_pham(covs)
-            eigen_vectors = eigen_vectors.T
+            eigen_vectors = self._normalize_eigenvectors(eigen_vectors.T, covs,
+                                                         sample_weights)
             eigen_values = None
-        else:
-            raise ValueError("unknown cov_decomposition: {}".format(method))
         return eigen_vectors, eigen_values
 
     def _compute_mutual_info(self, covs, sample_weights, eigen_vectors):
@@ -588,21 +596,30 @@ class CSP(TransformerMixin, BaseEstimator):
             eigen_vectors[:, ii] /= np.sqrt(tmp)
         return eigen_vectors
 
-    def _order_components(self, covs, sample_weights, eigen_vectors, eigen_values):
-        n_classes = len(covs)
-        if n_classes == 2:
-            if eigen_values is None:
-                a = covs[0][0, :] @ eigen_vectors
-                b = covs.sum(0)[0, :] @ eigen_vectors
-                eigen_values = a / b
-
-            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
-            # ix = np.argsort(eigen_values)
-        else:
+    def _order_components(self, covs, sample_weights,
+                          eigen_vectors, eigen_values,
+                          component_order):
+        if component_order == 'mutual_info':
             mutual_info = self._compute_mutual_info(covs, sample_weights,
                                                     eigen_vectors)
             ix = np.argsort(mutual_info)[::-1]
+        elif component_order == 'new':
+            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
+        elif component_order == 'old':
+            i = np.argsort(eigen_values)
+            ix = np.empty_like(i)
+            ix[1::2] = i[:len(i) // 2]
+            ix[0::2] = i[len(i) // 2:][::-1]
         return ix
+
+
+def _compute_eigenvalues_from_eigenvectors(mat_a, mat_b, eigen_vectors):
+    """Use of the relation $Av = wBv$ to get eigenvalues (w) if only
+    the matrices A, B and the eigenvectors are known.
+    """
+    a = mat_a[0, :] @ eigen_vectors
+    b = mat_b[0, :] @ eigen_vectors
+    return a / b
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):

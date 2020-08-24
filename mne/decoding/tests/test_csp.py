@@ -335,17 +335,17 @@ def test_csp_twoclass_symmetry():
                               log_power_ratio_ba)
 
 
-def test_csp_decomposition_selection():
+def test_csp_component_ordering():
     x, y = deterministic_toy_data(['class_a', 'class_b'])
 
-    csp = CSP(cov_decomposition='eigen')
-    log_power_eigen = csp.fit_transform(x, y)
+    p_new = CSP(component_order='new').fit(x, y).patterns_
+    p_old = CSP(component_order='old').fit(x, y).patterns_
+    p_mut = CSP(component_order='mutual_info').fit(x, y).patterns_
 
-    csp = CSP(cov_decomposition='pham')
-    log_power_pham = csp.fit_transform(x, y)
+    assert_array_almost_equal(p_new, p_mut)
 
-    assert_array_almost_equal(log_power_eigen, log_power_pham)
-
-    with pytest.raises(ValueError):
-        csp = CSP(cov_decomposition='eigen')
-        csp.fit(np.random.randn(3, 5, 10), np.array(['A', 'B', 'C']))
+    # This permutation of p_old and p_new is explained by the particular
+    # eigenvalues of the toy data: [0.06, 0.1,   0.5,  0.8].
+    # p_old arranges them to [0.8, 0.06, 0.5, 0.1]
+    # p_new arranges them to [0.06, 0.1, 0.8, 0.5]
+    assert_array_almost_equal(p_old, p_new[[2, 0, 3, 1]])
