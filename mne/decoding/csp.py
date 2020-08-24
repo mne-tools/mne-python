@@ -66,12 +66,12 @@ class CSP(TransformerMixin, BaseEstimator):
 
         .. versionadded:: 0.17
     component_order : 'mutual_info' | 'new' | 'old' | 'None' (default None)
-        If 'mutual_info' components are ordered by decreasing mutual information.
-        If 'old' components are ordered by starting with the largest
-        eigenvalue, followed by the smallest, the second-to-largest, the
-        second-to-smallest, and so on [2]_.
-        If 'new' components are ordered by decreasing absolute deviation
-        of the eigenvalues from 0.5 [4]_.
+        If 'mutual_info' order components by decreasing mutual information.
+        If 'old' order components by starting with the largest eigenvalue,
+        followed by the smallest, the second-to-largest, the second-to-
+        smallest, and so on [2]_.
+        If 'new' components are ordered by decreasing absolute deviation of
+        the eigenvalues from 0.5 [4]_.
         If the parameter is not set, component order is selected based on the
         number of classes. The two-class case defaults to 'new' and the
         multi-class case defaults to 'mutual_info'.
@@ -196,7 +196,8 @@ class CSP(TransformerMixin, BaseEstimator):
                                  .format(component_order))
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
-        eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
+        eigen_vectors, eigen_values = self._decompose_covs(covs,
+                                                           sample_weights)
         ix = self._order_components(covs, sample_weights,
                                     eigen_vectors, eigen_values,
                                     component_order)
