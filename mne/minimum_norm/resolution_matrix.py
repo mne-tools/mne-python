@@ -63,28 +63,63 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
     return resmat
 
 
-def _get_psf_ctf(resmat, src, idx, func='psf', norm=False):
-    """Get point-spread (PSFs) or cross-talk (CTFs) functions for vertices.
+    def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
+                     norm=False):
+        """Get point-spread (PSFs) or cross-talk (CTFs) functions.
 
-    Parameters
-    ----------
-    resmat : array, shape (n_dipoles, n_dipoles)
-        Forward Operator.
-    src : Source Space
-        Source space used to compute resolution matrix.
-    idx : list of int
-        Vertex indices for which PSFs or CTFs to produce.
-    func : str ('psf' | 'ctf')
-        Whether to produce PSFs or CTFs. Defaults to psf.
-    norm : bool
-        Whether to normalise to maximum across all PSFs and CTFs (default:
-        False).
+        Parameters
+        ----------
+        resmat : array, shape (n_dipoles, n_dipoles)
+            Forward Operator.
+        src : Source Space
+            Source space used to compute resolution matrix.
+        idx : list of int | list of Label | list of lists of int
+            Source for indices for which to compute PSFs or CTFs.
+            Can be:
 
-    Returns
-    -------
-    stc: instance of SourceEstimate
-        PSFs or CTFs as an stc object.
-    """
+            - list of integers:
+                Return PSFs/CTFs for all indices specified in idx.
+            - list of Label:
+                Take indices from specified labels.
+            - list of lists of integers:
+                Similar to previous option, but indices are specified as list
+                of lists of integers instead of labels. For every outer list
+                item, compute PSFs/CTFs for indices specified in inner lists.
+
+        func : str ('psf' | 'ctf')
+            Whether to produce PSFs or CTFs. Defaults to psf.
+        mode: None | 'mean' | 'max' | 'svd'
+            Compute summary of PSFs/CTFs across indices specified in 'idx'.
+
+            Can be:
+            - None (default):
+                Output individual PSFs/CTFs for each specific vertex.
+            - 'mean':
+                Mean of PSFs/CTFs across vertices.
+            - 'max':
+                PSFs/CTFs with maximum norm across vertices. Returns the n_comp
+                largest PSFs/CTFs.
+            - 'svd':
+                SVD components across PSFs/CTFs across vertices. Returns the n_comp
+                first SVD components.
+
+        n_comp: int
+            Number of PSF/CTF components to return for mode='max' or mode='svd'.
+        norm : bool
+            Whether to normalise to maximum across all PSFs and CTFs (default:
+            False). This will be applied before computing summaries as specified in
+            'mode'.
+
+        Returns
+        -------
+        stc: instance of SourceEstimate
+            PSFs or CTFs as an STC object.
+            All functions will be returned as successive samples in one STC
+            file, in the order they are specified in idx. Functions for labels
+            are grouped together.
+        """
+    ### NOTE: so far only API changed, nothing implemented yet
+
     # vertices used in forward and inverse operator
     vertno_lh = src[0]['vertno']
     vertno_rh = src[1]['vertno']
