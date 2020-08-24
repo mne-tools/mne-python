@@ -14,6 +14,9 @@ Current (0.21.dev0)
 
 Changelog
 ~~~~~~~~~
+- Add support for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` by `Lau Møller Andersen`_
+
+- Add error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` by `Lau Møller Andersen`_
 
 - Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
 
