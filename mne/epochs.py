@@ -39,7 +39,7 @@ from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
-from .baseline import rescale, _log_rescale
+from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin
@@ -1013,7 +1013,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             kind = "average"
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
-                                            kind, self._name)
+                                            kind, self._name, self.baseline)
 
     @property
     def _name(self):
@@ -1030,11 +1030,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return comment
 
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
-                                comment):
+                                comment, baseline):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
+        # We pass baseline=None because we don't want to apply baseline
+        # correction again – may have been applied to the Epochs already.
         evoked = EvokedArray(data, info, tmin=self.times[0], comment=comment,
-                             nave=n_events, kind=kind, verbose=self.verbose)
+                             nave=n_events, kind=kind, verbose=self.verbose,
+                             baseline=None)
+        evoked.baseline = baseline
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
 
@@ -1850,39 +1854,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
-def _check_baseline(baseline, tmin, tmax, sfreq):
-    """Check for a valid baseline."""
-    if baseline is not None:
-        if not isinstance(baseline, tuple) or len(baseline) != 2:
-            raise ValueError('`baseline=%s` is an invalid argument, must be '
-                             'a tuple of length 2 or None' % str(baseline))
-        # check default value of baseline and `tmin=0`
-        if baseline == (None, 0) and tmin == 0:
-            raise ValueError('Baseline interval is only one sample. Use '
-                             '`baseline=(0, 0)` if this is desired.')
-
-        baseline_tmin, baseline_tmax = baseline
-        tstep = 1. / float(sfreq)
-        if baseline_tmin is None:
-            baseline_tmin = tmin
-        baseline_tmin = float(baseline_tmin)
-        if baseline_tmax is None:
-            baseline_tmax = tmax
-        baseline_tmax = float(baseline_tmax)
-        if baseline_tmin < tmin - tstep:
-            raise ValueError(
-                "Baseline interval (tmin = %s) is outside of epoch "
-                "data (tmin = %s)" % (baseline_tmin, tmin))
-        if baseline_tmax > tmax + tstep:
-            raise ValueError(
-                "Baseline interval (tmax = %s) is outside of epoch "
-                "data (tmax = %s)" % (baseline_tmax, tmax))
-        if baseline_tmin > baseline_tmax:
-            raise ValueError(
-                "Baseline min (%s) must be less than baseline max (%s)"
-                % (baseline_tmin, baseline_tmax))
-
-
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     """Compute drop log stats.
 
@@ -2043,6 +2014,7 @@ class Epochs(BaseEpochs):
         Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
+    %(baseline_attribute)s
     %(verbose)s
 
     See Also

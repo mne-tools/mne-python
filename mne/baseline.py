@@ -9,6 +9,39 @@ import numpy as np
 from .utils import logger, verbose, _check_option
 
 
+def _check_baseline(baseline, tmin, tmax, sfreq):
+    """Check for a valid baseline."""
+    if baseline is not None:
+        if not isinstance(baseline, tuple) or len(baseline) != 2:
+            raise ValueError('`baseline=%s` is an invalid argument, must be '
+                             'a tuple of length 2 or None' % str(baseline))
+        # check default value of baseline and `tmin=0`
+        if baseline == (None, 0) and tmin == 0:
+            raise ValueError('Baseline interval is only one sample. Use '
+                             '`baseline=(0, 0)` if this is desired.')
+
+        baseline_tmin, baseline_tmax = baseline
+        tstep = 1. / float(sfreq)
+        if baseline_tmin is None:
+            baseline_tmin = tmin
+        baseline_tmin = float(baseline_tmin)
+        if baseline_tmax is None:
+            baseline_tmax = tmax
+        baseline_tmax = float(baseline_tmax)
+        if baseline_tmin < tmin - tstep:
+            raise ValueError(
+                "Baseline interval (tmin = %s) is outside of "
+                "data range (tmin = %s)" % (baseline_tmin, tmin))
+        if baseline_tmax > tmax + tstep:
+            raise ValueError(
+                "Baseline interval (tmax = %s) is outside of "
+                "data rnge (tmax = %s)" % (baseline_tmax, tmax))
+        if baseline_tmin > baseline_tmax:
+            raise ValueError(
+                "Baseline min (%s) must be less than baseline max (%s)"
+                % (baseline_tmin, baseline_tmax))
+
+
 def _log_rescale(baseline, mode='mean'):
     """Log the rescaling method."""
     if baseline is not None:

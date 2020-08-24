@@ -1710,7 +1710,11 @@ docdict['baseline'] = """%(rescale_baseline)s
     Correction is applied by computing the mean
     of the baseline period and subtracting it from the data.
 """ % docdict
-
+docdict['baseline_attribute'] = """
+baseline : None | tuple of length 2
+    The time interval to consider as "baseline" when applying baseline
+    correction.
+"""
 
 # Finalize
 docdict = unindent_dict(docdict)
