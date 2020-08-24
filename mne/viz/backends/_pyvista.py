@@ -681,8 +681,6 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
         phi = _deg2rad(azimuth)
     if elevation is not None:
         theta = _deg2rad(elevation)
-    if roll is not None:
-        roll = _deg2rad(roll)
 
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
