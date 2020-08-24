@@ -1348,13 +1348,12 @@ def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
     src_sel, stc_sel, _ = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
     gain = fwd['sol']['data']
     stc_sel = slice(None) if len(stc_sel) == len(stc.data) else stc_sel
-    stc_data = stc.data[stc_sel, start:stop]
-    times = deepcopy(stc.times[start:stop])
+    times = stc.times[start:stop].copy()
+    stc_data = stc.data[stc_sel, ..., start:stop].reshape(-1, len(times))
     del stc
     if vector:
         gain = gain.reshape(len(gain), gain.shape[1] // 3, 3)
     gain = gain[:, src_sel].reshape(len(gain), -1)
-    stc_data = stc_data.reshape(-1, len(times))
     # save some memory if possible
 
     logger.info('Projecting source estimate to sensor space...')
