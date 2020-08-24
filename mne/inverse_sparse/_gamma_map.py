@@ -270,18 +270,16 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     if group_size == 1 and not is_fixed_orient(forward):
         # make sure each source has 3 components
-        active_src = np.unique(active_set // 3)
-        in_pos = 0
+        idx, offset = divmod(active_set, 3)
+        active_src = np.unique(idx)
         if len(X) < 3 * len(active_src):
-            X_xyz = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
-            for ii in range(len(active_src)):
-                for jj in range(3):
-                    if in_pos >= len(active_set):
-                        break
-                    if (active_set[in_pos] + jj) % 3 == 0:
-                        X_xyz[3 * ii + jj] = X[in_pos]
-                        in_pos += 1
+            X_xyz = np.zeros((len(active_src), 3, X.shape[1]), dtype=X.dtype)
+            idx = np.searchsorted(active_src, idx)
+            X_xyz[idx, offset, :] = X
+            X_xyz.shape = (len(active_src) * 3, X.shape[1])
             X = X_xyz
+        active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
+        gain_active = gain[:, active_set]
 
     tmin = evoked.times[0]
     tstep = 1.0 / evoked.info['sfreq']

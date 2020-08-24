@@ -49,7 +49,7 @@ cov = mne.cov.regularize(cov, evoked.info, rank=None)
 # Run the Gamma-MAP method with dipole output
 alpha = 0.5
 dipoles, residual = gamma_map(
-    evoked, forward, cov, alpha, xyz_same_gamma=True, return_residual=True,
+    evoked, forward, cov, alpha, xyz_same_gamma=False, return_residual=True,
     return_as_dipoles=True)
 
 ###############################################################################

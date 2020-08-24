@@ -35,6 +35,7 @@ def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.,
     assert_array_almost_equal(stc.times, evoked.times, 5)
     stc_orig = stc
     if isinstance(stc, VectorSourceEstimate):
+        assert stc.data.any(1).any(1).all()  # all dipoles should have some
         stc = stc.magnitude()
     amps = np.sum(stc.data ** 2, axis=1)
     order = np.argsort(amps)[::-1]
@@ -53,7 +54,7 @@ def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.,
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_gamma_map():
+def test_gamma_map_standard():
     """Test Gamma MAP inverse."""
     forward = read_forward_solution(fname_fwd)
     forward = convert_forward_solution(forward, surf_ori=True)
@@ -71,28 +72,24 @@ def test_gamma_map():
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
                     update_mode=1)
 
-    vec_stc, res = gamma_map(
+    stc_vec, res = gamma_map(
         evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
         update_mode=1, pick_ori='vector', return_residual=True)
-    assert_stcs_equal(vec_stc.magnitude(), stc)
-    # XXX this atol is too large
-    _check_stc(stc, evoked, 68477, 'lh', fwd=forward, res=res, atol=1e-7)
+    assert_stcs_equal(stc_vec.magnitude(), stc)
+    _check_stc(stc_vec, evoked, 68477, 'lh', fwd=forward, res=res)
 
     stc, res = gamma_map(
         evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=False,
         update_mode=1, pick_ori='vector', return_residual=True)
-    # XXX this atol is too large
     _check_stc(stc, evoked, 82010, 'lh', fwd=forward, dist_limit=6., ratio=2.,
-               res=res, atol=1e-6)
+               res=res)
 
-    # XXX then this breaks
-    with pytest.raises(ValueError, match='reshape'):
-        dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                         xyz_same_gamma=False, update_mode=1,
-                         return_as_dipoles=True)
-        assert (isinstance(dips[0], Dipole))
-        stc_dip = make_stc_from_dipoles(dips, forward['src'])
-        assert_stcs_equal(stc, stc_dip)
+    dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                     xyz_same_gamma=False, update_mode=1,
+                     return_as_dipoles=True)
+    assert (isinstance(dips[0], Dipole))
+    stc_dip = make_stc_from_dipoles(dips, forward['src'])
+    assert_stcs_equal(stc.magnitude(), stc_dip)
 
     # force fixed orientation
     stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-4,

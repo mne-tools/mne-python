@@ -195,6 +195,7 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
     assert M.shape == M_est.shape
     gof_split = _split_gof(M.T, M_est.T, gain_active).T
     assert gof_split.shape == (len(active_idx), len(times))
+    assert X.shape[0] in (len(active_idx), 3 * len(active_idx))
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
