@@ -295,7 +295,7 @@ def test_set_eeg_reference_rest():
     exp_var_old = 1 - np.linalg.norm(evoked.data[:, idx] - old) / norm
     assert 0.005 < exp_var_old <= 0.009
     exp_var = 1 - np.linalg.norm(evoked.data[:, idx] - want) / norm
-    assert 0.9999 < exp_var <= 1
+    assert 0.995 < exp_var <= 1
 
 
 @testing.requires_testing_data
