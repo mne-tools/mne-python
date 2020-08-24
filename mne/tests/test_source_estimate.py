@@ -261,14 +261,20 @@ def test_expand():
         pytest.raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
 
-def _fake_stc(n_time=10, Complex=False):
+def _fake_stc(n_time=10, is_complex=False):
     verts = [np.arange(10), np.arange(90)]
-    return SourceEstimate(np.random.rand(100, n_time), verts, 0, 1e-1, 'foo')
+    data = np.random.rand(100, n_time)
+    if is_complex:
+        data.astype(complex)
+    return SourceEstimate(data, verts, 0, 1e-1, 'foo')
 
 
-def _fake_vec_stc(n_time=10, Complex=False):
+def _fake_vec_stc(n_time=10, is_complex=False):
     verts = [np.arange(10), np.arange(90)]
-    return VectorSourceEstimate(np.random.rand(100, 3, n_time), verts, 0, 1e-1,
+    data = np.random.rand(100, 3, n_time)
+    if is_complex:
+        data.astype(complex)
+    return VectorSourceEstimate(data, verts, 0, 1e-1,
                                 'foo')
 
 
@@ -381,8 +387,8 @@ def test_io_stc(tmpdir):
 @requires_h5py
 def test_io_stc_h5(tmpdir):
     """Test IO for STC files using HDF5."""
-    for stc in [_fake_stc(Complex=True), _fake_vec_stc(Complex=True),
-                _fake_stc(Complex=False), _fake_vec_stc(Complex=False)]:
+    for stc in [_fake_stc(is_complex=True), _fake_vec_stc(is_complex=True),
+                _fake_stc(is_complex=False), _fake_vec_stc(is_complex=False)]:
         pytest.raises(ValueError, stc.save, tmpdir.join('tmp'),
                       ftype='foo')
         out_name = tmpdir.join('tmp')
