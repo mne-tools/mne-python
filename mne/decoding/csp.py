@@ -611,15 +611,6 @@ class CSP(TransformerMixin, BaseEstimator):
         return ix
 
 
-def _compute_eigenvalues_from_eigenvectors(mat_a, mat_b, eigen_vectors):
-    """Use of the relation $Av = wBv$ to get eigenvalues (w) if only
-    the matrices A, B and the eigenvectors are known.
-    """
-    a = mat_a[0, :] @ eigen_vectors
-    b = mat_b[0, :] @ eigen_vectors
-    return a / b
-
-
 def _ajd_pham(X, eps=1e-6, max_iter=15):
     """Approximate joint diagonalization based on Pham's algorithm.
 
