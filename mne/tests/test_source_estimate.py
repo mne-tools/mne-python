@@ -381,7 +381,8 @@ def test_io_stc(tmpdir):
 @requires_h5py
 def test_io_stc_h5(tmpdir):
     """Test IO for STC files using HDF5."""
-    for stc in [_fake_stc(Complex=True), _fake_vec_stc(Complex=True)]:
+    for stc in [_fake_stc(Complex=True), _fake_vec_stc(Complex=True),
+                _fake_stc(Complex=False), _fake_vec_stc(Complex=False)]:
         pytest.raises(ValueError, stc.save, tmpdir.join('tmp'),
                       ftype='foo')
         out_name = tmpdir.join('tmp')
