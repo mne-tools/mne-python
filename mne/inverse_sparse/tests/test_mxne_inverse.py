@@ -43,7 +43,6 @@ def forward():
 
 @pytest.mark.timeout(150)  # ~30 sec on Travis Linux
 @pytest.mark.slowtest
-@testing.requires_testing_data
 def test_mxne_inverse_standard(forward):
     """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
@@ -284,7 +283,6 @@ def test_split_gof_basic(mod):
     assert_allclose(gof_split, want, atol=1e-12)
 
 
-@testing.requires_testing_data
 @pytest.mark.parametrize('idx, weights', [
     # empirically determined approximately orthogonal columns: 0, 15157, 19448
     ([0], [1]),

@@ -68,8 +68,9 @@ def test_gamma_map_standard():
     cov = regularize(cov, evoked.info, rank=None)
 
     alpha = 0.5
-    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
-                    update_mode=1)
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                    xyz_same_gamma=True, update_mode=1)
+    _check_stc(stc, evoked, 68477, 'lh', fwd=forward)
 
     stc_vec, res = gamma_map(
         evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
