@@ -53,16 +53,18 @@ def test_compute_fine_cal():
     want_cal = read_fine_calibration(cal_mf_fname)
     got_cal, counts = compute_fine_calibration(
         raw, cross_talk=ctc, n_imbalance=1, verbose='debug')
-    assert list(got_cal.keys()) == list(want_cal.keys())
+    assert counts == 1
+    assert set(got_cal.keys()) == set(want_cal.keys())
+    assert got_cal['ch_names'] == want_cal['ch_names']
 
-    got_imb = np.array([c['imb'] for c in got_cal.values()], float)
-    want_imb = np.array([c['imb'] for c in want_cal.values()], float)
+    got_imb = np.array(got_cal['imb_cals'], float)
+    want_imb = np.array(want_cal['imb_cals'], float)
     assert got_imb.shape == want_imb.shape == (306, 1)
     got_imb, want_imb = got_imb[:, 0], want_imb[:, 0]
 
     orig_locs = np.array([ch['loc'] for ch in raw.info['chs'][:306]])
-    want_locs = np.array([c['loc'] for c in want_cal.values()])
-    got_locs = np.array([c['loc'] for c in got_cal.values()])
+    want_locs = want_cal['locs']
+    got_locs = got_cal['locs']
     assert want_locs.shape == got_locs.shape
 
     orig_trans = _loc_to_coil_trans(orig_locs)
@@ -109,15 +111,26 @@ def test_compute_fine_cal():
     _assert_shielding(raw_sss_py, raw, 59, 60)
 
     # redoing with given mag data should yield same result
-    got_cal_redo, counts = compute_fine_calibration(
-        raw, cross_talk=ctc, n_imbalance=1, fine_cal=got_cal, verbose='debug')
-    for ch_name in got_cal_redo:
-        for key, atol in (('imb', 5e-5), ('loc', 1e-6)):
-            assert_allclose(
-                got_cal[ch_name][key], got_cal_redo[ch_name][key], atol=atol)
+    got_cal_redo, _ = compute_fine_calibration(
+        raw, cross_talk=ctc, n_imbalance=1, calibration=got_cal,
+        verbose='debug')
+    assert got_cal['ch_names'] == got_cal_redo['ch_names']
+    assert_allclose(got_cal['imb_cals'], got_cal_redo['imb_cals'], atol=5e-5)
+    assert_allclose(got_cal['locs'], got_cal_redo['locs'], atol=1e-6)
 
     # redoing with 3 imlabance parameters should improve the shielding factor
-    got_cal_3, counts = compute_fine_calibration(
-        raw, cross_talk=ctc, n_imbalance=3, fine_cal=got_cal, verbose='debug')
+    grad_picks = pick_types(raw.info, meg='grad')
+    assert len(grad_picks) == 204 and grad_picks[0] == 0
+    got_grad_imbs = np.array(
+        [got_cal['imb_cals'][pick] for pick in grad_picks])
+    assert got_grad_imbs.shape == (204, 1)
+    got_cal_3, _ = compute_fine_calibration(
+        raw, cross_talk=ctc, n_imbalance=3, calibration=got_cal,
+        verbose='debug')
+    got_grad_3_imbs = np.array([
+        got_cal_3['imb_cals'][pick] for pick in grad_picks])
+    assert got_grad_3_imbs.shape == (204, 3)
+    corr = np.corrcoef(got_grad_3_imbs[:, 0], got_grad_imbs[:, 0])[0, 1]
+    assert 0.6 < corr < 0.7
     raw_sss_py = maxwell_filter(raw, calibration=got_cal_3, **kwargs)
     _assert_shielding(raw_sss_py, raw, 60, 62)

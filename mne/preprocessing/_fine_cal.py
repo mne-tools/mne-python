@@ -3,7 +3,7 @@
 
 # License: BSD (3-clause)
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from functools import partial
 
 import numpy as np
@@ -23,7 +23,7 @@ from .maxwell import (_col_norm_pinv, _trans_sss_basis, _prep_mf_coils,
 @verbose
 def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
                              origin=(0., 0., 0.), cross_talk=None,
-                             fine_cal=None, verbose=None):
+                             calibration=None, verbose=None):
     """Compute fine calibration from empty-room data.
 
     Parameters
@@ -43,7 +43,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
         more stable parameter estimates.
     %(maxwell_origin)s
     %(maxwell_cross)s
-    fine_cal : dict | None
+    calibration : dict | None
         Dictionary with existing calibration. If provided, the magnetometer
         imbalances and adjusted normals will be used and only the gradiometer
         imbalances will be estimated (see step 2 in Notes below).
@@ -51,7 +51,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
 
     Returns
     -------
-    fine_cal : dict
+    calibration : dict
         Fine calibration data.
     count : int
         The number of good segments used to compute the magnetometer
@@ -74,8 +74,12 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
        in just the gradiometer difference direction or in all three directions
        (depending on ``n_imbalance``).
 
-    Step (1) is typically the most time consuming step, so step (2) can be
-    iteratively performed using 1 or 3 directions by passing ``calibration``
+    Magnetometer normal and coefficent estimation (1) is typically the most
+    time consuming step. Gradiometer imbalance parameters (2) can be
+    iteratively reestimated (for example, first using ``n_imbalance=1`` then
+    subsequently ``n_imbalance=3``) by passing the previous ``calibration``
+    output to the ``calibration`` input in the second call.
+
     MaxFilter processes at most 120 seconds of data, so consider cropping
     your raw instance prior to processing. It also checks to make sure that
     there were some minimal usable ``count`` number of segments (default 5)
@@ -102,7 +106,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
     ctc, _ = _read_cross_talk(cross_talk, info['ch_names'])
 
     # Check fine cal
-    _validate_type(fine_cal, (dict, None), fine_cal)
+    _validate_type(calibration, (dict, None), 'calibration')
 
     #
     # 1. Rotate surface normals using magnetometer information (if present)
@@ -117,11 +121,12 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
     count = 0
     locs = np.array([ch['loc'] for ch in info['chs']])
     zs = locs[mag_picks, -3:].copy()
-    if fine_cal is not None:
-        _, fine_cal, _ = _prep_fine_cal(info, fine_cal)
+    if calibration is not None:
+        _, calibration, _ = _prep_fine_cal(info, calibration)
         for pi, pick in enumerate(mag_picks):
-            cals[pick] = fine_cal[info['ch_names'][pick]]['imb']
-            zs[pi] = fine_cal[info['ch_names'][pick]]['loc'][-3:]
+            idx = calibration['ch_names'].index(info['ch_names'][pick])
+            cals[pick] = calibration['imb_cals'][idx]
+            zs[pi] = calibration['locs'][idx][-3:]
     elif len(mag_picks) > 0:
         cal_list = list()
         z_list = list()
@@ -152,7 +157,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
             _rotate_locs(locs, idxs, new_z)
     for ci, loc in enumerate(locs):
         info['chs'][ci]['loc'][:] = loc
-    del fine_cal, zs
+    del calibration, zs
 
     #
     # 2. Estimate imbalance parameters (always done)
@@ -181,9 +186,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
     assert len(np.intersect1d(mag_picks, grad_picks)) == 0
     imb_cals = [cals[ii:ii + 1] if ii in mag_picks else imb[ii]
                 for ii in range(len(info['ch_names']))]
-    calibration = OrderedDict(
-        (ch_name, dict(loc=loc, imb=imb))
-        for ch_name, loc, imb in zip(info['ch_names'], locs, imb_cals))
+    calibration = dict(ch_names=info['ch_names'], locs=locs, imb_cals=imb_cals)
     return calibration, count
 
 
@@ -433,14 +436,21 @@ def read_fine_calibration(fname):
 
     Returns
     -------
-    fine_cal : dict
-        Fine calibration information. Each channel (key) in ``calibration`` is
-        a dict with ``'loc'`` and ``'imb'`` keys.
+    calibration : dict
+        Fine calibration information. Key-value pairs are:
+
+        - ``ch_names``
+             List of str of the channel names.
+        - ``locs``
+             Coil location and orientation parameters.
+        - ``imb_cals``
+             For magnetometers, the calibration coefficients.
+             For gradiometers, one or three imbalance parameters.
     """
     # Read new sensor locations
     fname = _check_fname(fname, overwrite='read', must_exist=True)
     check_fname(fname, 'cal', ('.dat',))
-    cal = OrderedDict()
+    ch_names, locs, imb_cals = list(), list(), list()
     with open(fname, 'r') as fid:
         for line in fid:
             if line[0] in '#\n':
@@ -462,26 +472,28 @@ def read_fine_calibration(fname):
                     ch_name = 'MEG' + '%04d' % ch_name
             # (x, y, z), x-norm 3-vec, y-norm 3-vec, z-norm 3-vec
             # and 1 or 3 imbalance terms
-            cal[ch_name] = dict(
-                loc=np.array([float(x) for x in vals[1:13]]),
-                imb=np.array([float(x) for x in vals[13:]]))
-    return cal
+            ch_names.append(ch_name)
+            locs.append(np.array(vals[1:13], float))
+            imb_cals.append(np.array(vals[13:], float))
+    locs = np.array(locs)
+    return dict(ch_names=ch_names, locs=locs, imb_cals=imb_cals)
 
 
-def write_fine_calibration(fname, fine_cal):
+def write_fine_calibration(fname, calibration):
     """Write fine calibration information to a .dat file.
 
     Parameters
     ----------
     fname : str
         The filename to write out.
-    fine_cal : dict
+    calibration : dict
         Fine calibration information.
     """
     fname = _check_fname(fname, overwrite=True)
     check_fname(fname, 'cal', ('.dat',))
+    keys = ('ch_names', 'locs', 'imb_cals')
     with open(fname, 'wb') as cal_file:
-        for ch_name, cal in fine_cal.items():
-            cal_line = np.concatenate([cal['loc'], cal['imb']]).round(6)
+        for ch_name, loc, imb_cal in zip(*(calibration[key] for key in keys)):
+            cal_line = np.concatenate([loc, imb_cal]).round(6)
             cal_line = ' '.join(f'{c:0.6f}' for c in cal_line)
             cal_file.write(f'{ch_name} {cal_line}\n'.encode('ASCII'))

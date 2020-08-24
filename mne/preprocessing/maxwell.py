@@ -6,7 +6,7 @@
 
 # License: BSD (3-clause)
 
-from collections import Counter
+from collections import Counter, OrderedDict
 from functools import partial
 from math import factorial
 from os import path as op
@@ -1605,21 +1605,6 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _orth_rot(cal_loc, info_loc):
-    cal_loc = cal_loc.copy()
-    ch_coil_rot = _loc_to_coil_trans(info_loc)[:3, :3]
-    cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
-    adjusted = False
-    if np.max([np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
-               for ii in range(2)]) > 1e-6:  # X or Y not orthogonal
-        adjusted = True
-        # find the rotation matrix that goes from one to the other
-        this_trans = _find_vector_rotation(
-            ch_coil_rot[:, 2], cal_coil_rot[:, 2])
-        cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
-    return cal_loc, adjusted
-
-
 def _prep_fine_cal(info, fine_cal):
     from ._fine_cal import read_fine_calibration
     _validate_type(fine_cal, (dict, 'path-like'))
@@ -1630,20 +1615,20 @@ def _prep_fine_cal(info, fine_cal):
         extra = 'dict'
     logger.info(f'    Using fine calibration {extra}')
     ch_names = _clean_names(info['ch_names'], remove_whitespace=True)
-    info_to_cal = dict()
+    info_to_cal = OrderedDict()
     missing = list()
-    for name in fine_cal:
+    for ci, name in enumerate(fine_cal['ch_names']):
         if name not in ch_names:
             missing.append(name)
         else:
             oi = ch_names.index(name)
-            info_to_cal[oi] = name
+            info_to_cal[oi] = ci
     meg_picks = pick_types(info, meg=True, exclude=[])
     if len(info_to_cal) != len(meg_picks):
         raise RuntimeError(
             'Not all MEG channels found in fine calibration file, missing:\n%s'
             % sorted(list({ch_names[pick] for pick in meg_picks} -
-                          set(fine_cal))))
+                          set(fine_cal['ch_names']))))
     if len(missing):
         warn('Found cal channel%s not in data: %s' % (_pl(missing), missing))
     return info_to_cal, fine_cal, ch_names
@@ -1656,13 +1641,14 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     mag_picks = pick_types(info, meg='mag', exclude=())
 
     # Determine gradiometer imbalances and magnetometer calibrations
-    grad_imbalances = np.array([fine_cal[info_to_cal[gi]]['imb']
+    grad_imbalances = np.array([fine_cal['imb_cals'][info_to_cal[gi]]
                                 for gi in grad_picks]).T
     if grad_imbalances.shape[0] not in [0, 1, 3]:
         raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
                          'magnetometers. Currently have %i' %
                          grad_imbalances.shape[0])
-    mag_cals = np.array([fine_cal[info_to_cal[mi]]['imb'] for mi in mag_picks])
+    mag_cals = np.array([fine_cal['imb_cals'][info_to_cal[mi]]
+                         for mi in mag_picks])
     # Now let's actually construct our point-like adjustment coils for grads
     grad_coilsets = _get_grad_point_coilsets(
         info, n_types=len(grad_imbalances), ignore_ref=ignore_ref)
@@ -1675,21 +1661,28 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     cal_corrs = list()
     cal_chans = list()
     adjust_logged = False
-    for oi, name in info_to_cal.items():
-        assert ch_names[oi] == name
+    for oi, ci in info_to_cal.items():
         assert not used[oi]
         used[oi] = True
         info_ch = info['chs'][oi]
-        ch_num = int(name.lstrip('MEG').lstrip('0'))
+        ch_num = int(fine_cal['ch_names'][ci].lstrip('MEG').lstrip('0'))
         cal_chans.append([ch_num, info_ch['coil_type']])
 
         # Some .dat files might only rotate EZ, so we must check first that
         # EX and EY are orthogonal to EZ. If not, we find the rotation between
         # the original and fine-cal ez, and rotate EX and EY accordingly:
-        cal_loc, adjusted = _orth_rot(fine_cal[name]['loc'], info_ch['loc'])
-        if adjusted and not adjust_logged:
-            logger.info('        Adjusting non-orthogonal EX and EY')
-            adjust_logged = True
+        ch_coil_rot = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
+        cal_loc = fine_cal['locs'][ci].copy()
+        cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
+        if np.max([np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
+                   for ii in range(2)]) > 1e-6:  # X or Y not orthogonal
+            if not adjust_logged:
+                logger.info('        Adjusting non-orthogonal EX and EY')
+                adjust_logged = True
+            # find the rotation matrix that goes from one to the other
+            this_trans = _find_vector_rotation(
+                ch_coil_rot[:, 2], cal_coil_rot[:, 2])
+            cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
 
         # calculate shift angle
         v1 = _loc_to_coil_trans(cal_loc)[:3, :3]
@@ -1698,9 +1691,9 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         _normalize_vectors(v2)
         ang_shift.append(np.sum(v1 * v2, axis=0))
         if oi in grad_picks:
-            extra = [1., fine_cal[name]['imb'][0]]
+            extra = [1., fine_cal['imb_cals'][ci][0]]
         else:
-            extra = [fine_cal[name]['imb'][0], 0.]
+            extra = [fine_cal['imb_cals'][ci][0], 0.]
         cal_corrs.append(np.concatenate([extra, cal_loc]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
