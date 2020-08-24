@@ -532,7 +532,7 @@ class CSP(TransformerMixin, BaseEstimator):
         return np.stack(covs), np.array(sample_weights)
 
     def _concat_cov(self, x_class):
-        """Concatenate epochs before computing the covariance"""
+        """Concatenate epochs before computing the covariance."""
         _, n_channels, _ = x_class.shape
 
         x_class = np.transpose(x_class, [1, 0, 2])
@@ -545,7 +545,7 @@ class CSP(TransformerMixin, BaseEstimator):
         return cov, weight
 
     def _epoch_cov(self, x_class):
-        """Mean of per-epoch covariances"""
+        """Mean of per-epoch covariances."""
         cov = sum(_regularized_covariance(
             this_X, reg=self.reg,
             method_params=self.cov_method_params,

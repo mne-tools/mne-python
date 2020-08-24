@@ -321,6 +321,7 @@ def test_spoc():
 
 
 def test_csp_twoclass_symmetry():
+    """Test that CSP is symmetric when swapping classes."""
     x, y = deterministic_toy_data(['class_a', 'class_b'])
     csp = CSP(norm_trace=False, transform_into='average_power', log=True)
     log_power = csp.fit_transform(x, y)
@@ -336,6 +337,7 @@ def test_csp_twoclass_symmetry():
 
 
 def test_csp_component_ordering():
+    """Test that CSP component ordering works as expected."""
     x, y = deterministic_toy_data(['class_a', 'class_b'])
 
     p_new = CSP(component_order='new').fit(x, y).patterns_
