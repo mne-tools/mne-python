@@ -21,6 +21,7 @@ jobs:
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       CONDA_ENV: 'environment.yml'
+      TRAVIS_OS_NAME: 'osx'
     steps:
       - uses: actions/checkout@v2
       - uses: goanpeca/setup-miniconda@v1
@@ -35,8 +36,7 @@ jobs:
           pip install --upgrade -r requirements_testing.txt
           pip install nitime
           source tools/get_minimal_commands.sh
-          # the following fails with: cannot execute binary
-          # mne_surf2bem --version
+          mne_surf2bem --version
         name: 'Install dependencies'
       - shell: bash -l {0}
         run: |
