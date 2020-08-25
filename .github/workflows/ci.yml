@@ -9,7 +9,7 @@ on:
 
 jobs:
   osx:
-    name: OSX
+    name: MacOS
     runs-on: macos-latest
     defaults:
       run:
