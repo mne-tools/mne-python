@@ -242,6 +242,7 @@ def test_brain_save_movie(tmpdir, renderer):
 
 
 @testing.requires_testing_data
+@pytest.mark.slowtest
 def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     """Test _TimeViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
@@ -296,6 +297,7 @@ def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     pytest.param('volume', marks=pytest.mark.slowtest),
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
+@pytest.mark.slowtest
 def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
@@ -402,6 +404,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
 
 
 @testing.requires_testing_data
+@pytest.mark.slowtest
 def test_brain_linkviewer(renderer_interactive, travis_macos):
     """Test _LinkViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
