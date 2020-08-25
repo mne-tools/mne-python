@@ -62,4 +62,9 @@ jobs:
         env:
           CONDITION: 'not slowtest'
           USE_DIRS: 'mne/'
-        name: 'Testing'
+        name: 'Run tests'
+      - uses: codecov/codecov-action@v1
+        if: success()
+        with:
+          token: ${{ secrets.CODECOV_UPLOAD_TOKEN }}
+        name: 'Upload coverage to CodeCov'
