@@ -1,0 +1,40 @@
+name: CIs
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  osx:
+    name: OSX
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target:
+          - name: 'conda'
+    env:
+      PYTHON_VERSION: '3.7'
+      MNE_LOGGING_LEVEL: 'warning'
+      CONDA_VERSION: '>=4.3.27'
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONUNBUFFERED: '1'
+      CONDA_ENV: 'environment.yml'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: $PYTHON_VERSION
+          architecture: 'x64'
+        name: 'Setup python'
+      - run: |
+          python -m pip install --upgrade pip setuptools wheel
+        name: 'Setup pip'
+      - uses: s-weigand/setup-conda@v1
+        name: 'Setup conda'
+      - run: |
+          conda env update --file $CONDA_ENV
+          pip install --upgrade -r requirements_testing.txt
+        name: 'Install dependencies'
