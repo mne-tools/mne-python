@@ -51,6 +51,12 @@ jobs:
         name: 'Download testing data'
       - shell: bash -l {0}
         run: |
+          echo "Print locale "
+          locale
+          echo "Other stuff"
+        name: 'Print locale'
+      - shell: bash -l {0}
+        run: |
           echo 'pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}'
           pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}
         env:
