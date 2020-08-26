@@ -219,7 +219,7 @@ plot_dig_alignment(head_space)
 # Rotate and translate the points based on the coregistration
 
 trans_mm = trans.copy()
-trans_mm[:3, 3] *= 1e3
+trans_mm['trans'][:3, 3] *= 1e3
 mri_space = mne.transforms.apply_trans(trans_mm, head_space, move=True)
 plot_dig_alignment(mri_space)
 
