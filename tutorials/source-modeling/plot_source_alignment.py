@@ -186,7 +186,7 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
 # First, let's define a helper function to plot the alignment of the
 # points with the head using voxel coordinates.
 
-def plot_alignment(points):
+def plot_dig_alignment(points):
     renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
     renderer = mne.viz.backends.renderer._get_renderer(
         size=(800, 400), **renderer_kwargs)
@@ -211,15 +211,17 @@ def plot_alignment(points):
 
 head_space = np.array([dig['r'] for dig in
                        raw.info['dig']], dtype=float) * 1e3
-plot_alignment(head_space)
+plot_dig_alignment(head_space)
 
 ###############################################################################
 # Transform digitization points into MRI space
 # --------------------------------------------
 # Rotate and translate the points based on the coregistration
 
-mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
-plot_alignment(mri_space)
+trans_mm = trans.copy()
+trans_mm[:3, 3] *= 1e3
+mri_space = mne.transforms.apply_trans(trans_mm, head_space, move=True)
+plot_dig_alignment(mri_space)
 
 ###############################################################################
 # Get landmarks in voxel space, using the T1 data
@@ -229,7 +231,7 @@ plot_alignment(mri_space)
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = scipy.linalg.inv(vox2ras_tkr)
 mri_voxel_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space)
-plot_alignment(mri_voxel_space)
+plot_dig_alignment(mri_voxel_space)
 
 ###############################################################################
 # A good example
