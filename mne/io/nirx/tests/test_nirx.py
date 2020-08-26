@@ -82,6 +82,8 @@ def test_nirx_nosatflags_v1_warn(tmpdir):
     fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
     with pytest.raises(RuntimeWarning, match='specified to use the standard'):
         read_raw_nirx(fname, saturated='nan', preload=True)
+    with pytest.raises(RuntimeWarning, match='specified to annotate your'):
+        read_raw_nirx(fname, saturated='annotate', preload=True)
     with pytest.raises(RuntimeWarning, match='You chose to ignore them'):
         read_raw_nirx(fname, saturated='ignore', preload=True)
     with pytest.raises(RuntimeWarning, match='Falling back to default'):
