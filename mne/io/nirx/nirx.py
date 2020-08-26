@@ -104,6 +104,7 @@ class RawNIRX(BaseRaw):
     def __init__(self, fname, saturated, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials  # avoid circular import prob
+        from ...preprocessing import annotate_nan  # avoid circular import prob
         logger.info('Loading %s' % fname)
 
         if fname.endswith('.hdr'):
@@ -125,6 +126,10 @@ class RawNIRX(BaseRaw):
                     if saturated == 'nan':
                         warn('You provided saturated data and specified '
                              'to use the standard *.wlX files.')
+                        files[key] = files[key][1]
+                    elif saturated == 'annotate':
+                        warn('You provided saturated data and specified '
+                             'to annotate your data with a \'nan\' flag.')
                         files[key] = files[key][1]
                     else:
                         if saturated == 'ignore':
@@ -382,6 +387,10 @@ class RawNIRX(BaseRaw):
                 duration[t_idx] = 1.0  # No duration info stored in files
                 description[t_idx] = int(binary_value, 2) * 1.
             annot = Annotations(onset, duration, description)
+            self.set_annotations(annot)
+
+        if saturated == "annotate":
+            annot = annotate_nan(self)
             self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

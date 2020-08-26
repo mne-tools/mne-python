@@ -28,3 +28,4 @@ from .artifact_detection import (annotate_movement, compute_average_dev_head_t,
 from ._regress import regress_artifact
 from ._fine_cal import (compute_fine_calibration,  read_fine_calibration,
                         write_fine_calibration)
+from .annotate_nan import annotate_nan
