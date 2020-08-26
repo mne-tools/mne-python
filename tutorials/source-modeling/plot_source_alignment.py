@@ -212,8 +212,11 @@ def plot_dig_alignment(points, coord_system='ras'):
 # -------------------------------------------------------------
 # Adjust units by * 1e3 m -> mm.
 #
-# The plot below shows the unaligned digitization points in the
-# coordinate space native to the digitizer equipment.
+# The plot below shows the digitization points in the coordinate space
+# native to the digitizer equipment plotted with the head surface in
+# right-anterior-superior (RAS) coordinates. The relationship between the
+# 3D points in the head space would fit on the head but the transformation from
+# the coregistration has not been applied yet so there is a mismatch.
 
 head_space = np.array([dig['r'] for dig in
                        raw.info['dig']], dtype=float) * 1e3
@@ -225,9 +228,8 @@ plot_dig_alignment(head_space)
 # Rotate and translate the points based on the coregistration.
 #
 # The plot below shows the head space coordinates transformed to mri
-# right-anterior-superior (RAS) coordinates. It aligns to the head, which is
-# also in RAS correctly, but still has to be transformed to the voxel
-# coordinate space.
+# RAS coordinates. It correctly aligns to the head, which is also in RAS,
+# but still has to be transformed to the voxel coordinate space.
 
 trans_mm = trans.copy()
 trans_mm['trans'][:3, 3] *= 1e3
@@ -239,9 +241,12 @@ plot_dig_alignment(mri_space)
 # -----------------------------------------------
 # Transform the points from RAS to voxel space
 #
-# This plot finally shows the coordinates in the space that is relevant
-# to comparing to the anatomical T1 image, reconstructed brain areas and
-# source-space estimate; the common reference frame of the T1 voxels.
+# This plot finally shows the coordinates in the space that is relevant to
+# comparing to the anatomical T1 image, reconstructed brain areas and source-
+# space estimate; the common reference frame of the T1 voxels. Since the head
+# is plotted in RAS, we have to transform them back to have the plots match
+# since all the freesurfer surfaces are in RAS. But, now the coordinates are
+# in the T1 space (e.g. 256 x 256 x 256) so they can be compared to the T1.
 
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = scipy.linalg.inv(vox2ras_tkr)
