@@ -15,6 +15,7 @@ the different coordinate frames involved in this process.
 
 Let's start out by loading some data.
 """
+import os
 import os.path as op
 
 import numpy as np
@@ -173,39 +174,44 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
 # ---------------------
 # Let's step through the process that the transform is accomplishing.
 
+
+def plot_alignment(points):
+    renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
+    renderer = mne.viz.backends.renderer._get_renderer(
+        size=(800, 400), **renderer_kwargs)
+    seghead_rr, seghead_tri = mne.read_surface(os.path.join(
+        subjects_dir, 'sample', 'surf', 'lh.seghead'))
+    renderer.mesh(*seghead_rr.T, triangles=seghead_tri, color=(0.7,) * 3,
+                  opacity=0.2)
+    for point in points:
+        renderer.sphere(center=point, color='r', scale=5)
+    view_kwargs = dict(elevation=90, azimuth=0)
+    view_kwargs['focalpoint'] = (0., 0., 0.)
+    mne.viz.set_3d_view(figure=renderer.figure, distance=1000, **view_kwargs)
+    renderer.show()
+
+
 ###############################################################################
 # Get landmarks in head space from the DigMontage stored in raw.
 # -------------------------------------------------------------
 # Adjust units by * 1e3 m -> mm.
-# head_space = np.array([dig['r'] for dig in
-#                        raw.info['dig']], dtype=float) * 1e3
+head_space = np.array([dig['r'] for dig in
+                       raw.info['dig']], dtype=float) * 1e3
+plot_alignment(head_space)
+
 
 ###############################################################################
 # Transform digitization points into MRI space (T2)
 # -------------------------------------------------
-# mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
+mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
+plot_alignment(mri_space)
 
 ###############################################################################
 # Get landmarks in voxel space, using the T1 data (T3 and 4)
 # ----------------------------------------------------------
-# vox2ras_tkr = t1w.header.get_vox2ras_tkr()
-# ras2vox_tkr = scipy.linalg.inv(vox2ras_tkr)
-# mri_voxel_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space)
-
-###############################################################################
-# Diagram of the transform
-# ------------------------
-
-# .. mermaid::
-#
-# graph LR
-#     A(Sensor Coordinates) -->|Ts1...Tsn| B(Device coordinates)
-#     B(Device coordinates) -->|T1| C(Head coordinates)
-#     C(Head coordinates) -->|T2| D(Surface RAS MRI coordinates)
-#     D(Surface RAS MRI coordinates) -->|T3| E(RAS coordinates)
-#     E(RAS coordinates) -->|T4| F(MRI Talairach coordinates)
-#     F(MRI Talairach coordinates) -->|T-| G(FreeSurfer Talairach coordinates, z < 0)
-#     F(MRI Talairach coordinates) -->|T+| H(FreeSurfer Talairach coordinates, z > 0)
+vox2ras_tkr = t1w.header.get_vox2ras_tkr()
+ras2vox_tkr = scipy.linalg.inv(vox2ras_tkr)
+mri_voxel_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space)
 
 ###############################################################################
 # A good example
