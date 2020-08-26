@@ -20,6 +20,7 @@ import os.path as op
 
 import numpy as np
 import nibabel as nib
+import scipy
 
 import mne
 from mne.datasets import sample
@@ -36,6 +37,13 @@ trans = mne.read_trans(trans_fname)
 src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
                                      'sample-oct-6-src.fif'))
 t1w = nib.load(op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz'))
+t1w = nib.Nifti1Image(t1w.dataobj, t1w.affine)
+# XYZT_UNITS = NIFT_UNITS_MM (10 in binary or 2 in decimal)
+# seems to be the default for Nifti files
+# https://nifti.nimh.nih.gov/nifti-1/documentation/nifti1fields/nifti1fields_pages/xyzt_units.html
+if t1w.header['xyzt_units'] == 0:
+    t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
+t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 
 ###############################################################################
 # Understanding coordinate frames
@@ -183,8 +191,10 @@ def plot_alignment(points):
         subjects_dir, 'sample', 'surf', 'lh.seghead'))
     renderer.mesh(*seghead_rr.T, triangles=seghead_tri, color=(0.7,) * 3,
                   opacity=0.2)
-    for point in points:
-        renderer.sphere(center=point, color='r', scale=5)
+    for point in points.copy():
+        point -= 128  # RAS zero centered
+        renderer.sphere(center=(point[0], point[2], point[1]),
+                        color='r', scale=5)
     view_kwargs = dict(elevation=90, azimuth=0)
     view_kwargs['focalpoint'] = (0., 0., 0.)
     mne.viz.set_3d_view(figure=renderer.figure, distance=1000, **view_kwargs)
@@ -209,9 +219,10 @@ plot_alignment(mri_space)
 ###############################################################################
 # Get landmarks in voxel space, using the T1 data (T3 and 4)
 # ----------------------------------------------------------
-vox2ras_tkr = t1w.header.get_vox2ras_tkr()
+vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = scipy.linalg.inv(vox2ras_tkr)
 mri_voxel_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space)
+plot_alignment(mri_voxel_space)
 
 ###############################################################################
 # A good example
