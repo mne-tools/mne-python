@@ -1407,7 +1407,7 @@ class Report(object):
 
         Parameters
         ----------
-        data_path : str
+        data_path : str | pathlib.Path
             Path to the folder containing data whose HTML report will be
             created.
         pattern : str | list of str
@@ -1436,6 +1436,7 @@ class Report(object):
             .. versionadded:: 0.16
         %(verbose_meth)s
         """
+        data_path = str(data_path)
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
         self._sort = sort_sections
