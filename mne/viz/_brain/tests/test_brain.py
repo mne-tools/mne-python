@@ -405,12 +405,10 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_linkviewer(renderer_interactive, ci_macos):
+def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Linkviewer only supported on PyVista')
-    if ci_macos:
-        pytest.skip('Linkviewer tests unstable on Travis macOS')
     brain_data = _create_testing_brain(hemi='split', show_traces=False)
 
     link_viewer = _LinkViewer(
