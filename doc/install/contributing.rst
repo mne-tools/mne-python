@@ -93,12 +93,12 @@ computer:
 - On MacOS, download `the .dmg installer`_; Atlassian also provides `more
   detailed instructions and alternatives`_ such as using MacPorts or Homebrew.
 
-- On Windows, we recommend `git Bash`_ rather than the `official Windows
-  version of git`_, because git Bash provides its own shell that includes many
-  Linux-equivalent command line programs that are useful for development.
-  Windows 10 also offers the `Windows subsystem for Linux`_ that offers similar
-  functionality to git Bash, but has not been widely tested by MNE-Python
-  developers yet.
+- On Windows, download and install `git for Windows`_. With Git BASH it provides its own shell that
+  includes many Linux-equivalent command line programs that are useful for development.
+
+  *Windows 10 also offers the* `Windows subsystem for Linux`_ *that offers similar
+  functionality to git BASH, but has not been widely tested by MNE-Python
+  developers yet and may still pose problems with graphical output (e.g. building the documentation)*
 
 
 Once git is installed, the only absolutely necessary configuration step is
@@ -119,6 +119,45 @@ when writing commit messages, so you might as well configure that now too::
 
 There are many other ways to customize git's behavior; see `configuring git`_
 for more information.
+
+
+GNU Make
+~~~~~~~~
+GNU Make facilitates deploying a package by executing corresponding commands
+from the ``Makefile``. For MNE-Python we have two Makefiles, one in the parent
+directory mainly for testing and one in ``/doc`` for building the documentation.
+
+To check if make is already installed type ::
+
+   $ make
+
+into a terminal and you should see ::
+
+   make: *** No targets specified and no makefile found.  Stop.
+
+If you don't see this or something similar:
+
+.. sidebar::
+   If you get:
+
+   *bash: conda: command not found*
+
+   you need to add
+
+   - ``(Anaconda-Path)``
+   - ``(Anaconda-Path)\Scripts``
+
+   to Windows-PATH.
+
+- For Linux/MacOS, get `GNU Make`_
+- For Windows, you can install make for git BASH (which comes with `git for Windows`_):
+
+  1. Download ``make-(newest version)-without-guile-w32-bin.zip`` from `ezwinports`_
+  2. Extract zip-folder
+  3. Copy the contents into ``(git-path)\mingw64\`` (e.g. by merging the folders with the equivalent ones already inside)
+  4. For the first time using git BASH, you need to run once (to be able to activate your mnedev-environment): ::
+
+      $ conda init bash
 
 
 Forking the MNE-Python repository
@@ -699,7 +738,7 @@ from the ``mne-python`` root folder. Testing the entire module can be quite
 slow, however, so to run individual tests while working on a new feature, you
 can run, e.g.::
 
-    $ pytest mne/tests/test_evoked.py:test_io_evoked --verbose
+    $ pytest mne/tests/test_evoked.py::test_io_evoked --verbose
 
 Or alternatively::
 
@@ -873,12 +912,13 @@ it can serve as a useful example of what to expect from the PR review process.
 .. git installation
 
 .. _the .dmg installer: https://git-scm.com/download/mac
-.. _official Windows version of git: https://git-scm.com/download/win
+.. _git for Windows: https://gitforwindows.org/
 .. _official Linux instructions: https://git-scm.com/download/linux
 .. _more detailed instructions and alternatives: https://www.atlassian.com/git/tutorials/install-git
 .. _Windows subsystem for Linux: https://docs.microsoft.com/en-us/windows/wsl/about
-.. _git bash: https://gitforwindows.org/
 .. _GitHub desktop: https://desktop.github.com/
+.. _GNU Make: https://www.gnu.org/software/make/
+.. _ezwinports: https://sourceforge.net/projects/ezwinports/files/
 
 .. github help pages
 
@@ -932,7 +972,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _anaconda: https://www.anaconda.com/distribution/
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _Spyder: https://www.spyder-ide.org/
-.. _GNU Make: https://www.gnu.org/software/make/
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
 .. _travis: https://travis-ci.org/mne-tools/mne-python/branches
