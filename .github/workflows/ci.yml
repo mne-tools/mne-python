@@ -17,7 +17,6 @@ jobs:
     env:
       PYTHON_VERSION: '3.7'
       MNE_LOGGING_LEVEL: 'warning'
-      CONDA_VERSION: '>=4.3.27'
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       CONDA_ENV: 'environment.yml'
