@@ -135,7 +135,7 @@ into a terminal and you should see ::
 
    make: *** No targets specified and no makefile found.  Stop.
 
-If you don’t see this or something similar:
+If you don't see this or something similar:
 
 .. sidebar::
    If you get:
