@@ -8,8 +8,7 @@ on:
       - master
 
 jobs:
-  osx:
-    name: MacOS
+  MacOS:
     runs-on: macos-latest
     defaults:
       run:
