@@ -37,7 +37,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENV }}
           use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
         name: 'Setup conda'
-      - shell: bash -l {0}
+      - shell: bash -el {0}
         run: |
           pip uninstall -yq mne
           pip install --upgrade -r requirements_testing.txt
@@ -45,24 +45,24 @@ jobs:
           source tools/get_minimal_commands.sh
           mne_surf2bem --version
         name: 'Install dependencies'
-      - shell: bash -l {0}
+      - shell: bash -el {0}
         run: |
           python setup.py build
           python setup.py install
           mne sys_info
           python -c "import numpy; numpy.show_config()"
         name: 'Install MNE'
-      - shell: bash -l {0}
+      - shell: bash -el {0}
         run: |
           python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
         name: 'Download testing data'
-      - shell: bash -l {0}
+      - shell: bash -el {0}
         run: |
           echo "Print locale "
           locale
           echo "Other stuff"
         name: 'Print locale'
-      - shell: bash -l {0}
+      - shell: bash -el {0}
         run: |
           echo 'pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}'
           pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
