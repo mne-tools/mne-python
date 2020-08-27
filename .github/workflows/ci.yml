@@ -64,8 +64,8 @@ jobs:
         name: 'Print locale'
       - shell: bash -l {0}
         run: |
-          echo 'pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}'
-          pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}
+          echo 'pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}'
+          pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
         env:
           CONDITION: 'not slowtest'
           USE_DIRS: 'mne/'
