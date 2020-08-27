@@ -20,7 +20,7 @@ import os.path as op
 
 import numpy as np
 import nibabel as nib
-import scipy
+from scipy import linalg
 
 import mne
 from mne.datasets import sample
@@ -199,7 +199,7 @@ def plot_dig_alignment(points, coord_system='ras'):
             point -= 128  # RAS zero centered
             center = (point[0], point[2], -point[1])
         else:
-            center = point
+            center = point * 1e3  # scale from m to mm
         renderer.sphere(center=center, color='r', scale=5)
     view_kwargs = dict(elevation=90, azimuth=0)
     view_kwargs['focalpoint'] = (0., 0., 0.)
@@ -219,7 +219,7 @@ def plot_dig_alignment(points, coord_system='ras'):
 # the coregistration has not been applied yet so there is a mismatch.
 
 head_space = np.array([dig['r'] for dig in
-                       raw.info['dig']], dtype=float) * 1e3
+                       raw.info['dig']], dtype=float)
 plot_dig_alignment(head_space)
 
 ###############################################################################
@@ -231,9 +231,7 @@ plot_dig_alignment(head_space)
 # RAS coordinates. It correctly aligns to the head, which is also in RAS,
 # but still has to be transformed to the voxel coordinate space.
 
-trans_mm = trans.copy()
-trans_mm['trans'][:3, 3] *= 1e3
-mri_space = mne.transforms.apply_trans(trans_mm, head_space, move=True)
+mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
 plot_dig_alignment(mri_space)
 
 ###############################################################################
@@ -249,8 +247,9 @@ plot_dig_alignment(mri_space)
 # in the T1 space (e.g. 256 x 256 x 256) so they can be compared to the T1.
 
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
-ras2vox_tkr = scipy.linalg.inv(vox2ras_tkr)
-mri_voxel_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space)
+ras2vox_tkr = linalg.inv(vox2ras_tkr)
+mri_voxel_space = mne.transforms.apply_trans(
+    ras2vox_tkr, mri_space * 1e3)  # units must be in mm, scaled from m
 plot_dig_alignment(mri_voxel_space, coord_system='vox')
 
 ###############################################################################
