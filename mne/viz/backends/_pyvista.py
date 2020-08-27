@@ -190,6 +190,7 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
                 self.tube_n_sides = 3
+                # smooth_shading=True fails on MacOS CIs
                 self.figure.smooth_shading = False
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
