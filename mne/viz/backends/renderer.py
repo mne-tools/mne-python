@@ -240,10 +240,10 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
                      handle=None, scene=True):
     """Return an empty figure based on the current 3d backend.
 
-    .. warning:: Proceed with caution when the renderer object
-                 returned (``scene=False``) because the _Renderer
-                 API is not necessarily stable enough for production.
-                 It's still actively in development.
+    .. warning:: Proceed with caution when the renderer object is
+                 returned (with ``scene=False``) because the _Renderer
+                 API is not necessarily stable enough for production,
+                 it's still actively in development.
 
     Parameters
     ----------
@@ -263,7 +263,7 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
     -------
     figure : object
         The requested empty scene or the renderer object if
-        ``renderer=True``.
+        ``scene=False``.
     """
     renderer = _get_renderer(
         fig=handle,
