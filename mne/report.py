@@ -25,7 +25,7 @@ from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
-                    fill_doc, _check_option)
+                    fill_doc, _check_option, _validate_type)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                   plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -1407,7 +1407,7 @@ class Report(object):
 
         Parameters
         ----------
-        data_path : str | pathlib.Path
+        data_path : str
             Path to the folder containing data whose HTML report will be
             created.
         pattern : str | list of str
@@ -1436,6 +1436,7 @@ class Report(object):
             .. versionadded:: 0.16
         %(verbose_meth)s
         """
+        _validate_type(data_path, 'path-like', 'data_path')
         data_path = str(data_path)
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
