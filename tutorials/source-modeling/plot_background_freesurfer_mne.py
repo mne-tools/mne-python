@@ -293,8 +293,8 @@ print(f'rr_mm.max() = {rr_mm.max()}')  # just to show that we are in mm
 ###############################################################################
 # Let's actually plot it:
 
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(600, 600), bgcolor='w')
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(600, 600), bgcolor='w', scene=False)
 gray = (0.5, 0.5, 0.5)
 renderer.mesh(*rr_mm.T, triangles=tris, color=gray)
 view_kwargs = dict(elevation=90, azimuth=0)
@@ -332,8 +332,8 @@ fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
 # to the same location in the destination (fsaverage) mesh, and vice-versa.
 
 renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 400), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 400), scene=False, **renderer_kwargs)
 curvs = [
     (mne.surface.read_curvature(os.path.join(
         subjects_dir, subj, 'surf', 'rh.curv'),
@@ -366,8 +366,8 @@ renderer.show()
 
 cyan = '#66CCEE'
 purple = '#AA3377'
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 800), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 800), scene=False, **renderer_kwargs)
 fnames = [os.path.join(subjects_dir, subj, 'surf', 'rh.sphere')
           for subj in ('sample', 'fsaverage')]
 colors = [cyan, purple]
@@ -400,8 +400,8 @@ print(src)
 
 # sphinx_gallery_thumbnail_number = 10
 blue = '#4477AA'
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 800), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 800), scene=False, **renderer_kwargs)
 rr_sph, _ = mne.read_surface(fnames[0])
 for tris, color in [(src[1]['tris'], cyan), (src[1]['use_tris'], blue)]:
     renderer.mesh(*rr_sph.T, triangles=tris, color=color,
@@ -413,8 +413,8 @@ renderer.show()
 # We can also then look at how these two meshes compare by plotting the
 # original, high-density mesh as well as our decimated mesh white surfaces.
 
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 400), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 400), scene=False, **renderer_kwargs)
 y_shifts = [-125, 125]
 tris = [src[1]['tris'], src[1]['use_tris']]
 for y_shift, tris in zip(y_shifts, tris):
