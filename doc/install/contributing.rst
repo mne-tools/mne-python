@@ -124,7 +124,7 @@ for more information.
 GNU Make
 ~~~~~~~~
 GNU Make facilitates deploying a package by executing corresponding commands
-from the ``Makefile``. For MNE-Python we got two Makefiles, one in the parent
+from the ``Makefile``. For MNE-Python we have two Makefiles, one in the parent
 directory mainly for testing and one in ``/doc`` for building the documentation.
 
 To check if make is already installed type ::
