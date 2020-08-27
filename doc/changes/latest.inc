@@ -169,8 +169,11 @@ Changelog
 
 - Add ``reject_by_annotation=True`` to :func:`mne.make_fixed_length_epochs` and :meth:`mne.preprocessing.ICA.plot_properties` to reject bad data segments based on annotation by `Yu-Han Luo`_
 
+- `~mne.Report.parse_folder` now accepts a path-like folder name (it used to work with strings only) by `Alex Gramfort`_
+
 Bug
 ~~~
+
 - Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` by `Lau Møller Andersen`_
 
 - Fix bug by adding error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` by `Lau Møller Andersen`_
