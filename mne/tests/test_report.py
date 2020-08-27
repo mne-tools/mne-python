@@ -9,6 +9,7 @@ import glob
 import os
 import os.path as op
 import shutil
+import pathlib
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -153,6 +154,7 @@ def test_render_report(renderer, tmpdir):
     # SVG rendering
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
                     image_format='svg')
+    tempdir = pathlib.Path(tempdir)  # test using pathlib.Path
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
 
