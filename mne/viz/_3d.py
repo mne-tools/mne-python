@@ -1555,6 +1555,10 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
         else:
             raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
+    subjects = [brain._subject_id for brain in brains]
+    if subjects.count(subjects[0]) != len(subjects):
+        raise RuntimeError("Cannot link brains from different subjects.")
+
     # link brains properties
     _LinkViewer(
         brains=brains,

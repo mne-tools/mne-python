@@ -201,6 +201,14 @@ def test_io_evoked(tmpdir):
             assert_equal(av1.first, av2.first)
             assert_equal(av1.comment, av2.comment)
 
+    # test saving and reading complex numbers in evokeds
+    ave_complex = ave.copy()
+    ave_complex._data = 1j * ave_complex.data
+    fname_temp = str(tmpdir.join('complex-ave.fif'))
+    ave_complex.save(fname_temp)
+    ave_complex = read_evokeds(fname_temp)[0]
+    assert_allclose(ave.data, ave_complex.data.imag)
+
     # test warnings on bad filenames
     fname2 = tmpdir.join('test-bad-name.fif')
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
