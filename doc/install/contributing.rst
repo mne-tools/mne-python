@@ -160,7 +160,6 @@ If you don't see this or something similar:
       $ conda init bash
 
 
-
 Forking the MNE-Python repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
