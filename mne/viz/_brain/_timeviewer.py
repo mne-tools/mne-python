@@ -629,19 +629,20 @@ class _TimeViewer(object):
 
     def set_slider_style(self):
         for slider in self.sliders.values():
-            slider_rep = slider.GetRepresentation()
-            slider_rep.SetSliderLength(self.slider_length)
-            slider_rep.SetSliderWidth(self.slider_width)
-            slider_rep.SetTubeWidth(self.slider_tube_width)
-            slider_rep.GetSliderProperty().SetColor(self.slider_color)
-            slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
-            slider_rep.GetLabelProperty().SetShadow(False)
-            slider_rep.GetLabelProperty().SetBold(True)
-            slider_rep.GetLabelProperty().SetColor(self.brain._fg_color)
-            slider_rep.GetTitleProperty().ShallowCopy(
-                slider_rep.GetLabelProperty()
-            )
-            slider_rep.GetCapProperty().SetOpacity(0)
+            if slider is not None:
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetSliderLength(self.slider_length)
+                slider_rep.SetSliderWidth(self.slider_width)
+                slider_rep.SetTubeWidth(self.slider_tube_width)
+                slider_rep.GetSliderProperty().SetColor(self.slider_color)
+                slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
+                slider_rep.GetLabelProperty().SetShadow(False)
+                slider_rep.GetLabelProperty().SetBold(True)
+                slider_rep.GetLabelProperty().SetColor(self.brain._fg_color)
+                slider_rep.GetTitleProperty().ShallowCopy(
+                    slider_rep.GetLabelProperty()
+                )
+                slider_rep.GetCapProperty().SetOpacity(0)
 
     def configure_notebook(self):
         from ._notebook import _NotebookInteractor
