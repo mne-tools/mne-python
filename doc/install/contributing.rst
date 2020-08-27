@@ -152,10 +152,10 @@ If you don't see this or something similar:
 - For Linux/MacOS, get `GNU Make`_
 - For Windows, you can install make for git BASH (which comes with `git for Windows`_):
 
-   1. Download ``make-(newest version)-without-guile-w32-bin.zip`` from `ezwinports`_
-   2. Extract zip-folder
-   3. Copy the contents into ``(git-path)\mingw64\`` (e.g. by merging the folders with the equivalent ones already inside)
-   4. For the first time using git BASH, you need to run once (to be able to activate your mnedev-environment): ::
+  1. Download ``make-(newest version)-without-guile-w32-bin.zip`` from `ezwinports`_
+  2. Extract zip-folder
+  3. Copy the contents into ``(git-path)\mingw64\`` (e.g. by merging the folders with the equivalent ones already inside)
+  4. For the first time using git BASH, you need to run once (to be able to activate your mnedev-environment): ::
 
       $ conda init bash
 
