@@ -43,6 +43,8 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 
+fname_label = op.join(data_path, 'subjects', 'sample', 'label', 'lh.V1.label')
+
 
 @testing.requires_testing_data
 def test_resolution_matrix():
@@ -124,3 +126,11 @@ def test_resolution_matrix():
     # Test application of free inv to fixed fwd
     assert_equal(rm_mne_fxdfree.shape, (3 * rm_mne.shape[0],
                  rm_mne.shape[0]))
+
+    # Test PSF/CTF for labels
+    label = mne.read_label(fname_label)
+
+    stc_psf_label = get_point_spread(rm_mne, forward_fxd['src'], label,
+                                     norm=True)
+
+test_resolution_matrix()
