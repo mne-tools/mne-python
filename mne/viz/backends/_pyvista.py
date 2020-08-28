@@ -305,7 +305,8 @@ class _Renderer(_BaseRenderer):
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None, **kwargs):
+             representation='surface', line_width=1., normals=None,
+             polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             vertices = np.c_[x, y, z]
@@ -324,6 +325,7 @@ class _Renderer(_BaseRenderer):
             interpolate_before_map=interpolate_before_map,
             representation=representation,
             line_width=line_width,
+            polygon_offset=polygon_offset,
             **kwargs,
         )
 
