@@ -408,8 +408,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # And the field lines on top
         renderer.contour(surface=surf, scalars=data, contours=n_contours,
                          vmin=-vmax, vmax=vmax, opacity=alpha,
-                         colormap=colormap_lines, kind='tube',
-                         width=0.0005)
+                         colormap=colormap_lines)
 
     if time_label is not None:
         if '%' in time_label:
