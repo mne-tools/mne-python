@@ -142,14 +142,18 @@ This operation is performed by :meth:`mne.io.Raw.apply_gradient_compensation`.
 
 .. _import-kit:
 
-KIT MEG system data (.sqd)
-==========================
+Ricoh/KIT MEG system data (.con/.sqd)
+=====================================
 
 MNE-Python includes the :func:`mne.io.read_raw_kit` and
-:func:`mne.read_epochs_kit` to read and convert KIT MEG data.
-This reader function will by default replace the original channel names,
-which typically with index starting with zero, with ones with an index starting
-with one.
+:func:`mne.read_epochs_kit` to read and convert Ricoh/KIT MEG data.
+
+.. sidebar:: Channel naming
+
+    In MNE 0.21 This reader function will by default replace the original channel names,
+    which typically with index starting with zero, with ones with an index starting
+    with one. In 0.22 it will use native names when possible. Use the
+    ``standardize_names`` argument to control this behavior.
 
 To import continuous data, only the input .sqd or .con file is needed. For
 epochs, an Nx3 matrix containing the event number/corresponding trigger value
@@ -172,6 +176,9 @@ The following input files are optional:
   These points must be given in the same coordinate system as that
   used for the elp file.
 
+Modern Ricoh systems may encode this information it the file itself, in which
+case ``mrk``, ``elp``, and ``hsp`` can all be ``None`` and the data will be
+read from the file itself.
 
 .. note::
    The output fif file will use the Neuromag head coordinate system convention,

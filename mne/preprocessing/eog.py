@@ -163,7 +163,7 @@ def _get_eog_channel_index(ch_name, inst):
 def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=1, h_freq=10, reject=None, flat=None,
                       baseline=None, preload=True, reject_by_annotation=True,
-                      thresh=None, verbose=None):
+                      thresh=None, decim=1, verbose=None):
     """Conveniently generate epochs around EOG artifact events.
 
     Parameters
@@ -215,6 +215,9 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         .. versionadded:: 0.14.0
     thresh : float
         Threshold to trigger EOG event.
+    %(decim)s
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -242,5 +245,6 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     eog_epochs = Epochs(raw, events=events, event_id=event_id, tmin=tmin,
                         tmax=tmax, proj=False, reject=reject, flat=flat,
                         picks=picks, baseline=baseline, preload=preload,
-                        reject_by_annotation=reject_by_annotation)
+                        reject_by_annotation=reject_by_annotation,
+                        decim=decim)
     return eog_epochs

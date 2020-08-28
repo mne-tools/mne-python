@@ -23,6 +23,8 @@ import vtk
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
+from ...externals.decorator import decorator
+
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -76,15 +78,25 @@ class _Figure(object):
         if self.notebook:
             self.plotter_class = Plotter
 
-        if self.plotter_class == Plotter:
+        if self.plotter_class is Plotter:
             self.store.pop('show', None)
             self.store.pop('title', None)
             self.store.pop('auto_update', None)
 
         if self.plotter is None:
+            if self.plotter_class is BackgroundPlotter:
+                from PyQt5.QtWidgets import QApplication
+                app = QApplication.instance()
+                if app is None:
+                    app = QApplication(["MNE"])
+                self.store['app'] = app
             plotter = self.plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
+            if self.plotter_class is BackgroundPlotter and \
+                    hasattr(BackgroundPlotter, 'set_icon'):
+                _init_resources()
+                plotter.set_icon(":/mne-icon.png")
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
@@ -178,6 +190,8 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
                 self.tube_n_sides = 3
+                # smooth_shading=True fails on MacOS CIs
+                self.figure.smooth_shading = False
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
@@ -230,7 +244,18 @@ class _Renderer(_BaseRenderer):
         return self.figure
 
     def set_interaction(self, interaction):
-        getattr(self.plotter, f'enable_{interaction}_style')()
+        if interaction == "rubber_band_2d":
+            for renderer in self.plotter.renderers:
+                renderer.enable_parallel_projection()
+            if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
+                self.plotter.enable_rubber_band_2d_style()
+            else:
+                style = vtk.vtkInteractorStyleRubberBand2D()
+                self.plotter.interactor.SetInteractorStyle(style)
+        else:
+            for renderer in self.plotter.renderers:
+                renderer.disable_parallel_projection()
+            getattr(self.plotter, f'enable_{interaction}_style')()
 
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
@@ -427,13 +452,18 @@ class _Renderer(_BaseRenderer):
             else:
                 scale = False
             if mode == '2darrow':
-                return _arrow_glyph(grid, factor)
+                return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow' or mode == '3darrow':
+                alg = _glyph(
+                    grid,
+                    orient='vec',
+                    scalars=scale,
+                    factor=factor
+                )
+                mesh = pyvista.wrap(alg.GetOutput())
                 _add_mesh(
                     self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor),
+                    mesh=mesh,
                     color=color,
                     opacity=opacity,
                     backface_culling=backface_culling
@@ -572,6 +602,14 @@ class _Renderer(_BaseRenderer):
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
         self.plotter.renderer.remove_actor(actor)
+
+
+def _create_actor(mapper=None):
+    """Create a vtkActor."""
+    actor = vtk.vtkActor()
+    if mapper is not None:
+        actor.SetMapper(mapper)
+    return actor
 
 
 def _compute_normals(mesh):
@@ -853,26 +891,26 @@ def _arrow_glyph(grid, factor):
     glyph.SetGlyphTypeToArrow()
     glyph.FilledOff()
     glyph.Update()
-    geom = glyph.GetOutput()
 
     # fix position
     tr = vtk.vtkTransform()
     tr.Translate(0.5, 0., 0.)
     trp = vtk.vtkTransformPolyDataFilter()
-    trp.SetInputData(geom)
+    trp.SetInputConnection(glyph.GetOutputPort())
     trp.SetTransform(tr)
     trp.Update()
-    geom = trp.GetOutput()
 
-    polydata = _glyph(
+    alg = _glyph(
         grid,
         scale_mode='vector',
         scalars=False,
         orient='vec',
         factor=factor,
-        geom=geom,
+        geom=trp.GetOutputPort(),
     )
-    return pyvista.wrap(polydata)
+    mapper = vtk.vtkDataSetMapper()
+    mapper.SetInputConnection(alg.GetOutputPort())
+    return mapper
 
 
 def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
@@ -880,9 +918,9 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     if geom is None:
         arrow = vtk.vtkArrowSource()
         arrow.Update()
-        geom = arrow.GetOutput()
+        geom = arrow.GetOutputPort()
     alg = vtk.vtkGlyph3D()
-    alg.SetSourceData(geom)
+    alg.SetSourceConnection(geom)
     if isinstance(scalars, str):
         dataset.active_scalars_name = scalars
     if isinstance(orient, str):
@@ -901,7 +939,7 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     alg.SetScaleFactor(factor)
     alg.SetClamping(clamping)
     alg.Update()
-    return alg.GetOutput()
+    return alg
 
 
 def _sphere(plotter, center, color, radius):
@@ -918,6 +956,68 @@ def _sphere(plotter, center, color, radius):
         color=color
     )
     return actor, mesh
+
+
+def _volume(dimensions, origin, spacing, scalars,
+            surface_alpha, resolution, blending, center):
+    # Now we can actually construct the visualization
+    grid = pyvista.UniformGrid()
+    grid.dimensions = dimensions + 1  # inject data on the cells
+    grid.origin = origin
+    grid.spacing = spacing
+    grid.cell_arrays['values'] = scalars
+
+    # Add contour of enclosed volume (use GetOutput instead of
+    # GetOutputPort below to avoid updating)
+    grid_alg = vtk.vtkCellDataToPointData()
+    grid_alg.SetInputDataObject(grid)
+    grid_alg.SetPassCellData(False)
+    grid_alg.Update()
+
+    if surface_alpha > 0:
+        grid_surface = vtk.vtkMarchingContourFilter()
+        grid_surface.ComputeNormalsOn()
+        grid_surface.ComputeScalarsOff()
+        grid_surface.SetInputData(grid_alg.GetOutput())
+        grid_surface.SetValue(0, 0.1)
+        grid_surface.Update()
+        grid_mesh = vtk.vtkPolyDataMapper()
+        grid_mesh.SetInputData(grid_surface.GetOutput())
+    else:
+        grid_mesh = None
+
+    mapper = vtk.vtkSmartVolumeMapper()
+    if resolution is None:  # native
+        mapper.SetScalarModeToUseCellData()
+        mapper.SetInputDataObject(grid)
+    else:
+        upsampler = vtk.vtkImageResample()
+        upsampler.SetInterpolationModeToNearestNeighbor()
+        upsampler.SetOutputSpacing(*([resolution] * 3))
+        upsampler.SetInputConnection(grid_alg.GetOutputPort())
+        mapper.SetInputConnection(upsampler.GetOutputPort())
+    # Additive, AverageIntensity, and Composite might also be reasonable
+    remap = dict(composite='Composite', mip='MaximumIntensity')
+    getattr(mapper, f'SetBlendModeTo{remap[blending]}')()
+    volume_pos = vtk.vtkVolume()
+    volume_pos.SetMapper(mapper)
+    dist = grid.length / (np.mean(grid.dimensions) - 1)
+    volume_pos.GetProperty().SetScalarOpacityUnitDistance(dist)
+    if center is not None and blending == 'mip':
+        # We need to create a minimum intensity projection for the neg half
+        mapper_neg = vtk.vtkSmartVolumeMapper()
+        if resolution is None:  # native
+            mapper_neg.SetScalarModeToUseCellData()
+            mapper_neg.SetInputDataObject(grid)
+        else:
+            mapper_neg.SetInputConnection(upsampler.GetOutputPort())
+        mapper_neg.SetBlendModeToMinimumIntensity()
+        volume_neg = vtk.vtkVolume()
+        volume_neg.SetMapper(mapper_neg)
+        volume_neg.GetProperty().SetScalarOpacityUnitDistance(dist)
+    else:
+        volume_neg = None
+    return grid, grid_mesh, volume_pos, volume_neg
 
 
 def _require_minimum_version(version_required):
@@ -955,3 +1055,17 @@ def _disabled_depth_peeling():
         yield
     finally:
         rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
+
+
+@decorator
+def run_once(fun, *args, **kwargs):
+    """Run the function only once."""
+    if not hasattr(fun, "_has_run"):
+        fun._has_run = True
+        return fun(*args, **kwargs)
+
+
+@run_once
+def _init_resources():
+    from ...icons import resources
+    resources.qInitResources()

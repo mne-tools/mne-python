@@ -421,7 +421,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
-                   surfaces='head', coord_frame='head',
+                   surfaces='auto', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
@@ -448,7 +448,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * brain: one of 'pial', 'white', 'inflated', or 'brain'
           (alias for 'pial').
 
-        Defaults to 'head'.
+        Defaults to 'auto', which will look for a head surface and plot
+        it if found.
 
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
@@ -670,14 +671,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     sphere_level = 4
     head = False
     for s in surfaces:
-        if s in ('head', 'outer_skin', 'head-dense', 'seghead'):
+        if s in ('auto', 'head', 'outer_skin', 'head-dense', 'seghead'):
             if head:
                 raise ValueError('Can only supply one head-like surface name')
             surfaces.pop(surfaces.index(s))
             head = True
             head_surf = None
             # Try the BEM if applicable
-            if s in ('head', 'outer_skin'):
+            if s in ('auto', 'head', 'outer_skin'):
                 if bem is not None:
                     head_missing = (
                         'Could not find the surface for '
@@ -702,6 +703,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                             logger.info(head_missing)
             if head_surf is None:
                 if subject is None:
+                    if s == 'auto':
+                        # ignore
+                        continue
                     raise ValueError('To plot the head surface, the BEM/sphere'
                                      ' model must contain a head surface '
                                      'or "subject" must be provided (got '
@@ -1532,7 +1536,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
-def link_brains(brains, time=True, camera=False):
+def link_brains(brains, time=True, camera=False, colorbar=True,
+                picking=False):
     """Plot multiple SourceEstimate objects with PyVista.
 
     Parameters
@@ -1543,6 +1548,10 @@ def link_brains(brains, time=True, camera=False):
         If True, link the time controllers. Defaults to True.
     camera : bool
         If True, link the camera controls. Defaults to False.
+    colorbar : bool
+        If True, link the colorbar controllers. Defaults to True.
+    picking : bool
+        If True, link the vertices picked with the mouse. Defaults to False.
     """
     from .backends.renderer import _get_3d_backend
     if _get_3d_backend() != 'pyvista':
@@ -1561,8 +1570,18 @@ def link_brains(brains, time=True, camera=False):
         else:
             raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
+    subjects = [brain._subject_id for brain in brains]
+    if subjects.count(subjects[0]) != len(subjects):
+        raise RuntimeError("Cannot link brains from different subjects.")
+
     # link brains properties
-    _LinkViewer(brains, time, camera)
+    _LinkViewer(
+        brains=brains,
+        time=time,
+        camera=camera,
+        colorbar=colorbar,
+        picking=picking,
+    )
 
 
 def _triage_stc(stc, src, surface, backend_name, kind='scalar'):

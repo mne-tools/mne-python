@@ -36,7 +36,7 @@ from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
-                       write_id, write_float)
+                       write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield
 
 _aspect_dict = {
@@ -227,20 +227,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.data = self.data[:, mask]
         return self
 
-    def decimate(self, decim, offset=0):
+    @verbose
+    def decimate(self, decim, offset=0, verbose=None):
         """Decimate the evoked data.
-
-        .. note:: No filtering is performed. To avoid aliasing, ensure
-                  your data are properly lowpassed.
 
         Parameters
         ----------
-        decim : int
-            The amount to decimate data.
-        offset : int
-            Apply an offset to where the decimation starts relative to the
-            sample corresponding to t=0. The offset is in samples at the
-            current sampling rate.
+        %(decim)s
+        %(decim_offset)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -255,9 +250,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
-        Decimation can be done multiple times. For example,
-        ``evoked.decimate(2).decimate(2)`` will be the same as
-        ``evoked.decimate(4)``.
+        %(decim_notes)s
 
         .. versionadded:: 0.13.0
         """
@@ -1099,7 +1092,10 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         else:
             # Put the old style epochs together
             data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
-        data = data.astype(np.float64)
+        if np.isrealobj(data):
+            data = data.astype(np.float64)
+        else:
+            data = data.astype(np.complex128)
 
         if first_time is not None and nsamp is not None:
             times = first_time + np.arange(nsamp) / info['sfreq']
@@ -1211,7 +1207,12 @@ def _write_evokeds(fname, evoked, check=True):
                 decal[k] = 1.0 / (e.info['chs'][k]['cal'] *
                                   e.info['chs'][k].get('scale', 1.0))
 
-            write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
+            if np.iscomplexobj(e.data):
+                write_function = write_complex_float_matrix
+            else:
+                write_function = write_float_matrix
+
+            write_function(fid, FIFF.FIFF_EPOCH, decal * e.data)
             end_block(fid, aspect)
             end_block(fid, FIFF.FIFFB_EVOKED)
 

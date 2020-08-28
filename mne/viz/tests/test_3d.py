@@ -54,7 +54,8 @@ src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
-nirx_fname = op.join(data_dir, 'NIRx', 'nirx_15_2_recording_w_short')
+nirx_fname = op.join(data_dir, 'NIRx', 'nirscout',
+                     'nirx_15_2_recording_w_short')
 
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -216,8 +217,7 @@ def test_plot_alignment(tmpdir, renderer):
     # no-head version
     renderer.backend._close_all()
     # all coord frames
-    pytest.raises(ValueError, plot_alignment, info)
-    plot_alignment(info, surfaces=[])
+    plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                              coord_frame=coord_frame, trans=Path(trans_fname),
@@ -873,6 +873,7 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
 @testing.requires_testing_data
 @traits_test
+@pytest.mark.slowtest
 def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
     sample_src = read_source_spaces(src_fname)

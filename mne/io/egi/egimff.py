@@ -289,9 +289,9 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
        ignored.
     %(preload)s
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%d'
+        Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %03d'.
+        prior to 0.14.0 was 'EEG %%03d'.
     %(verbose)s
 
     Returns

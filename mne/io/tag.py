@@ -107,10 +107,12 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
 
 def _loc_to_coil_trans(loc):
     """Convert loc vector to coil_trans."""
-    coil_trans = np.zeros((4, 4))
-    coil_trans[:3, 3] = loc[:3]
-    coil_trans[:3, :3] = np.reshape(loc[3:], (3, 3)).T
-    coil_trans[-1, -1] = 1.
+    assert loc.shape[-1] == 12
+    coil_trans = np.zeros(loc.shape[:-1] + (4, 4))
+    coil_trans[..., :3, 3] = loc[..., :3]
+    coil_trans[..., :3, :3] = np.reshape(
+        loc[..., 3:], loc.shape[:-1] + (3, 3)).swapaxes(-1, -2)
+    coil_trans[..., -1, -1] = 1.
     return coil_trans
 
 

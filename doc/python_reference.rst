@@ -359,6 +359,7 @@ Projections:
    annotate_muscle_zscore
    compute_average_dev_head_t
    compute_current_source_density
+   compute_fine_calibration
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -375,8 +376,11 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   regress_artifact
    corrmap
    read_ica_eeglab
+   read_fine_calibration
+   write_fine_calibration
 
 :py:mod:`mne.preprocessing.nirs`:
 

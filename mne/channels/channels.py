@@ -37,6 +37,8 @@ def _get_meg_system(info):
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
             # Only take first 16 bits, as higher bits store CTF grad comp order
             coil_type = ch['coil_type'] & 0xFFFF
+            nmag = np.sum(
+                [c['kind'] == FIFF.FIFFV_MEG_CH for c in info['chs']])
             if coil_type == FIFF.FIFFV_COIL_NM_122:
                 system = '122m'
                 break
@@ -45,8 +47,6 @@ def _get_meg_system(info):
                 break
             elif (coil_type == FIFF.FIFFV_COIL_MAGNES_MAG or
                   coil_type == FIFF.FIFFV_COIL_MAGNES_GRAD):
-                nmag = np.sum([c['kind'] == FIFF.FIFFV_MEG_CH
-                               for c in info['chs']])
                 system = 'Magnes_3600wh' if nmag > 150 else 'Magnes_2500wh'
                 break
             elif coil_type == FIFF.FIFFV_COIL_CTF_GRAD:
@@ -54,6 +54,8 @@ def _get_meg_system(info):
                 break
             elif coil_type == FIFF.FIFFV_COIL_KIT_GRAD:
                 system = 'KIT'
+                # Our helmet does not match very well, so let's just create it
+                have_helmet = False
                 break
             elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
                 system = 'BabySQUID'
@@ -294,7 +296,7 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          ch_type='auto', verbose=None):
+                          ch_type='auto', forward=None, verbose=None):
         """Specify which reference to use for EEG data.
 
         Use this function to explicitly specify the desired reference for EEG.
@@ -304,27 +306,10 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        ref_channels : list of str | str
-            The name(s) of the channel(s) used to construct the reference. To
-            apply an average reference, specify ``'average'`` here (default).
-            If an empty list is specified, the data is assumed to already have
-            a proper reference and MNE will not attempt any re-referencing of
-            the data. Defaults to an average reference.
-        projection : bool
-            If ``ref_channels='average'`` this argument specifies if the
-            average reference should be computed as a projection (True) or not
-            (False; default). If ``projection=True``, the average reference is
-            added as a projection and is not applied to the data (it can be
-            applied afterwards with the ``apply_proj`` method). If
-            ``projection=False``, the average reference is directly applied to
-            the data. If ``ref_channels`` is not ``'average'``, ``projection``
-            must be set to ``False`` (the default in this case).
-        ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
-            The name of the channel type to apply the reference to. If 'auto',
-            the first channel type of eeg, ecog or seeg that is found (in that
-            order) will be selected.
-
-            .. versionadded:: 0.19
+        %(set_eeg_reference_ref_channels)s
+        %(set_eeg_reference_projection)s
+        %(set_eeg_reference_ch_type)s
+        %(set_eeg_reference_forward)s
         %(verbose_meth)s
 
         Returns
@@ -337,7 +322,8 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
-                                 projection=projection, ch_type=ch_type)[0]
+                                 projection=projection, ch_type=ch_type,
+                                 forward=forward)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
@@ -1728,8 +1714,8 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
         combined_inst = RawArray(new_data, info, first_samp=inst.first_samp,
                                  verbose=inst.verbose)
     elif isinstance(inst, BaseEpochs):
-        combined_inst = EpochsArray(new_data, info, tmin=inst.times[0],
-                                    verbose=inst.verbose)
+        combined_inst = EpochsArray(new_data, info, events=inst.events,
+                                    tmin=inst.times[0], verbose=inst.verbose)
     elif isinstance(inst, Evoked):
         combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
                                     verbose=inst.verbose)

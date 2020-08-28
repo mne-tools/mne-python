@@ -242,6 +242,7 @@ def test_brain_save_movie(tmpdir, renderer):
 
 
 @testing.requires_testing_data
+@pytest.mark.slowtest
 def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     """Test _TimeViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
@@ -251,20 +252,27 @@ def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     with pytest.raises(RuntimeError, match='already'):
         _TimeViewer(brain_data)
     time_viewer = brain_data.time_viewer
-    time_viewer.time_call(value=0)
-    time_viewer.orientation_call(value='lat', update_widget=True)
-    time_viewer.orientation_call(value='medial', update_widget=True)
-    time_viewer.smoothing_call(value=1)
-    time_viewer.fmin_call(value=12.0)
-    time_viewer.fmax_call(value=4.0)
-    time_viewer.fmid_call(value=6.0)
-    time_viewer.fmid_call(value=4.0)
-    time_viewer.fscale_call(value=1.1)
+    time_viewer.callbacks["time"](value=0)
+    time_viewer.callbacks["orientation_lh_0_0"](
+        value='lat',
+        update_widget=True
+    )
+    time_viewer.callbacks["orientation_lh_0_0"](
+        value='medial',
+        update_widget=True
+    )
+    time_viewer.callbacks["smoothing"](value=1)
+    time_viewer.callbacks["fmin"](value=12.0)
+    time_viewer.callbacks["fmax"](value=4.0)
+    time_viewer.callbacks["fmid"](value=6.0)
+    time_viewer.callbacks["fmid"](value=4.0)
+    time_viewer.callbacks["fscale"](value=1.1)
     time_viewer.toggle_interface()
-    time_viewer.playback_speed_call(value=0.1)
+    time_viewer.callbacks["playback_speed"](value=0.1)
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+    time_viewer.reset()
     plt.close('all')
     time_viewer.help()
     assert len(plt.get_fignums()) == 1
@@ -289,6 +297,7 @@ def test_brain_timeviewer(renderer_interactive, pixel_ratio):
     pytest.param('volume', marks=pytest.mark.slowtest),
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
+@pytest.mark.slowtest
 def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     """Test _TimeViewer traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
@@ -395,20 +404,24 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
 
 
 @testing.requires_testing_data
-def test_brain_linkviewer(renderer_interactive, travis_macos):
+@pytest.mark.slowtest
+def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Linkviewer only supported on PyVista')
-    if travis_macos:
-        pytest.skip('Linkviewer tests unstable on Travis macOS')
     brain_data = _create_testing_brain(hemi='split', show_traces=False)
 
     link_viewer = _LinkViewer(
         [brain_data],
         time=True,
         camera=True,
+        colorbar=True,
+        picking=True,
     )
     link_viewer.set_time_point(value=0)
+    link_viewer.set_fmin(0)
+    link_viewer.set_fmid(0.5)
+    link_viewer.set_fmax(1)
     link_viewer.set_playback_speed(value=0.1)
     link_viewer.toggle_playback()
 

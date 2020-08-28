@@ -14,7 +14,7 @@ from mne.datasets import testing
 
 
 fname_nirx_15_2 = op.join(data_path(download=False),
-                          'NIRx', 'nirx_15_2_recording')
+                          'NIRx', 'nirscout', 'nirx_15_2_recording')
 
 
 @testing.requires_testing_data

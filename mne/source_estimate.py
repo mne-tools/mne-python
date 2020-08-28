@@ -2195,6 +2195,9 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         if ftype != 'h5' and len(self.vertices) != 1:
             raise ValueError('Can only write to .stc or .w if a single volume '
                              'source space was used, use .h5 instead')
+        if ftype != 'h5' and self.data.dtype == 'complex':
+            raise ValueError('Can only write non-complex data to .stc or .w'
+                             ', use .h5 instead')
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
             if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):
@@ -2954,12 +2957,16 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     for li, label in enumerate(labels):
         if use_sparse:
             assert isinstance(label, dict)
+            vertidx = label['csr']
             # This can happen if some labels aren't present in the space
-            if label['csr'].shape[0] == 0:
+            if vertidx.shape[0] == 0:
                 bad_labels.append(label['name'])
-                label_vertidx.append(None)
-            else:
-                label_vertidx.append(label['csr'])
+                vertidx = None
+            # Efficiency shortcut: use linearity early to avoid redundant
+            # calculations
+            elif mode == 'mean':
+                vertidx = sparse.csr_matrix(vertidx.mean(axis=0))
+            label_vertidx.append(vertidx)
             label_flip.append(None)
             continue
         # standard case
@@ -3162,7 +3169,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     assert mri_resolution
                     assert vertidx.shape[1] == stc.data.shape[0]
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
-                    this_data = vertidx * this_data
+                    this_data = vertidx @ this_data
                     this_data.shape = \
                         (this_data.shape[0],) + stc.data.shape[1:]
                 else:

@@ -144,7 +144,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     will be approximated based on the sensor locations.
     """
     from scipy.spatial import ConvexHull, Delaunay
-    from .bem import read_bem_surfaces
+    from .bem import read_bem_surfaces, _fit_sphere
     system, have_helmet = _get_meg_system(info)
     if have_helmet:
         logger.info('Getting helmet for system %s' % system)
@@ -158,10 +158,19 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
                                               exclude=())])
         logger.info('Getting helmet for system %s (derived from %d MEG '
                     'channel locations)' % (system, len(rr)))
-        rr = rr[np.unique(ConvexHull(rr).simplices)]
-        com = rr.mean(axis=0)
-        xy = _pol_to_cart(_cart_to_sph(rr - com)[:, 1:][:, ::-1])
-        tris = _reorder_ccw(rr, Delaunay(xy).simplices)
+        hull = ConvexHull(rr)
+        rr = rr[np.unique(hull.simplices)]
+        R, center = _fit_sphere(rr, disp=False)
+        sph = _cart_to_sph(rr - center)[:, 1:]
+        # add a point at the front of the helmet (where the face should be):
+        # 90 deg az and maximal el (down from Z/up axis)
+        front_sph = [[np.pi / 2., sph[:, 1].max()]]
+        sph = np.concatenate((sph, front_sph))
+        xy = _pol_to_cart(sph[:, ::-1])
+        tris = Delaunay(xy).simplices
+        # remove the frontal point we added from the simplices
+        tris = tris[(tris != len(sph) - 1).all(-1)]
+        tris = _reorder_ccw(rr, tris)
 
         surf = dict(rr=rr, tris=tris)
         complete_surface_info(surf, copy=False, verbose=False)
