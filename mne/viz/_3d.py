@@ -402,7 +402,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
         # Now show our field pattern
         renderer.surface(surface=surf, vmin=-vmax, vmax=vmax,
-                         scalars=data, colormap=colormap)
+                         scalars=data, colormap=colormap,
+                         polygon_offset=-1)
 
         # And the field lines on top
         renderer.contour(surface=surf, scalars=data, contours=n_contours,

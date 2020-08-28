@@ -128,8 +128,9 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
-                backface_culling=False):
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
+                backface_culling=False, polygon_offset=None):
         """Add a surface in the scene.
 
         Parameters
@@ -154,6 +155,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The scalar valued associated to the vertices.
         backface_culling: bool
             If True, enable backface culling on the surface.
+        polygon_offset: float
+            If not None, the factor used to resolve coincident topology.
         """
         pass
 

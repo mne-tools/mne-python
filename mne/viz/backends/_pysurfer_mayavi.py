@@ -160,7 +160,7 @@ class _Renderer(_BaseRenderer):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
-                backface_culling=False):
+                backface_culling=False, polygon_offset=None):
         if color is not None:
             color = _check_color(color)
         if normalized_colormap:

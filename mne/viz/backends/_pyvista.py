@@ -260,7 +260,8 @@ class _Renderer(_BaseRenderer):
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
-                 representation='surface', line_width=1., **kwargs):
+                 representation='surface', line_width=1.,
+                 polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             rgba = False
@@ -292,6 +293,12 @@ class _Renderer(_BaseRenderer):
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
+
+            if polygon_offset is not None:
+                mapper = actor.GetMapper()
+                mapper.SetResolveCoincidentTopologyToPolygonOffset()
+                mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
+                    polygon_offset, polygon_offset)
 
             return actor, mesh
 
@@ -354,7 +361,7 @@ class _Renderer(_BaseRenderer):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
-                backface_culling=False):
+                backface_culling=False, polygon_offset=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             normals = surface.get('nn', None)
@@ -375,6 +382,7 @@ class _Renderer(_BaseRenderer):
             colormap=colormap,
             vmin=vmin,
             vmax=vmax,
+            polygon_offset=polygon_offset,
         )
 
     def sphere(self, center, color, scale, opacity=1.0,
