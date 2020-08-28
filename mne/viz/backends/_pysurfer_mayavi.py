@@ -101,6 +101,9 @@ class _Renderer(_BaseRenderer):
              representation='surface', line_width=1., normals=None,
              polygon_offset=None, **kwargs):
         # normals and pickable are unused
+        kwargs.pop('pickable', None)
+        del normals
+
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
