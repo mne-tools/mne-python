@@ -2950,8 +2950,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
         for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
             n_missing = (~np.in1d(v, s['vertno'])).sum()
             if n_missing:
-                raise ValueError('%d/%d %s hemisphere stc vertices missing from '
-                                 'the source space, likely mismatch'
+                raise ValueError('%d/%d %s hemisphere stc vertices missing '
+                                 'from the source space, likely mismatch'
                                  % (n_missing, len(v), hemi))
     else:
         vertno = src['vertno']
