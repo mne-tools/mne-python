@@ -343,7 +343,7 @@ class _Renderer(_BaseRenderer):
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             mesh = PolyData(vertices, triangles)
             mesh.point_arrays['scalars'] = scalars
-            contour = mesh.contour(isosurfaces=contours, rng=(vmin, vmax))
+            contour = mesh.contour(isosurfaces=contours)
             line_width = width
             if kind == 'tube':
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
@@ -354,6 +354,7 @@ class _Renderer(_BaseRenderer):
                 show_scalar_bar=False,
                 line_width=line_width,
                 color=color,
+                rng=[vmin, vmax],
                 cmap=colormap,
                 opacity=opacity,
                 smooth_shading=self.figure.smooth_shading
