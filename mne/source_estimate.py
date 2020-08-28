@@ -2939,7 +2939,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # given by the number of ROIs of the cortical parcellation plus the number
     # of vol src space.
     # If mode=None and stc=None (i.e. no activation time courses provided, only
-    # compute vertex indices.
+    # compute vertex indices, label_flip will be empty list.
     from .label import label_sign_flip, Label, BiHemiLabel
 
     # if source estimate provided in stc, get vertices from source space and
