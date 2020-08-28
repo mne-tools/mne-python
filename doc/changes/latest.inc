@@ -15,7 +15,7 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
-- Add space transform details to :ref:`plot_source_alignment` tutorial, by `Alex Rockhill`_
+- Add head to mri and mri to voxel space transform details to :ref:`plot_source_alignment` tutorial, by `Alex Rockhill`_
 
 - Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
 
