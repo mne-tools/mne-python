@@ -19,6 +19,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, read_trans, compute_source_morph,
                  read_bem_solution, read_freesurfer_lut)
+from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, run_tests_if_main,
                        check_version)
@@ -34,6 +35,7 @@ from mne.io.constants import FIFF
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+aseg_fname = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
@@ -547,12 +549,11 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     None,
     op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
 ])
-def test_read_freesurfer_lut(fname):
+def test_read_freesurfer_lut(fname, tmpdir):
     """Test reading volume label names."""
     atlas_ids, colors = read_freesurfer_lut(fname)
     assert list(atlas_ids).count('Brain-Stem') == 1
     assert len(colors) == len(atlas_ids) == 1266
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names, label_colors = get_volume_labels_from_aseg(
         aseg_fname, return_colors=True)
     assert isinstance(label_names, list)
@@ -568,6 +569,33 @@ def test_read_freesurfer_lut(fname):
     label_names_2 = get_volume_labels_from_aseg(
         aseg_fname, atlas_ids=atlas_ids)
     assert label_names == label_names_2
+    # long name (only test on one run)
+    if fname is not None:
+        return
+    fname = str(tmpdir.join('long.txt'))
+    names = ['Anterior_Cingulate_and_Medial_Prefrontal_Cortex-' + hemi
+             for hemi in ('lh', 'rh')]
+    ids = np.arange(1, len(names) + 1)
+    colors = [(id_,) * 4 for id_ in ids]
+    with open(fname, 'w') as fid:
+        for name, id_, color in zip(names, ids, colors):
+            out_color = ' '.join('%3d' % x for x in color)
+            line = '%d    %s %s\n' % (id_, name, out_color)
+            fid.write(line)
+    lut, got_colors = read_freesurfer_lut(fname)
+    assert len(lut) == len(got_colors) == len(names) == len(ids)
+    for name, id_, color in zip(names, ids, colors):
+        assert name in lut
+        assert name in got_colors
+        assert_array_equal(got_colors[name][:3], color[:3])
+        assert lut[name] == id_
+    with open(fname, 'w') as fid:
+        for name, id_, color in zip(names, ids, colors):
+            out_color = ' '.join('%3d' % x for x in color[:3])  # wrong length!
+            line = '%d    %s %s\n' % (id_, name, out_color)
+            fid.write(line)
+    with pytest.raises(RuntimeError, match='formatted'):
+        read_freesurfer_lut(fname)
 
 
 @testing.requires_testing_data
@@ -619,6 +647,7 @@ def test_source_space_from_label(tmpdir, pass_ids):
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
+@requires_nibabel()
 def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""
     # these two are neighbors and are quite large, so let's use them to
@@ -635,6 +664,14 @@ def test_source_space_exclusive_complete(src_volume_labels):
                        np.sort(np.concatenate([s['vertno'] for s in src])))
     for si, s in enumerate(src):
         assert_allclose(src_full[0]['rr'], s['rr'], atol=1e-6)
+    # also check single_volume=True -- should be the same result
+    src_single = setup_volume_source_space(
+        src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
+        volume_label=volume_labels, single_volume=True, add_interpolator=False,
+        subjects_dir=subjects_dir)
+    assert len(src_single) == 1
+    assert 'Unknown+Left-Cerebral-White-Matter+Left-' in repr(src_single)
+    assert_array_equal(src_full[0]['vertno'], src_single[0]['vertno'])
 
 
 @pytest.mark.timeout(60)  # ~24 sec on Travis
@@ -643,7 +680,6 @@ def test_source_space_exclusive_complete(src_volume_labels):
 @requires_nibabel()
 def test_read_volume_from_src():
     """Test reading volumes from a mixed source space."""
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     labels_vol = ['Left-Amygdala',
                   'Brain-Stem',
                   'Right-Amygdala']
@@ -682,13 +718,14 @@ def test_read_volume_from_src():
 @requires_nibabel()
 def test_combine_source_spaces(tmpdir):
     """Test combining source spaces."""
-    rng = np.random.RandomState(0)
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
-    volume_labels = rng.choice(label_names, 2)
+    import nibabel as nib
+    rng = np.random.RandomState(2)
+    volume_labels = ['Brain-Stem', 'Right-Hippocampus']  # two fairly large
 
-    # get a surface source space (no need to test creation here)
-    srf = read_source_spaces(fname, patch_stats=False)
+    # create a sparse surface source space to ensure all get mapped
+    # when mri_resolution=False
+    srf = setup_source_space('sample', 'oct3', add_dist=False,
+                             subjects_dir=subjects_dir)
 
     # setup 2 volume source spaces
     vol = setup_volume_source_space('sample', subjects_dir=subjects_dir,
@@ -696,7 +733,7 @@ def test_combine_source_spaces(tmpdir):
                                     mri=aseg_fname, add_interpolator=False)
 
     # setup a discrete source space
-    rr = rng.randint(0, 20, (100, 3)) * 1e-3
+    rr = rng.randint(0, 11, (20, 3)) * 5e-3
     nn = np.zeros(rr.shape)
     nn[:, -1] = 1
     pos = {'rr': rr, 'nn': nn}
@@ -732,7 +769,8 @@ def test_combine_source_spaces(tmpdir):
     image_fname = tmpdir.join('temp-image.mgz')
 
     # source spaces with no volume
-    pytest.raises(ValueError, srf.export_volume, image_fname, verbose='error')
+    with pytest.raises(ValueError, match='at least one volume'):
+        srf.export_volume(image_fname, verbose='error')
 
     # unrecognized source type
     disc2 = disc.copy()
@@ -751,8 +789,38 @@ def test_combine_source_spaces(tmpdir):
     disc3 = disc.copy()
     disc3[0]['coord_frame'] = 10
     src_mixed_coord = src + disc3
-    pytest.raises(ValueError, src_mixed_coord.export_volume, image_fname,
-                  verbose='error')
+    with pytest.raises(ValueError, match='must be in head coordinates'):
+        src_mixed_coord.export_volume(image_fname, verbose='error')
+
+    # now actually write it
+    fname_img = tmpdir.join('img.nii')
+    for mri_resolution in (False, 'sparse', True):
+        for src, up in ((vol, 705),
+                        (srf + vol, 27272),
+                        (disc + vol, 705)):
+            src.export_volume(
+                fname_img, use_lut=False,
+                mri_resolution=mri_resolution, overwrite=True)
+            img_data = _get_img_fdata(nib.load(str(fname_img)))
+            n_src = img_data.astype(bool).sum()
+            n_want = sum(s['nuse'] for s in src)
+            if mri_resolution is True:
+                n_want += up
+            assert n_src == n_want, src
+
+    # gh-8004
+    temp_aseg = tmpdir.join('aseg.mgz')
+    aseg_img = nib.load(aseg_fname)
+    aseg_affine = aseg_img.affine
+    aseg_affine[:3, :3] *= 0.7
+    new_aseg = nib.MGHImage(aseg_img.dataobj, aseg_affine)
+    nib.save(new_aseg, str(temp_aseg))
+    lh_cereb = mne.setup_volume_source_space(
+        "sample", mri=temp_aseg, volume_label="Left-Cerebellum-Cortex",
+        add_interpolator=False, subjects_dir=subjects_dir)
+    src = srf + lh_cereb
+    with pytest.warns(RuntimeWarning, match='2 surf vertices lay outside'):
+        src.export_volume(image_fname, mri_resolution="sparse", overwrite=True)
 
 
 @testing.requires_testing_data

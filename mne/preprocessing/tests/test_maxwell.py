@@ -2,8 +2,10 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import contextmanager
 import os.path as op
 import pathlib
+import re
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -12,7 +14,7 @@ from scipy import sparse
 from scipy.special import sph_harm
 
 import mne
-from mne import compute_raw_covariance, pick_types, concatenate_raws
+from mne import compute_raw_covariance, pick_types, concatenate_raws, pick_info
 from mne.annotations import _annotations_starts_stops
 from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
@@ -20,13 +22,14 @@ from mne.datasets import testing
 from mne.forward import use_coil_def
 from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
+from mne.io.constants import FIFF
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.utils import (assert_meg_snr, run_tests_if_main, catch_logging,
-                       object_diff, buggy_mkl_svd)
+                       object_diff, buggy_mkl_svd, use_log_level)
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -117,6 +120,13 @@ def _assert_n_free(raw_sss, lower, upper=None):
         'nfree fail: %s <= %s <= %s' % (lower, n_free, upper)
 
 
+def _assert_mag_coil_type(info, coil_type):
+    __tracebackhide__ = True
+    picks = pick_types(info, meg='mag', exclude=())
+    coil_types = set(info['chs'][pick]['coil_type'] for pick in picks)
+    assert coil_types == {coil_type}
+
+
 def read_crop(fname, lims=(0, None)):
     """Read and crop."""
     return read_raw_fif(fname, allow_maxshield='yes').crop(*lims)
@@ -134,8 +144,12 @@ def test_movement_compensation(tmpdir):
     #
     # Movement compensation, no regularization, no tSSS
     #
+    _assert_mag_coil_type(raw.info, FIFF.FIFFV_COIL_VV_MAG_T3)
+    assert_allclose(raw.info['chs'][2]['cal'], 4.14e-11, rtol=1e-6)
+    raw.info['chs'][2]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T2
     raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
                              regularize=None, bad_condition='ignore')
+    _assert_mag_coil_type(raw_sss.info, FIFF.FIFFV_COIL_VV_MAG_T3)
     assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
                    4.6, 12.4, chpi_med_tol=58)
     # IO
@@ -649,7 +663,7 @@ def test_fine_calibration():
     raw_sss_bad = maxwell_filter(
         raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
         regularize=None, bad_condition='ignore')
-    raw_missing.pick_types()  # actually remove bads
+    raw_missing.pick_types(meg=True)  # actually remove bads
     raw_sss_bad.pick_channels(raw_missing.ch_names)  # remove them here, too
     with pytest.warns(RuntimeWarning, match='cal channels not in data'):
         raw_sss_missing = maxwell_filter(
@@ -796,8 +810,10 @@ def test_head_translation():
 # that calculates the localization error:
 # http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=1495874
 
-def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
+def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf,
+                      meg='mag'):
     """Assert a minimum shielding factor using empty-room power."""
+    __tracebackhide__ = True
     picks = pick_types(raw_sss.info, meg=meg, ref_meg=False)
     if isinstance(erm_power, BaseRaw):
         picks_erm = pick_types(raw_sss.info, meg=meg, ref_meg=False)
@@ -806,8 +822,69 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
-    assert factor >= shielding_factor, \
-        'Shielding factor %0.3f < %0.3f' % (factor, shielding_factor)
+    assert min_factor <= factor < max_factor, (
+        'Shielding factor not %0.3f <= %0.3f < %0.3f'
+        % (min_factor, factor, max_factor))
+
+
+@buggy_mkl_svd
+@testing.requires_testing_data
+@pytest.mark.parametrize('regularize', ('in', None))
+@pytest.mark.parametrize('bads', ([], ['MEG0111']))
+def test_esss(regularize, bads):
+    """Test extended-basis SSS."""
+    # Make some fake "projectors" that actually contain external SSS bases
+    raw_erm = read_crop(erm_fname).load_data().pick_types(meg=True)
+    raw_erm.info['bads'] = bads
+    proj_sss = mne.compute_proj_raw(raw_erm, meg='combined', verbose='error',
+                                    n_mag=15, n_grad=15)
+    good_info = pick_info(raw_erm.info, pick_types(raw_erm.info, meg=True))
+    S_tot = _trans_sss_basis(
+        dict(int_order=0, ext_order=3, origin=(0., 0., 0.)),
+        all_coils=_prep_mf_coils(good_info), coil_scale=1., trans=None)
+    assert S_tot.shape[-1] == len(proj_sss)
+    for a, b in zip(proj_sss, S_tot.T):
+        a['data']['data'][:] = b
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
+                                 regularize=regularize, verbose=True)
+    log = log.getvalue()
+    assert 'xtend' not in log
+    with catch_logging() as log:
+        raw_sss_2 = maxwell_filter(raw_erm, coord_frame='meg',
+                                   regularize=regularize, ext_order=0,
+                                   extended_proj=proj_sss, verbose=True)
+    log = log.getvalue()
+    assert 'Extending external SSS basis using 15 projection' in log
+    assert_allclose(raw_sss_2._data, raw_sss._data, atol=1e-20)
+
+    # Degenerate condititons
+    proj_sss = proj_sss[:2]
+    proj_sss[0]['data']['col_names'] = proj_sss[0]['data']['col_names'][:-1]
+    with pytest.raises(ValueError, match='do not match the good MEG'):
+        maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
+    proj_sss[0] = 1.
+    with pytest.raises(TypeError, match=r'extended_proj\[0\] must be an inst'):
+        maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
+    with pytest.raises(TypeError, match='extended_proj must be an inst'):
+        maxwell_filter(raw_erm, coord_frame='meg', extended_proj=1.)
+
+
+@contextmanager
+def get_n_projected():
+    """Get the number of projected tSSS components from the log."""
+    count = list()
+    with use_log_level(True):
+        with catch_logging() as log:
+            yield count
+    log = log.getvalue()
+    assert 'Processing data using tSSS' in log
+    log = log.splitlines()
+    reg = re.compile(r'\s+Projecting\s+([0-9])+\s+intersecting tSSS .*')
+    for line in log:
+        m = reg.match(line)
+        if m:
+            count.append(int(m.group(1)))
 
 
 @buggy_mkl_svd
@@ -824,95 +901,176 @@ def test_shielding_factor(tmpdir):
     # Vanilla SSS (second value would be for meg=True instead of meg='mag')
     _assert_shielding(read_crop(sss_erm_std_fname), erm_power, 10)  # 1.5)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None)
-    _assert_shielding(raw_sss, erm_power, 12)  # 1.5)
-    _assert_shielding(raw_sss, erm_power_grad, 0.45, 'grad')  # 1.5)
+    _assert_shielding(raw_sss, erm_power, 12, 13)  # 1.5)
+    _assert_shielding(raw_sss, erm_power_grad, 0.45, 0.55, 'grad')  # 1.5)
 
-    # Using different mag_scale values
+    # No external basis
+    raw_sss_0 = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                               ext_order=0)
+    _assert_shielding(raw_sss_0, erm_power, 1.0, 1.1)
+    del raw_sss_0
+
+    # Regularization
+    _assert_shielding(read_crop(sss_erm_std_fname), erm_power, 10)  # 1.5)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg')
+    _assert_shielding(raw_sss, erm_power, 14.5, 15.5)
+
+    #
+    # Extended (eSSS)
+    #
+
+    # Show that using empty-room projectors increase shielding factor
+    proj = mne.compute_proj_raw(raw_erm, meg='combined', verbose='error',
+                                n_mag=15, n_grad=15)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 38, 39)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 49, 51)
+    # Now with reg
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
+                             extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 42, 44)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
+                             extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 59, 61)
+
+    #
+    # Different mag_scale values
+    #
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              mag_scale='auto')
-    _assert_shielding(raw_sss, erm_power, 12)
-    _assert_shielding(raw_sss, erm_power_grad, 0.48, 'grad')
+    _assert_shielding(raw_sss, erm_power, 12, 13)
+    _assert_shielding(raw_sss, erm_power_grad, 0.48, 0.58, 'grad')
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              mag_scale=1.)  # not a good choice
-    _assert_shielding(raw_sss, erm_power, 7.3)
-    _assert_shielding(raw_sss, erm_power_grad, 0.2, 'grad')
+    _assert_shielding(raw_sss, erm_power, 7.3, 8.)
+    _assert_shielding(raw_sss, erm_power_grad, 0.2, 0.3, 'grad')
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              mag_scale=1000., bad_condition='ignore')
-    _assert_shielding(raw_sss, erm_power, 4.0)
-    _assert_shielding(raw_sss, erm_power_grad, 0.1, 'grad')
+    _assert_shielding(raw_sss, erm_power, 4.0, 5.0)
+    _assert_shielding(raw_sss, erm_power_grad, 0.1, 0.2, 'grad')
 
+    #
     # Fine cal
+    #
     _assert_shielding(read_crop(sss_erm_fine_cal_fname), erm_power, 12)  # 2.0)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
                              calibration=pathlib.Path(fine_cal_fname))
-    _assert_shielding(raw_sss, erm_power, 12)  # 2.0)
+    _assert_shielding(raw_sss, erm_power, 12, 13)  # 2.0)
 
+    #
     # Crosstalk
+    #
     _assert_shielding(read_crop(sss_erm_ctc_fname), erm_power, 12)  # 2.1)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
                              cross_talk=ctc_fname)
-    _assert_shielding(raw_sss, erm_power, 12)  # 2.1)
+    _assert_shielding(raw_sss, erm_power, 12, 13)  # 2.1)
 
     # Fine cal + Crosstalk
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              calibration=fine_cal_fname,
                              origin=mf_meg_origin,
                              cross_talk=ctc_fname)
-    _assert_shielding(raw_sss, erm_power, 13)  # 2.2)
+    _assert_shielding(raw_sss, erm_power, 13, 14)  # 2.2)
+    # Fine cal + Crosstalk + Extended
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             calibration=fine_cal_fname,
+                             origin=mf_meg_origin,
+                             cross_talk=ctc_fname, extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 28, 30)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             calibration=fine_cal_fname,
+                             origin=mf_meg_origin,
+                             cross_talk=ctc_fname, extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 25, 27)
 
     # tSSS
     _assert_shielding(read_crop(sss_erm_st_fname), erm_power, 37)  # 5.8)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 37)  # 5.8)
+    _assert_shielding(raw_sss, erm_power, 37, 38)  # 5.8)
 
     # Crosstalk + tSSS
-    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
-                             cross_talk=ctc_fname, origin=mf_meg_origin,
-                             st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 38)  # 5.91)
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 cross_talk=ctc_fname, origin=mf_meg_origin,
+                                 st_duration=1.)
+    _assert_shielding(raw_sss, erm_power, 38, 39)  # 5.91)
+    assert counts[0] == 4
 
     # Fine cal + tSSS
-    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
-                             calibration=fine_cal_fname,
-                             origin=mf_meg_origin, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 38)  # 5.98)
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 calibration=fine_cal_fname,
+                                 origin=mf_meg_origin, st_duration=1.)
+    _assert_shielding(raw_sss, erm_power, 38, 39)  # 5.98)
+    assert counts[0] == 4
+
+    # Extended + tSSS
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 origin=mf_meg_origin, st_duration=1.,
+                                 extended_proj=proj)
+    _assert_shielding(raw_sss, erm_power, 40, 42)
+    assert counts[0] == 0
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                                 origin=mf_meg_origin, st_duration=1.,
+                                 extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 35, 37)
+    assert counts[0] == 1
 
     # Fine cal + Crosstalk + tSSS
     _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalk_fname),
-                      erm_power, 39)  # 6.07)
+                      erm_power, 39, 40)  # 6.07)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              calibration=fine_cal_fname, origin=mf_meg_origin,
                              cross_talk=ctc_fname, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 39)  # 6.05)
+    _assert_shielding(raw_sss, erm_power, 39, 40)  # 6.05)
+
+    # Fine cal + Crosstalk + tSSS + Extended (a bit worse)
+    _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalk_fname),
+                      erm_power, 39, 40)  # 6.07)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             calibration=fine_cal_fname, origin=mf_meg_origin,
+                             cross_talk=ctc_fname, st_duration=1.,
+                             extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 34, 36)
 
     # Fine cal + Crosstalk + tSSS + Reg-in
     _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalkRegIn_fname),
-                      erm_power, 57)  # 6.97)
+                      erm_power, 57, 58)  # 6.97)
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              origin=mf_meg_origin,
                              coord_frame='meg', regularize='in')
-    _assert_shielding(raw_sss, erm_power, 53)  # 6.64)
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in')
-    _assert_shielding(raw_sss, erm_power, 58)  # 7.0)
-    _assert_shielding(raw_sss, erm_power_grad, 1.6, 'grad')
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in',
-                             mag_scale='auto')
-    _assert_shielding(raw_sss, erm_power, 51)
-    _assert_shielding(raw_sss, erm_power_grad, 1.5, 'grad')
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in')
-
+    _assert_shielding(raw_sss, erm_power, 53, 54)  # 6.64)
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in')
+    _assert_shielding(raw_sss, erm_power, 58, 59)  # 7.0)
+    _assert_shielding(raw_sss, erm_power_grad, 1.6, 1.7, 'grad')
+    assert counts[0] == 4
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in',
+                                 mag_scale='auto')
+    _assert_shielding(raw_sss, erm_power, 51, 52)
+    _assert_shielding(raw_sss, erm_power_grad, 1.5, 1.6, 'grad')
+    assert counts[0] == 3
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
-    _assert_shielding(raw_sss, erm_power, 54)
+    _assert_shielding(raw_sss, erm_power, 57, 58)
+    assert counts[0] == 3
     # Show it by rewriting the 3D as 1D and testing it
     temp_dir = str(tmpdir)
     temp_fname = op.join(temp_dir, 'test_cal.dat')
@@ -920,11 +1078,22 @@ def test_shielding_factor(tmpdir):
         with open(temp_fname, 'w') as fid_out:
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
-    raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
-                             cross_talk=ctc_fname, st_duration=1.,
-                             coord_frame='meg', regularize='in')
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
-    _assert_shielding(raw_sss, erm_power, 44)
+    _assert_shielding(raw_sss, erm_power, 44, 45)
+    assert counts[0] == 3
+
+    # Fine cal + Crosstalk + tSSS + Reg-in + Extended
+    with get_n_projected() as counts:
+        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                                 cross_talk=ctc_fname, st_duration=1.,
+                                 coord_frame='meg', regularize='in',
+                                 extended_proj=proj[:3])
+    _assert_shielding(raw_sss, erm_power, 48, 50)
+    assert counts[0] == 1
 
 
 @pytest.mark.slowtest
@@ -966,10 +1135,12 @@ def test_all():
 def test_triux():
     """Test TRIUX system support."""
     raw = read_crop(tri_fname, (0, 0.999))
-    raw.fix_mag_coil_types()
+    _assert_mag_coil_type(raw.info, FIFF.FIFFV_COIL_VV_MAG_T1)
+    assert_allclose(raw.info['chs'][2]['cal'], 1.33e-10, rtol=1e-6)
     # standard
     with use_coil_def(elekta_def_fname):
         sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None)
+    _assert_mag_coil_type(sss_py.info, FIFF.FIFFV_COIL_VV_MAG_T3)
     assert_meg_snr(sss_py, read_crop(tri_sss_fname), 37, 700)
     # cross-talk
     sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None,
@@ -1061,18 +1232,29 @@ def test_mf_skips():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('fname, bads, annot, add_ch, ignore_ref, want_bads', [
-    # Neuromag data tested against MF
-    (sample_fname, [], False, False, False, ['MEG 2443']),
-    # add 0111 to test picking, add annot to test it, and prepend chs for idx
-    (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443']),
-    # CTF data seems to be sensitive to linalg lib (?) because some channels
-    # are very close to the limit, so we just check that one shows up
-    (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}),
-    (ctf_fname_continuous, [], False, False, True, ['MLC24-4304']),  # faked
-])
+@pytest.mark.parametrize(
+    ('fname', 'bads', 'annot', 'add_ch', 'ignore_ref', 'want_bads',
+     'return_scores', 'h_freq'), [
+        # Neuromag data tested against MF
+        (sample_fname, [], False, False, False, ['MEG 2443'], False, None),
+        # add 0111 to test picking, add annot to test it, and prepend chs for
+        # idx
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], False,
+         None),
+        # CTF data seems to be sensitive to linalg lib (?) because some
+        # channels are very close to the limit, so we just check that one shows
+        # up
+        (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}, False,
+         None),
+        # faked
+        (ctf_fname_continuous, [], False, False, True, ['MLC24-4304'], False,
+         None),
+        # For `return_scores=True`
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
+         50)
+    ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
-                                   want_bads):
+                                   want_bads, return_scores, h_freq):
     """Test automatic bad channel detection."""
     if fname.endswith('.ds'):
         raw = read_raw_ctf(fname).load_data()
@@ -1086,6 +1268,9 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     raw._data[flat_idx] = 0  # MaxFilter didn't have this but doesn't affect it
     want_flats = [raw.ch_names[flat_idx]]
     raw.apply_gradient_compensation(0)
+
+    min_count = 5
+
     if add_ch:
         raw_eeg = read_raw_fif(fname)
         raw_eeg.pick_types(meg=False, eeg=True, exclude=()).load_data()
@@ -1094,7 +1279,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         assert 0 in pick_types(raw.info, meg=False, eeg=True)
     if ignore_ref:
         # Fake a bad one, otherwise we don't find any
-        assert 42 in pick_types(raw.info, ref_meg=False)
+        assert 42 in pick_types(raw.info, meg=True, ref_meg=False)
         assert raw.ch_names[42:43] == want_bads
         raw._data[42] += np.random.RandomState(0).randn(len(raw.times))
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
@@ -1105,10 +1290,19 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         assert step == 1502
         raw.annotations.append(step * dt + raw._first_time, dt, 'BAD')
     with catch_logging() as log:
-        got_bads, got_flats = find_bad_channels_maxwell(
+        return_vals = find_bad_channels_maxwell(
             raw, origin=(0., 0., 0.04), regularize=None,
             bad_condition='ignore', skip_by_annotation='BAD', verbose=True,
-            ignore_ref=ignore_ref)
+            ignore_ref=ignore_ref, min_count=min_count,
+            return_scores=return_scores, h_freq=h_freq)
+
+    if return_scores:
+        assert len(return_vals) == 3
+        got_bads, got_flats, got_scores = return_vals
+    else:
+        assert len(return_vals) == 2
+        got_bads, got_flats = return_vals
+
     if isinstance(want_bads, list):
         assert got_bads == want_bads  # from MaxFilter
     else:
@@ -1117,6 +1311,58 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     log = log.getvalue()
     assert 'Interval   1:    0.00' in log
     assert 'Interval   2:    5.00' in log
+
+    if h_freq is not None and h_freq > raw.info['lowpass']:
+        assert 'data has already been low-pass filtered' in log
+
+    if return_scores:
+        meg_chs = raw.copy().pick_types(meg=True, exclude=[]).ch_names
+        ch_types = raw.get_channel_types(meg_chs)
+
+        assert list(got_scores['ch_names']) == meg_chs
+        assert list(got_scores['ch_types']) == ch_types
+        # Check that time is monotonically increasing.
+        assert (np.diff(got_scores['bins'].flatten()) >= 0).all()
+
+        assert (got_scores['scores_flat'].shape ==
+                got_scores['scores_noisy'].shape ==
+                (len(meg_chs), len(got_scores['bins'])))
+
+        assert (got_scores['limits_flat'].shape ==
+                got_scores['limits_noisy'].shape ==
+                (len(meg_chs), 1))
+
+        # Check "flat" scores.
+        scores_flat = got_scores['scores_flat']
+        limits_flat = got_scores['limits_flat']
+        # The following essentially is just this:
+        #     n_segments_below_limit = (scores_flat < limits_flat).sum(-1)
+        # made to work with NaN's in the scores.
+        n_segments_below_limit = np.less(
+            scores_flat, limits_flat,
+            where=np.equal(np.isnan(scores_flat), False),
+            out=np.full_like(scores_flat, fill_value=False)).sum(-1)
+
+        ch_idx = np.where(n_segments_below_limit >=
+                          min(min_count, len(got_scores['bins'])))
+        flats = set(got_scores['ch_names'][ch_idx])
+        assert flats == set(want_flats)
+
+        # Check "noisy" scores.
+        scores_noisy = got_scores['scores_noisy']
+        limits_noisy = got_scores['limits_noisy']
+        # The following essentially is just this:
+        #     n_segments_beyond_limit = (scores_noisy > limits_noisy).sum(-1)
+        # made to work with NaN's in the scores.
+        n_segments_beyond_limit = np.greater(
+            scores_noisy, limits_noisy,
+            where=np.equal(np.isnan(scores_noisy), False),
+            out=np.full_like(scores_noisy, fill_value=False)).sum(-1)
+
+        ch_idx = np.where(n_segments_beyond_limit >=
+                          min(min_count, len(got_scores['bins'])))
+        bads = set(got_scores['ch_names'][ch_idx])
+        assert bads == set(want_bads)
 
 
 run_tests_if_main()

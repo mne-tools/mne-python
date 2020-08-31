@@ -175,7 +175,7 @@ def test_compute_proj_epochs():
             p2_data = p2['data']['data'] * np.sign(p2['data']['data'][0, 0])
             if bad_ch in p1['data']['col_names']:
                 bad = p1['data']['col_names'].index('MEG 2443')
-                mask = np.ones(p1_data.size, dtype=np.bool)
+                mask = np.ones(p1_data.size, dtype=bool)
                 mask[bad] = False
                 p1_data = p1_data[:, mask]
                 p2_data = p2_data[:, mask]
@@ -374,10 +374,8 @@ def test_needs_eeg_average_ref_proj():
 def test_sss_proj():
     """Test `meg` proj option."""
     raw = read_raw_fif(raw_fname)
-    raw.crop(0, 1.0).load_data().pick_types(exclude=())
+    raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
     raw.pick_channels(raw.ch_names[:51]).del_proj()
-    with pytest.raises(ValueError, match='can only be used with Maxfiltered'):
-        compute_proj_raw(raw, meg='combined')
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking
     assert len(raw_sss.info['projs']) == 0

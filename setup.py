@@ -10,7 +10,7 @@ from setuptools import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
-with open(op.join('mne', '__init__.py'), 'r') as fid:
+with open(op.join('mne', '_version.py'), 'r') as fid:
     for line in (line.strip() for line in fid):
         if line.startswith('__version__'):
             version = line.split('=')[1].strip().strip('\'')
@@ -96,6 +96,7 @@ if __name__ == "__main__":
               op.join('html', '*.js'),
               op.join('html', '*.css'),
               op.join('icons', '*.svg'),
+              op.join('icons', '*.png'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
           ]},

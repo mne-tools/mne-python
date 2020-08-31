@@ -328,7 +328,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
         else:
-            cbar = plt.colorbar(mappable=img)
+            cbar = plt.colorbar(mappable=img, ax=ax)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
@@ -714,7 +714,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         # one check for all vendors
         meg_types = {'mag', 'grad'}
         is_meg = len(set.intersection(types_used, meg_types)) > 0
-        nirs_types = {'hbo', 'hbr', 'fnirs_raw', 'fnirs_od'}
+        nirs_types = {'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od'}
         is_nirs = len(set.intersection(types_used, nirs_types)) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order

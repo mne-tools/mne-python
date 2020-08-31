@@ -7,7 +7,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import Counter
+from collections import Counter, OrderedDict
 
 import datetime
 import os.path as op
@@ -67,6 +67,9 @@ def _count_points_by_type(dig):
     )
 
 
+_dig_keys = {'kind', 'ident', 'r', 'coord_frame'}
+
+
 class DigPoint(dict):
     """Container for a digitization point.
 
@@ -90,12 +93,11 @@ class DigPoint(dict):
 
     def __repr__(self):  # noqa: D105
         if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            id_ = _cardinal_kind_rev.get(
-                self.get('ident', -1), 'Unknown cardinal')
+            id_ = _cardinal_kind_rev.get(self['ident'], 'Unknown cardinal')
         else:
             id_ = _dig_kind_proper[
-                _dig_kind_rev.get(self.get('kind', -1), 'unknown')]
-            id_ = ('%s #%s' % (id_, self.get('ident', -1)))
+                _dig_kind_rev.get(self['kind'], 'unknown')]
+            id_ = ('%s #%s' % (id_, self['ident']))
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self['coord_frame'])
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
@@ -115,9 +117,9 @@ class DigPoint(dict):
         coordinate frame and position.
         """
         my_keys = ['kind', 'ident', 'coord_frame']
-        if sorted(self.keys()) != sorted(other.keys()):
+        if set(self.keys()) != set(other.keys()):
             return False
-        elif any([self[_] != other[_] for _ in my_keys]):
+        elif any(self[_] != other[_] for _ in my_keys):
             return False
         else:
             return np.allclose(self['r'], other['r'])
@@ -434,7 +436,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         except ValueError:  # and if any conversion fails, simply use arange
             idents = np.arange(1, len(dig_ch_pos) + 1)
         for key, ident in zip(dig_ch_pos, idents):
-            dig.append({'r': dig_ch_pos[key], 'ident': ident,
+            dig.append({'r': dig_ch_pos[key], 'ident': int(ident),
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': coord_frame})
 
@@ -468,7 +470,7 @@ def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
 
 ##############################################################################
 # From mne.io.kit
-def _set_dig_kit(mrk, elp, hsp):
+def _set_dig_kit(mrk, elp, hsp, eeg):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -487,6 +489,8 @@ def _set_dig_kit(mrk, elp, hsp):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
+    eeg : dict
+        Ordered dict of EEG dig points.
 
     Returns
     -------
@@ -517,8 +521,8 @@ def _set_dig_kit(mrk, elp, hsp):
             raise ValueError("File %r should contain 8 points; got shape "
                              "%s." % (elp, elp_points.shape))
         elp = elp_points
-    elif len(elp) != 8:
-        raise ValueError("ELP should contain 8 points; got shape "
+    elif len(elp) not in (7, 8):
+        raise ValueError("ELP should contain 7 or 8 points; got shape "
                          "%s." % (elp.shape,))
     if isinstance(mrk, str):
         mrk = read_mrk(mrk)
@@ -529,6 +533,7 @@ def _set_dig_kit(mrk, elp, hsp):
     nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     elp = apply_trans(nmtrans, elp)
     hsp = apply_trans(nmtrans, hsp)
+    eeg = OrderedDict((k, apply_trans(nmtrans, p)) for k, p in eeg.items())
 
     # device head transform
     trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
@@ -536,7 +541,7 @@ def _set_dig_kit(mrk, elp, hsp):
     nasion, lpa, rpa = elp[:3]
     elp = elp[3:]
 
-    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
+    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp, dig_ch_pos=eeg)
     dev_head_t = Transform('meg', 'head', trans)
 
     return dig_points, dev_head_t

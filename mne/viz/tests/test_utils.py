@@ -12,7 +12,7 @@ import matplotlib.cm as cm
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
-                           _setup_vmin_vmax, center_cmap)
+                           _setup_vmin_vmax, center_cmap, centers_to_edges)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
@@ -169,6 +169,14 @@ def test_center_cmap():
     assert_allclose(new_colors, reference)
     # new and old colors at 0.5 must be different
     assert not np.allclose(cmap(0.5), reference[1])
+
+
+def test_centers_to_edges():
+    """Test centers_to_edges."""
+    assert_allclose(centers_to_edges([0, 1, 2])[0], [-0.5, 0.5, 1.5, 2.5])
+    assert_allclose(centers_to_edges([0])[0], [-0.001, 0.001])
+    assert_allclose(centers_to_edges([1])[0], [0.999, 1.001])
+    assert_allclose(centers_to_edges([1000])[0], [999., 1001.])
 
 
 run_tests_if_main()

@@ -51,7 +51,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     M = M.copy()
 
     if gammas is None:
-        gammas = np.ones(G.shape[1], dtype=np.float)
+        gammas = np.ones(G.shape[1], dtype=np.float64)
 
     eps = np.finfo(float).eps
 
@@ -132,7 +132,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             gammas = np.repeat(gammas_comb / group_size, group_size)
 
         # compute convergence criterion
-        gammas_full = np.zeros(n_sources, dtype=np.float)
+        gammas_full = np.zeros(n_sources, dtype=np.float64)
         gammas_full[active_set] = gammas
 
         err = (np.sum(np.abs(gammas_full - gammas_full_old)) /
@@ -188,13 +188,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter (noise variance).
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation.
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumic or discrete source space.
+    %(loose)s
     %(depth)s
     xyz_same_gamma : bool
         Use same gamma for xyz current components at each source space point.

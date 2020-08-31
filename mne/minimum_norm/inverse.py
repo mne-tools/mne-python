@@ -12,6 +12,7 @@ from scipy import linalg
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
+from ..io.base import BaseRaw
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
@@ -27,11 +28,12 @@ from ..io.write import (write_int, write_float_matrix, start_file,
 from ..io.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)
-from ..evoked import EvokedArray
+from ..epochs import BaseEpochs
+from ..evoked import EvokedArray, Evoked
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        is_fixed_orient, compute_orient_prior,
                        convert_forward_solution, _select_orient_forward)
-from ..forward.forward import write_forward_meas_info
+from ..forward.forward import write_forward_meas_info, _triage_loose
 from ..source_space import (_read_source_spaces_from_tree, _get_src_nn,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
@@ -878,6 +880,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
 def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
                    prepared, label, method_params, return_residual, use_cps):
+    _validate_type(evoked, Evoked, 'evoked')
     _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
@@ -1005,6 +1008,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     apply_inverse_epochs : Apply inverse operator to epochs object.
     apply_inverse : Apply inverse operator to evoked object.
     """
+    _validate_type(raw, BaseRaw, 'raw')
     _check_reference(raw, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
@@ -1083,6 +1087,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               prepared=False, method_params=None,
                               use_cps=True, verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
+    _validate_type(epochs, BaseEpochs, 'epochs')
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
                inverse_operator['src'])
@@ -1324,33 +1329,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     forward = forward.copy()
 
     # Deal with "fixed" and "loose"
-    src_kind = forward['src'].kind
-    if fixed == 'auto':
-        if loose == 'auto':
-            fixed = False
-            loose = 0.2 if src_kind == 'surface' else 1.
-        else:
-            fixed = True if float(loose) == 0 else False
-    if fixed:
-        if loose not in ['auto', 0.]:
-            raise ValueError('When using fixed=True, loose must be 0. or '
-                             '"auto", got %s' % (loose,))
-        loose = 0.
-    elif loose == 'auto':
-        loose = 0.2 if src_kind == 'surface' else 1.
-    elif loose == 0.:
-        raise ValueError('If loose==0., then fixed must be True or "auto",'
-                         'got %s' % (fixed,))
+    loose = _triage_loose(forward['src'], loose, fixed)
     del fixed
-
-    loose = float(loose)
-    if not 0 <= loose <= 1:
-        raise ValueError('loose must be between 0 and 1, got %s' % loose)
-    if src_kind != 'surface':
-        if loose != 1:
-            raise ValueError('loose parameter has to be 1 or "auto" for '
-                             'non-surface source space (Got loose=%s for %s '
-                             'source space).' % (loose, src_kind))
 
     # Deal with "depth"
     if exp is not None:
@@ -1363,7 +1343,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # put the forward solution in correct orientation
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if loose == 0.:
+    if loose.get('surface', 1.) == 0. and len(loose) == 1:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
@@ -1381,11 +1361,10 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'Forward operator has fixed orientation and can only '
                 'be used to make a fixed-orientation inverse '
                 'operator.')
-        if loose < 1. and not forward['surf_ori']:  # loose ori
+        if loose.get('surface', 1.) < 1. and not forward['surf_ori']:
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
-                forward, surf_ori=True, use_cps=True, copy=False)
-    del src_kind
+                forward, surf_ori=True, use_cps=use_cps, copy=False)
 
     forward, info_picked = _select_orient_forward(forward, info, noise_cov,
                                                   copy=False)
@@ -1399,7 +1378,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov)
 
     # Deal with fixed orientation forward / inverse
-    if loose == 0.:
+    if loose.get('surface', 1.) == 0. and len(loose) == 1:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
@@ -1412,6 +1391,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 forward, surf_ori=True, force_fixed=True,
                 use_cps=use_cps, copy=False)
     else:
+        if loose.get('surface', 1.) < 1:
+            assert forward['surf_ori']
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
         orient_prior = compute_orient_prior(forward, loose=loose)
@@ -1420,11 +1401,12 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     noise_cov = prepare_noise_cov(
         noise_cov, info, info_picked['ch_names'], rank)
     whitener, _ = compute_whitener(
-        noise_cov, info, info_picked['ch_names'], pca=pca, verbose=False)
+        noise_cov, info, info_picked['ch_names'], pca=pca, verbose=False,
+        rank=rank)
     gain = np.dot(whitener, forward['sol']['data'])
 
     logger.info('Creating the source covariance matrix')
-    source_std = np.ones(gain.shape[1])
+    source_std = np.ones(gain.shape[1], dtype=gain.dtype)
     if depth_prior is not None:
         source_std *= depth_prior
     if orient_prior is not None:
@@ -1458,15 +1440,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance matrix.
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation,
-        and fixed must be True or "auto".
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumetric, discrete, or mixed source spaces,
-        unless ``fixed is True`` in which case the value 0. is used.
+    %(loose)s
     %(depth)s
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,

@@ -66,11 +66,20 @@ evoked_stat.plot_topomap(title='Stationary', **topo_kwargs)
 # Second, take a naive average, which averages across epochs that have been
 # simulated to have different head positions and orientations, thereby
 # spatially smearing the activity.
-evoked = mne.Epochs(raw, events, 1, -0.2, 0.8).average()
+epochs = mne.Epochs(raw, events, 1, -0.2, 0.8)
+evoked = epochs.average()
 evoked.plot_topomap(title='Moving: naive average', **topo_kwargs)
 
 ###############################################################################
 # Third, use raw movement compensation (restores pattern).
 raw_sss = maxwell_filter(raw, head_pos=head_pos)
 evoked_raw_mc = mne.Epochs(raw_sss, events, 1, -0.2, 0.8).average()
-evoked_raw_mc.plot_topomap(title='Moving: movement compensated', **topo_kwargs)
+evoked_raw_mc.plot_topomap(title='Moving: movement compensated (raw)',
+                           **topo_kwargs)
+
+###############################################################################
+# Fourth, use evoked movement compensation. For these data, which contain
+# very large rotations, it does not as cleanly restore the pattern.
+evoked_evo_mc = mne.epochs.average_movements(epochs, head_pos=head_pos)
+evoked_evo_mc.plot_topomap(title='Moving: movement compensated (evoked)',
+                           **topo_kwargs)

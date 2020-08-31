@@ -50,7 +50,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
         raise ValueError('node_order has to be the same length as node_names')
 
     if group_boundaries is not None:
-        boundaries = np.array(group_boundaries, dtype=np.int)
+        boundaries = np.array(group_boundaries, dtype=np.int64)
         if np.any(boundaries >= n_nodes) or np.any(boundaries < 0):
             raise ValueError('"group_boundaries" has to be between 0 and '
                              'n_nodes - 1.')
@@ -78,7 +78,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
             start_pos += group_sep / 2
             boundaries = boundaries[1:] if n_group_sep > 1 else None
 
-    node_angles = np.ones(n_nodes, dtype=np.float) * node_sep
+    node_angles = np.ones(n_nodes, dtype=np.float64) * node_sep
     node_angles[0] = start_pos
     if boundaries is not None:
         node_angles[boundaries] += group_sep
@@ -325,7 +325,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # edges: We modulate the noise with the number of connections of the
     # node and the connection strength, such that the strongest connections
     # are closer to the node center
-    nodes_n_con = np.zeros((n_nodes), dtype=np.int)
+    nodes_n_con = np.zeros((n_nodes), dtype=np.int64)
     for i, j in zip(indices[0], indices[1]):
         nodes_n_con[i] += 1
         nodes_n_con[j] += 1

@@ -16,7 +16,7 @@ from scipy import linalg, sparse
 
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, _center_of_mass,
-                              spatial_src_connectivity)
+                              spatial_src_adjacency)
 from .source_space import add_source_space_distances, SourceSpaces
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
@@ -999,7 +999,7 @@ def write_label(filename, label, verbose=None):
 
     with open(filename, 'wb') as fid:
         n_vertices = len(label.vertices)
-        data = np.zeros((n_vertices, 5), dtype=np.float)
+        data = np.zeros((n_vertices, 5), dtype=np.float64)
         data[:, 0] = label.vertices
         data[:, 1:4] = 1e3 * label.pos
         data[:, 4] = label.values
@@ -1362,7 +1362,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             raise ValueError('source space should contain the 2 hemispheres')
         rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
         tris = [src[0]['tris'], src[1]['tris']]
-        src_conn = spatial_src_connectivity(src).tocsr()
+        src_conn = spatial_src_adjacency(src).tocsr()
 
     labels = []
     cnt = 0
@@ -1381,10 +1381,10 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             tmp[this_vertno_idx] = this_data
             this_data = tmp
             offset = cnt_full + len(this_data)
-            this_src_conn = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
+            this_src_adj = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
             this_data_abs_max = np.abs(this_data).max(axis=1)
             clusters, _ = _find_clusters(this_data_abs_max, 0.,
-                                         connectivity=this_src_conn)
+                                         adjacency=this_src_adj)
             cnt_full += len(this_data)
             # Then order clusters in descending order based on maximum value
             clusters_max = np.argsort([np.max(this_data_abs_max[c])
@@ -1804,7 +1804,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
                 rest -= 1
 
         # merging small labels
-        # label connectivity matrix
+        # label adjacency matrix
         n_labels = label_idx + 1
         label_sizes = np.empty(n_labels, dtype=int)
         label_conn = np.zeros([n_labels, n_labels], dtype='bool')
@@ -1895,7 +1895,7 @@ def _read_annot(fname):
             np.fromfile(fid, '>c', length)  # discard orig_tab
 
             names = list()
-            ctab = np.zeros((n_entries, 5), np.int)
+            ctab = np.zeros((n_entries, 5), np.int64)
             for i in range(n_entries):
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
@@ -1909,7 +1909,7 @@ def _read_annot(fname):
             if ctab_version != 2:
                 raise Exception('Color table version not supported')
             n_entries = np.fromfile(fid, '>i4', 1)[0]
-            ctab = np.zeros((n_entries, 5), np.int)
+            ctab = np.zeros((n_entries, 5), np.int64)
             length = np.fromfile(fid, '>i4', 1)[0]
             np.fromfile(fid, "|S%d" % length, 1)  # Orig table path
             entries_to_read = np.fromfile(fid, '>i4', 1)[0]
@@ -2387,7 +2387,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                  'specify subject and subjects_dir parameters.')
 
         # Create annot and color table array to write
-        annot = np.empty(n_vertices, dtype=np.int)
+        annot = np.empty(n_vertices, dtype=np.int64)
         annot[:] = -1
         # create the annotation ids from the colors
         annot_id_coding = np.array((1, 2 ** 8, 2 ** 16))

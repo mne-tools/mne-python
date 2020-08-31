@@ -315,7 +315,7 @@ def test_forward_mixed_source_space(tmpdir):
     src = surf + vol1 + vol2
 
     # calculate forward solution
-    fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem, None)
+    fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem)
     assert (repr(fwd))
 
     # extract source spaces
@@ -336,7 +336,7 @@ def test_forward_mixed_source_space(tmpdir):
 
     # head coordinates and mri_resolution, but wrong trans file
     vox_mri_t = vol1[0]['vox_mri_t']
-    with pytest.raises(ValueError, match='mri<->head, got mri_voxel->mri'):
+    with pytest.raises(ValueError, match='head<->mri, got mri_voxel->mri'):
         src_from_fwd.export_volume(fname_img, mri_resolution=True,
                                    trans=vox_mri_t)
 

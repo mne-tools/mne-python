@@ -12,6 +12,7 @@ EEG processing and Event Related Potentials (ERPs)
 
 import mne
 from mne.datasets import sample
+from mne.channels import combine_channels
 
 ###############################################################################
 # Setup for reading the raw data
@@ -108,6 +109,26 @@ evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
+# Evoked response averaged across channels by ROI
+# -----------------------------------------------
+#
+# It is possible to average channels by region of interest (for example left
+# and right) when studying the response to this left auditory stimulus. Here we
+# use our Raw object on which the average reference projection has been added
+# back.
+evoked = mne.Epochs(raw, **epochs_params).average()
+
+left_idx = mne.pick_channels(evoked.info['ch_names'],
+                             ['EEG 017', 'EEG 018', 'EEG 025', 'EEG 026'])
+right_idx = mne.pick_channels(evoked.info['ch_names'],
+                              ['EEG 023', 'EEG 024', 'EEG 034', 'EEG 035'])
+roi_dict = dict(Left=left_idx, Right=right_idx)
+evoked_combined = combine_channels(evoked, roi_dict, method='mean')
+
+title = 'Evoked response averaged by side'
+evoked_combined.plot(titles=dict(eeg=title), time_unit='s')
+
+###############################################################################
 # Evoked arithmetic (e.g. differences)
 # ------------------------------------
 #
@@ -125,27 +146,29 @@ print(epochs)
 
 ###############################################################################
 # Next, we create averages of stimulation-left vs stimulation-right trials.
-# We can use basic arithmetic to, for example, construct and plot
-# difference ERPs.
+# We can use negative weights in `mne.combine_evoked` to construct difference
+# ERPs.
 
 left, right = epochs["left"].average(), epochs["right"].average()
 
 # create and plot difference ERP
 joint_kwargs = dict(ts_args=dict(time_unit='s'),
                     topomap_args=dict(time_unit='s'))
-mne.combine_evoked([left, -right], weights='equal').plot_joint(**joint_kwargs)
+mne.combine_evoked([left, right], weights=[1, -1]).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # This is an equal-weighting difference. If you have imbalanced trial numbers,
 # you could also consider either equalizing the number of events per
 # condition (using
-# :meth:`epochs.equalize_event_counts <mne.Epochs.equalize_event_counts>`).
+# `epochs.equalize_event_counts <mne.Epochs.equalize_event_counts>`) or
+# use weights proportional to the number of trials averaged together to create
+# each `~mne.Evoked` (by passing ``weights='nave'`` to `~mne.combine_evoked`).
 # As an example, first, we create individual ERPs for each condition.
 
-aud_l = epochs["auditory", "left"].average()
-aud_r = epochs["auditory", "right"].average()
-vis_l = epochs["visual", "left"].average()
-vis_r = epochs["visual", "right"].average()
+aud_l = epochs["auditory/left"].average()
+aud_r = epochs["auditory/right"].average()
+vis_l = epochs["visual/left"].average()
+vis_r = epochs["visual/right"].average()
 
 all_evokeds = [aud_l, aud_r, vis_l, vis_r]
 print(all_evokeds)
@@ -155,10 +178,10 @@ print(all_evokeds)
 all_evokeds = [epochs[cond].average() for cond in sorted(event_id.keys())]
 print(all_evokeds)
 
-# Then, we construct and plot an unweighted average of left vs. right trials
-# this way, too:
+# Then, we can construct and plot an unweighted average of left vs. right
+# trials this way, too:
 mne.combine_evoked(
-    [aud_l, -aud_r, vis_l, -vis_r], weights='equal').plot_joint(**joint_kwargs)
+    all_evokeds, weights=[0.5, 0.5, -0.5, -0.5]).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -

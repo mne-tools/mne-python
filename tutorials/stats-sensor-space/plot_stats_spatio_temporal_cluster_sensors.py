@@ -25,7 +25,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import mne
 from mne.stats import spatio_temporal_cluster_test
 from mne.datasets import sample
-from mne.channels import find_ch_connectivity
+from mne.channels import find_ch_adjacency
 from mne.viz import plot_compare_evokeds
 
 print(__doc__)
@@ -63,13 +63,13 @@ X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
 
 
 ###############################################################################
-# Find the FieldTrip neighbor definition to setup sensor connectivity
-# -------------------------------------------------------------------
-connectivity, ch_names = find_ch_connectivity(epochs.info, ch_type='mag')
+# Find the FieldTrip neighbor definition to setup sensor adjacency
+# ----------------------------------------------------------------
+adjacency, ch_names = find_ch_adjacency(epochs.info, ch_type='mag')
 
-print(type(connectivity))  # it's a sparse matrix!
+print(type(adjacency))  # it's a sparse matrix!
 
-plt.imshow(connectivity.toarray(), cmap='gray', origin='lower',
+plt.imshow(adjacency.toarray(), cmap='gray', origin='lower',
            interpolation='nearest')
 plt.xlabel('{} Magnetometers'.format(len(ch_names)))
 plt.ylabel('{} Magnetometers'.format(len(ch_names)))
@@ -101,14 +101,14 @@ p_accept = 0.01
 cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
                                              threshold=threshold, tail=1,
                                              n_jobs=1, buffer_size=None,
-                                             connectivity=connectivity)
+                                             adjacency=adjacency)
 
 T_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
 
 ###############################################################################
 # Note. The same functions work with source estimate. The only differences
-# are the origin of the data, the size, and the connectivity definition.
+# are the origin of the data, the size, and the adjacency definition.
 # It can be used for single trials or for groups of subjects.
 #
 # Visualize clusters

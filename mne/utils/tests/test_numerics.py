@@ -21,7 +21,7 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
                        _dt_to_julian, _julian_to_dt, grand_average,
-                       _ReuseCycle)
+                       _ReuseCycle, requires_version)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -236,10 +236,14 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-def test_reg_pinv():
+@requires_version('numpy', '1.17')  # hermitian kwarg
+@pytest.mark.parametrize('ndim', (2, 3))
+def test_reg_pinv(ndim):
     """Test regularization and inversion of covariance matrix."""
     # create rank-deficient array
     a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+    for _ in range(ndim - 2):
+        a = a[np.newaxis]
 
     # Test if rank-deficient matrix without regularization throws
     # specific warning
@@ -247,7 +251,7 @@ def test_reg_pinv():
         _reg_pinv(a, reg=0.)
 
     # Test inversion with explicit rank
-    a_inv_np = np.linalg.pinv(a)
+    a_inv_np = np.linalg.pinv(a, hermitian=True)
     a_inv_mne, loading_factor, rank = _reg_pinv(a, rank=2)
     assert loading_factor == 0
     assert rank == 2
@@ -266,7 +270,7 @@ def test_reg_pinv():
     # The estimated rank should be that of the non-regularized matrix
     assert estimated_rank == 2
     # Test result against the NumPy version
-    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3))
+    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3), hermitian=True)
     assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test setting rcond
@@ -310,6 +314,8 @@ def test_object_diff_with_nan():
 
     assert object_diff(d0, d1) == ''
     assert object_diff(d0, d2) != ''
+    assert object_diff(np.nan, np.nan) == ''
+    assert object_diff(np.nan, 3.5) == ' value mismatch (nan, 3.5)\n'
 
 
 def test_hash():

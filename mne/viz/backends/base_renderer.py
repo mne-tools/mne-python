@@ -28,14 +28,15 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def set_interactive(self):
-        """Enable interactive mode."""
+    def set_interaction(self, interaction):
+        """Set interaction mode."""
         pass
 
     @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, interpolate_before_map=True, **kwargs):
+             vmin=None, vmax=None, interpolate_before_map=True,
+             representation='surface', line_width=1., normals=None, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -72,6 +73,12 @@ class _BaseRenderer(metaclass=ABCMeta):
             Enabling makes for a smoother scalars display. Default is True.
             When False, OpenGL will interpolate the mapped colors which can
             result is showing colors that are not present in the color map.
+        representation: str
+            The representation of the mesh: either 'surface' or 'wireframe'.
+        line_width: int
+            The width of the lines when representation='wireframe'.
+        normals: array, shape (n_vertices, 3)
+            The array containing the normal of each vertex.
         kwargs: args
             The arguments to pass to triangular_mesh
 
@@ -332,17 +339,22 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, color="white", title=None, n_labels=4,
+                  bgcolor=None):
         """Add a scalar bar in the scene.
 
         Parameters
         ----------
         source:
             The object of the scene used for the colormap.
+        color:
+            The color of the label text.
         title: str | None
             The title of the scalar bar.
         n_labels: int | None
             The number of labels to display on the scalar bar.
+        bgcolor:
+            The color of the background when there is transparency.
         """
         pass
 
@@ -403,5 +415,21 @@ class _BaseRenderer(metaclass=ABCMeta):
             The points to project.
         ch_names: array, shape(_n_points,)
             Names of the channels.
+        """
+        pass
+
+    @abstractclassmethod
+    def enable_depth_peeling(self):
+        """Enable depth peeling."""
+        pass
+
+    @abstractclassmethod
+    def remove_mesh(self, mesh_data):
+        """Remove the given mesh from the scene.
+
+        Parameters
+        ----------
+        mesh_data : tuple | Surface
+            The mesh to remove.
         """
         pass

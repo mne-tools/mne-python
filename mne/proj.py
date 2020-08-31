@@ -18,10 +18,10 @@ from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import _make_stc
-from .rank import _get_rank_sss
 
 
-def read_proj(fname):
+@verbose
+def read_proj(fname, verbose=None):
     """Read projections from a FIF file.
 
     Parameters
@@ -29,6 +29,7 @@ def read_proj(fname):
     fname : str
         The name of file containing the projections vectors. It should end with
         -proj.fif or -proj.fif.gz.
+    %(verbose)s
 
     Returns
     -------
@@ -82,8 +83,6 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
 
     _check_option('meg', meg, ['separate', 'combined'])
     if meg == 'combined':
-        _get_rank_sss(info, msg='meg="combined" can only be used with '
-                      'Maxfiltered data', verbose=False)
         if n_grad != n_mag:
             raise ValueError('n_grad (%d) must be equal to n_mag (%d) when '
                              'using meg="combined"')

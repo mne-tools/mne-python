@@ -1,5 +1,4 @@
 from copy import deepcopy
-import inspect
 import os.path as op
 
 from numpy.testing import assert_array_equal, assert_equal
@@ -14,21 +13,21 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
-                         _DATA_CH_TYPES_SPLIT,
                          _contains_ch_type, pick_channels_cov,
-                         _get_channel_types, get_channel_type_constants)
+                         _get_channel_types, get_channel_type_constants,
+                         _DATA_CH_TYPES_SPLIT)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 
-io_dir = op.join(op.dirname(inspect.getfile(inspect.currentframe())), '..')
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_mc = op.join(data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
 
-base_dir = op.join(op.dirname(__file__), 'data')
-ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+io_dir = op.join(op.dirname(__file__), '..')
+ctf_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_raw.fif')
+fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
 
 
 def _picks_by_type_old(info, meg_combined=False, ref_meg=False,
@@ -274,11 +273,12 @@ def test_pick_bio():
 def test_pick_fnirs():
     """Test picking fNIRS channels."""
     names = 'A1 A2 Fz O hbo1 hbo2 hbr1 fnirsRaw1 fnirsRaw2 fnirsOD1'.split()
-    types = 'mag mag eeg eeg hbo hbo hbr fnirs_raw fnirs_raw fnirs_od'.split()
+    types = 'mag mag eeg eeg hbo hbo hbr fnirs_cw_' \
+            'amplitude fnirs_cw_amplitude fnirs_od'.split()
     info = create_info(names, 1024., types)
     picks_by_type = [('mag', [0, 1]), ('eeg', [2, 3]),
                      ('hbo', [4, 5]), ('hbr', [6]),
-                     ('fnirs_raw', [7, 8]), ('fnirs_od', [9])]
+                     ('fnirs_cw_amplitude', [7, 8]), ('fnirs_od', [9])]
     assert_indexing(info, picks_by_type)
 
 
@@ -507,11 +507,11 @@ def test_picks_to_idx():
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
-    info = create_info(['a', 'b'], 1000., ['fnirs_raw', 'fnirs_od'])
+    info = create_info(['a', 'b'], 1000., ['fnirs_cw_amplitude', 'fnirs_od'])
     assert_array_equal(np.arange(2), _picks_to_idx(info, 'fnirs'))
-    assert_array_equal([0], _picks_to_idx(info, 'fnirs_raw'))
+    assert_array_equal([0], _picks_to_idx(info, 'fnirs_cw_amplitude'))
     assert_array_equal([1], _picks_to_idx(info, 'fnirs_od'))
-    info = create_info(['a', 'b'], 1000., ['fnirs_raw', 'misc'])
+    info = create_info(['a', 'b'], 1000., ['fnirs_cw_amplitude', 'misc'])
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
@@ -547,6 +547,46 @@ def test_pick_channels_cov():
     cov_copy = pick_channels_cov(cov, ['CH1', 'CH2'], copy=True)
     assert 'method' not in cov_copy
     assert 'loglik' not in cov_copy
+
+
+def test_pick_types_deprecation():
+    """Test deprecation warning for pick_types(meg=True)."""
+    # info with MEG channels at indices 1, 2, and 4
+    info1 = create_info(6, 256, ["eeg", "mag", "grad", "misc", "grad", "hbo"])
+
+    with pytest.deprecated_call():
+        assert list(pick_types(info1)) == [1, 2, 4]
+        assert list(pick_types(info1, eeg=True)) == [0, 1, 2, 4]
+
+    assert list(pick_types(info1, meg=True)) == [1, 2, 4]
+    assert not list(pick_types(info1, meg=False))  # empty
+    assert list(pick_types(info1, meg='planar1')) == [2]
+    assert not list(pick_types(info1, meg='planar2'))  # empty
+
+    # info without any MEG channels
+    info2 = create_info(6, 256, ["eeg", "eeg", "eog", "misc", "stim", "hbo"])
+
+    assert not list(pick_types(info2))  # empty
+    assert list(pick_types(info2, eeg=True)) == [0, 1]
+
+
+@pytest.mark.parametrize('meg', [True, False, 'grad', 'mag'])
+@pytest.mark.parametrize('eeg', [True, False])
+@pytest.mark.parametrize('ordered', [True, False])
+def test_get_channel_types_equiv(meg, eeg, ordered):
+    """Test equivalence of get_channel_types."""
+    raw = read_raw_fif(fif_fname)
+    pick_types(raw.info, meg=meg, eeg=eeg)
+    picks = pick_types(raw.info, meg=meg, eeg=eeg)
+    if not ordered:
+        picks = np.random.RandomState(0).permutation(picks)
+    if not meg and not eeg:
+        with pytest.raises(ValueError, match='No appropriate channels'):
+            raw.get_channel_types(picks=picks)
+        return
+    types = np.array(raw.get_channel_types(picks=picks))
+    types_iter = np.array([channel_type(raw.info, idx) for idx in picks])
+    assert_array_equal(types, types_iter)
 
 
 run_tests_if_main()

@@ -22,6 +22,7 @@ from mne import create_info, EpochsArray
 from mne.baseline import rescale
 from mne.time_frequency import (tfr_multitaper, tfr_stockwell, tfr_morlet,
                                 tfr_array_morlet)
+from mne.viz import centers_to_edges
 
 print(__doc__)
 
@@ -43,7 +44,7 @@ rng = np.random.RandomState(seed)
 noise = rng.randn(n_epochs, len(ch_names), n_times)
 
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
-t = np.arange(n_times, dtype=np.float) / sfreq
+t = np.arange(n_times, dtype=np.float64) / sfreq
 signal = np.sin(np.pi * 2. * 50. * t)  # 50 Hz sinusoid signal
 signal[np.logical_or(t < 0.45, t > 0.55)] = 0.  # Hard windowing
 on_time = np.logical_and(t >= 0.45, t <= 0.55)
@@ -188,8 +189,8 @@ power = tfr_array_morlet(epochs.get_data(), sfreq=epochs.info['sfreq'],
 # Baseline the output
 rescale(power, epochs.times, (0., 0.1), mode='mean', copy=False)
 fig, ax = plt.subplots()
-mesh = ax.pcolormesh(epochs.times * 1000, freqs, power[0],
-                     cmap='RdBu_r', vmin=vmin, vmax=vmax)
+x, y = centers_to_edges(epochs.times * 1000, freqs)
+mesh = ax.pcolormesh(x, y, power[0], cmap='RdBu_r', vmin=vmin, vmax=vmax)
 ax.set_title('TFR calculated on a numpy array')
 ax.set(ylim=freqs[[0, -1]], xlabel='Time (ms)')
 fig.colorbar(mesh)

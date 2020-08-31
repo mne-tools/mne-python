@@ -106,6 +106,7 @@ def test_plot_ica_components():
     plt.close('all')
 
 
+@pytest.mark.slowtest
 @requires_sklearn
 def test_plot_ica_properties():
     """Test plotting of ICA properties."""
@@ -180,6 +181,25 @@ def test_plot_ica_properties():
         ica.plot_properties(epochs)
     plt.close('all')
 
+    # Test Raw with annotations
+    annot = Annotations(onset=[1], duration=[1], description=['BAD'])
+    raw_annot = _get_raw(preload=True).set_annotations(annot)
+
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw_annot)
+    # drop bad data segments
+    ica.plot_properties(raw_annot)
+    # don't drop
+    ica.plot_properties(raw_annot, reject_by_annotation=False)
+    # fitting with bad data
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw_annot, reject_by_annotation=False)
+    # drop bad data when plotting
+    ica.plot_properties(raw_annot)
+    # don't drop bad data when plotting
+    ica.plot_properties(raw_annot, reject_by_annotation=False)
+    plt.close('all')
+
 
 @requires_sklearn
 def test_plot_ica_sources():
@@ -199,7 +219,7 @@ def test_plot_ica_sources():
     assert_array_equal(ica.exclude, [1])
     plt.close('all')
 
-    # dtype can change int->np.int after load, test it explicitly
+    # dtype can change int->np.int64 after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)
     fig = ica.plot_sources(raw)
     # also test mouse clicks
@@ -247,6 +267,7 @@ def test_plot_ica_sources():
     plt.close('all')
 
 
+@pytest.mark.slowtest
 @requires_sklearn
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""

@@ -50,8 +50,21 @@ print(stc)
 # and ``pysurfer`` installed on your machine.
 initial_time = 0.1
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
-                 clim=dict(kind='value', pos_lims=[3, 6, 9]),
-                 time_viewer=True)
+                 clim=dict(kind='value', lims=[3, 6, 9]))
+
+###############################################################################
+# You can also morph it to fsaverage and visualize it using a flatmap:
+
+# sphinx_gallery_thumbnail_number = 2
+
+stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,
+                                  smooth=5, verbose='error').apply(stc)
+brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
+                    clim=dict(kind='value', lims=[3, 6, 9]),
+                    surface='flat', hemi='split', size=(1000, 500),
+                    smoothing_steps=5, time_viewer=False,
+                    add_data_kwargs=dict(
+                        colorbar_kwargs=dict(label_font_size=10)))
 
 ###############################################################################
 #

@@ -12,6 +12,7 @@
 import os.path as op
 
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -19,10 +20,10 @@ from matplotlib.cm import get_cmap
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
-                 make_fixed_length_events)
+                 make_fixed_length_events, compute_proj_evoked)
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, catch_logging
-from mne.viz.evoked import plot_compare_evokeds
+from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
 from mne.io.constants import FIFF
@@ -38,11 +39,11 @@ event_id, tmin, tmax = 1, -0.1, 0.1
 
 # Use a subset of channels for plotting speed
 # make sure we have a magnetometer and a pair of grad pairs for topomap.
-picks = [0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305]
-sel = [0, 7]
+default_picks = (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305)
+sel = (0, 7)
 
 
-def _get_epochs():
+def _get_epochs(picks=default_picks):
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     raw.add_proj([], remove_existing=True)
@@ -60,8 +61,8 @@ def _get_epochs_delayed_ssp():
     events = read_events(event_name)
     reject = dict(mag=4e-12)
     epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                                picks=picks, proj='delayed', reject=reject,
-                                verbose='error')
+                                picks=default_picks, proj='delayed',
+                                reject=reject, verbose='error')
     epochs_delayed_ssp.info.normalize_proj()
     return epochs_delayed_ssp
 
@@ -78,7 +79,7 @@ def test_plot_evoked_cov():
         evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
-    epochs = Epochs(raw, events, picks=picks)
+    epochs = Epochs(raw, events, picks=default_picks)
     cov = compute_covariance(epochs)
     evoked_sss = epochs.average()
     with pytest.warns(RuntimeWarning, match='relative scaling'):
@@ -89,9 +90,14 @@ def test_plot_evoked_cov():
 @pytest.mark.slowtest
 def test_plot_evoked():
     """Test evoked.plot."""
-    evoked = _get_epochs().average()
+    epochs = _get_epochs()
+    evoked = epochs.average()
+    assert evoked.proj is False
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
                       time_unit='s')
+    amplitudes = _get_amplitudes(fig)
+    assert len(amplitudes) == 12
+    assert evoked.proj is False
     # Test a click
     ax = fig.get_axes()[0]
     line = ax.lines[0]
@@ -136,6 +142,63 @@ def test_plot_evoked():
     with catch_logging() as log_file:
         evoked.plot(verbose=True, time_unit='s')
     assert 'Need more than one' in log_file.getvalue()
+
+
+def _get_amplitudes(fig):
+    amplitudes = [line.get_ydata() for ax in fig.axes
+                  for line in ax.get_lines()]
+    amplitudes = np.array(
+        [line for line in amplitudes if isinstance(line, np.ndarray)])
+    return amplitudes
+
+
+@pytest.mark.parametrize('picks, rlims, avg_proj', [
+    (default_picks, (0.59, 0.61), False),  # MEG
+    (np.arange(340, 360), (0.49, 0.51), True),  # EEG
+    (np.arange(340, 360), (0.78, 0.80), False),  # EEG
+])
+def test_plot_evoked_reconstruct(picks, rlims, avg_proj):
+    """Test proj="reconstruct"."""
+    evoked = _get_epochs(picks=picks).average()
+    if avg_proj:
+        evoked.set_eeg_reference(projection=True).apply_proj()
+        assert len(evoked.info['projs']) == 1
+        assert evoked.proj is True
+    else:
+        assert len(evoked.info['projs']) == 0
+        assert evoked.proj is False
+    fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
+                      time_unit='s')
+    amplitudes = _get_amplitudes(fig)
+    assert len(amplitudes) == len(picks)
+    assert evoked.proj is avg_proj
+
+    fig = evoked.plot(proj='reconstruct', exclude=[])
+    amplitudes_recon = _get_amplitudes(fig)
+    if avg_proj is False:
+        assert_allclose(amplitudes, amplitudes_recon)
+    proj = compute_proj_evoked(evoked.copy().crop(None, 0).apply_proj())
+    evoked.add_proj(proj)
+    assert len(evoked.info['projs']) == 2 if len(picks) == 3 else 4
+    fig = evoked.plot(proj=True, exclude=[])
+    amplitudes_proj = _get_amplitudes(fig)
+    fig = evoked.plot(proj='reconstruct', exclude=[])
+    amplitudes_recon = _get_amplitudes(fig)
+    assert len(amplitudes_recon) == len(picks)
+    norm = np.linalg.norm(amplitudes)
+    norm_proj = np.linalg.norm(amplitudes_proj)
+    norm_recon = np.linalg.norm(amplitudes_recon)
+    r = np.dot(amplitudes_recon.ravel(), amplitudes.ravel()) / (
+        norm_recon * norm)
+    assert rlims[0] < r < rlims[1]
+    assert 1.05 * norm_proj < norm_recon
+    if not avg_proj:
+        assert norm_proj < norm * 0.9
+
+    cov = read_cov(cov_fname)
+    with pytest.raises(ValueError, match='Cannot use proj="reconstruct"'):
+        evoked.plot(noise_cov=cov, proj='reconstruct')
+    plt.close('all')
 
 
 def test_plot_evoked_image():
@@ -193,24 +256,30 @@ def test_plot_white():
     evoked = _get_epochs().average()
     # test rank param.
     evoked.plot_white(cov, rank={'mag': 101, 'grad': 201}, time_unit='s')
-    evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank param
-    evoked.plot_white(cov, rank={'grad': 201}, time_unit='s')
-    pytest.raises(
-        ValueError, evoked.plot_white, cov,
-        rank={'mag': 101, 'grad': 201, 'meg': 306}, time_unit='s')
-    pytest.raises(
-        ValueError, evoked.plot_white, cov, rank={'meg': 306}, time_unit='s')
+    fig = evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank
+    evoked.plot_white(cov, rank={'grad': 201}, time_unit='s', axes=fig.axes)
+    with pytest.raises(ValueError, match=r'must have shape \(3,\), got \(2,'):
+        evoked.plot_white(cov, axes=fig.axes[:2])
+    with pytest.raises(ValueError, match='When not using SSS'):
+        evoked.plot_white(cov, rank={'meg': 306})
     evoked.plot_white([cov, cov], time_unit='s')
     plt.close('all')
+
+    assert 'eeg' not in evoked
+    fig = plot_evoked_white(evoked, [cov, cov])
+    assert len(fig.axes) == 2 * 2
+    axes = np.array(fig.axes).reshape(2, 2)
+    plot_evoked_white(evoked, [cov, cov], axes=axes)
+    with pytest.raises(ValueError, match=r'have shape \(2, 2\), got'):
+        plot_evoked_white(evoked, [cov, cov], axes=axes[:, :1])
 
     # Hack to test plotting of maxfiltered data
     evoked_sss = evoked.copy()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     evoked_sss.info['proc_history'] = [dict(max_info=sss)]
-    evoked_sss.plot_white(cov, rank={'meg': 64}, time_unit='s')
-    pytest.raises(
-        ValueError, evoked_sss.plot_white, cov, rank={'grad': 201},
-        time_unit='s')
+    evoked_sss.plot_white(cov, rank={'meg': 64})
+    with pytest.raises(ValueError, match='When using SSS'):
+        evoked_sss.plot_white(cov, rank={'grad': 201})
     evoked_sss.plot_white(cov, time_unit='s')
     plt.close('all')
 
@@ -317,6 +386,12 @@ def test_plot_compare_evokeds():
     figs = plot_compare_evokeds(evoked_dict, axes='topo', legend=True)
     for fig in figs:
         assert len(fig.axes[0].lines) == len(evoked_dict)
+    # test with (fake) CSD data
+    csd = _get_epochs(picks=np.arange(315, 320)).average()  # 5 EEG chs
+    for entry in csd.info['chs']:
+        entry['coil_type'] = FIFF.FIFFV_COIL_EEG_CSD
+        entry['unit'] = FIFF.FIFF_UNIT_V_M2
+    plot_compare_evokeds(csd, picks='csd', axes='topo')
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
     plot_compare_evokeds([red, blue], picks=[0],

@@ -9,7 +9,9 @@ import struct
 import numpy as np
 from scipy import sparse
 
-from .constants import FIFF
+from .constants import (FIFF, _dig_kind_named, _dig_cardinal_named,
+                        _ch_kind_named, _ch_coil_type_named, _ch_unit_named,
+                        _ch_unit_mul_named)
 from ..utils.numerics import _julian_to_cal
 
 
@@ -50,7 +52,7 @@ class Tag(object):
         out += ">"
         return out
 
-    def __cmp__(self, tag):  # noqa: D105
+    def __eq__(self, tag):  # noqa: D105
         return int(self.kind == tag.kind and
                    self.type == tag.type and
                    self.size == tag.size and
@@ -105,10 +107,12 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
 
 def _loc_to_coil_trans(loc):
     """Convert loc vector to coil_trans."""
-    coil_trans = np.zeros((4, 4))
-    coil_trans[:3, 3] = loc[:3]
-    coil_trans[:3, :3] = np.reshape(loc[3:], (3, 3)).T
-    coil_trans[-1, -1] = 1.
+    assert loc.shape[-1] == 12
+    coil_trans = np.zeros(loc.shape[:-1] + (4, 4))
+    coil_trans[..., :3, 3] = loc[..., :3]
+    coil_trans[..., :3, :3] = np.reshape(
+        loc[..., 3:], loc.shape[:-1] + (3, 3)).swapaxes(-1, -2)
+    coil_trans[..., -1, -1] = 1.
     return coil_trans
 
 
@@ -300,9 +304,13 @@ def _read_id_struct(fid, tag, shape, rlims):
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
     """Read dig point struct tag."""
+    kind = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    kind = _dig_kind_named.get(kind, kind)
+    ident = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    if kind == FIFF.FIFFV_POINT_CARDINAL:
+        ident = _dig_cardinal_named.get(ident, ident)
     return dict(
-        kind=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        ident=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        kind=kind, ident=ident,
         r=np.frombuffer(fid.read(12), dtype=">f4"),
         coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
 
@@ -321,7 +329,7 @@ def _read_coord_trans_struct(fid, tag, shape, rlims):
     return data
 
 
-_coord_dict = {
+_ch_coord_dict = {
     FIFF.FIFFV_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_REF_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_EEG_CH: FIFF.FIFFV_COORD_HEAD,
@@ -348,7 +356,11 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
     ch_name = ch_name[:np.argmax(ch_name == b'')].tobytes()
     d['ch_name'] = ch_name.decode()
     # coil coordinate system definition
-    d['coord_frame'] = _coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
+    d['coord_frame'] = _ch_coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
+    d['kind'] = _ch_kind_named.get(d['kind'], d['kind'])
+    d['coil_type'] = _ch_coil_type_named.get(d['coil_type'], d['coil_type'])
+    d['unit'] = _ch_unit_named.get(d['unit'], d['unit'])
+    d['unit_mul'] = _ch_unit_mul_named.get(d['unit_mul'], d['unit_mul'])
     return d
 
 
@@ -447,11 +459,11 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
             tag.data = _read_matrix(fid, tag, shape, rlims, matrix_coding)
         else:
             #   All other data types
-            fun = _call_dict.get(tag.type)
-            if fun is not None:
-                tag.data = fun(fid, tag, shape, rlims)
-            else:
+            try:
+                fun = _call_dict[tag.type]
+            except KeyError:
                 raise Exception('Unimplemented tag data type %s' % tag.type)
+            tag.data = fun(fid, tag, shape, rlims)
     if tag.next != FIFF.FIFFV_NEXT_SEQ:
         # f.seek(tag.next,0)
         fid.seek(tag.next, 1)  # XXX : fix? pb when tag.next < 0

@@ -19,15 +19,14 @@ import numpy as np
 import mne
 
 ###############################################################################
-# Instead of creating the :class:`~mne.Evoked` object from an
-# :class:`~mne.Epochs` object, we'll load an existing :class:`~mne.Evoked`
-# object from disk. Remember, the :file:`.fif` format can store multiple
-# :class:`~mne.Evoked` objects, so we'll end up with a :class:`list` of
-# :class:`~mne.Evoked` objects after loading. Recall also from the
+# Instead of creating the `~mne.Evoked` object from an `~mne.Epochs` object,
+# we'll load an existing `~mne.Evoked` object from disk. Remember, the
+# :file:`.fif` format can store multiple `~mne.Evoked` objects, so we'll end up
+# with a `list` of `~mne.Evoked` objects after loading. Recall also from the
 # :ref:`tut-section-load-evk` section of :ref:`the introductory Evoked tutorial
-# <tut-evoked-class>` that the sample :class:`~mne.Evoked` objects have not
-# been baseline-corrected and have unapplied projectors, so we'll take care of
-# that when loading:
+# <tut-evoked-class>` that the sample `~mne.Evoked` objects have not been
+# baseline-corrected and have unapplied projectors, so we'll take care of that
+# when loading:
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_evk_file = os.path.join(sample_data_folder, 'MEG', 'sample',

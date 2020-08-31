@@ -248,12 +248,12 @@ csd_signal = csd_morlet(epochs['signal'], frequencies=[10])
 
 # Compute the spatial filters for each vertex, using two approaches.
 filters_approach1 = make_dics(
-    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=True,
+    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', depth=1.,
     inversion='single', weight_norm=None)
 print(filters_approach1)
 
 filters_approach2 = make_dics(
-    info, fwd, csd_signal, reg=0.1, pick_ori='max-power', normalize_fwd=False,
+    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', depth=None,
     inversion='matrix', weight_norm='unit-noise-gain')
 print(filters_approach2)
 
@@ -265,6 +265,7 @@ power_approach1, f = apply_dics_csd(csd_signal, filters_approach1)
 power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 # Plot the DICS power maps for both approaches.
+brains = list()
 for approach, power in enumerate([power_approach1, power_approach2], 1):
     title = 'DICS power map, approach %d' % approach
     brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
@@ -272,12 +273,13 @@ for approach, power in enumerate([power_approach1, power_approach2], 1):
                        title=title)
 
     # Indicate the true locations of the source activity on the plot.
-    brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
-    brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
+    brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh', color='b')
+    brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh', color='b')
 
     # Rotate the view and add a title.
     brain.show_view(view={'azimuth': 0, 'elevation': 0, 'distance': 550,
                     'focalpoint': [0, 0, 0]})
+    brains.append(brain)
 
 ###############################################################################
 # Excellent! All methods found our two simulated sources. Of course, with a

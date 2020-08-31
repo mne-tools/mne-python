@@ -305,3 +305,15 @@
 .. _Lx37: https://github.com/Lx37
 
 .. _Kyle Mathewson: https://github.com/kylemath
+
+.. _Ezequiel Mikulan: https://github.com/ezemikulan
+
+.. _Jan Sedivy: https://github.com/honzaseda
+
+.. _Johann Benerradi: https://github.com/HanBnrd
+
+.. _Rahul Nadkarni: https://github.com/rahuln
+
+.. _Lau Møller Andersen: https://github.com/ualsbombe
+
+.. _Martin Schulz: https://github.com/marsipu

@@ -195,7 +195,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # deal with compensation (only relevant for CTF data, either CTF
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
-        if self._read_comp_grade is not None:
+        if self._read_comp_grade is not None and len(info['comps']):
             logger.info('Current compensation grade : %d'
                         % self._read_comp_grade)
         self._comp = None
@@ -431,6 +431,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         raise NotImplementedError
 
     def _check_bad_segment(self, start, stop, picks,
+                           reject_start, reject_stop,
                            reject_by_annotation=False):
         """Check if data segment is bad.
 
@@ -446,6 +447,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             End of the slice.
         picks : array of int
             Channel picks.
+        reject_start : int
+            First sample to check for overlaps with bad annotations.
+        reject_stop : int
+            Last sample to check for overlaps with bad annotations.
         reject_by_annotation : bool
             Whether to perform rejection based on annotations.
             False by default.
@@ -462,9 +467,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             annot = self.annotations
             sfreq = self.info['sfreq']
             onset = _sync_onset(self, annot.onset)
-            overlaps = np.where(onset < stop / sfreq)
+            overlaps = np.where(onset < reject_stop / sfreq)
             overlaps = np.where(onset[overlaps] + annot.duration[overlaps] >
-                                start / sfreq)
+                                reject_start / sfreq)
             for descr in annot.description[overlaps]:
                 if descr.lower().startswith('bad'):
                     return descr
@@ -963,7 +968,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Europe. None can only be used with the mode 'spectrum_fit',
             where an F test is used to find sinusoidal components.
         %(picks_all_data)s
-        %(filter_length)s
+        %(filter_length_notch)s
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, freqs / 200 is used.
@@ -1153,7 +1158,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                     new_data[ci, this_sl] = resamp
 
         self._first_samps = (self._first_samps * ratio).astype(int)
-        self._last_samps = (np.array(self._first_samps) + n_news - 1).tolist()
+        self._last_samps = (np.array(self._first_samps) + n_news - 1)
         self._raw_lengths[ri] = list(n_news)
         assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
         self._data = new_data

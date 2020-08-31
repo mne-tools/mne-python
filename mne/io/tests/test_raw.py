@@ -16,10 +16,22 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
 
 from mne import concatenate_raws, create_info, Annotations
 from mne.datasets import testing
-from mne.io import read_raw_fif, RawArray, BaseRaw
-from mne.utils import _TempDir, catch_logging, _raw_annot, _stamp_to_dt
+from mne.externals.h5io import read_hdf5, write_hdf5
+from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
+from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
+                       object_diff, check_version)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
+
+
+def assert_named_constants(info):
+    """Assert that info['chs'] has named constants."""
+    # for now we just check one
+    __tracebackhide__ = True
+    r = repr(info['chs'][0])
+    for check in ('.*FIFFV_COORD_.*', '.*FIFFV_COIL_.*', '.*FIFF_UNIT_.*',
+                  '.*FIFF_UNITM_.*',):
+        assert re.match(check, r, re.DOTALL) is not None, (check, r)
 
 
 def test_orig_units():
@@ -98,6 +110,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 assert_allclose(times1, times2)
     else:
         raw = reader(**kwargs)
+    assert_named_constants(raw.info)
 
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
@@ -128,6 +141,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     raw = concatenate_raws([raw])
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
     raw3 = read_raw_fif(out_fname)
+    assert_named_constants(raw3.info)
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
@@ -201,6 +215,14 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         assert_array_equal(times, times_2,)
         assert_array_equal(data[picks_2], data_2)
 
+    # Make sure that writing info to h5 format
+    # (all fields should be compatible)
+    if check_version('h5py'):
+        fname_h5 = op.join(tempdir, 'info.h5')
+        with _writing_info_hdf5(raw.info):
+            write_hdf5(fname_h5, raw.info)
+        new_info = Info(read_hdf5(fname_h5))
+        assert object_diff(new_info, raw.info) == ''
     return raw
 
 

@@ -102,13 +102,24 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer.backend._Renderer(size=win_size, bgcolor=win_color)
-    rend.set_interactive()
+    rend = renderer.create_3d_figure(
+        size=win_size,
+        bgcolor=win_color,
+        smooth_shading=True,
+        scene=False,
+    )
+    for interaction in ('terrain', 'trackball'):
+        rend.set_interaction(interaction)
 
     # use mesh
-    rend.mesh(x=tet_x, y=tet_y, z=tet_z,
-              triangles=tet_indices,
-              color=tet_color)
+    mesh_data = rend.mesh(
+        x=tet_x,
+        y=tet_y,
+        z=tet_z,
+        triangles=tet_indices,
+        color=tet_color,
+    )
+    rend.remove_mesh(mesh_data)
 
     # use contour
     rend.contour(surface=ct_surface, scalars=ct_scalars,
@@ -154,9 +165,8 @@ def test_3d_backend(renderer):
     rend.show()
 
 
-def test_get_3d_backend():
+def test_get_3d_backend(renderer):
     """Test get_3d_backend function call for side-effects."""
-    from mne.viz.backends import renderer
     # Test twice to ensure the first call had no side-effect
     orig_backend = renderer.MNE_3D_BACKEND
     assert renderer.get_3d_backend() == orig_backend

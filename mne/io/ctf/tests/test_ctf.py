@@ -12,11 +12,13 @@ from numpy import array_equal
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
+import mne
 from mne import (pick_types, read_annotations, create_info,
-                 events_from_annotations)
+                 events_from_annotations, make_forward_solution)
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.io.compensator import get_current_comp
+from mne.io.ctf.constants import CTF
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 from mne.utils import (run_tests_if_main, _clean_names, catch_logging,
@@ -381,6 +383,47 @@ def test_read_ctf_annotations_smoke_test():
 
     raw = read_raw_ctf(fname)
     _assert_annotations_equal(raw.annotations, annot, 1e-6)
+
+
+def _read_res4_mag_comp(dsdir):
+    res = mne.io.ctf.res4._read_res4(dsdir)
+    for ch in res['chs']:
+        if ch['sensor_type_index'] == CTF.CTFV_REF_MAG_CH:
+            ch['grad_order_no'] = 1
+    return res
+
+
+def _bad_res4_grad_comp(dsdir):
+    res = mne.io.ctf.res4._read_res4(dsdir)
+    for ch in res['chs']:
+        if ch['sensor_type_index'] == CTF.CTFV_MEG_CH:
+            ch['grad_order_no'] = 1
+            break
+    return res
+
+
+@testing.requires_testing_data
+def test_read_ctf_mag_bad_comp(tmpdir, monkeypatch):
+    """Test CTF reader with mag comps and bad comps."""
+    path = op.join(ctf_dir, ctf_fname_continuous)
+    raw_orig = read_raw_ctf(path)
+    assert raw_orig.compensation_grade == 0
+    monkeypatch.setattr(mne.io.ctf.ctf, '_read_res4', _read_res4_mag_comp)
+    raw_mag_comp = read_raw_ctf(path)
+    assert raw_mag_comp.compensation_grade == 0
+    sphere = mne.make_sphere_model()
+    src = mne.setup_volume_source_space(pos=50., exclude=5., bem=sphere)
+    assert src[0]['nuse'] == 26
+    for grade in (0, 1):
+        raw_orig.apply_gradient_compensation(grade)
+        raw_mag_comp.apply_gradient_compensation(grade)
+        args = (None, src, sphere, True, False)
+        fwd_orig = make_forward_solution(raw_orig.info, *args)
+        fwd_mag_comp = make_forward_solution(raw_mag_comp.info, *args)
+        assert_allclose(fwd_orig['sol']['data'], fwd_mag_comp['sol']['data'])
+    monkeypatch.setattr(mne.io.ctf.ctf, '_read_res4', _bad_res4_grad_comp)
+    with pytest.raises(RuntimeError, match='inconsistent compensation grade'):
+        read_raw_ctf(path)
 
 
 run_tests_if_main()

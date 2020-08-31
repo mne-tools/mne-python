@@ -289,9 +289,9 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
        ignored.
     %(preload)s
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%d'
+        Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %03d'.
+        prior to 0.14.0 was 'EEG %%03d'.
     %(verbose)s
 
     Returns
@@ -436,7 +436,8 @@ class RawMff(BaseRaw):
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
-            chs[idx].update({'unit_mul': 0, 'cal': cals[idx],
+            chs[idx].update({'unit_mul': FIFF.FIFF_UNITM_NONE,
+                             'cal': cals[idx],
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})

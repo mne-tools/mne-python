@@ -7,7 +7,7 @@
 #
 # License: Simplified BSD
 
-import os
+from mne.minimum_norm.inverse import apply_inverse
 import os.path as op
 from pathlib import Path
 import sys
@@ -19,11 +19,12 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
-                 read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
+                 read_trans, read_dipole, SourceEstimate,
                  VolSourceEstimate, make_sphere_model, use_coil_def,
                  setup_volume_source_space, read_forward_solution,
                  VolVectorSourceEstimate, convert_forward_solution,
                  compute_source_morph, MixedSourceEstimate)
+from mne.source_estimate import _BaseVolSourceEstimate
 from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
                     read_raw_nirx)
 from mne.io._digitization import write_dig
@@ -53,7 +54,8 @@ src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
-nirx_fname = op.join(data_dir, 'NIRx', 'nirx_15_2_recording_w_short')
+nirx_fname = op.join(data_dir, 'NIRx', 'nirscout',
+                     'nirx_15_2_recording_w_short')
 
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -105,6 +107,7 @@ def test_plot_head_positions():
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
+@pytest.mark.slowtest
 def test_plot_sparse_source_estimates(renderer_interactive):
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -135,7 +138,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc_data = np.zeros((len(inds), n_time))
     stc_data[0, 1] = 1.
     stc_data[1, 4] = 2.
-    vertices = [vertices[inds], np.empty(0, dtype=np.int)]
+    vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)
@@ -146,6 +149,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
 
 @testing.requires_testing_data
 @traits_test
+@pytest.mark.slowtest
 def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -213,8 +217,7 @@ def test_plot_alignment(tmpdir, renderer):
     # no-head version
     renderer.backend._close_all()
     # all coord frames
-    pytest.raises(ValueError, plot_alignment, info)
-    plot_alignment(info, surfaces=[])
+    plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                              coord_frame=coord_frame, trans=Path(trans_fname),
@@ -603,13 +606,14 @@ def test_snapshot_brain_montage(renderer):
 @requires_dipy()
 @requires_nibabel()
 @requires_version('nilearn', '0.4')
-@pytest.mark.parametrize('mode, stype, init_t, want_t, init_p, want_p', [
-    ('glass_brain', 's', None, 2, None, (-30.9, 18.4, 56.7)),
-    ('stat_map', 'vec', 1, 1, None, (15.7, 16.0, -6.3)),
-    ('glass_brain', 'vec', None, 1, (10, -10, 20), (6.6, -9.0, 19.9)),
-    ('stat_map', 's', 1, 1, (-10, 5, 10), (-12.3, 2.0, 7.7))])
+@pytest.mark.parametrize(
+    'mode, stype, init_t, want_t, init_p, want_p, bg_img', [
+        ('glass_brain', 's', None, 2, None, (-30.9, 18.4, 56.7), None),
+        ('stat_map', 'vec', 1, 1, None, (15.7, 16.0, -6.3), None),
+        ('glass_brain', 'vec', None, 1, (10, -10, 20), (6.6, -9., 19.9), None),
+        ('stat_map', 's', 1, 1, (-10, 5, 10), (-12.3, 2.0, 7.7), 'brain.mgz')])
 def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
-                                      init_p, want_p):
+                                      init_p, want_p, bg_img):
     """Test interactive plotting of volume source estimates."""
     forward = read_forward_solution(fwd_fname)
     sample_src = forward['src']
@@ -632,7 +636,7 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
             fig = stc.plot(
                 sample_src, subject='sample', subjects_dir=subjects_dir,
                 mode=mode, initial_time=init_t, initial_pos=init_p,
-                verbose=True)
+                bg_img=bg_img, verbose=True)
     log = log.getvalue()
     want_str = 't = %0.3f s' % want_t
     assert want_str in log, (want_str, init_t)
@@ -642,6 +646,10 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
         _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('shift+right')
+    if bg_img is not None:
+        with pytest.raises(FileNotFoundError, match='MRI file .* not found'):
+            stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir,
+                     mode='stat_map', bg_img='junk.mgz')
 
 
 @pytest.mark.slowtest  # can be slow on OSX
@@ -682,37 +690,107 @@ def test_plot_volume_source_estimates_morph():
                  clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
-bad_azure_3d = pytest.mark.skipif(
-    os.getenv('AZURE_CI_WINDOWS', 'false') == 'true' and
-    sys.version_info[:2] == (3, 8),
-    reason='Crashes workers on Azure')
-
-
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-@bad_azure_3d
-def test_plot_vector_source_estimates(renderer_interactive):
-    """Test plotting of vector source estimates."""
-    sample_src = read_source_spaces(src_fname)
-
-    vertices = [s['vertno'] for s in sample_src]
-    n_verts = sum(len(v) for v in vertices)
-    n_time = 5
-    data = np.random.RandomState(0).rand(n_verts, 3, n_time)
-    stc = VectorSourceEstimate(data, vertices, 1, 1)
-
-    brain = stc.plot('sample', subjects_dir=subjects_dir, hemi='both',
-                     smoothing_steps=1, verbose='error')
+@pytest.mark.parametrize('pick_ori', ('vector', None))
+@pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
+def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
+                               pick_ori, kind):
+    """Test plotting of scalar and vector source estimates."""
+    invs, evoked = all_src_types_inv_evoked
+    inv = invs[kind]
+    is_pyvista = renderer_interactive._get_3d_backend() == 'pyvista'
+    with pytest.warns(None):  # PCA mag
+        stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
+    stc.data[1] *= -1  # make it signed
+    meth_key = 'plot_3d' if isinstance(stc, _BaseVolSourceEstimate) else 'plot'
+    stc.subject = 'sample'
+    meth = getattr(stc, meth_key)
+    kwargs = dict(subjects_dir=subjects_dir,
+                  time_viewer=False, show_traces=False,  # for speed
+                  smoothing_steps=1, verbose='error', src=inv['src'],
+                  volume_options=dict(resolution=None),  # for speed
+                  )
+    if pick_ori != 'vector':
+        kwargs['surface'] = 'white'
+    # Mayavi can't handle non-surface
+    if kind != 'surface' and not is_pyvista:
+        with pytest.raises(RuntimeError, match='PyVista'):
+            meth(**kwargs)
+        return
+    brain = meth(**kwargs)
     brain.close()
     del brain
 
-    with pytest.raises(ValueError, match='use "pos_lims"'):
-        stc.plot('sample', subjects_dir=subjects_dir,
-                 clim=dict(pos_lims=[1, 2, 3]))
+    if pick_ori == 'vector':
+        with pytest.raises(ValueError, match='use "pos_lims"'):
+            meth(**kwargs, clim=dict(pos_lims=[1, 2, 3]))
+    if kind in ('volume', 'mixed'):
+        with pytest.raises(TypeError, match='when stc is a mixed or vol'):
+            these_kwargs = kwargs.copy()
+            these_kwargs.pop('src')
+            meth(**these_kwargs)
+
+    with pytest.raises(ValueError, match='cannot be used'):
+        these_kwargs = kwargs.copy()
+        these_kwargs.update(show_traces=True, time_viewer=False)
+        meth(**these_kwargs)
+    if not is_pyvista:
+        with pytest.raises(ValueError, match='view_layout must be'):
+            meth(view_layout='horizontal', **kwargs)
+
+    # flatmaps (mostly a lot of error checking)
+    these_kwargs = kwargs.copy()
+    these_kwargs.update(surface='flat', views='auto')
+    if kind == 'surface' and pick_ori != 'vector' and is_pyvista:
+        with pytest.raises(FileNotFoundError, match='flatmap'):
+            meth(**these_kwargs)  # sample does not have them
+    fs_stc = stc.copy()
+    fs_stc.subject = 'fsaverage'  # this is wrong, but don't have to care
+    flat_meth = getattr(fs_stc, meth_key)
+    these_kwargs.pop('src')
+    if pick_ori == 'vector':
+        pass  # can't even pass "surface" variable
+    elif kind != 'surface':
+        with pytest.raises(TypeError, match='SourceEstimate when a flatmap'):
+            flat_meth(**these_kwargs)
+    elif not is_pyvista:
+        with pytest.raises(RuntimeError, match='PyVista 3D backend.*flatmap'):
+            flat_meth(**these_kwargs)
+    else:
+        brain = flat_meth(**these_kwargs)
+        brain.close()
+        these_kwargs.update(surface='inflated', views='flat')
+        with pytest.raises(ValueError, match='surface="flat".*views="flat"'):
+            flat_meth(**these_kwargs)
+
+    # just test one for speed
+    if kind != 'mixed':
+        return
+    assert is_pyvista
+    brain = meth(
+        views=['lat', 'med', 'ven'], hemi='lh',
+        view_layout='horizontal', **kwargs)
+    brain.close()
+    assert brain._subplot_shape == (1, 3)
+    del brain
+    these_kwargs = kwargs.copy()
+    these_kwargs['volume_options'] = dict(blending='foo')
+    with pytest.raises(ValueError, match='mip'):
+        meth(**these_kwargs)
+    these_kwargs['volume_options'] = dict(badkey='foo')
+    with pytest.raises(ValueError, match='unknown'):
+        meth(**these_kwargs)
+    # with resampling (actually downsampling but it's okay)
+    these_kwargs['volume_options'] = dict(resolution=20., surface_alpha=0.)
+    brain = meth(**these_kwargs)
+    brain.close()
+    del brain
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_sensors_connectivity(renderer):
     """Test plotting of sensors connectivity."""
@@ -774,7 +852,6 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
-@bad_azure_3d
 def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)
@@ -796,6 +873,7 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
 @testing.requires_testing_data
 @traits_test
+@pytest.mark.slowtest
 def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
     sample_src = read_source_spaces(src_fname)
@@ -824,7 +902,7 @@ def test_link_brains(renderer_interactive):
             link_brains([])
         with pytest.raises(TypeError, match='type is Brain'):
             link_brains('foo')
-        link_brains(brain)
+        link_brains(brain, time=True, camera=True)
 
 
 def test_renderer(renderer):

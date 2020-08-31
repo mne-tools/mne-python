@@ -57,9 +57,29 @@ interactivity within the scene is limited in non-blocking plot calls.
      In [1]: from mayavi import mlab
      In [2]: %gui qt
 
+If you installed the ``nb_conda_kernels`` package into your ``base``
+environment (as recommended), you should be able to launch ``mne``-capable
+notebooks from within the Anaconda Navigator GUI without having to explicitly
+switch to the ``mne`` environment first; look for ``Python [conda env:mne]``
+when choosing which notebook kernel to use. Otherwise, be sure to activate the
+``mne`` environment before launching the notebook.
+
 If you use another Python setup and you encounter some difficulties please
 report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
 assistance.
+
+It is also possible to interact with the 3D plots without installing Qt by using
+the notebook 3d backend:
+
+.. code-block:: ipython
+
+   In [1]: import mne
+   In [2]: mne.viz.set_3d_backend("notebook")
+
+
+The notebook 3d backend requires PyVista to be installed along with other packages,
+please follow :doc:`mne_python`
+
 
 .. _installing_master:
 
@@ -159,6 +179,17 @@ to force MESA to use modern OpenGL by using this before executing
 
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
+
+MESA also can have trouble with full-screen antialiasing, which you can
+disable with:
+
+.. code-block:: console
+
+    $ export MNE_3D_OPTION_ANTIALIAS=false
+
+or by doing
+:func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
+a given Python session.
 
 .. _troubleshoot_3d:
 

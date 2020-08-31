@@ -40,6 +40,7 @@ from mne.decoding import (SlidingEstimator, GeneralizingEstimator, Scaler,
 
 data_path = sample.data_path()
 
+subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 tmin, tmax = -0.200, 0.500
 event_id = {'Auditory/Left': 1, 'Visual/Left': 3}  # just use two
@@ -197,8 +198,8 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 # We can use CSP with these data with:
 
 csp = CSP(n_components=3, norm_trace=False)
-clf = make_pipeline(csp, LogisticRegression(solver='lbfgs'))
-scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=1)
+clf_csp = make_pipeline(csp, LinearModel(LogisticRegression(solver='lbfgs')))
+scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=1)
 print('CSP: %0.1f%%' % (100 * scores.mean(),))
 
 ###############################################################################
@@ -320,11 +321,11 @@ time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 time_decod.fit(X, y)
 
 coef = get_coef(time_decod, 'patterns_', inverse_transform=True)
-evoked = mne.EvokedArray(coef, epochs.info, tmin=epochs.times[0])
+evoked_time_gen = mne.EvokedArray(coef, epochs.info, tmin=epochs.times[0])
 joint_kwargs = dict(ts_args=dict(time_unit='s'),
                     topomap_args=dict(time_unit='s'))
-evoked.plot_joint(times=np.arange(0., .500, .100), title='patterns',
-                  **joint_kwargs)
+evoked_time_gen.plot_joint(times=np.arange(0., .500, .100), title='patterns',
+                           **joint_kwargs)
 
 ###############################################################################
 # Temporal generalization
@@ -379,6 +380,22 @@ ax.set_title('Temporal generalization')
 ax.axvline(0, color='k')
 ax.axhline(0, color='k')
 plt.colorbar(im, ax=ax)
+
+###############################################################################
+# Projecting sensor-space patterns to source space
+# ================================================
+# If you use a linear classifier (or regressor) for your data, you can also
+# project these to source space. For example, using our ``evoked_time_gen``
+# from before:
+
+fwd = mne.read_forward_solution(
+    data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
+cov = mne.compute_covariance(epochs, tmax=0.)
+inv = mne.minimum_norm.make_inverse_operator(
+    evoked_time_gen.info, fwd, cov, loose=0.)
+stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1. / 9., 'dSPM')
+brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
+                 subjects_dir=subjects_dir)
 
 ###############################################################################
 # Source-space decoding

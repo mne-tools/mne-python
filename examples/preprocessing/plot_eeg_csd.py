@@ -3,13 +3,14 @@
 Transform EEG data using current source density (CSD)
 =====================================================
 
-This script shows an example of how to use CSD [1]_ [2]_ [3]_.
+This script shows an example of how to use CSD
+:footcite`PerrinEtAl1987,PerrinEtAl1989,Cohen2014,KayserTenke2015`.
 CSD takes the spatial Laplacian of the sensor signal (derivative in both
 x and y). It does what a planar gradiometer does in MEG. Computing these
 spatial derivatives reduces point spread. CSD transformed data have a sharper
 or more distinct topography, reducing the negative impact of volume conduction.
 """
-# Authors: Alex Rockhill <aprockhill206@gmail.com>
+# Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -83,13 +84,4 @@ for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
 ###############################################################################
 # References
 # ----------
-# .. [1] Perrin F, Bertrand O, Pernier J. "Scalp current density mapping:
-#        Value and estimation from potential data." IEEE Trans Biomed Eng.
-#        1987;34(4):283–288.
-# .. [2] Perrin F, Pernier J, Bertrand O, Echallier JF. "Spherical splines
-#        for scalp potential and current density mapping."
-#        [Corrigenda EEG 02274, EEG Clin. Neurophysiol., 1990, 76, 565]
-#        Electroenceph Clin Neurophysiol. 1989;72(2):184–187.
-# .. [3] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
-#       (Current Source Density) methodology in electrophysiology.
-#       Int J Psychophysiol. 2015 Sep; 97(3): 171–173.
+# .. footbibliography::

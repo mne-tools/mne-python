@@ -1,52 +1,41 @@
-name: base
+name: mne
 channels:
 - defaults
 dependencies:
-- python>=3.5
+- python>=3.8
 - pip
-- mkl
 - numpy
 - scipy
 - matplotlib
 - numba
-- pyqt>=5.9
-- pandas>=0.18
+- pandas
 - xlrd
 - scikit-learn
 - h5py
 - pillow
 - statsmodels
 - jupyter
-- pytest<5.4
-- pytest-cov
-- pytest-mock
-- pytest-timeout
-- pytest-xdist
 - joblib
 - psutil
-- flake8
 - numexpr
-- traits>=4.6.0
-- pyface>=6
-- traitsui>=6
-- imageio>=2.6.1
+- traits
+- pyface
+- traitsui
+- imageio
+- tqdm
+- spyder-kernels
 - pip:
-  - -i "https://pypi.org/simple/"
-  - -f "https://vtk.org/download"
   - mne
-  - https://github.com/numpy/numpydoc/archive/master.zip
   - imageio-ffmpeg>=0.4.1
-  - vtk
+  - vtk>=9.0.1
   - pyvista>=0.24
-  - https://github.com/enthought/mayavi/archive/master.zip
+  - pyvistaqt
+  - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
   - nilearn
   - neo
-  - pytest-sugar
-  - pydocstyle
-  - codespell
   - python-picard
-  - tqdm
   - PyQt5>=5.10,<5.14; platform_system == "Darwin"
+  - PyQt5>=5.10; platform_system != "Darwin"

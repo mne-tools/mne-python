@@ -457,7 +457,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     megcoils, compcoils, megnames, meg_info = [], [], [], []
     eegels, eegnames = [], []
 
-    if meg and len(pick_types(info, ref_meg=False, exclude=[])) > 0:
+    if meg and len(pick_types(info, meg=True, ref_meg=False, exclude=[])) > 0:
         megcoils, compcoils, megnames, meg_info = \
             _prep_meg_channels(info, ignore_ref=ignore_ref)
     if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -690,7 +690,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     # Check for omissions due to proximity to inner skull in
     # make_forward_solution, which will result in an exception
     if fwd['src'][0]['nuse'] != len(pos):
-        inuse = fwd['src'][0]['inuse'].astype(np.bool)
+        inuse = fwd['src'][0]['inuse'].astype(bool)
         head = ('The following dipoles are outside the inner skull boundary')
         msg = len(head) * '#' + '\n' + head + '\n'
         for (t, pos) in zip(times[np.logical_not(inuse)],

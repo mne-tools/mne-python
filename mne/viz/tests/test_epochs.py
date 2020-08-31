@@ -269,9 +269,12 @@ def test_plot_drop_log():
     pytest.raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad()
     epochs.plot_drop_log()
-    plot_drop_log([['One'], [], []])
-    plot_drop_log([['One'], ['Two'], []])
-    plot_drop_log([['One'], ['One', 'Two'], []])
+    plot_drop_log((('One',), (), ()))
+    plot_drop_log((('One',), ('Two',), ()))
+    plot_drop_log((('One',), ('One', 'Two'), ()))
+    for arg in ([], ([],), (1,)):
+        with pytest.raises(TypeError, match='tuple of tuple of str'):
+            plot_drop_log(arg)
     plt.close('all')
 
 
@@ -282,7 +285,7 @@ def test_plot_butterfly():
     sfreq = 1000.
     data = np.sin(rng.randn(n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, np.ones([n_epochs],
-                       dtype=np.int)]).T
+                       dtype=np.int64)]).T
     chanlist = ['eeg' if chan < n_channels // 3 else 'ecog'
                 if chan < n_channels // 2 else 'seeg'
                 for chan in range(n_channels)]

@@ -9,12 +9,11 @@ activity.
 .. contents:: Page contents
    :local:
    :depth: 2
+
 """
 # Author: Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD (3-clause)
-
-# sphinx_gallery_thumbnail_number = 5
 
 import matplotlib.pyplot as plt
 import mne
@@ -196,19 +195,34 @@ stc_vec = apply_lcmv(evoked, filters_vec, max_ori_out='signed')
 ###############################################################################
 # Visualize the reconstructed source activity
 # -------------------------------------------
-# We can visualize the source estimate in different ways, e.g. as an overlay
-# onto the MRI or as a glass brain.
+# We can visualize the source estimate in different ways, e.g. as a volume
+# rendering, an overlay onto the MRI, or as an overlay onto a glass brain.
+#
 # The plots for the scalar beamformer show brain activity in the right temporal
 # lobe around 100 ms post stimulus. This is expected given the left-ear
 # auditory stimulation of the experiment.
+#
+# Volumetric rendering (3D)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 lims = [0.3, 0.45, 0.6]
-
 kwargs = dict(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
               initial_time=0.087, verbose=True)
 
-stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+stc.plot_3d(clim=dict(kind='value', pos_lims=lims), hemi='both',
+            views=['sagittal', 'coronal', 'axial'], size=(800, 300),
+            view_layout='horizontal', show_traces=0.4, **kwargs)
+
 ###############################################################################
+# On MRI slices (orthoview; 2D)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+
+###############################################################################
+# On MNI glass brain (orthoview; 2D)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 ###############################################################################
@@ -217,6 +231,13 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 # and z). To be able to visualize this, the plotting function combines those
 # estimates into one:
 
+# sphinx_gallery_thumbnail_number = 5
+
+stc_vec.plot_3d(clim=dict(kind='value', lims=lims), hemi='both',
+                views=['sagittal', 'coronal', 'axial'], size=(800, 300),
+                view_layout='horizontal', show_traces=0.4, **kwargs)
+
+###############################################################################
 stc_vec.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 
 ###############################################################################

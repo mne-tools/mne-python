@@ -37,7 +37,7 @@ from ..io.meas_info import Info, _simplify_info
 from ..io.proj import Projection
 
 
-_fnirs_types = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
+_fnirs_types = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
@@ -321,7 +321,11 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
             types.append(list(these_ch_types)[0])
         data = proj['data']['data'].ravel()
         info_names = _clean_names(info['ch_names'], remove_whitespace=True)
-        use_info = pick_info(info, pick_channels(info_names, ch_names))
+        picks = pick_channels(info_names, ch_names)
+        if len(picks) == 0:
+            raise ValueError(
+                f'No channel names in info match projector {proj}')
+        use_info = pick_info(info, picks)
         data_picks, pos, merge_channels, names, ch_type, this_sphere, \
             clip_origin = _prepare_topomap_plot(
                 use_info, _get_ch_type(use_info, None), sphere=sphere)
@@ -1497,10 +1501,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         String format for topomap values. Defaults (None) to "%%01d ms" if
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
         "%%g" otherwise.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
-        a check box for reversible selection of SSP projection vectors will
-        be show.
+    %(plot_proj)s
     show : bool
         Show figure if True.
     %(topomap_show_names)s
@@ -1613,10 +1614,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         names = None
     # apply projections before picking. NOTE: the `if proj is True`
     # anti-pattern is needed here to exclude proj='interactive'
+    _check_option('proj', proj, (True, False, 'interactive', 'reconstruct'))
     if proj is True and not evoked.proj:
-        data = evoked.apply_proj().data
-    else:
-        data = evoked.data
+        evoked.apply_proj()
+    elif proj == 'reconstruct':
+        evoked._reconstruct_proj()
+    data = evoked.data
+
     # remove compensation matrices (safe: only plotting & already made copy)
     evoked.info['comps'] = []
     evoked = evoked._pick_drop_channels(picks)
@@ -1761,7 +1765,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
         if cn is not None:
-            cbar.set_ticks(cn.levels)
+            cbar.set_ticks(contours)
         cbar.ax.tick_params(labelsize=7)
         if cmap[1]:
             for im in images:
@@ -2301,7 +2305,6 @@ def _animate(frame, ax, ax_line, params):
         line.remove()
         ylim = ax_line.get_ylim()
         params['line'] = ax_line.axvline(all_times[time_idx], color='r')
-        print(all_times[time_idx])
         ax_line.set_ylim(ylim)
         items.append(params['line'])
     params['frame'] = frame
@@ -2333,10 +2336,10 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     if ch_type is None:
         ch_type = _picks_by_type(evoked.info)[0][0]
     if ch_type not in ('mag', 'grad', 'eeg',
-                       'hbo', 'hbr', 'fnirs_od', 'fnirs_raw'):
+                       'hbo', 'hbr', 'fnirs_od', 'fnirs_cw_amplitude'):
         raise ValueError("Channel type not supported. Supported channel "
                          "types include 'mag', 'grad', 'eeg'. 'hbo', 'hbr', "
-                         "'fnirs_raw', and 'fnirs_od'.")
+                         "'fnirs_cw_amplitude', and 'fnirs_od'.")
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -2481,12 +2484,12 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                   sphere=None):
     """Plot arrow map.
 
-    Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
-    these arrows represents an estimation of the current flow underneath
-    the MEG sensors. They are a poor man's MNE.
+    Compute arrowmaps, based upon the Hosaka-Cohen transformation
+    :footcite:`CohenHosaka1976`, these arrows represents an estimation of the
+    current flow underneath the MEG sensors. They are a poor man's MNE.
 
     Since planar gradiometers takes gradients along latitude and longitude,
-    they need to be projected to the flatten manifold span by magnetometer
+    they need to be projected to the flattened manifold span by magnetometer
     or radial gradiometers before taking the gradients in the 2D Cartesian
     coordinate system for visualization on the 2D topoplot. You can use the
     ``info_from`` and ``info_to`` parameters to interpolate from
@@ -2566,13 +2569,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
 
     References
     ----------
-    .. [1] D. Cohen, H. Hosaka
-       "Part II magnetic field produced by a current dipole",
-       Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
-       DOI: 10.1016/S0022-0736(76)80041-6
+    .. footbibliography::
     """
     from matplotlib import pyplot as plt
-    from ..forward import _map_meg_channels
+    from ..forward import _map_meg_or_eeg_channels
 
     sphere = _check_sphere(sphere, info_from)
     ch_type = _picks_by_type(info_from)
@@ -2602,7 +2602,11 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                              "Got %s" % ch_type)
 
     if info_to is not info_from:
-        mapping = _map_meg_channels(info_from, info_to, mode='accurate')
+        info_to = pick_info(info_to, pick_types(info_to, meg=True))
+        info_from = pick_info(info_from, pick_types(info_from, meg=True))
+        # XXX should probably support the "origin" argument
+        mapping = _map_meg_or_eeg_channels(
+            info_from, info_to, origin=(0., 0., 0.04), mode='accurate')
         data = np.dot(mapping, data)
 
     _, pos, _, _, _, sphere, clip_origin = \
@@ -2616,7 +2620,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     plot_topomap(data, pos, axes=axes, vmin=vmin, vmax=vmax, cmap=cmap,
                  sensors=sensors, res=res, names=names, show_names=show_names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
-                 contours=contours, image_interp=image_interp, show=show,
+                 contours=contours, image_interp=image_interp, show=False,
                  onselect=onselect, extrapolate=extrapolate, sphere=sphere,
                  ch_type=ch_type)
     x, y = tuple(pos.T)
@@ -2626,5 +2630,6 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1, clip_on=False)
     axes.figure.canvas.draw_idle()
     tight_layout(fig=fig)
+    plt_show(show)
 
     return fig

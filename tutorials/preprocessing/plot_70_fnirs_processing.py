@@ -25,8 +25,9 @@ import mne
 
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-fnirs_raw_dir = os.path.join(fnirs_data_folder, 'Participant-1')
-raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
+fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
+raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
+raw_intensity.load_data()
 
 
 ###############################################################################
@@ -302,7 +303,7 @@ evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
                           vmin=vmin, vmax=vmax, colorbar=False,
                           **topomap_args)
 
-evoked_diff = mne.combine_evoked([evoked_left, -evoked_right], weights='equal')
+evoked_diff = mne.combine_evoked([evoked_left, evoked_right], weights=[1, -1])
 
 evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2:],
                          vmin=vmin, vmax=vmax, colorbar=True,

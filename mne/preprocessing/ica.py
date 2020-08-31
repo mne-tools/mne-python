@@ -297,6 +297,17 @@ class ICA(ContainsMixin):
     see :class:`~sklearn.decomposition.FastICA`, :func:`~picard.picard`,
     :func:`~mne.preprocessing.infomax`.
 
+    .. note:: Picard can be used to solve the same problems as FastICA,
+              Infomax, and extended Infomax, but typically converges faster
+              than either of those methods. To make use of Picard's speed while
+              still obtaining the same solution as with other algorithms, you
+              need to specify ``method='picard'`` and ``fit_params`` as a
+              dictionary with the following combination of keys:
+
+              - ``dict(ortho=False, extended=False)`` for Infomax
+              - ``dict(ortho=False, extended=True)`` for extended Infomax
+              - ``dict(ortho=True, extended=True)`` for FastICA
+
     Reducing the tolerance (set in ``fit_params``) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
     compare tolerance levels between Infomax and Picard, but for Picard and
@@ -463,11 +474,7 @@ class ICA(ContainsMixin):
         tstep : float
             Length of data chunks for artifact rejection in seconds.
             It only applies if ``inst`` is of type Raw.
-        reject_by_annotation : bool
-            Whether to omit bad segments from the data before fitting. If True,
-            annotated segments with a description that starts with 'bad' are
-            omitted. Has no effect if ``inst`` is an Epochs or Evoked object.
-            Defaults to True.
+        %(reject_by_annotation_raw)s
 
             .. versionadded:: 0.14.0
         %(verbose_meth)s
@@ -483,11 +490,39 @@ class ICA(ContainsMixin):
         _check_for_unsupported_ica_channels(
             picks, inst.info, allow_ref_meg=self.allow_ref_meg)
 
+        # Actually start fitting
         t_start = time()
+        if self.current_fit != 'unfitted':
+            self._reset()
+
+        logger.info('Fitting ICA to data using %i channels '
+                    '(please be patient, this may take a while)' % len(picks))
+
+        if self.max_pca_components is None:
+            self.max_pca_components = len(picks)
+            logger.info('Inferring max_pca_components from picks')
+        elif self.max_pca_components > len(picks):
+            raise ValueError(
+                f'ica.max_pca_components ({self.max_pca_components}) cannot '
+                f'be greater than len(picks) ({len(picks)})')
+        # n_components could be float 0 < x <= 1, but that's okay here
+        if self.n_components is not None and self.n_components > len(picks):
+            raise ValueError(
+                f'ica.n_components ({self.n_components}) cannot '
+                f'be greater than len(picks) ({len(picks)})')
+
+        # filter out all the channels the raw wouldn't have initialized
+        self.info = pick_info(inst.info, picks)
+
+        if self.info['comps']:
+            self.info['comps'] = []
+        self.ch_names = self.info['ch_names']
+
         if isinstance(inst, BaseRaw):
             self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                           tstep, reject_by_annotation, verbose)
-        elif isinstance(inst, BaseEpochs):
+        else:
+            assert isinstance(inst, BaseEpochs)
             self._fit_epochs(inst, picks, decim, verbose)
 
         # sort ICA components by explained variance
@@ -500,37 +535,16 @@ class ICA(ContainsMixin):
 
     def _reset(self):
         """Aux method."""
-        del self.pre_whitener_
-        del self.unmixing_matrix_
-        del self.mixing_matrix_
-        del self.n_components_
-        del self.n_samples_
-        del self.pca_components_
-        del self.pca_explained_variance_
-        del self.pca_mean_
-        del self.n_iter_
-        if hasattr(self, 'drop_inds_'):
-            del self.drop_inds_
-        if hasattr(self, 'reject_'):
-            del self.reject_
+        for key in ('pre_whitener_', 'unmixing_matrix_', 'mixing_matrix_',
+                    'n_components_', 'n_samples_', 'pca_components_',
+                    'pca_explained_variance_', 'pca_mean_', 'n_iter_',
+                    'drop_inds_', 'reject_'):
+            if hasattr(self, key):
+                delattr(self, key)
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):
         """Aux method."""
-        if self.current_fit != 'unfitted':
-            self._reset()
-
-        logger.info('Fitting ICA to data using %i channels '
-                    '(please be patient, this may take a while)' % len(picks))
-
-        if self.max_pca_components is None:
-            self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks')
-
-        self.info = pick_info(raw.info, picks)
-        if self.info['comps']:
-            self.info['comps'] = []
-        self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
         reject_by_annotation = 'omit' if reject_by_annotation else None
@@ -558,27 +572,10 @@ class ICA(ContainsMixin):
 
     def _fit_epochs(self, epochs, picks, decim, verbose):
         """Aux method."""
-        if self.current_fit != 'unfitted':
-            self._reset()
-
         if epochs.events.size == 0:
             raise RuntimeError('Tried to fit ICA with epochs, but none were '
                                'found: epochs.events is "{}".'
                                .format(epochs.events))
-
-        logger.info('Fitting ICA to data using %i channels '
-                    '(please be patient, this may take a while)' % len(picks))
-
-        # filter out all the channels the raw wouldn't have initialized
-        self.info = pick_info(epochs.info, picks)
-
-        if self.info['comps']:
-            self.info['comps'] = []
-        self.ch_names = self.info['ch_names']
-
-        if self.max_pca_components is None:
-            self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks')
 
         # this should be a copy (picks a list of int)
         data = epochs.get_data()[:, picks]
@@ -985,8 +982,7 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
         %(verbose_meth)s
@@ -1018,7 +1014,7 @@ class ICA(ContainsMixin):
                                         reject_by_annotation)
 
             if sources.shape[-1] != target.shape[-1]:
-                raise ValueError('Sources and target do not have the same'
+                raise ValueError('Sources and target do not have the same '
                                  'number of time slices.')
             # auto target selection
             if isinstance(inst, BaseRaw):
@@ -1062,11 +1058,11 @@ class ICA(ContainsMixin):
 
     def _find_bads_ch(self, inst, chs, threshold=3.0, start=None,
                       stop=None, l_freq=None, h_freq=None,
-                      reject_by_annotation=True, prefix="chs",
-                      measure="zscore"):
+                      reject_by_annotation=True, prefix='chs',
+                      measure='zscore'):
         """Compute ExG/ref components.
 
-        See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
+        See find_bads_ecg, find_bads_eog, and find_bads_ref for details.
         """
         scores, idx = [], []
         # some magic we need inevitably ...
@@ -1092,7 +1088,7 @@ class ICA(ContainsMixin):
             # pick last scores
             if measure == "zscore":
                 this_idx = _find_outliers(scores[-1], threshold=threshold)
-            elif measure == "cor":
+            elif measure == "correlation":
                 this_idx = np.where(abs(scores[-1]) > threshold)[0]
             else:
                 raise ValueError("Unknown measure {}".format(measure))
@@ -1148,7 +1144,7 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
-                      reject_by_annotation=True, measure="zscore",
+                      reject_by_annotation=True, measure='zscore',
                       verbose=None):
         """Detect ECG related components.
 
@@ -1195,14 +1191,13 @@ class ICA(ContainsMixin):
             threshold components will be masked and the z-score will
             be recomputed until no supra-threshold component remains.
             Defaults to 'ctps'.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : {'zscore', "cor"}
-            Which method to use for finding outliers. 'zscore' (default) is
-            the iterated Z-scoring method, and 'cor' is an absolute raw
-            correlation threshold with a range of 0 to 1.
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers. ``'zscore'`` (default) is
+            the iterated Z-scoring method, and ``'correlation'`` is an absolute
+            raw correlation threshold with a range of 0 to 1.
 
             .. versionadded:: 0.21
         %(verbose_meth)s
@@ -1210,7 +1205,7 @@ class ICA(ContainsMixin):
         Returns
         -------
         ecg_idx : list of int
-            The indices of ECG related components.
+            The indices of ECG-related components.
         scores : np.ndarray of float, shape (``n_components_``)
             If method is 'ctps', the normalized Kuiper index scores. If method
             is 'correlation', the correlation scores.
@@ -1315,17 +1310,16 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
-        method : {'together', 'separate'}
+        %(reject_by_annotation_all)s
+        method : 'together' | 'separate'
             Method to use to identify reference channel related components.
-            Defaults to "together." See notes.
+            Defaults to ``'together'``. See notes.
 
             .. versionadded:: 0.21
-        measure : {'zscore', "cor"}
-            Which method to use for finding outliers. "zscore" (default) is
-            the iterated Z-scoring method, and "cor" is an absolute raw
-            correlation threshold with a range of 0 to 1.
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers. ``'zscore'`` (default) is
+            the iterated Z-scoring method, and ``'correlation'`` is an absolute
+            raw correlation threshold with a range of 0 to 1.
 
             .. versionadded:: 0.21
         %(verbose_meth)s
@@ -1415,7 +1409,7 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
                       stop=None, l_freq=1, h_freq=10,
-                      reject_by_annotation=True, measure="zscore",
+                      reject_by_annotation=True, measure='zscore',
                       verbose=None):
         """Detect EOG related components using correlation.
 
@@ -1445,14 +1439,13 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : 'zscore' | 'cor'
-            Which method to use for finding outliers. "zscore" (default) is
-            the iterated Z-scoring method, and "cor" is an absolute raw
-            correlation threshold with a range of 0 to 1.
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers. ``'zscore'`` (default) is
+            the iterated Z-scoring method, and ``'correlation'`` is an absolute
+            raw correlation threshold with a range of 0 to 1.
 
             .. versionadded:: 0.21
         %(verbose_meth)s
@@ -1748,12 +1741,14 @@ class ICA(ContainsMixin):
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto'):
+                        psd_args=None, figsize=None, show=True, reject='auto',
+                        reject_by_annotation=True):
         return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   figsize=figsize, show=show, reject=reject)
+                                   figsize=figsize, show=show, reject=reject,
+                                   reject_by_annotation=reject_by_annotation)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, start=None,

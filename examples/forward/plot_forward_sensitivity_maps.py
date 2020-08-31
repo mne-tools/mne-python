@@ -56,7 +56,7 @@ for ax, picks, ch_type in zip(axes, [picks_meg, picks_eeg], ['meg', 'eeg']):
     ax.set_title(ch_type.upper())
     ax.set_xlabel('sources')
     ax.set_ylabel('sensors')
-    fig.colorbar(im, ax=ax, cmap='RdBu_r')
+    fig.colorbar(im, ax=ax)
 
 fig_2, ax = plt.subplots()
 ax.hist([grad_map.data.ravel(), mag_map.data.ravel(), eeg_map.data.ravel()],

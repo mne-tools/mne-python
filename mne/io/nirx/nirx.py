@@ -15,11 +15,14 @@ from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
 from ...utils import logger, verbose, fill_doc
+from ...utils import warn
 
 
 @fill_doc
 def read_raw_nirx(fname, preload=False, verbose=None):
     """Reader for a NIRX fNIRS recording.
+
+    This function has only been tested with NIRScout devices.
 
     Parameters
     ----------
@@ -69,9 +72,12 @@ class RawNIRX(BaseRaw):
         if fname.endswith('.hdr'):
             fname = op.dirname(op.abspath(fname))
 
+        if not op.isdir(fname):
+            raise FileNotFoundError('The path you specified does not exist.')
+
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('dat', 'evt', 'hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
+        keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
                 'config.txt', 'probeInfo.mat')
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
@@ -79,12 +85,60 @@ class RawNIRX(BaseRaw):
                 raise RuntimeError('Expect one %s file, got %d' %
                                    (key, len(files[key]),))
             files[key] = files[key][0]
+        if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
+            warn("A single dat file was expected in the specified path, but "
+                 "got %d. This may indicate that the file structure has been "
+                 "modified since the measurement was saved." %
+                 (len(glob.glob('%s/*%s' % (fname, 'dat')))))
 
         # Read number of rows/samples of wavelength data
         last_sample = -1
         with _open(files['wl1']) as fid:
             for line in fid:
                 last_sample += 1
+
+        # Read header file
+        # The header file isn't compliant with the configparser. So all the
+        # text between comments must be removed before passing to parser
+        with _open(files['hdr']) as f:
+            hdr_str = f.read()
+        hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
+        hdr = RawConfigParser()
+        hdr.read_string(hdr_str)
+
+        # Check that the file format version is supported
+        if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
+            raise RuntimeError('MNE does not support this NIRStar version'
+                               ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
+        if "NIRScout" not in hdr['GeneralInfo']['Device']:
+            warn("Only import of data from NIRScout devices have been "
+                 "thoroughly tested. You are using a %s device. " %
+                 hdr['GeneralInfo']['Device'])
+
+        # Parse required header fields
+
+        # Extract frequencies of light used by machine
+        fnirs_wavelengths = [int(s) for s in
+                             re.findall(r'(\d+)',
+                             hdr['ImagingParameters']['Wavelengths'])]
+
+        # Extract source-detectors
+        sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
+                              hdr['DataStructure']['S-D-Key'])], int)
+        detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
+                                hdr['DataStructure']['S-D-Key'])], int)
+
+        # Determine if short channels are present and on which detectors
+        if 'shortbundles' in hdr['ImagingParameters']:
+            short_det = [int(s) for s in
+                         re.findall(r'(\d+)',
+                         hdr['ImagingParameters']['ShortDetIndex'])]
+            short_det = np.array(short_det, int)
+        else:
+            short_det = []
+
+        # Extract sampling rate
+        samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
 
         # Read participant information file
         inf = ConfigParser(allow_no_value=True)
@@ -113,47 +167,9 @@ class RawNIRX(BaseRaw):
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
         elif subject_info['sex'] in {'F', 'Female', '2'}:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
-        # NIRStar does not record an id, or handedness by default
-
-        # Read header file
-        # The header file isn't compliant with the configparser. So all the
-        # text between comments must be removed before passing to parser
-        with _open(files['hdr']) as f:
-            hdr_str = f.read()
-        hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
-        hdr = RawConfigParser()
-        hdr.read_string(hdr_str)
-
-        # Check that the file format version is supported
-        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
-                   ["\"15.0\"", "\"15.2\""]):
-            raise RuntimeError('MNE does not support this NIRStar version'
-                               ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
-
-        # Parse required header fields
-
-        # Extract frequencies of light used by machine
-        fnirs_wavelengths = [int(s) for s in
-                             re.findall(r'(\d+)',
-                             hdr['ImagingParameters']['Wavelengths'])]
-
-        # Extract source-detectors
-        sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
-                              hdr['DataStructure']['S-D-Key'])], int)
-        detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
-                                hdr['DataStructure']['S-D-Key'])], int)
-
-        # Determine if short channels are present and on which detectors
-        if 'shortbundles' in hdr['ImagingParameters']:
-            short_det = [int(s) for s in
-                         re.findall(r'(\d+)',
-                         hdr['ImagingParameters']['ShortDetIndex'])]
-            short_det = np.array(short_det, int)
         else:
-            short_det = []
-
-        # Extract sampling rate
-        samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
+            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
+        # NIRStar does not record an id, or handedness by default
 
         # Read information about probe/montage/optodes
         # A word on terminology used here:
@@ -216,7 +232,7 @@ class RawNIRX(BaseRaw):
         # Create mne structure
         info = create_info(chnames,
                            samplingrate,
-                           ch_types='fnirs_raw')
+                           ch_types='fnirs_cw_amplitude')
         info.update(subject_info=subject_info, dig=dig)
 
         # Store channel, source, and detector locations
@@ -234,15 +250,10 @@ class RawNIRX(BaseRaw):
             det = int(requested_channels[ch_idx2, 1]) - 1
             info['chs'][ch_idx2 * 2]['loc'][6:9] = det_locs[det, :]
             info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
-            # Store channel location
-            # Channel locations for short channels are bodged,
-            # for short channels use the source location.
-            if det + 1 in short_det:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-            else:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
+            # Store channel location as midpoint between source and detector.
+            midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
+            info['chs'][ch_idx2 * 2]['loc'][:3] = midpoint
+            info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = midpoint
             info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
             info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
 
@@ -273,19 +284,20 @@ class RawNIRX(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # Read triggers from event file
-        with _open(files['evt']) as fid:
-            t = [re.findall(r'(\d+)', line) for line in fid]
-        onset = np.zeros(len(t), float)
-        duration = np.zeros(len(t), float)
-        description = [''] * len(t)
-        for t_idx in range(len(t)):
-            binary_value = ''.join(t[t_idx][1:])[::-1]
-            trigger_frame = float(t[t_idx][0])
-            onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
-            duration[t_idx] = 1.0  # No duration info stored in files
-            description[t_idx] = int(binary_value, 2) * 1.
-        annot = Annotations(onset, duration, description)
-        self.set_annotations(annot)
+        if op.isfile(files['hdr'][:-3] + 'evt'):
+            with _open(files['hdr'][:-3] + 'evt') as fid:
+                t = [re.findall(r'(\d+)', line) for line in fid]
+            onset = np.zeros(len(t), float)
+            duration = np.zeros(len(t), float)
+            description = [''] * len(t)
+            for t_idx in range(len(t)):
+                binary_value = ''.join(t[t_idx][1:])[::-1]
+                trigger_frame = float(t[t_idx][0])
+                onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
+                duration[t_idx] = 1.0  # No duration info stored in files
+                description[t_idx] = int(binary_value, 2) * 1.
+            annot = Annotations(onset, duration, description)
+            self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.

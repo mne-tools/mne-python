@@ -28,7 +28,7 @@ from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
                     _set_ax_label_style, _draw_vert_line, _simplify_float,
-                    _check_psd_fmax)
+                    _check_psd_fmax, _set_window_title)
 
 
 def _plot_update_raw_proj(params, bools):
@@ -350,7 +350,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
+    for t in ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']:
         inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
                             exclude=[])]
         types += [t] * len(inds[-1])
@@ -604,11 +604,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
-    reject_by_annotation : bool
-        Whether to omit bad segments from the data while computing the
-        PSD. If True, annotated segments with a description that starts
-        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
-        Evoked object. Defaults to True.
+    %(reject_by_annotation_raw)s
     %(plot_psd_picks_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
@@ -664,7 +660,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     figsize = _get_figsize_from_config()
     params['fig'] = figure_nobar(facecolor=bgcolor, figsize=figsize)
-    params['fig'].canvas.set_window_title(title or "Raw")
+    _set_window_title(params['fig'], title or "Raw")
     # most of the axes setup is done in _prepare_mne_browse
     _prepare_mne_browse(params, xlabel='Time (s)')
     ax = params['ax']
@@ -759,7 +755,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         offsets = params['offsets']
     params['bad_color'] = bad_color
     ax = params['ax']
-    labels = ax.yaxis.get_ticklabels()
     # Scalebars
     for bar in params.get('scalebars', {}).values():
         ax.lines.remove(bar)
@@ -768,6 +763,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].texts = []
     # do the plotting
     tick_list = list()
+    tick_colors = list()
     for ii in range(n_channels):
         ch_ind = ii + ch_start
         # let's be generous here and allow users to pass
@@ -823,13 +819,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                         this_z = 2
                     elif params['types'][ii] == 'grad':
                         this_z = 3
-                for label in labels:
-                    label.set_color('black')
             else:
                 # set label color
                 this_color = (bad_color if ch_name in info['bads'] else
                               this_color)
-                labels[ii].set_color(this_color)
+                tick_colors.append(this_color)
             lines[ii].set_zorder(this_z)
             # add a scale bar
             if (params['show_scalebars'] and
@@ -929,6 +923,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         params['ax'].set_yticks(params['offsets'][:len(tick_list)])
         params['ax'].set_yticklabels(tick_list, rotation=0)
         _set_ax_label_style(params['ax'], params)
+    else:
+        tick_colors = ['k'] * len(params['ax'].get_yticks())
+    for tick_color, tick in zip(tick_colors,
+                                params['ax'].yaxis.get_ticklabels()):
+        tick.set_color(tick_color)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
@@ -1080,7 +1079,7 @@ def _setup_browser_selection(raw, kind, selector=True):
     if not selector:
         return order
     fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
-    fig_selection.canvas.set_window_title('Selection')
+    _set_window_title(fig_selection, 'Selection')
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     keys = np.concatenate([keys, ['Custom']])

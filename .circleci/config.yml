@@ -14,10 +14,10 @@ jobs:
               echo "set -e" >> $BASH_ENV
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci"  >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "source ${PWD}/tools/get_minimal_commands.sh" >> $BASH_ENV
               echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
-              echo "export _MNE_BRAIN_TRACES_AUTO=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
@@ -56,7 +56,7 @@ jobs:
             name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
             command: |
               sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
-                  libxkbcommon-x11-0 \
+                  libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
                   graphviz \
                   optipng
 
@@ -73,26 +73,26 @@ jobs:
             command: |
               mkdir -p $HOME/.fonts
               curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/2.045R-ro/1.095R-it | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.006R | tar xz -C $HOME/.fonts
               fc-cache -f
 
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
-              python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
-              python -m pip install --user --upgrade --progress-bar off https://github.com/enthought/mayavi/zipball/master
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt
-              python -m pip uninstall -yq pysurfer mayavi
+              python -m pip install --user --upgrade --progress-bar off pip setuptools
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
-              python -m pip install --user --upgrade seaborn
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
+              python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user -e .
 
         - save_cache:
             key: pip-cache
             paths:
               - ~/.cache/pip
+
+        - run:
+            name: Check PyQt5
+            command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
 
         # Look at what we have and fail early if there is some library conflict
         - run:
@@ -101,7 +101,7 @@ jobs:
                which python
                QT_DEBUG_PLUGINS=1 mne sys_info
                python -c "import numpy; numpy.show_config()"
-               LIBGL_DEBUG=verbose python -c "import pyvista; pyvista.BackgroundPlotter(show=True)"
+               LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
@@ -257,6 +257,12 @@ jobs:
               if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
+                rm -f doc/auto_*/*/*.pickle
+                rm -f doc/auto_*/*/*.codeobj
+                rm -f doc/auto_*/*/*.md5
+                rm -f doc/auto_*/*/*.py
+                rm -f doc/auto_*/*/*.ipynb
+                rm -f doc/generated/*.examples
               fi
 
         # Save the JUnit file
@@ -265,7 +271,17 @@ jobs:
         - store_artifacts:
             path: doc/_build/test-results
             destination: test-results
-        # Save the outputs
+        # Save the SG RST
+        - store_artifacts:
+            path: doc/auto_examples
+            destination: auto_examples
+        - store_artifacts:
+            path: doc/auto_tutorials
+            destination: auto_tutorials
+        - store_artifacts:
+            path: doc/generated
+            destination: generated
+        # Save the HTML
         - store_artifacts:
             path: doc/_build/html/
             destination: dev
@@ -337,7 +353,7 @@ jobs:
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip" memory_profiler https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/29694f215b39d64a31b845aafd9ff2ae9329494f.zip
+               python -m pip install --user --progress-bar off -r requirements_doc.txt
                python -m pip install --user -e .
         - run:
             name: make linkcheck

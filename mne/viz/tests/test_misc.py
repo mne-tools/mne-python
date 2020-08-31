@@ -125,12 +125,19 @@ def test_plot_bem():
                  orientation='bad-ori')
     with pytest.raises(ValueError, match="sorted 1D array"):
         plot_bem(subject='sample', subjects_dir=subjects_dir, slices=[0, 500])
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='sagittal', slices=[25, 50])
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='coronal', brain_surfaces='white')
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='coronal', slices=[25, 50], src=src_fname)
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='sagittal', slices=[25, 50])
+    assert len(fig.axes) == 2
+    assert len(fig.axes[0].collections) == 3  # 3 BEM surfaces ...
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='coronal', brain_surfaces='white')
+    assert len(fig.axes[0].collections) == 5  # 3 BEM surfaces + 2 hemis
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='coronal', slices=[25, 50], src=src_fname)
+    assert len(fig.axes[0].collections) == 4  # 3 BEM surfaces + 1 src contour
+    with pytest.raises(ValueError, match='MRI coordinates, got head'):
+        plot_bem(subject='sample', subjects_dir=subjects_dir,
+                 src=inv_fname)
 
 
 def test_event_colors():

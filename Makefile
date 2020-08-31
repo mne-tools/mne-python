@@ -97,7 +97,7 @@ upload-pipy:
 flake:
 	@if command -v flake8 > /dev/null; then \
 		echo "Running flake8"; \
-		flake8 --count mne examples tutorials setup.py; \
+		flake8 --count; \
 	else \
 		echo "flake8 not found, please install it!"; \
 		exit 1; \
@@ -105,10 +105,10 @@ flake:
 	@echo "flake8 passed"
 
 codespell:  # running manually
-	@codespell --builtin clear,rare,informal,names -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+	@codespell --builtin clear,rare,informal,names,usage -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
 
 codespell-error:  # running on travis
-	@codespell --builtin clear,rare,informal,names -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+	@codespell --builtin clear,rare,informal,names,usage -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
 
 pydocstyle:
 	@echo "Running pydocstyle"

@@ -15,7 +15,7 @@ import mne
 from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
-from mne.epochs import Epochs
+from mne.epochs import Epochs, EpochsArray
 from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne.source_space import _get_src_nn
@@ -53,6 +53,7 @@ fname_inv_meeg_diag = op.join(s_path,
 fname_data = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_raw = op.join(s_path, 'sample_audvis_trunc_raw.fif')
+fname_sss = op.join(test_path, 'SSS', 'test_move_anon_raw_sss.fif')
 fname_raw_ctf = op.join(test_path, 'CTF', 'somMDYO-18av.ds')
 fname_event = op.join(s_path, 'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
@@ -326,7 +327,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
 
 
 @pytest.mark.parametrize('method, lower, upper, depth, loose', [
-    ('MNE', 32, 36, dict(limit=None, combine_xyz=False, exp=1.), 0.2),  # DICS
+    ('MNE', 32, 37, dict(limit=None, combine_xyz=False, exp=1.), 0.2),  # DICS
     ('MNE', 78, 81, 0.8, 0.2),  # MNE default
     ('MNE', 89, 92, dict(limit_depth_chs='whiten'), 0.2),  # sparse default
     ('dSPM', 85, 87, 0.8, 0.2),
@@ -335,15 +336,28 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     ('eLORETA', 99, 100, 0.8, 0.2),
     ('eLORETA', 99, 100, 0.8, 0.001),
 ])
+@pytest.mark.parametrize('pick_ori', (None, 'vector'))
 def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
-                                 depth, loose):
+                                 depth, loose, pick_ori):
     """Test inverse localization bias for loose minimum-norm solvers."""
+    if pick_ori == 'vector' and method == 'eLORETA':  # works, but save cycles
+        return
     evoked, fwd, noise_cov, _, want = bias_params_fixed
     fwd = convert_forward_solution(fwd, surf_ori=False, force_fixed=False)
     assert not is_fixed_orient(fwd)
     inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose,
                                       depth=depth)
-    loc = apply_inverse(evoked, inv_loose, lambda2, method).data
+    loc = apply_inverse(
+        evoked, inv_loose, lambda2, method, pick_ori=pick_ori)
+    if pick_ori is not None:
+        assert loc.data.ndim == 3
+        loc, directions = loc.project('pca', src=fwd['src'])
+        abs_cos_sim = np.abs(np.sum(
+            directions * inv_loose['source_nn'][2::3], axis=1))
+        assert np.percentile(abs_cos_sim, 10) > 0.9  # most very aligned
+        loc = abs(loc).data
+    else:
+        loc = loc.data
     assert (loc >= 0).all()
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -496,12 +510,21 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
         fixed='auto', depth=None)
     apply_inverse(evoked, inv_op_meg, 1 / 9., method='MNE', pick_ori='normal')
 
+    # Test type checking
+    with pytest.raises(TypeError, match='must be an instance of Evoked'):
+        apply_inverse(
+            mne.EpochsArray(evoked.data[np.newaxis], evoked.info), inv_op)
+    with pytest.raises(TypeError, match='must be an instance of Evoked'):
+        apply_inverse(mne.io.RawArray(evoked.data, evoked.info), inv_op)
+
     # Test we get errors when using custom ref or no average proj is present
     evoked.info['custom_ref_applied'] = True
-    pytest.raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+    with pytest.raises(ValueError, match='Custom EEG reference'):
+        apply_inverse(evoked, inv_op, lambda2, "MNE")
     evoked.info['custom_ref_applied'] = False
     evoked.info['projs'] = []  # remove EEG proj
-    pytest.raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+    with pytest.raises(ValueError, match='EEG average reference is mandatory'):
+        apply_inverse(evoked, inv_op, lambda2, "MNE")
 
     # But test that we do not get EEG-related errors on MEG-only inv (gh-4650)
     apply_inverse(evoked, inv_op_meg, 1. / 9.)
@@ -535,7 +558,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
         [_get_src_nn(s) for s in inv['src']]))
     vec_stc_surf = np.matmul(rot, vec_stc.data)
     if 0. in looses:
-        vec_stc_normal = vec_stc.normal(inv['src'])
+        vec_stc_normal, _ = vec_stc.project('normal', inv['src'])
         assert_allclose(stcs[1].data, vec_stc_normal.data)
         del vec_stc
         assert_allclose(vec_stc_normal.data, vec_stc_surf[:, 2])
@@ -558,7 +581,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
 def test_inverse_residual(evoked, method):
     """Test MNE inverse application."""
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
-    evoked = evoked.pick_types()
+    evoked = evoked.pick_types(meg=True)
     inv = read_inverse_operator(fname_inv_fixed_depth)
     fwd = read_forward_solution(fname_fwd)
     pick_channels_forward(fwd, evoked.ch_names, copy=False)
@@ -858,7 +881,7 @@ def test_apply_mne_inverse_raw():
     stop = 10
     raw = read_raw_fif(fname_raw)
     label_lh = read_label(fname_label % 'Aud-lh')
-    _, times = raw[0, start:stop]
+    data, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_full)
     with pytest.raises(ValueError, match='has not been prepared'):
         apply_inverse_raw(raw, inverse_operator, lambda2, prepared=True)
@@ -884,6 +907,11 @@ def test_apply_mne_inverse_raw():
         assert_array_almost_equal(stc.times, times)
         assert_array_almost_equal(stc2.times, times)
         assert_array_almost_equal(stc.data, stc2.data)
+
+    with pytest.raises(TypeError, match='must be an instance of BaseRaw'):
+        apply_inverse_raw(
+            EpochsArray(raw.get_data()[np.newaxis], raw.info),
+            inverse_operator, 1.)
 
 
 @testing.requires_testing_data
@@ -998,6 +1026,11 @@ def test_apply_mne_inverse_epochs():
     assert (label_stc.subject == 'sample')
     assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
 
+    with pytest.raises(TypeError, match='must be an instance of BaseEpochs'):
+        apply_inverse_epochs(
+            EvokedArray(epochs[0].get_data()[0], epochs.info),
+            inverse_operator, 1.)
+
 
 def test_make_inverse_operator_bads(evoked, noise_cov):
     """Test MNE inverse computation given a mismatch of bad channels."""
@@ -1065,8 +1098,135 @@ def test_inverse_mixed(all_src_types_inv_evoked):
                         stcs[kind].magnitude().data)
         assert_allclose(getattr(stcs['mixed'], kind)().magnitude().data,
                         stcs[kind].magnitude().data)
-    assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
-                    stcs['surface'].normal(surf_src).data)
+    assert not np.allclose(stcs['surface'].data[0], 0., atol=1e-2)
+    with pytest.deprecated_call():
+        assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
+                        stcs['surface'].normal(surf_src).data)
+
+
+def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
+    """Test loose mixed source spaces."""
+    fwd, cov, evoked = mixed_fwd_cov_evoked
+    assert fwd['src'].kind == 'mixed'
+    # with different values for loose
+    bads = [
+        # uniform loose
+        (dict(loose=0.2), r'got loose\["volume"\] = 0.2'),
+        # underspecified
+        (dict(loose=dict(surface=0.2)), r"keys \['surface', 'volume'\]"),
+    ]
+    for kwargs, match in bads:
+        with pytest.raises(ValueError, match=match):
+            make_inverse_operator(evoked.info, fwd, cov, **kwargs)
+    evoked.info.normalize_proj()
+    cov['projs'] = []  # avoid warnings
+    # use_cps=False just to make comparing easier
+    inv_fixed = make_inverse_operator(
+        evoked.info, fwd, cov, use_cps=False,
+        loose=dict(surface=0., volume=1.))
+    inv_fixedish = make_inverse_operator(
+        evoked.info, fwd, cov, use_cps=False,
+        loose=dict(surface=0.001, volume=1.))
+    n_srcs = [s['nuse'] for s in fwd['src']]
+    n_surf = sum(n_srcs[:2])
+    n_vol = sum(n_srcs[2:])
+    n_tot = n_surf + n_vol
+    # Correct priors
+    want_prior = np.ones(n_tot * 3)
+    for this_inv, val in [(inv_fixed, 0.), (inv_fixedish, 0.001)]:
+        want_prior[:n_surf * 3:3] = val
+        want_prior[1:n_surf * 3:3] = val
+        assert_allclose(this_inv['orient_prior']['data'], want_prior)
+    # Correct normals
+    want_surf_nn = np.concatenate(
+        [s['nn'][s['vertno']] for s in fwd['src'][:2]])
+    want_vol_nn = np.tile(np.eye(3)[np.newaxis], (n_vol, 1, 1)).reshape(-1, 3)
+    for this_inv in (inv_fixed, inv_fixedish):
+        assert_allclose(this_inv['source_nn'][2:n_surf * 3:3],
+                        want_surf_nn, atol=1e-6)
+        assert_allclose(this_inv['source_nn'][n_surf * 3:], want_vol_nn)
+    # loose=0. (fixed) similar to loose=0.001
+    stc_fixed = apply_inverse(evoked, inv_fixed)
+    stc_fixedish = apply_inverse(evoked, inv_fixedish)
+    corr = np.corrcoef(stc_fixed.data.ravel(), stc_fixedish.data.ravel())[0, 1]
+    assert 0.9999 < corr < 0.9999999
+    # normal not supported
+    for this_inv in (inv_fixed, inv_fixedish):
+        with pytest.raises(RuntimeError, match='got type mixed'):
+            apply_inverse(evoked, this_inv, pick_ori='normal')
+    # vector supported
+    stc_fixed_vec = apply_inverse(evoked, inv_fixed, pick_ori='vector')
+    assert_allclose(stc_fixed_vec.surface().magnitude().data,
+                    stc_fixed.data[:n_surf])
+    stc_fixed_normal, nn = stc_fixed_vec.surface().project(
+        'normal', inv_fixed['src'][:2], use_cps=False)
+    assert_allclose(nn, want_surf_nn, atol=1e-6)
+    assert stc_fixed_normal.data.min() < -1  # signed
+    assert_allclose(
+        abs(stc_fixed_normal).data, stc_fixed.data[:n_surf], atol=1e-6)
+    stc_fixed_normal_cps, _ = stc_fixed_vec.surface().project(
+        'normal', inv_fixed['src'][:2], use_cps=True)
+    corr = np.corrcoef(abs(stc_fixed_normal_cps).data.ravel(),
+                       stc_fixed.data[:n_surf].ravel())[0, 1]
+    assert 0.8 < corr < 0.9  # CPS changes it a bit
+
+    # Do a source localization + orientation tests
+    assert not fwd['surf_ori']
+    idx = [fwd['sol']['row_names'].index(name) for name in evoked.ch_names]
+    data = np.dot(fwd['sol']['data'][idx, :3], nn[:1].T)
+    assert data.shape == (len(evoked.ch_names), 1)
+    data = np.concatenate((data, fwd['sol']['data'][idx, -1:]), axis=1)
+    assert data.shape == (len(evoked.ch_names), 2)
+    want_ori = np.concatenate([nn[:1], [[0, 0, 1]]])
+    want_pos = fwd['source_rr'][[0, -1]]
+    evoked_sim = EvokedArray(data, evoked.info)
+    del data
+    # dipole
+    sphere = mne.make_sphere_model('auto', 'auto', evoked.info)
+    dip, _ = mne.fit_dipole(evoked_sim, cov, sphere)
+    assert_allclose(dip.pos, want_pos, atol=1e-2)  # 1 cm
+    ang = np.rad2deg(np.arccos(np.sum(dip.ori * want_ori, axis=1)))
+    assert_array_less(ang, 65)  # not great
+    # MNE
+    stc = apply_inverse(evoked_sim, inv_fixed, pick_ori='vector')
+    stc, nn = stc.project('pca', fwd['src'])
+    idx = stc.data.argmax(0)
+    assert fwd['source_nn'].shape[0] == fwd['source_rr'].shape[0] * 3 == \
+        stc.data.shape[0] * 3 == nn.shape[0] * 3
+    got_ori = nn[idx]
+    got_pos = fwd['source_rr'][idx]
+    assert_allclose(got_pos, want_pos, atol=1.1e-2)  # 1.1 cm
+    ang = np.rad2deg(np.arccos(np.sum(got_ori * want_ori, axis=1)))
+    assert_array_less(ang, 40)  # better than ECD + sphere
+    # MxNE
+    stc = mne.inverse_sparse.mixed_norm(
+        evoked, fwd, cov, 0.05, loose=dict(surface=0., volume=1.),
+        maxit=10, tol=1e-6, active_set_size=2, weights=stc,
+        verbose='error')
+    assert len(stc.data) == 2
+    pos = np.concatenate([fwd['src'][ii]['rr'][v]
+                          for ii, v in enumerate(stc.vertices)])
+    assert pos.shape == (2, 3)
+    assert_allclose(got_pos, want_pos, atol=1.1e-2)
+
+
+@testing.requires_testing_data
+def test_sss_rank():
+    """Test passing rank explicitly during inverse computation."""
+    # make raw match the fwd and cov, doesn't matter that they are mismatched
+    raw = mne.io.read_raw_fif(fname_sss).pick_types(meg=True)
+    raw.rename_channels(
+        {ch_name: f'{ch_name[:3]} {ch_name[3:]}' for ch_name in raw.ch_names})
+    fwd = mne.read_forward_solution(fname_fwd)
+    cov = mne.read_cov(fname_cov)
+    with pytest.warns(RuntimeWarning, match='rank as it exceeds.*302 > 67'):
+        inv = make_inverse_operator(raw.info, fwd, cov)
+    rank = (inv['noise_cov']['eig'] > 0).sum()
+    assert rank == 302
+    # should not warn
+    inv = make_inverse_operator(raw.info, fwd, cov, rank=dict(meg=67))
+    rank = (inv['noise_cov']['eig'] > 0).sum()
+    assert rank == 67
 
 
 run_tests_if_main()

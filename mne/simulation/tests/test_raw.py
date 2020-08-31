@@ -61,6 +61,7 @@ def _assert_iter_sim(raw_sim, raw_new, new_event_id):
     assert_array_equal(data_new, data_sim)
 
 
+@pytest.mark.slowtest
 def test_iterable():
     """Test iterable support for simulate_raw."""
     raw = read_raw_fif(raw_fname_short).load_data()
@@ -223,7 +224,7 @@ def test_simulate_raw_sphere(raw_data, tmpdir):
     cov['projs'] = raw.info['projs']
     raw.info['bads'] = raw.ch_names[:1]
     sphere_norad = make_sphere_model('auto', None, raw.info)
-    raw_meg = raw.copy().pick_types()
+    raw_meg = raw.copy().pick_types(meg=True)
     raw_sim = simulate_raw(raw_meg.info, stc, trans, src, sphere_norad,
                            head_pos=head_pos_sim)
     # Test IO on processed data

@@ -15,7 +15,7 @@ from scipy import linalg
 from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
-from .pick import pick_types
+from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
@@ -238,9 +238,17 @@ class ProjMixin(object):
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
-        if any(self.info['projs'][ii]['active'] for ii in idx):
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
+
+        for ii in idx:
+            proj = self.info['projs'][ii]
+            if (proj['active'] and
+                    set(self.info['ch_names']) &
+                    set(proj['data']['col_names'])):
+                msg = (f'Cannot remove projector that has already been '
+                       f'applied, unless you first remove all channels it '
+                       f'applies to. The problematic projector is: {proj}')
+                raise ValueError(msg)
+
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
@@ -287,6 +295,29 @@ class ProjMixin(object):
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
         return fig
+
+    def _reconstruct_proj(self, mode='accurate', origin='auto'):
+        from ..forward import _map_meg_or_eeg_channels
+        if len(self.info['projs']) == 0:
+            return self
+        self.apply_proj()
+        for kind in ('meg', 'eeg'):
+            kwargs = dict(meg=False)
+            kwargs[kind] = True
+            picks = pick_types(self.info, **kwargs)
+            if len(picks) == 0:
+                continue
+            info_from = pick_info(self.info, picks)
+            info_to = info_from.copy()
+            info_to['projs'] = []
+            if kind == 'eeg' and _has_eeg_average_ref_proj(info_from['projs']):
+                info_to['projs'] = [
+                    make_eeg_average_ref_proj(info_to, verbose=False)]
+            mapping = _map_meg_or_eeg_channels(
+                info_from, info_to, mode=mode, origin=origin)
+            self.data[..., picks, :] = np.matmul(
+                mapping, self.data[..., picks, :])
+        return self
 
 
 def _proj_equal(a, b, check_active=True):

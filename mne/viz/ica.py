@@ -258,7 +258,8 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
 @fill_doc
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto'):
+                        psd_args=None, figsize=None, show=True, reject='auto',
+                        reject_by_annotation=True):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -309,6 +310,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
+    %(reject_by_annotation_raw)s
+
+        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -390,12 +394,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # break up continuous signal into segments
         from ..epochs import make_fixed_length_epochs
-        inst_rejected = make_fixed_length_epochs(inst_rejected,
-                                                 duration=2.,
-                                                 verbose=False,
-                                                 preload=True)
-        inst = make_fixed_length_epochs(inst, duration=2., verbose=False,
-                                        preload=True)
+        inst_rejected = make_fixed_length_epochs(
+            inst_rejected,
+            duration=2,
+            preload=True,
+            reject_by_annotation=reject_by_annotation,
+            verbose=False)
+        inst = make_fixed_length_epochs(
+            inst,
+            duration=2,
+            preload=True,
+            reject_by_annotation=reject_by_annotation,
+            verbose=False)
         kind = "Segment"
     else:
         drop_inds = None
@@ -833,10 +843,12 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     Parameters
     ----------
-    ica : instance of mne.preprocessing.ICA
-        The ICA object.
-    epochs : instance of mne.Epochs
-        The Epochs to be regarded.
+    evoked : instance of mne.Evoked
+        The Evoked before IC rejection.
+    evoked_cln : instance of mne.Evoked
+        The Evoked after IC rejection.
+    title : str | None
+        The title of the figure.
     show : bool
         If True, all open plots will be shown.
 
@@ -855,7 +867,9 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
                          'Found different channels.')
 
     fig, axes = plt.subplots(n_rows, 1)
-    fig.suptitle('Average signal before (red) and after (black) ICA')
+    if title is None:
+        title = 'Average signal before (red) and after (black) ICA'
+    fig.suptitle(title)
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
     evoked.plot(axes=axes, show=show, time_unit='s')

@@ -37,8 +37,8 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .dipole import _make_guesses
 from .fixes import jit
-from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils, _get_mf_picks,
-                                    _regularize_out)
+from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils,
+                                    _regularize_out, _get_mf_picks_fix_mags)
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points,
                          _quat_to_affine)
@@ -510,14 +510,14 @@ def _reorder_inv_model(inv_model, n_freqs):
 def _setup_ext_proj(info, ext_order):
     meg_picks = pick_types(info, meg=True, eeg=False, exclude='bads')
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
-    _, _, _, _, mag_or_fine = _get_mf_picks(
+    _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
         info, int_order=0, ext_order=ext_order, ignore_ref=True,
         verbose='error')
     mf_coils = _prep_mf_coils(info, verbose='error')
     ext = _sss_basis(
         dict(origin=(0., 0., 0.), int_order=0, ext_order=ext_order),
         mf_coils).T
-    out_removes = _regularize_out(0, 1, mag_or_fine)
+    out_removes = _regularize_out(0, 1, mag_or_fine, [])
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
     ext = linalg.orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)
@@ -557,7 +557,7 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi):
             # loads hpi_stim channel
             chpi_data = raw[hpi['hpi_pick'], time_sl][0]
 
-        ons = (np.round(chpi_data).astype(np.int) &
+        ons = (np.round(chpi_data).astype(np.int64) &
                hpi['on'][:, np.newaxis]).astype(bool)
         n_on = ons.all(axis=-1).sum(axis=0)
         if not (n_on >= 3).all():

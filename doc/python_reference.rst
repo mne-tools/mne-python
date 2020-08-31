@@ -65,6 +65,7 @@ Reading raw data
    read_raw_kit
    read_raw_nicolet
    read_raw_nirx
+   read_raw_snirf
    read_raw_eeglab
    read_raw_brainvision
    read_raw_egi
@@ -224,6 +225,7 @@ Visualization
 
    ClickableImage
    add_background_image
+   centers_to_edges
    compare_fiff
    circular_layout
    iter_topography
@@ -278,6 +280,7 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   set_3d_options
    set_3d_view
    set_3d_title
    create_3d_figure
@@ -331,12 +334,13 @@ Projections:
    find_layout
    make_eeg_layout
    make_grid_layout
-   find_ch_connectivity
-   read_ch_connectivity
+   find_ch_adjacency
+   read_ch_adjacency
    equalize_channels
    rename_channels
    generate_2d_layout
    make_1020_channel_selections
+   combine_channels
 
 :py:mod:`mne.preprocessing`:
 
@@ -355,6 +359,7 @@ Projections:
    annotate_muscle_zscore
    compute_average_dev_head_t
    compute_current_source_density
+   compute_fine_calibration
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -371,8 +376,11 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   regress_artifact
    corrmap
    read_ica_eeglab
+   read_fine_calibration
+   write_fine_calibration
 
 :py:mod:`mne.preprocessing.nirs`:
 
@@ -537,6 +545,19 @@ Sensor Space Data
    read_selection
    rename_channels
 
+:py:mod:`mne.baseline`:
+
+.. automodule:: mne.baseline
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.baseline
+
+.. autosummary::
+   :toctree: generated/
+
+   rescale
+
 
 Covariance computation
 ======================
@@ -620,6 +641,7 @@ Forward Modeling
    setup_source_space
    setup_volume_source_space
    surface.complete_surface_info
+   surface.read_curvature
    use_coil_def
    write_bem_surfaces
    write_trans
@@ -918,6 +940,7 @@ Non-parametric (clustering) resampling methods:
 .. autosummary::
    :toctree: generated/
 
+   combine_adjacency
    permutation_cluster_test
    permutation_cluster_1samp_test
    permutation_t_test
@@ -926,22 +949,22 @@ Non-parametric (clustering) resampling methods:
    summarize_clusters_stc
    bootstrap_confidence_interval
 
-Compute ``connectivity`` matrices for cluster-level statistics:
+Compute ``adjacency`` matrices for cluster-level statistics:
 
 .. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
 
-   channels.find_ch_connectivity
-   channels.read_ch_connectivity
-   spatial_dist_connectivity
-   spatial_src_connectivity
-   spatial_tris_connectivity
-   spatial_inter_hemi_connectivity
-   spatio_temporal_src_connectivity
-   spatio_temporal_tris_connectivity
-   spatio_temporal_dist_connectivity
+   channels.find_ch_adjacency
+   channels.read_ch_adjacency
+   spatial_dist_adjacency
+   spatial_src_adjacency
+   spatial_tris_adjacency
+   spatial_inter_hemi_adjacency
+   spatio_temporal_src_adjacency
+   spatio_temporal_tris_adjacency
+   spatio_temporal_dist_adjacency
 
 
 Simulation
