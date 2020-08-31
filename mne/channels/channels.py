@@ -19,7 +19,7 @@ from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..transforms import _frame_to_str
-from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
+from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
