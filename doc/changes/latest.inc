@@ -208,7 +208,7 @@ Bug
 
 - Fix bug with :func:`mne.combine_evoked` where equal-weighted averages were wrongly computed as equal-weighted sums, by `Daniel McCloy`_
 
-- Fix bug with :meth:`mne.channels.Montage.plot` when reference channels with no defined position are present, by `Eric Larson`_
+- Fix bug with :meth:`mne.channels.DigMontage.plot` when reference channels with no defined position are present, by `Eric Larson`_
 
 - Fix bug with :func:`mne.channels.read_custom_montage` where ``"headshape"`` points in SFP format were not read properly, by `Eric Larson`_
 
