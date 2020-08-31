@@ -208,6 +208,8 @@ Bug
 
 - Fix bug with :func:`mne.combine_evoked` where equal-weighted averages were wrongly computed as equal-weighted sums, by `Daniel McCloy`_
 
+- Fix bug with :meth:`mne.channels.Montage.plot` when reference channels with no defined position are present, by `Eric Larson`_
+
 - Fix bug with setting HTML classes when using :meth:`mne.Report.add_bem_to_section` by `Eric Larson`_
 
 - Fix bug with convex-hull based MEG helmet creation where the face area could be covered up, by `Eric Larson`_

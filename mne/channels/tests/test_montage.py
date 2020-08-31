@@ -15,6 +15,7 @@ from string import ascii_lowercase
 
 from numpy.testing import (assert_array_equal,
                            assert_allclose, assert_equal)
+import matplotlib.pyplot as plt
 
 from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
 from mne.utils._testing import _dig_sort_key
@@ -1262,6 +1263,14 @@ def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
     EXPECTED_NUM = 24
     assert len(get_builtin_montages()) == EXPECTED_NUM
+
+
+@testing.requires_testing_data
+def test_plot_montage():
+    """Test plotting montage."""
+    montage = read_dig_captrak(bvct_dig_montage_fname)
+    montage.plot()
+    plt.close('all')
 
 
 run_tests_if_main()
