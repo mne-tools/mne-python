@@ -202,7 +202,6 @@ jobs:
       python -m pip install --upgrade numpy scipy vtk
       python -m pip install --upgrade -r requirements.txt -r requirements_testing.txt
       python -m pip install codecov
-      python -m pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
   - bash: |
@@ -227,7 +226,6 @@ jobs:
       conda env update --name base --file $env:CONDA_ENV
       pip uninstall -yq mne
       pip install -r requirements_testing.txt codecov
-      pip uninstall -yq pysurfer mayavi
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
