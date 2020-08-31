@@ -39,7 +39,7 @@ def test_si_units():
         'n': 1e-9,
         'f': 1e-15,
     }
-    known_SI = {'V', 'T', 'Am', 'm', 'M', u'\N{DEGREE SIGN}',
+    known_SI = {'V', 'T', 'Am', 'm', 'M',
                 'AU', 'GOF'}  # not really SI but we tolerate them
     powers = '²'
 
