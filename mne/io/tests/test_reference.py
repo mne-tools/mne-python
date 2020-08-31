@@ -22,7 +22,7 @@ from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, catch_logging
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
@@ -232,12 +232,21 @@ def test_set_eeg_reference():
     with pytest.raises(ValueError, match='supported for ref_channels="averag'):
         set_eeg_reference(raw, ['EEG 001'], True, True)
 
+
+@pytest.mark.parametrize('ch_type', ('auto', 'ecog'))
+def test_set_eeg_reference_ch_type(ch_type):
+    """Test setting EEG reference for ECoG."""
     # gh-6454
     rng = np.random.RandomState(0)
     data = rng.randn(3, 1000)
     raw = RawArray(data, create_info(3, 1000., ['ecog'] * 2 + ['misc']))
-    reref, ref_data = set_eeg_reference(raw.copy())
+    with catch_logging() as log:
+        reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
+                                            verbose=True)
+    assert 'Applying a custom ECoG' in log.getvalue()
     _test_reference(raw, reref, ref_data, ['0', '1'])
+    with pytest.raises(ValueError, match='No channels supplied'):
+        set_eeg_reference(raw, ch_type='eeg')
 
 
 def test_set_eeg_reference_rest():
