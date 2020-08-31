@@ -377,12 +377,13 @@ def read_dig_dat(fname):
     ``*.dat`` files are plain text files and can be inspected and amended with
     a plain text editor.
     """
+    from ._standard_montage_utils import _dedup_dict
     fname = _check_fname(fname, overwrite='read', must_exist=True)
 
     with open(fname, 'r') as fid:
         lines = fid.readlines()
 
-    electrodes = {}
+    ch_names, poss = list(), list()
     nasion = lpa = rpa = None
     for i, line in enumerate(lines):
         items = line.split()
@@ -403,7 +404,9 @@ def read_dig_dat(fname):
         elif num == '82':
             rpa = pos
         else:
-            electrodes[items[0]] = pos
+            ch_names.append(items[0])
+            poss.append(pos)
+    electrodes = _dedup_dict(ch_names, poss)
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
