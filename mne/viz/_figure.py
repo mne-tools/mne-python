@@ -16,7 +16,8 @@ from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _get_color_list)
 from ..utils import set_config
 from ..annotations import _sync_onset
-from ..io.pick import _DATA_CH_TYPES_ORDER_DEFAULT
+from ..io.pick import (channel_indices_by_type, _DATA_CH_TYPES_SPLIT,
+                       _DATA_CH_TYPES_ORDER_DEFAULT)
 
 
 class MNEFigParams:
@@ -596,26 +597,46 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
+        from matplotlib.colors import to_rgba_array
+
         bads = self.mne.info['bads']
         pick = self.mne.picks[idx]
         line = self.mne.traces[idx]
-        vscroll_idx = self.mne.ch_order.tolist().index(pick)
         ch_name = self.mne.ch_names[pick]
         if not len(ch_name):
             return
-        if self.mne.fig_selection is not None:
-            # ch_idx = _find_channel_idx(text, params)
-            # _handle_topomap_bads(text, params)
-            pass  # TODO FIXME
-        if ch_name in bads:
+        # add/remove from bads list
+        marked_bad = ch_name not in bads
+        if marked_bad:
+            bads.append(ch_name)
+            color = self.mne.ch_color_bad
+            sensor_color = to_rgba_array('red')
+        else:
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
             color = vars(line)['def_color']
-        else:
-            bads.append(ch_name)
-            color = self.mne.ch_color_bad
-        self.mne.ax_vscroll.patches[vscroll_idx].set_color(color)
         self.mne.info['bads'] = bads
+        # update color
+        if self.mne.fig_selection is None:
+            vscroll_idx = [self.mne.ch_order.tolist().index(pick)]
+        else:
+            vscroll_idx = np.where(self.mne.ch_order == pick)[0].tolist()
+            sensors = self.mne.fig_selection.mne.sensor_ax.collections[0]
+            ec_array = sensors.get_edgecolors()
+            # replicate plotting order from plot_sensors, to get index right
+            sensor_picks = list()
+            ch_indices = channel_indices_by_type(self.mne.info)
+            for this_type in _DATA_CH_TYPES_SPLIT:
+                if this_type in self.mne.ch_types:
+                    sensor_picks.extend(ch_indices[this_type])
+            sensor_idx = np.in1d(sensor_picks, pick).nonzero()
+            # change the sensor color
+            ec_array[sensor_idx, 0] = float(marked_bad)
+            sensors.set_edgecolors(ec_array)
+            self.mne.fig_selection.canvas.draw()
+        # change the vscroll color
+        for _idx in vscroll_idx:
+            self.mne.ax_vscroll.patches[_idx].set_color(color)
         # redraw
         self._update_projector()
         self._redraw()
@@ -751,7 +772,7 @@ class MNEBrowseFigure(MNEFigure):
         width = 1 - 2 * left
         height = 1 - 2 * bottom
         fig.mne.radio_ax = fig.add_axes((left, bottom, width, height),
-                                        frameon=False, aspect='equal')
+                                        frame_on=False, aspect='equal')
         div = make_axes_locatable(fig.mne.radio_ax)
         self._update_annotation_fig()  # populate w/ radio buttons & labels
         # append instructions at top
@@ -1022,7 +1043,7 @@ class MNEBrowseFigure(MNEFigure):
         # style the sensors so their facecolor is easier to distinguish
         self._update_highlighted_sensors()
         # add radio button axes
-        radio_ax = fig.add_subplot(gs[5:-3], frameon=False, aspect='equal')
+        radio_ax = fig.add_subplot(gs[5:-3], frame_on=False, aspect='equal')
         fig.mne.radio_ax = radio_ax
         selections_dict.update(Custom=np.array([], dtype=int))  # for lasso
         labels = list(selections_dict)
@@ -1043,7 +1064,7 @@ class MNEBrowseFigure(MNEFigure):
             'clicking individual sensors. Holding Ctrl while click-dragging '
             'allows a lasso selection adding to (rather than replacing) the '
             'existing selection.')
-        instructions_ax = fig.add_subplot(gs[-3:], frameon=False)
+        instructions_ax = fig.add_subplot(gs[-3:], frame_on=False)
         instructions_ax.text(0.04, 0.08, instructions, va='bottom', ha='left',
                              ma='left', wrap=True)
         instructions_ax.set_axis_off()
@@ -1133,7 +1154,7 @@ class MNEBrowseFigure(MNEFigure):
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
-        ax = fig.add_axes(position, frameon=False)
+        ax = fig.add_axes(position, frame_on=False)
         # make title
         first_line = ('Projectors already applied to the data are dimmed.\n'
                       if any(self.mne.projs_active) else '')
@@ -1151,7 +1172,7 @@ class MNEBrowseFigure(MNEFigure):
                 [x.set_color('0.7') for x in lines]
             rect.set_linewidth(1)
         # add "toggle all" button
-        ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frameon=True)
+        ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frame_on=True)
         self.mne.proj_all = Button(ax_all, 'Toggle all')
         # add event listeners
         checkboxes.on_clicked(self._toggle_proj_checkbox)
