@@ -1472,8 +1472,8 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
-               fnirs_cw_amplitude=0.1, fnirs_fd_phase=0.1, fnirs_od=0.1,
-               csd=0.1, rank=None, scalings=None, verbose=None):
+               fnirs_cw_amplitude=0.1, fnirs_od=0.1, csd=0.1,
+               rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
     This method works by adding a constant to the diagonal for each
