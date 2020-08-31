@@ -12,10 +12,6 @@
 Current (0.21.dev0)
 -------------------
 
-- Add reader for BOXY data in :func:`mne.io.read_raw_boxy` by `Kyle Mathewson`_ and `Jonathan Kuziek`_
-
-
-
 Changelog
 ~~~~~~~~~
 
@@ -170,6 +166,8 @@ Changelog
 - Speed up :func:`mne.stats.summarize_clusters_stc` using Numba by `Yu-Han Luo`_
 
 - Add ``reject_by_annotation=True`` to :func:`mne.make_fixed_length_epochs` and :meth:`mne.preprocessing.ICA.plot_properties` to reject bad data segments based on annotation by `Yu-Han Luo`_
+
+- Add reader for optical imaging data recorded using ISS Imgagent I/II hardware and BOXY recording software in :func:`mne.io.read_raw_boxy` by `Kyle Mathewson`_ and `Jonathan Kuziek`_
 
 Bug
 ~~~

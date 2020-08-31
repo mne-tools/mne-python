@@ -915,8 +915,7 @@ def _merge_ch_data(data, ch_type, names, method='rms'):
     if ch_type == 'grad':
         data = _merge_grad_data(data, method)
     else:
-        assert ch_type in ('hbo', 'hbr', 'fnirs_cw_amplitude',
-                           'fnirs_fd_phase', 'fnirs_od')
+        assert ch_type in ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
         data, names = _merge_nirs_data(data, names)
     return data, names
 

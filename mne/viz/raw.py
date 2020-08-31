@@ -350,8 +350,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_fd_phase',
-              'fnirs_od']:
+    for t in ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']:
         inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
                             exclude=[])]
         types += [t] * len(inds[-1])

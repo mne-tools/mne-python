@@ -13,15 +13,16 @@ from ...annotations import Annotations
 
 
 @fill_doc
-def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
-    """Reader for a BOXY optical imaging recording.
+def read_raw_boxy(fname, preload=False, verbose=None):
+    """Reader for an optical imaging recording.
+
+    This function has been tested using the ISS Imagent I and II systems
+    and versions 0.40/0.84 of the BOXY recording software.
 
     Parameters
     ----------
     fname : str
         Path to the BOXY data file.
-    datatype : str
-        Type of data to return (AC, DC, or Ph).
     %(preload)s
     %(verbose)s
 
@@ -34,7 +35,7 @@ def read_raw_boxy(fname, datatype='AC', preload=False, verbose=None):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawBOXY(fname, datatype, preload, verbose)
+    return RawBOXY(fname, preload, verbose)
 
 
 @fill_doc
@@ -45,8 +46,6 @@ class RawBOXY(BaseRaw):
     ----------
     fname : str
         Path to the BOXY data file.
-    datatype : str
-        Type of data to return (AC, DC, or Ph).
     %(preload)s
     %(verbose)s
 
@@ -56,12 +55,8 @@ class RawBOXY(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, datatype='AC', preload=False, verbose=None):
+    def __init__(self, fname, preload=False, verbose=None):
         logger.info('Loading %s' % fname)
-
-        # Determine which data type to return.
-        if datatype not in ['AC', 'DC', 'Ph']:
-            raise RuntimeError('Expect AC, DC, or Ph, got %s' % datatype)
 
         # Read header file and grab some info.
         filetype = 'parsed'
@@ -72,6 +67,13 @@ class RawBOXY(BaseRaw):
         col_names = list()
         with open(fname, 'r') as data:
             for line_num, i_line in enumerate(data, 1):
+                if 'BOXY.EXE:' in i_line:
+                    boxy_ver = re.findall(r'\d*\.\d+',
+                                          i_line.rsplit(' ')[-1])[0]
+                    # Check that the BOXY version is supported
+                    if boxy_ver not in ['0.40', '0.84']:
+                        raise RuntimeError('MNE has not been tested with BOXY '
+                                           'version (%s)' % boxy_ver)
                 if '#DATA ENDS' in i_line:
                     # Data ends just before this.
                     end_line = line_num - 1
@@ -83,6 +85,10 @@ class RawBOXY(BaseRaw):
                 elif 'Update Rate (Hz)' in i_line:
                     srate = float(i_line.rsplit(' ')[0])
                 elif 'Updata Rate (Hz)' in i_line:
+                    # Version 0.40 of the BOXY recording software
+                    # (and possibly other versions lower than 0.84) contains a
+                    # typo in the raw data file where 'Update Rate' is spelled
+                    # "Updata Rate. This will account for this typo.
                     srate = float(i_line.rsplit(' ')[0])
                 elif '#DATA BEGINS' in i_line:
                     # Data should start a couple lines later.
@@ -114,26 +120,19 @@ class RawBOXY(BaseRaw):
                         mrk_data.append(float(
                             re.findall(r'[-+]?\d*\.?\d+', crnt_line)[mrk_col]))
 
-        # Label each channel in our data.
+        # Label each channel in our data, for each data type (DC, AC, Ph).
         # Data is organised by channels x timepoint, where the first
         # 'source_num' rows correspond to the first detector, the next
         # 'source_num' rows correspond to the second detector, and so on.
         boxy_labels = list()
         for det_num in range(detect_num):
             for src_num in range(source_num):
-                boxy_labels.append('S' + str(src_num + 1) +
-                                   '_D' + str(det_num + 1))
-
-        # Determine channel types.
-        if datatype == 'Ph':
-            chan_type = 'fnirs_fd_phase'
-        else:
-            chan_type = 'fnirs_cw_amplitude'
-
-        ch_types = ([chan_type for i_chan in boxy_labels])
+                for i_type in ['DC', 'AC', 'Ph']:
+                    boxy_labels.append('S' + str(src_num + 1) +
+                                       '_D' + str(det_num + 1) + ' ' + i_type)
 
         # Create info structure.
-        info = create_info(boxy_labels, srate, ch_types=ch_types)
+        info = create_info(boxy_labels, srate)
 
         raw_extras = {'source_num': source_num,
                       'detect_num': detect_num,
@@ -141,16 +140,15 @@ class RawBOXY(BaseRaw):
                       'end_line': end_line,
                       'filetype': filetype,
                       'file': fname,
-                      'datatype': datatype,
                       'srate': srate,
                       }
 
         # Determine how long our data is.
         diff = end_line - (start_line)
 
-        # Number if rows in data file depends on data file type.
+        # Number of rows in data file depends on data file type.
         if filetype == 'non-parsed':
-            last_samps = diff // (source_num)
+            last_samps = (diff // (source_num))
         elif filetype == 'parsed':
             last_samps = diff
 
@@ -196,7 +194,6 @@ class RawBOXY(BaseRaw):
         start_line = self._raw_extras[fi]['start_line']
         end_line = self._raw_extras[fi]['end_line']
         filetype = self._raw_extras[fi]['filetype']
-        datatype = self._raw_extras[fi]['datatype']
         boxy_file = self._raw_extras[fi]['file']
 
         # Possible detector names.
@@ -235,9 +232,14 @@ class RawBOXY(BaseRaw):
 
             # Need to make sure our rows are the same length.
             # This is done by padding the shorter ones.
-            padding = boxy_length - len(i_data)
-            boxy_array[ii] = np.pad(np.asarray(i_data, dtype=float),
-                                    (0, padding), mode='empty')
+            line_diff = boxy_length - len(i_data)
+            if line_diff == 0:
+                full_line = i_data
+                boxy_array[ii] = np.asarray(i_data, dtype=float)
+            else:
+                pad = full_line[-line_diff:]
+                i_data.extend(pad)
+                boxy_array[ii] = np.asarray(i_data, dtype=float)
 
         # Grab data from the other columns that aren't AC, DC, or Ph.
         meta_data = dict()
@@ -253,10 +255,10 @@ class RawBOXY(BaseRaw):
 
         # Make some empty variables to store our data.
         if filetype == 'non-parsed':
-            all_data = np.zeros(((detect_num * source_num),
+            all_data = np.zeros(((detect_num * source_num * 3),
                                  int(len(boxy_data) / source_num)))
         elif filetype == 'parsed':
-            all_data = np.zeros(((detect_num * source_num),
+            all_data = np.zeros(((detect_num * source_num * 3),
                                  int(len(boxy_data))))
 
         # Loop through detectors.
@@ -265,35 +267,38 @@ class RawBOXY(BaseRaw):
             # Loop through sources.
             for i_source in sources:
 
-                # Determine where to store our data.
-                index_loc = (detectors.index(i_detect) * source_num +
-                             (i_source - 1))
+                for i_num, i_type in enumerate(['DC', 'AC', 'Ph']):
 
-                # Need to treat our filetypes differently.
-                if filetype == 'non-parsed':
+                    # Determine where to store our data.
+                    index_loc = (detectors.index(i_detect) * source_num * 3 +
+                                 ((i_source - 1) * 3) + i_num)
 
-                    # Non-parsed saves timepoints in groups and
-                    # this should account for that.
-                    time_points = np.arange(i_source - 1,
-                                            int(meta_data['record'][-1]) *
-                                            source_num, source_num)
+                    # Need to treat our filetypes differently.
+                    if filetype == 'non-parsed':
 
-                    # Determine which channel to
-                    # look for in boxy_array.
-                    channel = np.where(col_names == i_detect + '-' +
-                                       datatype)[0][0]
+                        # Non-parsed saves timepoints in groups and
+                        # this should account for that.
+                        time_points = np.arange(i_source - 1,
+                                                int(meta_data['record'][-1]) *
+                                                source_num, source_num)
 
-                    # Save our data based on data type.
-                    all_data[index_loc, :] = boxy_array[time_points, channel]
+                        # Determine which channel to
+                        # look for in boxy_array.
+                        channel = np.where(col_names == i_detect + '-' +
+                                           i_type)[0][0]
 
-                elif filetype == 'parsed':
+                        # Save our data based on data type.
+                        all_data[index_loc, :] = boxy_array[time_points,
+                                                            channel]
 
-                    # Which channel to look for in boxy_array.
-                    channel = np.where(col_names == i_detect + '-' + datatype +
-                                       str(i_source))[0][0]
+                    elif filetype == 'parsed':
 
-                    # Save our data based on data type.
-                    all_data[index_loc, :] = boxy_array[:, channel]
+                        # Which channel to look for in boxy_array.
+                        channel = np.where(col_names == i_detect + '-' +
+                                           i_type + str(i_source))[0][0]
+
+                        # Save our data based on data type.
+                        all_data[index_loc, :] = boxy_array[:, channel]
 
         # Place our data into the data object in place.
         data[:] = all_data
