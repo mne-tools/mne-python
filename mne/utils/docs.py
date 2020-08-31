@@ -481,6 +481,42 @@ chpi_locs : dict
 """
 
 # EEG reference: set_eeg_reference
+docdict['set_eeg_reference_ref_channels'] = """
+ref_channels : list of str | str
+    Can be:
+
+    - The name(s) of the channel(s) used to construct the reference.
+    - ``'average'`` to apply an average reference (default)
+    - ``'REST'`` to use the Reference Electrode Standardization Technique
+      infinity reference :footcite:`Yao2001`.
+    - An empty list, in which case MNE will not attempt any re-referencing of
+      the data
+"""
+docdict['set_eeg_reference_projection'] = """
+projection : bool
+    If ``ref_channels='average'`` this argument specifies if the
+    average reference should be computed as a projection (True) or not
+    (False; default). If ``projection=True``, the average reference is
+    added as a projection and is not applied to the data (it can be
+    applied afterwards with the ``apply_proj`` method). If
+    ``projection=False``, the average reference is directly applied to
+    the data. If ``ref_channels`` is not ``'average'``, ``projection``
+    must be set to ``False`` (the default in this case).
+"""
+docdict['set_eeg_reference_ch_type'] = """
+ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
+    The name of the channel type to apply the reference to. If 'auto',
+    the first channel type of eeg, ecog or seeg that is found (in that
+    order) will be selected.
+
+    .. versionadded:: 0.19
+"""
+docdict['set_eeg_reference_forward'] = """
+forward : instance of Forward | None
+    Forward solution to use. Only used with ``ref_channels='REST'``.
+
+    .. versionadded:: 0.21
+"""
 docdict['set_eeg_reference_see_also_notes'] = """
 See Also
 --------
@@ -508,6 +544,10 @@ Some common referencing schemes and the corresponding value for the
     channels to use. For example, to apply an average mastoid reference,
     when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
 
+- REST
+    The given EEG electrodes are referenced to a point at infinity using the
+    lead fields in ``forward``, which helps standardize the signals.
+
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
 
@@ -517,15 +557,19 @@ Some common referencing schemes and the corresponding value for the
 3. In order to apply a reference, the data must be preloaded. This is not
    necessary if ``ref_channels='average'`` and ``projection=True``.
 
-4. For an average reference, bad EEG channels are automatically excluded if
-   they are properly set in ``info['bads']``.
+4. For an average or REST reference, bad EEG channels are automatically
+   excluded if they are properly set in ``info['bads']``.
 
 .. versionadded:: 0.9.0
+
+References
+----------
+.. footbibliography::
 """
 
 
 # Maxwell filtering
-docdict['maxwell_origin_int_ext_calibration_cross'] = """
+docdict['maxwell_origin'] = """
 origin : array-like, shape (3,) | str
     Origin of internal and external multipolar moment space in meters.
     The default is ``'auto'``, which means ``(0., 0., 0.)`` when
@@ -535,14 +579,22 @@ origin : array-like, shape (3,) | str
     to having too few digitization points),
     consider separately calling the fitting function with different
     options or specifying the origin manually.
+"""
+docdict['maxwell_int'] = """
 int_order : int
     Order of internal component of spherical expansion.
+"""
+docdict['maxwell_ext'] = """
 ext_order : int
     Order of external component of spherical expansion.
+"""
+docdict['maxwell_cal'] = """
 calibration : str | None
     Path to the ``'.dat'`` file with fine calibration coefficients.
     File can have 1D or 3D gradiometer imbalance correction.
     This file is machine/site-specific.
+"""
+docdict['maxwell_cross'] = """
 cross_talk : str | None
     Path to the FIF file with cross-talk correction information.
 """
@@ -553,22 +605,38 @@ coord_frame : str
     a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
     frame should be used.
 """
-docdict['maxwell_reg_ref_cond_pos'] = """
+docdict['maxwell_reg'] = """
 regularize : str | None
     Basis regularization type, must be "in" or None.
     "in" is the same algorithm as the "-regularize in" option in
     MaxFilter™.
+"""
+docdict['maxwell_ref'] = """
 ignore_ref : bool
     If True, do not include reference channels in compensation. This
     option should be True for KIT files, since Maxwell filtering
     with reference channels is not currently supported.
+"""
+docdict['maxwell_cond'] = """
 bad_condition : str
     How to deal with ill-conditioned SSS matrices. Can be "error"
     (default), "warning", "info", or "ignore".
+"""
+docdict['maxwell_pos'] = """
 head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
     parameters as returned by e.g. ``read_head_pos``.
+"""
+docdict['maxwell_dest'] = """
+destination : str | array-like, shape (3,) | None
+    The destination location for the head. Can be ``None``, which
+    will not change the head position, or a string path to a FIF file
+    containing a MEG device<->head transformation, or a 3-element array
+    giving the coordinates to translate to (with no rotations).
+    For example, ``destination=(0, 0, 0.04)`` would translate the bases
+    as ``--trans default`` would in MaxFilter™ (i.e., to the default
+    head location).
 """
 docdict['maxwell_st_fixed_only'] = """
 st_fixed : bool

@@ -24,10 +24,6 @@ matrix:
         - os: linux
           env: CONDA_ENV="environment.yml"
 
-        # OSX conda
-        - os: osx
-          env: CONDA_ENV="environment.yml"
-
         # PIP + non-default stim channel + log level info
         - os: linux
           env: MNE_STIM_CHANNEL=STI101 MNE_LOGGING_LEVEL=info
@@ -48,13 +44,11 @@ matrix:
 
 # Setup anaconda
 before_install:
-    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-      fi;
+    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
     - |
       if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         pip uninstall -yq numpy
-        pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy
+        pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre "numpy<1.20.0.dev0+20200811"
         pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
         pip install --upgrade -r requirements.txt
       else
@@ -78,11 +72,6 @@ before_install:
       fi;
 
 install:
-    # Rvm overrides cd with a function so that it can hook into it to run
-    # some scripts, see https://github.com/travis-ci/travis-ci/issues/8703
-    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        unset -f cd;
-      fi;
     # Suppress the parallel outputs for logging cleanliness
     - python setup.py build
     - python setup.py install
@@ -104,11 +93,7 @@ script:
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
     # Until https://github.com/numpy/numpy/issues/15580 is resolved we also
     # need the --pre wheels to skip slow ones.
-    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        CONDITION='not slowtest';
-      else
-        CONDITION='not ultraslowtest';
-      fi;
+    - CONDITION='not ultraslowtest';
     # Determine directories to test (could use SPLIT=0 SPLIT=1 but currently
     # we are fast enough, so disable it)
     - if [ -z ${SPLIT} ]; then
