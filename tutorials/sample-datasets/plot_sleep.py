@@ -107,6 +107,11 @@ raw_train.plot(duration=60, scalings='auto')
 # REM sleep (R). To do so, we use the ``event_id`` parameter in
 # :func:`mne.events_from_annotations` to select which events are we
 # interested in and we associate an event identifier to each of them.
+#
+# Moreover, the recordings contain long awake (W) regions before and after each
+# night. To limit the impact of class imbalance, we trim each recording by only
+# keeping 5 minutes of wake time before the first occurence and 5 minutes after
+# the last occurence of sleep stages.
 
 annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 1': 2,
@@ -118,6 +123,13 @@ annotation_desc_2_event_id = {'Sleep stage W': 1,
 events_train, _ = mne.events_from_annotations(
     raw_train, event_id=annotation_desc_2_event_id, chunk_duration=30.)
 
+# keep last 5-min wake events before sleep and first 5-min wake events after
+# sleep
+sleep_stage_inds = np.where(events_train[:, 2] > 1)[0]
+offset = int((5 * 60) / 30)
+events_train = events_train[
+    sleep_stage_inds[0] - offset:sleep_stage_inds[-1] + offset + 1]
+
 # create a new event_id that unifies stages 3 and 4
 event_id = {'Sleep stage W': 1,
             'Sleep stage 1': 2,
@@ -126,8 +138,9 @@ event_id = {'Sleep stage W': 1,
             'Sleep stage R': 5}
 
 # plot events
-mne.viz.plot_events(events_train, event_id=event_id,
-                    sfreq=raw_train.info['sfreq'])
+fig = mne.viz.plot_events(events_train, event_id=event_id,
+                          sfreq=raw_train.info['sfreq'],
+                          first_samp=events_train[0, 0])
 
 # keep the color-code for further plotting
 stage_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -153,6 +166,9 @@ raw_test.set_annotations(annot_test, emit_warning=False)
 raw_test.set_channel_types(mapping)
 events_test, _ = mne.events_from_annotations(
     raw_test, event_id=annotation_desc_2_event_id, chunk_duration=30.)
+sleep_stage_inds = np.where(events_test[:, 2] > 1)[0]
+events_test = events_test[
+    sleep_stage_inds[0] - offset:sleep_stage_inds[-1] + offset + 1]
 epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
                          tmin=0., tmax=tmax, baseline=None)
 
