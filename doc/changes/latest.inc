@@ -119,6 +119,8 @@ Changelog
 
 - Add :func:`mne.viz.set_3d_options` and ``MNE_3D_OPTION_ANTIALIAS`` environment variable to control full-scene antialiasing (FXAA) in 3D functions like :ref:`mne coreg`, :func:`mne.viz.plot_alignment`, and :func:`mne.viz.plot_source_estimates`; this can be useful on systems where FXAA does not work well, such as some with MESA software rendering, by `Eric Larson`_
 
+- Add config variable ``MNE_TQDM`` to support explicitly setting the TQDM backend to use, for example ``tqdm`` or ``tqdm.auto`` (default) by `Eric Larson`_
+
 - Add better support for reading corrupted FIF files in :func:`mne.io.read_raw_fif` by `Eric Larson`_
 
 - BIDS conformity: When saving FIF files to disk and the files are split into parts, the ``split_naming='bids'`` parameter now uses a "_split-%d" naming instead of the previous "_part-%d", by `Stefan Appelhoff`_

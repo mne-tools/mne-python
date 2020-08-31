@@ -14,6 +14,8 @@ import time
 
 import numpy as np
 
+from .check import _check_option
+from .config import get_config
 from ._logging import logger
 
 
@@ -42,8 +44,16 @@ class ProgressBar(object):
     def __init__(self, iterable=None, initial_value=0, mesg=None,
                  max_total_width='auto', max_value=None,
                  **kwargs):  # noqa: D102
-        from ..externals.tqdm import auto
-        tqdm = auto.tqdm
+        # The following mimics this, but with configurable module to use
+        # from ..externals.tqdm import auto
+        from ..externals import tqdm
+        which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
+        _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.'),
+                      extra='beginning')
+        logger.debug(f'Using ProgressBar with {which_tqdm}')
+        if which_tqdm != 'tqdm':
+            tqdm = getattr(tqdm, which_tqdm.split('.', 1)[1])
+        tqdm = tqdm.tqdm
         defaults = dict(
             leave=True, mininterval=0.016, miniters=1, smoothing=0.05,
             bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
@@ -142,7 +152,7 @@ class ProgressBar(object):
 
     def __del__(self):
         """Ensure output completes."""
-        if getattr(self, '_tqdm') is not None:
+        if getattr(self, '_tqdm', None) is not None:
             self._tqdm.close()
 
 
