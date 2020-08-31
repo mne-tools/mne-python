@@ -1,4 +1,4 @@
-# Authors: Robert Luke <mail@robertluke.net>
+# Authors: Adam Li <adam2392@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -6,6 +6,7 @@ from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
 import os.path as op
+import time
 
 import numpy as np
 
@@ -22,19 +23,17 @@ from ...utils import warn
 def read_raw_persyst(fname, preload=False, verbose=None):
     """Reader for a Persyst (.lay/.dat) recording.
 
-    This function has only been tested with NIRScout devices.
-
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder or header file.
+        Path to the Persyst header (.lay) file.
     %(preload)s
     %(verbose)s
 
     Returns
     -------
-    raw : instance of RawNIRX
-        A Raw object containing NIRX data.
+    raw : instance of RawPeryst
+        A Raw object containing Persyst data.
 
     See Also
     --------
@@ -54,7 +53,7 @@ class RawPersyst(BaseRaw):
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder or header file.
+        Path to the Persyst header (.lay) file.
     %(preload)s
     %(verbose)s
 
@@ -65,31 +64,31 @@ class RawPersyst(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        from ...externals.pymatreader import read_mat
-        from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
 
-        if fname.endswith('.hdr'):
-            fname = op.dirname(op.abspath(fname))
+        if not fname.endswith('.lay'):
+            fname = fname + '.lay'
+        lay_fname = op.basename(fname)
+        # Assume it is the same location and has the same name as lay_fname
+        dat_fname = lay_fname.replace('.lay', '.dat')
 
-        if not op.isdir(fname):
+        if not op.exists(lay_fname):
             raise FileNotFoundError('The path you specified does not exist.')
+        if not op.exists(dat_fname):
+            raise FileNotFoundError('The data (.dat) path you specified '
+                                    'does not exist for the lay path, %s'
+                                    % lay_fname)
 
-        # Check if required files exist and store names for later use
-        files = dict()
-        keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
-                'config.txt', 'probeInfo.mat')
-        for key in keys:
-            files[key] = glob.glob('%s/*%s' % (fname, key))
-            if len(files[key]) != 1:
-                raise RuntimeError('Expect one %s file, got %d' %
-                                   (key, len(files[key]),))
-            files[key] = files[key][0]
-        if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
-            warn("A single dat file was expected in the specified path, but "
-                 "got %d. This may indicate that the file structure has been "
-                 "modified since the measurement was saved." %
-                 (len(glob.glob('%s/*%s' % (fname, 'dat')))))
+        # takes ~8 min for a 1.5GB file
+        t = time.time()
+
+        # get .ini file and replace [] with ''
+        data, sections, subsections = inifile.inifile(layFileName,
+                                                      'readall')  # sections and subsections currently unused
+        for row in data:
+            for entry in row:
+                if entry == []:
+                    entry = ''
 
         # Read number of rows/samples of wavelength data
         last_sample = -1
@@ -106,37 +105,7 @@ class RawPersyst(BaseRaw):
         hdr = RawConfigParser()
         hdr.read_string(hdr_str)
 
-        # Check that the file format version is supported
-        if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
-            raise RuntimeError('MNE does not support this NIRStar version'
-                               ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
-        if "NIRScout" not in hdr['GeneralInfo']['Device']:
-            warn("Only import of data from NIRScout devices have been "
-                 "thoroughly tested. You are using a %s device. " %
-                 hdr['GeneralInfo']['Device'])
-
         # Parse required header fields
-
-        # Extract frequencies of light used by machine
-        fnirs_wavelengths = [int(s) for s in
-                             re.findall(r'(\d+)',
-                             hdr['ImagingParameters']['Wavelengths'])]
-
-        # Extract source-detectors
-        sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
-                              hdr['DataStructure']['S-D-Key'])], int)
-        detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
-                                hdr['DataStructure']['S-D-Key'])], int)
-
-        # Determine if short channels are present and on which detectors
-        if 'shortbundles' in hdr['ImagingParameters']:
-            short_det = [int(s) for s in
-                         re.findall(r'(\d+)',
-                         hdr['ImagingParameters']['ShortDetIndex'])]
-            short_det = np.array(short_det, int)
-        else:
-            short_det = []
-
         # Extract sampling rate
         samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
 
@@ -169,70 +138,11 @@ class RawPersyst(BaseRaw):
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
         else:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
-        # NIRStar does not record an id, or handedness by default
-
-        # Read information about probe/montage/optodes
-        # A word on terminology used here:
-        #   Sources produce light
-        #   Detectors measure light
-        #   Sources and detectors are both called optodes
-        #   Each source - detector pair produces a channel
-        #   Channels are defined as the midpoint between source and detector
-        mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
-        requested_channels = mat_data['probeInfo']['probes']['index_c']
-        src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.
-        det_locs = mat_data['probeInfo']['probes']['coords_d3'] / 100.
-        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] / 100.
-
-        # These are all in MNI coordinates, so let's transform them to
-        # the Neuromag head coordinate frame
-        mri_head_t, _ = _get_trans('fsaverage', 'mri', 'head')
-        src_locs = apply_trans(mri_head_t, src_locs)
-        det_locs = apply_trans(mri_head_t, det_locs)
-        ch_locs = apply_trans(mri_head_t, ch_locs)
-
-        # Set up digitization
-        dig = get_mni_fiducials('fsaverage', verbose=False)
-        for fid in dig:
-            fid['r'] = apply_trans(mri_head_t, fid['r'])
-            fid['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        for ii, ch_loc in enumerate(ch_locs, 1):
-            dig.append(dict(
-                kind=FIFF.FIFFV_POINT_EEG,  # misnomer but probably okay
-                r=ch_loc,
-                ident=ii,
-                coord_frame=FIFF.FIFFV_COORD_HEAD,
-            ))
-        dig = _format_dig_points(dig)
-        del mri_head_t
-
-        # Determine requested channel indices
-        # The wl1 and wl2 files include all possible source - detector pairs.
-        # But most of these are not relevant. We want to extract only the
-        # subset requested in the probe file
-        req_ind = np.array([], int)
-        for req_idx in range(requested_channels.shape[0]):
-            sd_idx = np.where((sources == requested_channels[req_idx][0]) &
-                              (detectors == requested_channels[req_idx][1]))
-            req_ind = np.concatenate((req_ind, sd_idx[0]))
-        req_ind = req_ind.astype(int)
-
-        # Generate meaningful channel names
-        def prepend(list, str):
-            str += '{0}'
-            list = [str.format(i) for i in list]
-            return(list)
-        snames = prepend(sources[req_ind], 'S')
-        dnames = prepend(detectors[req_ind], '_D')
-        sdnames = [m + str(n) for m, n in zip(snames, dnames)]
-        sd1 = [s + ' ' + str(fnirs_wavelengths[0]) for s in sdnames]
-        sd2 = [s + ' ' + str(fnirs_wavelengths[1]) for s in sdnames]
-        chnames = [val for pair in zip(sd1, sd2) for val in pair]
 
         # Create mne structure
         info = create_info(chnames,
                            samplingrate,
-                           ch_types='fnirs_cw_amplitude')
+                           ch_types='ch_types')
         info.update(subject_info=subject_info, dig=dig)
 
         # Store channel, source, and detector locations
@@ -279,7 +189,7 @@ class RawPersyst(BaseRaw):
             'bounds': bounds,
         }
 
-        super(RawNIRX, self).__init__(
+        super(RawPersyst, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
             raw_extras=[raw_extras], verbose=verbose)
 
@@ -325,6 +235,79 @@ class RawPersyst(BaseRaw):
 
         return data
 
+
+def _read_ini_contents(fname):
+    keys, sections, subsections = ReadAllKeys(fname)
+
+    keys = []
+    subsections = []
+    sections = []
+    with open(fname, 'r') as fin:
+        for line in fin:
+            status, key, val = _process_ini_line(line)
+
+
+    return keys, sections, subsections
+
+
+def _process_ini_line(line):
+    """Processes a line read from the ini file.
+
+    Parameters
+    ----------
+    line : str
+        The actual line in the INI file.
+
+    Returns
+    -------
+    status : int
+        Returns the following integers based on status.
+        -1  => unknown string found
+        0   => empty line found
+        1   => section found
+        2   => subsection found
+        3   => key-value pair found
+        4   => comment line found (starting with ;)
+    key : str
+        The string before the ``'='`` character.
+    value : str
+        The string from the line after the ``'='`` character.
+    """
+    key = ''  # default; only return value possibly not set
+    line = line.strip()  # remove leading and trailing spaces
+    end_idx = len(line) - 1  # get the last index of the line
+
+    if not line:  # empty sequence evaluates to false
+        status = 0
+        key = ''
+        value = ''
+        return status, key, value
+    elif line[0] == ';':  # comment found
+        status = 4
+        value = line[1:end_idx + 1]
+    elif (line[0] == '[') and (line[end_idx] == ']') and (end_idx + 1 >= 3):  # section found
+        status = 1
+        value = line[1:end_idx].lower()
+    elif (line[0] == '{') and (line[end_idx] == '}') and (end_idx + 1 >= 3):  # subsection found
+        status = 2
+        value = line[1:end_idx].lower()
+    else:  # key found
+        if '=' not in line:
+            raise RuntimeError('The line %s does not conform '
+                               'to the standards. Please check the '
+                               '.lay file.' % line)
+        pos = line.index('=')
+        status = 3
+        key = line[0:pos].lower()
+        key.strip()
+        if not key:
+            status = -1
+            key = ''
+            value = ''
+        else:
+            value = line[pos + 1:end_idx + 1].lower()
+            value.strip()
+    return status, value, key
 
 def _read_csv_rows_cols(fname, start, stop, cols, bounds):
     with open(fname, 'rb') as fid:

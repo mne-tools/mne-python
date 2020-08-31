@@ -1,6 +1,6 @@
-"""fNIRS module for conversion to FIF."""
+"""Persyst module for conversion to FIF."""
 
-# Author: Robert Luke <mail@robertluke.net>
+# Author: Adam Li <adam2392@gmail.com>
 #
 # License: BSD (3-clause)
 
