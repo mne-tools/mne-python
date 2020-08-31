@@ -236,8 +236,14 @@ def set_3d_title(figure, title, size=40):
     backend._set_3d_title(figure=figure, title=title, size=size)
 
 
-def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
+def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
+                     handle=None, scene=True):
     """Return an empty figure based on the current 3d backend.
+
+    .. warning:: Proceed with caution when the renderer object is
+                 returned (with ``scene=False``) because the _Renderer
+                 API is not necessarily stable enough for production,
+                 it's still actively in development.
 
     Parameters
     ----------
@@ -245,16 +251,30 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
         The dimensions of the 3d figure (width, height).
     bgcolor : tuple
         The color of the background.
+    smooth_shading : bool
+        If True, smooth shading is enabled. Defaults to True.
     handle : int | None
         The figure identifier.
+    scene : bool
+        Specify if the returned object is the scene. If False,
+        the renderer object is returned. Defaults to True.
 
     Returns
     -------
     figure : object
-        The requested empty scene.
+        The requested empty scene or the renderer object if
+        ``scene=False``.
     """
-    renderer = _get_renderer(fig=handle, size=size, bgcolor=bgcolor)
-    return renderer.scene()
+    renderer = _get_renderer(
+        fig=handle,
+        size=size,
+        bgcolor=bgcolor,
+        smooth_shading=smooth_shading,
+    )
+    if scene:
+        return renderer.scene()
+    else:
+        return renderer
 
 
 def get_brain_class():

@@ -315,3 +315,7 @@
 .. _Rahul Nadkarni: https://github.com/rahuln
 
 .. _Jonathan Kuziek:  https://github.com/kuziekj
+
+.. _Lau Møller Andersen: https://github.com/ualsbombe
+
+.. _Martin Schulz: https://github.com/marsipu

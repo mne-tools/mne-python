@@ -102,10 +102,11 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer.backend._Renderer(
+    rend = renderer.create_3d_figure(
         size=win_size,
         bgcolor=win_color,
         smooth_shading=True,
+        scene=False,
     )
     for interaction in ('terrain', 'trackball'):
         rend.set_interaction(interaction)

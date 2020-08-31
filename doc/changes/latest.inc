@@ -99,6 +99,8 @@ Changelog
 
 - Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
 
+- Add REST EEG infinity reference scheme to :meth:`mne.io.Raw.set_eeg_reference` and related functions by `Eric Larson`_
+
 - Add better sanity checking of ``max_pca_components`` and ``n_components`` to provide more informative error messages for :class:`mne.preprocessing.ICA` by `Eric Larson`_
 
 - Add ``plot`` option to :meth:`mne.viz.plot_filter` allowing selection of which filter properties are plotted and added option for user to supply ``axes`` by `Robert Luke`_
@@ -159,7 +161,7 @@ Changelog
 
 - Add function :func:`mne.channels.combine_channels` to combine channels from Raw, Epochs, or Evoked according to ROIs (combinations including mean, median, or standard deviation; can also use a callable) by `Johann Benerradi`_
 
-- Improved documentation building instructions and execution on Windows by `Eric Larson`_ and `kalenkovich`_
+- Improved documentation building instructions and execution on Windows by `Eric Larson`_, `kalenkovich`_ and `Martin Schulz`_
 
 - When passing a list of `~mne.Evoked` objects to `~mne.viz.plot_compare_evokeds`, each evoked's ``.comment`` attribute will be used to label the trace. If ``.comment`` is empty, a 1-based index is assigned as the label by  `Richard Höchenberger`_
 
@@ -169,8 +171,14 @@ Changelog
 
 - Add reader for optical imaging data recorded using ISS Imgagent I/II hardware and BOXY recording software in :func:`mne.io.read_raw_boxy` by `Kyle Mathewson`_ and `Jonathan Kuziek`_
 
+- `~mne.Report.parse_folder` now accepts a path-like folder name (it used to work with strings only) by `Alex Gramfort`_
+
 Bug
 ~~~
+
+- Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` by `Lau Møller Andersen`_
+
+- Fix bug by adding error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` by `Lau Møller Andersen`_
 
 - Fix bug with :func:`mne.preprocessing.ICA.find_bads_eog` when more than one EOG components are present by `Christian O'Reilly`_
 
