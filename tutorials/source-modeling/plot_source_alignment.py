@@ -212,9 +212,8 @@ def plot_dig_alignment(points, coord_system='ras'):
 # Plot untransformed head space digitized points as if they were in RAS space
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The plot below shows the digitization points in the coordinate space
-# native to the digitizer equipment plotted with the head surface in
-# right-anterior-superior (RAS) coordinates. The relationship between the
-# 3D points in the head space would fit on the head but the transformation from
+# native to the digitizer equipment as described above. The 3D points in
+# head space would fit on the head but the transformation from
 # the coregistration has not been applied yet so there is a mismatch.
 
 head_space = np.array([dig['r'] for dig in
@@ -227,9 +226,11 @@ plot_dig_alignment(head_space)
 # Rotate and translate the points based on the coregistration.
 #
 # The plot below shows the head space coordinates transformed to meg
-# coordinates (still RAS). It correctly aligns to the head, which is also in
-# RAS, but still has to be transformed to the mri coordinate space, which
-# is in voxels.
+# coordinates. It correctly aligns to the head, but still has to be transformed
+# to the mri coordinate space, which is in voxels. In mri (voxel) space,
+# ``(0, 0, 0)`` is the left-, posterior-most coordinate on the inferior-most
+# slice compared to ``(0, 0, 0)`` being the center of the head in both head
+# and meg coordinate spaces.
 
 meg_space = mne.transforms.apply_trans(trans, head_space, move=True)
 plot_dig_alignment(meg_space)
@@ -238,10 +239,14 @@ plot_dig_alignment(meg_space)
 # Apply a second transform to get to mri space and plot again
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# This plot finally shows the coordinates in the mri space. Since the head
-# is plotted in RAS, we have to transform them back to have the plots match
-# since all the head surface that it is being compared to in the plot is in
-# RAS.
+# This plot finally shows the coordinates in the mri space, which looks the
+# same as the alignment meg coordinate space, but as can be seen in the
+# helper function we actually have to do a transformation back from mri to
+# meg space. This is because the freesurfer surfaces (the reconstructed head
+# surface that is plotted) are centered in the center of the head and in RAS
+# coordinates compared to the mri coordinate space which is centered in the
+# bottom corner and the order of the points is not RAS but based on the T1
+# image slices.
 
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = linalg.inv(vox2ras_tkr)
