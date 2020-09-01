@@ -11,6 +11,7 @@
 
 from ._brain import _Brain
 from ._scraper import _BrainScraper
-from ._timeviewer import _TimeViewer, _LinkViewer
+from ._timeviewer import _TimeViewer
+from ._linkviewer import _LinkViewer
 
 __all__ = ['_Brain']
