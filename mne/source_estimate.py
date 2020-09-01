@@ -2938,8 +2938,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # the other ones are vol type. For mixed source space n_labels will be
     # given by the number of ROIs of the cortical parcellation plus the number
     # of vol src space.
-    # If mode=None and stc=None (i.e. no activation time courses provided, only
-    # compute vertex indices, label_flip will be empty list.
+    # If stc=None (i.e. no activation time courses provided) and mode='mean',
+    # only computes vertex indices and label_flip will be list of None.
     from .label import label_sign_flip, Label, BiHemiLabel
 
     # if source estimate provided in stc, get vertices from source space and
@@ -3004,8 +3004,6 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
         if len(this_vertidx) == 0:
             bad_labels.append(label.name)
             this_vertidx = None  # to later check if label is empty
-        elif mode is None:  # no flip if no source activation provided
-            this_flip = []
         elif mode not in ('mean', 'max'):  # mode-dependent initialization
             # label_sign_flip uses two properties:
             #
