@@ -18,7 +18,8 @@ from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
 from .io.constants import FIFF
-from .surface import read_surface, _get_ico_surface, mesh_edges
+from .surface import (read_surface, _get_ico_surface, mesh_edges,
+                      _project_onto_surface)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
                            _import_nibabel, _get_mri_info_data,
@@ -3159,3 +3160,106 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
         label_tc = label_tc[0]
 
     return label_tc
+
+
+@verbose
+def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
+                     project=True, subjects_dir=None, verbose=None):
+    """Create a STC from ECoG sensor data.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data. Must contain ECoG channels.
+    %(trans)s
+    subject : str
+        The subject name.
+    distance : float
+        Distance (m) defining the activation "ball" of the sensor.
+    mode : str
+        Can be "sum" to do a linear sum of weights, "nearest" to
+        use only the weight of the nearest sensor, or "zero" to use a
+        zero-order hold. See Notes.
+    project : bool
+        If True, project the electrodes to the nearest ``'pialæ`` surface
+        vertex before computing distances.
+    %(subjects_dir)s
+    %(verbose)s
+
+    Returns
+    -------
+    stc : instance of SourceEstimate
+        The surface source estimate.
+
+    Notes
+    -----
+    This function projects the ECoG sensors to the pial surface (if
+    ``project``), then the activation at each pial surface vertex is given
+    by the mode:
+
+    - ``'sum'``
+        Activation is the sum across each sensor weighted by the fractional
+        ``distance`` from each sensor. A sensor with zero distance gets weight
+        1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
+        If ``distance`` is less than the distance between any two electrodes,
+        this will be the same as ``'nearest'``.
+    - ``'weighted'``
+        Same as ``'sum'`` except that only the nearest electrode is used,
+        rather than summing across electrodes within the ``distance`` radius.
+        As as ``'nearest'`` for vertices with distance zero to the projected
+        sensor.
+    - ``'nearest'``
+        The value is given by the value of the nearest sensor, up to a
+        ``distance`` (beyond which it is zero).
+
+    .. versionadded:: 0.21
+    """
+    from scipy.spatial.distance import cdist, pdist
+    from .evoked import Evoked
+    _validate_type(evoked, Evoked, 'evoked')
+    _validate_type(mode, str, 'mode')
+    _check_option('mode', mode, ('sum', 'single', 'nearest'))
+    evoked = evoked.copy().pick_types(meg=False, ecog=True)
+    pos = np.array([ch['loc'][:3] for ch in evoked.info['chs']])
+    trans, _ = _get_trans(trans, 'head', 'mri', allow_none=True)
+    subject = _check_subject(None, subject, False)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    data, vertices = list(), list()
+    rrs = [read_surface(op.join(subjects_dir, subject,
+                                'surf', f'{hemi}.pial'))[0]
+           for hemi in ('lh', 'rh')]
+    offset = len(rrs[0])
+    rrs = np.concatenate(rrs)
+    rrs /= 1000.
+    pos = apply_trans(trans, pos)
+    logger.info(
+        f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
+    if project:
+        logger.info('    Projecting electrodes onto surface')
+        pos = _project_onto_surface(pos, dict(rr=rrs), project_rrs=True,
+                                    method='nearest')[2]
+    min_dist = pdist(pos).min() * 1000
+    logger.info(
+        f'    Projected sensors have minimum distance {min_dist:0.1f} mm')
+    dists = cdist(rrs, pos)
+    assert dists.shape == (len(rrs), len(pos))
+    vertices = np.where((dists <= distance).any(-1))[0]
+    logger.info(f'    {len(vertices)} / {len(rrs)} non-zero vertices')
+    w = np.maximum(1. - dists[vertices] / distance, 0)
+    # now we triage based on mode
+    if mode in ('single', 'nearest'):
+        range_ = np.arange(w.shape[0])
+        idx = np.argmax(w, axis=1)
+        vals = w[range_, idx] if mode == 'single' else 1.
+        w.fill(0)
+        w[range_, idx] = vals
+    missing = np.where(~np.any(w, axis=0))[0]
+    if len(missing):
+        warn(f'Channel{_pl(missing)} missing in STC: '
+             f'{", ".join(evoked.ch_names[mi] for mi in missing)}')
+    data = w @ evoked.data
+    vertices = [vertices[vertices < offset],
+                vertices[vertices >= offset] - offset]
+    return SourceEstimate(
+        data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
+        subject=subject)

@@ -60,7 +60,7 @@ from .source_estimate import (read_source_estimate,
                               spatio_temporal_src_adjacency,
                               spatio_temporal_tris_adjacency,
                               spatio_temporal_dist_adjacency,
-                              extract_label_time_course)
+                              extract_label_time_course, stc_near_sensors)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf,
                       dig_mri_distances)

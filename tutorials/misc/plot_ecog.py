@@ -81,6 +81,9 @@ raw.crop(0, 2)  # just process 2 sec of data for speed
 # attach montage
 raw.set_montage(montage)
 
+# set channel types to ECoG (instead of EEG)
+raw.set_channel_types({ch_name: 'ecog' for ch_name in raw.ch_names})
+
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
 # We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
@@ -170,3 +173,14 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
                                interval=100, blit=True)
+
+###############################################################################
+# Alternatively, we can project the sensor data to the nearest locations on
+# the pial surface and visualize that:
+
+evoked = mne.EvokedArray(gamma_power_t, raw.info)
+stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
+clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
+brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
+                 colormap='viridis', clim=clim, views='parietal',
+                 subjects_dir=subjects_dir)
