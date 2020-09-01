@@ -199,6 +199,7 @@ def test_suggest():
 
 
 def test_on_missing():
+    """Test _on_missing."""
     msg = 'test'
     with pytest.raises(ValueError, match=msg):
         _on_missing('raise', msg)
