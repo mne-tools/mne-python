@@ -731,12 +731,15 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
         if len(not_in_montage):  # DigMontage is subset of info
-            missing_coord_msg = 'DigMontage is only a subset of info. ' \
-                                'There are %s channel position%s ' \
-                                'not present in the DigMontage. ' \
-                                'The required channels are: %s' \
-                                % (len(not_in_montage), _pl(not_in_montage),
-                                   not_in_montage)
+            missing_coord_msg = (
+                'DigMontage is only a subset of info. There are '
+                f'{len(not_in_montage)} channel position{_pl(not_in_montage)} '
+                'not present in the DigMontage. The required channels are:\n\n'
+                f'{not_in_montage}.\n\nConsider using inst.set_channel_types '
+                'if these are not EEG channels, or use the on_missing '
+                'parameter if the channel positions are allowed to be unknown '
+                'in your analyses.'
+            )
             if on_missing == 'raise':
                 raise ValueError(missing_coord_msg)
             elif on_missing == 'warn':
