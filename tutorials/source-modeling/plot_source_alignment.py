@@ -211,8 +211,6 @@ def plot_dig_alignment(points, coord_system='ras'):
 ###############################################################################
 # Plot untransformed head space digitized points as if they were in RAS space
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Adjust units by * 1e3 m -> mm.
-#
 # The plot below shows the digitization points in the coordinate space
 # native to the digitizer equipment plotted with the head surface in
 # right-anterior-superior (RAS) coordinates. The relationship between the
@@ -224,8 +222,8 @@ head_space = np.array([dig['r'] for dig in
 plot_dig_alignment(head_space)
 
 ###############################################################################
-# Apply the precomputed `trans` and plot again in meg space
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Apply the precomputed ``trans`` and plot again in meg space
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Rotate and translate the points based on the coregistration.
 #
 # The plot below shows the head space coordinates transformed to mri
