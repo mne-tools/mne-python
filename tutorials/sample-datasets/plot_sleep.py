@@ -120,15 +120,14 @@ annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 4': 4,
                               'Sleep stage R': 5}
 
+# keep last 30-min wake events before sleep and first 30-min wake events after
+# sleep and redefine annotations on raw data
+annot_train.crop(annot_train[1]['onset'] - 30 * 60,
+                 annot_train[-2]['onset'] + 30 * 60)
+raw_train.set_annotations(annot_train, emit_warning=False)
+
 events_train, _ = mne.events_from_annotations(
     raw_train, event_id=annotation_desc_2_event_id, chunk_duration=30.)
-
-# keep last 30-min wake events before sleep and first 30-min wake events after
-# sleep
-sleep_stage_inds = np.where(events_train[:, 2] > 1)[0]
-offset = int((30 * 60) / 30)
-events_train = events_train[
-    sleep_stage_inds[0] - offset:sleep_stage_inds[-1] + offset + 1]
 
 # create a new event_id that unifies stages 3 and 4
 event_id = {'Sleep stage W': 1,
@@ -162,13 +161,12 @@ print(epochs_train)
 
 raw_test = mne.io.read_raw_edf(bob_files[0])
 annot_test = mne.read_annotations(bob_files[1])
+annot_test.crop(annot_test[1]['onset'] - 30 * 60,
+                annot_test[-2]['onset'] + 30 * 60)
 raw_test.set_annotations(annot_test, emit_warning=False)
 raw_test.set_channel_types(mapping)
 events_test, _ = mne.events_from_annotations(
     raw_test, event_id=annotation_desc_2_event_id, chunk_duration=30.)
-sleep_stage_inds = np.where(events_test[:, 2] > 1)[0]
-events_test = events_test[
-    sleep_stage_inds[0] - offset:sleep_stage_inds[-1] + offset + 1]
 epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
                          tmin=0., tmax=tmax, baseline=None)
 
