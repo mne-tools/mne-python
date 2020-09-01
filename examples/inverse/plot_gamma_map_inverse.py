@@ -1,6 +1,6 @@
 """
 ===============================================================================
-Compute a sparse inverse solution using the Gamma-Map empirical Bayesian method
+Compute a sparse inverse solution using the Gamma-MAP empirical Bayesian method
 ===============================================================================
 
 See [1]_ for details.
