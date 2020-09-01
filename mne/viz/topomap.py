@@ -591,6 +591,12 @@ class _GridData(object):
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ('numeric', str), 'border')
 
+        # check that border, if string, is correct
+        if isinstance(border, str):
+            if border != 'mean':
+                msg = 'border must be numeric or "mean", got {!r}'
+                raise ValueError(msg.format(border))
+
         # Adding points outside the extremes helps the interpolators
         outer_pts, mask_pts, tri = _get_extra_points(
             pos, extrapolate, origin, radii)
@@ -611,10 +617,7 @@ class _GridData(object):
         from scipy.interpolate import CloughTocher2DInterpolator
 
         if isinstance(self.border, str):
-            if self.border != 'mean':
-                msg = 'border must be numeric or "mean", got {!r}'
-                raise ValueError(msg.format(self.border))
-            # border = 'mean'
+            # we've already checked that border = 'mean'
             n_points = v.shape[0]
             v_extra = np.zeros(self.n_extra)
             indices, indptr = self.tri.vertex_neighbor_vertices
