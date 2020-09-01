@@ -31,7 +31,7 @@ def read_raw_persyst(fname, preload=False, verbose=None):
 
     Returns
     -------
-    raw : instance of RawPeryst
+    raw : instance of RawPersyst
         A Raw object containing Persyst data.
 
     See Also
