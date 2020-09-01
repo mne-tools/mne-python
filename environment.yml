@@ -30,7 +30,7 @@ dependencies:
   - vtk>=9.0.1
   - pyvista>=0.24
   - pyvistaqt
-  - https://github.com/enthought/mayavi/archive/master.zip
+  - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
