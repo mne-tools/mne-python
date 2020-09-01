@@ -195,7 +195,7 @@ def plot_dig_alignment(points, coord_system='ras'):
         points = ((points - 128) * [1, -1, 1])[:, [0, 2, 1]]
     else:  # m → mm
         points *= 1e3
-    renderer = mne.viz.create_3d_figure(
+    renderer = mne.viz.backends.renderer.create_3d_figure(
         size=(800, 400), bgcolor='w', scene=False)
     seghead_rr, seghead_tri = mne.read_surface(
         op.join(subjects_dir, 'sample', 'surf', 'lh.seghead'))
