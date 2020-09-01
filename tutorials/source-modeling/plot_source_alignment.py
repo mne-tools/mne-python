@@ -15,7 +15,6 @@ the different coordinate frames involved in this process.
 
 Let's start out by loading some data.
 """
-import os
 import os.path as op
 
 import numpy as np
@@ -23,11 +22,10 @@ import nibabel as nib
 from scipy import linalg
 
 import mne
-from mne.datasets import sample
 
 print(__doc__)
 
-data_path = sample.data_path()
+data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
@@ -36,13 +34,11 @@ raw = mne.io.read_raw_fif(raw_fname)
 trans = mne.read_trans(trans_fname)
 src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
                                      'sample-oct-6-src.fif'))
+
+# load the T1 file and change the header information to the correct units
 t1w = nib.load(op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz'))
 t1w = nib.Nifti1Image(t1w.dataobj, t1w.affine)
-# XYZT_UNITS = NIFT_UNITS_MM (10 in binary or 2 in decimal)
-# seems to be the default for Nifti files
-# https://nifti.nimh.nih.gov/nifti-1/documentation/nifti1fields/nifti1fields_pages/xyzt_units.html
-if t1w.header['xyzt_units'] == 0:
-    t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
+t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
 t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 
 ###############################################################################
@@ -174,42 +170,47 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
                        subjects_dir=subjects_dir, dig=True,
                        surfaces=['head-dense', 'white'], coord_frame='meg')
 
+###############################################################################
+# A good example
+# --------------
+# Here is the same plot, this time with the ``trans`` properly defined
+# (using a precomputed matrix).
+
+mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+                       src=src, subjects_dir=subjects_dir, dig=True,
+                       surfaces=['head-dense', 'white'], coord_frame='meg')
 
 ###############################################################################
-# It is quite clear that the MRI surfaces (head, brain) are not well aligned
-# to the head digitization points (dots).
-#
-# Compute the transform
-# ---------------------
+# Visualizing the transformation of digitized points
+# --------------------------------------------------
 # Let's step through the process that the transform is accomplishing.
 #
 # First, let's define a helper function to plot the alignment of the
 # points with the head using voxel coordinates.
 
+
 def plot_dig_alignment(points, coord_system='ras'):
-    renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
+    points = points.copy()
+    if coord_system == 'mri':  # transform back to RAS
+        points = (points - 128) * 1e-3
+        points[:, [1, 2]] = points[:, [2, 1]]
+        points[:, 2] *= -1
     renderer = mne.viz.backends.renderer._get_renderer(
-        size=(800, 400), **renderer_kwargs)
-    seghead_rr, seghead_tri = mne.read_surface(os.path.join(
+        size=(800, 400), bgcolor='w')
+    seghead_rr, seghead_tri = mne.read_surface(op.join(
         subjects_dir, 'sample', 'surf', 'lh.seghead'))
     renderer.mesh(*seghead_rr.T, triangles=seghead_tri, color=(0.7,) * 3,
                   opacity=0.2)
     for point in points.copy():
-        if coord_system == 'vox':
-            point -= 128  # RAS zero centered
-            center = (point[0], point[2], -point[1])
-        else:
-            center = point * 1e3  # scale from m to mm
-        renderer.sphere(center=center, color='r', scale=5)
-    view_kwargs = dict(elevation=90, azimuth=0)
-    view_kwargs['focalpoint'] = (0., 0., 0.)
-    mne.viz.set_3d_view(figure=renderer.figure, distance=1000, **view_kwargs)
+        renderer.sphere(center=point * 1e3, color='r', scale=5)
+    mne.viz.set_3d_view(figure=renderer.fig, distance=1000,
+                        focalpoint=(0., 0., 0.), elevation=90, azimuth=0)
     renderer.show()
 
 
 ###############################################################################
-# Get landmarks in head space from the DigMontage stored in raw
-# -------------------------------------------------------------
+# Plot untransformed head space digitized points as if they were in RAS space
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Adjust units by * 1e3 m -> mm.
 #
 # The plot below shows the digitization points in the coordinate space
@@ -223,44 +224,30 @@ head_space = np.array([dig['r'] for dig in
 plot_dig_alignment(head_space)
 
 ###############################################################################
-# Transform digitization points into MRI space
-# --------------------------------------------
+# Apply the precomputed `trans` and plot again in meg space
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Rotate and translate the points based on the coregistration.
 #
 # The plot below shows the head space coordinates transformed to mri
 # RAS coordinates. It correctly aligns to the head, which is also in RAS,
 # but still has to be transformed to the voxel coordinate space.
 
-mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
-plot_dig_alignment(mri_space)
+meg_space = mne.transforms.apply_trans(trans, head_space, move=True)
+plot_dig_alignment(meg_space)
 
 ###############################################################################
-# Get landmarks in voxel space, using the T1 data
-# -----------------------------------------------
-# Transform the points from RAS to voxel space
+# Apply a second transform to get to mri space and plot again
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# This plot finally shows the coordinates in the space that is relevant to
-# comparing to the anatomical T1 image, reconstructed brain areas and source-
-# space estimate; the common reference frame of the T1 voxels. Since the head
+# This plot finally shows the coordinates in the T1 space. Since the head
 # is plotted in RAS, we have to transform them back to have the plots match
-# since all the freesurfer surfaces are in RAS. But, now the coordinates are
-# in the T1 space (e.g. 256 x 256 x 256) so they can be compared to the T1.
+# since all the freesurfer surfaces are in RAS.
 
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = linalg.inv(vox2ras_tkr)
-mri_voxel_space = mne.transforms.apply_trans(
-    ras2vox_tkr, mri_space * 1e3)  # units must be in mm, scaled from m
-plot_dig_alignment(mri_voxel_space, coord_system='vox')
-
-###############################################################################
-# A good example
-# --------------
-# Here is the same plot, this time with the ``trans`` properly defined
-# (using a precomputed matrix).
-
-mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
-                       src=src, subjects_dir=subjects_dir, dig=True,
-                       surfaces=['head-dense', 'white'], coord_frame='meg')
+mri_space = mne.transforms.apply_trans(
+    ras2vox_tkr, meg_space * 1e3)  # units must be in mm, scaled from m
+plot_dig_alignment(mri_space, coord_system='mri')
 
 ###############################################################################
 # Defining the head↔MRI ``trans`` using the GUI
