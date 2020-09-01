@@ -215,13 +215,13 @@ class MNESelectionFigure(MNEFigure):
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
         chs = self.lasso.selection
+        parent = self.mne.parent_fig
+        buttons = self.mne.radio_ax.buttons
         if not len(chs):
             return
-        labels = [label.get_text() for label in
-                  self.mne.radio_ax.buttons.labels]
-        inds = np.in1d(self.mne.parent_fig.mne.ch_names, chs)
-        self.mne.parent_fig.mne.ch_selections['Custom'] = np.where(inds)[0]
-        buttons = self.mne.radio_ax.buttons
+        labels = [label.get_text() for label in buttons.labels]
+        inds = np.in1d(parent.mne.ch_names, chs)
+        parent.mne.ch_selections['Custom'] = inds.nonzero()[0]
         buttons.set_active(labels.index('Custom'))
 
 
@@ -597,44 +597,26 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
-        from matplotlib.colors import to_rgba_array
-
-        bads = self.mne.info['bads']
         pick = self.mne.picks[idx]
-        line = self.mne.traces[idx]
         ch_name = self.mne.ch_names[pick]
         if not len(ch_name):
             return
         # add/remove from bads list
+        bads = self.mne.info['bads']
         marked_bad = ch_name not in bads
         if marked_bad:
             bads.append(ch_name)
             color = self.mne.ch_color_bad
-            sensor_color = to_rgba_array('red')
         else:
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
-            color = vars(line)['def_color']
+            color = self.mne.traces[idx].def_color
         self.mne.info['bads'] = bads
-        # update color
-        if self.mne.fig_selection is None:
-            vscroll_idx = [self.mne.ch_order.tolist().index(pick)]
-        else:
-            vscroll_idx = np.where(self.mne.ch_order == pick)[0].tolist()
-            sensors = self.mne.fig_selection.mne.sensor_ax.collections[0]
-            ec_array = sensors.get_edgecolors()
-            # replicate plotting order from plot_sensors, to get index right
-            sensor_picks = list()
-            ch_indices = channel_indices_by_type(self.mne.info)
-            for this_type in _DATA_CH_TYPES_SPLIT:
-                if this_type in self.mne.ch_types:
-                    sensor_picks.extend(ch_indices[this_type])
-            sensor_idx = np.in1d(sensor_picks, pick).nonzero()
-            # change the sensor color
-            ec_array[sensor_idx, 0] = float(marked_bad)
-            sensors.set_edgecolors(ec_array)
-            self.mne.fig_selection.canvas.draw()
-        # change the vscroll color
+        # update sensor color (if in selection mode)
+        if self.mne.fig_selection is not None:
+            self._update_bad_sensors(pick, marked_bad)
+        # update vscroll color
+        vscroll_idx = (self.mne.ch_order == pick).nonzero()[0]
         for _idx in vscroll_idx:
             self.mne.ax_vscroll.patches[_idx].set_color(color)
         # redraw
@@ -1089,9 +1071,10 @@ class MNEBrowseFigure(MNEFigure):
     def _update_selection(self):
         """Update visible channels based on selection dialog interaction."""
         selections_dict = self.mne.ch_selections
-        label = self.mne.fig_selection.mne.radio_ax.buttons.value_selected
-        labels = [label.get_text() for label in
-                  self.mne.fig_selection.mne.radio_ax.buttons.labels]
+        fig = self.mne.fig_selection
+        buttons = fig.mne.radio_ax.buttons
+        label = buttons.value_selected
+        labels = [_label.get_text() for _label in buttons.labels]
         self.mne.fig_selection.mne.old_selection = labels.index(label)
         self.mne.picks = selections_dict[label]
         self.mne.n_channels = len(self.mne.picks)
@@ -1130,6 +1113,21 @@ class MNEBrowseFigure(MNEFigure):
         inds = np.in1d(self.mne.fig_selection.lasso.ch_names,
                        self.mne.ch_names[self.mne.picks])
         self.mne.fig_selection.lasso.select_many(inds.nonzero()[0])
+
+    def _update_bad_sensors(self, pick, mark_bad):
+        """Update the sensor plot to reflect (un)marked bad channels."""
+        # replicate plotting order from plot_sensors(), to get index right
+        sensor_picks = list()
+        ch_indices = channel_indices_by_type(self.mne.info)
+        for this_type in _DATA_CH_TYPES_SPLIT:
+            if this_type in self.mne.ch_types:
+                sensor_picks.extend(ch_indices[this_type])
+        sensor_idx = np.in1d(sensor_picks, pick).nonzero()[0]
+        # change the sensor color
+        fig = self.mne.fig_selection
+        fig.lasso.ec[sensor_idx, 0] = float(mark_bad)  # change R of RGBA array
+        fig.lasso.collection.set_edgecolors(fig.lasso.ec)
+        fig.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTORS
