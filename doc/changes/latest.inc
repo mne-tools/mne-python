@@ -157,6 +157,8 @@ Changelog
 
 - Add ``proj='reconstruct'`` to :meth:`mne.Evoked.plot` and related functions to apply projectors and then undo the signal bias using field mapping by `Eric Larson`_
 
+- Add writing BEM surfaces and solutions in H5 format in :func:`mne.write_bem_surfaces` and :func:`mne.write_bem_solution` by `Eric Larson`_
+
 - When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
 
 - :class:`mne.Report` now can add topomaps of SSP projectors to the generated report. This behavior can be toggled via the new ``projs`` argument by `Richard Höchenberger`_
@@ -338,6 +340,8 @@ API
 - The default for the ``standardize_names`` argument of :func:`mne.io.read_raw_kit` will change from ``True`` to ``False`` in 0.22, by `Eric Larson`_
 
 - The ``normalize_fwd`` argument of :func:`mne.beamformer.make_dics` has been deprecated in favor of ``depth``, by `Eric Larson`_
+
+- The ``overwrite`` parameter of :func:`mne.write_bem_surfaces` and :func:`mne.write_bem_solution` defaults to ``True`` in 0.21 but will change to ``False`` in 0.22, by `Eric Larson`_
 
 - Add ``n_cols`` parameter to :meth:`mne.preprocessing.ICA.plot_scores` to allow plotting scores in multiple columns, by `Luke Bloy`_
 
