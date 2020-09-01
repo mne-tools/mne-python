@@ -201,7 +201,7 @@ def plot_dig_alignment(points, coord_system='ras'):
         subjects_dir, 'sample', 'surf', 'lh.seghead'))
     renderer.mesh(*seghead_rr.T, triangles=seghead_tri, color=(0.7,) * 3,
                   opacity=0.2)
-    for point in points.copy():
+    for point in points:
         renderer.sphere(center=point * 1e3, color='r', scale=5)
     mne.viz.set_3d_view(figure=renderer.figure, distance=1000,
                         focalpoint=(0., 0., 0.), elevation=90, azimuth=0)
