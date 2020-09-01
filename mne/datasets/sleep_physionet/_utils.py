@@ -219,13 +219,9 @@ def _check_subjects(subjects, n_subjects, missing=None, on_missing='error'):
     unknown_subjects = np.setdiff1d(subjects, valid_subjects)
     if unknown_subjects.size > 0:
         subjects_list = ', '.join([str(s) for s in unknown_subjects])
-        if missing is None:
-            msg = (f'Only subjects 0 to {n_subjects - 1} are available from '
-                   'this dataset. Unknown subjects: {subject_list}.')
-        else:
-            msg = (f'This dataset contains subjects 0 to {n_subjects - 1} '
-                   f'with missing subjects {missing}. Unknown subjects: '
-                   f'{subjects_list}.')
+        msg = (f'This dataset contains subjects 0 to {n_subjects - 1} with '
+               f'missing subjects {missing}. Unknown subjects: '
+               f'{subjects_list}.')
         if on_missing == 'error':
             raise ValueError(msg)
         elif on_missing == 'warning':

@@ -109,10 +109,10 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
 
     # Check for missing recordings
     if set(subjects) & {36, 52} and 1 in recording:
-        msg = ('Requested recording 1 for subjects 36 and/or 52, but it is not'
-               ' available in corpus.')
+        msg = ('Requested recording 1 for subject 36 and/or 52, but it is not '
+               'available in corpus.')
         if on_missing == 'error':
-            ValueError(msg)
+            raise ValueError(msg)
         elif on_missing == 'warning':
             warn(msg)
         else:
@@ -121,7 +121,7 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
         msg = ('Requested recording 2 for subject 13, but it is not available '
                'in corpus.')
         if on_missing == 'error':
-            ValueError(msg)
+            raise ValueError(msg)
         elif on_missing == 'warning':
             warn(msg)
         else:

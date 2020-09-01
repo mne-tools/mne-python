@@ -81,15 +81,47 @@ def test_run_update_age_records(tmpdir):
         pd.testing.assert_frame_equal(data, pd.read_csv(AGE_SLEEP_RECORDS))
 
 
+@pytest.mark.parametrize('subject', [39, 68, 69, 78, 79, 83])
+def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject):
+    """Test handling of missing subjects in Sleep Physionet age fetcher."""
+    params = {'path': physionet_tmpdir, 'update_path': False}
+
+    with pytest.raises(
+            ValueError, match='This dataset contains subjects 0 to 82'):
+        age.fetch_data(
+            subjects=[subject], recording=[1], on_missing='error', **params)
+    with pytest.warns(
+            UserWarning, match='This dataset contains subjects 0 to 82'):
+        age.fetch_data(
+            subjects=[subject], recording=[1], on_missing='warning', **params)
+    age.fetch_data(
+        subjects=[subject], recording=[1], on_missing='ignore', **params)
+
+
+@pytest.mark.parametrize('subject,recording', [(13, 2), (36, 1), (52, 1)])
+def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
+                                                recording):
+    """Test handling of missing subjects in Sleep Physionet age fetcher."""
+    params = {'path': physionet_tmpdir, 'update_path': False}
+
+    with pytest.raises(
+            ValueError, match=f'Requested recording {recording} for subject'):
+        age.fetch_data(subjects=[subject], recording=[recording],
+                       on_missing='error', **params)
+    with pytest.warns(
+            UserWarning, match=f'Requested recording {recording} for subject'):
+        age.fetch_data(subjects=[subject], recording=[recording],
+                       on_missing='warning', **params)
+    age.fetch_data(subjects=[subject], recording=[recording],
+                   on_missing='ignore', **params)
+
+
 def test_sleep_physionet_age(physionet_tmpdir, mocker):
     """Test Sleep Physionet URL handling."""
     my_func = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
                            side_effect=_fake_fetch_file)
 
     params = {'path': physionet_tmpdir, 'update_path': False}
-
-    with pytest.raises(ValueError, match='Only subjects 0 to 19 are'):
-        paths = age.fetch_data(subjects=[20], recording=[1], **params)
 
     paths = age.fetch_data(subjects=[0], recording=[1], **params)
     assert_array_equal(_keep_basename_only(paths),
@@ -175,7 +207,8 @@ def test_sleep_physionet_temazepam(physionet_tmpdir, mocker):
                                  call_fname_hash_pairs=EXPECTED_CALLS,
                                  base_path=base_path)
 
-    with pytest.raises(ValueError, match='Only subjects 0 to 21 are'):
+    with pytest.raises(
+            ValueError, match='This dataset contains subjects 0 to 21'):
         paths = temazepam.fetch_data(subjects=[22], **params)
 
 
