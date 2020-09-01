@@ -377,7 +377,7 @@ def read_dig_dat(fname):
     ``*.dat`` files are plain text files and can be inspected and amended with
     a plain text editor.
     """
-    from ._standard_montage_utils import _dedup_dict
+    from ._standard_montage_utils import _check_dupes_odict
     fname = _check_fname(fname, overwrite='read', must_exist=True)
 
     with open(fname, 'r') as fid:
@@ -406,7 +406,7 @@ def read_dig_dat(fname):
         else:
             ch_names.append(items[0])
             poss.append(pos)
-    electrodes = _dedup_dict(ch_names, poss)
+    electrodes = _check_dupes_odict(ch_names, poss)
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
