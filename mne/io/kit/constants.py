@@ -161,9 +161,9 @@ KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
 KIT.SYSTEM_UMD_2019_09 = 54  # UMD September 3, 2019 -
-KIT.SYSTEM_YOKOGAWA_1001 = 1001  # no idea
-KIT.SYSTEM_YOKOGAWA_10020 = 10020  # no idea
-KIT.SYSTEM_YOKOGAWA_10021 = 10021  # no idea
+KIT.SYSTEM_YOKOGAWA_1001 = 1001  # Kanazawa (until 2017)
+KIT.SYSTEM_YOKOGAWA_10020 = 10020  # Kanazawa (since 2018)
+KIT.SYSTEM_YOKOGAWA_10021 = 10021  # Kanazawa (since August 2020)
 # Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
@@ -222,9 +222,9 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
     KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
     KIT.SYSTEM_UMD_2019_09: 'University of Maryland, 2019-',
-    KIT.SYSTEM_YOKOGAWA_1001: 'Yokogawa ??? -',
-    KIT.SYSTEM_YOKOGAWA_10020: 'Yokogawa ??? -',
-    KIT.SYSTEM_YOKOGAWA_10021: 'Yokogawa ??? -',
+    KIT.SYSTEM_YOKOGAWA_1001: 'Yokogawa of Kanazawa (until 2017)',
+    KIT.SYSTEM_YOKOGAWA_10020: 'Yokogawa of Kanazawa (since 2018)',
+    KIT.SYSTEM_YOKOGAWA_10021: 'Yokogawa of Kanazawa (since August 2020)',
 }
 
 LEGACY_AMP_PARAMS = {
