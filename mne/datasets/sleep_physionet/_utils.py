@@ -7,9 +7,11 @@
 import os
 import os.path as op
 import numpy as np
+from warnings import warn
 from distutils.version import LooseVersion
 
-from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
+from ...utils import (_fetch_file, verbose, _TempDir, _check_pandas_installed,
+                      _check_option)
 from ..utils import _get_path
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
@@ -192,12 +194,41 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     data.to_csv(fname, index=False)
 
 
-def _check_subjects(subjects, n_subjects):
+def _check_subjects(subjects, n_subjects, missing=None, on_missing='error'):
+    """Check whether subjects are available.
+
+    Parameters
+    ----------
+    subjects : list
+        Subject numbers to be checked.
+    n_subjects : int
+        Number of subjects available.
+    missing : list | None
+        Subject numbers that are missing.
+    on_missing : 'error' | 'warning' | 'ignore'
+        What to do if one or several subjects are not available. Valid keys
+        are 'error' | 'warning' | 'ignore'. Default is 'error'. If on_missing
+        is 'warning' it will proceed but warn, if 'ignore' it will proceed
+        silently.
+    """
+    _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
+
     valid_subjects = np.arange(n_subjects)
+    if missing is not None:
+        valid_subjects = np.setdiff1d(valid_subjects, missing)
     unknown_subjects = np.setdiff1d(subjects, valid_subjects)
     if unknown_subjects.size > 0:
         subjects_list = ', '.join([str(s) for s in unknown_subjects])
-        raise ValueError('Only subjects 0 to {} are'
-                         ' available from this dataset.'
-                         ' Unknown subjects: {}'.format(n_subjects - 1,
-                                                        subjects_list))
+        if missing is None:
+            msg = (f'Only subjects 0 to {n_subjects - 1} are available from '
+                   'this dataset. Unknown subjects: {subject_list}.')
+        else:
+            msg = (f'This dataset contains subjects 0 to {n_subjects - 1} '
+                   f'with missing subjects {missing}. Unknown subjects: '
+                   f'{subjects_list}.')
+        if on_missing == 'error':
+            raise ValueError(msg)
+        elif on_missing == 'warning':
+            warn(msg)
+        else:  # ignore
+            pass
