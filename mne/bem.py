@@ -32,8 +32,9 @@ from .surface import (read_surface, write_surface, complete_surface_info,
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname, has_nibabel)
+                    _check_fname, has_nibabel, _check_option)
 from .fixes import einsum
+from .externals.h5io import write_hdf5, read_hdf5
 
 
 # ############################################################################
@@ -1255,9 +1256,36 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     --------
     write_bem_surfaces, write_bem_solution, make_bem_model
     """
+    # Open the file, create directory
+    _validate_type(s_id, ('int-like', None), 's_id')
+    fname = _check_fname(fname, 'read', True, 'fname')
+    if fname.endswith('.h5'):
+        surf = _read_bem_surfaces_h5(fname, s_id)
+    else:
+        surf = _read_bem_surfaces_fif(fname, s_id)
+    if s_id is not None and len(surf) != 1:
+        raise ValueError('surface with id %d not found' % s_id)
+    for this in surf:
+        if patch_stats or this['nn'] is None:
+            _check_complete_surface(this)
+    return surf[0] if s_id is not None else surf
+
+
+def _read_bem_surfaces_h5(fname, s_id):
+    bem = read_hdf5(fname)
+    try:
+        [s['id'] for s in bem['surfs']]
+    except Exception:  # not our format
+        raise ValueError('BEM data not found')
+    surf = bem['surfs']
+    if s_id is not None:
+        surf = [s for s in surf if s['id'] == s_id]
+    return surf
+
+
+def _read_bem_surfaces_fif(fname, s_id):
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
-    # Open the file, create directory
     f, tree, _ = fiff_open(fname)
     with f as fid:
         # Find BEM
@@ -1281,8 +1309,6 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
             surf = [_read_bem_surface(fid, bsurf, coord_frame, s_id)
                     for bsurf in bemsurf]
             surf = [s for s in surf if s is not None]
-            if not len(surf) == 1:
-                raise ValueError('surface with id %d not found' % s_id)
         else:
             surf = list()
             for bsurf in bemsurf:
@@ -1291,10 +1317,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
                 surf.append(this)
                 logger.info('[done]')
             logger.info('    %d BEM surfaces read' % len(surf))
-        for this in surf:
-            if patch_stats or this['nn'] is None:
-                _check_complete_surface(this)
-    return surf[0] if s_id is not None else surf
+    return surf
 
 
 def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
@@ -1388,28 +1411,66 @@ def read_bem_solution(fname, verbose=None):
     make_bem_solution
     write_bem_solution
     """
+    fname = _check_fname(fname, 'read', True, 'fname')
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
-    logger.info('Loading surfaces...')
-    bem_surfs = read_bem_surfaces(fname, patch_stats=True, verbose=False)
-    if len(bem_surfs) == 3:
+    if fname.endswith('.h5'):
+        logger.info('Loading surfaces and solution...')
+        bem = read_hdf5(fname)
+    else:
+        bem = _read_bem_solution_fif(fname)
+
+    if len(bem['surfs']) == 3:
         logger.info('Three-layer model surfaces loaded.')
         needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
                            FIFF.FIFFV_BEM_SURF_ID_SKULL,
                            FIFF.FIFFV_BEM_SURF_ID_BRAIN])
-        if not all(x['id'] in needed for x in bem_surfs):
+        if not all(x['id'] in needed for x in bem['surfs']):
             raise RuntimeError('Could not find necessary BEM surfaces')
         # reorder surfaces as necessary (shouldn't need to?)
         reorder = [None] * 3
-        for x in bem_surfs:
+        for x in bem['surfs']:
             reorder[np.where(x['id'] == needed)[0][0]] = x
-        bem_surfs = reorder
-    elif len(bem_surfs) == 1:
-        if not bem_surfs[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:
+        bem['surfs'] = reorder
+    elif len(bem['surfs']) == 1:
+        if not bem['surfs'][0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:
             raise RuntimeError('BEM Surfaces not found')
         logger.info('Homogeneous model surface loaded.')
 
+    assert set(bem.keys()) == set(('surfs', 'solution', 'bem_method'))
+    bem = ConductorModel(bem)
+    bem['is_sphere'] = False
+    # sanity checks and conversions
+    _check_option('BEM approximation method', bem['bem_method'],
+                  (FIFF.FIFFV_BEM_APPROX_LINEAR, FIFF.FIFFV_BEM_APPROX_CONST))
+    dim = 0
+    for surf in bem['surfs']:
+        if bem['bem_method'] == FIFF.FIFFV_BEM_APPROX_LINEAR:
+            dim += surf['np']
+        else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
+            dim += surf['ntri']
+    dims = bem['solution'].shape
+    if len(dims) != 2:
+        raise RuntimeError('Expected a two-dimensional solution matrix '
+                           'instead of a %d dimensional one' % dims[0])
+    if dims[0] != dim or dims[1] != dim:
+        raise RuntimeError('Expected a %d x %d solution matrix instead of '
+                           'a %d x %d one' % (dim, dim, dims[1], dims[0]))
+    bem['nsol'] = bem['solution'].shape[0]
+    # Gamma factors and multipliers
+    _add_gamma_multipliers(bem)
+    kind = {
+        FIFF.FIFFV_BEM_APPROX_CONST: 'constant collocation',
+        FIFF.FIFFV_BEM_APPROX_LINEAR: 'linear_collocation',
+    }[bem['bem_method']]
+    logger.info('Loaded %s BEM solution from %s', kind, fname)
+    return bem
+
+
+def _read_bem_solution_fif(fname):
+    logger.info('Loading surfaces...')
+    surfs = read_bem_surfaces(fname, patch_stats=True, verbose=False)
+
     # convert from surfaces to solution
-    bem = ConductorModel(is_sphere=False, surfs=bem_surfs)
     logger.info('\nLoading the solution matrix...\n')
     f, tree, _ = fiff_open(fname)
     with f as fid:
@@ -1424,42 +1485,10 @@ def read_bem_solution(fname, verbose=None):
         if tag is None:
             raise RuntimeError('No BEM solution found in %s' % fname)
         method = tag.data[0]
-        if method not in (FIFF.FIFFV_BEM_APPROX_CONST,
-                          FIFF.FIFFV_BEM_APPROX_LINEAR):
-            raise RuntimeError('Cannot handle BEM approximation method : %d'
-                               % method)
-
         tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
-        dims = tag.data.shape
-        if len(dims) != 2:
-            raise RuntimeError('Expected a two-dimensional solution matrix '
-                               'instead of a %d dimensional one' % dims[0])
-
-        dim = 0
-        for surf in bem['surfs']:
-            if method == FIFF.FIFFV_BEM_APPROX_LINEAR:
-                dim += surf['np']
-            else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
-                dim += surf['ntri']
-
-        if dims[0] != dim or dims[1] != dim:
-            raise RuntimeError('Expected a %d x %d solution matrix instead of '
-                               'a %d x %d one' % (dim, dim, dims[1], dims[0]))
         sol = tag.data
-        nsol = dims[0]
 
-    bem['solution'] = sol
-    bem['nsol'] = nsol
-    bem['bem_method'] = method
-
-    # Gamma factors and multipliers
-    _add_gamma_multipliers(bem)
-    kind = {
-        FIFF.FIFFV_BEM_APPROX_CONST: 'constant collocation',
-        FIFF.FIFFV_BEM_APPROX_LINEAR: 'linear_collocation',
-    }[bem['bem_method']]
-    logger.info('Loaded %s BEM solution from %s', kind, fname)
-    return bem
+    return dict(solution=sol, bem_method=method, surfs=surfs)
 
 
 def _add_gamma_multipliers(bem):
@@ -1497,24 +1526,44 @@ def _bem_find_surface(bem, id_):
 # ############################################################################
 # Write
 
-def write_bem_surfaces(fname, surfs):
+
+def _check_dep_overwrite(fname, overwrite):
+    fname = _check_fname(
+        fname, overwrite=True if overwrite is None else overwrite,
+        name='fname')
+    if op.isfile(fname) and overwrite is None:
+        warn(f'file {fname} exists; overwrite will default to True in 0.21 '
+             'and change to False in 0.22, set it explicitly to avoid this '
+             'warning', DeprecationWarning)
+    return fname
+
+
+@verbose
+def write_bem_surfaces(fname, surfs, overwrite=None, verbose=None):
     """Write BEM surfaces to a fiff file.
 
     Parameters
     ----------
     fname : str
-        Filename to write.
+        Filename to write. Can end with ``.h5`` to write using HDF5.
     surfs : dict | list of dict
         The surfaces, or a single surface.
+    overwrite : bool
+        If True (default in 0.21), overwrite the file.
+    %(verbose)s
     """
     if isinstance(surfs, dict):
         surfs = [surfs]
-    with start_file(fname) as fid:
-        start_block(fid, FIFF.FIFFB_BEM)
-        write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surfs[0]['coord_frame'])
-        _write_bem_surfaces_block(fid, surfs)
-        end_block(fid, FIFF.FIFFB_BEM)
-        end_file(fid)
+    fname = _check_dep_overwrite(fname, overwrite)
+    if fname.endswith('.h5'):
+        write_hdf5(fname, dict(surfs=surfs), overwrite=True)
+    else:
+        with start_file(fname) as fid:
+            start_block(fid, FIFF.FIFFB_BEM)
+            write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surfs[0]['coord_frame'])
+            _write_bem_surfaces_block(fid, surfs)
+            end_block(fid, FIFF.FIFFB_BEM)
+            end_file(fid)
 
 
 def _write_bem_surfaces_block(fid, surfs):
@@ -1535,20 +1584,33 @@ def _write_bem_surfaces_block(fid, surfs):
         end_block(fid, FIFF.FIFFB_BEM_SURF)
 
 
-def write_bem_solution(fname, bem):
+@verbose
+def write_bem_solution(fname, bem, overwrite=None, verbose=None):
     """Write a BEM model with solution.
 
     Parameters
     ----------
     fname : str
-        The filename to use.
+        The filename to use. Can end with ``.h5`` to write using HDF5.
     bem : instance of ConductorModel
         The BEM model with solution to save.
+    overwrite : bool
+        If True (default in 0.21), overwrite the file.
+    %(verbose)s
 
     See Also
     --------
     read_bem_solution
     """
+    fname = _check_dep_overwrite(fname, overwrite)
+    if fname.endswith('.h5'):
+        bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
+        write_hdf5(fname, bem, overwrite=True)
+    else:
+        _write_bem_solution_fif(fname, bem)
+
+
+def _write_bem_solution_fif(fname, bem):
     _check_bem_size(bem['surfs'])
     with start_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_BEM)
