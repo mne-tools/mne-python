@@ -236,7 +236,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'limo': 'MNE_DATASETS_LIMO_PATH',
         'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
     }[name]
-    
+
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
