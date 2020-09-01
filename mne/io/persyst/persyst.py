@@ -369,7 +369,10 @@ def _read_lay_contents(fname):
 
 
 def _process_lay_line(line, section):
-    """Processes a line read from the Lay (INI) file.
+    """Process a line read from the Lay (INI) file.
+
+    Each line in the .lay file will be processed
+    into a structured ``status``, ``key`` and ``value``.
 
     Parameters
     ----------
