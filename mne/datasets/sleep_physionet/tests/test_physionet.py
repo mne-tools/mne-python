@@ -89,11 +89,11 @@ def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject):
     with pytest.raises(
             ValueError, match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
-            subjects=[subject], recording=[1], on_missing='error', **params)
-    with pytest.warns(
-            UserWarning, match='This dataset contains subjects 0 to 82'):
+            subjects=[subject], recording=[1], on_missing='raise', **params)
+    with pytest.warns(RuntimeWarning,
+                      match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
-            subjects=[subject], recording=[1], on_missing='warning', **params)
+            subjects=[subject], recording=[1], on_missing='warn', **params)
     age.fetch_data(
         subjects=[subject], recording=[1], on_missing='ignore', **params)
 
@@ -107,11 +107,11 @@ def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
     with pytest.raises(
             ValueError, match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
-                       on_missing='error', **params)
-    with pytest.warns(
-            UserWarning, match=f'Requested recording {recording} for subject'):
+                       on_missing='raise', **params)
+    with pytest.warns(RuntimeWarning,
+                      match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
-                       on_missing='warning', **params)
+                       on_missing='warn', **params)
     age.fetch_data(subjects=[subject], recording=[recording],
                    on_missing='ignore', **params)
 

@@ -4,12 +4,10 @@
 #
 # License: BSD Style.
 
-from warnings import warn
-
 import numpy as np
 
 from ...utils import verbose
-from ._utils import _fetch_one, _data_path, AGE_SLEEP_RECORDS
+from ._utils import _fetch_one, _data_path, _on_missing, AGE_SLEEP_RECORDS
 from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
@@ -19,7 +17,7 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/
 
 @verbose
 def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
-               update_path=None, base_url=BASE_URL, on_missing='error',
+               update_path=None, base_url=BASE_URL, on_missing='raise',
                verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
@@ -54,10 +52,10 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    on_missing : 'error' | 'warning' | 'ignore'
+    on_missing : 'raise' | 'warn' | 'ignore'
         What to do if one or several recordings are not available. Valid keys
-        are 'error' | 'warning' | 'ignore'. Default is 'error'. If on_missing
-        is 'warning' it will proceed but warn, if 'ignore' it will proceed
+        are 'raise' | 'warn' | 'ignore'. Default is 'error'. If on_missing
+        is 'warn' it will proceed but warn, if 'ignore' it will proceed
         silently.
     %(verbose)s
 
@@ -111,21 +109,11 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     if set(subjects) & {36, 52} and 1 in recording:
         msg = ('Requested recording 1 for subject 36 and/or 52, but it is not '
                'available in corpus.')
-        if on_missing == 'error':
-            raise ValueError(msg)
-        elif on_missing == 'warning':
-            warn(msg)
-        else:
-            pass
+        _on_missing(on_missing, msg)
     if 13 in subjects and 2 in recording:
         msg = ('Requested recording 2 for subject 13, but it is not available '
                'in corpus.')
-        if on_missing == 'error':
-            raise ValueError(msg)
-        elif on_missing == 'warning':
-            warn(msg)
-        else:
-            pass
+        _on_missing(on_missing, msg)
 
     fnames = []
     for subject in subjects:

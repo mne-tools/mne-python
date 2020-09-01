@@ -55,7 +55,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
-                    _scale_dataframe_data, _check_time_format, object_size)
+                    _scale_dataframe_data, _check_time_format, object_size,
+                    _on_missing)
 from .utils.docs import fill_doc
 
 
@@ -380,13 +381,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
-                 detrend=None, proj=True, on_missing='error',
+                 detrend=None, proj=True, on_missing='raise',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, metadata=None, event_repeated='error',
                  verbose=None):  # noqa: D102
         self.verbose = verbose
-
-        _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
 
         if events is not None:  # RtEpochs can have events=None
             events_type = type(events)
@@ -408,12 +407,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
                            '(event id %i)' % (key, val))
-                    if on_missing == 'error':
-                        raise ValueError(msg)
-                    elif on_missing == 'warning':
-                        warn(msg)
-                    else:  # on_missing == 'ignore':
-                        pass
+                    _on_missing(on_missing, msg)
 
             # ensure metadata matches original events size
             self.selection = np.arange(len(events))
@@ -1988,8 +1982,8 @@ class Epochs(BaseEpochs):
         (will yield equivalent results but be slower).
     on_missing : str
         What to do if one or several event ids are not found in the recording.
-        Valid keys are 'error' | 'warning' | 'ignore'
-        Default is 'error'. If on_missing is 'warning' it will proceed but
+        Valid keys are 'raise' | 'warn' | 'ignore'
+        Default is 'raise'. If on_missing is 'warn' it will proceed but
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
@@ -2083,7 +2077,7 @@ class Epochs(BaseEpochs):
     def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), picks=None, preload=False, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
-                 reject_tmax=None, detrend=None, on_missing='error',
+                 reject_tmax=None, detrend=None, on_missing='raise',
                  reject_by_annotation=True, metadata=None,
                  event_repeated='error', verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
@@ -2238,7 +2232,7 @@ class EpochsArray(BaseEpochs):
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
-                 on_missing='error', metadata=None, selection=None,
+                 on_missing='raise', metadata=None, selection=None,
                  verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
