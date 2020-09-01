@@ -21,8 +21,8 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
-from ._utils import _get_colormap_from_array
-from ...utils import copy_base_doc_to_subclass_doc
+from ._utils import _get_colormap_from_array, ALLOWED_QUIVER_MODES
+from ...utils import copy_base_doc_to_subclass_doc, _check_option
 from ...externals.decorator import decorator
 
 
@@ -433,6 +433,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, line_width=2., name=None):
+        _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -453,7 +454,7 @@ class _Renderer(_BaseRenderer):
                 scale = False
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
-            elif mode == 'arrow' or mode == '3darrow':
+            elif mode == 'arrow':
                 alg = _glyph(
                     grid,
                     orient='vec',
@@ -461,61 +462,43 @@ class _Renderer(_BaseRenderer):
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
-                _add_mesh(
-                    self.plotter,
-                    mesh=mesh,
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
-            elif mode == 'cone':
-                cone = vtk.vtkConeSource()
-                if glyph_height is not None:
-                    cone.SetHeight(glyph_height)
+            else:
+                if mode == 'cone':
+                    glyph = vtk.vtkConeSource()
+                elif mode == 'cylinder':
+                    glyph = vtk.vtkCylinderSource()
+                    glyph.SetRadius(0.15)
+                else:
+                    assert mode == 'sphere', mode  # guaranteed above
+                    glyph = vtk.vtkSphereSource()
                 if glyph_center is not None:
-                    cone.SetCenter(glyph_center)
+                    glyph.SetCenter(glyph_center)
+                if glyph_height is not None:
+                    glyph.SetHeight(glyph_height)
+                if glyph_center is not None:
+                    glyph.SetCenter(glyph_center)
                 if glyph_resolution is not None:
-                    cone.SetResolution(glyph_resolution)
-                cone.Update()
-
-                geom = cone.GetOutput()
-                _add_mesh(
-                    self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor,
-                                    geom=geom),
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
-            elif mode == 'cylinder':
-                cylinder = vtk.vtkCylinderSource()
-                cylinder.SetHeight(glyph_height)
-                cylinder.SetRadius(0.15)
-                cylinder.SetCenter(glyph_center)
-                cylinder.SetResolution(glyph_resolution)
-                cylinder.Update()
-
-                # fix orientation
-                tr = vtk.vtkTransform()
-                tr.RotateWXYZ(90, 0, 0, 1)
-                trp = vtk.vtkTransformPolyDataFilter()
-                trp.SetInputData(cylinder.GetOutput())
-                trp.SetTransform(tr)
-                trp.Update()
-
-                geom = trp.GetOutput()
-                _add_mesh(
-                    self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor,
-                                    geom=geom),
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
+                    glyph.SetResolution(glyph_resolution)
+                if mode == 'cylinder':
+                    # fix orientation
+                    glyph.Update()
+                    tr = vtk.vtkTransform()
+                    tr.RotateWXYZ(90, 0, 0, 1)
+                    trp = vtk.vtkTransformPolyDataFilter()
+                    trp.SetInputData(glyph.GetOutput())
+                    trp.SetTransform(tr)
+                    glyph = trp
+                glyph.Update()
+                geom = glyph.GetOutput()
+                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
+                                  geom=geom)
+            _add_mesh(
+                self.plotter,
+                mesh=mesh,
+                color=color,
+                opacity=opacity,
+                backface_culling=backface_culling
+            )
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):

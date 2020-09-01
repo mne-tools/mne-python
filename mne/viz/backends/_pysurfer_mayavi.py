@@ -24,10 +24,10 @@ from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
 from .base_renderer import _BaseRenderer
-from ._utils import _check_color
+from ._utils import _check_color, ALLOWED_QUIVER_MODES
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
-                      copy_base_doc_to_subclass_doc)
+                      copy_base_doc_to_subclass_doc, _check_option)
 
 
 class _Projection(object):
@@ -230,26 +230,31 @@ class _Renderer(_BaseRenderer):
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, colormap=None, vmin=None, vmax=None,
                  line_width=2., name=None):
+        _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
-            if mode in ('arrow', '2darrow', '3darrow'):
+            if mode in ('arrow', '2darrow'):
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
                                    color=color, scale_factor=scale,
                                    scale_mode=scale_mode,
                                    resolution=resolution, scalars=scalars,
                                    opacity=opacity, figure=self.fig)
-            elif mode == 'cone':
+            elif mode in ('cone', 'sphere'):
                 self.mlab.quiver3d(x, y, z, u, v, w, color=color,
                                    mode=mode, scale_factor=scale,
                                    opacity=opacity, figure=self.fig)
-            elif mode == 'cylinder':
+            else:
+                assert mode == 'cylinder', mode  # should be guaranteed above
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
                                           color=color, scale_factor=scale,
                                           opacity=opacity, figure=self.fig)
-                quiv.glyph.glyph_source.glyph_source.height = glyph_height
-                quiv.glyph.glyph_source.glyph_source.center = glyph_center
-                quiv.glyph.glyph_source.glyph_source.resolution = \
-                    glyph_resolution
+                if glyph_height is not None:
+                    quiv.glyph.glyph_source.glyph_source.height = glyph_height
+                if glyph_center is not None:
+                    quiv.glyph.glyph_source.glyph_source.center = glyph_center
+                if glyph_resolution is not None:
+                    quiv.glyph.glyph_source.glyph_source.resolution = \
+                        glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
