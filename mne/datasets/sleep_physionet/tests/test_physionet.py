@@ -101,7 +101,7 @@ def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject):
 @pytest.mark.parametrize('subject,recording', [(13, 2), (36, 1), (52, 1)])
 def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
                                                 recording):
-    """Test handling of missing subjects in Sleep Physionet age fetcher."""
+    """Test handling of missing recordings in Sleep Physionet age fetcher."""
     params = {'path': physionet_tmpdir, 'update_path': False}
 
     with pytest.raises(
