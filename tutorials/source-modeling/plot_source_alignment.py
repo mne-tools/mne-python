@@ -192,17 +192,17 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 def plot_dig_alignment(points, coord_system='ras'):
     points = points.copy()
     if coord_system == 'mri':  # transform back to RAS
-        points = (points - 128) * 1e-3
-        points[:, [1, 2]] = points[:, [2, 1]]
-        points[:, 2] *= -1
+        points = ((points - 128) * [1, -1, 1])[:, [0, 2, 1]]
+    else:  # m → mm
+        points *= 1e3
     renderer = mne.viz.backends.renderer._get_renderer(
         size=(800, 400), bgcolor='w')
-    seghead_rr, seghead_tri = mne.read_surface(op.join(
-        subjects_dir, 'sample', 'surf', 'lh.seghead'))
+    seghead_rr, seghead_tri = mne.read_surface(
+        op.join(subjects_dir, 'sample', 'surf', 'lh.seghead'))
     renderer.mesh(*seghead_rr.T, triangles=seghead_tri, color=(0.7,) * 3,
                   opacity=0.2)
     for point in points:
-        renderer.sphere(center=point * 1e3, color='r', scale=5)
+        renderer.sphere(center=point, color='r', scale=5)
     mne.viz.set_3d_view(figure=renderer.figure, distance=1000,
                         focalpoint=(0., 0., 0.), elevation=90, azimuth=0)
     renderer.show()
