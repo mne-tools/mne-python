@@ -42,9 +42,7 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     --------
     >>> from mne.datasets.testing import data_path
     >>> from mne.io import read_raw_persyst
-    >>> fname_lay = op.join(
-    data_path(download=False), 'Persyst',
-    'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay')
+    >>> fname_lay = op.join(data_path(download=False), 'Persyst', 'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay')
     >>> raw = read_raw_persyst(fname_lay)
     >>> print(raw)
     <RawPersyst | sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat, 83 x 847 (4.2 s), ~708 kB, data loaded>
