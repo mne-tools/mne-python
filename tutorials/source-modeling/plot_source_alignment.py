@@ -203,7 +203,7 @@ def plot_dig_alignment(points, coord_system='ras'):
                   opacity=0.2)
     for point in points.copy():
         renderer.sphere(center=point * 1e3, color='r', scale=5)
-    mne.viz.set_3d_view(figure=renderer.fig, distance=1000,
+    mne.viz.set_3d_view(figure=renderer.figure, distance=1000,
                         focalpoint=(0., 0., 0.), elevation=90, azimuth=0)
     renderer.show()
 
