@@ -37,7 +37,18 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
-    """
+
+    Examples
+    --------
+    >>> from mne.datasets.testing import data_path
+    >>> from mne.io import read_raw_persyst
+    >>> fname_lay = op.join(
+    data_path(download=False), 'Persyst',
+    'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay')
+    >>> raw = read_raw_persyst(fname_lay)
+    >>> print(raw)
+    <RawPersyst | sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat, 83 x 847 (4.2 s), ~708 kB, data loaded>
+    """  # noqa
     return RawPersyst(fname, preload, verbose)
 
 
@@ -198,9 +209,9 @@ class RawPersyst(BaseRaw):
             n_samples = f.tell()
             n_samples = n_samples // (dtype_bytes * n_chs)
 
-            print('lOADING RECORD FROM ', f)
-            # print(len(dat_file_ID))
-            print(n_samples)
+            if verbose:
+                print(f'Loaded {n_samples} samples '
+                      f'for {n_chs} channels.')
 
         raw_extras = {
             'datatype': datatype,
@@ -222,9 +233,8 @@ class RawPersyst(BaseRaw):
         description = [''] * num_comments
         for t_idx, (_description, (_onset, _duration)) in \
                 enumerate(comments_dict.items()):
-            # print(t_idx, _description)
-            # print(_time)
-            # _onset, _duration = _time
+            # extract the onset, duration, description to
+            # create an Annotations object
             onset[t_idx] = _onset
             duration[t_idx] = _duration
             description[t_idx] = _description
