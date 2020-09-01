@@ -110,8 +110,8 @@ raw_train.plot(duration=60, scalings='auto')
 #
 # Moreover, the recordings contain long awake (W) regions before and after each
 # night. To limit the impact of class imbalance, we trim each recording by only
-# keeping 30 minutes of wake time before the first occurence and 30 minutes
-# after the last occurence of sleep stages.
+# keeping 30 minutes of wake time before the first occurrence and 30 minutes
+# after the last occurrence of sleep stages.
 
 annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 1': 2,
