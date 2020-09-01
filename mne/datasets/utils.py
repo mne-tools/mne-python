@@ -242,7 +242,6 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # release on GitHub. Then update the "releases" variable:
     releases = dict(testing='0.106', misc='0.6')
     # And also update the "md5_hashes['testing']" variable below.
-
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
 
