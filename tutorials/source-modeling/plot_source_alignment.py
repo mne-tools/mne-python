@@ -186,7 +186,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 # Let's step through the process that the transform is accomplishing.
 #
 # First, let's define a helper function to plot the alignment of the
-# points with the head using voxel coordinates.
+# points with the head.
 
 
 def plot_dig_alignment(points, coord_system='ras'):
@@ -226,9 +226,10 @@ plot_dig_alignment(head_space)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Rotate and translate the points based on the coregistration.
 #
-# The plot below shows the head space coordinates transformed to mri
-# RAS coordinates. It correctly aligns to the head, which is also in RAS,
-# but still has to be transformed to the voxel coordinate space.
+# The plot below shows the head space coordinates transformed to meg
+# coordinates (still RAS). It correctly aligns to the head, which is also in
+# RAS, but still has to be transformed to the mri coordinate space, which
+# is in voxels.
 
 meg_space = mne.transforms.apply_trans(trans, head_space, move=True)
 plot_dig_alignment(meg_space)
@@ -237,9 +238,10 @@ plot_dig_alignment(meg_space)
 # Apply a second transform to get to mri space and plot again
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# This plot finally shows the coordinates in the T1 space. Since the head
+# This plot finally shows the coordinates in the mri space. Since the head
 # is plotted in RAS, we have to transform them back to have the plots match
-# since all the freesurfer surfaces are in RAS.
+# since all the head surface that it is being compared to in the plot is in
+# RAS.
 
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = linalg.inv(vox2ras_tkr)
