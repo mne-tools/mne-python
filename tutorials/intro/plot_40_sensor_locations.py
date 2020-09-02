@@ -114,7 +114,7 @@ biosemi_montage.plot(show_names=False)
 # By default a sphere  with an origin in ``(0, 0, 0)`` x, y, z coordinates and
 # radius of ``0.095`` meters (9.5 cm) is used. You can use a different sphere
 # radius by passing a single value to ``sphere`` argument in any function that
-# plots channels in 2d (like :meth:`~mne.channels.DigMontage.plot`that we use
+# plots channels in 2d (like :meth:`~mne.channels.DigMontage.plot` that we use
 # here, but also for example :func:`mne.viz.plot_topomap`):
 
 biosemi_montage.plot(show_names=False, sphere=0.07)
