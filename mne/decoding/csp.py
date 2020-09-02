@@ -66,7 +66,9 @@ class CSP(TransformerMixin, BaseEstimator):
         If ``'mutual_info'`` order components by decreasing mutual information
         (in the two-class case this uses a simplification which orders
         components by decreasing absolute deviation of the eigenvalues from 0.5
-        [4]_).
+        [4]_). For the two-class case, ``'alternate'`` orders components by
+        starting with the largest eigenvalue, followed by the smallest, the
+        second-to-largest, the second-to-smallest, and so on [2]_.
 
         .. versionadded:: 0.21
 
