@@ -20,44 +20,41 @@ from ..utils import fill_doc, _check_option
 
 @fill_doc
 class CSP(TransformerMixin, BaseEstimator):
-    u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
+    """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
-    This object can be used as a supervised decomposition to estimate
-    spatial filters for feature extraction in a 2 class decoding problem.
-    CSP in the context of EEG was first described in [1]; a comprehensive
-    tutorial on CSP can be found in [2]. Multiclass solving is implemented
-    from [3].
+    This class can be used as a supervised decomposition to estimate spatial
+    filters for feature extraction. CSP in the context of EEG was first
+    described in [1]; a comprehensive tutorial on CSP can be found in [2].
+    Multi-class solving is implemented from [3].
 
     Parameters
     ----------
-    n_components : int, default 4
-        The number of components to decompose M/EEG signals.
-        This number should be set by cross-validation.
+    n_components : int (default 4)
+        The number of components to decompose M/EEG signals. This number should
+        be set by cross-validation.
     reg : float | str | None (default None)
-        If not None (same as ``'empirical'``, default), allow
-        regularization for covariance estimation.
-        If float, shrinkage is used (0 <= shrinkage <= 1).
-        For str options, ``reg`` will be passed to ``method`` to
+        If not None (same as ``'empirical'``, default), allow regularization
+        for covariance estimation. If float (between 0 and 1), shrinkage is
+        used. For str values, ``reg`` will be passed as ``method`` to
         :func:`mne.compute_covariance`.
     log : None | bool (default None)
-        If transform_into == 'average_power' and log is None or True, then
-        applies a log transform to standardize the features, else the features
-        are z-scored. If transform_into == 'csp_space', then log must be None.
-    cov_est : 'concat' | 'epoch', default 'concat'
-        If 'concat', covariance matrices are estimated on concatenated epochs
-        for each class.
-        If 'epoch', covariance matrices are estimated on each epoch separately
-        and then averaged over each class.
-    transform_into : {'average_power', 'csp_space'}
-        If 'average_power' then self.transform will return the average power of
-        each spatial filter. If 'csp_space' self.transform will return the data
-        in CSP space. Defaults to 'average_power'.
-    norm_trace : bool
-        Normalize class covariance by its trace. Defaults to False. Trace
-        normalization is a step of the original CSP algorithm [1]_ to eliminate
-        magnitude variations in the EEG between individuals. It is not applied
-        in more recent work [2]_, [3]_ and can have a negative impact on
-        patterns ordering.
+        If ``transform_into`` equals ``'average_power'`` and ``log`` is None or
+        True, then apply a log transform to standardize features, else features
+        are z-scored. If ``transform_into`` is ``'csp_space'``, ``log`` must be
+        None.
+    cov_est : 'concat' | 'epoch' (default 'concat')
+        If ``'concat'``, covariance matrices are estimated on concatenated
+        epochs for each class. If ``'epoch'``, covariance matrices are
+        estimated on each epoch separately and then averaged over each class.
+    transform_into : 'average_power' | 'csp_space' (default 'average_power')
+        If 'average_power' then ``self.transform`` will return the average
+        power of each spatial filter. If ``'csp_space'``, ``self.transform``
+        will return the data in CSP space.
+    norm_trace : bool (default False)
+        Normalize class covariance by its trace. Trace normalization is a step
+        of the original CSP algorithm [1]_ to eliminate magnitude variations in
+        the EEG between individuals. It is not applied in more recent work
+        [2]_, [3]_ and can have a negative impact on patterns order.
     cov_method_params : dict | None
         Parameters to pass to :func:`mne.compute_covariance`.
 
@@ -65,17 +62,13 @@ class CSP(TransformerMixin, BaseEstimator):
     %(rank_None)s
 
         .. versionadded:: 0.17
-    component_order : 'mutual_info' | 'new' | 'old' | 'None' (default None)
-        If 'mutual_info' order components by decreasing mutual information.
-        If 'old' order components by starting with the largest eigenvalue,
-        followed by the smallest, the second-to-largest, the second-to-
-        smallest, and so on [2]_.
-        If 'new' components are ordered by decreasing absolute deviation of
-        the eigenvalues from 0.5 [4]_.
-        If the parameter is not set, component order is selected based on the
-        number of classes. The two-class case defaults to 'new' and the
-        multi-class case defaults to 'mutual_info'.
-        Note that 'old' and 'new' can only be used with the two-class case.
+    component_order : 'mutual_info' | 'alternate' (default 'alternate')
+        If ``'mutual_info'`` order components by decreasing mutual information
+        (in the two-class case this uses a simplification which orders
+        components by decreasing absolute deviation of the eigenvalues from 0.5
+        [4]_).
+
+        .. versionadded:: 0.21
 
     Attributes
     ----------
@@ -101,25 +94,24 @@ class CSP(TransformerMixin, BaseEstimator):
            Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
            Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
            2008.
-    .. [3] Grosse-Wentrup, Moritz, and Martin Buss. Multiclass common spatial
+    .. [3] Moritz Grosse-Wentrup, Martin Buss. Multiclass common spatial
            patterns and information theoretic feature extraction. IEEE
-           Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
+           Transactions on Biomedical Engineering 55(8), 2008.
     .. [4] Alexandre Barachant, Stephane Bonnet, Marco Congedo, Christian
            Jutten. Common Spatial Pattern revisited by Riemannian Geometry.
            IEEE International Workshop on Multimedia Signal Processing (MMSP),
-           pp.472, 2010.
+           p. 472, 2010.
     """
 
-    def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
+    def __init__(self, n_components=4, reg=None, log=None, cov_est='concat',
                  transform_into='average_power', norm_trace=False,
-                 cov_method_params=None, rank=None, component_order=None):
-        """Init of CSP."""
+                 cov_method_params=None, rank=None,
+                 component_order='mutual_info'):
         # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
         self.rank = rank
-
         self.reg = reg
 
         # Init default cov_est
@@ -144,13 +136,17 @@ class CSP(TransformerMixin, BaseEstimator):
         self.log = log
 
         if not isinstance(norm_trace, bool):
-            raise ValueError('norm_trace must be a bool.')
+            raise ValueError('norm_trace must be a bool')
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
+        if component_order not in ['mutual_info', 'alternate']:
+            raise ValueError("'{}' is not a valid component order (valid "
+                             "values are 'mutual_info' and 'alternate')."
+                             .format(self.component_order))
         self.component_order = component_order
 
     def _check_Xy(self, X, y=None):
-        """Aux. function to check input data."""
+        """Check input data."""
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)."
                              % type(X))
@@ -181,26 +177,17 @@ class CSP(TransformerMixin, BaseEstimator):
         n_classes = len(self._classes)
         if n_classes < 2:
             raise ValueError("n_classes must be >= 2.")
-
-        if n_classes == 2:
-            component_order = self.component_order or 'new'
-            if component_order not in ['new', 'old', 'mutual_info']:
-                raise ValueError("'{}' is not a valid component order. Valid "
-                                 "values are 'mutual_info', 'new', 'old'."
-                                 .format(component_order))
-        else:
-            component_order = self.component_order or 'mutual_info'
-            if not component_order == 'mutual_info':
-                raise ValueError("'{}' is not a valid component order for "
-                                 "n_classes > 2. Use 'mutual_info' instead."
-                                 .format(component_order))
+        if n_classes > 2 and self.component_order == 'alternate':
+            raise ValueError("component_order='alternate' requires two "
+                             "classes, but data contains {} classes; use "
+                             "component_order='mutual_info' "
+                             "instead.".format(n_classes))
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
         eigen_vectors, eigen_values = self._decompose_covs(covs,
                                                            sample_weights)
-        ix = self._order_components(covs, sample_weights,
-                                    eigen_vectors, eigen_values,
-                                    component_order)
+        ix = self._order_components(covs, sample_weights, eigen_vectors,
+                                    eigen_values, self.component_order)
 
         eigen_vectors = eigen_vectors[:, ix]
 
@@ -594,16 +581,16 @@ class CSP(TransformerMixin, BaseEstimator):
             eigen_vectors[:, ii] /= np.sqrt(tmp)
         return eigen_vectors
 
-    def _order_components(self, covs, sample_weights,
-                          eigen_vectors, eigen_values,
-                          component_order):
-        if component_order == 'mutual_info':
+    def _order_components(self, covs, sample_weights, eigen_vectors,
+                          eigen_values, component_order):
+        n_classes = len(self._classes)
+        if component_order == 'mutual_info' and n_classes > 2:
             mutual_info = self._compute_mutual_info(covs, sample_weights,
                                                     eigen_vectors)
             ix = np.argsort(mutual_info)[::-1]
-        elif component_order == 'new':
+        elif component_order == 'mutual_info' and n_classes == 2:
             ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
-        elif component_order == 'old':
+        elif component_order == 'alternate' and n_classes == 2:
             i = np.argsort(eigen_values)
             ix = np.empty_like(i)
             ix[1::2] = i[:len(i) // 2]
