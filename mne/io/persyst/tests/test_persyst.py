@@ -6,6 +6,7 @@ import os.path as op
 import shutil
 
 import pytest
+from numpy.testing import assert_array_equal
 
 import mne
 from mne.datasets.testing import data_path, requires_testing_data
@@ -41,6 +42,36 @@ def test_persyst_lay_load():
     # no "-Ref" in channel names
     assert all(['-ref' not in ch.lower()
                 for ch in raw.ch_names])
+
+    # test with preload True
+    raw = read_raw_persyst(fname_lay, preload=True)
+
+
+@requires_testing_data
+def test_persyst_raw():
+    """Test reading Persyst files using path to header file."""
+    raw = read_raw_persyst(fname_lay, preload=False)
+
+    # defaults channels to EEG
+    raw = raw.pick_types(eeg=True)
+
+    # get data
+    data, times = raw.get_data(start=200, return_times=True)
+    assert data.shape == (83, 647)
+
+    # seconds should match up to what is in the file
+    assert times.min() == 1.0
+    assert times.max() == 4.23
+
+    # get data
+    data = raw.get_data(start=200, stop=400)
+    assert data.shape == (83, 200)
+
+    # data should have been set correctly
+    assert not data.min() == 0 and not data.max() == 0
+
+    first_ch_data = raw.get_data(picks=[0], start=200, stop=400)
+    assert_array_equal(first_ch_data.squeeze(), data[0, :])
 
 
 @requires_testing_data

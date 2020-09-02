@@ -205,7 +205,6 @@ class RawPersyst(BaseRaw):
         raw_extras = {
             'datatype': datatype,
             'n_chs': n_chs,
-            'cal': cal,
             'n_samples': n_samples
         }
 
@@ -243,7 +242,6 @@ class RawPersyst(BaseRaw):
         """
         datatype = self._raw_extras[fi]['datatype']
         n_chs = self._raw_extras[fi]['n_chs']
-        calibration = self._raw_extras[fi]['cal']
         dat_fname = self._filenames[fi]
 
         # compute samples count based on start and stop
@@ -271,14 +269,16 @@ class RawPersyst(BaseRaw):
             record = np.fromfile(dat_file_ID, dtype=precision,
                                  count=count)
 
-        # calibrate to convert to uV (then multiply to get V)
-        record = record * calibration / 10. ** 6
         # chs * rows
         record = np.reshape(record, (n_chs, -1), 'F')
+        # calibrate to convert to uV
+        record = record * cals
         # cast as float32; more than enough precision
-        record = record.astype(np.float32)
+        # then multiply to get V
+        record = record.astype(np.float32) / 10. ** 6
 
-        return record
+        # assign now over to data
+        data[idx, ...] = record[idx, ...]
 
 
 def _get_subjectinfo(patient_dict):
