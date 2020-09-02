@@ -24,8 +24,9 @@ class CSP(TransformerMixin, BaseEstimator):
 
     This class can be used as a supervised decomposition to estimate spatial
     filters for feature extraction. CSP in the context of EEG was first
-    described in [1]; a comprehensive tutorial on CSP can be found in [2].
-    Multi-class solving is implemented from [3].
+    described in :footcite:`KolesEtAl1990`; a comprehensive tutorial on CSP can
+    be found in :footcite:`BlankertzEtAl2008`. Multi-class solving is
+    implemented from :footcite:`Grosse-WentrupBuss2008`.
 
     Parameters
     ----------
@@ -52,9 +53,11 @@ class CSP(TransformerMixin, BaseEstimator):
         will return the data in CSP space.
     norm_trace : bool (default False)
         Normalize class covariance by its trace. Trace normalization is a step
-        of the original CSP algorithm [1]_ to eliminate magnitude variations in
-        the EEG between individuals. It is not applied in more recent work
-        [2]_, [3]_ and can have a negative impact on patterns order.
+        of the original CSP algorithm :footcite:`KolesEtAl1990` to eliminate
+        magnitude variations in the EEG between individuals. It is not applied
+        in more recent work :footcite:`BlankertzEtAl2008`,
+        :footcite:`Grosse-WentrupBuss2008` and can have a negative impact on
+        pattern order.
     cov_method_params : dict | None
         Parameters to pass to :func:`mne.compute_covariance`.
 
@@ -66,9 +69,10 @@ class CSP(TransformerMixin, BaseEstimator):
         If ``'mutual_info'`` order components by decreasing mutual information
         (in the two-class case this uses a simplification which orders
         components by decreasing absolute deviation of the eigenvalues from 0.5
-        [4]_). For the two-class case, ``'alternate'`` orders components by
-        starting with the largest eigenvalue, followed by the smallest, the
-        second-to-largest, the second-to-smallest, and so on [2]_.
+        :footcite:`BarachantEtAl2010`). For the two-class case, ``'alternate'``
+        orders components by starting with the largest eigenvalue, followed by
+        the smallest, the second-to-largest, the second-to-smallest, and so on
+        :footcite:`BlankertzEtAl2008`.
 
         .. versionadded:: 0.21
 
@@ -89,20 +93,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
     References
     ----------
-    .. [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
-           Underlying Population Differences in the Background EEG. Brain
-           Topography 2(4), 275-284, 1990.
-    .. [2] Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
-           Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
-           Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
-           2008.
-    .. [3] Moritz Grosse-Wentrup, Martin Buss. Multiclass common spatial
-           patterns and information theoretic feature extraction. IEEE
-           Transactions on Biomedical Engineering 55(8), 2008.
-    .. [4] Alexandre Barachant, Stephane Bonnet, Marco Congedo, Christian
-           Jutten. Common Spatial Pattern revisited by Riemannian Geometry.
-           IEEE International Workshop on Multimedia Signal Processing (MMSP),
-           p. 472, 2010.
+    .. footbibliography::
     """
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est='concat',
