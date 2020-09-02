@@ -117,6 +117,9 @@ stc_base = apply_inverse_cov(base_cov, evoked.info, inverse_operator,
 
 ###############################################################################
 # And visualize power is relative to the baseline:
+
+# sphinx_gallery_thumbnail_number = 9
+
 stc_data /= stc_base
 brain = stc_data.plot(subject='sample', subjects_dir=subjects_dir,
                       clim=dict(kind='percent', lims=(50, 90, 98)))
