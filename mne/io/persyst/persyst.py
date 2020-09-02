@@ -12,6 +12,7 @@ import numpy as np
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import create_info
+from ..utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
 
@@ -245,7 +246,6 @@ class RawPersyst(BaseRaw):
             count = time_length_samps * n_chs
 
         # seek the dat file
-        # dat file
         with open(dat_fname, 'rb') as dat_file_ID:
             # allow offset to occur
             dat_file_ID.seek(n_chs * dtype.itemsize * start, 1)
@@ -255,11 +255,11 @@ class RawPersyst(BaseRaw):
                                  count=count)
 
         # chs * rows
-        record = np.reshape(record, (n_chs, -1), 'F')
-        # calibrate to convert to V
-        data[...] = record[idx, ...] * cals
         # cast as float32; more than enough precision
-        data = data.astype(np.float32)
+        record = np.reshape(record, (n_chs, -1), 'F').astype(np.float32)
+
+        # calibrate to convert to V and handle mult
+        _mult_cal_one(data, record, idx, cals, mult)
 
 
 def _get_subjectinfo(patient_dict):
