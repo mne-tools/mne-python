@@ -342,6 +342,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         spheres.append(this_sphere)
         outliness.append(these_outlines)
         ch_typess.append(ch_type)
+        del data, pos, this_sphere, these_outlines, ch_type
     del sphere
 
     # setup axes
@@ -383,7 +384,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                           outlines=_outlines, contours=contours,
                           image_interp=image_interp, show=False,
                           extrapolate=extrapolate, sphere=_sphere,
-                          border=border, ch_type=ch_type)[0]
+                          border=border, ch_type=_ch_type)[0]
 
         if colorbar:
             _add_colorbar(ax, im, cmap)
