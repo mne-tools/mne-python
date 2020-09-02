@@ -83,6 +83,7 @@ def test_persyst_wrong_file():
         read_raw_persyst(fname_dat, preload=True)
 
     out_dir = mne.utils._TempDir()
+    out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_lay, new_fname_lay)
