@@ -1376,7 +1376,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     %(use_cps)s
 
         .. versionadded:: 0.15
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1443,7 +1444,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1490,7 +1492,8 @@ def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
         Forward operator.
     stc : instance of SourceEstimate
         Source estimate.
-    %(on_missing)s Default is "ignore".
+    %(on_missing_fwd)s
+        Default is "ignore".
 
         .. versionadded:: 0.18
 

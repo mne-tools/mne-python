@@ -964,10 +964,12 @@ docdict['use_cps_restricted'] = docdict['use_cps'] + """
 """
 
 # Forward
-docdict['on_missing'] = """
-on_missing : str
-    Behavior when ``stc`` has vertices that are not in ``fwd``.
-    Can be "ignore", "warn"", or "raise"."""
+_on_missing_base = """on_missing : str
+    Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+    warning, or ``'ignore'`` to ignore when"""
+docdict['on_missing_fwd'] = """
+%s ``stc`` has vertices that are not in ``fwd``.
+""" % (_on_missing_base,)
 docdict['dig_kinds'] = """
 dig_kinds : list of str | str
     Kind of digitization points to use in the fitting. These can be any
@@ -1194,14 +1196,19 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict['on_missing_events'] = """
+%s event numbers from ``event_id`` are missing from ``events``.
+    When numbers from ``events`` are missing from ``event_id`` they will be
+    ignored and a warning emitted; consider using ``verbose='error'`` in
+    this case.
+
+    .. versionadded:: 0.21
+""" % (_on_missing_base,)
 docdict['on_missing_montage'] = """
-on_missing : str
-    Either 'raise', or 'warn' to raise an error/warning when
-    channels have missing coordinates,
-    or 'ignore' to set channels to np.nan and set montage.
+%s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
-"""
+""" % (_on_missing_base,)
 docdict['rename_channels_mapping'] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name

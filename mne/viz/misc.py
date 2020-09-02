@@ -36,7 +36,7 @@ from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
                             _check_mri, _ensure_src)
 from ..transforms import invert_transform, apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
-                     _mask_to_onsets_offsets, _pl)
+                     _mask_to_onsets_offsets, _pl, _on_missing)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
@@ -571,8 +571,10 @@ def _get_bem_plotting_surfaces(bem_path):
     return surfaces
 
 
+@verbose
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
-                axes=None, equal_spacing=True, show=True):
+                axes=None, equal_spacing=True, show=True, on_missing='raise',
+                verbose=None):
     """Plot events to get a visual display of the paradigm.
 
     Parameters
@@ -602,6 +604,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         Use equal spacing between events in y-axis.
     show : bool
         Show figure if True.
+    %(on_missing_events)s
+    %(verbose)s
 
     Returns
     -------
@@ -630,15 +634,22 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         conditions, unique_events_id = zip(*sorted(event_id.items(),
                                                    key=lambda x: x[1]))
 
-        for this_event in unique_events_id:
+        keep = np.ones(len(unique_events_id), bool)
+        for ii, this_event in enumerate(unique_events_id):
             if this_event not in unique_events:
-                raise ValueError('%s from event_id is not present in events.'
-                                 % this_event)
+                msg = f'{this_event} from event_id is not present in events.'
+                _on_missing(on_missing, msg)
+                keep[ii] = False
+        conditions = [cond for cond, k in zip(conditions, keep) if k]
+        unique_events_id = [id_ for id_, k in zip(unique_events_id, keep) if k]
+        if len(unique_events_id) == 0:
+            raise RuntimeError('No usable event IDs found')
 
         for this_event in unique_events:
             if this_event not in unique_events_id:
                 warn('event %s missing from event_id will be ignored'
                      % this_event)
+
     else:
         unique_events_id = unique_events
 
