@@ -43,13 +43,9 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_fiducials, __file__ as _MNE_IO_FILE)
 
 from mne.io import RawArray
-from mne.datasets import testing, sample
+from mne.datasets import testing
 from mne.io.brainvision import __file__ as _BRAINVISON_FILE
 
-
-sample_data_folder = sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
@@ -1425,17 +1421,6 @@ def test_get_montage():
     test_montage = raw_bv.get_montage()
     raw_bv.set_montage(test_montage, on_missing='ignore')
     test_chs = raw_bv.info['chs']
-    assert_object_equal(orig_chs, test_chs)
-
-    # load in MEG data file and use standard template montage
-    # with testing dataset: 'sample_audvis_raw.fif'
-    raw = read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
-    ten_twenty_montage = make_standard_montage('standard_1020')
-    raw.set_montage(ten_twenty_montage, on_missing='ignore')
-    orig_chs = raw.info['chs']
-    test_montage = raw.get_montage()
-    raw.set_montage(test_montage, on_missing='ignore')
-    test_chs = raw.info['chs']
     assert_object_equal(orig_chs, test_chs)
 
     # if dig is not set in the info, then montage returns None
