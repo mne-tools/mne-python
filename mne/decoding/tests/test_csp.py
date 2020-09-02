@@ -109,7 +109,7 @@ def test_csp():
         CSP(reg=reg, norm_trace=False)
     for cov_est in ['foo', None]:
         pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
-    with pytest.raises(ValueError, match=TypeError):
+    with pytest.raises(TypeError, match='instance of bool'):
         CSP(norm_trace='foo')
     for cov_est in ['concat', 'epoch']:
         CSP(cov_est=cov_est, norm_trace=False)
