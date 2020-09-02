@@ -9,7 +9,7 @@ The aim of this tutorial is to show how to visually assess that the data are
 well aligned in space for computing the forward solution, and understand
 the different coordinate frames involved in this process.
 
-.. contents:: Topics
+.. contents:: Page contents
    :local:
    :depth: 2
 
@@ -42,51 +42,6 @@ t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
 t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 
 ###############################################################################
-# Understanding coordinate frames
-# -------------------------------
-# For M/EEG source imaging, there are three **coordinate frames** (further
-# explained in the next section) that we must bring into alignment using two 3D
-# `transformation matrices <rotation and translation matrix_>`_
-# that define how to rotate and translate points in one coordinate frame
-# to their equivalent locations in another.
-#
-# :func:`mne.viz.plot_alignment` is a very useful function for inspecting
-# these transformations, and the resulting alignment of EEG sensors, MEG
-# sensors, brain sources, and conductor models. If the ``subjects_dir`` and
-# ``subject`` parameters are provided, the function automatically looks for the
-# Freesurfer MRI surfaces to show from the subject's folder.
-#
-# We can use the ``show_axes`` argument to see the various coordinate frames
-# given our transformation matrices. These are shown by axis arrows for each
-# coordinate frame:
-#
-# * shortest arrow is (**R**)ight/X
-# * medium is forward/(**A**)nterior/Y
-# * longest is up/(**S**)uperior/Z
-#
-# i.e., a **RAS** coordinate system in each case. We can also set
-# the ``coord_frame`` argument to choose which coordinate
-# frame the camera should initially be aligned with.
-#
-# Let's take a look:
-
-fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
-                             subjects_dir=subjects_dir, surfaces='head-dense',
-                             show_axes=True, dig=True, eeg=[], meg='sensors',
-                             coord_frame='meg')
-mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
-print('Distance from head origin to MEG origin: %0.1f mm'
-      % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
-print('Distance from head origin to MRI origin: %0.1f mm'
-      % (1000 * np.linalg.norm(trans['trans'][:3, 3])))
-dists = mne.dig_mri_distances(raw.info, trans, 'sample',
-                              subjects_dir=subjects_dir)
-print('Distance from %s digitized points to head surface: %0.1f mm'
-      % (len(dists), 1000 * np.mean(dists)))
-
-###############################################################################
-# Coordinate frame definitions
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # .. raw:: html
 #
 #    <style>
@@ -107,12 +62,65 @@ print('Distance from %s digitized points to head surface: %0.1f mm'
 # .. role:: green
 # .. role:: red
 #
+#
+# Understanding coordinate frames
+# -------------------------------
+# For M/EEG source imaging, there are three **coordinate frames** must be
+# brought into alignment using two 3D `transformation matrices <wiki_xform_>`_
+# that define how to rotate and translate points in one coordinate frame
+# to their equivalent locations in another. The three main coordinate frames
+# are:
+#
+# * :blue:`"meg"`: the coordinate frame for the physical locations of MEG
+#   sensors
+# * :gray:`"mri"` (the coordinate frame for MRI images, and scalp/skull/brain
+#   surfaces derived from the MRI images
+# * :pink`"head"`: the coordinate frame for digitized sensor locations and
+#   scalp landmarks ("fiducials")
+#
+# Each of these, plus a fourth coordinate frame "ras", are described in more
+# detail below.
+#
+# :func:`mne.viz.plot_alignment` is a very useful function for creating or
+# inspecting the transformations used to bring these coordinate frames into
+# alignment, and the resulting alignment of EEG sensors, MEG sensors, brain
+# sources, and conductor models. In particular, the ``show_axes`` argument will
+# draw the origin of each coordinate frame in a different color, with axes
+# indicated as:
+#
+# * shortest arrow: (**R**)ight / X
+# * medium arrow: forward / (**A**)nterior / Y
+# * longest arrow: up / (**S**)uperior / Z
+#
+# In other words, all three coordinate systems are **RAS** coordinate systems.
+# If the ``subjects_dir`` and ``subject`` parameters are provided, the function
+# automatically loads the subject's Freesurfer MRI surfaces. Finally, we can
+# set the ``coord_frame`` argument to choose which coordinate frame the camera
+# should initially be aligned with. Let's take a look:
+
+fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+                             subjects_dir=subjects_dir, surfaces='head-dense',
+                             show_axes=True, dig=True, eeg=[], meg='sensors',
+                             coord_frame='meg')
+mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
+print('Distance from head origin to MEG origin: %0.1f mm'
+      % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
+print('Distance from head origin to MRI origin: %0.1f mm'
+      % (1000 * np.linalg.norm(trans['trans'][:3, 3])))
+dists = mne.dig_mri_distances(raw.info, trans, 'sample',
+                              subjects_dir=subjects_dir)
+print('Distance from %s digitized points to head surface: %0.1f mm'
+      % (len(dists), 1000 * np.mean(dists)))
+
+###############################################################################
+# Coordinate frame definitions
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # 1. Neuromag/Elekta/MEGIN head coordinate frame ("head", :pink:`pink axes`)
 #      The head coordinate frame is defined through the coordinates of
-#      anatomical landmarks on the subject's head: Usually the Nasion (`NAS`_),
+#      anatomical landmarks on the subject's head: usually the Nasion (`NAS`_),
 #      and the left and right preauricular points (`LPA`_ and `RPA`_).
-#      Different MEG manufacturers may have different definitions of the
-#      coordinate head frame. A good overview can be seen in the
+#      Different MEG manufacturers may have different definitions of the head
+#      coordinate frame. A good overview can be seen in the
 #      `FieldTrip FAQ on coordinate systems`_.
 #
 #      For Neuromag/Elekta/MEGIN, the head coordinate frame is defined by the
@@ -150,7 +158,8 @@ print('Distance from %s digitized points to head surface: %0.1f mm'
 #
 #      .. note:: The HPI coils are shown as :magenta:`magenta spheres`.
 #                Coregistration happens at the beginning of the recording and
-#                the data is stored in ``raw.info['dev_head_t']``.
+#                the head↔meg transformation matrix is stored in
+#                ``raw.info['dev_head_t']``.
 #
 # 3. MRI coordinate frame ("mri", :gray:`gray axes`)
 #      Defined by Freesurfer, the MRI (surface RAS) origin is at the
@@ -158,13 +167,14 @@ print('Distance from %s digitized points to head surface: %0.1f mm'
 #      of the head).
 #
 #      .. note:: We typically align the MRI coordinate frame to the head
-#                coordinate frame through a `rotation and translation matrix`_,
+#                coordinate frame through a
+#                `rotation and translation matrix <wiki_xform_>`_,
 #                that we refer to in MNE as ``trans``.
 #
 # A bad example
-# -------------
-# Let's try using ``trans=None``, which (incorrectly!) equates the MRI
-# and head coordinate frames.
+# ^^^^^^^^^^^^^
+# Let's try using `~mne.viz.plot_alignment` with ``trans=None``, which
+# (incorrectly!) equates the MRI and head coordinate frames.
 
 mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
                        subjects_dir=subjects_dir, dig=True,
@@ -172,29 +182,26 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
 
 ###############################################################################
 # A good example
-# --------------
+# ^^^^^^^^^^^^^^
 # Here is the same plot, this time with the ``trans`` properly defined
-# (using a precomputed matrix).
+# (using a precomputed transformation matrix).
 
 mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
                        src=src, subjects_dir=subjects_dir, dig=True,
                        surfaces=['head-dense', 'white'], coord_frame='meg')
 
 ###############################################################################
-# Visualizing the transformation of digitized points
-# --------------------------------------------------
-# Let's step through the process that the transform is accomplishing.
-#
-# First, let's define a helper function to plot the alignment of the
-# points with the head.
+# Visualizing the transformations
+# -------------------------------
+# Let's visualize these transformations using just the scalp surface and some
+# digitized scalp points. To do this we'll write a custom function that takes
+# a set of 3D points and plots them (along with the scalp surface) in the "mri"
+# coordinate frame. Remember, *digitized scalp points* start out in the "head"
+# coordinate frame, whereas *the scalp surface* comes from the MRI.
 
 
-def plot_dig_alignment(points, coord_system='ras'):
-    points = points.copy()
-    if coord_system == 'mri':  # transform back to RAS
-        points = ((points - 128) * [1, -1, 1])[:, [0, 2, 1]]
-    else:  # m → mm
-        points *= 1e3
+def plot_dig_alignment(points):
+    points = points.copy() * 1e3  # m → mm
     renderer = mne.viz.backends.renderer.create_3d_figure(
         size=(800, 400), bgcolor='w', scene=False)
     seghead_rr, seghead_tri = mne.read_surface(
@@ -209,50 +216,48 @@ def plot_dig_alignment(points, coord_system='ras'):
 
 
 ###############################################################################
-# Plot untransformed head space digitized points as if they were in RAS space
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The plot below shows the digitization points in the coordinate space
-# native to the digitizer equipment as described above. The 3D points in
-# head space would fit on the head but the transformation from
-# the coregistration has not been applied yet so there is a mismatch.
+# Now that our function is defined, first we'll plot *untransformed* digitized
+# scalp points (as if they were in the "mri" coordinate frame). You can see
+# that the scalp points look good relative to each other, but the whole set of
+# scalp points is mismatched to the MRI scalp surface.
 
-head_space = np.array([dig['r'] for dig in
-                       raw.info['dig']], dtype=float)
+head_space = np.array([dig['r'] for dig in raw.info['dig']], dtype=float)
 plot_dig_alignment(head_space)
 
 ###############################################################################
-# Apply the precomputed ``trans`` and plot again in meg space
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Rotate and translate the points based on the coregistration.
-#
-# The plot below shows the head space coordinates transformed to meg
-# coordinates. It correctly aligns to the head, but still has to be transformed
-# to the mri coordinate space, which is in voxels. In mri (voxel) space,
-# ``(0, 0, 0)`` is the left-, posterior-most coordinate on the inferior-most
-# slice compared to ``(0, 0, 0)`` being the center of the head in both head
-# and meg coordinate spaces.
+# Next, we'll apply the precomputed ``trans`` to convert the digitized points
+# from "head" to "meg" coordinate frame. It looks pretty good, but the
+# coordinate frames aren't actually perfectly aligned yet. This underscores
+# why interactive use of `~mne.viz.plot_alignment` is such an important step:
+# static plots can sometimes *look okay* even if they're not actually aligned
+# properly.
 
 meg_space = mne.transforms.apply_trans(trans, head_space, move=True)
 plot_dig_alignment(meg_space)
 
 ###############################################################################
-# Apply a second transform to get to mri space and plot again
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Finally, we'll apply a second transformation to the already-transformed
+# digitized points. That transform comes from the T1 header, and converts from
+# native MRI voxels (called the "mri_voxel" coordinate frame in MNE-Python) to
+# the "mri" coordinate frame (MRI Surface RAS). Unlike MRI Surface RAS,
+# "mri_voxel" has its origin in the corner of the volume (the left-most,
+# posterior-most coordinate on the inferior-most MRI slice) instead of at the
+# center of the volume. "mri_voxel" is also **not** an RAS coordinate system:
+# rather, its XYZ directions are based on the acquisition order of the T1 image
+# slices, so we'll need to do some extra steps here.
 #
-# This plot finally shows the coordinates in the mri space, which looks the
-# same as the alignment meg coordinate space, but as can be seen in the
-# helper function we actually have to do a transformation back from mri to
-# meg space. This is because the freesurfer surfaces (the reconstructed head
-# surface that is plotted) are centered in the center of the head and in RAS
-# coordinates compared to the mri coordinate space which is centered in the
-# bottom corner and the order of the points is not RAS but based on the T1
-# image slices.
+# .. note::
+#     Normally, MNE-Python converts ``mri_voxel → mri`` coordinate frame
+#     automatically before displaying skin/skull/brain surfaces, so the extra
+#     steps aren't needed for most analysis tasks.
 
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = linalg.inv(vox2ras_tkr)
-mri_space = mne.transforms.apply_trans(
-    ras2vox_tkr, meg_space * 1e3)  # units must be in mm, scaled from m
-plot_dig_alignment(mri_space, coord_system='mri')
+
+vox_space = mne.transforms.apply_trans(ras2vox_tkr, meg_space * 1e3)  # m → mm
+mri_space = ((vox_space - 128) * [1, -1, 1])[:, [0, 2, 1]] * 1e-3
+plot_dig_alignment(mri_space)
+
 
 ###############################################################################
 # Defining the head↔MRI ``trans`` using the GUI
@@ -312,7 +317,7 @@ mne.viz.plot_alignment(
 # `these slides
 # <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
 #
-# .. _rotation and translation matrix: https://en.wikipedia.org/wiki/Transformation_matrix  # noqa: E501
+# .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
 # .. _NAS: https://en.wikipedia.org/wiki/Nasion
 # .. _LPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
 # .. _RPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
