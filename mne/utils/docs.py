@@ -102,6 +102,10 @@ docdict["show"] = """
 show : bool
     Show figure if True.
 """
+docdict["title_None"] = """
+title : str | None
+    Title. If None (default), no title is displayed.
+"""
 docdict["plot_proj"] = """
 proj : bool | 'interactive' | 'reconstruct'
     If true SSP projections are applied before display. If 'interactive',
@@ -112,6 +116,84 @@ proj : bool | 'interactive' | 'reconstruct'
 
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
+"""
+docdict["topomap_ch_type"] = """
+ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+    The channel type to plot. For 'grad', the gradiometers are collected in
+    pairs and the RMS for each pair is plotted.
+    If None, then channels are chosen in the order given above.
+"""
+docdict["topomap_vmin_vmax"] = """
+vmin, vmax : float | callable | None
+    Lower and upper bounds of the colormap, in the same units as the data.
+    If ``vmin`` and ``vmax`` are both ``None``, they are set at ± the
+    maximum absolute value of the data (yielding a colormap with midpoint
+    at 0). If only one of ``vmin``, ``vmax`` is ``None``, will use
+    ``min(data)`` or ``max(data)``, respectively. If callable, should
+    accept a :class:`NumPy array <numpy.ndarray>` of data and return a
+    float.
+"""
+docdict["topomap_cmap"] = """
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If tuple, the first value indicates the colormap to
+    use and the second value is a boolean defining interactivity. In
+    interactive mode the colors are adjustable by clicking and dragging the
+    colorbar with left and right mouse button. Left mouse button moves the
+    scale up and down and right mouse button adjusts the range (zoom).
+    The mouse scroll can also be used to adjust the range. Hitting space
+    bar resets the range. Up and down arrows can be used to change the
+    colormap. If None (default), 'Reds' is used for all positive data,
+    otherwise defaults to 'RdBu_r'. If 'interactive', translates to
+    (None, True).
+
+    .. warning::  Interactive mode works smoothly only for a small amount
+        of topomaps. Interactive mode is disabled by default for more than
+        2 topomaps.
+"""
+docdict["topomap_sensors"] = """
+sensors : bool | str
+    Add markers for sensor locations to the plot. Accepts matplotlib plot
+    format string (e.g., 'r+' for red plusses). If True (default),
+    circles will be used.
+"""
+docdict["topomap_colorbar"] = """
+colorbar : bool
+    Plot a colorbar in the rightmost column of the figure.
+"""
+docdict["topomap_scalings"] = """
+scalings : dict | float | None
+    The scalings of the channel types to be applied for plotting.
+    If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
+"""
+docdict["topomap_units"] = """
+units : dict | str | None
+    The unit of the channel type used for colorbar label. If
+    scale is None the unit is automatically determined.
+"""
+docdict["topomap_res"] = """
+res : int
+    The resolution of the topomap image (n pixels along each side).
+"""
+docdict["topomap_size"] = """
+size : float
+    Side length per topomap in inches.
+"""
+docdict["topomap_cbar_fmt"] = """
+cbar_fmt : str
+    String format for colorbar values.
+"""
+docdict["topomap_mask"] = """
+mask : ndarray of bool, shape (n_channels, n_times) | None
+    The channels to be marked as significant at a given time point.
+    Indices set to ``True`` will be considered. Defaults to ``None``.
+"""
+docdict["topomap_mask_params"] = """
+mask_params : dict | None
+    Additional plotting parameters for plotting significant sensors.
+    Default (None) equals::
+
+        dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                linewidth=0, markersize=4)
 """
 docdict['topomap_outlines'] = """
 outlines : 'head' | 'skirt' | dict | None
@@ -124,6 +206,35 @@ outlines : 'head' | 'skirt' | dict | None
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
+"""
+docdict['topomap_contours'] = """
+contours : int | array of float
+    The number of contour lines to draw. If 0, no contours will be drawn.
+    When an integer, matplotlib ticker locator is used to find suitable
+    values for the contour thresholds (may sometimes be inaccurate, use
+    array for accuracy). If an array, the values represent the levels for
+    the contours. The values are in µV for EEG, fT for magnetometers and
+    fT/m for gradiometers. If colorbar=True, the ticks in colorbar
+    correspond to the contour levels. Defaults to 6.
+"""
+docdict['topomap_image_interp'] = """
+image_interp : str
+    The image interpolation to be used. All matplotlib options are
+    accepted.
+"""
+docdict['topomap_average'] = """
+average : float | None
+    The time window around a given time to be used for averaging (seconds).
+    For example, 0.01 would translate into window that starts 5 ms before
+    and ends 5 ms after a given time point. Defaults to None, which means
+    no averaging.
+"""
+docdict['topomap_axes'] = """
+axes : instance of Axes | list | None
+    The axes to plot to. If list, the list must be a list of Axes of the
+    same length as ``times`` (unless ``times`` is None). If instance of
+    Axes, ``times`` must be a float or a list of one float.
+    Defaults to None.
 """
 docdict['topomap_extrapolate'] = """
 extrapolate : str

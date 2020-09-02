@@ -70,7 +70,7 @@ def docformat(docstring, docdict=None, funcname=None):
     funcname = docstring.split('\n')[0] if funcname is None else funcname
     try:
         return docstring % indented
-    except (TypeError, KeyError) as exp:
+    except (TypeError, ValueError, KeyError) as exp:
         raise RuntimeError('Error documenting %s:\n%s'
                            % (funcname, str(exp)))
 

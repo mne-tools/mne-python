@@ -42,6 +42,36 @@ from ..filter import estimate_ringing_samples
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
 
 
+def _index_info_cov(info, cov, exclude):
+    if exclude == 'bads':
+        exclude = info['bads']
+    info = pick_info(info, pick_channels(info['ch_names'], cov['names'],
+                                         exclude))
+    del exclude
+    picks_list = \
+        _picks_by_type(info, meg_combined=False, ref_meg=False,
+                       exclude=())
+    picks_by_type = dict(picks_list)
+
+    ch_names = [n for n in cov.ch_names if n in info['ch_names']]
+    ch_idx = [cov.ch_names.index(n) for n in ch_names]
+
+    info_ch_names = info['ch_names']
+    idx_by_type = defaultdict(list)
+    for ch_type, sel in picks_by_type.items():
+        idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
+                                for c in sel if info_ch_names[c] in ch_names]
+    idx_names = [(idx_by_type[key],
+                  '%s covariance' % DEFAULTS['titles'][key],
+                  DEFAULTS['units'][key],
+                  DEFAULTS['scalings'][key],
+                  key)
+                 for key in _DATA_CH_TYPES_SPLIT
+                 if len(idx_by_type[key]) > 0]
+    C = cov.data[ch_idx][:, ch_idx]
+    return info, C, ch_names, idx_names
+
+
 @verbose
 def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
@@ -90,32 +120,8 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
-    if exclude == 'bads':
-        exclude = info['bads']
-    info = pick_info(info, pick_channels(info['ch_names'], cov['names'],
-                                         exclude))
-    del exclude
-    picks_list = \
-        _picks_by_type(info, meg_combined=False, ref_meg=False,
-                       exclude=())
-    picks_by_type = dict(picks_list)
-
-    ch_names = [n for n in cov.ch_names if n in info['ch_names']]
-    ch_idx = [cov.ch_names.index(n) for n in ch_names]
-
-    info_ch_names = info['ch_names']
-    idx_by_type = defaultdict(list)
-    for ch_type, sel in picks_by_type.items():
-        idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
-                                for c in sel if info_ch_names[c] in ch_names]
-    idx_names = [(idx_by_type[key],
-                  '%s covariance' % DEFAULTS['titles'][key],
-                  DEFAULTS['units'][key],
-                  DEFAULTS['scalings'][key],
-                  key)
-                 for key in _DATA_CH_TYPES_SPLIT
-                 if len(idx_by_type[key]) > 0]
-    C = cov.data[ch_idx][:, ch_idx]
+    info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
+    del cov, exclude
 
     projs = []
     if proj:
