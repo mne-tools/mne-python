@@ -1339,10 +1339,7 @@ def test_get_ch_positions():
     # all montage channels should match new channel positions
     # other channels should match original channel positions
     for ch, pos in ch_positions.items():
-        if ch in montage_ch_pos:
-            assert_array_equal(montage_ch_pos[ch], pos)
-        else:
-            assert_array_equal(orig_ch_positions[ch], pos)
+        assert_array_equal(montage_ch_pos[ch], pos)
 
     # if no montage, ch_positions should be all nans
     raw_bv.set_montage(None)
@@ -1440,6 +1437,10 @@ def test_get_montage():
     raw.set_montage(test_montage, on_missing='ignore')
     test_chs = raw.info['chs']
     assert_object_equal(orig_chs, test_chs)
+
+    # if dig is not set in the info, then montage returns None
+    raw.info['dig'] = None
+    assert raw.get_montage() is None
 
 
 def test_read_dig_hpts():
