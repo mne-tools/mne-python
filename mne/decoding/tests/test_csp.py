@@ -342,6 +342,7 @@ def test_csp_component_ordering():
 
     pytest.raises(ValueError, CSP, component_order='invalid')
 
+    # component_order='alternate' only works with two classes
     csp = CSP(component_order='alternate')
     with pytest.raises(ValueError):
         csp.fit(np.zeros((3, 0, 0)), ['a', 'b', 'c'])
@@ -354,7 +355,3 @@ def test_csp_component_ordering():
     # p_alt arranges them to [0.8, 0.06, 0.5, 0.1]
     # p_mut arranges them to [0.06, 0.1, 0.8, 0.5]
     assert_array_almost_equal(p_alt, p_mut[[2, 0, 3, 1]])
-
-    # component_order='alternate' only works with two classes
-    csp = CSP(component_order='alternate')
-    pytest.raises(ValueError, csp.fit, X=np.ones((3, 4, 16)), y=[1, 2, 3])
