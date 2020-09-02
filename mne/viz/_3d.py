@@ -2671,9 +2671,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
         x, y, z = points[v]
         nx, ny, nz = normals[v]
+        renderer.sphere(center=points[v], color='red', scale=0.1)
         renderer.quiver3d(x=x, y=y, z=z, u=nx, v=ny, w=nz,
                           color=color_converter.to_rgb(c),
-                          mode=mode, scale=scale_factor)
+                          mode=mode, scale=scale_factor,
+                          opacity=0.5)
 
         for k in ind:
             vertno = vertnos[k]
