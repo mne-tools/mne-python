@@ -185,6 +185,8 @@ Changelog
 
 - Speed up reading of annotations in EDF+ files by `Jeroen Van Der Donckt`_
 
+- Add reader for Persyst (.lay + .dat format) data in :func:`mne.io.read_raw_persyst` by `Adam Li`_
+
 Bug
 ~~~
 
@@ -378,5 +380,3 @@ API
 - The ``threshold`` argument in :meth:`mne.preprocessing.ICA.find_bads_ecg` defaults to ``None`` in version 0.21 but will change to ``'auto'`` in 0.22 by `Yu-Han Luo`_
 
 - The default argument ``meg=True`` in :func:`mne.pick_types` will change to ``meg=False`` in version 0.22 by `Clemens Brunner`_
-
-- Add reader for Persyst (.lay + .dat format) data in :func:`mne.io.read_raw_persyst` by `Adam Li`_

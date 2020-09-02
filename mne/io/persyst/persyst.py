@@ -4,6 +4,7 @@
 import os
 import os.path as op
 import time
+from collections import OrderedDict
 from datetime import datetime, timezone
 
 import numpy as np
@@ -68,18 +69,15 @@ class RawPersyst(BaseRaw):
             raise FileNotFoundError(f'The path you specified, '
                                     f'"{lay_fname}",does not exist.')
 
-        # takes ~8 min for a 1.5GB file
-        start_time = time.time()
-
         # sections and subsections currently unused
         keys, data, sections = _read_lay_contents(fname)
 
         # these are the section headers in the Persyst file layout
-        fileinfo_dict = dict()
-        channelmap_dict = dict()
-        sampletimes_dict = dict()
-        patient_dict = dict()
-        comments_dict = dict()
+        # Note: We do not make use of "SampleTimes" yet
+        fileinfo_dict = OrderedDict()
+        channelmap_dict = OrderedDict()
+        patient_dict = OrderedDict()
+        comments_dict = OrderedDict()
 
         # loop through each line in the lay file
         for key, val, section in zip(keys, data, sections):
@@ -110,9 +108,6 @@ class RawPersyst(BaseRaw):
             elif section == 'channelmap':
                 # channel map has <channel_name>=<number> for <key>=<val>
                 channelmap_dict[key] = val
-            # SampleTimes (optional)
-            elif section == 'sampletimes':
-                sampletimes_dict[key] = val
             # Patient (All optional)
             elif section == 'patient':
                 patient_dict[key] = val
@@ -185,22 +180,24 @@ class RawPersyst(BaseRaw):
             # determine the precision
             if int(datatype) == 7:
                 # 32 bit
-                dtype_bytes = _fmt_byte_dict['long']
+                dtype = np.dtype('i4')
             elif int(datatype) == 0:
                 # 16 bit
-                dtype_bytes = _fmt_byte_dict['short']
+                dtype = np.dtype('i2')
+            else:
+                raise RuntimeError(f'Unknown format: {datatype}')
 
             # allow offset to occur
             f.seek(0, os.SEEK_END)
             n_samples = f.tell()
-            n_samples = n_samples // (dtype_bytes * n_chs)
+            n_samples = n_samples // (dtype.itemsize * n_chs)
 
             if verbose:
-                print(f'Loaded {n_samples} samples '
-                      f'for {n_chs} channels.')
+                logger.debug(f'Loaded {n_samples} samples '
+                             f'for {n_chs} channels.')
 
         raw_extras = {
-            'datatype': datatype,
+            'dtype': dtype,
             'n_chs': n_chs,
             'n_samples': n_samples
         }
@@ -211,7 +208,7 @@ class RawPersyst(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # set annotations based on the comments read in
-        num_comments = len(comments_dict.keys())
+        num_comments = len(comments_dict)
         onset = np.zeros(num_comments, float)
         duration = np.zeros(num_comments, float)
         description = [''] * num_comments
@@ -225,10 +222,6 @@ class RawPersyst(BaseRaw):
         annot = Annotations(onset, duration, description)
         self.set_annotations(annot)
 
-        # elapsed time (in min)
-        elapsed = (time.time() - start_time) / 60
-        logger.info('Read in file in %s minutes.' % elapsed)
-
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
 
@@ -236,7 +229,7 @@ class RawPersyst(BaseRaw):
         binary files. In addition, it stores the calibration to convert
         data to uV in the lay file.
         """
-        datatype = self._raw_extras[fi]['datatype']
+        dtype = self._raw_extras[fi]['dtype']
         n_chs = self._raw_extras[fi]['n_chs']
         dat_fname = self._filenames[fi]
 
@@ -254,15 +247,10 @@ class RawPersyst(BaseRaw):
         # dat file
         with open(dat_fname, 'rb') as dat_file_ID:
             # allow offset to occur
-            if int(datatype) == 7:
-                precision = np.int32
-                dat_file_ID.seek(n_chs * 4 * start, 1)
-            else:
-                precision = np.int16
-                dat_file_ID.seek(n_chs * 2 * start, 1)
+            dat_file_ID.seek(n_chs * dtype.itemsize * start, 1)
 
             # read in the actual record starting at possibly offset
-            record = np.fromfile(dat_file_ID, dtype=precision,
+            record = np.fromfile(dat_file_ID, dtype=dtype,
                                  count=count)
 
         # chs * rows
