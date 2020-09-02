@@ -270,10 +270,7 @@ class ContainsMixin(object):
         # extract name, position, orientation (for MEG)
         ch_names, ch_pos = [], []
         for ch in chs:
-            if ch['kind'] == FIFF.FIFFV_MEG_CH:
-                pos = ch['loc']
-            else:
-                pos = ch['loc'][:3]
+            pos = ch['loc'][:3].copy()
             ch_pos.append(pos)
             ch_names.append(ch['ch_name'])
 
