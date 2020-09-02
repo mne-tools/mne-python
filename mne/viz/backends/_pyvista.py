@@ -471,15 +471,13 @@ class _Renderer(_BaseRenderer):
                 else:
                     assert mode == 'sphere', mode  # guaranteed above
                     glyph = vtk.vtkSphereSource()
-                if glyph_center is not None:
-                    glyph.SetCenter(glyph_center)
-                if glyph_height is not None:
-                    glyph.SetHeight(glyph_height)
-                if glyph_center is not None:
-                    glyph.SetCenter(glyph_center)
-                if glyph_resolution is not None:
-                    glyph.SetResolution(glyph_resolution)
                 if mode == 'cylinder':
+                    if glyph_height is not None:
+                        glyph.SetHeight(glyph_height)
+                    if glyph_center is not None:
+                        glyph.SetCenter(glyph_center)
+                    if glyph_resolution is not None:
+                        glyph.SetResolution(glyph_resolution)
                     # fix orientation
                     glyph.Update()
                     tr = vtk.vtkTransform()
@@ -822,6 +820,8 @@ def _set_mesh_scalars(mesh, scalars, name):
 
 
 def _update_slider_callback(slider, callback, event_type):
+    _check_option('event_type', event_type,
+                  ['start', 'end', 'always'])
 
     def _the_callback(widget, event):
         value = widget.GetRepresentation().GetValue()
@@ -833,7 +833,8 @@ def _update_slider_callback(slider, callback, event_type):
         event = vtk.vtkCommand.StartInteractionEvent
     elif event_type == 'end':
         event = vtk.vtkCommand.EndInteractionEvent
-    elif event_type == 'always':
+    else:
+        assert event_type == 'always', event_type
         event = vtk.vtkCommand.InteractionEvent
 
     slider.RemoveObserver(event)

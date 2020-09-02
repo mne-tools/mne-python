@@ -142,6 +142,8 @@ class _Renderer(_BaseRenderer):
                 from matplotlib.cm import get_cmap
                 l_m.load_lut_from_list(
                     get_cmap(colormap)(np.linspace(0, 1, 256)))
+            else:
+                assert color is not None
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface
