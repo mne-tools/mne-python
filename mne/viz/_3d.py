@@ -1781,7 +1781,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    mapdata = _process_clim(clim, colormap, transparent, stc.data,
+    use = stc.magnitude().data if vec else stc.data
+    mapdata = _process_clim(clim, colormap, transparent, use,
                             allow_pos_lims=not vec)
 
     stc_surf, stc_vol, src_vol = _triage_stc(
