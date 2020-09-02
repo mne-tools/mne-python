@@ -466,6 +466,7 @@ class _Renderer(_BaseRenderer):
                 if mode == 'cone':
                     glyph = vtk.vtkConeSource()
                     glyph.SetCenter(0.5, 0, 0)
+                    glyph.SetRadius(0.15)
                 elif mode == 'cylinder':
                     glyph = vtk.vtkCylinderSource()
                     glyph.SetRadius(0.15)
