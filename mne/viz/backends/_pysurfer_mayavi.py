@@ -242,9 +242,11 @@ class _Renderer(_BaseRenderer):
                                    resolution=resolution, scalars=scalars,
                                    opacity=opacity, figure=self.fig)
             elif mode in ('cone', 'sphere'):
-                self.mlab.quiver3d(x, y, z, u, v, w, color=color,
-                                   mode=mode, scale_factor=scale,
-                                   opacity=opacity, figure=self.fig)
+                quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
+                                          mode=mode, scale_factor=scale,
+                                          opacity=opacity, figure=self.fig)
+                if mode == 'sphere':
+                    quiv.glyph.glyph_source.glyph_source.center = 0., 0., 0.
             else:
                 assert mode == 'cylinder', mode  # should be guaranteed above
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
