@@ -313,7 +313,7 @@ Bug
 
 - Fix bug with :meth:`mne.io.Raw.plot_psd` with ``average=False`` and multiple channel types where channel locations were not shown properly by `Eric Larson`_
 
-- Fix bug with :func:`mne.viz.plot_sparse_source_estimates` when using ``'sphere'`` mode by `Eric Larson`_
+- Fix bug with :func:`mne.viz.plot_sparse_source_estimates` when using ``'sphere'`` mode by `Eric Larson`_ and `Guillaume Favelier`_
 
 - Fix bug in FieldTrip reader functions when channels are missing in the ``info`` object by `Thomas Hartmann`_
 
