@@ -2934,25 +2934,34 @@ def _temporary_vertices(src, vertices):
 
 def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     """Prepare indices and flips for extract_label_time_course."""
-    # if src is a mixed src space, the first 2 src spaces are surf type and
-    # the other ones are vol type. For mixed source space n_labels will be the
+    # If src is a mixed src space, the first 2 src spaces are surf type and
+    # the other ones are vol type. For mixed source space n_labels will be
     # given by the number of ROIs of the cortical parcellation plus the number
-    # of vol src space
+    # of vol src space.
+    # If stc=None (i.e. no activation time courses provided) and mode='mean',
+    # only computes vertex indices and label_flip will be list of None.
     from .label import label_sign_flip, Label, BiHemiLabel
 
-    # get vertices from source space, they have to be the same as in the stcs
-    vertno = stc.vertices
+    # if source estimate provided in stc, get vertices from source space and
+    # check that they are the same as in the stcs
+    if stc is not None:
+        vertno = stc.vertices
+
+        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+            n_missing = (~np.in1d(v, s['vertno'])).sum()
+            if n_missing:
+                raise ValueError('%d/%d %s hemisphere stc vertices missing '
+                                 'from the source space, likely mismatch'
+                                 % (n_missing, len(v), hemi))
+    else:
+        vertno = src['vertno']
+
     nvert = [len(vn) for vn in vertno]
 
-    # do the initialization
-    label_vertidx = list()
+    # initialization
     label_flip = list()
-    for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
-        n_missing = (~np.in1d(v, s['vertno'])).sum()
-        if n_missing:
-            raise ValueError('%d/%d %s hemisphere stc vertices missing from '
-                             'the source space, likely mismatch'
-                             % (n_missing, len(v), hemi))
+    label_vertidx = list()
+
     bad_labels = list()
     for li, label in enumerate(labels):
         if use_sparse:
