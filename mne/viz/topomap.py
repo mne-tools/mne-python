@@ -593,9 +593,7 @@ class _GridData(object):
 
         # check that border, if string, is correct
         if isinstance(border, str):
-            if border != 'mean':
-                msg = 'border must be numeric or "mean", got {!r}'
-                raise ValueError(msg.format(border))
+            _check_option('border', border, ('mean',), extra='when a string')
 
         # Adding points outside the extremes helps the interpolators
         outer_pts, mask_pts, tri = _get_extra_points(
