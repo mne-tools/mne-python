@@ -124,7 +124,7 @@ def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
         age.fetch_data(subjects=[subject], recording=[recording],
                        on_missing='warn', **params)
     paths = age.fetch_data(subjects=[subject], recording=[recording],
-                   on_missing='ignore', **params)
+                           on_missing='ignore', **params)
     assert paths == []
 
 
