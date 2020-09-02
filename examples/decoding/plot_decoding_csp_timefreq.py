@@ -51,7 +51,7 @@ clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),
 n_splits = 5  # how many folds to use for cross-validation
 cv = StratifiedKFold(n_splits=n_splits, shuffle=True)
 
-# Classification & Time-frequency parameters
+# Classification & time-frequency parameters
 tmin, tmax = -.200, 2.000
 n_cycles = 10.  # how many complete cycles: used to define window size
 min_freq = 5.
