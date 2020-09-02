@@ -62,7 +62,7 @@ class CSP(TransformerMixin, BaseEstimator):
     %(rank_None)s
 
         .. versionadded:: 0.17
-    component_order : 'mutual_info' | 'alternate' (default 'alternate')
+    component_order : 'mutual_info' | 'alternate' (default 'mutual_info')
         If ``'mutual_info'`` order components by decreasing mutual information
         (in the two-class case this uses a simplification which orders
         components by decreasing absolute deviation of the eigenvalues from 0.5
