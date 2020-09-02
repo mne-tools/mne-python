@@ -214,7 +214,8 @@ def _get_data_as_dict_from_dig(dig):
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
             # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-            dig_ch_pos_location.append(d['r'])
+            if d['ident'] != 0:  # ref channel
+                dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
     assert len(dig_coord_frames) == 1, \

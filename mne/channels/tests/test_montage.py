@@ -1327,12 +1327,16 @@ def test_get_ch_positions():
     # set a montage and new channel positions should match
     raw_bv.set_montage(montage)
     ch_positions, coord_frame = raw_bv.get_ch_positions()
+    assert list(set(coord_frame.values())) == ['head']
+    assert montage.dig[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     montage_ch_pos = montage._get_ch_pos()
+    montage_ch_pos.pop('EEG000')  # ref, not used
 
     # all montage channels should match new channel positions
     # other channels should match original channel positions
+    assert set(ch_positions) == set(montage_ch_pos)
     for ch, pos in ch_positions.items():
-        assert_array_equal(montage_ch_pos[ch], pos)
+        assert_allclose(montage_ch_pos[ch], pos, err_msg=ch)
 
     # if no montage, ch_positions should be all nans
     raw_bv.set_montage(None)
