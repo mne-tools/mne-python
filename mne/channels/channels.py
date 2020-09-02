@@ -242,8 +242,7 @@ class ContainsMixin(object):
 
         Channel positions are in meters in the specified coordinate frame
         of the montage. All channel positions are a 3-dimensional vector
-        corresponding to xyz positions in meters. For MEG channels, they
-        also add the vectorized orientation.
+        corresponding to xyz positions in meters.
 
         For more information on the different channel type
         positions obtained, see :class:`mne.Info` documentation.
@@ -255,33 +254,55 @@ class ContainsMixin(object):
 
         Returns
         -------
-        ch_positions : dict
+        ch_positions : dict | None
             A dictionary with keys as the ch_names and values as
              corresponding list of xyz coordinates in the montage
-             coordinate frame.
-        ch_frame_dict : dict
+             coordinate frame. If there are no channel coordinates,
+             then returns a dictionary of nans.
+        ch_frames : dict
             A dictionary with keys as the ch_names and values as
-             corresponding montage coordinate frame.
+             corresponding montage coordinate frame. If there are
+             no channel frames, then returns a dictionary of nans.
         """
         # only get channels that were picked
         picks = _picks_to_idx(self.info, picks)
-        chs = [self.info['chs'][ipick] for ipick in picks]
+        chs = [self.info['ch_names'][ipick] for ipick in picks]
 
-        # extract name, position, orientation (for MEG)
-        ch_names, ch_pos = [], []
-        for ch in chs:
-            pos = ch['loc'][:3].copy()
-            ch_pos.append(pos)
-            ch_names.append(ch['ch_name'])
+        # use the montage to get the channels
+        montage = self.get_montage()
+        if montage is None:
+            nan_coords = {ch: np.nan for ch in chs}
+            return nan_coords, nan_coords
+        montage = montage.copy()
 
-        # extract landmark coords and coordinate frame
-        ch_coord_frame = [_frame_to_str[ch['coord_frame']] for ch in chs]
+        # get the channel positions from montage
+        ch_pos_dict = montage._get_ch_pos().copy()
+        # get the channel frames from montage
+        ch_frame_dict = dict()
+        for ch_name, dig in zip(montage.ch_names, montage.dig):
+            ch_frame_dict[ch_name] = _frame_to_str[dig['coord_frame']]
 
-        # construct channel position dictionary and coord frame
-        ch_pos_dict = dict(zip(ch_names, ch_pos))
-        ch_frame_dict = dict(zip(ch_names, ch_coord_frame))
+        # only get the picks
+        ch_positions = {ch: pos for ch, pos in ch_pos_dict.items()
+                       if ch in chs}
+        ch_coord_frames = {ch: frame for ch, frame in
+                           ch_frame_dict.items() if ch in chs}
 
-        return ch_pos_dict, ch_frame_dict
+        # extract name, and position
+        # ch_names, ch_pos = [], []
+        # for ch in chs:
+        #     pos = ch['loc'][:3].copy()
+        #     ch_pos.append(pos)
+        #     ch_names.append(ch['ch_name'])
+        #
+        # # extract landmark coords and coordinate frame
+        # ch_coord_frame = [_frame_to_str[ch['coord_frame']] for ch in chs]
+        #
+        # # construct channel position dictionary and coord frame
+        # ch_pos_dict = dict(zip(ch_names, ch_pos))
+        # ch_frame_dict = dict(zip(ch_names, ch_coord_frame))
+
+        return ch_positions, ch_coord_frames
 
     @fill_doc
     def get_montage(self):
@@ -297,7 +318,8 @@ class ContainsMixin(object):
 
         # extract landmark coords and coordinate frame
         landmark_coords, coord_frame_int = _get_fid_coords(self.info['dig'])
-        coord_frame = _frame_to_str[coord_frame_int]
+        # try to extract the coordinate frame if avail., else default to unknown
+        coord_frame = _frame_to_str.get(coord_frame_int, 'unknown')
 
         # create montage and return it
         montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])

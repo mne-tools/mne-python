@@ -1324,9 +1324,6 @@ def test_get_ch_positions():
     for ch in raw_bv.info['chs']:
         ch['kind'] = FIFF.FIFFV_EEG_CH
 
-    # original channel positions
-    orig_ch_positions, orig_coord_frame = raw_bv.get_ch_positions()
-
     # set a montage and new channel positions should match
     raw_bv.set_montage(montage)
     ch_positions, coord_frame = raw_bv.get_ch_positions()
@@ -1348,9 +1345,6 @@ def test_get_ch_positions():
     # set the montage; note renaming to make standard montage map
     raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
 
-    # original channel positions
-    orig_ch_positions, orig_coord_frame = raw.get_ch_positions()
-
     # create a montage for just EEG channels
     ch_inds = pick_types(raw.info, eeg=True, meg=False)
     ch_names = [raw.ch_names[ind] for ind in ch_inds]
@@ -1368,8 +1362,6 @@ def test_get_ch_positions():
     for ch, pos in ch_positions.items():
         if ch in montage_ch_pos:
             assert_array_equal(montage_ch_pos[ch], pos)
-        else:
-            assert_array_equal(orig_ch_positions[ch], pos)
 
     # if no montage, ch_positions should be all nans
     raw.set_montage(None)
