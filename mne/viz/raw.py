@@ -113,6 +113,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                  butterfly=False, decim='auto', noise_cov=None, event_id=None,
                  show_scrollbars=True, show_scalebars=True, verbose=None):
     """."""
+    # TODO allow passing in figure instance? (Kivy compatibility)
     from matplotlib.patches import Rectangle
     from ..io.base import BaseRaw
     from . import browse_figure
@@ -328,6 +329,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # make shells for plotting traces
     fig._update_trace_offsets()
     n_traces = len(ch_names) if butterfly else n_channels
+    # TODO replace with empty LineCollection? Or a call to _draw_traces() ?
     fig.mne.traces = fig.mne.ax_main.plot(np.full((1, n_traces), np.nan),
                                           antialiased=True, linewidth=0.5)
     fig.mne.ax_main.set_xlim(fig.mne.t_start,

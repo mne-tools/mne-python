@@ -396,7 +396,8 @@ class MNEBrowseFigure(MNEFigure):
             return
         from matplotlib.patheffects import Stroke, Normal
         for coll in self.mne.ax_main.collections:
-            if coll.contains(event)[0] and coll != self.mne.event_lines:
+            if coll.contains(event)[0] and coll != self.mne.event_lines and \
+                    coll != self.mne.traces:
                 path = coll.get_paths()
                 assert len(path) == 1
                 path = path[0]
@@ -956,10 +957,10 @@ class MNEBrowseFigure(MNEFigure):
 
     def _clear_annotations(self):
         """Clear all annotations from the figure."""
-        # TODO merge into _draw_annotations
         for ax in (self.mne.ax_main, self.mne.ax_hscroll):
-            while len(ax.collections):
-                ax.collections.pop()
+            for coll in ax.collections:
+                if coll != self.mne.event_lines:
+                    ax.collections.remove(coll)
         while len(self.mne.annotation_texts):
             text = self.mne.annotation_texts.pop()
             self.mne.ax_main.texts.remove(text)
@@ -1328,15 +1329,6 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.scalebars_visible:
             self._hide_scalebars()
         else:
-            # TODO I think this has become unnecessary
-            #if self.mne.butterfly:
-            #    n_channels = len(self.mne.trace_offsets)
-            #    ch_start = 0
-            #else:
-            #    n_channels = self.mne.n_channels
-            #    ch_start = self.mne.ch_start
-            #ch_indices = self.mne.ch_order[ch_start:(ch_start + n_channels)]
-            #self._show_scalebars(ch_indices)
             self._update_picks()
             self._show_scalebars()
         # toggle
@@ -1469,11 +1461,12 @@ class MNEBrowseFigure(MNEFigure):
 
     def _draw_traces(self):
         """Draw (or redraw) the channel data."""
-        from matplotlib.patches import Rectangle
         from matplotlib import rcParams
+        from matplotlib.patches import Rectangle
         # convenience
         butterfly = self.mne.butterfly
         offsets = self.mne.trace_offsets
+        bads = self.mne.info['bads']
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
@@ -1482,7 +1475,6 @@ class MNEBrowseFigure(MNEFigure):
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
         # colors
-        bads = self.mne.info['bads']
         def_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
         ch_colors = [self.mne.ch_color_bad if _name in bads else def_color
                      for _name, def_color in zip(ch_names, def_colors)]
