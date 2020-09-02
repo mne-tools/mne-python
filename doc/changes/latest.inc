@@ -177,6 +177,8 @@ Changelog
 
 - `~mne.Report.parse_folder` now accepts a path-like folder name (it used to work with strings only) by `Alex Gramfort`_
 
+- Add ``component_order`` parameter to :class:`mne.decoding.CSP` which allows switching between ``mutual_info`` (default) and ``alternate`` (a simpler and frequently used option) by `Martin Billinger`_ and `Clemens Brunner`_
+
 Bug
 ~~~
 
