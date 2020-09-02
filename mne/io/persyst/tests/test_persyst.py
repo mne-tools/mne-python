@@ -2,6 +2,7 @@
 # Authors: Adam Li  <adam2392@gmail.com>
 #          simplified BSD-3 license
 
+import os
 import os.path as op
 import shutil
 
@@ -102,6 +103,41 @@ def test_persyst_wrong_file():
 def test_persyst_standard():
     """Test standard operations."""
     _test_raw_reader(read_raw_persyst, fname=fname_lay)
+
+
+@requires_testing_data
+def test_persyst_errors():
+    """Test reading Persyst files when passed in wrong file path."""
+    out_dir = mne.utils._TempDir()
+    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
+    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    shutil.copy(fname_dat, new_fname_dat)
+
+    # reformat the lay file
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if idx == 1:
+                    line = line.replace('=', ',')
+                fout.write(line)
+    # file should break
+    with pytest.raises(RuntimeError, match='The line'):
+        read_raw_persyst(new_fname_lay)
+
+    # reformat the lay file
+    os.remove(new_fname_lay)
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if line.startswith('WaveformCount'):
+                    line = 'WaveformCount=1\n'
+                fout.write(line)
+    # file should break
+    with pytest.raises(RuntimeError, match='Channels in lay '
+                                           'file do not'):
+        read_raw_persyst(new_fname_lay)
 
 
 run_tests_if_main()

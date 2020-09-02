@@ -41,10 +41,6 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     return RawPersyst(fname, preload, verbose)
 
 
-def _open(fname):
-    return open(fname, 'r', encoding='latin-1')
-
-
 @fill_doc
 class RawPersyst(BaseRaw):
     """Raw object from a Persyst file.
@@ -76,7 +72,7 @@ class RawPersyst(BaseRaw):
         start_time = time.time()
 
         # sections and subsections currently unused
-        keys, data, sections, subsections = _read_lay_contents(fname)
+        keys, data, sections = _read_lay_contents(fname)
 
         # these are the section headers in the Persyst file layout
         fileinfo_dict = dict()
@@ -86,8 +82,7 @@ class RawPersyst(BaseRaw):
         comments_dict = dict()
 
         # loop through each line in the lay file
-        for key, val, section, subsection in \
-                zip(keys, data, sections, subsections):
+        for key, val, section in zip(keys, data, sections):
             if key == '':
                 continue
 
@@ -139,6 +134,10 @@ class RawPersyst(BaseRaw):
         # set measurement date
         testdate = patient_dict.get('testdate')
         if testdate is not None:
+            # TODO: Persyst may change its internal date schemas
+            #  without notice
+            # These are the 3 "so far" possible datatime storage
+            # formats in Persyst .lay
             if '/' in testdate:
                 time.strptime()
                 testdate = datetime.strptime(testdate, '%m/%d/%Y')
@@ -147,8 +146,6 @@ class RawPersyst(BaseRaw):
             elif '.' in testdate:
                 testdate = datetime.strptime(testdate, '%Y.%m.%d')
 
-            # TODO: Persyst may change its internal date schemas
-            #  without notice
             if not isinstance(testdate, datetime):
                 warn('Cannot read in the measurement date due '
                      'to incompatible format. Please set manually '
@@ -327,13 +324,12 @@ def _get_subjectinfo(patient_dict):
 
 def _read_lay_contents(fname):
     """Lay file are laid out like a INI file."""
-    # keep track of sections, subsections, keys and data
+    # keep track of sections, keys and data
     sections = []
-    subsections = []
     keys, data = [], []
 
-    # initialize all section/subsections to empty str
-    section, subsection = '', ''
+    # initialize all section to empty str
+    section = ''
     with open(fname, 'r') as fin:
         for line in fin:
             # break a line into a status, key and value
@@ -344,17 +340,14 @@ def _read_lay_contents(fname):
             if status == 1:  # Section was found
                 section = val.lower()
                 continue
-            elif status == 2:  # Subsection was found
-                subsection = val.lower()
-                continue
 
             # keep track of all sections, subsections,
             # keys and the data of the file
             sections.append(section)
-            subsections.append(subsection)
             data.append(val)
             keys.append(key)
-    return keys, data, sections, subsections
+
+    return keys, data, sections
 
 
 def _process_lay_line(line, section):
@@ -367,6 +360,8 @@ def _process_lay_line(line, section):
     ----------
     line : str
         The actual line in the Lay file.
+    section : str
+        The section in the Lay file.
 
     Returns
     -------
@@ -375,9 +370,7 @@ def _process_lay_line(line, section):
         -1  => unknown string found
         0   => empty line found
         1   => section found
-        2   => subsection found
-        3   => key-value pair found
-        4   => comment line found (starting with ;)
+        2   => key-value pair found
     key : str
         The string before the ``'='`` character. If section is "Comments",
         then returns the text comment description.
@@ -395,19 +388,10 @@ def _process_lay_line(line, section):
         key = ''
         value = ''
         return status, key, value
-    # comment found
-    elif line[0] == ';':
-        status = 4
-        value = line[1:end_idx + 1]
     # section found
     elif (line[0] == '[') and (line[end_idx] == ']') \
             and (end_idx + 1 >= 3):
         status = 1
-        value = line[1:end_idx].lower()
-    # subsection found
-    elif (line[0] == '{') and (line[end_idx] == '}') \
-            and (end_idx + 1 >= 3):
-        status = 2
         value = line[1:end_idx].lower()
     # key found
     else:
@@ -417,7 +401,7 @@ def _process_lay_line(line, section):
         if section == 'comments':
             # Persyst Comments output 5 variables "," separated
             time_sec, duration, state, var_type, text = line.split(',')
-            status = 3
+            status = 2
             key = text
             value = (time_sec, duration)
         # all other sections
@@ -427,17 +411,12 @@ def _process_lay_line(line, section):
                                    'to the standards. Please check the '
                                    '.lay file.' % line)  # noqa
             pos = line.index('=')
-            status = 3
+            status = 2
 
             # the line now is composed of a
             # <key>=<value>
             key = line[0:pos].lower()
             key.strip()
-            if not key:
-                status = -1
-                key = ''
-                value = ''
-            else:
-                value = line[pos + 1:end_idx + 1].lower()
-                value.strip()
+            value = line[pos + 1:end_idx + 1].lower()
+            value.strip()
     return status, key, value
