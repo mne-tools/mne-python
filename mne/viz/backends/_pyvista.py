@@ -245,15 +245,14 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.figure
 
-    def update_lighting(self):
-        def _to_pos(elevation, azimuth):
-            theta = azimuth * np.pi / 180.0
-            phi = (90.0 - elevation) * np.pi / 180.0
-            x = np.sin(theta) * np.sin(phi)
-            y = np.cos(phi)
-            z = np.cos(theta) * np.sin(phi)
-            return x, y, z
+    def _orient_lights(self):
+        lights = list(self.plotter.renderer.GetLights())
+        lights.pop(0)  # unused headlight
+        lights[0].SetPosition(_to_pos(45.0, -45.0))
+        lights[1].SetPosition(_to_pos(-30.0, 60.0))
+        lights[2].SetPosition(_to_pos(-30.0, -60.0))
 
+    def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
         lights = list(self.plotter.renderer.GetLights())
         headlight = lights.pop(0)
@@ -676,6 +675,15 @@ def _deg2rad(deg):
 
 def _rad2deg(rad):
     return rad * 180. / np.pi
+
+
+def _to_pos(elevation, azimuth):
+    theta = azimuth * np.pi / 180.0
+    phi = (90.0 - elevation) * np.pi / 180.0
+    x = np.sin(theta) * np.sin(phi)
+    y = np.cos(phi)
+    z = np.cos(theta) * np.sin(phi)
+    return x, y, z
 
 
 def _mat_to_array(vtk_mat):
