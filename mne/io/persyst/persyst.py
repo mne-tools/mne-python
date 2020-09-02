@@ -98,7 +98,7 @@ class RawPersyst(BaseRaw):
             # FileInfo
             if section == 'fileinfo':
                 # extract the .dat file name
-                if key.lower() == 'file':
+                if key == 'file':
                     dat_fname = val
                     dat_path = op.dirname(dat_fname)
                     dat_fpath = op.join(curr_path, op.basename(dat_fname))
@@ -207,7 +207,6 @@ class RawPersyst(BaseRaw):
             'n_chs': n_chs,
             'n_samples': n_samples
         }
-
         # create Raw object
         super(RawPersyst, self).__init__(
             info, preload, filenames=[dat_fpath],
@@ -226,8 +225,8 @@ class RawPersyst(BaseRaw):
             onset[t_idx] = _onset
             duration[t_idx] = _duration
             description[t_idx] = _description
-            annot = Annotations(onset, duration, description)
-            self.set_annotations(annot)
+        annot = Annotations(onset, duration, description)
+        self.set_annotations(annot)
 
         # elapsed time (in min)
         elapsed = (time.time() - start_time) / 60
@@ -272,26 +271,27 @@ class RawPersyst(BaseRaw):
         # chs * rows
         record = np.reshape(record, (n_chs, -1), 'F')
         # calibrate to convert to uV
-        record = record * cals
+        data[...] = record[idx, ...] * cals
         # cast as float32; more than enough precision
         # then multiply to get V
-        record = record.astype(np.float32) / 10. ** 6
-
-        # assign now over to data
-        data[idx, ...] = record[idx, ...]
+        data = data.astype(np.float32) / 10. ** 6
 
 
 def _get_subjectinfo(patient_dict):
+    # attempt to parse out the birthdate, but if it doesn't
+    # meet spec, then it will set to None
     birthdate = patient_dict.get('birthdate')
     if '/' in birthdate:
         try:
             birthdate = datetime.strptime(birthdate, '%m/%d/%y')
         except ValueError:
+            birthdate = None
             print('Unable to process birthdate of %s ' % birthdate)
     elif '-' in birthdate:
         try:
             birthdate = datetime.strptime(birthdate, '%d-%m-%y')
         except ValueError:
+            birthdate = None
             print('Unable to process birthdate of %s ' % birthdate)
 
     subject_info = {

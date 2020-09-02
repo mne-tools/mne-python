@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal
 import mne
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 
 fname_lay = op.join(
@@ -96,6 +97,11 @@ def test_persyst_wrong_file():
     # once you copy over the .dat file things should work
     shutil.copy(fname_dat, new_fname_dat)
     read_raw_persyst(new_fname_lay, preload=True)
+
+
+def test_persyst_standard():
+    """Test standard operations."""
+    _test_raw_reader(read_raw_persyst, fname=fname_lay)
 
 
 run_tests_if_main()
