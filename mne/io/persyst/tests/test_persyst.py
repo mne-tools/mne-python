@@ -77,7 +77,7 @@ def test_persyst_raw():
 
 
 @requires_testing_data
-def test_persyst_wrong_file():
+def test_persyst_wrong_file(tmpdir):
     """Test reading Persyst files when passed in wrong file path."""
     with pytest.raises(FileNotFoundError, match='The path you'):
         read_raw_persyst(fname_dat, preload=True)
