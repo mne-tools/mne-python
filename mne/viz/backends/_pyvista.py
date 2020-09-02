@@ -202,6 +202,8 @@ class _Renderer(_BaseRenderer):
             if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
+        self.update_lighting()
+
     @contextmanager
     def ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
@@ -242,6 +244,35 @@ class _Renderer(_BaseRenderer):
 
     def scene(self):
         return self.figure
+
+    def _orient_lights(self):
+        lights = list(self.plotter.renderer.GetLights())
+        lights.pop(0)  # unused headlight
+        lights[0].SetPosition(_to_pos(45.0, -45.0))
+        lights[1].SetPosition(_to_pos(-30.0, 60.0))
+        lights[2].SetPosition(_to_pos(-30.0, -60.0))
+
+    def update_lighting(self):
+        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
+        lights = list(self.plotter.renderer.GetLights())
+        headlight = lights.pop(0)
+        headlight.SetSwitch(False)
+        for i in range(len(lights)):
+            if i < 3:
+                lights[i].SetSwitch(True)
+                lights[i].SetIntensity(1.0)
+                lights[i].SetColor(1.0, 1.0, 1.0)
+            else:
+                lights[i].SetSwitch(False)
+                lights[i].SetPosition(_to_pos(0.0, 0.0))
+                lights[i].SetIntensity(1.0)
+                lights[i].SetColor(1.0, 1.0, 1.0)
+
+        lights[0].SetPosition(_to_pos(45.0, 45.0))
+        lights[1].SetPosition(_to_pos(-30.0, -60.0))
+        lights[1].SetIntensity(0.6)
+        lights[2].SetPosition(_to_pos(-30.0, 60.0))
+        lights[2].SetIntensity(0.5)
 
     def set_interaction(self, interaction):
         if interaction == "rubber_band_2d":
@@ -644,6 +675,15 @@ def _deg2rad(deg):
 
 def _rad2deg(rad):
     return rad * 180. / np.pi
+
+
+def _to_pos(elevation, azimuth):
+    theta = azimuth * np.pi / 180.0
+    phi = (90.0 - elevation) * np.pi / 180.0
+    x = np.sin(theta) * np.sin(phi)
+    y = np.cos(phi)
+    z = np.cos(theta) * np.sin(phi)
+    return x, y, z
 
 
 def _mat_to_array(vtk_mat):

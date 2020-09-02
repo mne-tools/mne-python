@@ -301,6 +301,9 @@ class _Brain(object):
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
 
+        if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
+            self._renderer._orient_lights()
+
     @property
     def interaction(self):
         """The interaction style."""
