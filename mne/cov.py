@@ -13,6 +13,7 @@ import os
 import numpy as np
 from scipy import linalg, sparse
 
+from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
@@ -32,11 +33,12 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
+from .evoked import EvokedArray
 from .rank import compute_rank
 from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
-                    _check_option, eigh)
+                    _check_option, eigh, fill_doc)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -63,6 +65,7 @@ def _get_tslice(epochs, tmin, tmax):
     return tslice
 
 
+@fill_doc
 class Covariance(dict):
     """Noise covariance matrix.
 
@@ -90,6 +93,7 @@ class Covariance(dict):
         The method used to compute the covariance.
     loglik : float
         The log likelihood.
+    %(verbose_meth)s
 
     Attributes
     ----------
@@ -111,7 +115,7 @@ class Covariance(dict):
     """
 
     def __init__(self, data, names, bads, projs, nfree, eig=None, eigvec=None,
-                 method=None, loglik=None):
+                 method=None, loglik=None, verbose=None):
         """Init of covariance."""
         diag = (data.ndim == 1)
         projs = _check_projs(projs)
@@ -122,6 +126,7 @@ class Covariance(dict):
             self['method'] = method
         if loglik is not None:
             self['loglik'] = loglik
+        self.verbose = verbose
 
     @property
     def data(self):
@@ -241,6 +246,85 @@ class Covariance(dict):
              show=True, verbose=None):
         return viz.misc.plot_cov(self, info, exclude, colorbar, proj, show_svd,
                                  show, verbose)
+
+    @verbose
+    def plot_topomap(self, info, ch_type=None, vmin=None,
+                     vmax=None, cmap=None, sensors=True, colorbar=True,
+                     scalings=None, units=None, res=64,
+                     size=1, cbar_fmt="%3.1f",
+                     proj=False, show=True, show_names=False, title=None,
+                     mask=None, mask_params=None, outlines='head',
+                     contours=6, image_interp='bilinear',
+                     axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
+                     border=_BORDER_DEFAULT,
+                     noise_cov=None, verbose=None):
+        """Plot a topomap of the covariance diagonal.
+
+        Parameters
+        ----------
+        info : instance of Info
+            The measurement information.
+        %(topomap_ch_type)s
+        %(topomap_vmin_vmax)s
+        %(topomap_cmap)s
+        %(topomap_sensors)s
+        %(topomap_colorbar)s
+        %(topomap_scalings)s
+        %(topomap_units)s
+        %(topomap_res)s
+        %(topomap_size)s
+        %(topomap_cbar_fmt)s
+        %(plot_proj)s
+        %(show)s
+        %(topomap_show_names)s
+        %(title_None)s
+        %(topomap_mask)s
+        %(topomap_mask_params)s
+        %(topomap_outlines)s
+        %(topomap_contours)s
+        %(topomap_image_interp)s
+        %(topomap_axes)s
+        %(topomap_extrapolate)s
+        %(topomap_sphere_auto)s
+        %(topomap_border)s
+        noise_cov : instance of Covariance | None
+            If not None, whiten the instance with ``noise_cov`` before
+            plotting.
+        %(verbose)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            The matplotlib figure.
+
+        Notes
+        -----
+        .. versionadded:: 0.21
+        """
+        from .viz.misc import _index_info_cov
+        info, C, _, _ = _index_info_cov(info, self, exclude=())
+        evoked = EvokedArray(np.diag(C)[:, np.newaxis], info)
+        if noise_cov is not None:
+            # need to left and right multiply whitener, which for the diagonal
+            # entries is the same as multiplying twice
+            evoked = whiten_evoked(whiten_evoked(evoked, noise_cov), noise_cov)
+            if units is None:
+                units = 'AU'
+            if scalings is None:
+                scalings = 1.
+        if units is None:
+            units = {k: f'({v})²' for k, v in DEFAULTS['units'].items()}
+        if scalings is None:
+            scalings = {k: v * v for k, v in DEFAULTS['scalings'].items()}
+        return evoked.plot_topomap(
+            times=[0], ch_type=ch_type, vmin=vmin, vmax=vmax, cmap=cmap,
+            sensors=sensors, colorbar=colorbar, scalings=scalings,
+            units=units, res=res, size=size, cbar_fmt=cbar_fmt,
+            proj=proj, show=show, show_names=show_names, title=title,
+            mask=mask, mask_params=mask_params, outlines=outlines,
+            contours=contours, image_interp=image_interp, axes=axes,
+            extrapolate=extrapolate, sphere=sphere, border=border,
+            time_format='')
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this covariance matrix.
