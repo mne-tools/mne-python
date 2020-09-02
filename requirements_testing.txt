@@ -1,6 +1,5 @@
 pytest!=4.6.0
 pytest-cov
-pytest-mock
 pytest-timeout
 flake8
 flake8-array-spacing
