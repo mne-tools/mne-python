@@ -49,7 +49,7 @@ raw.load_data()
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),
                     LinearDiscriminantAnalysis())
 n_splits = 5  # how many folds to use for cross-validation
-cv = StratifiedKFold(n_splits=n_splits, shuffle=True)
+cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
 
 # Classification & time-frequency parameters
 tmin, tmax = -.200, 2.000
