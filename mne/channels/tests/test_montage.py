@@ -15,8 +15,10 @@ from string import ascii_lowercase
 
 from numpy.testing import (assert_array_equal,
                            assert_allclose, assert_equal)
+import matplotlib.pyplot as plt
 
 from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
+from mne.fixes import nullcontext
 from mne.utils._testing import _dig_sort_key
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
@@ -27,7 +29,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_polhemus_fastscan,
                           read_dig_hpts)
 from mne.channels.montage import transform_to_head, _check_get_coord_frame
-from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
+from mne.utils import run_tests_if_main, assert_dig_allclose
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
@@ -144,12 +146,13 @@ def test_documented():
     assert_equal(set(montages), set(kinds))
 
 
-@pytest.mark.parametrize('reader, file_content, expected_dig, ext', [
+@pytest.mark.parametrize('reader, file_content, expected_dig, ext, warning', [
     pytest.param(
         partial(read_custom_montage, head_size=None),
         ('FidNz 0       9.071585155     -2.359754454\n'
          'FidT9 -6.711765       0.040402876     -3.251600355\n'
          'very_very_very_long_name -5.831241498 -4.494821698  4.955347697\n'
+         'Cz 0       0       1\n'
          'Cz 0       0       8.899186843'),
         make_dig_montage(
             ch_pos={
@@ -160,7 +163,32 @@ def test_documented():
             lpa=[-6.711765, 0.04040287, -3.2516003],
             rpa=None,
         ),
-        'sfp', id='sfp'),
+        'sfp',
+        (RuntimeWarning, r'Duplicate.*last will be used for Cz \(2\)'),
+        id='sfp_duplicate'),
+
+    pytest.param(
+        partial(read_custom_montage, head_size=None),
+        ('FidNz 0       9.071585155     -2.359754454\n'
+         'FidT9 -6.711765       0.040402876     -3.251600355\n'
+         'headshape 1 2 3\n'
+         'headshape 4 5 6\n'
+         'Cz 0       0       8.899186843'),
+        make_dig_montage(
+            hsp=[
+                [1, 2, 3],
+                [4, 5, 6],
+            ],
+            ch_pos={
+                'Cz': [0., 0., 8.899187],
+            },
+            nasion=[0., 9.071585, -2.3597546],
+            lpa=[-6.711765, 0.04040287, -3.2516003],
+            rpa=None,
+        ),
+        'sfp',
+        None,
+        id='sfp_headshape'),
 
     pytest.param(
         partial(read_custom_montage, head_size=1),
@@ -177,7 +205,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None, coord_frame='head',
         ),
-        'loc', id='EEGLAB'),
+        'loc',
+        None,
+        id='EEGLAB'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None, coord_frame='mri'),
@@ -196,7 +226,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None, coord_frame='mri',
         ),
-        'csd', id='matlab'),
+        'csd',
+        None,
+        id='matlab'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
@@ -216,7 +248,9 @@ def test_documented():
             lpa=[-0.0860761, -0.0199897, -0.047986],
             rpa=[0.0857939, -0.0200093, -0.048031],
         ),
-        'elc', id='ASA electrode'),
+        'elc',
+        None,
+        id='ASA electrode'),
 
     pytest.param(
         partial(read_custom_montage, head_size=1),
@@ -234,7 +268,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None,
         ),
-        'txt', id='generic theta-phi (txt)'),
+        'txt',
+        None,
+        id='generic theta-phi (txt)'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
@@ -257,7 +293,9 @@ def test_documented():
             lpa=[-7.35898963e-01, 9.01216309e-17, -4.25385374e-01],
             rpa=[0.73589896, 0., -0.42538537],
         ),
-        'elp', id='BESA spherical model'),
+        'elp',
+        None,
+        id='BESA spherical model'),
 
     pytest.param(
         partial(read_dig_hpts, unit='m'),
@@ -272,7 +310,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None,
         ),
-        'hpts', id='legacy mne-c'),
+        'hpts',
+        None,
+        id='legacy mne-c'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
@@ -317,23 +357,31 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None,
         ),
-        'bvef', id='brainvision'),
+        'bvef',
+        None,
+        id='brainvision'),
 ])
 def test_montage_readers(
-    reader, file_content, expected_dig, ext, tmpdir
+    reader, file_content, expected_dig, ext, warning, tmpdir
 ):
     """Test that we have an equivalent of read_montage for all file formats."""
     fname = op.join(str(tmpdir), 'test.{ext}'.format(ext=ext))
     with open(fname, 'w') as fid:
         fid.write(file_content)
 
-    dig_montage = reader(fname)
+    if warning is None:
+        ctx = nullcontext()
+    else:
+        ctx = pytest.warns(warning[0], match=warning[1])
+    with ctx:
+        dig_montage = reader(fname)
     assert isinstance(dig_montage, DigMontage)
 
     actual_ch_pos = dig_montage._get_ch_pos()
     expected_ch_pos = expected_dig._get_ch_pos()
     for kk in actual_ch_pos:
         assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
+    assert len(dig_montage.dig) == len(expected_dig.dig)
     for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
         assert d1['coord_frame'] == d2['coord_frame']
         for key in ('coord_frame', 'ident', 'kind'):
@@ -357,17 +405,18 @@ def test_read_locs():
     )
 
 
-def test_read_dig_dat():
+def test_read_dig_dat(tmpdir):
     """Test reading *.dat electrode locations."""
     rows = [
         ['Nasion', 78, 0.00, 1.00, 0.00],
         ['Left', 76, -1.00, 0.00, 0.00],
         ['Right', 82, 1.00, -0.00, 0.00],
         ['O2', 69, -0.50, -0.90, 0.05],
+        ['O2', 68, 0.00, 0.01, 0.02],
         ['Centroid', 67, 0.00, 0.00, 0.00],
     ]
     # write mock test.dat file
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     fname_temp = op.join(temp_dir, 'test.dat')
     with open(fname_temp, 'w') as fid:
         for row in rows:
@@ -379,6 +428,7 @@ def test_read_dig_dat():
         78: FIFF.FIFFV_POINT_NASION,
         76: FIFF.FIFFV_POINT_LPA,
         82: FIFF.FIFFV_POINT_RPA,
+        68: 1,
         69: 1,
     }
     kinds = {
@@ -386,12 +436,15 @@ def test_read_dig_dat():
         76: FIFF.FIFFV_POINT_CARDINAL,
         82: FIFF.FIFFV_POINT_CARDINAL,
         69: FIFF.FIFFV_POINT_EEG,
+        68: FIFF.FIFFV_POINT_EEG,
     }
     target = {row[0]: {'r': row[2:], 'ident': idents[row[1]],
                        'kind': kinds[row[1]], 'coord_frame': 0}
               for row in rows[:-1]}
+    assert_allclose(target['O2']['r'], [0, 0.01, 0.02])
     # read it
-    dig = read_dig_dat(fname_temp)
+    with pytest.warns(RuntimeWarning, match=r'Duplic.*for O2 \(2\)'):
+        dig = read_dig_dat(fname_temp)
     assert set(dig.ch_names) == {'O2'}
     keys = chain(['Left', 'Nasion', 'Right'], dig.ch_names)
     target = [target[k] for k in keys]
@@ -724,12 +777,12 @@ def test_set_dig_montage():
 
 
 @testing.requires_testing_data
-def test_fif_dig_montage():
+def test_fif_dig_montage(tmpdir):
     """Test FIF dig montage support."""
     dig_montage = read_dig_fif(fif_dig_montage_fname)
 
     # test round-trip IO
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     fname_temp = op.join(temp_dir, 'test.fif')
     _check_roundtrip(dig_montage, fname_temp)
 
@@ -785,7 +838,7 @@ def test_fif_dig_montage():
 
 
 @testing.requires_testing_data
-def test_egi_dig_montage():
+def test_egi_dig_montage(tmpdir):
     """Test EGI MFF XML dig montage support."""
     dig_montage = read_dig_egi(egi_dig_montage_fname)
     fid, coord = _get_fid_coords(dig_montage.dig)
@@ -823,7 +876,7 @@ def test_egi_dig_montage():
     )
 
     # test round-trip IO
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     fname_temp = op.join(temp_dir, 'egi_test.fif')
     _check_roundtrip(dig_montage_in_head, fname_temp)  # XXX: write forces head
 
@@ -1139,8 +1192,11 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
     info = create_info(ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg')
-    with pytest.raises(ValueError, match=_MSG):
+    with pytest.raises(ValueError, match=_MSG) as exc:
         info.set_montage(montage)
+    # plus suggestions
+    assert exc.match('set_channel_types')
+    assert exc.match('on_missing')
 
 
 def test_heterogeneous_ch_type():
@@ -1262,6 +1318,15 @@ def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
     EXPECTED_NUM = 24
     assert len(get_builtin_montages()) == EXPECTED_NUM
+
+
+@testing.requires_testing_data
+def test_plot_montage():
+    """Test plotting montage."""
+    # gh-8025
+    montage = read_dig_captrak(bvct_dig_montage_fname)
+    montage.plot()
+    plt.close('all')
 
 
 run_tests_if_main()

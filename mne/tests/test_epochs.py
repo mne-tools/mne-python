@@ -2420,7 +2420,7 @@ def test_concatenate_epochs():
     assert_equal(epochs_conc.drop_log, epochs.drop_log * 2)
 
     epochs2 = epochs.copy().load_data()
-    with pytest.raises(ValueError, match='nchan.*must match'):
+    with pytest.raises(ValueError, match=r"epochs\[1\].info\['nchan'\] must"):
         concatenate_epochs(
             [epochs, epochs2.copy().drop_channels(epochs2.ch_names[:1])])
 

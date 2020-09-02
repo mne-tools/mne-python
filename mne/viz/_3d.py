@@ -3120,19 +3120,25 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color=highlight_color)
-    ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, color=highlight_color,
-              pivot='tail')
+    q_kwargs = dict(length=50, color=highlight_color, pivot='tail')
+    ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1], ori[2],
+              **q_kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set(xlim=-dims, ylim=-dims, zlim=dims)
 
-    # Plot slices.
+    # Plot slices
     ax.contourf(xslice, gridx, gridy, offset=offset, zdir='x',
                 cmap='gray', zorder=0, alpha=.5)
     ax.contourf(gridx, yslice, gridy, offset=offset, zdir='y',
                 cmap='gray', zorder=0, alpha=.5)
     ax.contourf(gridx, gridy, zslice, offset=offset, zdir='z',
                 cmap='gray', zorder=0, alpha=.5)
+
+    # Plot orientations
+    args = np.array([list(xyz[idx]) + list(ori)] * 3)
+    for ii in range(3):
+        args[ii, [ii, ii + 3]] = [offset + 0.5, 0]  # half a mm inward  (z ord)
+    ax.quiver(*args.T, alpha=.75, **q_kwargs)
 
     # These are the only two options
     coord_frame_name = 'Head' if coord_frame == 'head' else 'MRI'

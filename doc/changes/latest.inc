@@ -17,6 +17,8 @@ Changelog
 
 - Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
 
+- Improve memory efficiency of :func:`mne.concatenate_epochs` by `Eric Larson`_
+
 - Allow picking channels in raw instances (e.g., :meth:`mne.io.Raw.pick_types`) without preloading data, by `Eric Larson`_
 
 - :meth:`mne.preprocessing.ICA.plot_sources` now plots annotation markers similar to :meth:`mne.io.Raw.plot` by `Luke Bloy`_
@@ -58,6 +60,8 @@ Changelog
 - Allow using ``pick_ori='vector'`` with a fixed-orientation inverse to facilitate visualization with :func:`mne.viz.plot_vector_source_estimates` by `Eric Larson`_
 
 - :func:`mne.viz.plot_dipole_locations` and :meth:`mne.Dipole.plot_locations` gained a ``title`` argument to specify a custom figure title in ``orthoview`` mode by `Richard Höchenberger`_
+
+- Add orientations projected onto the MRI slices in :func:`mne.viz.plot_dipole_locations` in ``'orthoview'`` mode by `Eric Larson`_
 
 - Add temporal derivative distribution repair (TDDR) :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` with shortened alias ``mne.preprocessing.nirs.tddr`` by `Robert Luke`_
 
@@ -155,6 +159,8 @@ Changelog
 
 - Add ``proj='reconstruct'`` to :meth:`mne.Evoked.plot` and related functions to apply projectors and then undo the signal bias using field mapping by `Eric Larson`_
 
+- Add writing BEM surfaces and solutions in H5 format in :func:`mne.write_bem_surfaces` and :func:`mne.write_bem_solution` by `Eric Larson`_
+
 - When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
 
 - :class:`mne.Report` now can add topomaps of SSP projectors to the generated report. This behavior can be toggled via the new ``projs`` argument by `Richard Höchenberger`_
@@ -207,6 +213,10 @@ Bug
 - Fix bug with :func:`mne.preprocessing.compute_current_source_density` where values were not properly computed; maps should now be more focal, by `Alex Rockhill`_ and `Eric Larson`_
 
 - Fix bug with :func:`mne.combine_evoked` where equal-weighted averages were wrongly computed as equal-weighted sums, by `Daniel McCloy`_
+
+- Fix bug with :meth:`mne.channels.DigMontage.plot` when reference channels with no defined position are present, by `Eric Larson`_
+
+- Fix bug with :func:`mne.channels.read_custom_montage` where ``"headshape"`` points in SFP format were not read properly, by `Eric Larson`_
 
 - Fix bug with setting HTML classes when using :meth:`mne.Report.add_bem_to_section` by `Eric Larson`_
 
@@ -332,6 +342,8 @@ API
 - The default for the ``standardize_names`` argument of :func:`mne.io.read_raw_kit` will change from ``True`` to ``False`` in 0.22, by `Eric Larson`_
 
 - The ``normalize_fwd`` argument of :func:`mne.beamformer.make_dics` has been deprecated in favor of ``depth``, by `Eric Larson`_
+
+- The ``overwrite`` parameter of :func:`mne.write_bem_surfaces` and :func:`mne.write_bem_solution` defaults to ``True`` in 0.21 but will change to ``False`` in 0.22, by `Eric Larson`_
 
 - Add ``n_cols`` parameter to :meth:`mne.preprocessing.ICA.plot_scores` to allow plotting scores in multiple columns, by `Luke Bloy`_
 

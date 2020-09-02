@@ -2937,7 +2937,10 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
                             'got %s' % (ei, type(epochs)))
     out = epochs_list[0]
-    data = [out.get_data()] if with_data else None
+    offsets = [0]
+    if with_data:
+        out.drop_bad()
+        offsets.append(len(out))
     events = [out.events]
     metadata = [out.metadata]
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
@@ -2949,7 +2952,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     # offset is the last epoch + tmax + 10 second
     events_offset = (np.max(out.events[:, 0]) +
                      int((10 + tmax) * epochs.info['sfreq']))
-    for ii, epochs in enumerate(epochs_list[1:]):
+    for ii, epochs in enumerate(epochs_list[1:], 1):
         _compare_epochs_infos(epochs.info, info, ii)
         if not np.allclose(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
@@ -2968,7 +2971,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
                                             epochs.event_id[key]))
 
         if with_data:
-            data.append(epochs.get_data())
+            epochs.drop_bad()
+            offsets.append(len(epochs))
         evs = epochs.events.copy()
         # add offset
         if add_offset:
@@ -2998,8 +3002,17 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
             metadata = pd.concat(metadata)
         else:  # dict of dicts
             metadata = sum(metadata, list())
+    assert len(offsets) == (len(epochs_list) if with_data else 0) + 1
+    data = None
     if with_data:
-        data = np.concatenate(data, axis=0)
+        offsets = np.cumsum(offsets)
+        for start, stop, epochs in zip(offsets[:-1], offsets[1:], epochs_list):
+            this_data = epochs.get_data()
+            if data is None:
+                data = np.empty(
+                    (offsets[-1], len(out.ch_names), len(out.times)),
+                    dtype=this_data.dtype)
+            data[start:stop] = this_data
     return (info, data, events, event_id, tmin, tmax, metadata, baseline,
             selection, drop_log, verbose)
 
