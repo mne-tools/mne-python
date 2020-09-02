@@ -104,8 +104,9 @@ def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject,
                       match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
             subjects=[subject], recording=[1], on_missing='warn', **params)
-    age.fetch_data(
+    paths = age.fetch_data(
         subjects=[subject], recording=[1], on_missing='ignore', **params)
+    assert paths == []
 
 
 @pytest.mark.parametrize('subject,recording', [(13, 2), (36, 1), (52, 1)])
@@ -122,8 +123,9 @@ def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
                       match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
                        on_missing='warn', **params)
-    age.fetch_data(subjects=[subject], recording=[recording],
+    paths = age.fetch_data(subjects=[subject], recording=[recording],
                    on_missing='ignore', **params)
+    assert paths == []
 
 
 def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
