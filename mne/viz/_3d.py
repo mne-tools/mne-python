@@ -2574,6 +2574,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     modes : list
         Should be a list, with each entry being ``'cone'`` or ``'sphere'``
         to specify how the dipoles should be shown.
+        The pivot for the glyphs in ``'cone'`` mode is always the tail
+        whereas the pivot in ``'sphere'`` mode is the center.
     scale_factors : list
         List of floating point scale factors for the markers.
     %(verbose)s
