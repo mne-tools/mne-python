@@ -720,12 +720,13 @@ def _on_missing(on_missing, msg):
     ValueError
         When on_missing is 'raise'.
     """
-    _check_option('on_missing', on_missing,
-                  ['raise', 'error', 'warn', 'warning', 'ignore'])
-
-    if on_missing in ('raise', 'error'):
+    _validate_type(on_missing, str, 'on_missing')
+    on_missing = 'raise' if on_missing == 'error' else on_missing
+    on_missing = 'warn' if on_missing == 'warning' else on_missing
+    _check_option('on_missing', on_missing, ['raise', 'warn', 'ignore'])
+    if on_missing == 'raise':
         raise ValueError(msg)
-    elif on_missing in ('warn', 'warning'):
+    elif on_missing == 'warn':
         warn(msg)
     else:  # Ignore
-        pass
+        assert on_missing == 'ignore'

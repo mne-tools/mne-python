@@ -101,7 +101,9 @@ Changelog
 
 - Add :func:`mne.viz.centers_to_edges` to help when using :meth:`matplotlib.axes.Axes.pcolormesh` with flat shading by `Eric Larson`_
 
-- Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
+- Add ``on_missing='raise'`` to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
+
+- Add ``on_missing='raise'`` to :func:`mne.viz.plot_events` to allow ignoring missing events when passing ``event_id`` by `Eric Larson`_
 
 - Add REST EEG infinity reference scheme to :meth:`mne.io.Raw.set_eeg_reference` and related functions by `Eric Larson`_
 
