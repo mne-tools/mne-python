@@ -15,7 +15,7 @@ from scipy import linalg
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
-from ..utils import fill_doc, _check_option
+from ..utils import fill_doc, _check_option, _validate_type
 
 
 @fill_doc
@@ -137,14 +137,11 @@ class CSP(TransformerMixin, BaseEstimator):
                                  '"csp_space".')
         self.log = log
 
-        if not isinstance(norm_trace, bool):
-            raise ValueError('norm_trace must be a bool')
+        _validate_type(norm_trace, bool, 'norm_trace')
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
-        if component_order not in ['mutual_info', 'alternate']:
-            raise ValueError("'{}' is not a valid component order (valid "
-                             "values are 'mutual_info' and 'alternate')."
-                             .format(component_order))
+        _check_option('component_order', component_order,
+                      ('mutual_info', 'alternate'))
         self.component_order = component_order
 
     def _check_Xy(self, X, y=None):
