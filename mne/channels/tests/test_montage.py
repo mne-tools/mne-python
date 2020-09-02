@@ -1284,6 +1284,9 @@ def test_set_montage_with_missing_coordinates():
         raw.set_montage(montage_in_mri)
 
     with pytest.raises(ValueError, match='Invalid value'):
+        raw.set_montage(montage_in_mri, on_missing='foo')
+
+    with pytest.raises(TypeError, match='must be an instance'):
         raw.set_montage(montage_in_mri, on_missing=True)
 
     with pytest.warns(RuntimeWarning, match='DigMontage is '
