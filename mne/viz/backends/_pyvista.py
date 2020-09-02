@@ -256,6 +256,8 @@ class _Renderer(_BaseRenderer):
 
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
         lights = list(self.plotter.renderer.GetLights())
+        headlight = lights.pop(0)
+        headlight.SetSwitch(False)
         for i in range(len(lights)):
             if i < 3:
                 lights[i].SetSwitch(True)
