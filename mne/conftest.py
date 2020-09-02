@@ -457,3 +457,13 @@ def src_volume_labels():
     assert volume_labels[0] == 'Unknown'
     assert lut['Unknown'] == 0  # it will be excluded during label gen
     return src, tuple(volume_labels), lut
+
+
+def _fail(*args, **kwargs):
+    raise AssertionError('Test should not download')
+
+
+@pytest.fixture(scope='function')
+def download_is_error(monkeypatch):
+    """Prevent downloading by raising an error when it's attempted."""
+    monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)

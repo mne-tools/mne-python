@@ -1792,10 +1792,10 @@ def test_access_by_name(tmpdir):
     pytest.raises(ValueError, Epochs, raw, events, event_id_illegal,
                   tmin, tmax)
     # Test on_missing
-    pytest.raises(ValueError, Epochs, raw, events, 1, tmin, tmax,
-                  on_missing='foo')
+    pytest.raises(ValueError, Epochs, raw, events, event_id_illegal, tmin,
+                  tmax, on_missing='foo')
     with pytest.warns(RuntimeWarning, match='No matching events'):
-        Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='warning')
+        Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='warn')
     Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='ignore')
 
     # Test constructing epochs with a list of ints as events

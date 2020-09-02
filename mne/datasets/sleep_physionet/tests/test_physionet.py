@@ -7,11 +7,11 @@ import os.path as op
 import numpy as np
 import pytest
 
-from distutils.version import LooseVersion
 from numpy.testing import assert_array_equal
 
-from mne.utils import run_tests_if_main, requires_good_network
-from mne.utils import requires_pandas, requires_version
+import mne
+from mne.utils import requires_good_network
+from mne.utils import requires_pandas, requires_version, check_version
 from mne.datasets.sleep_physionet import age, temazepam
 from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
 from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
@@ -25,8 +25,17 @@ def physionet_tmpdir(tmpdir_factory):
     return str(tmpdir_factory.mktemp('physionet_files'))
 
 
-def _fake_fetch_file(url, path, print_destination, hash_, hash_type):
-    pass
+class _FakeFetch:
+
+    def __init__(self):
+        self.call_args_list = list()
+
+    def __call__(self, *args, **kwargs):
+        self.call_args_list.append((args, kwargs))
+
+    @property
+    def call_count(self):
+        return len(self.call_args_list)
 
 
 def _keep_basename_only(path_structure):
@@ -71,7 +80,7 @@ def test_run_update_age_records(tmpdir):
     _update_sleep_age_records(fname)
     data = pd.read_csv(fname)
 
-    if LooseVersion(pd.__version__) < LooseVersion('0.23.0'):
+    if not check_version('pandas', '0.23.0'):
         expected = pd.read_csv(AGE_SLEEP_RECORDS)
         assert_array_equal(
             data[['subject', 'sha', 'fname']].values,
@@ -81,15 +90,54 @@ def test_run_update_age_records(tmpdir):
         pd.testing.assert_frame_equal(data, pd.read_csv(AGE_SLEEP_RECORDS))
 
 
-def test_sleep_physionet_age(physionet_tmpdir, mocker):
-    """Test Sleep Physionet URL handling."""
-    my_func = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
-                           side_effect=_fake_fetch_file)
-
+@pytest.mark.parametrize('subject', [39, 68, 69, 78, 79, 83])
+def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject,
+                                              download_is_error):
+    """Test handling of missing subjects in Sleep Physionet age fetcher."""
     params = {'path': physionet_tmpdir, 'update_path': False}
 
-    with pytest.raises(ValueError, match='Only subjects 0 to 19 are'):
-        paths = age.fetch_data(subjects=[20], recording=[1], **params)
+    with pytest.raises(
+            ValueError, match='This dataset contains subjects 0 to 82'):
+        age.fetch_data(
+            subjects=[subject], recording=[1], on_missing='raise', **params)
+    with pytest.warns(RuntimeWarning,
+                      match='This dataset contains subjects 0 to 82'):
+        age.fetch_data(
+            subjects=[subject], recording=[1], on_missing='warn', **params)
+    paths = age.fetch_data(
+        subjects=[subject], recording=[1], on_missing='ignore', **params)
+    assert paths == []
+
+
+@pytest.mark.parametrize('subject,recording', [(13, 2), (36, 1), (52, 1)])
+def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
+                                                recording, download_is_error):
+    """Test handling of missing recordings in Sleep Physionet age fetcher."""
+    params = {'path': physionet_tmpdir, 'update_path': False}
+
+    with pytest.raises(
+            ValueError, match=f'Requested recording {recording} for subject'):
+        age.fetch_data(subjects=[subject], recording=[recording],
+                       on_missing='raise', **params)
+    with pytest.warns(RuntimeWarning,
+                      match=f'Requested recording {recording} for subject'):
+        age.fetch_data(subjects=[subject], recording=[recording],
+                       on_missing='warn', **params)
+    paths = age.fetch_data(subjects=[subject], recording=[recording],
+                           on_missing='ignore', **params)
+    assert paths == []
+
+
+def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
+    """Test Sleep Physionet URL handling."""
+    # check download_is_error patching
+    params = {'path': physionet_tmpdir, 'update_path': False}
+    with pytest.raises(AssertionError, match='Test should not download'):
+        age.fetch_data(subjects=[0], recording=[1], **params)
+    # then patch
+    my_func = _FakeFetch()
+    monkeypatch.setattr(
+        mne.datasets.sleep_physionet._utils, '_fetch_file', my_func)
 
     paths = age.fetch_data(subjects=[0], recording=[1], **params)
     assert_array_equal(_keep_basename_only(paths),
@@ -127,9 +175,7 @@ def test_sleep_physionet_age(physionet_tmpdir, mocker):
         {'name': 'SC4002EC-Hypnogram.edf',
          'hash': '386230188a3552b1fc90bba0fb7476ceaca174b6'})
     base_path = age.data_path(path=physionet_tmpdir)
-    _check_mocked_function_calls(mocked_func=my_func,
-                                 call_fname_hash_pairs=EXPECTED_CALLS,
-                                 base_path=base_path)
+    _check_mocked_function_calls(my_func, EXPECTED_CALLS, base_path)
 
 
 @pytest.mark.xfail(strict=False)
@@ -143,7 +189,7 @@ def test_run_update_temazepam_records(tmpdir):
     _update_sleep_temazepam_records(fname)
     data = pd.read_csv(fname)
 
-    if LooseVersion(pd.__version__) < LooseVersion('0.23.0'):
+    if not check_version('pandas', '0.23.0'):
         expected = pd.read_csv(TEMAZEPAM_SLEEP_RECORDS)
         assert_array_equal(
             data[['subject', 'sha_Hypnogram', 'sha_PSG']].values,
@@ -154,10 +200,11 @@ def test_run_update_temazepam_records(tmpdir):
             data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
 
 
-def test_sleep_physionet_temazepam(physionet_tmpdir, mocker):
+def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):
     """Test Sleep Physionet URL handling."""
-    my_func = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
-                           side_effect=_fake_fetch_file)
+    my_func = _FakeFetch()
+    monkeypatch.setattr(
+        mne.datasets.sleep_physionet._utils, '_fetch_file', my_func)
 
     params = {'path': physionet_tmpdir, 'update_path': False}
 
@@ -171,12 +218,8 @@ def test_sleep_physionet_temazepam(physionet_tmpdir, mocker):
         {'name': 'ST7011JP-Hypnogram.edf',
          'hash': 'ff28e5e01296cefed49ae0c27cfb3ebc42e710bf'})
     base_path = temazepam.data_path(path=physionet_tmpdir)
-    _check_mocked_function_calls(mocked_func=my_func,
-                                 call_fname_hash_pairs=EXPECTED_CALLS,
-                                 base_path=base_path)
+    _check_mocked_function_calls(my_func, EXPECTED_CALLS, base_path)
 
-    with pytest.raises(ValueError, match='Only subjects 0 to 21 are'):
+    with pytest.raises(
+            ValueError, match='This dataset contains subjects 0 to 21'):
         paths = temazepam.fetch_data(subjects=[22], **params)
-
-
-run_tests_if_main()
