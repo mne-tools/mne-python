@@ -284,24 +284,9 @@ class ContainsMixin(object):
 
         # only get the picks
         ch_positions = {ch: pos for ch, pos in ch_pos_dict.items()
-                       if ch in chs}
+                        if ch in chs}
         ch_coord_frames = {ch: frame for ch, frame in
                            ch_frame_dict.items() if ch in chs}
-
-        # extract name, and position
-        # ch_names, ch_pos = [], []
-        # for ch in chs:
-        #     pos = ch['loc'][:3].copy()
-        #     ch_pos.append(pos)
-        #     ch_names.append(ch['ch_name'])
-        #
-        # # extract landmark coords and coordinate frame
-        # ch_coord_frame = [_frame_to_str[ch['coord_frame']] for ch in chs]
-        #
-        # # construct channel position dictionary and coord frame
-        # ch_pos_dict = dict(zip(ch_names, ch_pos))
-        # ch_frame_dict = dict(zip(ch_names, ch_coord_frame))
-
         return ch_positions, ch_coord_frames
 
     @fill_doc
@@ -318,7 +303,8 @@ class ContainsMixin(object):
 
         # extract landmark coords and coordinate frame
         landmark_coords, coord_frame_int = _get_fid_coords(self.info['dig'])
-        # try to extract the coordinate frame if avail., else default to unknown
+        # try to extract the coordinate frame if avail.,
+        # else default to unknown
         coord_frame = _frame_to_str.get(coord_frame_int, 'unknown')
 
         # create montage and return it
