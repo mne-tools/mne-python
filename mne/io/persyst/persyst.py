@@ -16,9 +16,6 @@ from ..utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
 
-# number of bytes for 16 and 32 bit binary .dat file
-_fmt_byte_dict = dict(short=2, long=4)
-
 
 @fill_doc
 def read_raw_persyst(fname, preload=False, verbose=None):
