@@ -1192,8 +1192,11 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
     info = create_info(ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg')
-    with pytest.raises(ValueError, match=_MSG):
+    with pytest.raises(ValueError, match=_MSG) as exc:
         info.set_montage(montage)
+    # plus suggestions
+    assert exc.match('set_channel_types')
+    assert exc.match('on_missing')
 
 
 def test_heterogeneous_ch_type():
