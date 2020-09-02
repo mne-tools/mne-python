@@ -342,6 +342,10 @@ def test_csp_component_ordering():
 
     pytest.raises(ValueError, CSP, component_order='invalid')
 
+    csp = CSP(component_order='alternate')
+    with pytest.raises(ValueError):
+        csp.fit(np.zeros((3, 0, 0)), ['a', 'b', 'c'])
+
     p_alt = CSP(component_order='alternate').fit(x, y).patterns_
     p_mut = CSP(component_order='mutual_info').fit(x, y).patterns_
 
