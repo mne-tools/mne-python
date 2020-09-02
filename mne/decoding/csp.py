@@ -144,7 +144,7 @@ class CSP(TransformerMixin, BaseEstimator):
         if component_order not in ['mutual_info', 'alternate']:
             raise ValueError("'{}' is not a valid component order (valid "
                              "values are 'mutual_info' and 'alternate')."
-                             .format(self.component_order))
+                             .format(component_order))
         self.component_order = component_order
 
     def _check_Xy(self, X, y=None):
