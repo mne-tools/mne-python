@@ -169,7 +169,8 @@ class RawPersyst(BaseRaw):
         info = create_info(ch_names, sfreq, ch_types=ch_types)
         info.update(subject_info=subject_info)
         for idx in range(n_chs):
-            info['chs'][idx]['cal'] = cal
+            # calibration brings to uV then 1e-6 brings to V
+            info['chs'][idx]['cal'] = cal * 1.0e-6
         info['meas_date'] = meas_date
 
         # determine number of samples in file
@@ -255,11 +256,10 @@ class RawPersyst(BaseRaw):
 
         # chs * rows
         record = np.reshape(record, (n_chs, -1), 'F')
-        # calibrate to convert to uV
+        # calibrate to convert to V
         data[...] = record[idx, ...] * cals
         # cast as float32; more than enough precision
-        # then multiply to get V
-        data = data.astype(np.float32) / 10. ** 6
+        data = data.astype(np.float32)
 
 
 def _get_subjectinfo(patient_dict):
