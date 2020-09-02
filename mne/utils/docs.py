@@ -964,11 +964,9 @@ docdict['use_cps_restricted'] = docdict['use_cps'] + """
 """
 
 # Forward
-_on_missing_base = """\
-on_missing : str
-    Can be 'raise' (default) to raise an error, 'warn' to emit a warning, or
-    'ignore' to ignore when
-"""
+_on_missing_base = """on_missing : str
+    Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+    warning, or ``'ignore'`` to ignore when"""
 docdict['on_missing_fwd'] = """
 %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
