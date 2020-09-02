@@ -109,7 +109,8 @@ def test_csp():
         CSP(reg=reg, norm_trace=False)
     for cov_est in ['foo', None]:
         pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
-    pytest.raises(ValueError, CSP, norm_trace='foo')
+    with pytest.raises(ValueError, match=TypeError):
+        CSP(norm_trace='foo')
     for cov_est in ['concat', 'epoch']:
         CSP(cov_est=cov_est, norm_trace=False)
 
