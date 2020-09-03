@@ -279,6 +279,7 @@ def test_chunk_duration(first_samp):
 
 
 def test_events_from_annotation_orig_time_none():
+    """Tests events_from_annotation with orig_time None and first_sampe > 0."""
     # Create fake data
     sfreq, duration_s = 100, 10
     data = np.random.RandomState(42).randn(1, sfreq * duration_s)
