@@ -103,9 +103,9 @@ ten_twenty_montage.plot(kind='topomap', show_names=False)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Channel positions in 2d space are obtained by projecting their actual 3d
-# positions onto a sphere. Because ``'standard_1020'`` montage contains
-# realistic, not spherical, channel positions, we will use a different montage
-# to demonstrate controlling how channels are projected to 2d space.
+# positions using a sphere as a reference. Because ``'standard_1020'`` montage
+# contains realistic, not spherical, channel positions, we will use a different
+# montage to demonstrate controlling how channels are projected to 2d space.
 
 biosemi_montage = mne.channels.make_standard_montage('biosemi64')
 biosemi_montage.plot(show_names=False)
@@ -147,36 +147,9 @@ biosemi_montage.plot(sphere=(0, 0, 0.035, 0.094))
 # Instead of approximating the EEGLAB-esque sphere location as above, you can
 # calculate the sphere origin from position of Oz, Fpz, T3/T7 or T4/T8
 # channels. This is easier once the montage has been applied to the data and
-# channel positions are in head space - see this example
-# (all the code below should be a separate example):
+# channel positions are in the head space - see
+# :ref:`this example <ex-topomap-eeglab-style>`.
 
-n_channels = len(biosemi_montage.ch_names)
-fake_info = mne.create_info(ch_names=biosemi_montage.ch_names, sfreq=250.,
-                            ch_types=['eeg'] * n_channels)
-rng = np.random.RandomState(0)
-data = rng.randn((n_channels, 10)) * 1e-6
-fake_raw = mne.io.RawArray(data, fake_info)
-fake_raw.set_montage(biosemi_montage)
-
-check_ch = ['Oz', 'Fpz', 'T7', 'T8']
-pos = fake_raw._get_channel_positions(picks=check_ch)
-radius = pos[-1, 0].mean()
-x, y, z = pos[0, 0], pos[-1, 1], pos[:, -1].mean()
-
-print([f'{v:0.5f} for v in [x, y, z, radius]])
-
-fig, ax = plt.subplots(ncols=2, figsize=(8, 4))
-fake_raw.plot_sensors(axes=ax[0], show=False)
-fake_raw.plot_sensors(sphere=(x, y, z, radius), axes=ax[1], show=False)
-
-fig.texts[0].remove()
-ax[0].set_title('MNE channel projection', fontweight='bold')
-ax[1].set_title('EEGLAB channel projection', fontweight='bold')
-
-ylm = ax[1].get_ylim()
-xlm = ax[1].get_xlim()
-ax[0].set_ylim(ylm)
-ax[0].set_xlim(xlm)
 
 ###############################################################################
 # .. _reading-dig-montages:
