@@ -507,7 +507,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data_buffer = None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
-        self._data = self._read_segment(data_buffer=data_buffer)
+        self._data = self._read_segment(
+            data_buffer=data_buffer, projector=self._projector)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self._comp = None  # no longer needed
@@ -1564,7 +1565,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment()
+                this_data = self._read_segment(projector=self._projector)
             else:
                 this_data = self._data
 
@@ -1576,7 +1577,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 if not raws[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    raws[ri]._read_segment(data_buffer=data_buffer)
+                    raws[ri]._read_segment(data_buffer=data_buffer,
+                                           projector=self._projector)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
             self._data = _data

@@ -12,9 +12,9 @@ import re
 import pytest
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
-                           assert_array_equal)
+                           assert_array_equal, assert_array_less)
 
-from mne import concatenate_raws, create_info, Annotations
+from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
 from mne.externals.h5io import read_hdf5, write_hdf5
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
@@ -22,6 +22,7 @@ from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
                        object_diff, check_version)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
+from mne.io.proj import Projection
 
 
 def assert_named_constants(info):
@@ -108,6 +109,78 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 data2, times2 = other_raw[picks, sl_time]
                 assert_allclose(data1, data2)
                 assert_allclose(times1, times2)
+
+        # test projection vs cals and data units
+        other_raw = reader(preload=False, **kwargs)
+        other_raw.del_proj()
+        eeg = meg = fnirs = False
+        if 'eeg' in raw:
+            eeg, atol = True, 1e-18
+        elif 'grad' in raw:
+            meg, atol = 'grad', 1e-24
+        elif 'mag' in raw:
+            meg, atol = 'mag', 1e-24
+        else:
+            assert 'fnirs_cw_amplitude' in raw
+            fnirs, atol = 'fnirs_cw_amplitude', 1e-10
+        picks = pick_types(
+            other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
+        # first check that our data are (probably) in the right units
+        maxval = atol * 1e16
+        data = np.abs(other_raw.get_data(picks))
+        assert_array_less(data, maxval)
+        col_names = [other_raw.ch_names[pick] for pick in picks]
+        proj = np.ones((1, len(picks)))
+        proj /= proj.shape[1]
+        proj = Projection(
+            data=dict(data=proj, nrow=1, row_names=None,
+                      col_names=col_names, ncol=len(picks)),
+            active=False)
+        assert len(other_raw.info['projs']) == 0
+        other_raw.add_proj(proj)
+        assert len(other_raw.info['projs']) == 1
+        # Three orders of projector application and data loading should all be
+        # equivalent:
+        # 1. load->apply->get
+        data_load_apply_get = \
+            other_raw.copy().load_data().apply_proj().get_data(picks)
+        # 2. apply->get (and don't allow apply->pick)
+        apply = other_raw.copy().apply_proj()
+        data_apply_get = apply.get_data(picks)
+        data_apply_get_0 = apply.get_data(picks[0])[0]
+        with pytest.raises(RuntimeError, match='loaded'):
+            apply.copy().pick(picks[0]).get_data()
+        # 3. apply->load->get
+        data_apply_load_get = apply.load_data().get_data(picks)
+        data_apply_load_get_0 = apply.pick(picks[0]).get_data()[0]
+        del apply
+        # ranks should all be reduced by 1
+        rank_load_apply_get = np.linalg.matrix_rank(data_load_apply_get)
+        rank_apply_get = np.linalg.matrix_rank(data_apply_get)
+        rank_apply_load_get = np.linalg.matrix_rank(data_apply_load_get)
+        assert rank_load_apply_get == len(col_names) - 1
+        assert rank_apply_get == len(col_names) - 1
+        assert rank_apply_load_get == len(col_names) - 1
+        # and they should all match
+        assert_allclose(data_apply_get[0], data_apply_get_0)
+        assert_allclose(data_load_apply_get[0], data_apply_load_get_0)
+        assert_allclose(data_load_apply_get, data_apply_get, atol=atol,
+                        err_msg='before != after, likely _mult_cal_one prob')
+        assert_allclose(data_load_apply_get, data_apply_load_get, atol=atol,
+                        err_msg='before != after, likely _mult_cal_one prob')
+        if 'eeg' in raw:
+            other_raw.del_proj()
+            direct = other_raw.copy().load_data().set_eeg_reference().get_data()
+            other_raw.set_eeg_reference(projection=True)
+            assert len(other_raw.info['projs']) == 1
+            this_proj = other_raw.info['projs'][0]['data']
+            assert this_proj['col_names'] == col_names
+            assert this_proj['data'].shape == proj['data']['data'].shape
+            assert_allclose(this_proj['data'], proj['data']['data'])
+            proj = other_raw.apply_proj().get_data()
+            assert_allclose(proj[picks], data_load_apply_get, atol=1e-10)
+            assert_allclose(proj, direct, atol=1e-10,
+                            err_msg='proj != direct, maybe _mult_cal_one prob')
     else:
         raw = reader(**kwargs)
     assert_named_constants(raw.info)

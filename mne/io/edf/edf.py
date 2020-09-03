@@ -206,7 +206,8 @@ class RawGDF(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], self._filenames[fi])
+                                  self._raw_extras[fi], self._filenames[fi],
+                                  cals, mult)
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
@@ -228,7 +229,8 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames):
+def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
+                       cals, mult):
     """Read a chunk of raw data."""
     from scipy.interpolate import interp1d
 
@@ -404,11 +406,11 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
-    for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
-        ch_name, physical_range, cal = ch_info
+    for idx, ch_info in enumerate(zip(ch_names, physical_ranges)):
+        ch_name, physical_range = ch_info
         chan_info = {}
-        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range, cal))
-        chan_info['cal'] = cal
+        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range))
+        chan_info['cal'] = 1.
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
         chan_info['range'] = physical_range
