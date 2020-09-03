@@ -89,19 +89,14 @@ print([f'{v:0.5f}' for v in [x, y, z, radius]])
 # topo-plotting functions (by passing ``sphere=(x, y, z, radius)``).
 
 # create a two-panel figure with some space for the titles at the top
-fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9))
+fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9),
+                       sharex=True, sharey=True)
 
 # we plot the channel positions with default sphere - the mne way
 fake_evoked.plot_sensors(axes=ax[0], show=False)
 
 # in the second panel we plot the positions using the EEGLAB reference sphere
 fake_evoked.plot_sensors(sphere=(x, y, z, radius), axes=ax[1], show=False)
-
-# make x and limits the same in both panels
-ylm = ax[1].get_ylim()
-xlm = ax[1].get_xlim()
-ax[0].set_ylim(ylm)
-ax[0].set_xlim(xlm)
 
 # add titles
 fig.texts[0].remove()
@@ -116,18 +111,13 @@ ax[1].set_title('EEGLAB channel projection', fontweight='bold')
 # be particularly interesting as they will show random data but hopefully you
 # will see the difference.
 
-fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9))
+fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9),
+                       sharex=True, sharey=True)
 
 mne.viz.plot_topomap(fake_evoked.data[:, 0], fake_evoked.info, axes=ax[0],
                      show=False)
 mne.viz.plot_topomap(fake_evoked.data[:, 0], fake_evoked.info, axes=ax[1],
                      show=False, sphere=(x, y, z, radius))
-
-# make x and limits the same in both panels
-ylm = ax[1].get_ylim()
-xlm = ax[1].get_xlim()
-ax[0].set_ylim(ylm)
-ax[0].set_xlim(xlm)
 
 # add titles
 ax[0].set_title('MNE', fontweight='bold')

@@ -172,7 +172,7 @@ biosemi_montage.plot(sphere=(0, 0, 0.035, 0.094))
 # existing matplotlib ``axes`` object (so the channel positions can easily be
 # made as a subplot in a multi-panel figure):
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 8
 fig = plt.figure()
 ax2d = fig.add_subplot(121)
 ax3d = fig.add_subplot(122, projection='3d')
