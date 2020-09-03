@@ -2,7 +2,7 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
+from pathlib import Path
 import numpy as np
 
 from ..base import BaseRaw
@@ -46,8 +46,10 @@ _valid_headers = [
 
 def _read_nihon_metadata(fname):
     metadata = {}
-    pnt_fname = '.'.join([op.splitext(fname)[0], 'PNT'])
-    if not op.exists(pnt_fname):
+    if not isinstance(fname, Path):
+        fname = Path(fname)
+    pnt_fname = fname.with_suffix('.PNT')
+    if not pnt_fname.exists():
         warn('No PNT file exists. Metadata will be blank')
         return metadata
     with open(pnt_fname, 'r') as fid:
@@ -59,8 +61,49 @@ def _read_nihon_metadata(fname):
     # TODO: Read the desired metadata
 
 
+_default_chan_labels = [
+    'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8',
+    'T3', 'T4', 'T5', 'T6', 'FZ', 'CZ', 'PZ', 'E', 'PG1', 'PG2', 'A1', 'A2',
+    'T1', 'T2'
+]
+_default_chan_labels += ['X{}'.format(i) for i in range(1, 12)]
+_default_chan_labels += ['NA{}'.format(i) for i in range(1, 6)]
+_default_chan_labels += ['DC{:02}'.format(i) for i in range(1, 33)]
+_default_chan_labels += ['BN1', 'BN2', 'Mark1', 'Mark2']
+_default_chan_labels += ['NA{}'.format(i) for i in range(6, 28)]
+_default_chan_labels += ['X12/BP1', 'X13/BP2', 'X14/BP3', 'X15/BP4']
+_default_chan_labels += ['X{}'.format(i) for i in range(16, 166)]
+_default_chan_labels += ['NA28', 'Z']
+
+
+def _read_21e_file(fname):
+    if not isinstance(fname, Path):
+        fname = Path(fname)
+    e_fname = fname.with_suffix('.21E')
+    _chan_labels = [x for x in _default_chan_labels]
+    if e_fname.exists():
+        # Read the 21E file and update the labels accordingly.
+        logger.info('Found 21E file, reading channel names.')
+        with open(e_fname, 'r') as fid:
+            keep_parsing = False
+            for line in fid:
+                if line.startswith('['):
+                    if 'ELECTRODE' in line or 'REFERENCE' in line:
+                        keep_parsing = True
+                    else:
+                        keep_parsing = False
+                elif keep_parsing is True:
+                    idx, name = line.split('=')
+                    idx = int(idx)
+                    _chan_labels[idx] = name.strip()
+    return _chan_labels
+
+
 def _read_nihon_header(fname):
     # Read the Nihon Kohden EEG file header
+    if not isinstance(fname, Path):
+        fname = Path(fname)
+    _chan_labels = _read_21e_file(fname)
     header = {}
     with open(fname, 'r') as fid:
         version = np.fromfile(fid, '|S16', 1).astype('U16')[0]
@@ -108,7 +151,7 @@ def _read_nihon_header(fname):
                 for i_ch in range(t_n_channels):
                     fid.seek(t_data_address + 0x27 + (i_ch * 10))
                     t_idx = np.fromfile(fid, np.uint8, 1)[0]
-                    t_channels.append(_default_chan_labels[t_idx])
+                    t_channels.append(_chan_labels[t_idx])
 
                 t_datablock['channels'] = t_channels
 
@@ -155,9 +198,11 @@ def _read_nihon_header(fname):
 
 
 def _read_nihon_events(fname):
+    if not isinstance(fname, Path):
+        fname = Path(fname)
     annotations = None
-    log_fname = '.'.join([op.splitext(fname)[0], 'LOG'])
-    if not op.exists(log_fname):
+    log_fname = fname.with_suffix('.LOG')
+    if not log_fname.exists():
         warn('No LOG file exists. Annotations will not be read')
         return annotations
     with open(log_fname, 'r') as fid:
@@ -169,21 +214,6 @@ def _read_nihon_events(fname):
     # TODO: Read LOGs with annotations
 
     return annotations
-
-
-_default_chan_labels = [
-    'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8',
-    'T3', 'T4', 'T5', 'T6', 'FZ', 'CZ', 'PZ', 'E', 'PG1', 'PG2', 'A1', 'A2',
-    'T1', 'T2'
-]
-_default_chan_labels += ['X{}'.format(i) for i in range(1, 12)]
-_default_chan_labels += ['NA{}'.format(i) for i in range(1, 6)]
-_default_chan_labels += ['DC{:02}'.format(i) for i in range(1, 33)]
-_default_chan_labels += ['BN1', 'BN2', 'Mark1', 'Mark2']
-_default_chan_labels += ['NA{}'.format(i) for i in range(6, 28)]
-_default_chan_labels += ['X12/BP1', 'X13/BP2', 'X14/BP3', 'X15/BP4']
-_default_chan_labels += ['X{}'.format(i) for i in range(16, 166)]
-_default_chan_labels += ['NA28', 'Z']
 
 
 def _map_ch_to_type(ch_name):
@@ -209,15 +239,15 @@ def _map_ch_to_specs(ch_name):
         phys_min = 0
         phys_max = 1
     else:
-        idx = _default_chan_labels.index(ch_name)
-        if idx < 42 or idx > 73 and idx not in [76, 77]:
-            unit_mult = 1e-6
-            phys_min = -3200
-            phys_max = 3199.902
-        else:
-            unit_mult = 1e-3
-            phys_min = -12002.9
-            phys_max = 12002.56
+        unit_mult = 1e-6
+        phys_min = -3200
+        phys_max = 3199.902
+        if ch_name.upper() in _default_chan_labels:
+            idx = _default_chan_labels.index(ch_name.upper())
+            if (idx > 42 and idx < 73) or idx in [76, 77]:
+                unit_mult = 1e-3
+                phys_min = -12002.9
+                phys_max = 12002.56
     return dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max)
 
 
@@ -238,7 +268,9 @@ class RawNihon(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        data_name = op.basename(fname)
+        if not isinstance(fname, Path):
+            fname = Path(fname)
+        data_name = fname.name
         logger.info('Loading %s' % data_name)
 
         header = _read_nihon_header(fname)
@@ -268,7 +300,7 @@ class RawNihon(BaseRaw):
 
         super(RawNihon, self).__init__(
             info, preload=preload, last_samps=(n_samples - 1,),
-            filenames=[fname], orig_format='short',
+            filenames=[fname.as_posix()], orig_format='short',
             raw_extras=[raw_extras])
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

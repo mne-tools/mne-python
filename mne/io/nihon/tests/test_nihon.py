@@ -23,19 +23,12 @@ def test_nihon_eeg():
 
     assert raw._data.shape == raw_edf._data.shape
     assert raw.info['sfreq'] == raw.info['sfreq']
-    edf_ch_names = {}
     # ch names and order are switched in the EDF
-    for x in raw_edf.ch_names:
-        to_replace =  x.split(' ')[1]
-        to_replace = to_replace.replace('Fp', 'FP').replace('-Ref', '')
-        to_replace = to_replace.replace('Fz', 'FZ')
-        to_replace = to_replace.replace('Cz', 'CZ')
-        to_replace = to_replace.replace('Pz', 'PZ')
-        to_replace = to_replace.replace('$A1', 'Mark2').replace('$A2', 'Mark1')
-        edf_ch_names[x] = to_replace
+    edf_ch_names = {x: x.split(' ')[1].replace('-Ref', '')
+                    for x in raw_edf.ch_names}
     raw_edf.rename_channels(edf_ch_names)
-    assert set(raw.ch_names) == set(raw_edf.ch_names)
-    raw_edf = raw_edf.pick_channels(raw.ch_names)
+    assert raw.ch_names == raw_edf.ch_names
+
     # This does not work, the EDF says everything is EEG
     # types_dict = {2: 'eeg', 3: 'stim', 202: 'eog', 502: 'misc', 102: 'bio'}
     # ch_types = [types_dict[raw.info['chs'][x]['kind']]
