@@ -335,7 +335,7 @@ Bug
 
 - Fix bug with :meth:`mne.preprocessing.ICA.plot_properties` where a :class:`mne.io.Raw` object with annotations would lead to an error by `Yu-Han Luo`_
 
-- Fix bug with :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>` when `orig_time` of annotations is None and `raw.first_time > 0`, by `Alex Gramfort`_
+- Fix bug with :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>` when ``orig_time`` of annotations is None and ``raw.first_time > 0``, by `Alex Gramfort`_
 
 API
 ~~~
