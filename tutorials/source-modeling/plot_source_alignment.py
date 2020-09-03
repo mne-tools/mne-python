@@ -5,9 +5,10 @@
 Source alignment and coordinate frames
 ======================================
 
-The aim of this tutorial is to show how to visually assess that the data are
-well aligned in space for computing the forward solution, and understand
-the different coordinate frames involved in this process.
+This tutorial shows how to visually assess the spatial alignment of MEG sensor
+locations, digitized scalp landmark and sensor locations, and MRI volumes. This
+alignment process is crucial for computing the forward solution, as is
+understanding the different coordinate frames involved in this process.
 
 .. contents:: Page contents
    :local:
@@ -22,8 +23,6 @@ import nibabel as nib
 from scipy import linalg
 
 import mne
-
-print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
@@ -79,24 +78,26 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 #   scalp landmarks ("fiducials")
 #
 #
-# Each of these, plus a fourth coordinate frame "ras", are described in more
-# detail below.
+# Each of these, plus a fourth coordinate frame "mri_voxel", are described in
+# more detail below.
 #
-# :func:`mne.viz.plot_alignment` is a very useful function for creating or
-# inspecting the transformations used to bring these coordinate frames into
-# alignment, and the resulting alignment of EEG sensors, MEG sensors, brain
-# sources, and conductor models. In particular, the ``show_axes`` argument will
-# draw the origin of each coordinate frame in a different color, with axes
-# indicated as:
+# A good way to start visualizing these coordinate frames is to use the
+# `mne.viz.plot_alignment` function, which is used for creating or inspecting
+# the transformations that bring these coordinate frames into alignment, and
+# the resulting alignment of EEG sensors, MEG sensors, brain sources, and
+# conductor models. If you provide ``subjects_dir`` and ``subject`` parameters,
+# the function automatically loads the subject's Freesurfer MRI surfaces.
+# Important for our purposes, passing ``show_axes=True`` to
+# `~mne.viz.plot_alignment` will draw the origin of each coordinate frame in a
+# different color, with axes indicated by different sized arrows:
 #
 # * shortest arrow: (**R**)ight / X
 # * medium arrow: forward / (**A**)nterior / Y
 # * longest arrow: up / (**S**)uperior / Z
 #
-# In other words, all three coordinate systems are **RAS** coordinate systems.
-# If the ``subjects_dir`` and ``subject`` parameters are provided, the function
-# automatically loads the subject's Freesurfer MRI surfaces. Finally, we can
-# set the ``coord_frame`` argument to choose which coordinate frame the camera
+# Note that all three coordinate systems are **RAS** coordinate frames and
+# hence are also `right-handed`_ coordinate systems. Finally, note that the
+# ``coord_frame`` parameter sets which coordinate frame the camera
 # should initially be aligned with. Let's take a look:
 
 fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
@@ -163,9 +164,10 @@ print('Distance from %s digitized points to head surface: %0.1f mm'
 #                ``raw.info['dev_head_t']``.
 #
 # 3. MRI coordinate frame ("mri", :gray:`gray axes`)
-#      Defined by Freesurfer, the MRI (surface RAS) origin is at the
-#      center of a 256×256×256 1mm anisotropic volume (may not be in the center
-#      of the head).
+#      Defined by Freesurfer, the "MRI surface RAS" coordinate frame has its
+#      origin at the center of a 256×256×256 1mm anisotropic volume (though the
+#      center may not correspond to the anatomical center of the subject's
+#      head).
 #
 #      .. note:: We typically align the MRI coordinate frame to the head
 #                coordinate frame through a
@@ -202,7 +204,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 
 
 def plot_dig_alignment(points):
-    points = points.copy() * 1e3  # m → mm
+    points = points.copy()
     renderer = mne.viz.backends.renderer.create_3d_figure(
         size=(800, 400), bgcolor='w', scene=False)
     seghead_rr, seghead_tri = mne.read_surface(
@@ -220,10 +222,13 @@ def plot_dig_alignment(points):
 # Now that our function is defined, first we'll plot *untransformed* digitized
 # scalp points (as if they were in the "mri" coordinate frame). You can see
 # that the scalp points look good relative to each other, but the whole set of
-# scalp points is mismatched to the MRI scalp surface.
+# scalp points is mismatched to the MRI scalp surface. Note also that we're
+# converting units before passing our points into the function: MNE-Python
+# uses SI units internally (so, distances in meters) whereas the MRI space
+# defined by Freesurfer is in millimeters.
 
 head_space = np.array([dig['r'] for dig in raw.info['dig']], dtype=float)
-plot_dig_alignment(head_space)
+plot_dig_alignment(head_space * 1e3)  # m → mm
 
 ###############################################################################
 # Next, we'll apply the precomputed ``trans`` to convert the digitized points
@@ -233,7 +238,7 @@ plot_dig_alignment(head_space)
 # transformed to match the mri aquisition which is in voxels.
 
 mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
-plot_dig_alignment(mri_space)
+plot_dig_alignment(mri_space * 1e3)  # m → mm
 
 ###############################################################################
 # Finally, we'll apply a second transformation to the already-transformed
@@ -251,11 +256,11 @@ plot_dig_alignment(mri_space)
 #     automatically before displaying skin/skull/brain surfaces, so the extra
 #     steps aren't needed for most analysis tasks.
 
-vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
-ras2vox_tkr = linalg.inv(vox2ras_tkr)
+vox_to_mri = t1_mgh.header.get_vox2ras_tkr()
+mri_to_vox = linalg.inv(vox_to_mri)
 
-vox_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space * 1e3)  # m → mm
-vox_space = ((vox_space - 128) * [1, -1, 1])[:, [0, 2, 1]] * 1e-3
+vox_space = mne.transforms.apply_trans(mri_to_vox, mri_space * 1e3)  # m → mm
+vox_space = ((vox_space - 128) * [1, -1, 1])[:, [0, 2, 1]]
 plot_dig_alignment(vox_space)
 
 
@@ -317,6 +322,7 @@ mne.viz.plot_alignment(
 # `these slides
 # <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
 #
+# .. _right-handed: https://en.wikipedia.org/wiki/Right-hand_rule
 # .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
 # .. _NAS: https://en.wikipedia.org/wiki/Nasion
 # .. _LPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
