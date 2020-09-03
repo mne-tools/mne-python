@@ -96,6 +96,7 @@ class _Figure(object):
             if self.plotter_class is BackgroundPlotter and \
                     hasattr(BackgroundPlotter, 'set_icon'):
                 _init_resources()
+                _process_events(plotter)
                 plotter.set_icon(":/mne-icon.png")
         _process_events(self.plotter)
         _process_events(self.plotter)
