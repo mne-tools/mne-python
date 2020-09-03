@@ -21,8 +21,8 @@ env:
 matrix:
     include:
         # Linux
-        - os: linux
-          env: CONDA_ENV="environment.yml"
+        # - os: linux
+        #   env: CONDA_ENV="environment.yml"
 
         # PIP + non-default stim channel + log level info
         - os: linux
@@ -31,16 +31,16 @@ matrix:
           python: "3.8"
 
         # Old dependencies
-        - os: linux
-          env: PYTHON_VERSION=3.6
-               CONDA_DEPENDENCIES="numpy=1.13 scipy=1.0 matplotlib=2.1 pandas=0.21 scikit-learn=0.19"
-               CONDA_CHANNELS="conda-forge"
+        # - os: linux
+        #   env: PYTHON_VERSION=3.6
+        #        CONDA_DEPENDENCIES="numpy=1.13 scipy=1.0 matplotlib=2.1 pandas=0.21 scikit-learn=0.19"
+        #        CONDA_CHANNELS="conda-forge"
 
         # Minimal (runs with and without testing data)
-        - os: linux
-          env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib"
-               MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
+        # - os: linux
+        #   env: DEPS=minimial
+        #        CONDA_DEPENDENCIES="numpy scipy matplotlib"
+        #        MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
 
 # Setup anaconda
 before_install:
@@ -127,8 +127,8 @@ script:
         pip install -e .;
         python mne/tests/test_evoked.py;
       fi;
-    - echo 'pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}'
-    - pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}
+    - echo 'pytest -m "${CONDITION}" --tb=short --cov=mne -vv mne/viz'
+    - pytest -m "${CONDITION}" --tb=short --cov=mne -vv mne/viz
     # run the minimal one with the testing data
     - if [ "${DEPS}" == "minimal" ]; then
         export MNE_SKIP_TESTING_DATASET_TESTS=false;
