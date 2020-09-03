@@ -79,7 +79,7 @@ y = pos[-1, 1]
 z = pos[:, -1].mean()
 
 # lets print the values we got:
-print([f'{v:0.5f} for v in [x, y, z, radius]])
+print([f'{v:0.5f}' for v in [x, y, z, radius]])
 
 ###############################################################################
 # Compare MNE and EEGLAB channel layout
@@ -114,7 +114,7 @@ ax[1].set_title('EEGLAB channel projection', fontweight='bold')
 # --------------------
 #
 # As the last step we do the same, but plotting the topomaps. These will not
-# be particularily interesting as they will show random data but hopefully you
+# be particularly interesting as they will show random data but hopefully you
 # will see the difference.
 
 fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9))
