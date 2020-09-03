@@ -6,10 +6,10 @@ How to plot topomaps the way EEGLAB does
 ========================================
 
 If you have previous EEGLAB experience you may have noticed that topomaps
-(topoplots) generated using mne-python look a little different from those
+(topoplots) generated using MNE-Python look a little different from those
 created in EEGLAB. If you prefer the EEGLAB style this example will show you
 how to calculate head sphere origin and radius to obtain EEGLAB-like channel
-layout in mne.
+layout in MNE.
 
 """
 # Authors: Mikołaj Magnuski <mmagnuski@swps.edu.pl>
@@ -44,20 +44,21 @@ fake_evoked.set_montage(biosemi_montage)
 # Calculate sphere origin and radius
 # ----------------------------------
 #
-# EEGLAB plots head outline at the level where head circumference is measured
-# in 10-20 system (a line going through Fpz, T8/T4, Oz and T7/T3 channels).
-# MNE places the head outline lower on the z dimension: approximattely at the
-# level of LPA, RPA fiducial markers. Therefore to use the EEGLAB layout we
+# EEGLAB plots head outline at the level where the head circumference is
+# measured
+# in the 10-20 system (a line going through Fpz, T8/T4, Oz and T7/T3 channels).
+# MNE-Python places the head outline lower on the z dimension, at the level of
+# the anatomical landmarks :term:`LPA, RPA, and NAS <fiducial points>`.
+# Therefore to use the EEGLAB layout we
 # have to move the origin of the reference sphere (a sphere that is used as a
 # reference when projecting channel locations to a 2d plane) a few centimeters
 # up.
 #
-# Instead of approximating this position by eye, as we did in the sensor
-# locations tutorial :ref:`tut-sensor-locations`, we will calculate it using
-# the position of Fpz, T8, Oz and T7 channels available in out montage.
+# Instead of approximating this position by eye, as we did in `the sensor
+# locations tutorial <tut-sensor-locations>`, here we will calculate it using
+# the position of Fpz, T8, Oz and T7 channels available in our montage.
 
-# first we obtain the 3d positions of selected channels (this should be easier
-# once we have ``.get_channel_positions()`` method available):
+# first we obtain the 3d positions of selected channels
 check_ch = ['Oz', 'Fpz', 'T7', 'T8']
 ch_idx = [fake_evoked.ch_names.index(ch) for ch in check_ch]
 pos = np.stack([fake_evoked.info['chs'][idx]['loc'][:3] for idx in ch_idx])
@@ -67,11 +68,11 @@ pos = np.stack([fake_evoked.info['chs'][idx]['loc'][:3] for idx in ch_idx])
 radius = np.abs(pos[[2, 3], 0]).mean()
 
 # then we obtain the x, y, z sphere center this way:
-# x - x position of the Oz channel (should be very close to 0)
-# y - y position of the T8 channel (should be very close to 0 too)
-# z - average z position of Oz, Fpz, T7 and T8 (their z position should be the
-#     the same, so we could also use just one of these channels), it should be
-#     positive and somewhere around `0.03` (3 cm)
+# x: x position of the Oz channel (should be very close to 0)
+# y: y position of the T8 channel (should be very close to 0 too)
+# z: average z position of Oz, Fpz, T7 and T8 (their z position should be the
+#    the same, so we could also use just one of these channels), it should be
+#    positive and somewhere around `0.03` (3 cm)
 x = pos[0, 0]
 y = pos[-1, 1]
 z = pos[:, -1].mean()
@@ -83,7 +84,7 @@ print([f'{v:0.5f}' for v in [x, y, z, radius]])
 # Compare MNE and EEGLAB channel layout
 # -------------------------------------
 #
-# We already have the required x, y, z sphere center and its radius - we can
+# We already have the required x, y, z sphere center and its radius — we can
 # use these values passing them to the ``sphere`` argument of many
 # topo-plotting functions (by passing ``sphere=(x, y, z, radius)``).
 
