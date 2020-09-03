@@ -235,7 +235,7 @@ plot_dig_alignment(head_space * 1e3)  # m → mm
 # from the "head" to the "mri" coordinate frame. Since the MRI scalp surface
 # is in RAS coordinates, the alignment fits as expected based on the
 # coregistration. But, there's one more step, the RAS coordinates have to be
-# transformed to match the mri aquisition which is in voxels.
+# transformed to match the MRI acquisition which is in voxels.
 
 mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
 plot_dig_alignment(mri_space * 1e3)  # m → mm
