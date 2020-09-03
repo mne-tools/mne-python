@@ -286,11 +286,11 @@ nasion_vox = mne.transforms.apply_trans(
     mri_to_vox, nasion_mri * 1e3, move=True)
 # plot it to make sure the transforms worked
 renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(600, 600), bgcolor='w', scene=False)
+    size=(400, 400), bgcolor='w', scene=False)
 add_head(renderer, scalp_points_in_vox, 'green', opacity=1)
-mne.viz.set_3d_view(figure=renderer.figure, distance=800,
-                    focalpoint=(0., 30., 30.), elevation=45, azimuth=180)
 renderer.sphere(center=nasion_vox, color='orange', scale=10)
+mne.viz.set_3d_view(figure=renderer.figure, distance=600.,
+                    focalpoint=(0., 125., 250.), elevation=45, azimuth=180)
 renderer.show()
 
 ###############################################################################
