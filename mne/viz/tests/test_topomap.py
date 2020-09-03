@@ -228,7 +228,7 @@ def test_plot_topomap_basic(monkeypatch):
         plot_topomap(data, info, extrapolate='head', border=[1, 2, 3])
 
     # error when str is not 'mean':
-    error_msg = 'border must be numeric or "mean", got \'fancy\''
+    error_msg = "The only allowed value is 'mean', but got 'fancy' instead."
     with pytest.raises(ValueError, match=error_msg):
         plot_topomap(data, info, extrapolate='head', border='fancy')
 

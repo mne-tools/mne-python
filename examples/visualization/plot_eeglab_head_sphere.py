@@ -37,7 +37,7 @@ fake_info = mne.create_info(ch_names=biosemi_montage.ch_names, sfreq=250.,
                             ch_types='eeg')
 
 rng = np.random.RandomState(0)
-data = rng.randn((n_channels, 1)) * 1e-6
+data = rng.normal(size=(n_channels, 1)) * 1e-6
 fake_evoked = mne.io.RawArray(data, fake_info)
 fake_evoked.set_montage(biosemi_montage)
 
