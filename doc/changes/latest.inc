@@ -384,5 +384,3 @@ API
 - The default argument ``meg=True`` in :func:`mne.pick_types` will change to ``meg=False`` in version 0.22 by `Clemens Brunner`_
 
 - Added :meth:`mne.io.Raw.get_montage`, which obtains the montage that an instance has, by `Adam Li`_
-
-- Added :meth:`mne.io.Raw.get_ch_positions`, which obtains the channel positions and coordinate frame that an instance has, by `Adam Li`_
