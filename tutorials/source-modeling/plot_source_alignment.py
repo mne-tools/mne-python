@@ -227,14 +227,13 @@ plot_dig_alignment(head_space)
 
 ###############################################################################
 # Next, we'll apply the precomputed ``trans`` to convert the digitized points
-# from "head" to "meg" coordinate frame. It looks pretty good, but the
-# coordinate frames aren't actually perfectly aligned yet. This underscores
-# why interactive use of `~mne.viz.plot_alignment` is such an important step:
-# static plots can sometimes *look okay* even if they're not actually aligned
-# properly.
+# from the "head" to the "mri" coordinate frame. Since the MRI scalp surface
+# is in RAS coordinates, the alignment fits as expected based on the
+# coregistration. But, there's one more step, the RAS coordinates have to be
+# transformed to match the mri aquisition which is in voxels.
 
-meg_space = mne.transforms.apply_trans(trans, head_space, move=True)
-plot_dig_alignment(meg_space)
+mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
+plot_dig_alignment(mri_space)
 
 ###############################################################################
 # Finally, we'll apply a second transformation to the already-transformed
@@ -255,9 +254,9 @@ plot_dig_alignment(meg_space)
 vox2ras_tkr = t1_mgh.header.get_vox2ras_tkr()
 ras2vox_tkr = linalg.inv(vox2ras_tkr)
 
-vox_space = mne.transforms.apply_trans(ras2vox_tkr, meg_space * 1e3)  # m → mm
-mri_space = ((vox_space - 128) * [1, -1, 1])[:, [0, 2, 1]] * 1e-3
-plot_dig_alignment(mri_space)
+vox_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space * 1e3)  # m → mm
+vox_space = ((vox_space - 128) * [1, -1, 1])[:, [0, 2, 1]] * 1e-3
+plot_dig_alignment(vox_space)
 
 
 ###############################################################################
