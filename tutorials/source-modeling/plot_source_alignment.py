@@ -73,10 +73,11 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 #
 # * :blue:`"meg"`: the coordinate frame for the physical locations of MEG
 #   sensors
-# * :gray:`"mri"` (the coordinate frame for MRI images, and scalp/skull/brain
+# * :gray:`"mri"`: the coordinate frame for MRI images, and scalp/skull/brain
 #   surfaces derived from the MRI images
-# * :pink`"head"`: the coordinate frame for digitized sensor locations and
+# * :pink:`"head"`: the coordinate frame for digitized sensor locations and
 #   scalp landmarks ("fiducials")
+#
 #
 # Each of these, plus a fourth coordinate frame "ras", are described in more
 # detail below.
