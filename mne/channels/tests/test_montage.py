@@ -1304,7 +1304,7 @@ def test_set_montage_with_missing_coordinates():
     )
 
 
-def test_get_ch_positions():
+def test_get_montage_ch_positions():
     """Test getting channel positions from Instance."""
     # read in BV test dataset and make sure montage
     # fulfills roundtrip on non-standard montage
@@ -1326,22 +1326,9 @@ def test_get_ch_positions():
 
     # set a montage and new channel positions should match
     raw_bv.set_montage(montage)
-    ch_positions, coord_frame = raw_bv.get_ch_positions()
-    assert list(set(coord_frame.values())) == ['head']
     assert montage.dig[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     montage_ch_pos = montage._get_ch_pos()
     montage_ch_pos.pop('EEG000')  # ref, not used
-
-    # all montage channels should match new channel positions
-    # other channels should match original channel positions
-    assert set(ch_positions) == set(montage_ch_pos)
-    for ch, pos in ch_positions.items():
-        assert_allclose(montage_ch_pos[ch], pos, err_msg=ch)
-
-    # if no montage, ch_positions should be all nans
-    raw_bv.set_montage(None)
-    ch_positions, coord_frame = raw_bv.get_ch_positions()
-    assert np.all(np.isnan(np.sum(pos)) for ch, pos in ch_positions.items())
 
     # read in testing data and assert montage roundtrip
     raw = read_raw_fif(fif_fname)
@@ -1358,7 +1345,7 @@ def test_get_ch_positions():
     raw.set_montage(eeg_montage, on_missing='ignore')
 
     # set a montage and new channel positions should match
-    ch_positions, coord_frame = raw.get_ch_positions()
+    ch_positions = raw.get_montage()._get_ch_pos()
     montage_ch_pos = eeg_montage._get_ch_pos()
 
     # all montage channels should match new channel positions
@@ -1366,11 +1353,6 @@ def test_get_ch_positions():
     for ch, pos in ch_positions.items():
         if ch in montage_ch_pos:
             assert_array_equal(montage_ch_pos[ch], pos)
-
-    # if no montage, ch_positions should be all nans
-    raw.set_montage(None)
-    ch_positions, coord_frame = raw.get_ch_positions()
-    assert np.all(np.isnan(np.sum(pos)) for ch, pos in ch_positions.items())
 
 
 def test_get_montage():
@@ -1391,6 +1373,10 @@ def test_get_montage():
     raw.set_montage(test_montage, on_missing='ignore')
     test_chs = raw.info['chs']
     assert_object_equal(orig_chs, test_chs)
+
+    # if montage gets set to None
+    raw.set_montage(None)
+    assert raw.get_montage() is None
 
     # read in BV test dataset and make sure montage
     # fulfills roundtrip on non-standard montage

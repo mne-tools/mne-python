@@ -237,58 +237,6 @@ class ContainsMixin(object):
         return _get_channel_types(self.info, picks=picks, unique=unique,
                                   only_data_chs=only_data_chs)
 
-    def get_ch_positions(self, picks=None):
-        """Get a dictionary of channel positions for each channel.
-
-        Channel positions are in meters in the specified coordinate frame
-        of the montage. All channel positions are a 3-dimensional vector
-        corresponding to xyz positions in meters.
-
-        For more information on the different channel type
-        positions obtained, see :class:`mne.Info` documentation.
-
-        Parameters
-        ----------
-        picks : str | list | slice | None
-            None corresponds to all data channels that are not MEG.
-
-        Returns
-        -------
-        ch_positions : dict | None
-            A dictionary with keys as the ch_names and values as
-             corresponding list of xyz coordinates in the montage
-             coordinate frame. If there are no channel coordinates,
-             then returns a dictionary of nans.
-        ch_frames : dict
-            A dictionary with keys as the ch_names and values as
-             corresponding montage coordinate frame. If there are
-             no channel frames, then returns a dictionary of nans.
-        """
-        # only get channels that were picked
-        picks = _picks_to_idx(self.info, picks)
-        chs = [self.info['ch_names'][ipick] for ipick in picks]
-
-        # use the montage to get the channels
-        montage = self.get_montage()
-        if montage is None:
-            nan_coords = {ch: np.nan for ch in chs}
-            return nan_coords, nan_coords
-        montage = montage.copy()
-
-        # get the channel positions from montage
-        ch_pos_dict = montage._get_ch_pos().copy()
-        # get the channel frames from montage
-        ch_frame_dict = dict()
-        for ch_name, dig in zip(montage.ch_names, montage.dig):
-            ch_frame_dict[ch_name] = _frame_to_str[dig['coord_frame']]
-
-        # only get the picks
-        ch_positions = {ch: pos for ch, pos in ch_pos_dict.items()
-                        if ch in chs}
-        ch_coord_frames = {ch: frame for ch, frame in
-                           ch_frame_dict.items() if ch in chs}
-        return ch_positions, ch_coord_frames
-
     @fill_doc
     def get_montage(self):
         """Get a DigMontage from instance.
