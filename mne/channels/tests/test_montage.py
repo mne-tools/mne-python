@@ -1353,7 +1353,7 @@ def test_get_montage():
     dig_montage = read_dig_fif(fif_dig_montage_fname)
 
     # Make a BrainVision file like the one the user would have had
-    # with testing datasete 'test.vhdr'
+    # with testing dataset 'test.vhdr'
     raw_bv = read_raw_brainvision(bv_fname, preload=True)
     raw_bv_2 = raw_bv.copy()
 
