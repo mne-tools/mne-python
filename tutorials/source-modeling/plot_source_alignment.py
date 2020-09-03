@@ -23,6 +23,7 @@ import nibabel as nib
 from scipy import linalg
 
 import mne
+from mne.io.constants import FIFF
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
@@ -225,7 +226,9 @@ scalp_pts_in_meg_coord = mne.transforms.apply_trans(
     head_to_meg, scalp_pts_in_head_coord, move=True)
 
 # The "mri_voxel"→"mri" transform is embedded in the header of the T1 image
-# file. We'll invert it and then apply it to the original `seghead_rr` points
+# file. We'll invert it and then apply it to the original `seghead_rr` points.
+# No unit conversion necessary: this transform expects mm and the scalp surface
+# is defined in mm.
 vox_to_mri = t1_mgh.header.get_vox2ras_tkr()
 mri_to_vox = linalg.inv(vox_to_mri)
 scalp_points_in_vox = mne.transforms.apply_trans(
@@ -237,8 +240,9 @@ scalp_points_in_vox = mne.transforms.apply_trans(
 # "mri_voxel" coordinate frame:
 
 
-def add_head(renderer, points, color):
-    renderer.mesh(*points.T, triangles=seghead_tri, color=color, opacity=0.95)
+def add_head(renderer, points, color, opacity=0.95):
+    renderer.mesh(*points.T, triangles=seghead_tri, color=color,
+                  opacity=opacity)
 
 
 renderer = mne.viz.backends.renderer.create_3d_figure(
@@ -258,7 +262,38 @@ renderer.show()
 # (above, behind, and to the left of the subject), whereas the other three
 # coordinate frames have their origin roughly in the center of the head.
 #
-#
+# Example: MRI defacing
+# ^^^^^^^^^^^^^^^^^^^^^
+# For a real-world example of using these transforms, consider the task of
+# defacing the MRI to preserve subject anonymity. If you know the points in
+# the "head" coordinate frame (as you might if you're basing the defacing on
+# digitized points) you would need to transform them into "mri" or "mri_voxel"
+# in order to apply the blurring or smoothing operations to the MRI surfaces or
+# images. Here's what that would look like (we'll use the nasion landmark as a
+# representative example):
+
+# get the nasion
+nasion = [p for p in raw.info['dig'] if
+          p['kind'] == FIFF.FIFFV_POINT_CARDINAL and
+          p['ident'] == FIFF.FIFFV_POINT_NASION][0]
+assert nasion['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+nasion = nasion['r']  # get just the XYZ values
+
+# transform it from head to MRI space (recall that `trans` is head → mri)
+nasion_mri = mne.transforms.apply_trans(trans, nasion, move=True)
+# then transform to voxel space, after converting from meters to millimeters
+nasion_vox = mne.transforms.apply_trans(
+    mri_to_vox, nasion_mri * 1e3, move=True)
+# plot it to make sure the transforms worked
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(600, 600), bgcolor='w', scene=False)
+add_head(renderer, scalp_points_in_vox, 'green', opacity=1)
+mne.viz.set_3d_view(figure=renderer.figure, distance=800,
+                    focalpoint=(0., 0., 0.), elevation=60, azimuth=180)
+renderer.sphere(center=nasion_vox, color='orange', scale=10)
+renderer.show()
+
+###############################################################################
 # Defining the head↔MRI ``trans`` using the GUI
 # ---------------------------------------------
 # You can try creating the head↔MRI transform yourself using
