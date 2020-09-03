@@ -17,7 +17,7 @@ import re
 import numpy as np
 
 from ...utils import verbose, logger, warn
-from ..utils import _blk_read_lims
+from ..utils import _blk_read_lims, _mult_cal_one
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _unique_channel_names
 from ..constants import FIFF
@@ -128,7 +128,8 @@ class RawEDF(BaseRaw):
             # Read TAL data exploiting the header info (no regexp)
             idx = np.empty(0, int)
             tal_data = self._read_segment_file(
-                [], idx, 0, 0, int(self.n_times), None, None)
+                np.empty((0, self.n_times)), idx, 0, 0, int(self.n_times),
+                None, None)
             onset, duration, desc = _read_annotations_edf(tal_data[0])
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
@@ -253,6 +254,19 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
         this_sel = np.concatenate([this_sel, tal_idx])
     tal_data = []
 
+    # only try to read the stim channel if it's not None and it's
+    # actually one of the requested channels
+    stim_channel_idx = list()
+    if isinstance(idx, slice):
+        use_idx = np.arange(idx.start, idx.stop)
+    else:
+        use_idx = idx
+    for stim_ch in stim_channel_idxs:
+        stim_ch_idx = np.where(use_idx == stim_ch)[0].tolist()
+        if len(stim_ch_idx):
+            stim_channel_idx.append(stim_ch_idx)
+    stim_channel_idx = np.array(stim_channel_idx).ravel()
+
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
     block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
@@ -272,6 +286,11 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
             # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
             many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
                                   dtype_byte, dtype).reshape(n_read, -1)
+            r_sidx = r_lims[ai][0]
+            r_eidx = (buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1])
+            d_sidx = d_lims[ai][0]
+            d_eidx = d_lims[ai + n_read - 1][1]
+            one = np.empty((len(use_idx), d_eidx - d_sidx), dtype=data.dtype)
             for ii, ci in enumerate(this_sel):
                 # This now has size (n_chunks_read, n_samp[ci])
                 ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
@@ -280,13 +299,12 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
                     tal_data.append(ch_data)
                     continue
 
-                r_sidx = r_lims[ai][0]
-                r_eidx = (buf_len * (n_read - 1) +
-                          r_lims[ai + n_read - 1][1])
-                d_sidx = d_lims[ai][0]
-                d_eidx = d_lims[ai + n_read - 1][1]
+                ch_data = ch_data * cal[idx][ii]
+                ch_data += offsets[idx][ii]
+                ch_data *= gains[idx][ii]
+
                 if n_samps[ci] != buf_len:
-                    if ci in stim_channel_idxs:
+                    if ii in stim_channel_idx:
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -302,30 +320,11 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
                         ch_data = resample(
                             ch_data.astype(np.float64), buf_len, n_samps[ci],
                             npad=0, axis=-1)
+                elif ii in stim_channel_idx:
+                    ch_data = np.bitwise_and(ch_data.astype(int), 2**17 - 1)
                 assert ch_data.shape == (len(ch_data), buf_len)
-                data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
-
-    # only try to read the stim channel if it's not None and it's
-    # actually one of the requested channels
-    stim_channel_idx = list()
-    if isinstance(idx, slice):
-        use_idx = np.arange(idx.start, idx.stop)
-    else:
-        use_idx = idx
-    for stim_ch in stim_channel_idxs:
-        stim_ch_idx = np.where(use_idx == stim_ch)[0].tolist()
-        if len(stim_ch_idx):
-            stim_channel_idx.append(stim_ch_idx)
-    stim_channel_idx = np.array(stim_channel_idx).ravel()
-
-    data *= cal[idx][:, np.newaxis]
-    data += offsets[idx][:, np.newaxis]
-    data *= gains[idx][:, np.newaxis]
-
-    if len(stim_channel_idx) > 0:
-        stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                              2**17 - 1)
-        data[stim_channel_idx, :] = stim
+                one[ii] = ch_data.ravel()[r_sidx:r_eidx]
+            data[:, d_sidx:d_eidx] = one
 
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
