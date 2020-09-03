@@ -19,7 +19,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import mne
-from mne.viz import plot_topomap
 
 
 print(__doc__)
@@ -38,7 +37,7 @@ fake_info = mne.create_info(ch_names=biosemi_montage.ch_names, sfreq=250.,
 
 rng = np.random.RandomState(0)
 data = rng.normal(size=(n_channels, 1)) * 1e-6
-fake_evoked = mne.io.RawArray(data, fake_info)
+fake_evoked = mne.EvokedArray(data, fake_info)
 fake_evoked.set_montage(biosemi_montage)
 
 ###############################################################################
@@ -118,9 +117,10 @@ ax[1].set_title('EEGLAB channel projection', fontweight='bold')
 
 fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9))
 
-plot_topomap(fake_evoked.data[:, 0], axes=ax[0], show=False)
-plot_topomap(fake_evoked.data[:, 0], sphere=(x, y, z, radius), axes=ax[1],
-             show=False)
+mne.viz.plot_topomap(fake_evoked.data[:, 0], fake_evoked.info, axes=ax[0],
+                     show=False)
+mne.viz.plot_topomap(fake_evoked.data[:, 0], fake_evoked.info, axes=ax[1],
+                     show=False, sphere=(x, y, z, radius))
 
 # make x and limits the same in both panels
 ylm = ax[1].get_ylim()
@@ -129,6 +129,5 @@ ax[0].set_ylim(ylm)
 ax[0].set_xlim(xlm)
 
 # add titles
-fig.texts[0].remove()
 ax[0].set_title('MNE', fontweight='bold')
 ax[1].set_title('EEGLAB', fontweight='bold')
