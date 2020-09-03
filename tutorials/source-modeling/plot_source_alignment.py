@@ -252,7 +252,7 @@ add_head(renderer, scalp_pts_in_meg_coord, 'blue')
 add_head(renderer, scalp_pts_in_head_coord, 'pink')
 add_head(renderer, scalp_points_in_vox, 'green')
 mne.viz.set_3d_view(figure=renderer.figure, distance=800,
-                    focalpoint=(0., 0., 30.), elevation=105, azimuth=180)
+                    focalpoint=(0., 30., 30.), elevation=105, azimuth=180)
 renderer.show()
 
 ###############################################################################
@@ -289,7 +289,7 @@ renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(600, 600), bgcolor='w', scene=False)
 add_head(renderer, scalp_points_in_vox, 'green', opacity=1)
 mne.viz.set_3d_view(figure=renderer.figure, distance=800,
-                    focalpoint=(0., 0., 0.), elevation=60, azimuth=180)
+                    focalpoint=(0., 30., 30.), elevation=45, azimuth=180)
 renderer.sphere(center=nasion_vox, color='orange', scale=10)
 renderer.show()
 
