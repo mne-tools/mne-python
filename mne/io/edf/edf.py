@@ -243,29 +243,18 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
     data_offset = raw_extras['data_offset']
     stim_channel_idxs = raw_extras['stim_channel_idxs']
     orig_sel = raw_extras['sel']
-    tal_idx = raw_extras.get('tal_idx', [])
+    tal_idx = raw_extras.get('tal_idx', np.empty(0, int))
     subtype = raw_extras['subtype']
     cal = raw_extras['cal']
     offsets = raw_extras['offsets']
     gains = raw_extras['units']
 
-    this_sel = orig_sel[idx]
-    if len(tal_idx):
-        this_sel = np.concatenate([this_sel, tal_idx])
+    read_sel = np.concatenate([orig_sel[idx], tal_idx])
     tal_data = []
 
     # only try to read the stim channel if it's not None and it's
     # actually one of the requested channels
-    stim_channel_idx = list()
-    if isinstance(idx, slice):
-        use_idx = np.arange(idx.start, idx.stop)
-    else:
-        use_idx = idx
-    for stim_ch in stim_channel_idxs:
-        stim_ch_idx = np.where(use_idx == stim_ch)[0].tolist()
-        if len(stim_ch_idx):
-            stim_channel_idx.append(stim_ch_idx)
-    stim_channel_idx = np.array(stim_channel_idx).ravel()
+    idx_arr = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
 
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
@@ -290,21 +279,24 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
             r_eidx = (buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1])
             d_sidx = d_lims[ai][0]
             d_eidx = d_lims[ai + n_read - 1][1]
-            one = np.empty((len(use_idx), d_eidx - d_sidx), dtype=data.dtype)
-            for ii, ci in enumerate(this_sel):
+            one = np.zeros((len(orig_sel), d_eidx - d_sidx), dtype=data.dtype)
+            for ii, ci in enumerate(read_sel):
                 # This now has size (n_chunks_read, n_samp[ci])
                 ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
 
-                if len(tal_idx) and ci in tal_idx:
+                if ci in tal_idx:
                     tal_data.append(ch_data)
                     continue
 
-                ch_data = ch_data * cal[idx][ii]
-                ch_data += offsets[idx][ii]
-                ch_data *= gains[idx][ii]
+                orig_idx = idx_arr[ii]
+                ch_data = ch_data * cal[orig_idx]
+                ch_data += offsets[orig_idx]
+                ch_data *= gains[orig_idx]
+
+                assert ci == orig_sel[orig_idx]
 
                 if n_samps[ci] != buf_len:
-                    if ii in stim_channel_idx:
+                    if orig_idx in stim_channel_idxs:
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -320,11 +312,10 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
                         ch_data = resample(
                             ch_data.astype(np.float64), buf_len, n_samps[ci],
                             npad=0, axis=-1)
-                elif ii in stim_channel_idx:
+                elif orig_idx in stim_channel_idxs:
                     ch_data = np.bitwise_and(ch_data.astype(int), 2**17 - 1)
-                assert ch_data.shape == (len(ch_data), buf_len)
-                one[ii] = ch_data.ravel()[r_sidx:r_eidx]
-            data[:, d_sidx:d_eidx] = one
+                one[orig_idx] = ch_data.ravel()[r_sidx:r_eidx]
+            _mult_cal_one(data[:, d_sidx:d_eidx], one, idx, cals, mult)
 
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
@@ -393,14 +384,12 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
-    for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
-        ch_name, physical_range, cal = ch_info
+    for idx, ch_name in enumerate(ch_names):
         chan_info = {}
-        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range, cal))
-        chan_info['cal'] = cal
+        chan_info['cal'] = 1.
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
-        chan_info['range'] = physical_range
+        chan_info['range'] = 1.
         chan_info['unit_mul'] = FIFF.FIFF_UNITM_NONE
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
@@ -490,14 +479,11 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     info._update_redundant()
 
     # Later used for reading
-    physical_range = np.array([ch['range'] for ch in chs])
-    cal = (physical_range / np.array([ch['cal'] for ch in chs]))
-    edf_info['cal'] = cal
+    edf_info['cal'] = physical_ranges / cals
 
     # physical dimension in µV
-    physical_min = edf_info['physical_min']
-    digital_min = edf_info['digital_min']
-    edf_info['offsets'] = physical_min - (digital_min * cal)
+    edf_info['offsets'] = (
+        edf_info['physical_min'] - edf_info['digital_min'] * edf_info['cal'])
     del edf_info['physical_min']
     del edf_info['digital_min']
 

@@ -10,6 +10,7 @@ import os.path as op
 import numpy as np
 
 from ..base import BaseRaw
+from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
@@ -321,8 +322,7 @@ class RawNIRX(BaseRaw):
         this_data = np.zeros((len(wls[0]) * 2, stop - start))
         this_data[0::2, :] = wls[0]
         this_data[1::2, :] = wls[1]
-        data[:] = this_data[idx]
-
+        _mult_cal_one(data, this_data, idx, cals, mult)
         return data
 
 

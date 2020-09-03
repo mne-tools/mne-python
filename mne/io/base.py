@@ -363,7 +363,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                                      cumul_lens[:-1]))
 
         # set up cals and mult (cals, compensation, and projector)
+        n_out = len(np.arange(len(self.ch_names))[idx])
         cals = self._cals.ravel()[np.newaxis, :]
+        if projector is not None:
+            assert projector.shape[0] == projector.shape[1] == cals.shape[1]
         if self._comp is not None:
             if projector is not None:
                 mult = self._comp * cals
@@ -374,7 +377,21 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             mult = projector[idx] * cals
         else:
             mult = None
-        cals = cals.T[idx]
+        del projector
+
+        if mult is None:
+            cals = cals.T[idx]
+            assert cals.shape == (n_out, 1)
+            need_idx = idx  # sufficient just to read the given channels
+        else:
+            cals = None  # shouldn't be used
+            assert mult.shape == (n_out, len(self.ch_names))
+            # read all necessary for proj
+            need_idx = np.where(np.any(mult, axis=0))[0]
+            logger.debug(
+                f'    Reading {len(need_idx)}/{len(self.ch_names)} channels'
+                f'due to projection')
+        assert (mult is None) ^ (cals is None)  # xor
 
         # read from necessary files
         offset = 0
@@ -390,7 +407,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             n_read = stop_file - start_file
             this_sl = slice(offset, offset + n_read)
             # reindex back to original file
-            orig_idx = _convert_slice(self._read_picks[fi][idx])
+            orig_idx = _convert_slice(self._read_picks[fi][need_idx])
             _ReadSegmentFileProtector(self)._read_segment_file(
                 data[:, this_sl], orig_idx, fi,
                 int(start_file), int(stop_file), cals, mult)
@@ -1790,11 +1807,13 @@ class _ReadSegmentFileProtector(object):
 
     def __init__(self, raw):
         self.__raw = raw
+        assert hasattr(raw, '_projector')
         self._filenames = raw._filenames
         self._raw_extras = raw._raw_extras
 
-    def _read_segment_file(self, *args, **kwargs):
-        return self.__raw.__class__._read_segment_file(self, *args, **kwargs)
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        return self.__raw.__class__._read_segment_file(
+            self, data, idx, fi, start, stop, cals, mult)
 
 
 class _RawShell(object):

@@ -78,7 +78,9 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
     one = np.asarray(one, dtype=data_view.dtype)
     assert data_view.shape[1] == one.shape[1]
     if mult is not None:
-        data_view[:] = np.dot(mult, one)
+        mult.ndim == one.ndim == 2
+        assert mult.shape[1] == one.shape[0]
+        data_view[:] = mult @ one
     else:
         if isinstance(idx, slice):
             data_view[:] = one[idx]

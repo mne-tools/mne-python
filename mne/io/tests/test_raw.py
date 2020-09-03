@@ -54,7 +54,8 @@ def test_orig_units():
 
 
 def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
-                     boundary_decimal=2, **kwargs):
+                     boundary_decimal=2, test_scaling=True, test_rank=True,
+                     **kwargs):
     """Test reading, writing and slicing of raw classes.
 
     Parameters
@@ -121,14 +122,10 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         elif 'mag' in raw:
             meg, atol = 'mag', 1e-24
         else:
-            assert 'fnirs_cw_amplitude' in raw
+            assert 'fnirs_cw_amplitude' in raw, 'New channel type necessary?'
             fnirs, atol = 'fnirs_cw_amplitude', 1e-10
         picks = pick_types(
             other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
-        # first check that our data are (probably) in the right units
-        maxval = atol * 1e16
-        data = np.abs(other_raw.get_data(picks))
-        #assert_array_less(data, maxval)
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
         proj /= proj.shape[1]
@@ -139,7 +136,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         assert len(other_raw.info['projs']) == 0
         other_raw.add_proj(proj)
         assert len(other_raw.info['projs']) == 1
-        # Three orders of projector application and data loading should all be
+        # Orders of projector application, data loading, and reordering
         # equivalent:
         # 1. load->apply->get
         data_load_apply_get = \
@@ -151,26 +148,68 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         with pytest.raises(RuntimeError, match='loaded'):
             apply.copy().pick(picks[0]).get_data()
         # 3. apply->load->get
-        data_apply_load_get = apply.load_data().get_data(picks)
-        data_apply_load_get_0 = apply.pick(picks[0]).get_data()[0]
+        data_apply_load_get = apply.copy().load_data().get_data(picks)
+        data_apply_load_get_0 = \
+            apply.copy().load_data().pick(picks[0]).get_data()[0]
+        # 4. reorder->apply->load->get
+        all_picks = np.arange(len(other_raw.ch_names))
+        reord = np.concatenate((
+            picks[1::2],
+            picks[0::2],
+            np.setdiff1d(all_picks, picks)))
+        rev = np.argsort(reord)
+        assert_array_equal(reord[rev], all_picks)
+        assert_array_equal(rev[reord], all_picks)
+        reorder = other_raw.copy().pick(reord)
+        assert_allclose(reorder.get_data([0]), other_raw.get_data(picks[1]))
+        assert_allclose(reorder.get_data([1]), other_raw.get_data(picks[0]))
+        reorder_apply = reorder.copy().apply_proj()
+        assert_allclose(reorder_apply.get_data([1]), apply.get_data(picks[0]))
+        assert_allclose(reorder_apply.get_data([0]), apply.get_data(picks[1]))
+        data_reorder_apply_load_get = reorder_apply.load_data().get_data(rev)
+        data_reorder_apply_load_get_0 = \
+            reorder_apply.copy().load_data().pick([1]).get_data()[0]
+        assert (data_load_apply_get.shape ==
+                data_apply_get.shape ==
+                data_apply_load_get.shape ==
+                data_reorder_apply_load_get)
         del apply
+        # first check that our data are (probably) in the right units
+        data = data_load_apply_get.copy()
+        data -= np.mean(data, axis=-1, keepdims=True)  # offsets
+        np.abs(data, out=data)
+        if test_scaling:
+            maxval = atol * 1e16
+            assert_array_less(data, maxval)
+            minval = atol * 1e6
+            assert_array_less(minval, np.median(data))
+        else:
+            atol = 1e-7 * np.median(data)  # 1e-7 * MAD
         # ranks should all be reduced by 1
+        if test_rank == 'less':
+            cmp = np.less
+        else:
+            cmp = np.equal
         rank_load_apply_get = np.linalg.matrix_rank(data_load_apply_get)
         rank_apply_get = np.linalg.matrix_rank(data_apply_get)
         rank_apply_load_get = np.linalg.matrix_rank(data_apply_load_get)
-        assert rank_load_apply_get == len(col_names) - 1
-        #assert rank_apply_get == len(col_names) - 1
-        #assert rank_apply_load_get == len(col_names) - 1
+        rank_apply_load_get = np.linalg.matrix_rank(data_apply_load_get)
+        assert cmp(rank_load_apply_get, len(col_names) - 1)
+        assert cmp(rank_apply_get, len(col_names) - 1)
+        assert cmp(rank_apply_load_get, len(col_names) - 1)
         # and they should all match
-        assert_allclose(data_apply_get[0], data_apply_get_0)
-        #assert_allclose(data_load_apply_get[0], data_apply_load_get_0)
-        #assert_allclose(data_load_apply_get, data_apply_get, atol=atol,
-        #                err_msg='before != after, likely _mult_cal_one prob')
-        #assert_allclose(data_load_apply_get, data_apply_load_get, atol=atol,
-        #                err_msg='before != after, likely _mult_cal_one prob')
+        t_kw = dict(
+            atol=atol, err_msg='before != after, likely _mult_cal_one prob')
+        assert_allclose(data_apply_get[0], data_apply_get_0, **t_kw)
+        assert_allclose(data_reorder_apply_load_get[0],
+                        data_reorder_apply_load_get_0, **t_kw)
+        assert_allclose(data_load_apply_get[0], data_apply_load_get_0, **t_kw)
+        assert_allclose(data_load_apply_get, data_apply_get, **t_kw)
+        assert_allclose(data_load_apply_get, data_apply_load_get, **t_kw)
         if 'eeg' in raw:
             other_raw.del_proj()
-            direct = other_raw.copy().load_data().set_eeg_reference().get_data()
+            direct = \
+                other_raw.copy().load_data().set_eeg_reference().get_data()
             other_raw.set_eeg_reference(projection=True)
             assert len(other_raw.info['projs']) == 1
             this_proj = other_raw.info['projs'][0]['data']
@@ -178,9 +217,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             assert this_proj['data'].shape == proj['data']['data'].shape
             assert_allclose(this_proj['data'], proj['data']['data'])
             proj = other_raw.apply_proj().get_data()
-            #assert_allclose(proj[picks], data_load_apply_get, atol=1e-10)
-            #assert_allclose(proj, direct, atol=1e-10,
-            #                err_msg='proj != direct, maybe _mult_cal_one prob')
+            assert_allclose(proj[picks], data_load_apply_get, atol=1e-10)
+            assert_allclose(proj, direct, atol=1e-10, err_msg=t_kw['err_msg'])
     else:
         raw = reader(**kwargs)
     assert_named_constants(raw.info)

@@ -184,6 +184,8 @@ Changelog
 Bug
 ~~~
 
+- Fix bug with non-preloaded data when using ``raw.apply_proj().load_data().get_data()`` where projectors were not applied by `Eric Larson`_
+
 - Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` by `Lau Møller Andersen`_
 
 - Fix bug by adding error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` by `Lau Møller Andersen`_
