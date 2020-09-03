@@ -153,7 +153,8 @@ biosemi_montage.plot(sphere=(0, 0, 0.035, 0.094))
 n_channels = len(biosemi_montage.ch_names)
 fake_info = mne.create_info(ch_names=biosemi_montage.ch_names, sfreq=250.,
                             ch_types=['eeg'] * n_channels)
-data = np.random.random((n_channels, 10))
+rng = np.random.RandomState(0)
+data = rng.randn((n_channels, 10)) * 1e-6
 fake_raw = mne.io.RawArray(data, fake_info)
 fake_raw.set_montage(biosemi_montage)
 
