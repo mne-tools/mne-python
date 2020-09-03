@@ -1381,7 +1381,9 @@ class _Brain(object):
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = _create_actor(glyph_mapper)
-                glyph_actor.GetProperty().SetLineWidth(2.)
+                prop = glyph_actor.GetProperty()
+                prop.SetLineWidth(2.)
+                prop.SetOpacity(vector_alpha)
                 self._renderer.plotter.add_actor(glyph_actor)
                 hemi_data['glyph_actor'].append(glyph_actor)
             else:
