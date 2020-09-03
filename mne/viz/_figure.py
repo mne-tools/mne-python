@@ -196,7 +196,7 @@ class MNESelectionFigure(MNEFigure):
 
     def _keypress(self, event):
         """Handle keypress events."""
-        if event.key in ('up', 'down'):
+        if event.key in ('up', 'down', 'b'):
             self.mne.parent_fig._keypress(event)
         else:  # check for close key
             super()._keypress(event)
@@ -520,6 +520,8 @@ class MNEBrowseFigure(MNEFigure):
             self._update_picks()
             self._update_trace_offsets()
             self._update_data()
+            if self.mne.fig_selection is not None:
+                self._update_highlighted_sensors()
             self._redraw(annotations=True)
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
@@ -1297,8 +1299,7 @@ class MNEBrowseFigure(MNEFigure):
     def _show_scalebars(self):
         """Add channel scale bars."""
         offsets = self.mne.trace_offsets
-        picks = (np.arange(self.mne.data.shape[0]) if self.mne.butterfly else
-                 self.mne.picks)
+        picks = self.mne.picks
         # TODO if butterfly, don't loop over all picks, just loop over offsets
         for ii, ch_ix in enumerate(picks):
             this_name = self.mne.ch_names[ch_ix]
