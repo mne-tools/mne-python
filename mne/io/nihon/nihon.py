@@ -13,6 +13,7 @@ from ...utils import logger, verbose, warn, fill_doc
 @fill_doc
 def read_raw_nihon(fname, preload=False, verbose=None):
     """Reader for an Nihon Kohden EEG file.
+
     Parameters
     ----------
     fname : str
@@ -20,10 +21,12 @@ def read_raw_nihon(fname, preload=False, verbose=None):
     preload : bool
         If True, all data are loaded at initialization.
     %(verbose)s
+
     Returns
     -------
     raw : instance of RawNihon
         A Raw object containing Nihon Kohden data.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -254,6 +257,7 @@ def _map_ch_to_specs(ch_name):
 @fill_doc
 class RawNihon(BaseRaw):
     """Raw object from a Nihon Kohden EEG file.
+
     Parameters
     ----------
     fname : str
@@ -261,6 +265,7 @@ class RawNihon(BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
     %(verbose)s
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -311,7 +316,7 @@ class RawNihon(BaseRaw):
 
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, cals, filename):
-    # For now we asume one control block and one data block.
+    # For now we assume one control block and one data block.
     header = raw_extras['header']
     orig_ch_names = header['ch_names']
     chs = raw_extras['chs']
