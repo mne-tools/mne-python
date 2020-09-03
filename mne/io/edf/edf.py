@@ -137,7 +137,8 @@ class RawEDF(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], self._filenames[fi])
+                                  self._raw_extras[fi], self._filenames[fi],
+                                  cals, mult)
 
 
 @fill_doc
@@ -239,20 +240,14 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
     dtype = raw_extras['dtype_np']
     dtype_byte = raw_extras['dtype_byte']
     data_offset = raw_extras['data_offset']
-    stim_channel = raw_extras['stim_channel']
+    stim_channel_idxs = raw_extras['stim_channel_idxs']
     orig_sel = raw_extras['sel']
     tal_idx = raw_extras.get('tal_idx', [])
     subtype = raw_extras['subtype']
     cal = raw_extras['cal']
-
-    # gain constructor
+    offsets = raw_extras['offsets']
     gains = raw_extras['units']
 
-    # physical dimension in µV
-    physical_min = raw_extras['physical_min']
-    digital_min = raw_extras['digital_min']
-
-    offsets = physical_min - (digital_min * cal)
     this_sel = orig_sel[idx]
     if len(tal_idx):
         this_sel = np.concatenate([this_sel, tal_idx])
@@ -291,7 +286,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
                 d_sidx = d_lims[ai][0]
                 d_eidx = d_lims[ai + n_read - 1][1]
                 if n_samps[ci] != buf_len:
-                    if stim_channel is not None and ci in stim_channel:
+                    if ci in stim_channel_idxs:
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -312,29 +307,22 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
 
     # only try to read the stim channel if it's not None and it's
     # actually one of the requested channels
-    if stim_channel is None:  # avoid NumPy comparison to None
-        stim_channel_idx = np.array([], int)
+    stim_channel_idx = list()
+    if isinstance(idx, slice):
+        use_idx = np.arange(idx.start, idx.stop)
     else:
-        stim_channel_idx = list()
-        if isinstance(idx, slice):
-            use_idx = np.arange(idx.start, idx.stop)
-        else:
-            use_idx = idx
-        for stim_ch in stim_channel:
-            stim_ch_idx = np.where(use_idx == stim_ch)[0].tolist()
-            if len(stim_ch_idx):
-                stim_channel_idx.append(stim_ch_idx)
-        stim_channel_idx = np.array(stim_channel_idx).ravel()
+        use_idx = idx
+    for stim_ch in stim_channel_idxs:
+        stim_ch_idx = np.where(use_idx == stim_ch)[0].tolist()
+        if len(stim_ch_idx):
+            stim_channel_idx.append(stim_ch_idx)
+    stim_channel_idx = np.array(stim_channel_idx).ravel()
 
-    if subtype == 'bdf' and len(stim_channel_idx) > 0:
-        cal[stim_channel_idx] = 1
-        offsets[stim_channel_idx] = 0
-        gains[stim_channel_idx] = 1
     data *= cal[idx][:, np.newaxis]
     data += offsets[idx][:, np.newaxis]
     data *= gains[idx][:, np.newaxis]
 
-    if stim_channel is not None and len(stim_channel_idx) > 0:
+    if len(stim_channel_idx) > 0:
         stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                               2**17 - 1)
         data[stim_channel_idx, :] = stim
@@ -381,8 +369,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
     #      from `edf_info['ch_names']` and `edf_info['tal_idx']` but 'tal_idx'
     #      contains stim channels that are not TAL.
-    stim_ch_idxs, stim_ch_names = _check_stim_channel(stim_channel,
-                                                      edf_info['ch_names'])
+    stim_channel_idxs, _ = _check_stim_channel(
+        stim_channel, edf_info['ch_names'])
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
@@ -406,11 +394,11 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
-    for idx, ch_info in enumerate(zip(ch_names, physical_ranges)):
-        ch_name, physical_range = ch_info
+    for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
+        ch_name, physical_range, cal = ch_info
         chan_info = {}
-        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range))
-        chan_info['cal'] = 1.
+        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range, cal))
+        chan_info['cal'] = cal
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
         chan_info['range'] = physical_range
@@ -429,7 +417,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
-        elif idx in stim_ch_idxs:
+        elif idx in stim_channel_idxs:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -439,7 +427,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             edf_info['units'][idx] = 1
         chs.append(chan_info)
 
-    edf_info['stim_channel'] = stim_ch_idxs if len(stim_ch_idxs) else None
+    edf_info['stim_channel_idxs'] = stim_channel_idxs
 
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
@@ -451,7 +439,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     # -------------------------------------------------------------------------
 
     not_stim_ch = [x for x in range(n_samps.shape[0])
-                   if x not in stim_ch_idxs]
+                   if x not in stim_channel_idxs]
     sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
     info = _empty_info(sfreq)
@@ -506,6 +494,18 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     physical_range = np.array([ch['range'] for ch in chs])
     cal = (physical_range / np.array([ch['cal'] for ch in chs]))
     edf_info['cal'] = cal
+
+    # physical dimension in µV
+    physical_min = edf_info['physical_min']
+    digital_min = edf_info['digital_min']
+    edf_info['offsets'] = physical_min - (digital_min * cal)
+    del edf_info['physical_min']
+    del edf_info['digital_min']
+
+    if edf_info['subtype'] == 'bdf':
+        edf_info['cal'][stim_channel_idxs] = 1
+        edf_info['offsets'][stim_channel_idxs] = 0
+        edf_info['units'][stim_channel_idxs] = 1
 
     return info, edf_info, orig_units
 
