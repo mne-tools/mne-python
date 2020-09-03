@@ -1019,7 +1019,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         inst=None, plot_std=True, topomap_args=None,
                         image_args=None, psd_args=None, reject='auto',
                         sphere=None):
-    """Project unmixing matrix on interpolated sensor topography.
+    """Project mixing matrix on interpolated sensor topography.
 
     Parameters
     ----------

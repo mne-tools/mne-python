@@ -247,7 +247,7 @@ ica.plot_sources(raw)
 # Components, `this EEGLAB tutorial`_ is a good resource). We can also
 # visualize the scalp field distribution of each component using
 # :meth:`~mne.preprocessing.ICA.plot_components`. These are interpolated based
-# on the values in the ICA unmixing matrix:
+# on the values in the ICA mixing matrix:
 
 # sphinx_gallery_thumbnail_number = 9
 ica.plot_components()
