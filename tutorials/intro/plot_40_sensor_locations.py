@@ -162,8 +162,7 @@ pos = fake_raw._get_channel_positions(picks=check_ch)
 radius = pos[-1, 0].mean()
 x, y, z = pos[0, 0], pos[-1, 1], pos[:, -1].mean()
 
-with np.printoptions(precision=5, suppress=True):
-    print(np.array([x, y, z, radius]))
+print([f'{v:0.5f} for v in [x, y, z, radius]])
 
 fig, ax = plt.subplots(ncols=2, figsize=(8, 4))
 fake_raw.plot_sensors(axes=ax[0], show=False)
