@@ -242,15 +242,15 @@ def _map_ch_to_specs(ch_name):
         phys_min = 0
         phys_max = 1
     else:
-        unit_mult = 1e-6
-        phys_min = -3200
-        phys_max = 3199.902
+        unit_mult = 1e-3
+        phys_min = -12002.9
+        phys_max = 12002.56
         if ch_name.upper() in _default_chan_labels:
             idx = _default_chan_labels.index(ch_name.upper())
-            if (idx > 42 and idx < 73) or idx in [76, 77]:
-                unit_mult = 1e-3
-                phys_min = -12002.9
-                phys_max = 12002.56
+            if (idx < 42 or idx > 73) and idx not in [76, 77]:
+                unit_mult = 1e-6
+                phys_min = -3200
+                phys_max = 3199.902
     return dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max)
 
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Authors: Federico Raimondo  <federaimondo@gmail.com>
 #          simplified BSD-3 license
-import os.path as op
+from pathlib import Path
 
 from numpy.testing import assert_array_almost_equal
 
@@ -14,11 +14,11 @@ from mne.datasets.testing import data_path, requires_testing_data
 @requires_testing_data
 def test_nihon_eeg():
     """Test reading Nihon Kohden EEG files."""
-    fname = op.join(data_path(), 'NihonKohden', 'MB0400FU.EEG')
+    fname = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EEG'
     raw = read_raw_nihon(fname, preload=True)
     assert 'RawNihon' in repr(raw)
     _test_raw_reader(read_raw_nihon, fname=fname)
-    fname_edf = op.join(data_path(), 'NihonKohden', 'MB0400FU.EDF')
+    fname_edf = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EDF'
     raw_edf = read_raw_edf(fname_edf, preload=True)
 
     assert raw._data.shape == raw_edf._data.shape
