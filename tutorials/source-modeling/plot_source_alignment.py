@@ -78,18 +78,18 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 #   scalp landmarks ("fiducials")
 #
 #
-# Each of these, plus a fourth coordinate frame "mri_voxel", are described in
-# more detail below.
+# Each of these are described in more detail in the next section.
 #
 # A good way to start visualizing these coordinate frames is to use the
 # `mne.viz.plot_alignment` function, which is used for creating or inspecting
 # the transformations that bring these coordinate frames into alignment, and
-# the resulting alignment of EEG sensors, MEG sensors, brain sources, and
-# conductor models. If you provide ``subjects_dir`` and ``subject`` parameters,
-# the function automatically loads the subject's Freesurfer MRI surfaces.
-# Important for our purposes, passing ``show_axes=True`` to
-# `~mne.viz.plot_alignment` will draw the origin of each coordinate frame in a
-# different color, with axes indicated by different sized arrows:
+# displaying the resulting alignment of EEG sensors, MEG sensors, brain
+# sources, and conductor models. If you provide ``subjects_dir`` and
+# ``subject`` parameters, the function automatically loads the subject's
+# Freesurfer MRI surfaces. Important for our purposes, passing
+# ``show_axes=True`` to `~mne.viz.plot_alignment` will draw the origin of each
+# coordinate frame in a different color, with axes indicated by different sized
+# arrows:
 #
 # * shortest arrow: (**R**)ight / X
 # * medium arrow: forward / (**A**)nterior / Y
@@ -196,75 +196,69 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 ###############################################################################
 # Visualizing the transformations
 # -------------------------------
-# Let's visualize these transformations using just the scalp surface and some
-# digitized scalp points. To do this we'll write a custom function that takes
-# a set of 3D points and plots them (along with the scalp surface) in the "mri"
-# coordinate frame. Remember, *digitized scalp points* start out in the "head"
-# coordinate frame, whereas *the scalp surface* comes from the MRI.
-
-
-def plot_dig_alignment(points):
-    points = points.copy()
-    renderer = mne.viz.backends.renderer.create_3d_figure(
-        size=(800, 400), bgcolor='w', scene=False)
-    seghead_rr, seghead_tri = mne.read_surface(
-        op.join(subjects_dir, 'sample', 'surf', 'lh.seghead'))
-    renderer.mesh(*seghead_rr.T, triangles=seghead_tri, color=(0.7,) * 3,
-                  opacity=0.2)
-    for point in points:
-        renderer.sphere(center=point, color='r', scale=5)
-    mne.viz.set_3d_view(figure=renderer.figure, distance=1000,
-                        focalpoint=(0., 0., 0.), elevation=90, azimuth=0)
-    renderer.show()
-
-
-###############################################################################
-# Now that our function is defined, first we'll plot *untransformed* digitized
-# scalp points (as if they were in the "mri" coordinate frame). You can see
-# that the scalp points look good relative to each other, but the whole set of
-# scalp points is mismatched to the MRI scalp surface. Note also that we're
-# converting units before passing our points into the function: MNE-Python
-# uses SI units internally (so, distances in meters) whereas the MRI space
-# defined by Freesurfer is in millimeters.
-
-head_space = np.array([dig['r'] for dig in raw.info['dig']], dtype=float)
-plot_dig_alignment(head_space * 1e3)  # m → mm
-
-###############################################################################
-# Next, we'll apply the precomputed ``trans`` to convert the digitized points
-# from the "head" to the "mri" coordinate frame. Since the MRI scalp surface
-# is in RAS coordinates, the alignment fits as expected based on the
-# coregistration. But, there's one more step, the RAS coordinates have to be
-# transformed to match the MRI acquisition which is in voxels.
-
-mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
-plot_dig_alignment(mri_space * 1e3)  # m → mm
-
-###############################################################################
-# Finally, we'll apply a second transformation to the already-transformed
-# digitized points. That transform comes from the T1 header, and converts from
-# native MRI voxels (called the "mri_voxel" coordinate frame in MNE-Python) to
-# the "mri" coordinate frame (MRI Surface RAS). Unlike MRI Surface RAS,
+# Let's visualize these coordinate frames using just the scalp surface; this
+# will make it easier to see their relative orientations. To do this we'll
+# first load the Freesurfer scalp surface, then apply a few different
+# transforms to it. In addition to the three coordinate frames discussed above,
+# we'll also show the "mri_voxel" coordinate frame. Unlike MRI Surface RAS,
 # "mri_voxel" has its origin in the corner of the volume (the left-most,
 # posterior-most coordinate on the inferior-most MRI slice) instead of at the
 # center of the volume. "mri_voxel" is also **not** an RAS coordinate system:
 # rather, its XYZ directions are based on the acquisition order of the T1 image
-# slices, so we'll need to do some extra steps here.
-#
-# .. note::
-#     Normally, MNE-Python converts ``mri_voxel → mri`` coordinate frame
-#     automatically before displaying skin/skull/brain surfaces, so the extra
-#     steps aren't needed for most analysis tasks.
+# slices.
 
+# the head surface is stored in "mri" coordinate frame
+# (origin at center of volume, units=mm)
+seghead_rr, seghead_tri = mne.read_surface(
+    op.join(subjects_dir, 'sample', 'surf', 'lh.seghead'))
+
+# to put the scalp in the "head" coordinate frame, we apply the inverse of
+# the precomputed `trans` (which maps head → mri)
+mri_to_head = linalg.inv(trans['trans'])
+scalp_pts_in_head_coord = mne.transforms.apply_trans(
+    mri_to_head, seghead_rr, move=True)
+
+# to put the scalp in the "meg" coordinate frame, we use the inverse of
+# raw.info['dev_head_t']
+head_to_meg = linalg.inv(raw.info['dev_head_t']['trans'])
+scalp_pts_in_meg_coord = mne.transforms.apply_trans(
+    head_to_meg, scalp_pts_in_head_coord, move=True)
+
+# The "mri_voxel"→"mri" transform is embedded in the header of the T1 image
+# file. We'll invert it and then apply it to the original `seghead_rr` points
 vox_to_mri = t1_mgh.header.get_vox2ras_tkr()
 mri_to_vox = linalg.inv(vox_to_mri)
-
-vox_space = mne.transforms.apply_trans(mri_to_vox, mri_space * 1e3)  # m → mm
-vox_space = ((vox_space - 128) * [1, -1, 1])[:, [0, 2, 1]]
-plot_dig_alignment(vox_space)
-
+scalp_points_in_vox = mne.transforms.apply_trans(
+    mri_to_vox, seghead_rr, move=True)
 
 ###############################################################################
+# Now that we've transformed all the points, let's plot them. We'll use the
+# same colors used by `~mne.viz.plot_alignment` and use :green:`green` for the
+# "mri_voxel" coordinate frame:
+
+
+def add_head(renderer, points, color):
+    renderer.mesh(*points.T, triangles=seghead_tri, color=color, opacity=0.95)
+
+
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(600, 600), bgcolor='w', scene=False)
+add_head(renderer, seghead_rr, 'gray')
+add_head(renderer, scalp_pts_in_meg_coord, 'blue')
+add_head(renderer, scalp_pts_in_head_coord, 'pink')
+add_head(renderer, scalp_points_in_vox, 'green')
+mne.viz.set_3d_view(figure=renderer.figure, distance=800,
+                    focalpoint=(0., 0., 30.), elevation=105, azimuth=180)
+renderer.show()
+
+###############################################################################
+# The relative orientations of the coordinate frames can be inferred by
+# observing the direction of the subject's nose. Notice also how the origin of
+# the :green:`mri_voxel` coordinate frame is in the corner of the volume
+# (above, behind, and to the left of the subject), whereas the other three
+# coordinate frames have their origin roughly in the center of the head.
+#
+#
 # Defining the head↔MRI ``trans`` using the GUI
 # ---------------------------------------------
 # You can try creating the head↔MRI transform yourself using
