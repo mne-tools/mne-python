@@ -17,7 +17,6 @@ layout in mne.
 # License: BSD (3-clause)
 import numpy as np
 from matplotlib import pyplot as plt
-from os import path as op
 
 import mne
 from mne.viz import plot_topomap
@@ -93,10 +92,10 @@ print([f'{v:0.5f}' for v in [x, y, z, radius]])
 fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9))
 
 # we plot the channel positions with default sphere - the mne way
-fake_raw.plot_sensors(axes=ax[0], show=False)
+fake_evoked.plot_sensors(axes=ax[0], show=False)
 
 # in the second panel we plot the positions using the EEGLAB reference sphere
-fake_raw.plot_sensors(sphere=(x, y, z, radius), axes=ax[1], show=False)
+fake_evoked.plot_sensors(sphere=(x, y, z, radius), axes=ax[1], show=False)
 
 # make x and limits the same in both panels
 ylm = ax[1].get_ylim()
@@ -119,8 +118,8 @@ ax[1].set_title('EEGLAB channel projection', fontweight='bold')
 
 fig, ax = plt.subplots(ncols=2, figsize=(8, 4), gridspec_kw=dict(top=0.9))
 
-plot_topomap(fake_raw.data[:, 0], axes=ax[0], show=False)
-plot_topomap(fake_raw.data[:, 0], sphere=(x, y, z, radius), axes=ax[1],
+plot_topomap(fake_evoked.data[:, 0], axes=ax[0], show=False)
+plot_topomap(fake_evoked.data[:, 0], sphere=(x, y, z, radius), axes=ax[1],
              show=False)
 
 # make x and limits the same in both panels
