@@ -278,6 +278,32 @@ def test_chunk_duration(first_samp):
     assert_array_equal(events, expected_events)
 
 
+def test_events_from_annotation_orig_time_none():
+    # Create fake data
+    sfreq, duration_s = 100, 10
+    data = np.random.RandomState(42).randn(1, sfreq * duration_s)
+    info = mne.create_info(ch_names=['EEG1'], ch_types=['eeg'], sfreq=sfreq)
+    raw = mne.io.RawArray(data, info)
+
+    # Add annotation toward the end
+    onset = [8]
+    duration = [1]
+    description = ['0']
+    annots = mne.Annotations(onset, duration, description)
+    raw = raw.set_annotations(annots)
+
+    # Crop start of raw
+    raw.crop(tmin=7)
+
+    # Extract epochs
+    events, event_ids = mne.events_from_annotations(raw)
+    epochs = mne.Epochs(
+        raw, events, tmin=0, tmax=1, baseline=None, on_missing='warning')
+
+    # epochs is empty
+    assert_array_equal(epochs.get_data()[0], data[:, 800:901])
+
+
 def test_crop_more():
     """Test more cropping."""
     raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
