@@ -7,6 +7,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
 #          Clemens Brunner <clemens.brunner@gmail.com>
+#          Jeroen Van Der Donckt (IDlab - imec) <jeroen.vanderdonckt@ugent.be>
 #
 # License: BSD (3-clause)
 
@@ -1354,6 +1355,7 @@ def _read_annotations_edf(annotations):
             triggers = re.findall(pat, annot_file.read())
     else:
         tals = bytearray()
+        annotations = np.atleast_2d(annotations)
         for chan in annotations:
             this_chan = chan.ravel()
             if this_chan.dtype == np.int32:  # BDF
@@ -1362,12 +1364,13 @@ def _read_annotations_edf(annotations):
                 # Why only keep the first 3 bytes as BDF values
                 # are stored with 24 bits (not 32)
                 this_chan = this_chan[:, :3].ravel()
-                for s in this_chan:
-                    tals.extend(s)
+                # As ravel() returns a 1D array we can add all values at once
+                tals.extend(this_chan)
             else:
-                for s in this_chan:
-                    i = int(s)
-                    tals.extend(np.uint8([i % 256, i // 256]))
+                this_chan = chan.astype(int)
+                # Exploit np vectorized processing
+                tals.extend(np.uint8([this_chan % 256, this_chan // 256])
+                            .flatten('F'))
 
         # use of latin-1 because characters are only encoded for the first 256
         # code points and utf-8 can triggers an "invalid continuation byte"
