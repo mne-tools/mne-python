@@ -88,6 +88,7 @@ def pytest_configure(config):
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     ignore:.*Passing the dash.*:
+    ignore:.*a deprecated alias.*:
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()

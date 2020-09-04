@@ -506,7 +506,9 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
     height = (len(projs) + 1) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
-    fig_proj.canvas.set_window_title('SSP projection vectors')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        fig_proj.canvas.set_window_title('SSP projection vectors')
     offset = (1. / 6. / height)
     params['fig_proj'] = fig_proj  # necessary for proper toggling
     ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
@@ -1080,7 +1082,9 @@ def _setup_annotation_fig(params):
 
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
-    fig.canvas.set_window_title('Annotations')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        fig.canvas.set_window_title('Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
     circles = fig.radio.circles
@@ -1265,7 +1269,9 @@ def _select_bads(event, params, bads):
 
 def _show_help(col1, col2, width, height):
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    fig_help.canvas.set_window_title('Help')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        fig_help.canvas.set_window_title('Help')
 
     ax = fig_help.add_subplot(111)
     celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),

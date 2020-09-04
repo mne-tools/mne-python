@@ -173,14 +173,15 @@ def test_scale_bar():
     plt.close('all')
 
 
-def test_plot_raw():
+def test_plot_raw_traces():
     """Test plotting of raw data."""
     raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
     plt.close('all')  # ensure all are closed
     assert len(plt.get_fignums()) == 0
-    fig = raw.plot(events=events, order=[1, 7, 3], group_by='original')
+    fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
+                   group_by='original')
     assert len(plt.get_fignums()) == 1
 
     # make sure fig._mne_params is present
@@ -190,13 +191,21 @@ def test_plot_raw():
     x = fig.get_axes()[0].lines[1].get_xdata().mean()
     y = fig.get_axes()[0].lines[1].get_ydata().mean()
     data_ax = fig.axes[0]
+    assert len(fig.axes) == 5
 
     _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
     _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
     _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-    _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
-    _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+    _fake_click(fig, fig.axes[1], [0.5, 0.5])  # change time
+    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
+    _fake_click(fig, fig.axes[2], [0.5, 0.01])  # change channels to end
+    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    assert labels == [raw.ch_names[2], raw.ch_names[3]]
+    _fake_click(fig, fig.axes[2], [0.5, 0.5])  # change channels to mid
+    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
     assert len(plt.get_fignums()) == 1
     # open SSP window
     _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5])
