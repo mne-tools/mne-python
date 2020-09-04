@@ -77,6 +77,46 @@ def test_persyst_raw():
 
 
 @requires_testing_data
+def test_persyst_dates():
+    # now test what if you change contents of the lay file
+    out_dir = mne.utils._TempDir()
+    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
+    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    shutil.copy(fname_dat, new_fname_dat)
+
+    # reformat the lay file to have testdate with
+    # "/" character
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if line.startswith('TestDate'):
+                    line = 'TestDate=01/23/2000\n'
+                fout.write(line)
+    # file should update correctly with datetime
+    raw = read_raw_persyst(new_fname_lay)
+    assert raw.info['meas_date'].month == 1
+    assert raw.info['meas_date'].day == 23
+    assert raw.info['meas_date'].year == 2000
+
+    # reformat the lay file to have testdate with
+    # "-" character
+    os.remove(new_fname_lay)
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if line.startswith('TestDate'):
+                    line = 'TestDate=24-01-2000\n'
+                fout.write(line)
+    # file should update correctly with datetime
+    raw = read_raw_persyst(new_fname_lay)
+    assert raw.info['meas_date'].month == 1
+    assert raw.info['meas_date'].day == 24
+    assert raw.info['meas_date'].year == 2000
+
+
+@requires_testing_data
 def test_persyst_wrong_file(tmpdir):
     """Test reading Persyst files when passed in wrong file path."""
     with pytest.raises(FileNotFoundError, match='The path you'):
@@ -139,6 +179,36 @@ def test_persyst_errors():
     with pytest.raises(RuntimeError, match='Channels in lay '
                                            'file do not'):
         read_raw_persyst(new_fname_lay)
+
+    # reformat the lay file
+    os.remove(new_fname_lay)
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if line.startswith('File'):
+                    line = f'File=/{op.basename(fname_dat)}\n'
+                fout.write(line)
+    # file should break
+    with pytest.raises(FileNotFoundError, match='The data path '
+                                                'you specified'):
+        read_raw_persyst(new_fname_lay)
+
+    # reformat the lay file to have testdate
+    # improperly specified
+    os.remove(new_fname_lay)
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if line.startswith('TestDate'):
+                    line = 'TestDate=Jan 23rd 2000\n'
+                fout.write(line)
+    # file should not read in meas date
+    with pytest.warns(RuntimeWarning,
+                      match='Cannot read in the measurement date'):
+        raw = read_raw_persyst(new_fname_lay)
+        assert raw.info['meas_date'] is None
 
 
 run_tests_if_main()

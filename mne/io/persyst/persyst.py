@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 import os
 import os.path as op
-import time
 from collections import OrderedDict
 from datetime import datetime, timezone
 
@@ -132,7 +131,6 @@ class RawPersyst(BaseRaw):
             # These are the 3 "so far" possible datatime storage
             # formats in Persyst .lay
             if '/' in testdate:
-                time.strptime()
                 testdate = datetime.strptime(testdate, '%m/%d/%Y')
             elif '-' in testdate:
                 testdate = datetime.strptime(testdate, '%d-%m-%Y')
@@ -143,6 +141,7 @@ class RawPersyst(BaseRaw):
                 warn('Cannot read in the measurement date due '
                      'to incompatible format. Please set manually '
                      'for %s ' % lay_fname)
+                meas_date = None
             else:
                 testtime = datetime.strptime(patient_dict.get('testtime'),
                                              '%H:%M:%S')
@@ -236,10 +235,7 @@ class RawPersyst(BaseRaw):
 
         # read data from .dat file into array of correct size, then calibrate
         # records = recnum rows x inf columns
-        if time_length_samps == -1:
-            count = -1  # elements of size precision to read
-        else:
-            count = time_length_samps * n_chs
+        count = time_length_samps * n_chs
 
         # seek the dat file
         with open(dat_fname, 'rb') as dat_file_ID:
