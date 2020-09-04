@@ -293,7 +293,7 @@ def _get_subjectinfo(patient_dict):
         female=FIFF.FIFFV_SUBJ_SEX_FEMALE,
     )
     subject_info['sex'] = sex_dict.get(subject_info['sex'],
-                                       FIFF.FIFFV_SEX_UNKNOWN)
+                                       FIFF.FIFFV_SUBJ_SEX_UNKNOWN)
 
     # Recode hand values
     hand_dict = dict(
