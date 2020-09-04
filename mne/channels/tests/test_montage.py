@@ -1307,7 +1307,7 @@ def test_set_montage_with_missing_coordinates():
 def test_get_montage():
     """Test get montage from Instance.
 
-    Test with standard montage and then loaded in montage
+    Test with standard montage and then loaded in montage.
     """
     # 1. read in testing data and assert montage roundtrip
     # for testing dataset: 'test_raw.fif'
@@ -1317,18 +1317,7 @@ def test_get_montage():
     # get montage and then set montage and
     # it should be the same
     montage = raw.get_montage()
-    # print('this is the montage')
-    # print(montage)
-    # print(raw.ch_names)
-    # print(len(raw.ch_names))
     raw.set_montage(montage, on_missing='ignore')
-    print(raw.info['chs'][316]['loc'])
-    print(raw2.info['chs'][316]['loc'], raw2.info['chs'][315]['loc'], raw2.info['chs'][0]['loc'])
-    print(raw.info['ch_names'][316])
-    print(raw2.ch_names)
-    # print(montage._get_ch_pos())
-    # print(montage._get_dig_names())
-    # print(raw.info['dig'][-1], len(raw.info['dig']))
     assert_object_equal(raw.info['chs'], raw2.info['chs'])
 
     # 2. now do a standard montage

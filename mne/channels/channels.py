@@ -256,18 +256,17 @@ class ContainsMixin(object):
         # else default to unknown
         coord_frame = _frame_to_str.get(coord_frame_int, 'unknown')
 
-        # only get channel names with location
-        chs = [ch for idx, ch in enumerate(self.info['ch_names']) if not any(np.isnan(self.info['chs'][idx]['loc'][:3]))]
-
-        # create montage and return it
+        # obtain nasion, lpa, rpa, hsp, hpi from DigPoints
         montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])
+
+        # get the channel names and chs data structure
         ch_names, chs = self.info['ch_names'], self.info['chs']
-        # ch_locs = montage_bunch.dig_ch_pos_location
-        # print('HEREEEEE', len(ch_locs), len(ch_names), len(self.info['dig']), len(self.info['chs']))
-        # ch_pos = dict(zip(ch_names, ch_locs))
-        # print(len(chs), len(ch_names))
+
+        # channel positions from dig do not match ch_names one to one,
+        # so use loc[:3] instead
         ch_pos = {ch_names[idx]: chs[idx]['loc'][:3] for idx in range(len(chs))}
-        # ch_pos = self.info['chs']
+
+        # create montage
         montage = make_dig_montage(
             ch_pos=ch_pos,
             coord_frame=coord_frame,

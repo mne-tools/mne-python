@@ -689,15 +689,28 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
             else:
                 return np.concatenate((pos, ref_pos))
 
+        # get the channels in the montage in head
         ch_pos = mnt_head._get_ch_pos()
-        refs = set(ch_pos) & {'EEG000', 'REF'}
-        assert len(refs) <= 1
-        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
 
-        # This raises based on info being subset/superset of montage
+        # only get the eeg, seeg, ecog channels
         _pick_chs = partial(
             pick_types, exclude=[], eeg=True, seeg=True, ecog=True, meg=False,
         )
+
+        # get the reference position from the loc[3:6]
+        chs = info['chs']
+        ref_pos = [chs[ii]['loc'][3:6] for ii in _pick_chs(info)]
+
+        # keep reference location from EEG/ECoG/SEEG channels if they
+        # already exist and are all the same.
+        if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]):
+            eeg_ref_pos = ref_pos[0]
+        else:
+            refs = set(ch_pos) & {'EEG000', 'REF'}
+            assert len(refs) <= 1
+            eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
+
+        # This raises based on info being subset/superset of montage
         info_names = [info['ch_names'][ii] for ii in _pick_chs(info)]
         dig_names = mnt_head._get_dig_names()
         ref_names = [None, 'EEG000', 'REF']
