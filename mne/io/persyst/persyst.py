@@ -82,8 +82,8 @@ class RawPersyst(BaseRaw):
             if key == '':
                 continue
 
-            # make sure key are lowercase
-            if key is not None:
+            # make sure key are lowercase for everything, but electrodes
+            if key is not None and section != 'channelmap':
                 key = key.lower()
 
             # FileInfo
@@ -159,7 +159,7 @@ class RawPersyst(BaseRaw):
                                'match the number of channels '
                                'in the .dat file.')  # noqa
         # get rid of the "-Ref" in channel names
-        ch_names = [ch.split('-ref')[0] for ch in ch_names]
+        ch_names = [ch.upper().split('-REF')[0] for ch in ch_names]
 
         # get the sampling rate and default channel types to EEG
         sfreq = fileinfo_dict.get('samplingrate')
@@ -407,8 +407,8 @@ def _process_lay_line(line, section):
 
             # the line now is composed of a
             # <key>=<value>
-            key = line[0:pos].lower()
+            key = line[0:pos]
             key.strip()
-            value = line[pos + 1:end_idx + 1].lower()
+            value = line[pos + 1:end_idx + 1]
             value.strip()
     return status, key, value
