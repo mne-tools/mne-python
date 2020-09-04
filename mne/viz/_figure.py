@@ -1411,16 +1411,17 @@ class MNEBrowseFigure(MNEFigure):
                         this_data, self.mne.filter_coefs, None, 1, False)
                 data[_picks, _start:_stop] = this_data
         # scale the data for display in a 1-vertical-axis-unit slot
-        for trace_ix, pick in enumerate(picks):
-            if self.mne.ch_types[pick] == 'stim':
-                norm = max(data[trace_ix])
-            elif self.mne.ch_names[pick] in self.mne.whitened_ch_names and \
-                    self.mne.ch_names[pick] not in self.mne.info['bads']:
-                norm = self.mne.scalings['whitened']
-            else:
-                norm = self.mne.scalings[self.mne.ch_types[pick]]
-            data[trace_ix] /= 2 * (norm if norm != 0 else 1)
-        # save
+        this_names = self.mne.ch_names[picks]
+        this_types = self.mne.ch_types[picks]
+        stims = this_types == 'stim'
+        white = np.logical_and(np.in1d(this_names, self.mne.whitened_ch_names),
+                               np.in1d(this_names, self.mne.info['bads'],
+                                       invert=True))
+        norms = np.vectorize(self.mne.scalings.__getitem__)(this_types)
+        norms[stims] = data[stims].max(axis=-1)
+        norms[white] = self.mne.scalings['whitened']
+        norms[norms == 0] = 1
+        data /= 2 * norms[:, np.newaxis]
         self.mne.data = data
         self.mne.times = times
 
