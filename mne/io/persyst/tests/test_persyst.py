@@ -78,6 +78,7 @@ def test_persyst_raw():
 
 @requires_testing_data
 def test_persyst_dates():
+    """Test different Persyst date formats for meas date."""
     # now test what if you change contents of the lay file
     out_dir = mne.utils._TempDir()
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
