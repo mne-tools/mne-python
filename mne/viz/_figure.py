@@ -265,6 +265,8 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.whitened_ch_names = list()
         self.mne.use_noise_cov = self.mne.noise_cov is not None
         # annotations
+        self.mne.annotations = list()
+        self.mne.hscroll_annotations = list()
         self.mne.annotation_segments = list()
         self.mne.annotation_texts = list()
         self.mne.added_labels = list()
@@ -402,9 +404,8 @@ class MNEBrowseFigure(MNEFigure):
             self._remove_annotation_line()
             return
         from matplotlib.patheffects import Stroke, Normal
-        for coll in self.mne.ax_main.collections:
-            if (coll.contains(event)[0] and coll != self.mne.event_lines and
-                    coll != self.mne.traces):
+        for coll in self.mne.annotations:
+            if coll.contains(event)[0]:
                 path = coll.get_paths()
                 assert len(path) == 1
                 path = path[0]
@@ -422,7 +423,7 @@ class MNEBrowseFigure(MNEFigure):
                 # create or update the DraggableLine
                 if self.mne.segment_line is None:
                     line = self.mne.ax_main.plot([x, x], ylim, color=color,
-                                                 linewidth=2, picker=5.)[0]
+                                                 linewidth=2, pickradius=5.)[0]
                     self.mne.segment_line = DraggableLine(
                         line, self._modify_annotation, drag_callback)
                 else:
@@ -492,7 +493,8 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.scale_factor *= scaler
             self._redraw(update_data=False)
         # change number of visible channels
-        elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
+        elif (key in ('pageup', 'pagedown') and not self.mne.butterfly and
+              self.mne.fig_selection is None):
             old_n_channels = self.mne.n_channels
             n_ch_delta = 1 if key == 'pageup' else -1
             n_ch = self.mne.n_channels + n_ch_delta
@@ -965,22 +967,23 @@ class MNEBrowseFigure(MNEFigure):
                            annotations, ann_idx)
         self._draw_annotations()
         self._remove_annotation_line()
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def _clear_annotations(self):
         """Clear all annotations from the figure."""
-        for ax in (self.mne.ax_main, self.mne.ax_hscroll):
-            for coll in ax.collections:
-                if coll != self.mne.event_lines:
-                    ax.collections.remove(coll)
-        while len(self.mne.annotation_texts):
-            text = self.mne.annotation_texts.pop()
+        for annot in self.mne.annotations[::-1]:
+            self.mne.ax_main.collections.remove(annot)
+            self.mne.annotations.remove(annot)
+        for annot in self.mne.hscroll_annotations[::-1]:
+            self.mne.ax_hscroll.collections.remove(annot)
+            self.mne.hscroll_annotations.remove(annot)
+        for text in self.mne.annotation_texts[::-1]:
             self.mne.ax_main.texts.remove(text)
+            self.mne.annotation_texts.remove(text)
 
     def _draw_annotations(self):
         """Draw (or redraw) the annotation spans."""
         self._clear_annotations()
-        self._draw_event_lines()
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
         times = self.mne.times
@@ -991,11 +994,14 @@ class MNEBrowseFigure(MNEFigure):
             segment_color = self.mne.segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3)
             # draw all segments on ax_hscroll
-            self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
+            annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
+                                                      **kwargs)
+            self.mne.hscroll_annotations.append(annot)
             # draw only visible segments on ax_main
             visible_segment = np.clip([start, end], times[0], times[-1])
             if np.diff(visible_segment) > 0:
-                ax.fill_betweenx(ylim, *visible_segment, **kwargs)
+                annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
+                self.mne.annotations.append(annot)
                 xy = (visible_segment.mean(), ylim[1])
                 text = ax.annotate(descr, xy, xytext=(0, 4),
                                    textcoords='offset points', ha='center',
@@ -1118,7 +1124,7 @@ class MNEBrowseFigure(MNEFigure):
             for _sel, _picks in selections_dict.items():
                 if _sel != 'Misc':
                     stim_mask = np.in1d(_picks, [stim_pick], invert=True)
-                    selections_dict[_sel] = _picks[stim_mask]
+                    selections_dict[_sel] = np.array(_picks)[stim_mask]
         return selections_dict
 
     def _update_highlighted_sensors(self):
