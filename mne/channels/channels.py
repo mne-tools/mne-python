@@ -264,7 +264,7 @@ class ContainsMixin(object):
 
         # channel positions from dig do not match ch_names one to one,
         # so use loc[:3] instead
-        ch_pos = {ch_names[idx]: chs[idx]['loc'][:3] for idx in range(len(chs))}
+        ch_pos = {ch_names[ii]: ch['loc'][:3] for ii, ch in enumerate(chs)}
 
         # create montage
         montage = make_dig_montage(
