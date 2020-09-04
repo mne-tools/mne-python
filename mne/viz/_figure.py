@@ -233,6 +233,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def __init__(self, inst, xlabel='Time (s)', **kwargs):
         from matplotlib.widgets import Button
+        from matplotlib.collections import LineCollection
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         from .utils import _get_figsize_from_config
@@ -336,12 +337,19 @@ class MNEBrowseFigure(MNEFigure):
             ax_proj.set_axes_locator(loc)
             _ = Button(ax_proj, 'Prj')  # listener handled in _buttonpress()
 
-        # SAVE PARAMS
+        # SAVE UI ELEMENT HANDLES
         self.mne.ax_main = ax
         self.mne.ax_help = ax_help
         self.mne.ax_proj = ax_proj
         self.mne.ax_hscroll = ax_hscroll
         self.mne.ax_vscroll = ax_vscroll
+
+        # INIT TRACES
+        segments = np.full((1, 1, 2), np.nan)
+        self.mne.traces = LineCollection(
+            segments, linewidths=0.5, colors='k', offsets=np.zeros((1, 2)),
+            antialiaseds=True, pickradius=10)
+        self.mne.ax_main.add_collection(self.mne.traces)
 
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
@@ -544,11 +552,12 @@ class MNEBrowseFigure(MNEFigure):
                 self._label_clicked(x, y)
             elif event.inaxes == self.mne.ax_main and not annotating:
                 if not self.mne.butterfly:
-                    for line in self.mne.traces:
-                        if line.contains(event)[0]:
-                            idx = self.mne.traces.index(line)
-                            self._toggle_bad_channel(idx)
-                            return
+                    cont, cont_dict = self.mne.traces.contains(event)
+                    if cont:
+                        idx = cont_dict['ind']
+                        assert len(idx) == 1
+                        self._toggle_bad_channel(idx[0])
+                        return
                 # in butterfly mode, or click was not on a data trace
                 self._show_vline(event.xdata)
             elif event.inaxes == self.mne.ax_vscroll:
@@ -602,7 +611,7 @@ class MNEBrowseFigure(MNEFigure):
         else:
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
-            color = self.mne.traces[idx].def_color
+            color = self.mne.def_colors[idx]
         self.mne.info['bads'] = bads
         # update sensor color (if in selection mode)
         if self.mne.fig_selection is not None:
@@ -1464,7 +1473,6 @@ class MNEBrowseFigure(MNEFigure):
     def _draw_traces(self):
         """Draw (or redraw) the channel data."""
         from matplotlib import rcParams
-        from matplotlib.patches import Rectangle
         # convenience
         butterfly = self.mne.butterfly
         offsets = self.mne.trace_offsets
@@ -1480,6 +1488,7 @@ class MNEBrowseFigure(MNEFigure):
         def_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
         ch_colors = [self.mne.ch_color_bad if _name in bads else def_color
                      for _name, def_color in zip(ch_names, def_colors)]
+        self.mne.def_colors = np.array(def_colors)
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         if butterfly:
             for label in labels:
@@ -1492,61 +1501,25 @@ class MNEBrowseFigure(MNEFigure):
         data_picks_mask = np.in1d(picks, self.mne.picks_data)
         decim[data_picks_mask] = self.mne.decim
         # decim can vary by channel type, so compute different `times` vectors
-        decim_times_dict = {decim_value:
-                            self.mne.times[::decim_value] + self.mne.first_time
-                            for decim_value in set(decim)}
-        # add more traces if needed
-        n_picks = len(picks)
-        if n_picks > len(self.mne.traces):
-            n_new_chs = n_picks - len(self.mne.traces)
-            new_traces = self.mne.ax_main.plot(np.full((1, n_new_chs), np.nan),
-                                               antialiased=True, linewidth=0.5)
-            self.mne.traces.extend(new_traces)
-        # remove extra traces if needed
-        extra_traces = self.mne.traces[n_picks:]
-        for trace in extra_traces:
-            self.mne.ax_main.lines.remove(trace)
-        self.mne.traces = self.mne.traces[:n_picks]
-        # TODO if butterfly, see if MPL linecollection is faster
-        # loop over channels
-        for ii, this_line in enumerate(self.mne.traces):
-            this_name = ch_names[ii]
-            this_type = ch_types[ii]
-            this_times = decim_times_dict[decim[ii]]
-            # do not scale data in-place!
-            this_data = self.mne.data[ii] * self.mne.scale_factor
-            # clip
-            if self.mne.clipping == 'clamp':
-                np.clip(this_data, -0.5, 0.5, out=this_data)
-            elif self.mne.clipping is not None:
-                l, w = this_times[0], this_times[-1] - this_times[0]
-                ylim = self.mne.ax_main.get_ylim()
-                assert ylim[1] <= ylim[0]  # inverted
-                clip = self.mne.clipping * (0.2 if butterfly else 1)
-                b = offsets[ii] - clip
-                h = 2 * clip
-                b = max(b, ylim[1])
-                h = min(h, ylim[0] - b)
-                rect = Rectangle((l, b), w, h,
-                                 transform=self.mne.ax_main.transData)
-                this_line.set_clip_path(rect)
-            # update trace data
-            # subtraction yields correct orientation given inverted ylim
-            this_line.set_xdata(this_times)
-            this_line.set_ydata(offsets[ii] - this_data[..., ::decim[ii]])
-            this_line.set_color(ch_colors[ii])
-            # add attributes to traces
-            vars(this_line)['ch_name'] = this_name
-            vars(this_line)['def_color'] = def_colors[ii]
-            # set z-order
-            this_z = 0 if this_name in bads else 1
-            if butterfly:
-                if this_name not in bads:
-                    if this_type == 'mag':
-                        this_z = 2
-                    elif this_type == 'grad':
-                        this_z = 3
-            this_line.set_zorder(this_z)
+        decim_times = {decim_value:
+                       self.mne.times[::decim_value] + self.mne.first_time
+                       for decim_value in set(decim)}
+        this_data = self.mne.data * self.mne.scale_factor * -1
+        # clip
+        if self.mne.clipping == 'clamp':
+            clip = 0.5
+        elif self.mne.clipping is not None:
+            clip = self.mne.clipping * (0.2 if butterfly else 1)
+        v1, v2 = clip * np.array([-1, 1])
+        this_data = np.ma.masked_outside(this_data, v1, v2)
+        # update line collection
+        segments = [np.ma.vstack((decim_times[_decim], _data[..., ::_decim])).T
+                    for _data, _decim in zip(this_data, decim)]
+        this_offsets = np.vstack((np.zeros_like(offsets), offsets)).T
+        self.mne.traces.set_offsets(this_offsets)  # must set before segments
+        self.mne.traces.set(segments=segments, color=ch_colors)
+        # update xlim
+        this_times = self.mne.times + self.mne.first_time
         self.mne.ax_main.set_xlim(this_times[0], this_times[-1])
         # draw scalebars maybe
         if self.mne.scalebars_visible:

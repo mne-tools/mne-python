@@ -118,12 +118,12 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     from ..io.base import BaseRaw
     from . import browse_figure
 
-    # make a copy of info. Store projectors in an attr for easy enable/disable,
-    # make another attr for which projectors are currently "on" in the plot,
-    # and disable projs in info if user doesn't want to see them right away.
     info = raw.info.copy()
+    sfreq = info['sfreq']
     projs = info['projs']
+    # this will be an attr for which projectors are currently "on" in the plot
     projs_on = np.full_like(projs, proj, dtype=bool)
+    # disable projs in info if user doesn't want to see them right away
     if not proj:
         info['projs'] = list()
 
@@ -151,9 +151,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # be forgiving if user asks for too many channels / too much time
     n_channels = min(info['nchan'], n_channels)
     duration = min(raw.times[-1], float(duration))
-
-    # convenience
-    sfreq = info['sfreq']
 
     # determine IIR filtering parameters
     if highpass is not None and highpass <= 0:
@@ -259,7 +256,7 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalings=scalings,
                   units=units,
                   unit_scalings=unit_scalings,
-                  # misc
+                  # colors
                   ch_color_bad=bad_color,
                   ch_color_dict=color,
                   # display
@@ -323,16 +320,8 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                          vline=vline, vline_hscroll=vline_hscroll,
                          vline_text=vline_text)
 
-    # make shells for plotting traces
-    fig._update_trace_offsets()
-    n_traces = len(ch_names) if butterfly else n_channels
-    # TODO replace with empty LineCollection? Or a call to _draw_traces() ?
-    fig.mne.traces = fig.mne.ax_main.plot(np.full((1, n_traces), np.nan),
-                                          antialiased=True, linewidth=0.5)
-    fig.mne.ax_main.set_xlim(fig.mne.t_start,
-                             fig.mne.t_start + fig.mne.duration, emit=False)
-
     # update projector and data, and plot
+    fig._update_trace_offsets()
     fig._update_projector()
     fig._update_data()
     fig._draw_traces()
@@ -1351,13 +1340,13 @@ def _setup_channel_selections(raw, kind):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
+    from ..io.pick import pick_channels, pick_types
     _check_option('group_by', kind, ('position', 'selection'))
     if kind == 'position':
         selections_dict = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # omit 'Vertex'
     else:  # kind == 'selection'
         from ..io import RawFIF, RawArray
-        from ..io.pick import pick_channels, pick_types
         if not isinstance(raw, (RawFIF, RawArray)):
             raise ValueError("order='selection' only works for Neuromag "
                              "data. Use order='position' instead.")
