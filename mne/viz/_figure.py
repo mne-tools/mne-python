@@ -60,10 +60,6 @@ class MNEFigure(Figure):
         """Handle window resize events."""
         pass
 
-    def _onpick(self, event):
-        """Handle matplotlib artist picking events."""
-        pass
-
     def _get_dpi_ratio(self):
         """Get DPI ratio (to handle hi-DPI screens)."""
         dpi_ratio = 1.
@@ -74,8 +70,7 @@ class MNEFigure(Figure):
     def _get_size_px(self):
         """Get figure size in pixels."""
         dpi_ratio = self._get_dpi_ratio()
-        size = self.get_size_inches() * self.dpi / dpi_ratio
-        return size
+        return self.get_size_inches() * self.dpi / dpi_ratio
 
     def _inch_to_rel(self, dim_inches, horiz=True):
         """Convert inches to figure-relative distances."""
@@ -86,16 +81,15 @@ class MNEFigure(Figure):
     def _add_default_callbacks(self, **kwargs):
         """Remove some matplotlib default callbacks and add MNE-Python ones."""
         # Remove matplotlib default keypress catchers
-        default_cbs = list(
+        default_callbacks = list(
             self.canvas.callbacks.callbacks.get('key_press_event', {}))
-        for callback in default_cbs:
+        for callback in default_callbacks:
             self.canvas.callbacks.disconnect(callback)
         # add our event callbacks
         callbacks = dict(resize_event=self._resize,
                          key_press_event=self._keypress,
                          button_press_event=self._buttonpress,
-                         close_event=self._close,
-                         pick_event=self._onpick)
+                         close_event=self._close)
         callbacks.update(kwargs)
         callback_ids = dict()
         for event, callback in callbacks.items():
@@ -170,11 +164,13 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _set_active_button(self, idx):
         """Set active button in annotation dialog figure."""
+        from matplotlib import rcParams
+        bgcolor = rcParams['axes.facecolor']
         buttons = self.mne.radio_ax.buttons
         with _events_off(buttons):
             buttons.set_active(idx)
         for circle in buttons.circles:
-            circle.set_facecolor('w')
+            circle.set_facecolor(bgcolor)
         # active circle gets filled in, partially transparent
         color = list(buttons.circles[idx].get_edgecolor())
         color[-1] = 0.5
@@ -239,8 +235,7 @@ class MNEBrowseFigure(MNEFigure):
 
         # get figsize from config if not provided
         figsize = kwargs.pop('figsize', _get_figsize_from_config())
-        kwargs.update(inst=inst)
-        super().__init__(figsize=figsize, **kwargs)
+        super().__init__(figsize=figsize, inst=inst, **kwargs)
 
         # what kind of data are we dealing with?
         if isinstance(inst, BaseRaw):
@@ -254,10 +249,13 @@ class MNEBrowseFigure(MNEFigure):
                             f'got {type(inst)}.')
 
         # additional params for browse figures
+        self.mne.ch_start = 0
+        self.mne.projector = None
+        self.mne.projs_active = np.array([p['active'] for p in self.mne.projs])
         self.mne.event_lines = None
         self.mne.event_texts = list()
-        self.mne.projector = None
         self.mne.whitened_ch_names = list()
+        self.mne.use_noise_cov = self.mne.noise_cov is not None
         # annotations
         self.mne.annotation_segments = list()
         self.mne.annotation_texts = list()
@@ -284,7 +282,6 @@ class MNEBrowseFigure(MNEFigure):
         hscroll_dist = 0.25
         vscroll_dist = 0.1
         help_width = scroll_width * 2
-
         # MAIN AXES: default margins (figure-relative coordinates)
         left = self._inch_to_rel(l_margin - vscroll_dist - help_width)
         right = 1 - self._inch_to_rel(r_margin)
@@ -293,7 +290,6 @@ class MNEBrowseFigure(MNEFigure):
         width = right - left
         height = top - bottom
         position = [left, bottom, width, height]
-
         # Main axes must be a subplot for subplots_adjust to work (so user can
         # adjust margins). That's why we don't use the Divider class directly.
         ax = self.add_subplot(1, 1, 1, position=position)
@@ -310,6 +306,7 @@ class MNEBrowseFigure(MNEFigure):
         ax_hscroll.get_yaxis().set_visible(False)
         ax_hscroll.set_xlabel(xlabel)
         ax_vscroll.set_axis_off()
+
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
                                   size=Fixed(help_width),
@@ -318,10 +315,9 @@ class MNEBrowseFigure(MNEFigure):
         loc = div.new_locator(nx=0, ny=0)
         ax_help.set_axes_locator(loc)
         # HELP BUTTON: make it a proper button
-        button_help = Button(ax_help, 'Help')
+        _ = Button(ax_help, 'Help')  # listener handled in _buttonpress()
         # PROJ BUTTON
         if len(self.mne.projs) and not inst.proj:
-            # PROJ BUTTON: compute position
             proj_button_pos = [
                 1 - self._inch_to_rel(r_margin + scroll_width),  # left
                 self._inch_to_rel(b_margin, horiz=False),        # bottom
@@ -331,8 +327,7 @@ class MNEBrowseFigure(MNEFigure):
             loc = div.new_locator(nx=4, ny=0)
             ax_proj = self.add_axes(proj_button_pos)
             ax_proj.set_axes_locator(loc)
-            # PROJ BUTTON: make it a button. onclick handled by _buttonpress()
-            button_proj = Button(ax_proj, 'Prj')
+            _ = Button(ax_proj, 'Prj')  # listener handled in _buttonpress()
 
         # SAVE PARAMS
         self.mne.ax_main = ax
@@ -340,14 +335,11 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.ax_proj = ax_proj
         self.mne.ax_hscroll = ax_hscroll
         self.mne.ax_vscroll = ax_vscroll
-        self.mne.button_help = button_help
-        self.mne.button_proj = button_proj
 
-    def _new_child_figure(self, **kwargs):
+    def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
-        if 'fig_name' not in kwargs:
-            raise ValueError('parameter "fig_name" is required.')
-        fig = _figure(toolbar=False, parent_fig=self, **kwargs)
+        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
+                      **kwargs)
         fig._add_default_callbacks()
         return fig
 
@@ -388,16 +380,16 @@ class MNEBrowseFigure(MNEFigure):
 
     def _hover(self, event):
         """Handle motion event when annotating."""
-        if (event.button is not None or
-                event.inaxes != self.mne.ax_main or event.xdata is None):
+        if (event.button is not None or event.xdata is None or
+                event.inaxes != self.mne.ax_main):
             return
         if not self.mne.draggable_annotations:
             self._remove_annotation_line()
             return
         from matplotlib.patheffects import Stroke, Normal
         for coll in self.mne.ax_main.collections:
-            if coll.contains(event)[0] and coll != self.mne.event_lines and \
-                    coll != self.mne.traces:
+            if (coll.contains(event)[0] and coll != self.mne.event_lines and
+                    coll != self.mne.traces):
                 path = coll.get_paths()
                 assert len(path) == 1
                 path = path[0]
@@ -428,7 +420,7 @@ class MNEBrowseFigure(MNEFigure):
                 line.set_path_effects(patheff if line.contains(event)[0] else
                                       patheff[1:])
                 self.mne.ax_main.selector.active = False
-                self.canvas.draw()
+                self.canvas.draw_idle()
                 return
         self._remove_annotation_line()
 
@@ -450,17 +442,16 @@ class MNEBrowseFigure(MNEFigure):
                 current_idx = labels.index(current_label)
                 selections_dict = self.mne.ch_selections
                 penult = current_idx < (len(labels) - 1)
-                antepenult = current_idx < (len(labels) - 2)
+                pre_penult = current_idx < (len(labels) - 2)
                 has_custom = selections_dict.get('Custom', None) is not None
                 def_custom = len(selections_dict.get('Custom', list()))
                 up_ok = key == 'up' and current_idx > 0
                 down_ok = key == 'down' and (
-                    antepenult or
+                    pre_penult or
                     (penult and not has_custom) or
                     (penult and has_custom and def_custom))
                 if up_ok or down_ok:
                     buttons.set_active(current_idx + direction)
-                    self.canvas.draw_idle()
             # normal case
             else:
                 ceiling = len(self.mne.ch_names) - self.mne.n_channels
@@ -484,8 +475,7 @@ class MNEBrowseFigure(MNEFigure):
         elif key in ('=', '+', '-'):
             scaler = 1 / 1.1 if key == '-' else 1.1
             self.mne.scale_factor *= scaler
-            self._draw_traces()
-            self.canvas.draw()
+            self._redraw(update_data=False)
         # change number of visible channels
         elif key in ('pageup', 'pagedown') and self.mne.fig_selection is None:
             old_n_channels = self.mne.n_channels
@@ -642,7 +632,6 @@ class MNEBrowseFigure(MNEFigure):
             newlines = '\n' * len(val.split('\n'))  # handle multiline values
             keys += f'{newsection}{key}      {newlines}'
             vals += f'{newsection}{val}\n'
-
         # calc figure size
         n_lines = len(keys.split('\n'))
         longest_key = max(len(k) for k in text.keys())
@@ -691,10 +680,8 @@ class MNEBrowseFigure(MNEFigure):
                            raw='Show channel location')[inst]
         ldrag = ('Show spectrum plot for selected time span;\nor (in '
                  'annotation mode) add annotation') if inst == 'raw' else None
-
         # below, value " " is a hack to make "\n".split(value) have length 1
         help_text = OrderedDict([
-            # navigation
             ('_NAVIGATION', ' '),
             ('→', 'Scroll ¼ window right (scroll full window with Shift + →)'),
             ('←', 'Scroll ¼ window left (scroll full window with Shift + ←)'),
@@ -704,7 +691,6 @@ class MNEBrowseFigure(MNEFigure):
             ('↓', f'Scroll down ({ch_cmp}s)'),
             (ch_keys[0], ch_vals[0]),
             (ch_keys[1], ch_vals[1]),
-            # signal
             ('_SIGNAL TRANSFORMATIONS', ' '),
             ('+ or =', 'Increase signal scaling'),
             ('-', 'Decrease signal scaling'),
@@ -712,7 +698,6 @@ class MNEBrowseFigure(MNEFigure):
             ('d', 'Toggle DC removal' if inst == 'raw' else None),
             ('w', 'Toggle signal whitening'),  # TODO only if noise_cov given?
             ('h', 'Show peak-to-peak histogram' if inst == 'epochs' else None),
-            # UI
             ('_USER INTERFACE', ' '),
             ('a', 'Toggle annotation mode' if inst == 'raw' else None),
             ('p', 'Toggle draggable annotations' if inst == 'raw' else None),
@@ -721,7 +706,6 @@ class MNEBrowseFigure(MNEFigure):
             ('F11', 'Toggle fullscreen'),
             ('?', 'Open this help window'),
             ('esc', 'Close focused figure or dialog window'),
-            # mouse
             ('_MOUSE INTERACTION', ' '),
             (f'Left-click {ch_cmp} name', lclick_name),
             (f'Left-click {ch_cmp} data', lclick_data),
@@ -769,9 +753,8 @@ class MNEBrowseFigure(MNEFigure):
              r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
              r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
              r'$\mathbf{Esc:}$ exit annotation mode & close window'])
-        # in case user has usetex=True set in rcParams, pass usetex=False here
         instructions_ax.text(0, 1, instructions, va='top', ha='left',
-                             usetex=False)
+                             usetex=False)  # force use of MPL TeX parser
         instructions_ax.set_axis_off()
         # append text entry axes at bottom
         text_entry_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
@@ -795,7 +778,6 @@ class MNEBrowseFigure(MNEFigure):
                                 'horizontal', minspan=0.1, useblit=False,
                                 rectprops=dict(alpha=0.5, facecolor=col))
         self.mne.ax_main.selector = selector
-        # add event listeners
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
 
@@ -1300,7 +1282,6 @@ class MNEBrowseFigure(MNEFigure):
         """Add channel scale bars."""
         offsets = self.mne.trace_offsets
         picks = self.mne.picks
-        # TODO if butterfly, don't loop over all picks, just loop over offsets
         for ii, ch_ix in enumerate(picks):
             this_name = self.mne.ch_names[ch_ix]
             this_type = self.mne.ch_types[ch_ix]
@@ -1554,9 +1535,10 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.event_times is not None:
             self._draw_event_lines()
 
-    def _redraw(self, annotations=False):
+    def _redraw(self, update_data=True, annotations=False):
         """Redraw (convenience method for frequently grouped actions)."""
-        self._update_data()
+        if update_data:
+            self._update_data()
         self._draw_traces()
         if annotations:
             self._draw_annotations()

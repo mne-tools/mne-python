@@ -235,7 +235,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_channels=n_channels,
                   picks_data=picks_data,
                   group_by=group_by,
-                  ch_start=0,  # TODO move to init?
                   ch_selections=selections,
                   # time
                   t_start=start,
@@ -251,13 +250,11 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   # preprocessing
                   projs=projs,
                   projs_on=projs_on,
-                  projs_active=np.array([p['active'] for p in projs]),
                   apply_proj=proj,
                   remove_dc=remove_dc,
                   filter_coefs=ba,
                   filter_bounds=filt_bounds,
                   noise_cov=noise_cov,
-                  use_noise_cov=noise_cov is not None,
                   # scalings
                   scalings=scalings,
                   units=units,
