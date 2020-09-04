@@ -183,6 +183,8 @@ Changelog
 
 - Add ``component_order`` parameter to :class:`mne.decoding.CSP` which allows switching between ``mutual_info`` (default) and ``alternate`` (a simpler and frequently used option) by `Martin Billinger`_ and `Clemens Brunner`_
 
+- Speed up :func:`~mne.io.edf.edf._read_annotations_edf` by using numpy by `Jeroen Van Der Donckt`_
+
 Bug
 ~~~
 
