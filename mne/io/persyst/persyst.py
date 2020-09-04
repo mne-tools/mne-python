@@ -191,8 +191,7 @@ class RawPersyst(BaseRaw):
             n_samples = f.tell()
             n_samples = n_samples // (dtype.itemsize * n_chs)
 
-            if verbose:
-                logger.debug(f'Loaded {n_samples} samples '
+            logger.debug(f'Loaded {n_samples} samples '
                              f'for {n_chs} channels.')
 
         raw_extras = {
