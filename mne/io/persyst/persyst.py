@@ -286,21 +286,28 @@ def _get_subjectinfo(patient_dict):
     }
 
     # Recode sex values
-    if subject_info['sex'] in ('m', 'male'):
-        subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
-    elif subject_info['sex'] in ('f', 'female'):
-        subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
-    else:
-        subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
+    sex_dict = dict(
+        m=FIFF.FIFFV_SUBJ_SEX_MALE,
+        male=FIFF.FIFFV_SUBJ_SEX_MALE,
+        f=FIFF.FIFFV_SUBJ_SEX_FEMALE,
+        female=FIFF.FIFFV_SUBJ_SEX_FEMALE,
+    )
+    subject_info['sex'] = sex_dict.get(subject_info['sex'], FIFF.FIFFV_SEX_UNKNOWN)
+
     # Recode hand values
-    if subject_info['hand'] in ('m', 'male'):
-        subject_info['hand'] = FIFF.FIFFV_SUBJ_HAND_RIGHT
-    elif subject_info['hand'] in ('f', 'female'):
-        subject_info['hand'] = FIFF.FIFFV_SUBJ_HAND_LEFT
-    elif subject_info['hand'] in ('a', 'ambidextrous'):
-        subject_info['hand'] = FIFF.FIFFV_SUBJ_HAND_AMBI
-    else:
-        # no handedness is set when unknown
+    hand_dict = dict(
+        r=FIFF.FIFFV_SUBJ_HAND_RIGHT,
+        right=FIFF.FIFFV_SUBJ_HAND_RIGHT,
+        l=FIFF.FIFFV_SUBJ_HAND_LEFT,
+        left=FIFF.FIFFV_SUBJ_HAND_LEFT,
+        a=FIFF.FIFFV_SUBJ_HAND_AMBI,
+        ambidextrous=FIFF.FIFFV_SUBJ_HAND_AMBI,
+        ambi=FIFF.FIFFV_SUBJ_HAND_AMBI,
+    )
+    # no handedness is set when unknown
+    try:
+        subject_info['hand'] = hand_dict[subject_info['hand']]
+    except KeyError:
         subject_info.pop('hand')
 
     return subject_info
