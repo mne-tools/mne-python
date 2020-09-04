@@ -79,16 +79,15 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
     assert data_view.shape[1] == one.shape[1]
     if mult is not None:
         mult.ndim == one.ndim == 2
-        assert mult.shape[1] == one.shape[0]
-        data_view[:] = mult @ one
+        data_view[:] = mult @ one[idx]
     else:
+        assert cals is not None
         if isinstance(idx, slice):
             data_view[:] = one[idx]
         else:
             # faster than doing one = one[idx]
             np.take(one, idx, axis=0, out=data_view)
-        if cals is not None:
-            data_view *= cals
+        data_view *= cals
 
 
 def _blk_read_lims(start, stop, buf_len):

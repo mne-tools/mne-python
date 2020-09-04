@@ -23,6 +23,7 @@ from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
+from mne.io.utils import _mult_cal_one
 
 
 def assert_named_constants(info):
@@ -149,8 +150,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             apply.copy().pick(picks[0]).get_data()
         # 3. apply->load->get
         data_apply_load_get = apply.copy().load_data().get_data(picks)
-        data_apply_load_get_0 = \
-            apply.copy().load_data().pick(picks[0]).get_data()[0]
+        data_apply_load_get_0, data_apply_load_get_1 = \
+            apply.copy().load_data().pick(picks[:2]).get_data()
         # 4. reorder->apply->load->get
         all_picks = np.arange(len(other_raw.ch_names))
         reord = np.concatenate((
@@ -161,22 +162,26 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         assert_array_equal(reord[rev], all_picks)
         assert_array_equal(rev[reord], all_picks)
         reorder = other_raw.copy().pick(reord)
+        assert reorder.ch_names == [other_raw.ch_names[r] for r in reord]
+        assert reorder.ch_names[0] == other_raw.ch_names[picks[1]]
         assert_allclose(reorder.get_data([0]), other_raw.get_data(picks[1]))
-        assert_allclose(reorder.get_data([1]), other_raw.get_data(picks[0]))
         reorder_apply = reorder.copy().apply_proj()
-        assert_allclose(reorder_apply.get_data([1]), apply.get_data(picks[0]))
-        assert_allclose(reorder_apply.get_data([0]), apply.get_data(picks[1]))
-        data_reorder_apply_load_get = reorder_apply.load_data().get_data(rev)
-        data_reorder_apply_load_get_0 = \
-            reorder_apply.copy().load_data().pick([1]).get_data()[0]
+        assert reorder_apply.ch_names == reorder.ch_names
+        assert reorder_apply.ch_names[0] == apply.ch_names[picks[1]]
+        assert_allclose(reorder_apply.get_data([0]), apply.get_data(picks[1]),
+                        atol=1e-18)
+        data_reorder_apply_load_get = \
+            reorder_apply.load_data().get_data(rev[:len(picks)])
+        data_reorder_apply_load_get_1 = \
+            reorder_apply.copy().load_data().pick([0]).get_data()[0]
+        assert reorder_apply.ch_names[0] == apply.ch_names[picks[1]]
         assert (data_load_apply_get.shape ==
                 data_apply_get.shape ==
                 data_apply_load_get.shape ==
-                data_reorder_apply_load_get)
+                data_reorder_apply_load_get.shape)
         del apply
         # first check that our data are (probably) in the right units
         data = data_load_apply_get.copy()
-        data -= np.mean(data, axis=-1, keepdims=True)  # offsets
         np.abs(data, out=data)
         if test_scaling:
             maxval = atol * 1e16
@@ -201,8 +206,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         t_kw = dict(
             atol=atol, err_msg='before != after, likely _mult_cal_one prob')
         assert_allclose(data_apply_get[0], data_apply_get_0, **t_kw)
-        assert_allclose(data_reorder_apply_load_get[0],
-                        data_reorder_apply_load_get_0, **t_kw)
+        assert_allclose(data_apply_load_get_1,
+                        data_reorder_apply_load_get_1, **t_kw)
         assert_allclose(data_load_apply_get[0], data_apply_load_get_0, **t_kw)
         assert_allclose(data_load_apply_get, data_apply_get, **t_kw)
         assert_allclose(data_load_apply_get, data_apply_load_get, **t_kw)
@@ -508,3 +513,26 @@ def test_repr():
     r = repr(RawArray(np.zeros((3, 10 * sfreq)), info))
     assert re.search('<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>',
                      r) is not None, r
+
+
+# A class that sets channel data to np.arange, for testing _test_raw_reader
+class _RawArange(BaseRaw):
+
+    def __init__(self, preload=False, verbose=None):
+        info = create_info(list(str(x) for x in range(1, 9)), 1000., 'eeg')
+        super().__init__(info, preload, last_samps=(999,), verbose=verbose)
+        assert len(self.times) == 1000
+
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        one = np.full((8, stop - start), np.nan)
+        one[idx] = np.arange(1, 9)[idx, np.newaxis]
+        _mult_cal_one(data, one, idx, cals, mult)
+
+
+def _read_raw_arange(preload=False, verbose=None):
+    return _RawArange(preload, verbose)
+
+
+def test_test_raw_reader():
+    """Test _test_raw_reader."""
+    _test_raw_reader(_read_raw_arange, test_scaling=False, test_rank='less')

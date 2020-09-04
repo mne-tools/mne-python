@@ -129,7 +129,7 @@ class RawEDF(BaseRaw):
             idx = np.empty(0, int)
             tal_data = self._read_segment_file(
                 np.empty((0, self.n_times)), idx, 0, 0, int(self.n_times),
-                None, None)
+                np.ones((len(idx), 1)), None)
             onset, duration, desc = _read_annotations_edf(tal_data[0])
 
         self.set_annotations(Annotations(onset=onset, duration=duration,

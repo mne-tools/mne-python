@@ -388,8 +388,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             assert mult.shape == (n_out, len(self.ch_names))
             # read all necessary for proj
             need_idx = np.where(np.any(mult, axis=0))[0]
+            mult = mult[:, need_idx]
             logger.debug(
-                f'    Reading {len(need_idx)}/{len(self.ch_names)} channels'
+                f'Reading {len(need_idx)}/{len(self.ch_names)} channels '
                 f'due to projection')
         assert (mult is None) ^ (cals is None)  # xor
 
@@ -430,7 +431,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        data : ndarray, shape (len(idx), stop - start + 1)
+        data : ndarray, shape (n_out, stop - start + 1)
             The data array. Should be modified inplace.
         idx : ndarray | slice
             The requested channel indices.
@@ -442,7 +443,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The stop sample in the given file (inclusive).
         cals : ndarray, shape (len(idx), 1)
             Channel calibrations (already sub-indexed).
-        mult : ndarray, shape (len(idx), len(info['chs']) | None
+        mult : ndarray, shape (n_out, len(idx) | None
             The compensation + projection + cals matrix, if applicable.
         """
         raise NotImplementedError

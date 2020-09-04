@@ -266,7 +266,7 @@ class RawKIT(BaseRaw):
                         sqd['stim_code'], stim)
                     block = np.vstack((block, stim_ch))
 
-                _mult_cal_one(data_view, block, idx, None, mult)
+                _mult_cal_one(data_view, block, idx, cals, mult)
         # cals are all unity, so can be ignored
 
 
