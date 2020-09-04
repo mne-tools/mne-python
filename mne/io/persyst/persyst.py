@@ -192,7 +192,7 @@ class RawPersyst(BaseRaw):
             n_samples = n_samples // (dtype.itemsize * n_chs)
 
             logger.debug(f'Loaded {n_samples} samples '
-                             f'for {n_chs} channels.')
+                         f'for {n_chs} channels.')
 
         raw_extras = {
             'dtype': dtype,
@@ -292,7 +292,8 @@ def _get_subjectinfo(patient_dict):
         f=FIFF.FIFFV_SUBJ_SEX_FEMALE,
         female=FIFF.FIFFV_SUBJ_SEX_FEMALE,
     )
-    subject_info['sex'] = sex_dict.get(subject_info['sex'], FIFF.FIFFV_SEX_UNKNOWN)
+    subject_info['sex'] = sex_dict.get(subject_info['sex'],
+                                       FIFF.FIFFV_SEX_UNKNOWN)
 
     # Recode hand values
     hand_dict = dict(
