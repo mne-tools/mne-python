@@ -201,12 +201,19 @@ class MNESelectionFigure(MNEFigure):
         """Handle RadioButton clicks for channel selection groups."""
         selections_dict = self.mne.parent_fig.mne.ch_selections
         buttons = self.mne.radio_ax.buttons
+        labels = [label.get_text() for label in buttons.labels]
         this_label = buttons.value_selected
+        parent = self.mne.parent_fig
         if this_label == 'Custom' and not len(selections_dict['Custom']):
             with _events_off(buttons):
                 buttons.set_active(self.mne.old_selection)
             return
-        self.mne.parent_fig._update_selection()
+        # clicking a selection cancels butterfly mode
+        if parent.mne.butterfly:
+            parent._toggle_butterfly()
+            with _events_off(buttons):
+                buttons.set_active(labels.index(this_label))
+        parent._update_selection()
 
     def _set_custom_selection(self):
         """Set custom selection by lasso selector."""
@@ -504,15 +511,7 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'a':  # annotation mode
             self._toggle_annotation_fig()
         elif key == 'b':  # butterfly mode
-            self.mne.ax_vscroll.set_visible(self.mne.butterfly)
-            self.mne.butterfly = not self.mne.butterfly
-            self.mne.scale_factor *= 0.5 if self.mne.butterfly else 2.
-            self._update_picks()
-            self._update_trace_offsets()
-            self._update_data()
-            if self.mne.fig_selection is not None:
-                self._update_highlighted_sensors()
-            self._redraw(annotations=True)
+            self._toggle_butterfly()
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
             self._redraw()
@@ -615,6 +614,26 @@ class MNEBrowseFigure(MNEFigure):
         # redraw
         self._update_projector()
         self._redraw()
+
+    def _toggle_butterfly(self):
+        """Enter or leave butterfly mode."""
+        self.mne.ax_vscroll.set_visible(self.mne.butterfly)
+        self.mne.butterfly = not self.mne.butterfly
+        self.mne.scale_factor *= 0.5 if self.mne.butterfly else 2.
+        self._update_picks()
+        self._update_trace_offsets()
+        self._redraw(annotations=True)
+        if self.mne.fig_selection is not None:
+            # Show all radio buttons as selected when in butterfly mode
+            from matplotlib import rcParams
+            bgcolor = rcParams['axes.facecolor']
+            fig = self.mne.fig_selection
+            buttons = fig.mne.radio_ax.buttons
+            color = buttons.activecolor if self.mne.butterfly else bgcolor
+            for circle in buttons.circles:
+                circle.set_facecolor(color)
+            # update the sensors too
+            self._update_highlighted_sensors()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
