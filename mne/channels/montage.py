@@ -746,6 +746,7 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
             _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
+
         del ch_pos_use
 
         # XXX this is probably wrong as it uses the order from the montage
