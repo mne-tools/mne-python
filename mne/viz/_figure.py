@@ -529,8 +529,10 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.draggable_annotations = not self.mne.draggable_annotations
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
-        elif key == 'w':  # TODO: toggle noise cov / whitening
-            pass
+        elif key == 'w':  # toggle noise cov whitening
+            self.mne.use_noise_cov = not self.mne.use_noise_cov
+            self._update_projector()
+            self._redraw()
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
         else:  # check for close key
@@ -1240,10 +1242,9 @@ class MNEBrowseFigure(MNEFigure):
         # copy projs from full list (self.mne.projs) to info object
         self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
         # compute the projection operator
-        proj, wh_chs = _setup_plot_projector(self.mne.info,
-                                             self.mne.whitened_ch_names,
+        proj, wh_chs = _setup_plot_projector(self.mne.info, self.mne.noise_cov,
                                              True, self.mne.use_noise_cov)
-        self.mne.whitened_ch_names = wh_chs
+        self.mne.whitened_ch_names = list(wh_chs)
         self.mne.projector = proj
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1486,7 +1487,7 @@ class MNEBrowseFigure(MNEFigure):
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
-        # get indices of currently visible channels
+        # get info about currently visible channels
         picks = self.mne.picks
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
