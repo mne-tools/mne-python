@@ -182,6 +182,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         del apply
         # first check that our data are (probably) in the right units
         data = data_load_apply_get.copy()
+        data = data - np.mean(data, axis=1, keepdims=True)  # can be offsets
         np.abs(data, out=data)
         if test_scaling:
             maxval = atol * 1e16
