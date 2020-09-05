@@ -282,43 +282,9 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         raise TypeError(f'title must be None or a string, got a {type(title)}')
     _set_window_title(fig, title)
 
-    # generate the channel selection dialog, if requested
+    # make channel selection dialog, if requested (doesn't work well in init)
     if group_by in ('selection', 'position'):
-        fig._create_selection_fig(group_by)
-
-    # draw vertical scrollbar patches
-    for ch_ix in range(len(order)):
-        this_color = (bad_color if info['ch_names'][order[ch_ix]] in
-                      info['bads'] else color)
-        if isinstance(this_color, dict):
-            this_color = this_color[fig.mne.ch_types[order[ch_ix]]]
-        fig.mne.ax_vscroll.add_patch(Rectangle((0, ch_ix), 1, 1,
-                                     facecolor=this_color,
-                                     edgecolor=this_color))
-    fig.mne.ax_vscroll.set_ylim(len(order), 0)
-    fig.mne.ax_vscroll.set_visible(not butterfly)
-
-    # scrollbar selection patches and lines
-    vsel_patch = Rectangle((0, 0), 1, fig.mne.n_channels, alpha=0.5,
-                           facecolor='w', edgecolor='w')
-    fig.mne.ax_vscroll.add_patch(vsel_patch)
-    hsel_patch = Rectangle((fig.mne.t_start, 0), fig.mne.duration, 1,
-                           edgecolor='k', facecolor=(0.75, 0.75, 0.75),
-                           alpha=0.25, linewidth=4, clip_on=False)
-    fig.mne.ax_hscroll.add_patch(hsel_patch)
-    fig.mne.ax_hscroll.set_xlim(fig.mne.first_time, fig.mne.first_time +
-                                fig.mne.n_times / sfreq)
-    vline_color = 'C8'  # used to be (0., 0.75, 0.)
-    vline_kwargs = dict(color=vline_color, visible=False)
-    vline = fig.mne.ax_main.axvline(0, zorder=4, **vline_kwargs)
-    vline.ch_name = ''
-    vline_hscroll = fig.mne.ax_hscroll.axvline(0, zorder=2, **vline_kwargs)
-    vline_text = fig.mne.ax_hscroll.text(fig.mne.first_time, 1.2, '',
-                                         color=vline_color, fontsize=10,
-                                         ha='right', va='bottom')
-    vars(fig.mne).update(vsel_patch=vsel_patch, hsel_patch=hsel_patch,
-                         vline=vline, vline_hscroll=vline_hscroll,
-                         vline_text=vline_text)
+        fig._create_selection_fig()
 
     # update projector and data, and plot
     fig._update_trace_offsets()

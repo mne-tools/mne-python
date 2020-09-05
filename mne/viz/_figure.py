@@ -233,6 +233,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def __init__(self, inst, xlabel='Time (s)', **kwargs):
         from matplotlib.widgets import Button
+        from matplotlib.patches import Rectangle
         from matplotlib.collections import LineCollection
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
@@ -316,6 +317,36 @@ class MNEBrowseFigure(MNEFigure):
         ax_hscroll.get_yaxis().set_visible(False)
         ax_hscroll.set_xlabel(xlabel)
         ax_vscroll.set_axis_off()
+        # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
+        ch_order = self.mne.ch_order
+        for ch_ix in range(len(self.mne.ch_order)):
+            this_color = (self.mne.ch_color_bad
+                          if self.mne.info['ch_names'][ch_order[ch_ix]] in
+                          self.mne.info['bads'] else self.mne.ch_color_dict)
+            if isinstance(this_color, dict):
+                this_color = this_color[self.mne.ch_types[ch_order[ch_ix]]]
+            ax_vscroll.add_patch(Rectangle((0, ch_ix), 1, 1,
+                                 facecolor=this_color, edgecolor=this_color))
+        ax_vscroll.set_ylim(len(ch_order), 0)
+        ax_vscroll.set_visible(not self.mne.butterfly)
+        # SCROLLBAR VISIBLE SELECTION PATCHES
+        vsel_patch = Rectangle((0, 0), 1, self.mne.n_channels, alpha=0.5,
+                               facecolor='w', edgecolor='w')
+        ax_vscroll.add_patch(vsel_patch)
+        hsel_patch = Rectangle((self.mne.t_start, 0), self.mne.duration, 1,
+                               edgecolor='k', facecolor=(0.75, 0.75, 0.75),
+                               alpha=0.25, linewidth=4, clip_on=False)
+        ax_hscroll.add_patch(hsel_patch)
+        ax_hscroll.set_xlim(self.mne.first_time, self.mne.first_time +
+                            self.mne.n_times / self.mne.info['sfreq'])
+        vline_color = 'C8'  # used to be (0., 0.75, 0.)
+        vline_kw = dict(color=vline_color, visible=False)
+        vline = ax.axvline(0, zorder=4, **vline_kw)
+        vline.ch_name = ''
+        vline_hscroll = ax_hscroll.axvline(0, zorder=2, **vline_kw)
+        vline_text = ax_hscroll.text(self.mne.first_time, 1.2, '',
+                                     color=vline_color, fontsize=10,
+                                     ha='right', va='bottom')
 
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
@@ -339,19 +370,19 @@ class MNEBrowseFigure(MNEFigure):
             ax_proj.set_axes_locator(loc)
             _ = Button(ax_proj, 'Prj')  # listener handled in _buttonpress()
 
-        # SAVE UI ELEMENT HANDLES
-        self.mne.ax_main = ax
-        self.mne.ax_help = ax_help
-        self.mne.ax_proj = ax_proj
-        self.mne.ax_hscroll = ax_hscroll
-        self.mne.ax_vscroll = ax_vscroll
-
         # INIT TRACES
         segments = np.full((1, 1, 2), np.nan)
         self.mne.traces = LineCollection(
             segments, linewidths=0.5, colors='k', offsets=np.zeros((1, 2)),
             antialiaseds=True, pickradius=10)
-        self.mne.ax_main.add_collection(self.mne.traces)
+        ax.add_collection(self.mne.traces)
+
+        # SAVE UI ELEMENT HANDLES
+        vars(self.mne).update(
+            ax_main=ax, ax_help=ax_help, ax_proj=ax_proj,
+            ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
+            vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
+            vline_hscroll=vline_hscroll, vline_text=vline_text)
 
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
@@ -1025,13 +1056,11 @@ class MNEBrowseFigure(MNEFigure):
     # CHANNEL SELECTIONS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    def _create_selection_fig(self, kind):
+    def _create_selection_fig(self):
         """Create channel selection dialog window."""
         from matplotlib import rcParams
         from matplotlib.colors import to_rgb
         from matplotlib.widgets import RadioButtons
-        # convenience
-        selections_dict = self.mne.ch_selections
         # make figure
         fig = self._new_child_figure(figsize=(3, 7),
                                      FigureClass=MNESelectionFigure,
@@ -1042,12 +1071,14 @@ class MNEBrowseFigure(MNEFigure):
         # add sensor plot at top
         fig.mne.sensor_ax = fig.add_subplot(gs[:5])
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
-                     axes=fig.mne.sensor_ax, ch_groups=kind, show=False)
+                     axes=fig.mne.sensor_ax, ch_groups=self.mne.group_by,
+                     show=False)
         # style the sensors so their facecolor is easier to distinguish
         self._update_highlighted_sensors()
         # add radio button axes
         radio_ax = fig.add_subplot(gs[5:-3], frame_on=False, aspect='equal')
         fig.mne.radio_ax = radio_ax
+        selections_dict = self.mne.ch_selections
         selections_dict.update(Custom=np.array([], dtype=int))  # for lasso
         labels = list(selections_dict)
         # make & style the radio buttons
@@ -1310,7 +1341,7 @@ class MNEBrowseFigure(MNEFigure):
         return False
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # SCALEBARS
+    # SCALEBARS & Y-AXIS LABELS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _show_scalebars(self):
@@ -1368,6 +1399,24 @@ class MNEBrowseFigure(MNEFigure):
                                      ha='right', size='xx-small', **kwargs)
         self.mne.scalebars[ch_type] = bar
         self.mne.scalebar_texts[ch_type] = text
+
+    def _update_yaxis_labels(self):
+        """Change the y-axis labels."""
+        if self.mne.butterfly and self.mne.fig_selection is not None:
+            exclude = ('Vertex', 'Custom')
+            ticklabels = list(self.mne.ch_selections)
+            keep_mask = np.in1d(ticklabels, exclude, invert=True)
+            ticklabels = [t.replace('Left-', 'L-').replace('Right-', 'R-')
+                          for t in ticklabels]  # avoid having to rotate labels
+            ticklabels = np.array(ticklabels)[keep_mask]
+        elif self.mne.butterfly:
+            _, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
+                                       self.mne.ch_types, return_indices=True)
+            ixs.sort()
+            ticklabels = np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[ixs]
+        else:
+            ticklabels = self.mne.ch_names[self.mne.picks]
+        self.mne.ax_main.set_yticklabels(ticklabels, rotation=0)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
@@ -1596,28 +1645,6 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.vline_hscroll.set_visible(False)
         self.mne.vline_text.set_text('')
         self.canvas.draw()
-
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # MISCELLANY
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    def _update_yaxis_labels(self):
-        """Change the y-axis labels."""
-        if self.mne.butterfly and self.mne.fig_selection is not None:
-            exclude = ('Vertex', 'Custom')
-            ticklabels = list(self.mne.ch_selections)
-            keep_mask = np.in1d(ticklabels, exclude, invert=True)
-            ticklabels = [t.replace('Left-', 'L-').replace('Right-', 'R-')
-                          for t in ticklabels]  # avoid having to rotate labels
-            ticklabels = np.array(ticklabels)[keep_mask]
-        elif self.mne.butterfly:
-            _, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
-                                       self.mne.ch_types, return_indices=True)
-            ixs.sort()
-            ticklabels = np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[ixs]
-        else:
-            ticklabels = self.mne.ch_names[self.mne.picks]
-        self.mne.ax_main.set_yticklabels(ticklabels, rotation=0)
 
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
