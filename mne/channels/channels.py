@@ -29,7 +29,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
 from ..io.write import DATE_NONE
-from ..io._digitization import _get_data_as_dict_from_dig, _get_fid_coords
+from ..io._digitization import _get_data_as_dict_from_dig
 
 
 def _get_meg_system(info):
@@ -248,16 +248,10 @@ class ContainsMixin(object):
         from ..channels.montage import make_dig_montage
         if self.info['dig'] is None:
             return None
-
-        # extract landmark coords and coordinate frame
-        landmark_coords, coord_frame_int = _get_fid_coords(self.info['dig'])
-
-        # try to extract the coordinate frame if avail.,
-        # else default to unknown
-        coord_frame = _frame_to_str.get(coord_frame_int, 'unknown')
-
-        # obtain nasion, lpa, rpa, hsp, hpi from DigPoints
+        # obtain coord_frame, and landmark coords
+        # (nasion, lpa, rpa, hsp, hpi) from DigPoints
         montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
 
         # get the channel names and chs data structure
         ch_names, chs = self.info['ch_names'], self.info['chs']
