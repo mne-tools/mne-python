@@ -255,10 +255,12 @@ class ContainsMixin(object):
 
         # get the channel names and chs data structure
         ch_names, chs = self.info['ch_names'], self.info['chs']
+        picks = pick_types(self.info, meg=False, eeg=True,
+                           seeg=True, ecog=True)
 
         # channel positions from dig do not match ch_names one to one,
         # so use loc[:3] instead
-        ch_pos = {ch_names[ii]: ch['loc'][:3] for ii, ch in enumerate(chs)}
+        ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
 
         # create montage
         montage = make_dig_montage(

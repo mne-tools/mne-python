@@ -703,8 +703,13 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
 
         # keep reference location from EEG/ECoG/SEEG channels if they
         # already exist and are all the same.
-        if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]):
+        custom_eeg_ref_dig = False
+        if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]) \
+                and not np.equal(ref_pos[0],[0, 0, 0]).all():
             eeg_ref_pos = ref_pos[0]
+            # since we have an EEG reference position, we have
+            # to add it into the info['dig'] as EEG000
+            custom_eeg_ref_dig = True
         else:
             refs = set(ch_pos) & {'EEG000', 'REF'}
             assert len(refs) <= 1
@@ -764,9 +769,19 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
 
         # XXX this is probably wrong as it uses the order from the montage
         # rather than the order of our info['ch_names'] ...
-        info['dig'] = _format_dig_points([
+        digpoints = [
             mnt_head.dig[ii] for ii, name in enumerate(dig_names_use)
-            if name in (info_names_use + ref_names)])
+            if name in (info_names_use + ref_names)]
+
+        if custom_eeg_ref_dig:
+            # ref_name = 'EEG000' if match_case else 'eeg000'
+            ref_dig_dict = {'kind': FIFF.FIFFV_POINT_EEG,
+                            'r': eeg_ref_pos,
+                            'ident': 0,
+                            'coord_frame': info['dig'].pop()['coord_frame']}
+            ref_dig_point = _format_dig_points([ref_dig_dict])[0]
+            digpoints.append(ref_dig_point)
+        info['dig'] = _format_dig_points(digpoints)
 
         if mnt_head.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)

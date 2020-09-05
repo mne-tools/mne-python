@@ -1317,8 +1317,15 @@ def test_get_montage():
     # get montage and then set montage and
     # it should be the same
     montage = raw.get_montage()
-    raw.set_montage(montage, on_missing='ignore')
+    raw.set_montage(montage, on_missing='raise')
     assert_object_equal(raw.info['chs'], raw2.info['chs'])
+
+    # this doesn't work
+    assert_object_equal(raw.info['dig'], raw2.info['dig'])
+
+    # this WORKS!
+    # assert_object_equal(raw.info['dig'][:85], raw2.info['dig'][:85])
+    # assert_object_equal(raw.info['dig'][85:], raw2.info['dig'][86:])
 
     # 2. now do a standard montage
     montage = make_standard_montage('mgh60')
@@ -1327,11 +1334,16 @@ def test_get_montage():
 
     # get montage back and set it
     # the channel locations should be the same
-    orig_chs = raw.info['chs']
+    orig_chs, orig_dig = raw.info['chs'], raw.info['dig']
     test_montage = raw.get_montage()
     raw.set_montage(test_montage, on_missing='ignore')
-    test_chs = raw.info['chs']
+    test_chs, test_dig = raw.info['chs'], raw.info['dig']
     assert_object_equal(orig_chs, test_chs)
+    assert_object_equal(orig_dig, test_dig)
+    assert montage.ch_names == test_montage.ch_names
+    # assert all([assert_object_equal(x1, x2) for x1, x2 in
+    #             zip(montage._get_ch_pos(), test_montage._get_ch_pos())])
+    assert_object_equal(montage.dig, test_montage.dig)
 
     # 3. if montage gets set to None
     raw.set_montage(None)
@@ -1367,6 +1379,7 @@ def test_get_montage():
     test_montage = raw_bv.get_montage()
     raw_bv.set_montage(test_montage, on_missing='ignore')
     assert_object_equal(raw_bv2.info['chs'], raw_bv.info['chs'])
+    assert_object_equal(raw_bv2.info['dig'], raw_bv.info['dig'])
 
     # if dig is not set in the info, then montage returns None
     raw.info['dig'] = None
