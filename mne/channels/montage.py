@@ -773,6 +773,11 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
             mnt_head.dig[ii] for ii, name in enumerate(dig_names_use)
             if name in (info_names_use + ref_names)]
 
+        # get a copy of the old dig
+        if info['dig'] is not None:
+            old_dig = info['dig'].copy()
+        else:
+            old_dig = []
         if custom_eeg_ref_dig:
             # ref_name = 'EEG000' if match_case else 'eeg000'
             ref_dig_dict = {'kind': FIFF.FIFFV_POINT_EEG,
@@ -780,7 +785,12 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
                             'ident': 0,
                             'coord_frame': info['dig'].pop()['coord_frame']}
             ref_dig_point = _format_dig_points([ref_dig_dict])[0]
-            digpoints.append(ref_dig_point)
+            if ref_dig_point in old_dig:
+                print(ref_dig_point)
+                print('OLD DIG POINT WAS IN THERE!')
+                print(len(digpoints))
+                digpoints.append(ref_dig_point)
+                print(len(digpoints))
         info['dig'] = _format_dig_points(digpoints)
 
         if mnt_head.dev_head_t is not None:
