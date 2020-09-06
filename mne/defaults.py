@@ -5,13 +5,16 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+from matplotlib import rcParams
+
+black = rcParams['axes.edgecolor']
 
 DEFAULTS = dict(
-    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m', emg='k',
-               ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k',
-               exci='k', ias='k', syst='k', seeg='saddlebrown', dipole='k',
-               gof='k', bio='k', ecog='k', hbo='#AA3377', hbr='b',
-               fnirs_cw_amplitude='k', fnirs_od='k', csd='k'),
+    color=dict(mag='C0', grad='C4', eeg=black, eog=black, ecg='C6', emg=black,
+               ref_meg='C9', misc=black, stim=black, resp=black, chpi=black,
+               exci=black, ias=black, syst=black, seeg='C5', dipole=black,
+               gof=black, bio=black, ecog=black, hbo='C3', hbr='C4',
+               fnirs_cw_amplitude=black, fnirs_od=black, csd=black),
     units=dict(mag='fT', grad='fT/cm', eeg='µV', eog='µV', ecg='µV', emg='µV',
                misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='µV',
                ecog='µV', hbo='µM', hbr='µM', ref_meg='fT',
