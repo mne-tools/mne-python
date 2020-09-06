@@ -68,7 +68,10 @@ EEG           :ref:`General data format <import-gdf>`       .gdf       :func:`mn
 
 EEG           :ref:`Nicolet <import-nicolet>`               .data      :func:`mne.io.read_raw_nicolet`
 
+EEG           :ref:`Persyst <import-persyst>`               .lay       :func:`mne.io.read_raw_persyst`
+
 NIRS          :ref:`NIRx <import-nirx>`                     directory  :func:`mne.io.read_raw_nirx`
+
 ============  ============================================  =========  ===================================
 
 More details are provided in the tutorials in the :ref:`tut-data-formats`

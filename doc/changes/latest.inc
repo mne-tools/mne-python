@@ -185,6 +185,8 @@ Changelog
 
 - Speed up reading of annotations in EDF+ files by `Jeroen Van Der Donckt`_
 
+- Add reader for Persyst (.lay + .dat format) data in :func:`mne.io.read_raw_persyst` by `Adam Li`_
+
 Bug
 ~~~
 
