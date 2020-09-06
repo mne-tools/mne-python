@@ -704,13 +704,14 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         # keep reference location from EEG/ECoG/SEEG channels if they
         # already exist and are all the same.
         custom_eeg_ref_dig = False
-        if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]) \
-                and not np.equal(ref_pos[0], [0, 0, 0]).all():
-            eeg_ref_pos = ref_pos[0]
-            # since we have an EEG reference position, we have
-            # to add it into the info['dig'] as EEG000
-            custom_eeg_ref_dig = True
-        else:
+        if ref_pos:
+            if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]) \
+                    and not np.equal(ref_pos[0], [0, 0, 0]).all():
+                eeg_ref_pos = ref_pos[0]
+                # since we have an EEG reference position, we have
+                # to add it into the info['dig'] as EEG000
+                custom_eeg_ref_dig = True
+        if not custom_eeg_ref_dig:
             refs = set(ch_pos) & {'EEG000', 'REF'}
             assert len(refs) <= 1
             eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
