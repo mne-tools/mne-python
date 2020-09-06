@@ -113,7 +113,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                  butterfly=False, decim='auto', noise_cov=None, event_id=None,
                  show_scrollbars=True, show_scalebars=True, verbose=None):
     """."""
-    # TODO allow passing in figure instance? (Kivy compatibility)
     from ..io.base import BaseRaw
     from . import browse_figure
 
@@ -220,6 +219,19 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     start += first_time
     event_id_rev = {v: k for k, v in (event_id or {}).items()}
 
+    # generate window title; allow instances without a filename (e.g., ICA)
+    if title is None:
+        title = '<unknown>'
+        fnames = raw._filenames.copy()
+        if len(fnames):
+            title = fnames.pop(0)
+            extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
+            title = f'{title}{extra}'
+            prefix = '...' if len(title) > 60 else ''
+            title = f'{prefix}{title[-60:]}'
+    elif not isinstance(title, str):
+        raise TypeError(f'title must be None or a string, got a {type(title)}')
+
     # gather parameters and initialize figure
     params = dict(inst=raw,
                   info=info,
@@ -262,24 +274,11 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   butterfly=butterfly,
                   clipping=clipping,
                   scrollbars_visible=show_scrollbars,
-                  scalebars_visible=show_scalebars)
+                  scalebars_visible=show_scalebars,
+                  window_title=title)
 
     fig = browse_figure(**params)
     fig._update_picks()
-
-    # generate window title; allow instances without a filename (e.g., ICA)
-    if title is None:
-        title = '<unknown>'
-        fnames = raw._filenames.copy()
-        if len(fnames):
-            title = fnames.pop(0)
-            extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
-            title = f'{title}{extra}'
-            prefix = '...' if len(title) > 60 else ''
-            title = f'{prefix}{title[-60:]}'
-    elif not isinstance(title, str):
-        raise TypeError(f'title must be None or a string, got a {type(title)}')
-    _set_window_title(fig, title)
 
     # make channel selection dialog, if requested (doesn't work well in init)
     if group_by in ('selection', 'position'):
