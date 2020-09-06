@@ -147,35 +147,31 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
         vector=vector, source_nn=source_nn)
 
 
-def _split_gof(x, x_est, gain):
+def _split_gof(M, X, gain):
     # parse out the variance explained using an orthogonal basis
-    # assuming x is estimated using elements of gain, with residual res
-    # along the last axis
-    assert x.shape == x_est.shape
-    res = x - x_est
-    assert gain.shape[0] == x.shape[-1]
+    assert M.ndim == X.ndim == gain.ndim == 2
+    assert gain.shape == (M.shape[0], X.shape[0])
+    assert M.shape[1] == X.shape[1]
+    M_est = gain @ X
+    res = M - M_est
     norm = np.linalg.norm(gain, axis=0, keepdims=True)
     norm[norm == 0] = 1.
     gain = gain / norm
     del norm
     U, _, Vh = np.linalg.svd(gain, full_matrices=False)
     # the part that gets explained
-    fit_orth = x @ U
+    fit_orth = U.T @ M
     # the part that got over-explained (landed in residual)
-    res_orth = res @ U
+    res_orth = U.T @ res
     # project back
-    fit_back = fit_orth @ Vh
-    res_back = res_orth @ Vh
+    fit_back = Vh.T @ fit_orth
+    res_back = Vh.T @ res_orth
     # and the resulting goodness of fits
-    norm = (x * x.conj()).real.sum(-1, keepdims=True)
+    norm = (M * M.conj()).real.sum(0, keepdims=True)
     norm[norm == 0] = np.inf
     gof_back = 100 * (
         (fit_back * fit_back.conj()).real -
         (res_back * res_back.conj()).real) / norm
-    # Can check with this:
-    # orig_gof = 100 * (
-    #    (x * x.conj()).real - (res * res.conj()).real).sum(-1) / norm.T
-    # np.testing.assert_allclose(orig_gof, gof_back.sum(-1, keepdims=True).T)
     return gof_back
 
 
@@ -193,7 +189,7 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
     assert M.shape == (gain_active.shape[0], len(times))
     assert gain_active.shape[1] == len(active_idx)
     assert M.shape == M_est.shape
-    gof_split = _split_gof(M.T, M_est.T, gain_active).T
+    gof_split = _split_gof(M, X_orig, gain_active)
     assert gof_split.shape == (len(active_idx), len(times))
     assert X.shape[0] in (len(active_idx), 3 * len(active_idx))
 
@@ -434,7 +430,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     # Compute estimated whitened sensor data
     gain_active = gain[:, active_set]
-    M_estimate = np.dot(gain_active, X)
+    X_orig = X.copy()
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
@@ -459,7 +455,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             out = _make_dipoles_sparse(
                 Xe, active_set, forward, tmin, tstep,
                 M[:, cnt:(cnt + len(e.times))],
-                M_estimate[:, cnt:(cnt + len(e.times))], gain_active,
+                X_orig[:, cnt:(cnt + len(e.times))], gain_active,
                 verbose=None)
         else:
             out = _make_sparse_stc(
@@ -690,7 +686,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     # Compute estimated whitened sensor data for each dipole (dip, ch, time)
     gain_active = gain[:, active_set]
-    M_estimate = np.dot(gain_active, X)
+    X_orig = X.copy()
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
@@ -707,7 +703,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     if return_as_dipoles:
         out = _make_dipoles_sparse(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
-            M, M_estimate, gain_active, verbose=None)
+            M, X_orig, gain_active, verbose=None)
     else:
         out = _make_sparse_stc(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],

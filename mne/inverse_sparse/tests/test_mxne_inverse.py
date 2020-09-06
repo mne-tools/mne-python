@@ -261,25 +261,29 @@ def test_split_gof_basic(mod):
     """Test splitting the goodness of fit."""
     # first a trivial case
     gain = np.array([[0., 1., 1.], [1., 1., 0.]]).T
-    x = np.ones(3)
-    x_est = np.array([1., 2., 1.])  # a reasonable estimate
+    M = np.ones((3, 1))
+    X = np.ones((2, 1))
+    M_est = gain @ X
+    assert_allclose(M_est, np.array([[1., 2., 1.]]).T)  # a reasonable estimate
     if mod == 'mult':
         gain *= [1., -0.5]
+        X[1] *= -2
     elif mod == 'augment':
         gain = np.concatenate((gain, np.zeros((3, 1))), axis=1)
+        X = np.concatenate((X, [[1.]]))
     elif mod == 'sign':
         gain[1] *= -1
-        x[1] *= -1
-        x_est[1] *= -1
+        M[1] *= -1
+        M_est[1] *= -1
     else:
         assert mod is None
-    res = x - x_est
-    gof = 100 * (1. - (res * res).sum() / (x * x).sum())
-    gof_split = _split_gof(x, x_est, gain)
+    res = M - M_est
+    gof = 100 * (1. - (res * res).sum() / (M * M).sum())
+    gof_split = _split_gof(M, X, gain)
     assert_allclose(gof_split.sum(), gof)
     want = gof_split[[0, 0]]
     if mod == 'augment':
-        want = np.concatenate((want, [0]))
+        want = np.concatenate((want, [[0]]))
     assert_allclose(gof_split, want, atol=1e-12)
 
 
@@ -302,13 +306,15 @@ def test_gof_split_meg(forward, idx, weights):
     assert_array_less(prods, 5e-3)  # approximately orthogonal
     # first, split across time (one dipole per time point)
     x = gain * weights
-    gof_split = _split_gof(x.T, x.T, gain)
+    gof_split = _split_gof(x, np.diag(weights), gain)
     assert_allclose(gof_split.sum(0), 100., atol=1e-5)  # all sum to 100
     assert_allclose(gof_split, 100 * np.eye(len(weights)), atol=1)  # loc
     # next, summed to a single time point (all dipoles active at one time pt)
-    x = np.dot(gain, weights)
-    gof_split = _split_gof(x, x, gain)
-    want = (norms * weights) ** 2
+    weights = np.array(weights)[:, np.newaxis]
+    x = gain @ weights
+    assert x.shape == (gain.shape[0], 1)
+    gof_split = _split_gof(x, weights, gain)
+    want = (norms * weights.T).T ** 2
     want = 100 * want / want.sum()
     assert_allclose(gof_split, want, atol=1e-3, rtol=1e-3)
     assert_allclose(gof_split.sum(), 100, atol=1e-6)
