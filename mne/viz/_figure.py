@@ -752,6 +752,8 @@ class MNEBrowseFigure(MNEFigure):
                            raw='Show channel location')[inst]
         ldrag = ('Show spectrum plot for selected time span;\nor (in '
                  'annotation mode) add annotation') if inst == 'raw' else None
+        noise_cov = (None if self.mne.noise_cov is None else
+                     'Toggle signal whitening')
         # below, value " " is a hack to make "\n".split(value) have length 1
         help_text = OrderedDict([
             ('_NAVIGATION', ' '),
@@ -768,7 +770,7 @@ class MNEBrowseFigure(MNEFigure):
             ('-', 'Decrease signal scaling'),
             ('b', 'Toggle butterfly mode' if inst != 'ica' else None),
             ('d', 'Toggle DC removal' if inst == 'raw' else None),
-            ('w', 'Toggle signal whitening'),  # TODO only if noise_cov given?
+            ('w', noise_cov),
             ('h', 'Show peak-to-peak histogram' if inst == 'epochs' else None),
             ('_USER INTERFACE', ' '),
             ('a', 'Toggle annotation mode' if inst == 'raw' else None),
