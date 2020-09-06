@@ -1735,15 +1735,16 @@ def _close_event(event, fig):
 def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                   ax, show, kind, block, to_sphere, sphere):
     """Plot sensors."""
+    from matplotlib import rcParams
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from .topomap import _get_pos_outlines, _draw_outlines
     sphere = _check_sphere(sphere, info)
 
-    edgecolors = np.repeat('black', len(colors))
+    edgecolors = np.repeat(rcParams['axes.edgecolor'], len(colors))
     edgecolors[bads] = 'red'
     if ax is None:
-        fig = plt.figure(figsize=(max(plt.rcParams['figure.figsize']),) * 2)
+        fig = plt.figure(figsize=(max(rcParams['figure.figsize']),) * 2)
         if kind == '3d':
             Axes3D(fig)
             ax = fig.gca(projection='3d')
@@ -2218,14 +2219,14 @@ def _get_color_list(annotations=False):
     -------
     colors : list
     """
-    import matplotlib.pyplot as plt
-    color_cycle = plt.rcParams.get('axes.prop_cycle')
+    from matplotlib import rcParams
+    color_cycle = rcParams.get('axes.prop_cycle')
 
     if not color_cycle:
         # Use deprecated color_cycle to avoid KeyErrors in environments
         # with Python 2.7 and Matplotlib < 1.5
         # this will already be a list
-        colors = plt.rcParams.get('axes.color_cycle')
+        colors = rcParams.get('axes.color_cycle')
     else:
         # we were able to use the prop_cycle. Now just convert to list
         colors = color_cycle.by_key()['color']
