@@ -114,7 +114,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                  show_scrollbars=True, show_scalebars=True, verbose=None):
     """."""
     # TODO allow passing in figure instance? (Kivy compatibility)
-    from matplotlib.patches import Rectangle
     from ..io.base import BaseRaw
     from . import browse_figure
 
