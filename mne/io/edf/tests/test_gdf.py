@@ -102,7 +102,9 @@ def test_gdf2_data():
     # gh-5604
     assert raw.info['meas_date'] is None
     _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
-                     eog=None, misc=None)
+                     eog=None, misc=None,
+                     test_scaling=False,  # XXX this should be True
+                     )
 
 
 @testing.requires_testing_data

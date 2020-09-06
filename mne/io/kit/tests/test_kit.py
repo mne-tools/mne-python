@@ -116,7 +116,7 @@ def test_data(tmpdir):
     assert_array_almost_equal(data_py, data_bin)
 
     # KIT-UMD data
-    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
+    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path, test_rank='less')
     raw = read_raw_kit(sqd_umd_path)
     assert raw.info['description'] == \
         'University of Maryland/Kanazawa Institute of Technology/160-channel MEG System (53) V2R004 PQ1160R'  # noqa: E501
