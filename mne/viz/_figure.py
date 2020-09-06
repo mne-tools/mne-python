@@ -950,16 +950,17 @@ class MNEBrowseFigure(MNEFigure):
         ann_order = raw.annotations.onset.argsort(axis=0)
         descriptions = raw.annotations.description[ann_order]
         color_keys = np.union1d(descriptions, self.mne.added_labels)
-        color_cycle = cycle(_get_color_list(annotations=True))  # no red
+        colors, red = _get_color_list(annotations=True)
+        color_cycle = cycle(colors)
         for key, color in segment_colors.items():
-            if color != '#ff0000' and key in color_keys:
+            if color != red and key in color_keys:
                 next(color_cycle)
         for idx, key in enumerate(color_keys):
             if key in segment_colors:
                 continue
             elif key.lower().startswith('bad') or \
                     key.lower().startswith('edge'):
-                segment_colors[key] = '#ff0000'
+                segment_colors[key] = red
             else:
                 segment_colors[key] = next(color_cycle)
         self.mne.segment_colors = segment_colors

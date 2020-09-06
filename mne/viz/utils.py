@@ -2231,12 +2231,15 @@ def _get_color_list(annotations=False):
         # we were able to use the prop_cycle. Now just convert to list
         colors = color_cycle.by_key()['color']
 
-    # If we want annotations, red is reserved ... remove if present
-    for red in ('#ff0000', '#d62728', '#fa8174'):  # MPL old, new, dark mode
+    # If we want annotations, red is reserved ... remove if present. This
+    # checks for the reddish color in MPL dark background style, normal style,
+    # and MPL "red", and defaults to the last of those if none are present
+    for red in ('#fa8174', '#d62728', '#ff0000'):
         if annotations and red in colors:
             colors.remove(red)
+            break
 
-    return colors
+    return (colors, red) if annotations else colors
 
 
 def _setup_annotation_colors(params):
@@ -2247,15 +2250,16 @@ def _setup_annotation_colors(params):
     ann_order = raw.annotations.onset.argsort(axis=0)
     descriptions = raw.annotations.description[ann_order]
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = cycle(_get_color_list(annotations=True))  # no red
+    colors, red = _get_color_list(annotations=True)
+    color_cycle = cycle(colors)
     for key, color in segment_colors.items():
-        if color != '#ff0000' and key in color_keys:
+        if color != red and key in color_keys:
             next(color_cycle)
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
         elif key.lower().startswith('bad') or key.lower().startswith('edge'):
-            segment_colors[key] = '#ff0000'
+            segment_colors[key] = red
         else:
             segment_colors[key] = next(color_cycle)
     params['segment_colors'] = segment_colors
