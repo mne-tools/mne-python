@@ -2082,7 +2082,7 @@ class SelectFromCollection(object):
     (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
     """
 
-    def __init__(self, ax, collection, ch_names, alpha_other=0.3,
+    def __init__(self, ax, collection, ch_names, alpha_other=0.5,
                  linewidth_other=0.5):
         from matplotlib import __version__
         if LooseVersion(__version__) < LooseVersion('1.2.1'):
@@ -2154,7 +2154,7 @@ class SelectFromCollection(object):
         """Style selected sensors as "active"."""
         # reset
         self.fc[:, -1] = self.alpha_other
-        self.ec[:, -1] = self.alpha_other
+        self.ec[:, -1] = self.alpha_other / 2
         self.lw[:] = self.linewidth_other
         # style sensors at `inds`
         self.fc[inds, -1] = 1
