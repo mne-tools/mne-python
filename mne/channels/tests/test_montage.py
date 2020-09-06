@@ -1320,12 +1320,8 @@ def test_get_montage():
     raw.set_montage(montage, on_missing='raise')
     test_montage = raw.get_montage()
     assert_object_equal(raw.info['chs'], raw2.info['chs'])
-    # dig order might be different after set_montage
-    for dig in raw.info['dig']:
-        assert dig in raw2.info['dig']
-    for dig in raw2.info['dig']:
-        assert dig in raw.info['dig']
     assert_dig_allclose(raw2.info, raw.info)
+    assert_object_equal(raw2.info['dig'], raw.info['dig'])
 
     # the montage does not change
     assert_object_equal(montage.dig, test_montage.dig)
@@ -1344,14 +1340,11 @@ def test_get_montage():
     # chs should not change
     assert_object_equal(raw2.info['chs'], raw.info['chs'])
     # dig order might be different after set_montage
-    for idx, dig in enumerate(raw2.info['dig']):
-        assert dig in raw.info['dig']
-    for idx, dig in enumerate(raw.info['dig']):
-        assert dig in raw2.info['dig']
     assert montage.ch_names == test_montage.ch_names
     # note that test_montage will have different coordinate frame
     # compared to standard montage
     assert_dig_allclose(raw2.info, raw.info)
+    assert_object_equal(raw2.info['dig'], raw.info['dig'])
 
     # 3. if montage gets set to None
     raw.set_montage(None)
@@ -1387,10 +1380,7 @@ def test_get_montage():
     test_montage = raw_bv.get_montage()
     raw_bv.set_montage(test_montage, on_missing='ignore')
     # dig order might be different after set_montage
-    for idx, dig in enumerate(raw_bv2.info['dig']):
-        assert dig in raw_bv.info['dig']
-    for idx, dig in enumerate(raw_bv.info['dig']):
-        assert dig in raw_bv2.info['dig']
+    assert_object_equal(raw_bv2.info['dig'], raw_bv.info['dig'])
     assert_dig_allclose(raw_bv2.info, raw_bv.info)
 
     # if dig is not set in the info, then montage returns None
