@@ -29,6 +29,15 @@ def test_nihon_eeg():
     raw_edf.rename_channels(edf_ch_names)
     assert raw.ch_names == raw_edf.ch_names
 
+    for i, an1 in enumerate(raw.annotations):
+        # EDF has some weird annotations, which are not in the LOG file
+        an2 = raw_edf.annotations[i * 2 + 1]
+        assert an1['onset'] == an2['onset']
+        assert an1['duration'] == an2['duration']
+        # Also, it prepends 'Segment: ' to some annotations
+        t_desc = an2['description'].replace('Segment: ', '')
+        assert an1['description'] == t_desc
+
     # This does not work, the EDF says everything is EEG
     # types_dict = {2: 'eeg', 3: 'stim', 202: 'eog', 502: 'misc', 102: 'bio'}
     # ch_types = [types_dict[raw.info['chs'][x]['kind']]

@@ -2,12 +2,15 @@
 #
 # License: BSD (3-clause)
 
+from datetime import datetime, timezone
 from pathlib import Path
+
 import numpy as np
 
+from ...utils import fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 from ..meas_info import create_info
-from ...utils import logger, verbose, warn, fill_doc
+from ...annotations import Annotations
 
 
 @fill_doc
@@ -55,13 +58,22 @@ def _read_nihon_metadata(fname):
     if not pnt_fname.exists():
         warn('No PNT file exists. Metadata will be blank')
         return metadata
+    logger.info('Found PNT file, reading metadata.')
     with open(pnt_fname, 'r') as fid:
         version = np.fromfile(fid, '|S16', 1).astype('U16')[0]
         if version not in _valid_headers:
             raise ValueError(
                 'Not a valid Nihon Kohden PNT file ({})'.format(version))
         metadata['version'] = version
-    # TODO: Read the desired metadata
+
+        # Read timestamp
+        fid.seek(0x40)
+        meas_str = np.fromfile(fid, '|S14', 1).astype('U14')[0]
+        meas_date = datetime.strptime(meas_str, '%Y%m%d%H%M%S')
+        meas_date = meas_date.replace(tzinfo=timezone.utc)
+        metadata['meas_date'] = meas_date
+
+    return metadata
 
 
 _default_chan_labels = [
@@ -108,6 +120,7 @@ def _read_nihon_header(fname):
         fname = Path(fname)
     _chan_labels = _read_21e_file(fname)
     header = {}
+    logger.info(f'Reading header from {fname}')
     with open(fname, 'r') as fid:
         version = np.fromfile(fid, '|S16', 1).astype('U16')[0]
         if version not in _valid_headers:
@@ -200,7 +213,7 @@ def _read_nihon_header(fname):
     return header
 
 
-def _read_nihon_events(fname):
+def _read_nihon_events(fname, orig_time):
     if not isinstance(fname, Path):
         fname = Path(fname)
     annotations = None
@@ -208,14 +221,34 @@ def _read_nihon_events(fname):
     if not log_fname.exists():
         warn('No LOG file exists. Annotations will not be read')
         return annotations
+    logger.info('Found LOG file, reading events.')
     with open(log_fname, 'r') as fid:
         version = np.fromfile(fid, '|S16', 1).astype('U16')[0]
         if version not in _valid_headers:
             raise ValueError(
                 'Not a valid Nihon Kohden LOG file ({})'.format(version))
 
-    # TODO: Read LOGs with annotations
+        fid.seek(0x91)
+        n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
+        all_onsets = []
+        all_descriptions = []
+        for t_block in range(n_logblocks):
+            fid.seek(0x92 + t_block * 20)
+            t_blk_address = np.fromfile(fid, np.uint32, 1)[0]
+            fid.seek(t_blk_address + 0x12)
+            n_logs = np.fromfile(fid, np.uint8, 1)[0]
+            fid.seek(t_blk_address + 0x14)
+            t_logs = np.fromfile(fid, '|S45', n_logs).astype('U45')
 
+            for t_log in t_logs:
+                t_desc =  t_log[:20].strip('\x00')
+                t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
+                t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
+                           t_onset.second)
+                all_onsets.append(t_onset)
+                all_descriptions.append(t_desc)
+
+        annotations = Annotations(all_onsets, 0.0, all_descriptions, orig_time)
     return annotations
 
 
@@ -279,6 +312,7 @@ class RawNihon(BaseRaw):
         logger.info('Loading %s' % data_name)
 
         header = _read_nihon_header(fname)
+        metadata = _read_nihon_metadata(fname)
 
         # n_chan = len(header['ch_names']) + 1
         sfreq = header['sfreq']
@@ -289,6 +323,8 @@ class RawNihon(BaseRaw):
         info = create_info(ch_names, sfreq, ch_types)
         n_samples = header['n_samples']
 
+        if 'meas_date' in metadata:
+            info['meas_date'] = metadata['meas_date']
         ch_extras = {x: _map_ch_to_specs(x) for x in ch_names}
 
         raw_extras = {
@@ -307,6 +343,10 @@ class RawNihon(BaseRaw):
             info, preload=preload, last_samps=(n_samples - 1,),
             filenames=[fname.as_posix()], orig_format='short',
             raw_extras=[raw_extras])
+
+        # Get annotations from LOG file
+        annots = _read_nihon_events(fname, orig_time=info['meas_date'])
+        self.set_annotations(annots)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
