@@ -293,7 +293,7 @@ def _map_ch_to_specs(ch_name):
 
         offset = phys_min - (dig_min * cal)
 
-    out = dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max, 
+    out = dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max,
                dig_min=dig_min, cal=cal, offset=offset)
     return out
 
