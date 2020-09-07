@@ -17,7 +17,7 @@ def test_nihon_eeg():
     fname = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EEG'
     raw = read_raw_nihon(fname, preload=True)
     assert 'RawNihon' in repr(raw)
-    _test_raw_reader(read_raw_nihon, fname=fname)
+    _test_raw_reader(read_raw_nihon, fname=fname, test_scaling=False)
     fname_edf = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EDF'
     raw_edf = read_raw_edf(fname_edf, preload=True)
 

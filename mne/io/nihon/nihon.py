@@ -283,14 +283,14 @@ def _map_ch_to_specs(ch_name):
         phys_min = -12002.9
         phys_max = 12002.56
         dig_min = -32768
-        cal = 1 / 65535.0
         if ch_name.upper() in _default_chan_labels:
             idx = _default_chan_labels.index(ch_name.upper())
             if (idx < 42 or idx > 73) and idx not in [76, 77]:
                 unit_mult = 1e-6
                 phys_min = -3200
                 phys_max = 3199.902
-
+        t_range = phys_max - phys_min
+        cal = t_range / 65535
         offset = phys_min - (dig_min * cal)
 
     out = dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max,
@@ -348,7 +348,7 @@ class RawNihon(BaseRaw):
             t_range = (ch_extras[ch_name]['phys_max'] -
                        ch_extras[ch_name]['phys_min'])
             info['chs'][i_ch]['range'] = t_range
-            info['chs'][i_ch]['cal'] = ch_extras[ch_name]['cal']
+            info['chs'][i_ch]['cal'] = 1 / t_range
 
         super(RawNihon, self).__init__(
             info, preload=preload, last_samps=(n_samples - 1,),
@@ -373,10 +373,11 @@ def _read_segment_file(
     orig_ch_names = header['ch_names']
     chs = raw_extras['chs']
 
-    gains = np.atleast_2d([chs[x]['unit'] for x in orig_ch_names])[:, idx].T
-
+    # Get the orignal cal, offsets and gains
+    o_cal = np.atleast_2d([chs[x]['cal'] for x in orig_ch_names])[:, idx].T
     offsets = np.atleast_2d(
         [chs[x]['offset'] for x in orig_ch_names])[:, idx].T
+    gains = np.atleast_2d([chs[x]['unit'] for x in orig_ch_names])[:, idx].T
 
     datablock = header['controlblocks'][0]['datablocks'][0]
     n_channels = datablock['n_channels'] + 1
@@ -389,9 +390,8 @@ def _read_segment_file(
         block_data = np.fromfile(fid, '<u2', to_read) + 0x8000
         block_data = block_data.astype(np.int16)
         block_data = block_data.reshape(n_channels, -1, order='F')
-        # block_data = ((block_data[idx, :] * cals + offsets) * gains)
-        _mult_cal_one(data, block_data, idx, cals, mult)
-        data[:, :] += offsets
-        data[:, :] *= gains
+        block_data = ((block_data[idx, :] * o_cal + offsets) * gains)
+        t_idx = np.arange(block_data.shape[0])
+        _mult_cal_one(data, block_data, t_idx, cals, mult)
 
     return None
