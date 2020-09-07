@@ -373,7 +373,7 @@ def _read_segment_file(
     orig_ch_names = header['ch_names']
     chs = raw_extras['chs']
 
-    # Get the orignal cal, offsets and gains
+    # Get the original cal, offsets and gains
     o_cal = np.atleast_2d([chs[x]['cal'] for x in orig_ch_names])[:, idx].T
     offsets = np.atleast_2d(
         [chs[x]['offset'] for x in orig_ch_names])[:, idx].T
