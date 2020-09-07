@@ -1236,13 +1236,13 @@ class MNEBrowseFigure(MNEFigure):
             rect.set_linewidth(1)
         # add "toggle all" button
         ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frame_on=True)
-        self.mne.proj_all = Button(ax_all, 'Toggle all')
+        fig.mne.proj_all = Button(ax_all, 'Toggle all')
         # add event listeners
         checkboxes.on_clicked(self._toggle_proj_checkbox)
-        self.mne.proj_all.on_clicked(partial(self._toggle_proj_checkbox,
-                                             toggle_all=True))
+        fig.mne.proj_all.on_clicked(partial(self._toggle_proj_checkbox,
+                                            toggle_all=True))
         # save params
-        self.mne._proj_checkboxes = checkboxes
+        fig.mne.proj_checkboxes = checkboxes
         # show figure (this should work for non-test cases)
         try:
             self.mne.fig_proj.canvas.draw()
@@ -1261,18 +1261,19 @@ class MNEBrowseFigure(MNEFigure):
         """Perform operations when proj boxes clicked."""
         on = self.mne.projs_on
         applied = self.mne.projs_active
+        fig = self.mne.fig_proj
         new_state = (np.full_like(on, not all(on)) if toggle_all else
-                     np.array(self.mne._proj_checkboxes.get_status()))
+                     np.array(fig.mne.proj_checkboxes.get_status()))
         # update Xs when toggling all
         if toggle_all:
-            with _events_off(self.mne._proj_checkboxes):
+            with _events_off(fig.mne.proj_checkboxes):
                 for ix in np.where(on != new_state)[0]:
-                    self.mne._proj_checkboxes.set_active(ix)
+                    fig.mne.proj_checkboxes.set_active(ix)
         # don't allow disabling already-applied projs
-        with _events_off(self.mne._proj_checkboxes):
+        with _events_off(fig.mne.proj_checkboxes):
             for ix in np.where(applied)[0]:
                 if not new_state[ix]:
-                    self.mne._proj_checkboxes.set_active(ix)
+                    fig.mne.proj_checkboxes.set_active(ix)
             new_state[applied] = True
         # update the data if necessary
         if not np.array_equal(on, new_state):
