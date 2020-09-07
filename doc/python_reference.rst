@@ -73,6 +73,7 @@ Reading raw data
    read_raw_eximia
    read_raw_fieldtrip
    read_raw_persyst
+   read_raw_nihon
 
 Base class:
 
