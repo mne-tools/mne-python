@@ -572,6 +572,7 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'w':  # toggle noise cov whitening
             self.mne.use_noise_cov = not self.mne.use_noise_cov
             self._update_projector()
+            self._update_yaxis_labels()  # add/remove italics
             self._redraw()
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
@@ -1414,6 +1415,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_yaxis_labels(self):
         """Change the y-axis labels."""
+        fontstyle = 'italic' if self.mne.use_noise_cov else 'normal'
         if self.mne.butterfly and self.mne.fig_selection is not None:
             exclude = ('Vertex', 'Custom')
             ticklabels = list(self.mne.ch_selections)
@@ -1428,7 +1430,7 @@ class MNEBrowseFigure(MNEFigure):
             ticklabels = np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[ixs]
         else:
             ticklabels = self.mne.ch_names[self.mne.picks]
-        self.mne.ax_main.set_yticklabels(ticklabels, rotation=0)
+        self.mne.ax_main.set_yticklabels(ticklabels, fontstyle=fontstyle)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
