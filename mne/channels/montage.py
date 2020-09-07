@@ -793,7 +793,6 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
             # in the old dig
             if ref_dig_point in old_dig:
                 digpoints.append(ref_dig_point)
-
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
         if mnt_head.dev_head_t is not None:

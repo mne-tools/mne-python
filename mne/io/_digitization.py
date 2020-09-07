@@ -66,26 +66,29 @@ def _format_dig_points(dig, enforce_order=False):
 
             # push onto heap based on 'ident' (for the order) for
             # each of the possible DigPoint 'kind's
+            # keep track of 'idx' in case of any clashes in
+            # the 'ident' variable, which can occur when
+            # user passes in DigMontage + DigMontage
             if kind == FIFF.FIFFV_POINT_CARDINAL:
-                heapq.heappush(fids_digpoints, (ident, digpoint))
+                heapq.heappush(fids_digpoints, (ident, idx, digpoint))
             elif kind == FIFF.FIFFV_POINT_HPI:
-                heapq.heappush(hpi_digpoints, (ident, digpoint))
+                heapq.heappush(hpi_digpoints, (ident, idx, digpoint))
             elif kind == FIFF.FIFFV_POINT_EEG:
-                heapq.heappush(eeg_digpoints, (ident, digpoint))
+                heapq.heappush(eeg_digpoints, (ident, idx, digpoint))
             elif kind == FIFF.FIFFV_POINT_EXTRA:
-                heapq.heappush(extra_digpoints, (ident, digpoint))
+                heapq.heappush(extra_digpoints, (ident, idx, digpoint))
             elif kind == FIFF.FIFFV_POINT_HEAD:
-                heapq.heappush(head_digpoints, (ident, digpoint))
+                heapq.heappush(head_digpoints, (ident, idx, digpoint))
 
         # now recreate dig based on sorted order
         fids_digpoints.sort(), hpi_digpoints.sort()
-        extra_digpoints.sort(), head_digpoints.sort()
         eeg_digpoints.sort()
+        extra_digpoints.sort(), head_digpoints.sort()
         new_dig = []
         for idx, d in enumerate(fids_digpoints + hpi_digpoints +
                                 extra_digpoints + eeg_digpoints +
                                 head_digpoints):
-            new_dig.append(d[1])
+            new_dig.append(d[-1])
         dig = new_dig
 
     return [DigPoint(d) for d in dig] if dig is not None else dig
