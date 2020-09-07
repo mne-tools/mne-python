@@ -11,6 +11,7 @@ from ...utils import fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
+from ..utils import _mult_cal_one
 
 
 @fill_doc
@@ -274,17 +275,27 @@ def _map_ch_to_specs(ch_name):
         unit_mult = 1
         phys_min = 0
         phys_max = 1
+        dig_min = 0
+        cal = 1
+        offset = 0
     else:
         unit_mult = 1e-3
         phys_min = -12002.9
         phys_max = 12002.56
+        dig_min = -32768
+        cal = 1 / 65535.0
         if ch_name.upper() in _default_chan_labels:
             idx = _default_chan_labels.index(ch_name.upper())
             if (idx < 42 or idx > 73) and idx not in [76, 77]:
                 unit_mult = 1e-6
                 phys_min = -3200
                 phys_max = 3199.902
-    return dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max)
+
+        offset = phys_min - (dig_min * cal)
+
+    out = dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max, 
+               dig_min=dig_min, cal=cal, offset=offset)
+    return out
 
 
 @fill_doc
@@ -337,7 +348,7 @@ class RawNihon(BaseRaw):
             t_range = (ch_extras[ch_name]['phys_max'] -
                        ch_extras[ch_name]['phys_min'])
             info['chs'][i_ch]['range'] = t_range
-            info['chs'][i_ch]['cal'] = 1 / 65535.0
+            info['chs'][i_ch]['cal'] = ch_extras[ch_name]['cal']
 
         super(RawNihon, self).__init__(
             info, preload=preload, last_samps=(n_samples - 1,),
@@ -351,11 +362,12 @@ class RawNihon(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], cals,
+                                  self._raw_extras[fi], cals, mult,
                                   self._filenames[fi])
 
 
-def _read_segment_file(data, idx, fi, start, stop, raw_extras, cals, filename):
+def _read_segment_file(
+        data, idx, fi, start, stop, raw_extras, cals, mult, filename):
     # For now we assume one control block and one data block.
     header = raw_extras['header']
     orig_ch_names = header['ch_names']
@@ -363,10 +375,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, cals, filename):
 
     gains = np.atleast_2d([chs[x]['unit'] for x in orig_ch_names])[:, idx].T
 
-    physical_min = np.array([chs[x]['phys_min'] for x in orig_ch_names])[idx]
-    digital_min = np.array([-32768 for x in orig_ch_names])[idx]
-
-    offsets = np.atleast_2d(physical_min - (digital_min * cals[:, 0])).T
+    offsets = np.atleast_2d(
+        [chs[x]['offset'] for x in orig_ch_names])[:, idx].T
 
     datablock = header['controlblocks'][0]['datablocks'][0]
     n_channels = datablock['n_channels'] + 1
@@ -379,7 +389,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, cals, filename):
         block_data = np.fromfile(fid, '<u2', to_read) + 0x8000
         block_data = block_data.astype(np.int16)
         block_data = block_data.reshape(n_channels, -1, order='F')
-        block_data = ((block_data[idx, :] * cals + offsets) * gains)
-        data[:, :] = block_data[:, :]
+        # block_data = ((block_data[idx, :] * cals + offsets) * gains)
+        _mult_cal_one(data, block_data, idx, cals, mult)
+        data[:, :] += offsets
+        data[:, :] *= gains
 
     return None
