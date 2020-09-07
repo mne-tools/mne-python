@@ -1154,7 +1154,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.ch_start = ch_start
         self._update_trace_offsets()
         self._update_vscroll()
-        self._redraw()
+        self._redraw(annotations=True)
 
     def _make_butterfly_selections_dict(self):
         """Make an altered copy of the selections dict for butterfly mode."""
