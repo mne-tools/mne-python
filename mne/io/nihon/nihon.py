@@ -241,7 +241,7 @@ def _read_nihon_events(fname, orig_time):
             t_logs = np.fromfile(fid, '|S45', n_logs).astype('U45')
 
             for t_log in t_logs:
-                t_desc =  t_log[:20].strip('\x00')
+                t_desc = t_log[:20].strip('\x00')
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
                            t_onset.second)
