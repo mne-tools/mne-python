@@ -596,6 +596,7 @@ class MNEBrowseFigure(MNEFigure):
                 if x > self.mne.t_start or y < 0 or y > ylim[0]:
                     return
                 self._label_clicked(x, y)
+            # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_main and not annotating:
                 if not self.mne.butterfly:
                     cont, cont_dict = self.mne.traces.contains(event)
@@ -604,19 +605,22 @@ class MNEBrowseFigure(MNEFigure):
                         assert len(idx) == 1
                         self._toggle_bad_channel(idx[0])
                         return
-                # in butterfly mode, or click was not on a data trace
-                self._show_vline(event.xdata)
+                self._show_vline(event.xdata)  # butterfly / not on data trace
+            # click in vertical scrollbar
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
                     self._change_selection_vscroll(event)
                 else:
                     if self._check_update_vscroll_clicked(event):
                         self._redraw()
+            # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
                     self._redraw()
+            # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
+            # click on help button
             elif event.inaxes == self.mne.ax_help:
                 self._toggle_help_fig(event)
         else:  # right-click (secondary)
