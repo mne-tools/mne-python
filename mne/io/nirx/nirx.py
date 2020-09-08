@@ -122,13 +122,14 @@ class RawNIRX(BaseRaw):
         datetime_str = hdr['GeneralInfo']['Date'] + hdr['GeneralInfo']['Time']
         meas_date = None
         # Several formats have been observed so we try each in turn
-        try:
-            for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"', '"%a, %d %b %Y""%H:%M:%S.%f"']:
+        for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
+                        '"%a, %d %b %Y""%H:%M:%S.%f"']:
+            try:
                 meas_date = dt.datetime.strptime(datetime_str, dt_code)
                 meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
                 break
-        except ValueError:
-            pass
+            except ValueError:
+                pass
         if meas_date is None:
             warn("Extraction of measurement date from NIRX file failed. "
                  "This can be caused by files saved in certain locales. "
