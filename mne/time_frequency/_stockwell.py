@@ -282,7 +282,6 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
        (2006). S-transform time-frequency analysis of P300 reveals deficits in
        individuals diagnosed with alcoholism.
        Clinical Neurophysiology 117 2128--2143
-
     """
     # verbose dec is used b/c subfunctions are verbose
     data = _get_data(inst, return_itc)
