@@ -10,6 +10,8 @@ from mne.io import read_raw_nihon, read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
+from mne.io.nihon.nihon import (_read_nihon_header, _read_nihon_metadata,
+                                _read_nihon_events)
 
 
 @requires_testing_data
@@ -51,6 +53,21 @@ def test_nihon_eeg():
 
     with pytest.raises(ValueError, match='Not a valid Nihon Kohden EEG file'):
         raw = read_raw_nihon(fname_edf, preload=True)
+
+    with pytest.raises(ValueError, match='Not a valid Nihon Kohden EEG file'):
+        raw = _read_nihon_header(fname_edf)
+
+    bad_fname = Path(data_path()) / 'eximia' / 'text_eximia.nxe'
+
+    msg = 'No PNT file exists. Metadata will be blank'
+    with pytest.warns(RuntimeWarning, match=msg):
+        meta = _read_nihon_metadata(bad_fname)
+        assert len(meta) == 0
+
+    msg = 'No LOG file exists. Annotations will not be read'
+    with pytest.warns(RuntimeWarning, match=msg):
+        annot = _read_nihon_events(bad_fname, orig_time=None)
+        assert annot is None
 
 
 run_tests_if_main()
