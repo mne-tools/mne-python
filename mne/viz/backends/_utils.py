@@ -10,7 +10,11 @@
 import numpy as np
 import collections.abc
 
-VALID_3D_BACKENDS = ('mayavi', 'pyvista', 'notebook')
+VALID_3D_BACKENDS = (
+    'pyvista',  # default 3d backend
+    'mayavi',
+    'notebook',
+)
 ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere')
 
 

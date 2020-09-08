@@ -26,5 +26,5 @@ xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
 pyvista>=0.24
-pyvistaqt
+pyvistaqt>=0.2.0
 tqdm
