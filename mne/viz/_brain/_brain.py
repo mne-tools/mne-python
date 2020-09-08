@@ -705,9 +705,10 @@ class _Brain(object):
             vertices = self._data[hemi]['vertices']
             assert self._data[hemi]['array'].shape[0] == len(vertices)
             # MNE constructs the source space on a uniform grid in MRI space,
-            # but let's make sure
+            # but mne coreg can change it to be non-uniform, so we need to
+            # use all three elements here
             assert np.allclose(
-                src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
+                src_mri_t[:3, :3], np.diag(np.diag(src_mri_t)[:3]))
             spacing = np.diag(src_mri_t)[:3]
             origin = src_mri_t[:3, 3] - spacing / 2.
             scalars = np.zeros(np.prod(dimensions))
