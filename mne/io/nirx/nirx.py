@@ -7,7 +7,6 @@ import glob as glob
 import re as re
 import os.path as op
 import datetime as dt
-import locale
 
 import numpy as np
 
