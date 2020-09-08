@@ -103,7 +103,6 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
                         width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
-
     Same computation as the function tfr_stockwell.
     Difference: tfr_stockwell takes epochs in the mne.Epochs format as input.
     This function, tfr_array_stockwell, takes epochs in the numpy.array format

@@ -723,6 +723,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
                      n_jobs=1, verbose=None):
     """Compute time-frequency transform using Morlet wavelets.
+
     Same computation as the function tfr_morlet.
     Difference: tfr_morlet takes epochs in the mne.Epochs format as input.
     This function, tfr_array_morlet, takes epochs in the numpy.array format
