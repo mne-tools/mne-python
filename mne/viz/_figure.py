@@ -367,6 +367,7 @@ class MNEBrowseFigure(MNEFigure):
         # HELP BUTTON: make it a proper button
         _ = Button(ax_help, 'Help')  # listener handled in _buttonpress()
         # PROJ BUTTON
+        ax_proj = None
         if len(self.mne.projs) and not inst.proj:
             proj_button_pos = [
                 1 - self._inch_to_rel(r_margin + scroll_width),  # left
