@@ -253,7 +253,7 @@ class RawNIRX(BaseRaw):
         def prepend(list, str):
             str += '{0}'
             list = [str.format(i) for i in list]
-            return (list)
+            return list
 
         snames = prepend(sources[req_ind], 'S')
         dnames = prepend(detectors[req_ind], '_D')
