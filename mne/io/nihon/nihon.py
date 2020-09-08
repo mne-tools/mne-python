@@ -14,6 +14,13 @@ from ...annotations import Annotations
 from ..utils import _mult_cal_one
 
 
+def _ensure_path(fname):
+    out = fname
+    if not isinstance(out, Path):
+        out = Path(out)
+    return out
+
+
 @fill_doc
 def read_raw_nihon(fname, preload=False, verbose=None):
     """Reader for an Nihon Kohden EEG file.
@@ -53,8 +60,7 @@ _valid_headers = [
 
 def _read_nihon_metadata(fname):
     metadata = {}
-    if not isinstance(fname, Path):
-        fname = Path(fname)
+    fname = _ensure_path(fname)
     pnt_fname = fname.with_suffix('.PNT')
     if not pnt_fname.exists():
         warn('No PNT file exists. Metadata will be blank')
@@ -93,8 +99,7 @@ _default_chan_labels += ['NA28', 'Z']
 
 
 def _read_21e_file(fname):
-    if not isinstance(fname, Path):
-        fname = Path(fname)
+    fname = _ensure_path(fname)
     e_fname = fname.with_suffix('.21E')
     _chan_labels = [x for x in _default_chan_labels]
     if e_fname.exists():
@@ -117,8 +122,7 @@ def _read_21e_file(fname):
 
 def _read_nihon_header(fname):
     # Read the Nihon Kohden EEG file header
-    if not isinstance(fname, Path):
-        fname = Path(fname)
+    fname = _ensure_path(fname)
     _chan_labels = _read_21e_file(fname)
     header = {}
     logger.info(f'Reading header from {fname}')
@@ -215,8 +219,7 @@ def _read_nihon_header(fname):
 
 
 def _read_nihon_events(fname, orig_time):
-    if not isinstance(fname, Path):
-        fname = Path(fname)
+    fname = _ensure_path(fname)
     annotations = None
     log_fname = fname.with_suffix('.LOG')
     if not log_fname.exists():
@@ -271,27 +274,19 @@ def _map_ch_to_type(ch_name):
 
 
 def _map_ch_to_specs(ch_name):
-    if ch_name == 'STI 014':
-        unit_mult = 1
-        phys_min = 0
-        phys_max = 1
-        dig_min = 0
-        cal = 1
-        offset = 0
-    else:
-        unit_mult = 1e-3
-        phys_min = -12002.9
-        phys_max = 12002.56
-        dig_min = -32768
-        if ch_name.upper() in _default_chan_labels:
-            idx = _default_chan_labels.index(ch_name.upper())
-            if (idx < 42 or idx > 73) and idx not in [76, 77]:
-                unit_mult = 1e-6
-                phys_min = -3200
-                phys_max = 3199.902
-        t_range = phys_max - phys_min
-        cal = t_range / 65535
-        offset = phys_min - (dig_min * cal)
+    unit_mult = 1e-3
+    phys_min = -12002.9
+    phys_max = 12002.56
+    dig_min = -32768
+    if ch_name.upper() in _default_chan_labels:
+        idx = _default_chan_labels.index(ch_name.upper())
+        if (idx < 42 or idx > 73) and idx not in [76, 77]:
+            unit_mult = 1e-6
+            phys_min = -3200
+            phys_max = 3199.902
+    t_range = phys_max - phys_min
+    cal = t_range / 65535
+    offset = phys_min - (dig_min * cal)
 
     out = dict(unit=unit_mult, phys_min=phys_min, phys_max=phys_max,
                dig_min=dig_min, cal=cal, offset=offset)
@@ -317,8 +312,7 @@ class RawNihon(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        if not isinstance(fname, Path):
-            fname = Path(fname)
+        fname = _ensure_path(fname)
         data_name = fname.name
         logger.info('Loading %s' % data_name)
 

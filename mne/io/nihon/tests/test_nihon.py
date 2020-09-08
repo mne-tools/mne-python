@@ -3,6 +3,7 @@
 #          simplified BSD-3 license
 from pathlib import Path
 
+import pytest
 from numpy.testing import assert_array_almost_equal
 
 from mne.io import read_raw_nihon, read_raw_edf
@@ -15,7 +16,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 def test_nihon_eeg():
     """Test reading Nihon Kohden EEG files."""
     fname = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EEG'
-    raw = read_raw_nihon(fname, preload=True)
+    raw = read_raw_nihon(fname.as_posix(), preload=True)
     assert 'RawNihon' in repr(raw)
     _test_raw_reader(read_raw_nihon, fname=fname, test_scaling=False)
     fname_edf = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EDF'
@@ -47,6 +48,9 @@ def test_nihon_eeg():
     # assert ch_types == edf_ch_types
 
     assert_array_almost_equal(raw._data, raw_edf._data)
+
+    with pytest.raises(ValueError, match='Not a valid Nihon Kohden EEG file'):
+        raw = read_raw_nihon(fname_edf, preload=True)
 
 
 run_tests_if_main()
