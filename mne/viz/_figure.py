@@ -1549,11 +1549,11 @@ class MNEBrowseFigure(MNEFigure):
     def _draw_traces(self):
         """Draw (or redraw) the channel data."""
         from matplotlib import rcParams
+        from matplotlib.colors import to_rgba_array
         fgcolor = rcParams['axes.edgecolor']
         # convenience
         butterfly = self.mne.butterfly
         offsets = self.mne.trace_offsets
-        bads = self.mne.info['bads']
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
@@ -1561,10 +1561,11 @@ class MNEBrowseFigure(MNEFigure):
         picks = self.mne.picks
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
+        bads = np.in1d(ch_names, self.mne.info['bads'])
         # colors
         def_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
-        ch_colors = [self.mne.ch_color_bad if _name in bads else def_color
-                     for _name, def_color in zip(ch_names, def_colors)]
+        ch_colors = to_rgba_array([self.mne.ch_color_bad if bad else _color
+                                   for bad, _color in zip(bads, def_colors)])
         self.mne.def_colors = np.array(def_colors)
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         if butterfly:
