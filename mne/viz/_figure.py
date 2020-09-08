@@ -1579,11 +1579,11 @@ class MNEBrowseFigure(MNEFigure):
         this_data = self.mne.data * self.mne.scale_factor * -1
         # clip
         if self.mne.clipping == 'clamp':
-            clip = 0.5
+            this_data = np.clip(this_data, -0.5, 0.5)
         elif self.mne.clipping is not None:
             clip = self.mne.clipping * (0.2 if butterfly else 1)
-        v1, v2 = clip * np.array([-1, 1])
-        this_data = np.ma.masked_outside(this_data, v1, v2)
+            v1, v2 = clip * np.array([-1, 1])
+            this_data = np.ma.masked_outside(this_data, v1, v2)
         # update line collection
         segments = [np.ma.vstack((decim_times[_decim], _data[..., ::_decim])).T
                     for _data, _decim in zip(this_data, decim)]
