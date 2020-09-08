@@ -200,7 +200,7 @@ def _use_test_3d_backend(backend_name, interactive=False):
 
 
 def set_3d_view(figure, azimuth=None, elevation=None,
-                focalpoint=None, distance=None):
+                focalpoint=None, distance=None, roll=None):
     """Configure the view of the given scene.
 
     Parameters
@@ -215,10 +215,12 @@ def set_3d_view(figure, azimuth=None, elevation=None,
         The focal point of the view: (x, y, z).
     distance : float
         The distance to the focal point.
+    roll : float
+        The view roll.
     """
     backend._set_3d_view(figure=figure, azimuth=azimuth,
                          elevation=elevation, focalpoint=focalpoint,
-                         distance=distance)
+                         distance=distance, roll=roll)
 
 
 def set_3d_title(figure, title, size=40):

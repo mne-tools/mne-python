@@ -99,8 +99,11 @@ class _Renderer(_BaseRenderer):
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
              representation='surface', line_width=1., normals=None,
-             pickable=None, **kwargs):
+             polygon_offset=None, **kwargs):
         # normals and pickable are unused
+        kwargs.pop('pickable', None)
+        del normals
+
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
@@ -162,7 +165,7 @@ class _Renderer(_BaseRenderer):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
-                backface_culling=False):
+                backface_culling=False, polygon_offset=None):
         if color is not None:
             color = _check_color(color)
         if normalized_colormap:

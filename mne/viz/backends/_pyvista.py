@@ -292,7 +292,8 @@ class _Renderer(_BaseRenderer):
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
-                 representation='surface', line_width=1., **kwargs):
+                 representation='surface', line_width=1.,
+                 polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             rgba = False
@@ -325,12 +326,19 @@ class _Renderer(_BaseRenderer):
                 style=representation, line_width=line_width, **kwargs,
             )
 
+            if polygon_offset is not None:
+                mapper = actor.GetMapper()
+                mapper.SetResolveCoincidentTopologyToPolygonOffset()
+                mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
+                    polygon_offset, polygon_offset)
+
             return actor, mesh
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None, **kwargs):
+             representation='surface', line_width=1., normals=None,
+             polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             vertices = np.c_[x, y, z]
@@ -349,6 +357,7 @@ class _Renderer(_BaseRenderer):
             interpolate_before_map=interpolate_before_map,
             representation=representation,
             line_width=line_width,
+            polygon_offset=polygon_offset,
             **kwargs,
         )
 
@@ -366,7 +375,7 @@ class _Renderer(_BaseRenderer):
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             mesh = PolyData(vertices, triangles)
             mesh.point_arrays['scalars'] = scalars
-            contour = mesh.contour(isosurfaces=contours, rng=(vmin, vmax))
+            contour = mesh.contour(isosurfaces=contours)
             line_width = width
             if kind == 'tube':
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
@@ -377,6 +386,7 @@ class _Renderer(_BaseRenderer):
                 show_scalar_bar=False,
                 line_width=line_width,
                 color=color,
+                rng=[vmin, vmax],
                 cmap=colormap,
                 opacity=opacity,
                 smooth_shading=self.figure.smooth_shading
@@ -386,7 +396,7 @@ class _Renderer(_BaseRenderer):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
-                backface_culling=False):
+                backface_culling=False, polygon_offset=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             normals = surface.get('nn', None)
@@ -407,6 +417,7 @@ class _Renderer(_BaseRenderer):
             colormap=colormap,
             vmin=vmin,
             vmax=vmax,
+            polygon_offset=polygon_offset,
         )
 
     def sphere(self, center, color, scale, opacity=1.0,
@@ -743,8 +754,6 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
         phi = _deg2rad(azimuth)
     if elevation is not None:
         theta = _deg2rad(elevation)
-    if roll is not None:
-        roll = _deg2rad(roll)
 
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
