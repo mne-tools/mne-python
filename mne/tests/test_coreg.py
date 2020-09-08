@@ -113,10 +113,13 @@ def test_scale_mri(tmpdir, few_surfaces, scale):
     assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
                                        'lh.sphere.reg'))
     vsrc_s = mne.read_source_spaces(spath % 'vol-50')
-    pt = np.array([0.12, 0.41, -0.22])
-    assert_array_almost_equal(
-        apply_trans(vsrc_s[0]['src_mri_t'], pt * np.array(scale)),
-        apply_trans(vsrc[0]['src_mri_t'], pt))
+    for vox in ([0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 2, 3]):
+        idx = np.ravel_multi_index(vox, vsrc[0]['shape'], order='F')
+        err_msg = f'idx={idx} @ {vox}, scale={scale}'
+        assert_allclose(apply_trans(vsrc[0]['src_mri_t'], vox),
+                        vsrc[0]['rr'][idx], err_msg=err_msg)
+        assert_allclose(apply_trans(vsrc_s[0]['src_mri_t'], vox),
+                        vsrc_s[0]['rr'][idx], err_msg=err_msg)
     scale_labels('flachkopf', subjects_dir=tempdir)
 
     # add distances to source space after hacking the properties to make

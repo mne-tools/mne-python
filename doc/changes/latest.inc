@@ -208,6 +208,8 @@ Bug
 
 - Fix bug with :func:`mne.setup_volume_source_space` when ``volume_label`` was supplied where voxels slightly (in a worst case, about 37% times ``pos`` in distance) outside the voxel-grid-based bounds of regions were errantly included, by `Eric Larson`_
 
+- Fix bug with :ref:`mne coreg` where reverse scalings were applied to ``src[0]['src_mri_t']`` for volume source spaces, so morphing and plotting did not work correctly by `Eric Larson`_
+
 - Fix bug with :func:`mne.io.read_raw_ctf` when reference magnetometers have the compensation grade marked by `Eric Larson`_
 
 - Fix bug with `mne.SourceSpaces.export_volume` with ``use_lut=False`` where no values were written by `Eric Larson`_
