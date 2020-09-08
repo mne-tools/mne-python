@@ -123,15 +123,10 @@ class RawNIRX(BaseRaw):
         meas_date = None
         # Several formats have been observed so we try each in turn
         try:
-            dt_code = '"%a, %b %d, %Y""%H:%M:%S.%f"'
-            meas_date = dt.datetime.strptime(datetime_str, dt_code)
-            meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
-        except ValueError:
-            pass
-        try:
-            dt_code = '"%a, %d %b %Y""%H:%M:%S.%f"'
-            meas_date = dt.datetime.strptime(datetime_str, dt_code)
-            meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+            for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"', '"%a, %d %b %Y""%H:%M:%S.%f"']:
+                meas_date = dt.datetime.strptime(datetime_str, dt_code)
+                meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                break
         except ValueError:
             pass
         if meas_date is None:
