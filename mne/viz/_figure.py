@@ -643,7 +643,7 @@ class MNEBrowseFigure(MNEFigure):
         """Handle left-click on channel names."""
         if self.mne.butterfly:
             return
-        idx = np.searchsorted(self.mne.trace_offsets + 0.5, y)
+        idx = np.searchsorted(self.mne.trace_offsets, y)
         self._toggle_bad_channel(idx)
 
     def _toggle_bad_channel(self, idx):
