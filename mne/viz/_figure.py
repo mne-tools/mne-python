@@ -384,7 +384,7 @@ class MNEBrowseFigure(MNEFigure):
         segments = np.full((1, 1, 2), np.nan)
         self.mne.traces = LineCollection(
             segments, linewidths=0.5, colors=fgcolor, offsets=np.zeros((1, 2)),
-            antialiaseds=True, pickradius=10)
+            antialiaseds=True)
         ax.add_collection(self.mne.traces)
 
         # SAVE UI ELEMENT HANDLES
@@ -571,12 +571,14 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # toggle noise cov whitening
-            self.mne.use_noise_cov = not self.mne.use_noise_cov
-            self._update_projector()
-            self._update_yaxis_labels()  # add/remove italics
-            self._redraw()
+            if self.mne.noise_cov is not None:
+                self.mne.use_noise_cov = not self.mne.use_noise_cov
+                self._update_projector()
+                self._update_yaxis_labels()  # add/remove italics
+                self._redraw()
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
+            self._redraw(update_data=False)
         else:  # check for close key
             super()._keypress(event)
 
@@ -602,7 +604,11 @@ class MNEBrowseFigure(MNEFigure):
                     cont, cont_dict = self.mne.traces.contains(event)
                     if cont:
                         idx = cont_dict['ind']
-                        assert len(idx) == 1
+                        assert len(idx) == 1  # TODO for testing, to be removed
+                        # TODO above will def. fail if marking channel that is
+                        # adjacent to a very bad channel. Should get value of
+                        # all involved channels at the cursor x and
+                        # (de)activate the one with value closest to cursor y.
                         self._toggle_bad_channel(idx[0])
                         return
                 self._show_vline(event.xdata)  # butterfly / not on data trace
@@ -1058,6 +1064,8 @@ class MNEBrowseFigure(MNEFigure):
                                    textcoords='offset points', ha='center',
                                    va='baseline', color=segment_color)
                 self.mne.annotation_texts.append(text)
+        for artist in self.mne.annotations + self.mne.annotation_texts:
+            self.mne.ax_main.draw_artist(artist)
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
@@ -1324,7 +1332,6 @@ class MNEBrowseFigure(MNEFigure):
             if getattr(self.mne, elem, None) is not None:
                 getattr(self.mne, elem).set_visible(should_show)
         self.mne.scrollbars_visible = should_show
-        self.canvas.draw()
 
     def _update_vscroll(self):
         """Update the vertical scrollbar (channel) selection indicator."""
@@ -1381,6 +1388,9 @@ class MNEBrowseFigure(MNEFigure):
                 denom = 4 if self.mne.butterfly else 2
                 y = tuple(np.array([-1, 1]) / denom + offsets[ii])
                 self._draw_one_scalebar(x, y, this_type)
+        for artist in (list(self.mne.scalebars.values()) +
+                       list(self.mne.scalebar_texts.values())):
+            self.mne.ax_main.draw_artist(artist)
 
     def _hide_scalebars(self):
         """Remove channel scale bars."""
@@ -1595,7 +1605,7 @@ class MNEBrowseFigure(MNEFigure):
                     for _data, _decim in zip(this_data, decim)]
         this_offsets = np.vstack((np.zeros_like(offsets), offsets)).T
         self.mne.traces.set_offsets(this_offsets)  # must set before segments
-        self.mne.traces.set(segments=segments, color=ch_colors)
+        self.mne.traces.set(segments=segments, color=ch_colors, pickradius=10.)
         # update xlim
         this_times = self.mne.times + self.mne.first_time
         self.mne.ax_main.set_xlim(this_times[0], this_times[-1])
@@ -1613,7 +1623,7 @@ class MNEBrowseFigure(MNEFigure):
         self._draw_traces()
         if annotations:
             self._draw_annotations()
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # EVENT LINES AND MARKER LINES
@@ -1650,7 +1660,8 @@ class MNEBrowseFigure(MNEFigure):
                     label, (_t, ylim[1]), ha='center', va='baseline', color=_c,
                     xytext=(0, 4), textcoords='offset points')
                 self.mne.event_texts.append(this_text)
-            self.canvas.draw_idle()
+            for artist in [self.mne.event_lines] + self.mne.event_texts:
+                self.mne.ax_main.draw_artist(artist)
 
     def _show_vline(self, xdata):
         """Show the vertical line."""
@@ -1660,13 +1671,15 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.vline_hscroll.set_visible(True)
         self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
         self.canvas.draw_idle()
+        # TODO: maybe better to create/destroy rather than show/hide? might
+        # avoid a full redraw in butterfly mode
 
     def _hide_vline(self, xdata=None):
         """Hide the vertical line."""
         self.mne.vline.set_visible(False)
         self.mne.vline_hscroll.set_visible(False)
         self.mne.vline_text.set_text('')
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
