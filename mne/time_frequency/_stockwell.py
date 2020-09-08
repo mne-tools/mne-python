@@ -259,6 +259,10 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     mne.time_frequency.tfr_morlet
     mne.time_frequency.tfr_array_morlet
 
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+
     References
     ----------
     .. [1] Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
@@ -279,9 +283,6 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
        individuals diagnosed with alcoholism.
        Clinical Neurophysiology 117 2128--2143
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
     """
     # verbose dec is used b/c subfunctions are verbose
     data = _get_data(inst, return_itc)
