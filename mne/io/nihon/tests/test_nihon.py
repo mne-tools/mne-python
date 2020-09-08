@@ -11,7 +11,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io.nihon.nihon import (_read_nihon_header, _read_nihon_metadata,
-                                _read_nihon_events)
+                                _read_nihon_annotations)
 
 
 @requires_testing_data
@@ -66,7 +66,7 @@ def test_nihon_eeg():
 
     msg = 'No LOG file exists. Annotations will not be read'
     with pytest.warns(RuntimeWarning, match=msg):
-        annot = _read_nihon_events(bad_fname, orig_time=None)
+        annot = _read_nihon_annotations(bad_fname, orig_time=None)
         assert annot is None
 
 

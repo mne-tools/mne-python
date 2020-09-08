@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -69,8 +70,7 @@ def _read_nihon_metadata(fname):
     with open(pnt_fname, 'r') as fid:
         version = np.fromfile(fid, '|S16', 1).astype('U16')[0]
         if version not in _valid_headers:
-            raise ValueError(
-                'Not a valid Nihon Kohden PNT file ({})'.format(version))
+            raise ValueError(f'Not a valid Nihon Kohden PNT file ({version})')
         metadata['version'] = version
 
         # Read timestamp
@@ -88,13 +88,13 @@ _default_chan_labels = [
     'T3', 'T4', 'T5', 'T6', 'FZ', 'CZ', 'PZ', 'E', 'PG1', 'PG2', 'A1', 'A2',
     'T1', 'T2'
 ]
-_default_chan_labels += ['X{}'.format(i) for i in range(1, 12)]
-_default_chan_labels += ['NA{}'.format(i) for i in range(1, 6)]
-_default_chan_labels += ['DC{:02}'.format(i) for i in range(1, 33)]
+_default_chan_labels += [f'X{i}' for i in range(1, 12)]
+_default_chan_labels += [f'NA{i}' for i in range(1, 6)]
+_default_chan_labels += [f'DC{i:02}' for i in range(1, 33)]
 _default_chan_labels += ['BN1', 'BN2', 'Mark1', 'Mark2']
-_default_chan_labels += ['NA{}'.format(i) for i in range(6, 28)]
+_default_chan_labels += [f'NA{i}' for i in range(6, 28)]
 _default_chan_labels += ['X12/BP1', 'X13/BP2', 'X14/BP3', 'X15/BP4']
-_default_chan_labels += ['X{}'.format(i) for i in range(16, 166)]
+_default_chan_labels += [f'X{i}' for i in range(16, 166)]
 _default_chan_labels += ['NA28', 'Z']
 
 
@@ -218,7 +218,7 @@ def _read_nihon_header(fname):
     return header
 
 
-def _read_nihon_events(fname, orig_time):
+def _read_nihon_annotations(fname, orig_time):
     fname = _ensure_path(fname)
     annotations = None
     log_fname = fname.with_suffix('.LOG')
@@ -257,20 +257,12 @@ def _read_nihon_events(fname, orig_time):
 
 
 def _map_ch_to_type(ch_name):
-    ch_type = 'eeg'
-    if 'Mark' in ch_name:
-        ch_type = 'stim'
-    elif 'DC' in ch_name:
-        ch_type = 'misc'
-    elif 'NA' in ch_name:
-        ch_type = 'misc'
-    elif 'X' in ch_name:
-        ch_type = 'bio'
-    elif 'Z' in ch_name:
-        ch_type = 'misc'
-    elif 'STI 014' in ch_name:
-        ch_type = 'stim'
-    return ch_type
+    ch_type_pattern = OrderedDict(pair for pair in [
+        ('stim', ('Mark',)), ('misc', ('DC', 'NA', 'Z')), ('bio', ('X',))])
+    for key, kinds in ch_type_pattern.items():
+        if any(kind in ch_name for kind in kinds):
+            return key
+    return 'eeg'
 
 
 def _map_ch_to_specs(ch_name):
@@ -330,17 +322,22 @@ class RawNihon(BaseRaw):
 
         if 'meas_date' in metadata:
             info['meas_date'] = metadata['meas_date']
-        ch_extras = {x: _map_ch_to_specs(x) for x in ch_names}
+        chs = {x: _map_ch_to_specs(x) for x in ch_names}
 
-        raw_extras = {
-            'chs': ch_extras, 'header': header}
+        orig_ch_names = header['ch_names']
+        cal = np.array(
+            [chs[x]['cal'] for x in orig_ch_names], float)[:, np.newaxis]
+        offsets = np.array(
+            [chs[x]['offset'] for x in orig_ch_names], float)[:, np.newaxis]
+        gains = np.array(
+            [chs[x]['unit'] for x in orig_ch_names], float)[:, np.newaxis]
+
+        raw_extras = dict(
+            cal=cal, offsets=offsets, gains=gains, header=header)
         self._header = header
 
         for i_ch, ch_name in enumerate(info['ch_names']):
-            if ch_name == 'STI 014':
-                continue
-            t_range = (ch_extras[ch_name]['phys_max'] -
-                       ch_extras[ch_name]['phys_min'])
+            t_range = (chs[ch_name]['phys_max'] - chs[ch_name]['phys_min'])
             info['chs'][i_ch]['range'] = t_range
             info['chs'][i_ch]['cal'] = 1 / t_range
 
@@ -350,42 +347,30 @@ class RawNihon(BaseRaw):
             raw_extras=[raw_extras])
 
         # Get annotations from LOG file
-        annots = _read_nihon_events(fname, orig_time=info['meas_date'])
+        annots = _read_nihon_annotations(fname, orig_time=info['meas_date'])
         self.set_annotations(annots)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], cals, mult,
-                                  self._filenames[fi])
+        # For now we assume one control block and one data block.
+        header = self._raw_extras[fi]['header']
+        cal = self._raw_extras[fi]['cal']
+        offsets = self._raw_extras[fi]['offsets']
+        gains = self._raw_extras[fi]['gains']
 
-
-def _read_segment_file(
-        data, idx, fi, start, stop, raw_extras, cals, mult, filename):
-    # For now we assume one control block and one data block.
-    header = raw_extras['header']
-    orig_ch_names = header['ch_names']
-    chs = raw_extras['chs']
-
-    # Get the original cal, offsets and gains
-    o_cal = np.atleast_2d([chs[x]['cal'] for x in orig_ch_names])[:, idx].T
-    offsets = np.atleast_2d(
-        [chs[x]['offset'] for x in orig_ch_names])[:, idx].T
-    gains = np.atleast_2d([chs[x]['unit'] for x in orig_ch_names])[:, idx].T
-
-    datablock = header['controlblocks'][0]['datablocks'][0]
-    n_channels = datablock['n_channels'] + 1
-    datastart = datablock['address'] + 0x27 + (datablock['n_channels'] * 10)
-
-    with open(filename, 'rb') as fid:
-        start_offset = datastart + start * n_channels * 2
-        to_read = (stop - start) * n_channels
-        fid.seek(start_offset)
-        block_data = np.fromfile(fid, '<u2', to_read) + 0x8000
-        block_data = block_data.astype(np.int16)
-        block_data = block_data.reshape(n_channels, -1, order='F')
-        block_data = ((block_data[idx, :] * o_cal + offsets) * gains)
-        t_idx = np.arange(block_data.shape[0])
-        _mult_cal_one(data, block_data, t_idx, cals, mult)
-
-    return None
+        # Get the original cal, offsets and gains
+        datablock = header['controlblocks'][0]['datablocks'][0]
+        n_channels = datablock['n_channels'] + 1
+        datastart = (datablock['address'] + 0x27 +
+                     (datablock['n_channels'] * 10))
+        with open(self._filenames[fi], 'rb') as fid:
+            start_offset = datastart + start * n_channels * 2
+            to_read = (stop - start) * n_channels
+            fid.seek(start_offset)
+            block_data = np.fromfile(fid, '<u2', to_read) + 0x8000
+            block_data = block_data.astype(np.int16)
+            block_data = block_data.reshape(n_channels, -1, order='F')
+            block_data = block_data[:-1] * cal  # cast to float64
+            block_data += offsets
+            block_data *= gains
+            _mult_cal_one(data, block_data, idx, cals, mult)
