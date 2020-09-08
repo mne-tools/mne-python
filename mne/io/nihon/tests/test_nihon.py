@@ -41,14 +41,6 @@ def test_nihon_eeg():
         t_desc = an2['description'].replace('Segment: ', '')
         assert an1['description'] == t_desc
 
-    # This does not work, the EDF says everything is EEG
-    # types_dict = {2: 'eeg', 3: 'stim', 202: 'eog', 502: 'misc', 102: 'bio'}
-    # ch_types = [types_dict[raw.info['chs'][x]['kind']]
-    #             for x in range(len(raw.ch_names))]
-    # edf_ch_types = [types_dict[raw_edf.info['chs'][x]['kind']]
-    #                 for x in range(len(raw_edf.ch_names))]
-    # assert ch_types == edf_ch_types
-
     assert_array_almost_equal(raw._data, raw_edf._data)
 
     with pytest.raises(ValueError, match='Not a valid Nihon Kohden EEG file'):

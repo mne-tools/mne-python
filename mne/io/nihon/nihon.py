@@ -354,11 +354,12 @@ class RawNihon(BaseRaw):
         """Read a chunk of raw data."""
         # For now we assume one control block and one data block.
         header = self._raw_extras[fi]['header']
+
+        # Get the original cal, offsets and gains
         cal = self._raw_extras[fi]['cal']
         offsets = self._raw_extras[fi]['offsets']
         gains = self._raw_extras[fi]['gains']
 
-        # Get the original cal, offsets and gains
         datablock = header['controlblocks'][0]['datablocks'][0]
         n_channels = datablock['n_channels'] + 1
         datastart = (datablock['address'] + 0x27 +
