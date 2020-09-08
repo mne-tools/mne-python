@@ -189,6 +189,8 @@ Changelog
 
 - Add reader for Persyst (.lay + .dat format) data in :func:`mne.io.read_raw_persyst` by `Adam Li`_
 
+- Use PyVista as the default backend for 3D visualization instead of Mayavi by `Guillaume Favelier`_
+
 Bug
 ~~~
 
