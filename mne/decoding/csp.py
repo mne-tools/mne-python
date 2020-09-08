@@ -12,52 +12,52 @@ import copy as cp
 import numpy as np
 from scipy import linalg
 
-from .mixin import TransformerMixin
 from .base import BaseEstimator
+from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
-from ..utils import fill_doc, _check_option
+from ..utils import fill_doc, _check_option, _validate_type
 
 
 @fill_doc
 class CSP(TransformerMixin, BaseEstimator):
-    u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
+    """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
-    This object can be used as a supervised decomposition to estimate
-    spatial filters for feature extraction in a 2 class decoding problem.
-    CSP in the context of EEG was first described in [1]; a comprehensive
-    tutorial on CSP can be found in [2]. Multiclass solving is implemented
-    from [3].
+    This class can be used as a supervised decomposition to estimate spatial
+    filters for feature extraction. CSP in the context of EEG was first
+    described in :footcite:`KolesEtAl1990`; a comprehensive tutorial on CSP can
+    be found in :footcite:`BlankertzEtAl2008`. Multi-class solving is
+    implemented from :footcite:`Grosse-WentrupBuss2008`.
 
     Parameters
     ----------
-    n_components : int, default 4
-        The number of components to decompose M/EEG signals.
-        This number should be set by cross-validation.
+    n_components : int (default 4)
+        The number of components to decompose M/EEG signals. This number should
+        be set by cross-validation.
     reg : float | str | None (default None)
-        If not None (same as ``'empirical'``, default), allow
-        regularization for covariance estimation.
-        If float, shrinkage is used (0 <= shrinkage <= 1).
-        For str options, ``reg`` will be passed to ``method`` to
+        If not None (same as ``'empirical'``, default), allow regularization
+        for covariance estimation. If float (between 0 and 1), shrinkage is
+        used. For str values, ``reg`` will be passed as ``method`` to
         :func:`mne.compute_covariance`.
     log : None | bool (default None)
-        If transform_into == 'average_power' and log is None or True, then
-        applies a log transform to standardize the features, else the features
-        are z-scored. If transform_into == 'csp_space', then log must be None.
-    cov_est : 'concat' | 'epoch', default 'concat'
-        If 'concat', covariance matrices are estimated on concatenated epochs
-        for each class.
-        If 'epoch', covariance matrices are estimated on each epoch separately
-        and then averaged over each class.
-    transform_into : {'average_power', 'csp_space'}
-        If 'average_power' then self.transform will return the average power of
-        each spatial filter. If 'csp_space' self.transform will return the data
-        in CSP space. Defaults to 'average_power'.
-    norm_trace : bool
-        Normalize class covariance by its trace. Defaults to False. Trace
-        normalization is a step of the original CSP algorithm [1]_ to eliminate
+        If ``transform_into`` equals ``'average_power'`` and ``log`` is None or
+        True, then apply a log transform to standardize features, else features
+        are z-scored. If ``transform_into`` is ``'csp_space'``, ``log`` must be
+        None.
+    cov_est : 'concat' | 'epoch' (default 'concat')
+        If ``'concat'``, covariance matrices are estimated on concatenated
+        epochs for each class. If ``'epoch'``, covariance matrices are
+        estimated on each epoch separately and then averaged over each class.
+    transform_into : 'average_power' | 'csp_space' (default 'average_power')
+        If 'average_power' then ``self.transform`` will return the average
+        power of each spatial filter. If ``'csp_space'``, ``self.transform``
+        will return the data in CSP space.
+    norm_trace : bool (default False)
+        Normalize class covariance by its trace. Trace normalization is a step
+        of the original CSP algorithm :footcite:`KolesEtAl1990` to eliminate
         magnitude variations in the EEG between individuals. It is not applied
-        in more recent work [2]_, [3]_ and can have a negative impact on
-        patterns ordering.
+        in more recent work :footcite:`BlankertzEtAl2008`,
+        :footcite:`Grosse-WentrupBuss2008` and can have a negative impact on
+        pattern order.
     cov_method_params : dict | None
         Parameters to pass to :func:`mne.compute_covariance`.
 
@@ -65,6 +65,16 @@ class CSP(TransformerMixin, BaseEstimator):
     %(rank_None)s
 
         .. versionadded:: 0.17
+    component_order : 'mutual_info' | 'alternate' (default 'mutual_info')
+        If ``'mutual_info'`` order components by decreasing mutual information
+        (in the two-class case this uses a simplification which orders
+        components by decreasing absolute deviation of the eigenvalues from 0.5
+        :footcite:`BarachantEtAl2010`). For the two-class case, ``'alternate'``
+        orders components by starting with the largest eigenvalue, followed by
+        the smallest, the second-to-largest, the second-to-smallest, and so on
+        :footcite:`BlankertzEtAl2008`.
+
+        .. versionadded:: 0.21
 
     Attributes
     ----------
@@ -83,28 +93,18 @@ class CSP(TransformerMixin, BaseEstimator):
 
     References
     ----------
-    .. [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
-           Underlying Population Differences in the Background EEG. Brain
-           Topography 2(4), 275-284, 1990.
-    .. [2] Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
-           Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
-           Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
-           2008.
-    .. [3] Grosse-Wentrup, Moritz, and Martin Buss. Multiclass common spatial
-           patterns and information theoretic feature extraction. IEEE
-           Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
+    .. footbibliography::
     """
 
-    def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
+    def __init__(self, n_components=4, reg=None, log=None, cov_est='concat',
                  transform_into='average_power', norm_trace=False,
-                 cov_method_params=None, rank=None):
-        """Init of CSP."""
+                 cov_method_params=None, rank=None,
+                 component_order='mutual_info'):
         # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
         self.rank = rank
-
         self.reg = reg
 
         # Init default cov_est
@@ -128,13 +128,18 @@ class CSP(TransformerMixin, BaseEstimator):
                                  '"csp_space".')
         self.log = log
 
-        if not isinstance(norm_trace, bool):
-            raise ValueError('norm_trace must be a bool.')
+        _validate_type(norm_trace, bool, 'norm_trace')
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
+        _check_option('component_order', component_order,
+                      ('mutual_info', 'alternate'))
+        self.component_order = component_order
 
     def _check_Xy(self, X, y=None):
-        """Aux. function to check input data."""
+        """Check input data."""
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X should be of type ndarray (got %s)."
+                             % type(X))
         if y is not None:
             if len(X) != len(y) or len(y) < 1:
                 raise ValueError('X and y must have the same length.')
@@ -156,87 +161,24 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
         self._check_Xy(X, y)
-        n_channels = X.shape[1]
 
         self._classes = np.unique(y)
         n_classes = len(self._classes)
         if n_classes < 2:
             raise ValueError("n_classes must be >= 2.")
+        if n_classes > 2 and self.component_order == 'alternate':
+            raise ValueError("component_order='alternate' requires two "
+                             "classes, but data contains {} classes; use "
+                             "component_order='mutual_info' "
+                             "instead.".format(n_classes))
 
-        covs = np.zeros((n_classes, n_channels, n_channels))
-        sample_weights = list()
-        for class_idx, this_class in enumerate(self._classes):
-            if self.cov_est == "concat":  # concatenate epochs
-                class_ = np.transpose(X[y == this_class], [1, 0, 2])
-                class_ = class_.reshape(n_channels, -1)
-                cov = _regularized_covariance(
-                    class_, reg=self.reg, method_params=self.cov_method_params,
-                    rank=self.rank)
-                weight = sum(y == this_class)
-            elif self.cov_est == "epoch":
-                class_ = X[y == this_class]
-                cov = np.zeros((n_channels, n_channels))
-                for this_X in class_:
-                    cov += _regularized_covariance(
-                        this_X, reg=self.reg,
-                        method_params=self.cov_method_params,
-                        rank=self.rank)
-                cov /= len(class_)
-                weight = len(class_)
+        covs, sample_weights = self._compute_covariance_matrices(X, y)
+        eigen_vectors, eigen_values = self._decompose_covs(covs,
+                                                           sample_weights)
+        ix = self._order_components(covs, sample_weights, eigen_vectors,
+                                    eigen_values, self.component_order)
 
-            covs[class_idx] = cov
-            if self.norm_trace:
-                # Append covariance matrix and weight. Prior to version 0.15,
-                # trace normalization was applied, but was breaking results for
-                # some usecases by changing the apparent ranking of patterns.
-                # Trace normalization of the covariance matrix was removed
-                # without signigificant effect on patterns or performances.
-                # If the user interested in this feature, we suggest trace
-                # normalization of the epochs prior to the CSP.
-                covs[class_idx] /= np.trace(cov)
-
-            sample_weights.append(weight)
-
-        if n_classes == 2:
-            eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
-            # sort eigenvectors
-            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
-        else:
-            # The multiclass case is adapted from
-            # http://github.com/alexandrebarachant/pyRiemann
-            eigen_vectors, D = _ajd_pham(covs)
-
-            # Here we apply an euclidean mean. See pyRiemann for other metrics
-            mean_cov = np.average(covs, axis=0, weights=sample_weights)
-            eigen_vectors = eigen_vectors.T
-
-            # normalize
-            for ii in range(eigen_vectors.shape[1]):
-                tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
-                             eigen_vectors[:, ii])
-                eigen_vectors[:, ii] /= np.sqrt(tmp)
-
-            # class probability
-            class_probas = [np.mean(y == _class) for _class in self._classes]
-
-            # mutual information
-            mutual_info = []
-            for jj in range(eigen_vectors.shape[1]):
-                aa, bb = 0, 0
-                for (cov, prob) in zip(covs, class_probas):
-                    tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov),
-                                 eigen_vectors[:, jj])
-                    aa += prob * np.log(np.sqrt(tmp))
-                    bb += prob * (tmp ** 2 - 1)
-                mi = - (aa + (3.0 / 16) * (bb ** 2))
-                mutual_info.append(mi)
-            ix = np.argsort(mutual_info)[::-1]
-
-        # sort eigenvectors
         eigen_vectors = eigen_vectors[:, ix]
 
         self.filters_ = eigen_vectors.T
@@ -245,7 +187,7 @@ class CSP(TransformerMixin, BaseEstimator):
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
-        # compute features (mean band power)
+        # compute features (mean power)
         X = (X ** 2).mean(axis=2)
 
         # To standardize features
@@ -545,6 +487,106 @@ class CSP(TransformerMixin, BaseEstimator):
             mask=mask, outlines=outlines, contours=contours,
             image_interp=image_interp, show=show, average=average)
 
+    def _compute_covariance_matrices(self, X, y):
+        _, n_channels, _ = X.shape
+
+        if self.cov_est == "concat":
+            cov_estimator = self._concat_cov
+        elif self.cov_est == "epoch":
+            cov_estimator = self._epoch_cov
+
+        covs = []
+        sample_weights = []
+        for this_class in self._classes:
+            cov, weight = cov_estimator(X[y == this_class])
+
+            if self.norm_trace:
+                cov /= np.trace(cov)
+
+            covs.append(cov)
+            sample_weights.append(weight)
+
+        return np.stack(covs), np.array(sample_weights)
+
+    def _concat_cov(self, x_class):
+        """Concatenate epochs before computing the covariance."""
+        _, n_channels, _ = x_class.shape
+
+        x_class = np.transpose(x_class, [1, 0, 2])
+        x_class = x_class.reshape(n_channels, -1)
+        cov = _regularized_covariance(
+            x_class, reg=self.reg, method_params=self.cov_method_params,
+            rank=self.rank)
+        weight = x_class.shape[0]
+
+        return cov, weight
+
+    def _epoch_cov(self, x_class):
+        """Mean of per-epoch covariances."""
+        cov = sum(_regularized_covariance(
+            this_X, reg=self.reg,
+            method_params=self.cov_method_params,
+            rank=self.rank) for this_X in x_class)
+        cov /= len(x_class)
+        weight = len(x_class)
+
+        return cov, weight
+
+    def _decompose_covs(self, covs, sample_weights):
+        n_classes = len(covs)
+        if n_classes == 2:
+            eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
+        else:
+            # The multiclass case is adapted from
+            # http://github.com/alexandrebarachant/pyRiemann
+            eigen_vectors, D = _ajd_pham(covs)
+            eigen_vectors = self._normalize_eigenvectors(eigen_vectors.T, covs,
+                                                         sample_weights)
+            eigen_values = None
+        return eigen_vectors, eigen_values
+
+    def _compute_mutual_info(self, covs, sample_weights, eigen_vectors):
+        class_probas = sample_weights / sample_weights.sum()
+
+        mutual_info = []
+        for jj in range(eigen_vectors.shape[1]):
+            aa, bb = 0, 0
+            for (cov, prob) in zip(covs, class_probas):
+                tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov),
+                             eigen_vectors[:, jj])
+                aa += prob * np.log(np.sqrt(tmp))
+                bb += prob * (tmp ** 2 - 1)
+            mi = - (aa + (3.0 / 16) * (bb ** 2))
+            mutual_info.append(mi)
+
+        return mutual_info
+
+    def _normalize_eigenvectors(self, eigen_vectors, covs, sample_weights):
+        # Here we apply an euclidean mean. See pyRiemann for other metrics
+        mean_cov = np.average(covs, axis=0, weights=sample_weights)
+
+        for ii in range(eigen_vectors.shape[1]):
+            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
+                         eigen_vectors[:, ii])
+            eigen_vectors[:, ii] /= np.sqrt(tmp)
+        return eigen_vectors
+
+    def _order_components(self, covs, sample_weights, eigen_vectors,
+                          eigen_values, component_order):
+        n_classes = len(self._classes)
+        if component_order == 'mutual_info' and n_classes > 2:
+            mutual_info = self._compute_mutual_info(covs, sample_weights,
+                                                    eigen_vectors)
+            ix = np.argsort(mutual_info)[::-1]
+        elif component_order == 'mutual_info' and n_classes == 2:
+            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
+        elif component_order == 'alternate' and n_classes == 2:
+            i = np.argsort(eigen_values)
+            ix = np.empty_like(i)
+            ix[1::2] = i[:len(i) // 2]
+            ix[0::2] = i[len(i) // 2:][::-1]
+        return ix
+
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
     """Approximate joint diagonalization based on Pham's algorithm.
@@ -722,9 +764,6 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
         self._check_Xy(X, y)
 
         if len(np.unique(y)) < 2:

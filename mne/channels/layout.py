@@ -727,9 +727,10 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         # translate to sphere origin, transform/flatten Z, translate back
         locs3d -= sphere[:3]
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
-        out = _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+        cart_coords = _cart_to_sph(locs3d)
+        out = _pol_to_cart(cart_coords[:, 1:][:, ::-1])
         # scale from radians to mm
-        out *= (sphere[3] / (np.pi / 2.))
+        out *= cart_coords[:, [0]] / (np.pi / 2.)
         out += sphere[:2]
     else:
         out = _pol_to_cart(_cart_to_sph(locs3d))

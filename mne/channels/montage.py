@@ -34,8 +34,8 @@ from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
-                     _check_option, _validate_type, _check_fname,
-                     fill_doc, logger, deprecated)
+                     _check_option, _validate_type, _check_fname, _on_missing,
+                     fill_doc, deprecated)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -377,12 +377,13 @@ def read_dig_dat(fname):
     ``*.dat`` files are plain text files and can be inspected and amended with
     a plain text editor.
     """
+    from ._standard_montage_utils import _check_dupes_odict
     fname = _check_fname(fname, overwrite='read', must_exist=True)
 
     with open(fname, 'r') as fid:
         lines = fid.readlines()
 
-    electrodes = {}
+    ch_names, poss = list(), list()
     nasion = lpa = rpa = None
     for i, line in enumerate(lines):
         items = line.split()
@@ -403,7 +404,9 @@ def read_dig_dat(fname):
         elif num == '82':
             rpa = pos
         else:
-            electrodes[items[0]] = pos
+            ch_names.append(items[0])
+            poss.append(pos)
+    electrodes = _check_dupes_odict(ch_names, poss)
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
@@ -678,10 +681,6 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         montage = make_standard_montage(montage)
 
     if isinstance(montage, DigMontage):
-        _check_option('on_missing', on_missing, ['raise',
-                                                 'ignore',
-                                                 'warn'])
-
         mnt_head = _get_montage_in_head(montage)
 
         def _backcompat_value(pos, ref_pos):
@@ -728,18 +727,16 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
         if len(not_in_montage):  # DigMontage is subset of info
-            missing_coord_msg = 'DigMontage is only a subset of info. ' \
-                                'There are %s channel position%s ' \
-                                'not present in the DigMontage. ' \
-                                'The required channels are: %s' \
-                                % (len(not_in_montage), _pl(not_in_montage),
-                                   not_in_montage)
-            if on_missing == 'raise':
-                raise ValueError(missing_coord_msg)
-            elif on_missing == 'warn':
-                warn(missing_coord_msg)
-            elif on_missing == 'ignore':
-                logger.info(missing_coord_msg)
+            missing_coord_msg = (
+                'DigMontage is only a subset of info. There are '
+                f'{len(not_in_montage)} channel position{_pl(not_in_montage)} '
+                'not present in the DigMontage. The required channels are:\n\n'
+                f'{not_in_montage}.\n\nConsider using inst.set_channel_types '
+                'if these are not EEG channels, or use the on_missing '
+                'parameter if the channel positions are allowed to be unknown '
+                'in your analyses.'
+            )
+            _on_missing(on_missing, missing_coord_msg)
 
             # set ch coordinates and names from digmontage or nan coords
             ch_pos_use = dict(

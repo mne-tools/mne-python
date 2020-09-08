@@ -363,7 +363,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                                      cumul_lens[:-1]))
 
         # set up cals and mult (cals, compensation, and projector)
+        n_out = len(np.arange(len(self.ch_names))[idx])
         cals = self._cals.ravel()[np.newaxis, :]
+        if projector is not None:
+            assert projector.shape[0] == projector.shape[1] == cals.shape[1]
         if self._comp is not None:
             if projector is not None:
                 mult = self._comp * cals
@@ -374,7 +377,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             mult = projector[idx] * cals
         else:
             mult = None
-        cals = cals.T[idx]
+        del projector
+
+        if mult is None:
+            cals = cals.T[idx]
+            assert cals.shape == (n_out, 1)
+            need_idx = idx  # sufficient just to read the given channels
+        else:
+            cals = None  # shouldn't be used
+            assert mult.shape == (n_out, len(self.ch_names))
+            # read all necessary for proj
+            need_idx = np.where(np.any(mult, axis=0))[0]
+            mult = mult[:, need_idx]
+            logger.debug(
+                f'Reading {len(need_idx)}/{len(self.ch_names)} channels '
+                f'due to projection')
+        assert (mult is None) ^ (cals is None)  # xor
 
         # read from necessary files
         offset = 0
@@ -390,7 +408,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             n_read = stop_file - start_file
             this_sl = slice(offset, offset + n_read)
             # reindex back to original file
-            orig_idx = _convert_slice(self._read_picks[fi][idx])
+            orig_idx = _convert_slice(self._read_picks[fi][need_idx])
             _ReadSegmentFileProtector(self)._read_segment_file(
                 data[:, this_sl], orig_idx, fi,
                 int(start_file), int(stop_file), cals, mult)
@@ -413,7 +431,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        data : ndarray, shape (len(idx), stop - start + 1)
+        data : ndarray, shape (n_out, stop - start + 1)
             The data array. Should be modified inplace.
         idx : ndarray | slice
             The requested channel indices.
@@ -425,7 +443,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The stop sample in the given file (inclusive).
         cals : ndarray, shape (len(idx), 1)
             Channel calibrations (already sub-indexed).
-        mult : ndarray, shape (len(idx), len(info['chs']) | None
+        mult : ndarray, shape (n_out, len(idx) | None
             The compensation + projection + cals matrix, if applicable.
         """
         raise NotImplementedError
@@ -507,7 +525,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data_buffer = None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
-        self._data = self._read_segment(data_buffer=data_buffer)
+        self._data = self._read_segment(
+            data_buffer=data_buffer, projector=self._projector)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self._comp = None  # no longer needed
@@ -1564,7 +1583,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment()
+                this_data = self._read_segment(projector=self._projector)
             else:
                 this_data = self._data
 
@@ -1576,7 +1595,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 if not raws[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    raws[ri]._read_segment(data_buffer=data_buffer)
+                    raws[ri]._read_segment(data_buffer=data_buffer,
+                                           projector=self._projector)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
@@ -1788,11 +1808,13 @@ class _ReadSegmentFileProtector(object):
 
     def __init__(self, raw):
         self.__raw = raw
+        assert hasattr(raw, '_projector')
         self._filenames = raw._filenames
         self._raw_extras = raw._raw_extras
 
-    def _read_segment_file(self, *args, **kwargs):
-        return self.__raw.__class__._read_segment_file(self, *args, **kwargs)
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        return self.__raw.__class__._read_segment_file(
+            self, data, idx, fi, start, stop, cals, mult)
 
 
 class _RawShell(object):

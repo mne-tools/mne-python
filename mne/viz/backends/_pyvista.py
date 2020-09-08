@@ -21,8 +21,8 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
-from ._utils import _get_colormap_from_array
-from ...utils import copy_base_doc_to_subclass_doc
+from ._utils import _get_colormap_from_array, ALLOWED_QUIVER_MODES
+from ...utils import copy_base_doc_to_subclass_doc, _check_option
 from ...externals.decorator import decorator
 
 
@@ -96,6 +96,7 @@ class _Figure(object):
             if self.plotter_class is BackgroundPlotter and \
                     hasattr(BackgroundPlotter, 'set_icon'):
                 _init_resources()
+                _process_events(plotter)
                 plotter.set_icon(":/mne-icon.png")
         _process_events(self.plotter)
         _process_events(self.plotter)
@@ -202,6 +203,8 @@ class _Renderer(_BaseRenderer):
             if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
+        self.update_lighting()
+
     @contextmanager
     def ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
@@ -242,6 +245,35 @@ class _Renderer(_BaseRenderer):
 
     def scene(self):
         return self.figure
+
+    def _orient_lights(self):
+        lights = list(self.plotter.renderer.GetLights())
+        lights.pop(0)  # unused headlight
+        lights[0].SetPosition(_to_pos(45.0, -45.0))
+        lights[1].SetPosition(_to_pos(-30.0, 60.0))
+        lights[2].SetPosition(_to_pos(-30.0, -60.0))
+
+    def update_lighting(self):
+        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
+        lights = list(self.plotter.renderer.GetLights())
+        headlight = lights.pop(0)
+        headlight.SetSwitch(False)
+        for i in range(len(lights)):
+            if i < 3:
+                lights[i].SetSwitch(True)
+                lights[i].SetIntensity(1.0)
+                lights[i].SetColor(1.0, 1.0, 1.0)
+            else:
+                lights[i].SetSwitch(False)
+                lights[i].SetPosition(_to_pos(0.0, 0.0))
+                lights[i].SetIntensity(1.0)
+                lights[i].SetColor(1.0, 1.0, 1.0)
+
+        lights[0].SetPosition(_to_pos(45.0, 45.0))
+        lights[1].SetPosition(_to_pos(-30.0, -60.0))
+        lights[1].SetIntensity(0.6)
+        lights[2].SetPosition(_to_pos(-30.0, 60.0))
+        lights[2].SetIntensity(0.5)
 
     def set_interaction(self, interaction):
         if interaction == "rubber_band_2d":
@@ -444,6 +476,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, line_width=2., name=None):
+        _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -464,7 +497,7 @@ class _Renderer(_BaseRenderer):
                 scale = False
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
-            elif mode == 'arrow' or mode == '3darrow':
+            elif mode == 'arrow':
                 alg = _glyph(
                     grid,
                     orient='vec',
@@ -472,61 +505,43 @@ class _Renderer(_BaseRenderer):
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
-                _add_mesh(
-                    self.plotter,
-                    mesh=mesh,
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
-            elif mode == 'cone':
-                cone = vtk.vtkConeSource()
-                if glyph_height is not None:
-                    cone.SetHeight(glyph_height)
-                if glyph_center is not None:
-                    cone.SetCenter(glyph_center)
-                if glyph_resolution is not None:
-                    cone.SetResolution(glyph_resolution)
-                cone.Update()
-
-                geom = cone.GetOutput()
-                _add_mesh(
-                    self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor,
-                                    geom=geom),
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
-            elif mode == 'cylinder':
-                cylinder = vtk.vtkCylinderSource()
-                cylinder.SetHeight(glyph_height)
-                cylinder.SetRadius(0.15)
-                cylinder.SetCenter(glyph_center)
-                cylinder.SetResolution(glyph_resolution)
-                cylinder.Update()
-
-                # fix orientation
-                tr = vtk.vtkTransform()
-                tr.RotateWXYZ(90, 0, 0, 1)
-                trp = vtk.vtkTransformPolyDataFilter()
-                trp.SetInputData(cylinder.GetOutput())
-                trp.SetTransform(tr)
-                trp.Update()
-
-                geom = trp.GetOutput()
-                _add_mesh(
-                    self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor,
-                                    geom=geom),
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
+            else:
+                if mode == 'cone':
+                    glyph = vtk.vtkConeSource()
+                    glyph.SetCenter(0.5, 0, 0)
+                    glyph.SetRadius(0.15)
+                elif mode == 'cylinder':
+                    glyph = vtk.vtkCylinderSource()
+                    glyph.SetRadius(0.15)
+                else:
+                    assert mode == 'sphere', mode  # guaranteed above
+                    glyph = vtk.vtkSphereSource()
+                if mode == 'cylinder':
+                    if glyph_height is not None:
+                        glyph.SetHeight(glyph_height)
+                    if glyph_center is not None:
+                        glyph.SetCenter(glyph_center)
+                    if glyph_resolution is not None:
+                        glyph.SetResolution(glyph_resolution)
+                    # fix orientation
+                    glyph.Update()
+                    tr = vtk.vtkTransform()
+                    tr.RotateWXYZ(90, 0, 0, 1)
+                    trp = vtk.vtkTransformPolyDataFilter()
+                    trp.SetInputData(glyph.GetOutput())
+                    trp.SetTransform(tr)
+                    glyph = trp
+                glyph.Update()
+                geom = glyph.GetOutput()
+                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
+                                  geom=geom)
+            _add_mesh(
+                self.plotter,
+                mesh=mesh,
+                color=color,
+                opacity=opacity,
+                backface_culling=backface_culling
+            )
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
@@ -655,6 +670,15 @@ def _deg2rad(deg):
 
 def _rad2deg(rad):
     return rad * 180. / np.pi
+
+
+def _to_pos(elevation, azimuth):
+    theta = azimuth * np.pi / 180.0
+    phi = (90.0 - elevation) * np.pi / 180.0
+    x = np.sin(theta) * np.sin(phi)
+    y = np.cos(phi)
+    z = np.cos(theta) * np.sin(phi)
+    return x, y, z
 
 
 def _mat_to_array(vtk_mat):
@@ -848,6 +872,8 @@ def _set_mesh_scalars(mesh, scalars, name):
 
 
 def _update_slider_callback(slider, callback, event_type):
+    _check_option('event_type', event_type,
+                  ['start', 'end', 'always'])
 
     def _the_callback(widget, event):
         value = widget.GetRepresentation().GetValue()
@@ -859,7 +885,8 @@ def _update_slider_callback(slider, callback, event_type):
         event = vtk.vtkCommand.StartInteractionEvent
     elif event_type == 'end':
         event = vtk.vtkCommand.EndInteractionEvent
-    elif event_type == 'always':
+    else:
+        assert event_type == 'always', event_type
         event = vtk.vtkCommand.InteractionEvent
 
     slider.RemoveObserver(event)

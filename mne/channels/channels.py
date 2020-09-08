@@ -885,8 +885,12 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
 
-        if not isinstance(self, BaseRaw):
-            _check_preload(self, 'adding, dropping, or reordering channels')
+        msg = 'adding, dropping, or reordering channels'
+        if isinstance(self, BaseRaw):
+            if self._projector is not None:
+                _check_preload(self, f'{msg} after calling .apply_proj()')
+        else:
+            _check_preload(self, msg)
 
         if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]

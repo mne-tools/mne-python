@@ -729,13 +729,13 @@ def test_proj(tmpdir):
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
 
     # Test that picking removes projectors ...
-    raw = read_raw_fif(fif_fname).apply_proj()
+    raw = read_raw_fif(fif_fname)
     n_projs = len(raw.info['projs'])
     raw.pick_types(meg=False, eeg=True)
     assert len(raw.info['projs']) == n_projs - 3
 
     # ... but only if it doesn't apply to any channels in the dataset anymore.
-    raw = read_raw_fif(fif_fname).apply_proj()
+    raw = read_raw_fif(fif_fname)
     n_projs = len(raw.info['projs'])
     raw.pick_types(meg='mag', eeg=True)
     assert len(raw.info['projs']) == n_projs
@@ -1485,9 +1485,12 @@ def test_drop_channels_mixin():
 
     # Test that dropping all channels a projector applies to will lead to the
     # removal of said projector.
-    raw = read_raw_fif(fif_fname).apply_proj()
+    raw = read_raw_fif(fif_fname)
     n_projs = len(raw.info['projs'])
-    raw.drop_channels(raw.info['projs'][-1]['data']['col_names'])  # EEG proj
+    eeg_names = raw.info['projs'][-1]['data']['col_names']
+    with pytest.raises(RuntimeError, match='loaded'):
+        raw.copy().apply_proj().drop_channels(eeg_names)
+    raw.load_data().drop_channels(eeg_names)  # EEG proj
     assert len(raw.info['projs']) == n_projs - 1
 
 

@@ -301,6 +301,9 @@ class _Brain(object):
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
 
+        if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
+            self._renderer._orient_lights()
+
     @property
     def interaction(self):
         """The interaction style."""
@@ -1369,7 +1372,9 @@ class _Brain(object):
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = _create_actor(glyph_mapper)
-                glyph_actor.GetProperty().SetLineWidth(2.)
+                prop = glyph_actor.GetProperty()
+                prop.SetLineWidth(2.)
+                prop.SetOpacity(vector_alpha)
                 self._renderer.plotter.add_actor(glyph_actor)
                 hemi_data['glyph_actor'].append(glyph_actor)
             else:

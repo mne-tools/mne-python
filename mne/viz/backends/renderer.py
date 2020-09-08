@@ -147,8 +147,8 @@ def _get_3d_backend():
                     MNE_3D_BACKEND = name
                     break
             else:
-                raise RuntimeError('Could not load any valid 3D backend: %s'
-                                   % (VALID_3D_BACKENDS))
+                raise RuntimeError(f'Could not load any valid 3D backend: '
+                                   f'{", ".join(VALID_3D_BACKENDS)}')
         else:
             _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
             _reload_backend(MNE_3D_BACKEND)

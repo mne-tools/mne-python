@@ -46,7 +46,7 @@ from ..transforms import (transform_surface_to, invert_transform,
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units, _stamp_to_dt)
+                     _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
 from ..fixes import einsum
 
@@ -1293,12 +1293,7 @@ def _stc_src_sel(src, stc, on_missing='raise',
                'source space%s'
                % (n_joint, n_stc, 'vertex' if n_stc == 1 else 'vertices',
                   extra))
-        if on_missing == 'raise':
-            raise RuntimeError(msg)
-        elif on_missing == 'warn':
-            warn(msg)
-        else:
-            assert on_missing == 'ignore'
+        _on_missing(on_missing, msg)
     return src_sel, stc_sel, out_vertices
 
 
@@ -1381,7 +1376,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     %(use_cps)s
 
         .. versionadded:: 0.15
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1448,7 +1444,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1495,7 +1492,8 @@ def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
         Forward operator.
     stc : instance of SourceEstimate
         Source estimate.
-    %(on_missing)s Default is "ignore".
+    %(on_missing_fwd)s
+        Default is "ignore".
 
         .. versionadded:: 0.18
 

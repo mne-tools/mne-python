@@ -15,7 +15,11 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add head to mri and mri to voxel space transform details to :ref:`plot_source_alignment` tutorial, by `Alex Rockhill`_
+
 - Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
+
+- Improve memory efficiency of :func:`mne.concatenate_epochs` by `Eric Larson`_
 
 - Allow picking channels in raw instances (e.g., :meth:`mne.io.Raw.pick_types`) without preloading data, by `Eric Larson`_
 
@@ -59,6 +63,8 @@ Changelog
 
 - :func:`mne.viz.plot_dipole_locations` and :meth:`mne.Dipole.plot_locations` gained a ``title`` argument to specify a custom figure title in ``orthoview`` mode by `Richard Höchenberger`_
 
+- Add orientations projected onto the MRI slices in :func:`mne.viz.plot_dipole_locations` in ``'orthoview'`` mode by `Eric Larson`_
+
 - Add temporal derivative distribution repair (TDDR) :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` with shortened alias ``mne.preprocessing.nirs.tddr`` by `Robert Luke`_
 
 - Add :func:`mne.read_freesurfer_lut` to make it easier to work with volume atlases by `Eric Larson`_
@@ -97,7 +103,9 @@ Changelog
 
 - Add :func:`mne.viz.centers_to_edges` to help when using :meth:`matplotlib.axes.Axes.pcolormesh` with flat shading by `Eric Larson`_
 
-- Add "on_missing='raise'" to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
+- Add ``on_missing='raise'`` to :meth:`mne.io.Raw.set_montage` and related functions to allow ignoring of missing electrode coordinates by `Adam Li`_
+
+- Add ``on_missing='raise'`` to :func:`mne.viz.plot_events` to allow ignoring missing events when passing ``event_id`` by `Eric Larson`_
 
 - Add REST EEG infinity reference scheme to :meth:`mne.io.Raw.set_eeg_reference` and related functions by `Eric Larson`_
 
@@ -118,6 +126,8 @@ Changelog
 - Add ECoG misc EDF dataset to the :ref:`tut_working_with_ecog` tutorial to show snapshots of time-frequency activity by `Adam Li`_
 
 - Add :func:`mne.viz.set_3d_options` and ``MNE_3D_OPTION_ANTIALIAS`` environment variable to control full-scene antialiasing (FXAA) in 3D functions like :ref:`mne coreg`, :func:`mne.viz.plot_alignment`, and :func:`mne.viz.plot_source_estimates`; this can be useful on systems where FXAA does not work well, such as some with MESA software rendering, by `Eric Larson`_
+
+- Add config variable ``MNE_TQDM`` to support explicitly setting the TQDM backend to use, for example ``tqdm`` or ``tqdm.auto`` (default) by `Eric Larson`_
 
 - Add better support for reading corrupted FIF files in :func:`mne.io.read_raw_fif` by `Eric Larson`_
 
@@ -155,6 +165,8 @@ Changelog
 
 - Add ``proj='reconstruct'`` to :meth:`mne.Evoked.plot` and related functions to apply projectors and then undo the signal bias using field mapping by `Eric Larson`_
 
+- Add writing BEM surfaces and solutions in H5 format in :func:`mne.write_bem_surfaces` and :func:`mne.write_bem_solution` by `Eric Larson`_
+
 - When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
 
 - :class:`mne.Report` now can add topomaps of SSP projectors to the generated report. This behavior can be toggled via the new ``projs`` argument by `Richard Höchenberger`_
@@ -171,8 +183,16 @@ Changelog
 
 - `~mne.Report.parse_folder` now accepts a path-like folder name (it used to work with strings only) by `Alex Gramfort`_
 
+- Add ``component_order`` parameter to :class:`mne.decoding.CSP` which allows switching between ``mutual_info`` (default) and ``alternate`` (a simpler and frequently used option) by `Martin Billinger`_ and `Clemens Brunner`_
+
+- Speed up reading of annotations in EDF+ files by `Jeroen Van Der Donckt`_
+
+- Add reader for Persyst (.lay + .dat format) data in :func:`mne.io.read_raw_persyst` by `Adam Li`_
+
 Bug
 ~~~
+
+- Fix bug with non-preloaded data when using ``raw.apply_proj().load_data().get_data()`` where projectors were not applied by `Eric Larson`_
 
 - Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` by `Lau Møller Andersen`_
 
@@ -208,6 +228,10 @@ Bug
 
 - Fix bug with :func:`mne.combine_evoked` where equal-weighted averages were wrongly computed as equal-weighted sums, by `Daniel McCloy`_
 
+- Fix bug with :meth:`mne.channels.DigMontage.plot` when reference channels with no defined position are present, by `Eric Larson`_
+
+- Fix bug with :func:`mne.channels.read_custom_montage` where ``"headshape"`` points in SFP format were not read properly, by `Eric Larson`_
+
 - Fix bug with setting HTML classes when using :meth:`mne.Report.add_bem_to_section` by `Eric Larson`_
 
 - Fix bug with convex-hull based MEG helmet creation where the face area could be covered up, by `Eric Larson`_
@@ -217,6 +241,8 @@ Bug
 - Fix plotting with :func:`mne.viz.plot_evoked_topomap` to pre-existing axes by `Daniel McCloy`_
 
 - Fix bug with :func:`mne.viz.plot_vector_source_estimates` using the PyVista backend with ``time_viewer=True`` when updating the arrow colormaps by `Eric Larson`_
+
+- Fix bug with :func:`mne.viz.plot_vector_source_estimates` where ``clim='auto'`` and ``clim=dict(..., kind='percent')`` did not take into account the magnitude of the activation, by `Eric Larson`_
 
 - The default plotting mode for :func:`mne.io.Raw.plot` and :ref:`mne browse_raw` has been changed to ``clipping=3.`` to facilitate data analysis with large deflections, by `Eric Larson`_
 
@@ -305,6 +331,8 @@ Bug
 
 - Fix bug with :meth:`mne.io.Raw.plot_psd` with ``average=False`` and multiple channel types where channel locations were not shown properly by `Eric Larson`_
 
+- Fix bug with :func:`mne.viz.plot_sparse_source_estimates` when using ``'sphere'`` mode by `Eric Larson`_ and `Guillaume Favelier`_
+
 - Fix bug in FieldTrip reader functions when channels are missing in the ``info`` object by `Thomas Hartmann`_
 
 - Throw proper error when trying to import FieldTrip Epochs data with non-uniform time for trials by `Thomas Hartmann`_
@@ -316,6 +344,8 @@ Bug
 - Fix bug in :meth:`mne.preprocessing.ICA.plot_properties` where time series plot doesn't start at the proper tmin by `Teon Brooks`_
 
 - Fix bug with :meth:`mne.preprocessing.ICA.plot_properties` where a :class:`mne.io.Raw` object with annotations would lead to an error by `Yu-Han Luo`_
+
+- Fix bug with :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>` when ``orig_time`` of annotations is None and ``raw.first_time > 0``, by `Alex Gramfort`_
 
 API
 ~~~
@@ -332,6 +362,8 @@ API
 - The default for the ``standardize_names`` argument of :func:`mne.io.read_raw_kit` will change from ``True`` to ``False`` in 0.22, by `Eric Larson`_
 
 - The ``normalize_fwd`` argument of :func:`mne.beamformer.make_dics` has been deprecated in favor of ``depth``, by `Eric Larson`_
+
+- The ``overwrite`` parameter of :func:`mne.write_bem_surfaces` and :func:`mne.write_bem_solution` defaults to ``True`` in 0.21 but will change to ``False`` in 0.22, by `Eric Larson`_
 
 - Add ``n_cols`` parameter to :meth:`mne.preprocessing.ICA.plot_scores` to allow plotting scores in multiple columns, by `Luke Bloy`_
 
