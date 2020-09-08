@@ -6,6 +6,7 @@
 import os.path as op
 import shutil
 import os
+import datetime as dt
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -79,12 +80,8 @@ def test_nirx_15_2_short():
     # Test data import
     assert raw._data.shape == (26, 145)
     assert raw.info['sfreq'] == 12.5
-    assert raw.info['meas_date'].month == 8
-    assert raw.info['meas_date'].day == 23
-    assert raw.info['meas_date'].year == 2019
-    assert raw.info['meas_date'].hour == 7
-    assert raw.info['meas_date'].minute == 37
-    assert raw.info['meas_date'].second == 4
+    assert raw.info['meas_date'] == dt.datetime(2019, 8, 23, 7, 37, 4, 540000,
+                                                tzinfo=dt.timezone.utc)
 
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
@@ -278,12 +275,8 @@ def test_nirx_15_2():
     # Test data import
     assert raw._data.shape == (64, 67)
     assert raw.info['sfreq'] == 3.90625
-    assert raw.info['meas_date'].month == 10
-    assert raw.info['meas_date'].day == 2
-    assert raw.info['meas_date'].year == 2019
-    assert raw.info['meas_date'].hour == 9
-    assert raw.info['meas_date'].minute == 8
-    assert raw.info['meas_date'].second == 47
+    assert raw.info['meas_date'] == dt.datetime(2019, 10, 2, 9, 8, 47, 511000,
+                                                tzinfo=dt.timezone.utc)
 
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
@@ -330,12 +323,9 @@ def test_nirx_15_0():
     # Test data import
     assert raw._data.shape == (20, 92)
     assert raw.info['sfreq'] == 6.25
-    assert raw.info['meas_date'].month == 10
-    assert raw.info['meas_date'].day == 27
-    assert raw.info['meas_date'].year == 2019
-    assert raw.info['meas_date'].hour == 13
-    assert raw.info['meas_date'].minute == 53
-    assert raw.info['meas_date'].second == 34
+    assert raw.info['meas_date'] == dt.datetime(2019, 10, 27, 13, 53, 34,
+                                                209000,
+                                                tzinfo=dt.timezone.utc)
 
     # Test channel naming
     assert raw.info['ch_names'][:12] == ["S1_D1 760", "S1_D1 850",
