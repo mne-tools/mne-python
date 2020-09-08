@@ -105,7 +105,9 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 
 
     Same computation as the function tfr_stockwell.
-    Difference: tfr_stockwell takes epochs in the mne.Epochs format as input. This function, tfr_array_stockwell, takes epochs in the numpy.array format as input.
+    Difference: tfr_stockwell takes epochs in the mne.Epochs format as input.
+    This function, tfr_array_stockwell, takes epochs in the numpy.array format
+    as input.
 
     See [1]_, [2]_, [3]_, [4]_ for more information.
 
@@ -214,7 +216,8 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     """Compute Time-Frequency Representation (TFR) using Stockwell Transform.
 
     Same computation as the function tfr_array_stockwell.
-    Difference: tfr_stockwell takes epochs in the mne.Epochs format as input; tfr_array_stockwell takes epochs in the numpy.array format as input.
+    Difference: tfr_stockwell takes epochs in the mne.Epochs format as input;
+    tfr_array_stockwell takes epochs in the numpy.array format as input.
 
     See [1]_, [2]_, [3]_, [4]_ for more information.
 

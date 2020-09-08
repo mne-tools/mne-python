@@ -284,7 +284,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     method : 'multitaper' | 'morlet', default 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
         'multitaper' uses complex exponentials windowed with multiple DPSS
-        multitapers.
+        tapers.
     n_cycles : float | array of float, default 7.0
         Number of cycles  in the  wavelet. Fixed number
         or one per frequency.
@@ -725,7 +725,8 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
     """Compute time-frequency transform using Morlet wavelets.
     Same computation as the function tfr_morlet.
     Difference: tfr_morlet takes epochs in the mne.Epochs format as input.
-    This function, tfr_array_morlet, takes epochs in the numpy.array format as input.
+    This function, tfr_array_morlet, takes epochs in the numpy.array format
+    as input.
 
     Parameters
     ----------

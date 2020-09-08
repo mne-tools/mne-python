@@ -462,7 +462,8 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Same computation as the function tfr_multitaper.
     Difference: tfr_multitaper takes epochs in the mne.Epochs format as input.
-    This function, tfr_array_multitaper, takes epochs in the numpy.array format as input.
+    This function, tfr_array_multitaper, takes epochs in the numpy.array format
+    as input.
 
     Parameters
     ----------
