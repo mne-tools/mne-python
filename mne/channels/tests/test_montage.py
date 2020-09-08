@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
 from mne.fixes import nullcontext
-from mne.utils._testing import _dig_sort_key
+from mne.utils._testing import _dig_sort_key, assert_object_equal
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
                           read_dig_captrack,  # XXX: remove with 0.22
@@ -1302,6 +1302,90 @@ def test_set_montage_with_missing_coordinates():
             [-3., 4., -5., 0., 0., 0., NaN, NaN, NaN, NaN, NaN, NaN],
         ]
     )
+
+
+def test_get_montage():
+    """Test get montage from Instance.
+
+    Test with standard montage and then loaded in montage.
+    """
+    # 1. read in testing data and assert montage roundtrip
+    # for testing dataset: 'test_raw.fif'
+    raw = read_raw_fif(fif_fname)
+    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
+    raw2 = raw.copy()
+    # get montage and then set montage and
+    # it should be the same
+    montage = raw.get_montage()
+    raw.set_montage(montage, on_missing='raise')
+    test_montage = raw.get_montage()
+    assert_object_equal(raw.info['chs'], raw2.info['chs'])
+    assert_dig_allclose(raw2.info, raw.info)
+    assert_object_equal(raw2.info['dig'], raw.info['dig'])
+
+    # the montage does not change
+    assert_object_equal(montage.dig, test_montage.dig)
+
+    # 2. now do a standard montage
+    montage = make_standard_montage('mgh60')
+    # set the montage; note renaming to make standard montage map
+    raw.set_montage(montage)
+
+    # get montage back and set it
+    # the channel locations should be the same
+    raw2 = raw.copy()
+    test_montage = raw.get_montage()
+    raw.set_montage(test_montage, on_missing='ignore')
+
+    # chs should not change
+    assert_object_equal(raw2.info['chs'], raw.info['chs'])
+    # dig order might be different after set_montage
+    assert montage.ch_names == test_montage.ch_names
+    # note that test_montage will have different coordinate frame
+    # compared to standard montage
+    assert_dig_allclose(raw2.info, raw.info)
+    assert_object_equal(raw2.info['dig'], raw.info['dig'])
+
+    # 3. if montage gets set to None
+    raw.set_montage(None)
+    assert raw.get_montage() is None
+
+    # 4. read in BV test dataset and make sure montage
+    # fulfills roundtrip on non-standard montage
+    dig_montage = read_dig_fif(fif_dig_montage_fname)
+
+    # Make a BrainVision file like the one the user would have had
+    # with testing dataset 'test.vhdr'
+    raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    raw_bv_2 = raw_bv.copy()
+
+    # rename channels to make it have the full set
+    # of channels
+    mapping = dict()
+    for ii, ch_name in enumerate(raw_bv.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 1,)
+    raw_bv.rename_channels(mapping)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 33,)
+    raw_bv_2.rename_channels(mapping)
+    raw_bv.add_channels([raw_bv_2])
+    for ch in raw_bv.info['chs']:
+        ch['kind'] = FIFF.FIFFV_EEG_CH
+
+    # Set the montage and roundtrip
+    raw_bv.set_montage(dig_montage)
+    raw_bv2 = raw_bv.copy()
+
+    # reset the montage
+    test_montage = raw_bv.get_montage()
+    raw_bv.set_montage(test_montage, on_missing='ignore')
+    # dig order might be different after set_montage
+    assert_object_equal(raw_bv2.info['dig'], raw_bv.info['dig'])
+    assert_dig_allclose(raw_bv2.info, raw_bv.info)
+
+    # if dig is not set in the info, then montage returns None
+    raw.info['dig'] = None
+    assert raw.get_montage() is None
 
 
 def test_read_dig_hpts():
