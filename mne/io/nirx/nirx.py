@@ -246,10 +246,10 @@ class RawNIRX(BaseRaw):
         req_ind = req_ind.astype(int)
 
         # Generate meaningful channel names
-        def prepend(list, str):
+        def prepend(l, str):
             str += '{0}'
-            list = [str.format(i) for i in list]
-            return list
+            l = [str.format(i) for i in l]
+            return l
 
         snames = prepend(sources[req_ind], 'S')
         dnames = prepend(detectors[req_ind], '_D')
