@@ -443,19 +443,13 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
     # grab basic info.
     hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info, allow_empty=allow_empty)
     _validate_type(t_window, (str, 'numeric'), 't_window')
-    if isinstance(t_window, str):
-        if t_window != 'auto':
-            raise ValueError('t_window must be "auto" if a string, got %r'
-                             % (t_window,))
-        if len(hpi_freqs):
-            t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
-        else:
-            t_window = 0.2
-    t_window = float(t_window)
-    if t_window <= 0:
-        raise ValueError('t_window (%s) must be > 0' % (t_window,))
-    logger.info('Using time window: %0.1f ms' % (1000 * t_window,))
-    model_n_window = int(round(float(t_window) * info['sfreq']))
+    if info['line_freq'] is not None:
+        line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
+                               info['line_freq'])
+    else:
+        line_freqs = np.zeros([0])
+    logger.info('Line interference frequencies: %s Hz'
+                % ' '.join(['%d' % lf for lf in line_freqs]))
     # worry about resampled/filtered data.
     # What to do e.g. if Raw has been resampled and some of our
     # HPI freqs would now be aliased
@@ -469,14 +463,22 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
         raise RuntimeError('Found HPI frequencies %s above the lowpass '
                            '(or Nyquist) frequency %0.1f'
                            % (hpi_freqs[~keepers].tolist(), highest))
-    if info['line_freq'] is not None:
-        line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
-                               info['line_freq'])
-    else:
-        line_freqs = np.zeros([0])
-    logger.info('Line interference frequencies: %s Hz'
-                % ' '.join(['%d' % lf for lf in line_freqs]))
-
+    # calculate optimal window length.
+    if isinstance(t_window, str):
+        if t_window != 'auto':
+            raise ValueError('t_window must be "auto" if a string, got %r'
+                             % (t_window,))
+        if len(hpi_freqs):
+            all_freqs = np.concatenate((hpi_freqs, line_freqs))
+            delta_freqs = np.diff(np.unique(all_freqs))
+            t_window = max(5. / all_freqs.min(), 1. / delta_freqs.min())
+        else:
+            t_window = 0.2
+    t_window = float(t_window)
+    if t_window <= 0:
+        raise ValueError('t_window (%s) must be > 0' % (t_window,))
+    logger.info('Using time window: %0.1f ms' % (1000 * t_window,))
+    model_n_window = int(round(float(t_window) * info['sfreq']))
     # build model to extract sinusoidal amplitudes.
     slope = np.linspace(-0.5, 0.5, model_n_window)[:, np.newaxis]
     rps = np.arange(model_n_window)[:, np.newaxis].astype(float)
