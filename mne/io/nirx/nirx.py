@@ -6,6 +6,7 @@ from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
 import os.path as op
+import datetime as dt
 
 import numpy as np
 
@@ -15,8 +16,7 @@ from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
-from ...utils import logger, verbose, fill_doc
-from ...utils import warn
+from ...utils import logger, verbose, fill_doc, warn
 
 
 @fill_doc
@@ -118,22 +118,47 @@ class RawNIRX(BaseRaw):
 
         # Parse required header fields
 
+        # Extract measurement date and time
+        datetime_str = hdr['GeneralInfo']['Date'] + hdr['GeneralInfo']['Time']
+        meas_date = None
+        # Several formats have been observed so we try each in turn
+        for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
+                        '"%a, %d %b %Y""%H:%M:%S.%f"']:
+            try:
+                meas_date = dt.datetime.strptime(datetime_str, dt_code)
+                meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                break
+            except ValueError:
+                pass
+        if meas_date is None:
+            warn("Extraction of measurement date from NIRX file failed. "
+                 "This can be caused by files saved in certain locales. "
+                 "Please report this as a github issue. "
+                 "The date is being set to January 1st, 2000, "
+                 "instead of {}".format(datetime_str))
+            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0,
+                                    tzinfo=dt.timezone.utc)
+
         # Extract frequencies of light used by machine
         fnirs_wavelengths = [int(s) for s in
                              re.findall(r'(\d+)',
-                             hdr['ImagingParameters']['Wavelengths'])]
+                                        hdr['ImagingParameters'][
+                                            'Wavelengths'])]
 
         # Extract source-detectors
         sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
-                              hdr['DataStructure']['S-D-Key'])], int)
+                                                         hdr['DataStructure'][
+                                                             'S-D-Key'])], int)
         detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
-                                hdr['DataStructure']['S-D-Key'])], int)
+                                                           hdr['DataStructure']
+                                                           ['S-D-Key'])],
+                               int)
 
         # Determine if short channels are present and on which detectors
         if 'shortbundles' in hdr['ImagingParameters']:
             short_det = [int(s) for s in
                          re.findall(r'(\d+)',
-                         hdr['ImagingParameters']['ShortDetIndex'])]
+                                    hdr['ImagingParameters']['ShortDetIndex'])]
             short_det = np.array(short_det, int)
         else:
             short_det = []
@@ -150,6 +175,7 @@ class RawNIRX(BaseRaw):
         # Note: NIRX also records "Study Type", "Experiment History",
         #       "Additional Notes", "Contact Information" and this information
         #       is currently discarded
+        # NIRStar does not record an id, or handedness by default
         subject_info = {}
         names = inf['name'].split()
         if len(names) > 0:
@@ -161,7 +187,6 @@ class RawNIRX(BaseRaw):
         if len(names) > 2:
             subject_info['middle_name'] = \
                 inf['name'].split()[-2].replace("\"", "")
-        # subject_info['birthday'] = inf['age']  # TODO: not formatted properly
         subject_info['sex'] = inf['gender'].replace("\"", "")
         # Recode values
         if subject_info['sex'] in {'M', 'Male', '1'}:
@@ -170,7 +195,9 @@ class RawNIRX(BaseRaw):
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
         else:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
-        # NIRStar does not record an id, or handedness by default
+        subject_info['birthday'] = (meas_date.year - int(inf['age']),
+                                    meas_date.month,
+                                    meas_date.day)
 
         # Read information about probe/montage/optodes
         # A word on terminology used here:
@@ -219,10 +246,11 @@ class RawNIRX(BaseRaw):
         req_ind = req_ind.astype(int)
 
         # Generate meaningful channel names
-        def prepend(list, str):
+        def prepend(li, str):
             str += '{0}'
-            list = [str.format(i) for i in list]
-            return(list)
+            li = [str.format(i) for i in li]
+            return li
+
         snames = prepend(sources[req_ind], 'S')
         dnames = prepend(detectors[req_ind], '_D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
@@ -235,6 +263,7 @@ class RawNIRX(BaseRaw):
                            samplingrate,
                            ch_types='fnirs_cw_amplitude')
         info.update(subject_info=subject_info, dig=dig)
+        info['meas_date'] = meas_date
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.
