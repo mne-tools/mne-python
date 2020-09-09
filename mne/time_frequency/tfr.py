@@ -286,7 +286,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         'multitaper' uses complex exponentials windowed with multiple DPSS
         tapers.
     n_cycles : float | array of float, default 7.0
-        Number of cycles  in the  wavelet. Fixed number
+        Number of cycles in the wavelet. Fixed number
         or one per frequency.
     zero_mean : bool | None, default None
         None means True for method='multitaper' and False for method='morlet'.
