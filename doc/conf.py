@@ -656,7 +656,7 @@ numpydoc_xref_ignore = {
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF',
-    'RawPersyst',
+    'RawPersyst', 'RawNihon',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable

@@ -30,6 +30,7 @@ from . import nirx
 from . import persyst
 from . import eeglab
 from . import pick
+from . import nihon
 
 from .array import RawArray
 from .brainvision import read_raw_brainvision
@@ -50,6 +51,7 @@ from .snirf import read_raw_snirf
 from .persyst import read_raw_persyst
 from .fieldtrip import (read_raw_fieldtrip, read_epochs_fieldtrip,
                         read_evoked_fieldtrip)
+from .nihon import read_raw_nihon
 from ._read_raw import read_raw
 
 # for backward compatibility
