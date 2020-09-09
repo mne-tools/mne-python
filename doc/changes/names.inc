@@ -300,6 +300,8 @@
 
 .. _Ramiro Gatti: https://github.com/ragatti
 
+.. _Liberty Hamilton: https://github.com/libertyh
+
 .. _Svea Marie Meyer: https://github.com/SveaMeyer13
 
 .. _Lx37: https://github.com/Lx37

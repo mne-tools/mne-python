@@ -237,6 +237,7 @@ def test_set_eeg_reference():
     data = rng.randn(3, 1000)
     raw = RawArray(data, create_info(3, 1000., ['ecog'] * 2 + ['misc']))
     reref, ref_data = set_eeg_reference(raw.copy())
+    assert reref.info['custom_ref_applied']  # gh-7350
     _test_reference(raw, reref, ref_data, ['0', '1'])
 
 
