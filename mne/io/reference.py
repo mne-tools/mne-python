@@ -53,22 +53,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
-    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
-    # if ch_type is 'auto', search through list to find first reasonable
-    # reference-able channel type.
-    possible_types = ['eeg', 'ecog', 'seeg']
-    if ch_type == 'auto':
-        for type_ in possible_types:
-            if type_ in inst:
-                ch_type = type_
-                logger.info('%s channel type selected for '
-                            're-referencing' % DEFAULTS['titles'][type_])
-                break
-        # if auto comes up empty, or the user specifies a bad ch_type.
-        else:
-            raise ValueError('No EEG, ECoG or sEEG channels found '
-                             'to rereference.')
-
+    ch_type = _get_ch_type(inst, ch_type)
     ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
     eeg_idx = pick_types(inst.info, **ch_dict)
 
@@ -341,25 +326,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     del projection  # not used anymore
 
     inst = inst.copy() if copy else inst
-
-    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
-    # if ch_type is 'auto', search through list to find first reasonable
-    # reference-able channel type.
-    possible_types = ['eeg', 'ecog', 'seeg']
-    if ch_type == 'auto':
-        for type_ in possible_types:
-            if type_ in inst:
-                ch_type = type_
-                logger.info('%s channel type selected for '
-                            're-referencing' % DEFAULTS['titles'][type_])
-                break
-        # if auto comes up empty, or the user specifies a bad ch_type.
-        else:
-            raise ValueError('No EEG, ECoG or sEEG channels found '
-                             'to rereference.')
-    else:
-        type_ = ch_type
-
+    ch_type = _get_ch_type(inst, ch_type)
     ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
     eeg_idx = pick_types(inst.info, **ch_dict)
     ch_sel = [inst.ch_names[i] for i in eeg_idx]
@@ -377,10 +344,29 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         logger.info('EEG data marked as already having the desired reference.')
     else:
         logger.info('Applying a custom %s '
-                    'reference.' % DEFAULTS['titles'][type_])
+                    'reference.' % DEFAULTS['titles'][ch_type])
 
     return _apply_reference(inst, ref_channels, ch_sel, forward,
                             ch_type=ch_type)
+
+
+def _get_ch_type(inst, ch_type):
+    _validate_type(ch_type, str, 'ch_type')
+    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
+    # if ch_type is 'auto', search through list to find first reasonable
+    # reference-able channel type.
+    if ch_type == 'auto':
+        for type_ in ['eeg', 'ecog', 'seeg']:
+            if type_ in inst:
+                ch_type = type_
+                logger.info('%s channel type selected for '
+                            're-referencing' % DEFAULTS['titles'][type_])
+                break
+        # if auto comes up empty, or the user specifies a bad ch_type.
+        else:
+            raise ValueError('No EEG, ECoG or sEEG channels found '
+                             'to rereference.')
+    return ch_type
 
 
 @verbose
