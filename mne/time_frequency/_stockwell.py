@@ -108,7 +108,8 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     This function, tfr_array_stockwell, takes epochs in the numpy.array format
     as input.
 
-    See [1]_, [2]_, [3]_, [4]_ for more information.
+    See :footcite:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`
+    for more information.
 
     Parameters
     ----------
@@ -154,23 +155,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 
     References
     ----------
-    .. [1] Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
-       operators: Partial differential equations and time-frequency
-       analysis 52 (2007): 279-309.
-    .. [2] Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A.
-       Stockwell transform optimization applied on the detection of split in
-       heart sounds (2014). Signal Processing Conference (EUSIPCO), 2013
-       Proceedings of the 22nd European, pages 2015--2019.
-    .. [3] Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen
-       (2010). During Visual Word Recognition, Phonology Is Accessed
-       within 100 ms and May Be Mediated by a Speech Production
-       Code: Evidence from Magnetoencephalography. The Journal of
-       Neuroscience, 30 (15), 5229-5233.
-    .. [4] K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
-       Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
-       (2006). S-transform time-frequency analysis of P300 reveals deficits in
-       individuals diagnosed with alcoholism.
-       Clinical Neurophysiology 117 2128--2143
+    .. footbibliography::
     """
     _validate_type(data, np.ndarray, 'data')
     if data.ndim != 3:
@@ -218,7 +203,8 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     Difference: tfr_stockwell takes epochs in the mne.Epochs format as input;
     tfr_array_stockwell takes epochs in the numpy.array format as input.
 
-    See [1]_, [2]_, [3]_, [4]_ for more information.
+    See :footcite:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`
+    for more information.
 
     Parameters
     ----------
@@ -265,23 +251,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
 
     References
     ----------
-    .. [1] Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
-       operators: Partial differential equations and time-frequency
-       analysis 52 (2007): 279-309.
-    .. [2] Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A.
-       Stockwell transform optimization applied on the detection of split in
-       heart sounds (2014). Signal Processing Conference (EUSIPCO), 2013
-       Proceedings of the 22nd European, pages 2015--2019.
-    .. [3] Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen
-       (2010). During Visual Word Recognition, Phonology Is Accessed
-       within 100 ms and May Be Mediated by a Speech Production
-       Code: Evidence from Magnetoencephalography. The Journal of
-       Neuroscience, 30 (15), 5229-5233.
-    .. [4] K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
-       Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
-       (2006). S-transform time-frequency analysis of P300 reveals deficits in
-       individuals diagnosed with alcoholism.
-       Clinical Neurophysiology 117 2128--2143
+    .. footbibliography::
     """
     # verbose dec is used b/c subfunctions are verbose
     data = _get_data(inst, return_itc)
