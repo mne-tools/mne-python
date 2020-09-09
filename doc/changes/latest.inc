@@ -47,6 +47,8 @@ Changelog
 
 - Add support for mixed source spaces to :func:`mne.compute_source_morph` by `Eric Larson`_
 
+- Add support for volume and mixed source spaces to :func:`mne.stats.summarize_clusters_stc` by `Eric Larson`_
+
 - Add support for omitting the SDR step in volumetric morphing by passing ``n_iter_sdr=()`` to `mne.compute_source_morph` by `Eric Larson`_
 
 - Add ``single_volume`` argument to :func:`mne.setup_volume_source_space` to facilitate creating source spaces with many volumes (e.g., all subvolumes of ``aseg.mgz``) by `Eric Larson`_
