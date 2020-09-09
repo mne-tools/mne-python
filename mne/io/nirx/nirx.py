@@ -154,15 +154,6 @@ class RawNIRX(BaseRaw):
                                                            ['S-D-Key'])],
                                int)
 
-        # Determine if short channels are present and on which detectors
-        if 'shortbundles' in hdr['ImagingParameters']:
-            short_det = [int(s) for s in
-                         re.findall(r'(\d+)',
-                                    hdr['ImagingParameters']['ShortDetIndex'])]
-            short_det = np.array(short_det, int)
-        else:
-            short_det = []
-
         # Extract sampling rate
         samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
 
