@@ -284,7 +284,10 @@ def test_split_gof_basic(mod):
     want = gof_split[[0, 0]]
     if mod == 'augment':
         want = np.concatenate((want, [[0]]))
-    assert_allclose(gof_split, want, atol=1e-12)
+    if mod == 'mult':
+        assert_array_less(gof_split[1], gof_split[0])
+    else:
+        assert_allclose(gof_split, want, atol=1e-12)
 
 
 @pytest.mark.parametrize('idx, weights', [
@@ -305,8 +308,8 @@ def test_gof_split_meg(forward, idx, weights):
     prods = np.abs(np.dot(gain.T, gain) / np.outer(norms, norms))[triu]
     assert_array_less(prods, 5e-3)  # approximately orthogonal
     # first, split across time (one dipole per time point)
-    x = gain * weights
-    gof_split = _split_gof(x, np.diag(weights), gain)
+    M = gain * weights
+    gof_split = _split_gof(M, np.diag(weights), gain)
     assert_allclose(gof_split.sum(0), 100., atol=1e-5)  # all sum to 100
     assert_allclose(gof_split, 100 * np.eye(len(weights)), atol=1)  # loc
     # next, summed to a single time point (all dipoles active at one time pt)

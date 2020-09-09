@@ -149,15 +149,15 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
 def _split_gof(M, X, gain):
     # parse out the variance explained using an orthogonal basis
-    assert M.ndim == X.ndim == gain.ndim == 2
+    # assuming x is estimated using elements of gain, with residual res
+    # along the first axis
+    assert M.ndim == X.ndim == gain.ndim == 2, (M.ndim, X.ndim, gain.ndim)
     assert gain.shape == (M.shape[0], X.shape[0])
     assert M.shape[1] == X.shape[1]
     M_est = gain @ X
+    assert M.shape == M_est.shape
     res = M - M_est
-    norm = np.linalg.norm(gain, axis=0, keepdims=True)
-    norm[norm == 0] = 1.
-    gain = gain / norm
-    del norm
+    assert gain.shape[0] == M.shape[0], (gain.shape, M.shape)
     U, _, Vh = np.linalg.svd(gain, full_matrices=False)
     # the part that gets explained
     fit_orth = U.T @ M
@@ -172,11 +172,12 @@ def _split_gof(M, X, gain):
     gof_back = 100 * (
         (fit_back * fit_back.conj()).real -
         (res_back * res_back.conj()).real) / norm
+    assert gof_back.shape == X.shape, (gof_back.shape, X.shape)
     return gof_back
 
 
 @verbose
-def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
+def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
                          gain_active, active_is_idx=False, verbose=None):
     times = tmin + tstep * np.arange(X.shape[1])
 
@@ -187,9 +188,8 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
 
     # Compute the GOF split amongst the dipoles
     assert M.shape == (gain_active.shape[0], len(times))
-    assert gain_active.shape[1] == len(active_idx)
-    assert M.shape == M_est.shape
-    gof_split = _split_gof(M, X_orig, gain_active)
+    assert gain_active.shape[1] == len(active_idx) == X.shape[0]
+    gof_split = _split_gof(M, X, gain_active)
     assert gof_split.shape == (len(active_idx), len(times))
     assert X.shape[0] in (len(active_idx), 3 * len(active_idx))
 
@@ -428,10 +428,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         X = np.dot(X, Vh)
         M = np.dot(M, Vh)
 
-    # Compute estimated whitened sensor data
     gain_active = gain[:, active_set]
-    X_orig = X.copy()
-
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
         active_set_tmp[mask] = active_set
@@ -443,6 +440,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     # Reapply weights to have correct unit
     X = _reapply_source_weighting(X, source_weighting, active_set)
+    gain_active /= source_weighting[active_set]
+    M_estimate = np.dot(gain_active, X)
 
     outs = list()
     residual = list()
@@ -455,8 +454,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             out = _make_dipoles_sparse(
                 Xe, active_set, forward, tmin, tstep,
                 M[:, cnt:(cnt + len(e.times))],
-                X_orig[:, cnt:(cnt + len(e.times))], gain_active,
-                verbose=None)
+                gain_active)
         else:
             out = _make_sparse_stc(
                 Xe, active_set, forward, tmin, tstep, pick_ori=pick_ori)
@@ -686,7 +684,6 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     # Compute estimated whitened sensor data for each dipole (dip, ch, time)
     gain_active = gain[:, active_set]
-    X_orig = X.copy()
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
@@ -695,6 +692,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         del active_set_tmp
 
     X = _reapply_source_weighting(X, source_weighting, active_set)
+    gain_active /= source_weighting[active_set]
 
     if return_residual:
         residual = _compute_residual(
@@ -703,7 +701,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     if return_as_dipoles:
         out = _make_dipoles_sparse(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
-            M, X_orig, gain_active, verbose=None)
+            M, gain_active)
     else:
         out = _make_sparse_stc(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
