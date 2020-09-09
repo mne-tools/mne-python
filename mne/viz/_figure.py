@@ -387,10 +387,13 @@ class MNEBrowseFigure(MNEFigure):
 
         # INIT TRACES
         segments = np.full((1, 1, 2), np.nan)
-        self.mne.traces = LineCollection(
-            segments, linewidths=0.5, colors=fgcolor, offsets=np.zeros((1, 2)),
-            antialiaseds=True)
+        kwargs = dict(segments=segments, offsets=np.zeros((1, 2)),
+                      linewidths=0.5, antialiaseds=True)
+        self.mne.traces = LineCollection(colors=fgcolor, zorder=1, **kwargs)
+        self.mne.bad_traces = LineCollection(colors=self.mne.ch_color_bad,
+                                             zorder=0, **kwargs)
         ax.add_collection(self.mne.traces)
+        ax.add_collection(self.mne.bad_traces)
 
         # SAVE UI ELEMENT HANDLES
         vars(self.mne).update(
@@ -609,14 +612,16 @@ class MNEBrowseFigure(MNEFigure):
             # click in main axes
             if (event.inaxes == self.mne.ax_main and not annotating):
                 if not butterfly:
-                    cont, cont_dict = self.mne.traces.contains(event)
-                    if cont:
-                        ind = cont_dict['ind']
-                        x_ind = self.mne.inst.time_as_index(event.xdata)
-                        dists = self.mne.data[ind, x_ind] + ind - event.ydata
-                        ind = ind[np.argmin(np.abs(dists))]
+                    good_cont, _ = self.mne.traces.contains(event)
+                    bad_cont, _ = self.mne.bad_traces.contains(event)
+                    if good_cont or bad_cont:
+                        x_ind = self.mne.inst.time_as_index(event.xdata)[0]
+                        dists = (self.mne.data[:, x_ind]
+                                 + self.mne.trace_offsets
+                                 - event.ydata)
+                        ind = np.argmin(np.abs(dists))
                         self._toggle_bad_channel(ind)
-                        return
+                    return
                 self._show_vline(event.xdata)  # butterfly / not on data trace
                 return
             # click in vertical scrollbar
@@ -1594,19 +1599,28 @@ class MNEBrowseFigure(MNEFigure):
                        self.mne.times[::decim_value] + self.mne.first_time
                        for decim_value in set(decim)}
         this_data = self.mne.data * self.mne.scale_factor * -1
+        # convert to masked array
+        np.ma.array(this_data, mask=np.zeros_like(this_data, dtype=bool),
+                    shrink=False)
         # clip
         if self.mne.clipping == 'clamp':
-            this_data = np.clip(this_data, -0.5, 0.5)
+            this_data = np.ma.clip(this_data, -0.5, 0.5)
         elif self.mne.clipping is not None:
             clip = self.mne.clipping * (0.2 if butterfly else 1)
             v1, v2 = clip * np.array([-1, 1])
-            this_data = np.ma.masked_outside(this_data, v1, v2)
-        # update line collection
-        segments = [np.ma.vstack((decim_times[_decim], _data[..., ::_decim])).T
-                    for _data, _decim in zip(this_data, decim)]
-        this_offsets = np.vstack((np.zeros_like(offsets), offsets)).T
-        self.mne.traces.set_offsets(this_offsets)  # must set before segments
-        self.mne.traces.set(segments=segments, color=ch_colors, pickradius=10.)
+            this_data = np.ma.masked_outside(this_data, v1, v2, copy=False)
+        # draw bads separately so they can have a lower z-order
+        bad_data = np.ma.array(this_data, mask=this_data.mask, copy=True)
+        bad_data[np.nonzero(np.logical_not(bads)), :] = np.ma.masked
+        this_data[np.nonzero(bads), :] = np.ma.masked
+        # update line collections
+        this_offsets = np.ma.vstack((np.zeros_like(offsets), offsets)).T
+        for attr, data in dict(bad_traces=bad_data, traces=this_data).items():
+            segments = [np.ma.vstack((decim_times[_dec], _dat[..., ::_dec])).T
+                        for _dat, _dec in zip(data, decim)]
+            lc = getattr(self.mne, attr)
+            lc.set_offsets(this_offsets)  # must set before segments
+            lc.set(segments=segments, color=ch_colors)
         # update xlim
         this_times = self.mne.times + self.mne.first_time
         self.mne.ax_main.set_xlim(this_times[0], this_times[-1])
