@@ -96,7 +96,8 @@ raw_train.plot(duration=60, scalings='auto')
 # Extract 30s events from annotations
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The Sleep Physionet dataset is annotated using `8 labels <physionet_labels>`:
+# The Sleep Physionet dataset is annotated using
+# `8 labels <physionet_labels_>`_:
 # Wake (W), Stage 1, Stage 2, Stage 3, Stage 4 corresponding to the range from
 # light sleep to deep sleep, REM sleep (R) where REM is the abbreviation for
 # Rapid Eye Movement sleep, movement (M), and Stage (?) for any none scored
@@ -106,6 +107,11 @@ raw_train.plot(duration=60, scalings='auto')
 # REM sleep (R). To do so, we use the ``event_id`` parameter in
 # :func:`mne.events_from_annotations` to select which events are we
 # interested in and we associate an event identifier to each of them.
+#
+# Moreover, the recordings contain long awake (W) regions before and after each
+# night. To limit the impact of class imbalance, we trim each recording by only
+# keeping 30 minutes of wake time before the first occurrence and 30 minutes
+# after the last occurrence of sleep stages.
 
 annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 1': 2,
@@ -113,6 +119,12 @@ annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 3': 4,
                               'Sleep stage 4': 4,
                               'Sleep stage R': 5}
+
+# keep last 30-min wake events before sleep and first 30-min wake events after
+# sleep and redefine annotations on raw data
+annot_train.crop(annot_train[1]['onset'] - 30 * 60,
+                 annot_train[-2]['onset'] + 30 * 60)
+raw_train.set_annotations(annot_train, emit_warning=False)
 
 events_train, _ = mne.events_from_annotations(
     raw_train, event_id=annotation_desc_2_event_id, chunk_duration=30.)
@@ -125,8 +137,9 @@ event_id = {'Sleep stage W': 1,
             'Sleep stage R': 5}
 
 # plot events
-mne.viz.plot_events(events_train, event_id=event_id,
-                    sfreq=raw_train.info['sfreq'])
+fig = mne.viz.plot_events(events_train, event_id=event_id,
+                          sfreq=raw_train.info['sfreq'],
+                          first_samp=events_train[0, 0])
 
 # keep the color-code for further plotting
 stage_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -148,6 +161,8 @@ print(epochs_train)
 
 raw_test = mne.io.read_raw_edf(bob_files[0])
 annot_test = mne.read_annotations(bob_files[1])
+annot_test.crop(annot_test[1]['onset'] - 30 * 60,
+                annot_test[-2]['onset'] + 30 * 60)
 raw_test.set_annotations(annot_test, emit_warning=False)
 raw_test.set_channel_types(mapping)
 events_test, _ = mne.events_from_annotations(
@@ -184,7 +199,7 @@ for ax, title, epochs in zip([ax1, ax2],
                                fmin=0.1, fmax=20., show=False,
                                average=True, spatial_colors=False)
     ax.set(title=title, xlabel='Frequency (Hz)')
-ax2.set(ylabel='uV^2/hz (dB)')
+ax2.set(ylabel='µV^2/Hz (dB)')
 ax2.legend(ax2.lines[2::3], stages)
 plt.show()
 
@@ -246,7 +261,7 @@ def eeg_power_band(epochs):
 # and a final estimator, while the FunctionTransformer converts a python
 # function in an estimator compatible object. In this manner we can create
 # scikit-learn estimator that takes :class:`mne.Epochs` thanks to
-# `eeg_power_band` function we just created.
+# ``eeg_power_band`` function we just created.
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
                      RandomForestClassifier(n_estimators=100, random_state=42))

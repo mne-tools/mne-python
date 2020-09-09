@@ -13,14 +13,14 @@ import inspect
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 from scipy.io import loadmat
 
 import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_pandas, _TempDir
+from mne.utils import run_tests_if_main, requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
@@ -56,6 +56,7 @@ bdf_multiple_annotations_path = op.join(data_path, 'BDF',
                                         'multiple_annotation_chans.bdf')
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
+edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -68,18 +69,24 @@ def test_orig_units():
     # Test original units
     orig_units = raw._orig_units
     assert len(orig_units) == len(raw.ch_names)
-    assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
+    assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
 
 
 def test_bdf_data():
     """Test reading raw bdf files."""
+    # XXX BDF data for these is around 0.01 when it should be in the uV range,
+    # probably some bug
+    test_scaling = False
     raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               eog=eog, misc=misc,
-                              exclude=['M2', 'IEOG'])
+                              exclude=['M2', 'IEOG'],
+                              test_scaling=test_scaling,
+                              )
     assert len(raw_py.ch_names) == 71
     raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               montage='biosemi64', eog=eog, misc=misc,
-                              exclude=['M2', 'IEOG'])
+                              exclude=['M2', 'IEOG'],
+                              test_scaling=test_scaling)
     assert len(raw_py.ch_names) == 71
     assert 'RawEDF' in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
@@ -106,35 +113,51 @@ def test_bdf_crop_save_stim_channel(tmpdir):
 
 
 @testing.requires_testing_data
-def test_edf_reduced():
-    """Test EDF with various sampling rates."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, verbose='error')
+@pytest.mark.parametrize('fname', [
+    edf_reduced,
+    edf_overlap_annot_path,
+])
+@pytest.mark.parametrize('stim_channel', (None, False, 'auto'))
+def test_edf_others(fname, stim_channel):
+    """Test EDF with various sampling rates and overlapping annotations."""
+    _test_raw_reader(
+        read_raw_edf, input_fname=fname, stim_channel=stim_channel,
+        verbose='error')
 
 
-def test_edf_data():
+def test_edf_data_broken(tmpdir):
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
                            exclude=['Ergo-Left', 'H10'], verbose='error')
-    raw_py = read_raw_edf(edf_path, preload=True)
-
+    raw_py = read_raw_edf(edf_path)
+    data = raw_py.get_data()
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
 
     # Test with number of records not in header (-1).
-    tempdir = _TempDir()
-    broken_fname = op.join(tempdir, 'broken.edf')
+    broken_fname = op.join(tmpdir, 'broken.edf')
     with open(edf_path, 'rb') as fid_in:
         fid_in.seek(0, 2)
         n_bytes = fid_in.tell()
         fid_in.seek(0, 0)
-        rbytes = fid_in.read(int(n_bytes * 0.4))
+        rbytes = fid_in.read()
     with open(broken_fname, 'wb') as fid_out:
         fid_out.write(rbytes[:236])
         fid_out.write(b'-1      ')
-        fid_out.write(rbytes[244:])
+        fid_out.write(rbytes[244:244 + int(n_bytes * 0.4)])
     with pytest.warns(RuntimeWarning,
                       match='records .* not match the file size'):
         raw = read_raw_edf(broken_fname, preload=True)
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
+
+    # Test with \x00's in the data
+    with open(broken_fname, 'wb') as fid_out:
+        fid_out.write(rbytes[:184])
+        assert rbytes[184:192] == b'36096   '
+        fid_out.write(rbytes[184:192].replace(b' ', b'\x00'))
+        fid_out.write(rbytes[192:])
+    raw_py = read_raw_edf(broken_fname)
+    data_new = raw_py.get_data()
+    assert_allclose(data, data_new)
 
 
 def test_duplicate_channel_labels_edf():
@@ -361,3 +384,18 @@ def test_bdf_multiple_annotation_channels():
 
 
 run_tests_if_main()
+
+
+@testing.requires_testing_data
+def test_edf_lowpass_zero():
+    """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
+    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
+        raw = read_raw_edf(edf_stim_resamp_path)
+    assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
+
+
+@testing.requires_testing_data
+def test_edf_annot_sub_s_onset():
+    """Test reading of sub-second annotation onsets."""
+    raw = read_raw_edf(edf_annot_sub_s_path)
+    assert_allclose(raw.annotations.onset, [1.951172, 3.492188])

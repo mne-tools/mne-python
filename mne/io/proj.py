@@ -15,9 +15,10 @@ from scipy import linalg
 from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
-from .pick import pick_types
+from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
 from ..utils import logger, verbose, warn, fill_doc
 
 
@@ -31,22 +32,34 @@ class Projection(dict):
         s = "%s" % self['desc']
         s += ", active : %s" % self['active']
         s += ", n_channels : %s" % self['data']['ncol']
-        return "<Projection  |  %s>" % s
+        return "<Projection | %s>" % s
+
+    # speed up info copy by taking advantage of mutability
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        cls = self.__class__
+        result = cls.__new__(cls)
+        for k, v in self.items():
+            if k == 'data':
+                v = v.copy()
+                v['data'] = v['data'].copy()
+                result[k] = v
+            else:
+                result[k] = v  # kind, active, desc, explained_var immutable
+        return result
 
     @fill_doc
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, vlim=(None, None), layout=None,
-                     sphere=None, border=0):
+                     axes=None, vlim=(None, None), sphere=None,
+                     border=_BORDER_DEFAULT):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
         info : instance of Info | None
-            The measurement information to use to determine the layout. If both
-            ``info`` and ``layout`` are provided, the layout will take
-            precedence.
+            The measurement information to use to determine the layout.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
         %(topomap_border)s
@@ -63,7 +76,7 @@ class Projection(dict):
         from ..viz.topomap import plot_projs_topomap
         return plot_projs_topomap(self, info, cmap, sensors, colorbar,
                                   res, size, show, outlines,
-                                  contours, image_interp, axes, vlim, layout,
+                                  contours, image_interp, axes, vlim,
                                   sphere=sphere, border=border)
 
 
@@ -225,21 +238,30 @@ class ProjMixin(object):
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
-        if any(self.info['projs'][ii]['active'] for ii in idx):
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
+
+        for ii in idx:
+            proj = self.info['projs'][ii]
+            if (proj['active'] and
+                    set(self.info['ch_names']) &
+                    set(proj['data']['col_names'])):
+                msg = (f'Cannot remove projector that has already been '
+                       f'applied, unless you first remove all channels it '
+                       f'applies to. The problematic projector is: {proj}')
+                raise ValueError(msg)
+
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
         return self
 
     @fill_doc
-    def plot_projs_topomap(self, ch_type=None, layout=None, cmap=None,
+    def plot_projs_topomap(self, ch_type=None, cmap=None,
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
-                           vlim=(None, None), sphere=None, extrapolate='box',
-                           border=0):
+                           vlim=(None, None), sphere=None,
+                           extrapolate=_EXTRAPOLATE_DEFAULT,
+                           border=_BORDER_DEFAULT):
         """Plot SSP vector.
 
         Parameters
@@ -249,8 +271,6 @@ class ProjMixin(object):
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        layout : object
-            Deprecated, do not use.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
         %(topomap_extrapolate)s
@@ -275,6 +295,29 @@ class ProjMixin(object):
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
         return fig
+
+    def _reconstruct_proj(self, mode='accurate', origin='auto'):
+        from ..forward import _map_meg_or_eeg_channels
+        if len(self.info['projs']) == 0:
+            return self
+        self.apply_proj()
+        for kind in ('meg', 'eeg'):
+            kwargs = dict(meg=False)
+            kwargs[kind] = True
+            picks = pick_types(self.info, **kwargs)
+            if len(picks) == 0:
+                continue
+            info_from = pick_info(self.info, picks)
+            info_to = info_from.copy()
+            info_to['projs'] = []
+            if kind == 'eeg' and _has_eeg_average_ref_proj(info_from['projs']):
+                info_to['projs'] = [
+                    make_eeg_average_ref_proj(info_to, verbose=False)]
+            mapping = _map_meg_or_eeg_channels(
+                info_from, info_to, mode=mode, origin=origin)
+            self.data[..., picks, :] = np.matmul(
+                mapping, self.data[..., picks, :])
+        return self
 
 
 def _proj_equal(a, b, check_active=True):

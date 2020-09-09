@@ -14,10 +14,9 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .fixes import _sparse_argmax
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, _center_of_mass,
-                              spatial_src_connectivity)
+                              spatial_src_adjacency)
 from .source_space import add_source_space_distances, SourceSpaces
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
@@ -267,7 +266,7 @@ class Label(object):
         name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
-        return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
+        return "<Label | %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
         """Return the number of vertices."""
@@ -533,7 +532,7 @@ class Label(object):
         -----
         This function will set label.pos to be all zeros. If the positions
         on the new surface are required, consider using mne.read_surface
-        with label.vertices.
+        with ``label.vertices``.
         """
         subject = _check_subject(self.subject, subject)
         return self.morph(subject, subject, smooth, grade, subjects_dir,
@@ -585,7 +584,7 @@ class Label(object):
         -----
         This function will set label.pos to be all zeros. If the positions
         on the new surface are required, consider using `mne.read_surface`
-        with `label.vertices`.
+        with ``label.vertices``.
         """
         from .morph import compute_source_morph, grade_to_vertices
         subject_from = _check_subject(self.subject, subject_from)
@@ -839,7 +838,7 @@ class BiHemiLabel(object):
         self.hemi = 'both'
 
     def __repr__(self):  # noqa: D105
-        temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
+        temp = "<BiHemiLabel | %s, lh : %i vertices,  rh : %i vertices>"
         name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
@@ -1000,7 +999,7 @@ def write_label(filename, label, verbose=None):
 
     with open(filename, 'wb') as fid:
         n_vertices = len(label.vertices)
-        data = np.zeros((n_vertices, 5), dtype=np.float)
+        data = np.zeros((n_vertices, 5), dtype=np.float64)
         data[:, 0] = label.vertices
         data[:, 1:4] = 1e3 * label.pos
         data[:, 4] = label.values
@@ -1363,7 +1362,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             raise ValueError('source space should contain the 2 hemispheres')
         rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
         tris = [src[0]['tris'], src[1]['tris']]
-        src_conn = spatial_src_connectivity(src).tocsr()
+        src_conn = spatial_src_adjacency(src).tocsr()
 
     labels = []
     cnt = 0
@@ -1382,10 +1381,10 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             tmp[this_vertno_idx] = this_data
             this_data = tmp
             offset = cnt_full + len(this_data)
-            this_src_conn = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
+            this_src_adj = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
             this_data_abs_max = np.abs(this_data).max(axis=1)
             clusters, _ = _find_clusters(this_data_abs_max, 0.,
-                                         connectivity=this_src_conn)
+                                         adjacency=this_src_adj)
             cnt_full += len(this_data)
             # Then order clusters in descending order based on maximum value
             clusters_max = np.argsort([np.max(this_data_abs_max[c])
@@ -1805,7 +1804,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
                 rest -= 1
 
         # merging small labels
-        # label connectivity matrix
+        # label adjacency matrix
         n_labels = label_idx + 1
         label_sizes = np.empty(n_labels, dtype=int)
         label_conn = np.zeros([n_labels, n_labels], dtype='bool')
@@ -1896,7 +1895,7 @@ def _read_annot(fname):
             np.fromfile(fid, '>c', length)  # discard orig_tab
 
             names = list()
-            ctab = np.zeros((n_entries, 5), np.int)
+            ctab = np.zeros((n_entries, 5), np.int64)
             for i in range(n_entries):
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
@@ -1910,7 +1909,7 @@ def _read_annot(fname):
             if ctab_version != 2:
                 raise Exception('Color table version not supported')
             n_entries = np.fromfile(fid, '>i4', 1)[0]
-            ctab = np.zeros((n_entries, 5), np.int)
+            ctab = np.zeros((n_entries, 5), np.int64)
             length = np.fromfile(fid, '>i4', 1)[0]
             np.fromfile(fid, "|S%d" % length, 1)  # Orig table path
             entries_to_read = np.fromfile(fid, '>i4', 1)[0]
@@ -1971,7 +1970,7 @@ def _load_vert_pos(subject, subjects_dir, surf_name, hemi, n_expected,
 @verbose
 def read_labels_from_annot(subject, parc='aparc', hemi='both',
                            surf_name='white', annot_fname=None, regexp=None,
-                           subjects_dir=None, verbose=None):
+                           subjects_dir=None, sort=True, verbose=None):
     """Read labels from a FreeSurfer annotation file.
 
     Note: Only cortical labels will be returned.
@@ -1995,6 +1994,10 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         parcellation. E.g. 'superior' will return all labels in which this
         substring is contained.
     %(subjects_dir)s
+    sort : bool
+        If true, labels will be sorted by name before being returned.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -2046,7 +2049,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         logger.info('   read %d labels from %s' % (n_read, fname))
 
     # sort the labels by label name
-    labels = sorted(labels, key=lambda l: l.name)
+    if sort:
+        labels = sorted(labels, key=lambda l: l.name)
 
     if len(labels) == 0:
         msg = 'No labels found.'
@@ -2120,7 +2124,7 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
     vert_poss = [_load_vert_pos(subject_to, subjects_dir, surf_name, hemi,
                                 mmap.shape[0])
                  for hemi, mmap in zip(('lh', 'rh'), mmaps)]
-    idxs = [_sparse_argmax(mmap, axis=1) for mmap in mmaps]
+    idxs = [mmap.argmax(axis=1) for mmap in mmaps]
     out_labels = list()
     values = filename = None
     for label in labels:
@@ -2200,21 +2204,12 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
     return stc
 
 
-def _write_annot(fname, annot, ctab, names):
-    """Write a Freesurfer annotation to a .annot file.
+_DEFAULT_TABLE_NAME = 'MNE-Python Colortable'
 
-    Parameters
-    ----------
-    fname : str
-        Path to annotation file
-    annot : numpy array, shape=(n_verts)
-        Annotation id at each vertex. Note: IDs must be computed from
-        RGBA colors, otherwise the mapping will be invalid.
-    ctab : numpy array, shape=(n_entries, 4)
-        RGBA colortable array.
-    names : list of str
-        List of region names to be stored in the annot file
-    """
+
+def _write_annot(fname, annot, ctab, names, table_name=_DEFAULT_TABLE_NAME):
+    """Write a Freesurfer annotation to a .annot file."""
+    assert len(names) == len(ctab)
     with open(fname, 'wb') as fid:
         n_verts = len(annot)
         np.array(n_verts, dtype='>i4').tofile(fid)
@@ -2234,10 +2229,8 @@ def _write_annot(fname, annot, ctab, names):
         n_entries = len(ctab)
         np.array(n_entries, dtype='>i4').tofile(fid)
 
-        # write dummy color table name
-        table_name = 'MNE-Python Colortable'
-        np.array(len(table_name), dtype='>i4').tofile(fid)
-        np.frombuffer(table_name.encode('ascii'), dtype=np.uint8).tofile(fid)
+        # write our color table name
+        _write_annot_str(fid, table_name)
 
         # number of entries to write
         np.array(n_entries, dtype='>i4').tofile(fid)
@@ -2245,15 +2238,21 @@ def _write_annot(fname, annot, ctab, names):
         # write entries
         for ii, (name, color) in enumerate(zip(names, ctab)):
             np.array(ii, dtype='>i4').tofile(fid)
-            np.array(len(name), dtype='>i4').tofile(fid)
-            np.frombuffer(name.encode('ascii'), dtype=np.uint8).tofile(fid)
+            _write_annot_str(fid, name)
             np.array(color[:4], dtype='>i4').tofile(fid)
+
+
+def _write_annot_str(fid, s):
+    s = s.encode('ascii') + b'\x00'
+    np.array(len(s), '>i4').tofile(fid)
+    fid.write(s)
 
 
 @verbose
 def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                           subjects_dir=None, annot_fname=None,
-                          colormap='hsv', hemi='both', verbose=None):
+                          colormap='hsv', hemi='both', sort=True,
+                          table_name=_DEFAULT_TABLE_NAME, verbose=None):
     r"""Create a FreeSurfer annotation from a list of labels.
 
     Parameters
@@ -2276,6 +2275,14 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     hemi : 'both' | 'lh' | 'rh'
         The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
+    sort : bool
+        If True (default), labels will be sorted by name before writing.
+
+        .. versionadded:: 0.21.0
+    table_name : str
+        The table name to use for the colortable.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Notes
@@ -2313,7 +2320,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
             ctab = np.empty((0, 4), dtype=np.int32)
             ctab_rgb = ctab[:, :3]
         else:
-            hemi_labels.sort(key=lambda label: label.name)
+            if sort:
+                hemi_labels.sort(key=lambda label: label.name)
 
             # convert colors to 0-255 RGBA tuples
             hemi_colors = [no_color if label.color is None else
@@ -2379,7 +2387,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                  'specify subject and subjects_dir parameters.')
 
         # Create annot and color table array to write
-        annot = np.empty(n_vertices, dtype=np.int)
+        annot = np.empty(n_vertices, dtype=np.int64)
         annot[:] = -1
         # create the annotation ids from the colors
         annot_id_coding = np.array((1, 2 ** 8, 2 ** 16))
@@ -2466,7 +2474,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     # write it
     for fname, annot, ctab, hemi_names in to_save:
         logger.info('   writing %d labels to %s' % (len(hemi_names), fname))
-        _write_annot(fname, annot, ctab, hemi_names)
+        _write_annot(fname, annot, ctab, hemi_names, table_name)
 
 
 @fill_doc

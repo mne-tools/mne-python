@@ -38,6 +38,7 @@ no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
@@ -85,7 +86,7 @@ def test_read_evoked(cur_system, version, use_info):
 # byte order '<' via buffer interface"
 @pytest.mark.skipif(os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true',
                     reason='Pandas problem on Azure CI')
-def test_read_epochs(cur_system, version, use_info):
+def test_read_epochs(cur_system, version, use_info, monkeypatch):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     pandas = _check_pandas_installed(strict=False)
     has_pandas = pandas is not False
@@ -125,6 +126,19 @@ def test_read_epochs(cur_system, version, use_info):
 
     check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_epoched, epoched_ft, use_info)
+
+    # weird sfreq
+    from mne.externals.pymatreader import read_mat
+
+    def modify_mat(fname, variable_names=None, ignore_fields=None):
+        out = read_mat(fname, variable_names, ignore_fields)
+        if 'fsample' in out['data']:
+            out['data']['fsample'] = np.repeat(out['data']['fsample'], 2)
+        return out
+
+    monkeypatch.setattr(mne.externals.pymatreader, 'read_mat', modify_mat)
+    with pytest.warns(RuntimeWarning, match='multiple'):
+        mne.io.read_epochs_fieldtrip(cur_fname, info)
 
 
 @testing.requires_testing_data
@@ -259,8 +273,8 @@ def test_throw_exception_on_cellarray(version, type):
 
 
 @testing.requires_testing_data
-def test_evoked_with_missing_channels():
-    """Test _create_info on evoked data when channels are missing from info."""
+def test_with_missing_channels():
+    """Test _create_info when channels are missing from info."""
     cur_system = 'neuromag306'
     test_data_folder_ft = get_data_paths(cur_system)
     info = get_raw_info(cur_system)
@@ -268,5 +282,43 @@ def test_evoked_with_missing_channels():
     info._update_redundant()
 
     with pytest.warns(RuntimeWarning):
+        mne.io.read_raw_fieldtrip(
+            os.path.join(test_data_folder_ft, 'raw_v7.mat'), info)
         mne.read_evoked_fieldtrip(
             os.path.join(test_data_folder_ft, 'averaged_v7.mat'), info)
+        mne.read_epochs_fieldtrip(
+            os.path.join(test_data_folder_ft, 'epoched_v7.mat'), info)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
+@pytest.mark.filterwarnings('ignore: Cannot guess the correct type')
+def test_throw_error_on_non_uniform_time_field():
+    """Test if an error is thrown when time fields are not uniform."""
+    fname = os.path.join(mne.datasets.testing.data_path(),
+                         'fieldtrip',
+                         'not_uniform_time.mat')
+
+    with pytest.raises(RuntimeError, match='Loading data with non-uniform '
+                                           'times per epoch is not supported'):
+        mne.io.read_epochs_fieldtrip(fname, info=None)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
+def test_throw_error_when_importing_old_ft_version_data():
+    """Test if an error is thrown if the data was saved with an old version."""
+    fname = os.path.join(mne.datasets.testing.data_path(),
+                         'fieldtrip',
+                         'old_version.mat')
+
+    with pytest.raises(RuntimeError, match='This file was created with '
+                                           'an old version of FieldTrip. You '
+                                           'can convert the data to the new '
+                                           'version by loading it into '
+                                           'FieldTrip and applying '
+                                           'ft_selectdata with an '
+                                           'empty cfg structure on it. '
+                                           'Otherwise you can supply '
+                                           'the Info field.'):
+        mne.io.read_epochs_fieldtrip(fname, info=None)

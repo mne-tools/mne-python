@@ -6,6 +6,7 @@
 
 import numpy as np
 
+from ... import pick_types
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
 from ..nirs import _channel_frequencies, _check_channels_ordered
@@ -44,17 +45,17 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
 
-    freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
-
-    if not len(picks):
+    if not len(pick_types(raw.info, fnirs='fnirs_od')):
         raise RuntimeError('Scalp coupling index '
                            'should be run on optical density data.')
 
+    freqs = np.unique(_channel_frequencies(raw))
+    picks = _check_channels_ordered(raw, freqs)
+
     filtered_data = filter_data(raw._data, raw.info['sfreq'], l_freq, h_freq,
                                 picks=picks, verbose=verbose,
-                                l_trans_bandwidth=h_trans_bandwidth,
-                                h_trans_bandwidth=l_trans_bandwidth)
+                                l_trans_bandwidth=l_trans_bandwidth,
+                                h_trans_bandwidth=h_trans_bandwidth)
 
     sci = np.zeros(picks.shape)
     for ii in picks[::2]:

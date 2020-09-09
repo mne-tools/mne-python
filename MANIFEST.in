@@ -1,6 +1,8 @@
 include *.rst
 include LICENSE.txt
 include requirements.txt
+include requirements_testing.txt
+include requirements_doc.txt
 include mne/__init__.py
 
 recursive-include examples *.py
@@ -10,6 +12,7 @@ recursive-include tutorials *.txt
 
 recursive-include mne *.py
 recursive-include mne/data *
+recursive-include mne/icons *
 recursive-include mne/data/helmets *
 recursive-include mne/data/image *
 recursive-include mne/data/fsaverage *
@@ -30,6 +33,8 @@ recursive-include mne/io/artemis123/resources *
 recursive-include mne mne/datasets *.csv
 include mne/io/edf/gdf_encodes.txt
 include mne/datasets/sleep_physionet/SHA1SUMS
+include mne/externals/tqdm/_tqdm/tqdm.1
+include mne/viz/_brain/tests/test.ipynb
 
 ### Exclude
 
@@ -37,6 +42,8 @@ recursive-exclude examples/MNE-sample-data *
 recursive-exclude examples/MNE-testing-data *
 recursive-exclude examples/MNE-spm-face *
 recursive-exclude examples/MNE-somato-data *
+recursive-exclude tools *
+exclude tools
 exclude Makefile
 exclude .coveragerc
 exclude *.yml

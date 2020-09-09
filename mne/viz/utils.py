@@ -13,11 +13,11 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
-import math
 from functools import partial
 import difflib
 import webbrowser
 import tempfile
+import math
 import numpy as np
 import platform
 from copy import deepcopy
@@ -30,7 +30,8 @@ from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
+                       _VALID_CHANNEL_TYPES, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
                        _picks_to_idx, _contains_ch_type)
 from ..io.meas_info import create_info
@@ -123,10 +124,10 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         fraction of the font-size.
     h_pad : float
         Padding height between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     w_pad : float
         Padding width between edges of adjacent subplots.
-        Defaults to `pad_inches`.
+        Defaults to ``pad_inches``.
     fig : instance of Figure
         Figure to apply changes to.
     """
@@ -148,6 +149,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     for w in ws:
         w_msg = str(w.message) if hasattr(w, 'message') else w.get_message()
         if not w_msg.startswith('This figure includes Axes'):
+            raise RuntimeError(w_msg)
             warn(w_msg, w.category, 'matplotlib')
 
 
@@ -315,6 +317,7 @@ def _toggle_proj(event, params, all_=False):
                 for bi, (old, new) in enumerate(zip(bools, new_bools)):
                     if old != new:
                         params['proj_checks'].set_active(bi)
+                        bools[bi] = new
         for bi, (b, p) in enumerate(zip(bools, params['projs'])):
             # see if they tried to deactivate an active one
             if not b and p['active']:
@@ -447,24 +450,51 @@ def _get_help_text(params):
     return ''.join(text), ''.join(text2)
 
 
-def _prepare_trellis(n_cells, max_col):
+def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
+                     size=1.3):
     import matplotlib.pyplot as plt
-    if n_cells == 1:
-        nrow = ncol = 1
-    elif n_cells <= max_col:
-        nrow, ncol = 1, n_cells
-    else:
-        nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
+    from matplotlib.gridspec import GridSpec
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
-                                                  1.5 * nrow + 1))
-    axes = [axes] if ncol == nrow == 1 else axes.flatten()
-    for ax in axes[n_cells:]:  # hide unused axes
-        # XXX: Previously done by ax.set_visible(False), but because of mpl
-        # bug, we just hide the frame.
-        from .topomap import _hide_frame
-        _hide_frame(ax)
-    return fig, axes
+    if n_cells == 1:
+        nrows = ncols = 1
+    elif isinstance(ncols, int) and n_cells <= ncols:
+        nrows, ncols = 1, n_cells
+    else:
+        if ncols == 'auto' and nrows == 'auto':
+            nrows = math.floor(math.sqrt(n_cells))
+            ncols = math.ceil(n_cells / nrows)
+        elif ncols == 'auto':
+            ncols = math.ceil(n_cells / nrows)
+        elif nrows == 'auto':
+            nrows = math.ceil(n_cells / ncols)
+        else:
+            naxes = ncols * nrows
+            if naxes < n_cells:
+                raise ValueError("Cannot plot {} axes in a {} by {} "
+                                 "figure.".format(n_cells, nrows, ncols))
+
+    if colorbar:
+        ncols += 1
+    width = size * ncols
+    height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
+    height_ratios = None
+    g_kwargs = {}
+    figure_nobar(figsize=(width * 1.5, height * 1.5))
+    gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+
+    axes = []
+    if colorbar:
+        # exclude last axis of each row except top row, which is for colorbar
+        exclude = set(range(2 * ncols - 1, nrows * ncols, ncols))
+        ax_idxs = sorted(set(range(nrows * ncols)) - exclude)[:n_cells + 1]
+    else:
+        ax_idxs = range(n_cells)
+    for ax_idx in ax_idxs:
+        axes.append(plt.subplot(gs[ax_idx]))
+
+    fig = axes[0].get_figure()
+
+    return fig, axes, ncols, nrows
 
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
@@ -480,7 +510,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
     height = (len(projs) + 1) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
-    fig_proj.canvas.set_window_title('SSP projection vectors')
+    _set_window_title(fig_proj, 'SSP projection vectors')
     offset = (1. / 6. / height)
     params['fig_proj'] = fig_proj  # necessary for proper toggling
     ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
@@ -520,7 +550,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 def _simplify_float(label):
     # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
-    if isinstance(label, float) and float(str(label)) != round(label):
+    if isinstance(label, float) and np.isfinite(label) and \
+            float(str(label)) != round(label):
         label = round(label, 2)
     return label
 
@@ -818,7 +849,7 @@ def _radio_clicked(label, params):
     from .evoked import _rgb
 
     # First the selection dialog.
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
     channels = params['selections'][label]
@@ -842,7 +873,7 @@ def _radio_clicked(label, params):
         return
     # Then the plotting window.
     params['ax_vscroll'].set_visible(True)
-    nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
+    nchan = sum([len(params['selections'][label]) for label in labels[:idx]])
     params['vsel_patch'].set_y(nchan)
     n_channels = len(channels)
     params['n_channels'] = n_channels
@@ -1053,7 +1084,7 @@ def _setup_annotation_fig(params):
 
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
-    fig.canvas.set_window_title('Annotations')
+    _set_window_title(fig, 'Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
     circles = fig.radio.circles
@@ -1173,7 +1204,7 @@ def _find_channel_idx(ch_name, params):
     """Find all indices when using selections."""
     indices = list()
     offset = 0
-    labels = [l._text for l in params['fig_selection'].radio.labels]
+    labels = [label._text for label in params['fig_selection'].radio.labels]
     for label in labels:
         if label == 'Custom':
             continue  # Custom selection not included as it shifts the indices.
@@ -1238,7 +1269,7 @@ def _select_bads(event, params, bads):
 
 def _show_help(col1, col2, width, height):
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    fig_help.canvas.set_window_title('Help')
+    _set_window_title(fig_help, 'Help')
 
     ax = fig_help.add_subplot(111)
     celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
@@ -1412,8 +1443,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
 def add_background_image(fig, im, set_ratios=None):
     """Add a background image to a plot.
 
-    Adds the image specified in `im` to the
-    figure `fig`. This is generally meant to
+    Adds the image specified in ``im`` to the
+    figure ``fig``. This is generally meant to
     be done with topo plots, though it could work
     for any plot.
 
@@ -1498,9 +1529,9 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     if use_times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
-    if len(use_times) > 20:
-        raise RuntimeError('Too many plots requested. Please pass fewer '
-                           'than 20 time instants.')
+
+    if len(use_times) > 25:
+        warn('More than 25 topomaps plots requested. This might take a while.')
 
     return use_times
 
@@ -1853,11 +1884,15 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             this_data = this_data[:, :this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
             this_data = this_data.T.reshape(-1, length, shape[0])  # segment
-            this_data -= this_data.mean(0)  # subtract segment means
+            this_data -= np.nanmean(this_data, 0)  # subtract segment means
             this_data = this_data.T.reshape(shape)  # reshape into original
-
-        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
-        scalings[key] = iqr.item()
+        this_data = this_data.ravel()
+        this_data = this_data[np.isfinite(this_data)]
+        if this_data.size:
+            iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+        else:
+            iqr = 1.
+        scalings[key] = iqr
     return scalings
 
 
@@ -1977,8 +2012,7 @@ class DraggableColorbar(object):
         self.cbar.mappable.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
-        self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self._update()
 
     def on_motion(self, event):
         """Handle mouse movements."""
@@ -1997,21 +2031,22 @@ class DraggableColorbar(object):
         elif event.button == 3:
             self.cbar.norm.vmin -= (perc * scale) * np.sign(dy)
             self.cbar.norm.vmax += (perc * scale) * np.sign(dy)
-        self.cbar.draw_all()
-        self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self._update()
 
     def on_release(self, event):
         """Handle release."""
         self.press = None
-        self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self._update()
 
     def on_scroll(self, event):
         """Handle scroll."""
         scale = 1.1 if event.step < 0 else 1. / 1.1
         self.cbar.norm.vmin *= scale
         self.cbar.norm.vmax *= scale
+        self._update()
+
+    def _update(self):
+        self.cbar.set_ticks(None, update_ticks=True)  # use default
         self.cbar.draw_all()
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()
@@ -2032,13 +2067,13 @@ class SelectFromCollection(object):
         Collection you want to select from.
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an
-        alpha value of 1 and non-selected points to `alpha_other`.
+        alpha value of 1 and non-selected points to ``alpha_other``.
         Defaults to 0.3.
 
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
     """
 
     def __init__(self, ax, collection, ch_names,
@@ -2402,8 +2437,8 @@ def _setup_butterfly(params):
             ylim = (5. * len(picks), 0.)
             ax.set_ylim(ylim)
             offset = ylim[0] / (len(picks) + 1)
-            ticks = np.arange(0, ylim[0], offset)
-            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+            # ensure the last is not included
+            ticks = np.arange(0, ylim[0] - offset / 2., offset)
             ax.set_yticks(ticks)
             offsets = np.zeros(len(params['types']))
 
@@ -2412,8 +2447,8 @@ def _setup_butterfly(params):
                     offsets[pick] = offset * (group_idx + 1)
             params['inds'] = params['orig_inds'].copy()
             params['offsets'] = offsets
-            ax.set_yticklabels([''] + selections, color='black', rotation=45,
-                               va='top')
+            ax.set_yticklabels(
+                [''] + selections, color='black', rotation=45, va='top')
     else:
         params['inds'] = params['orig_inds'].copy()
         if 'fig_selection' not in params:
@@ -2569,8 +2604,8 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
         axes.spines['left'].set_bounds(*ybounds)
     # handle axis labels
     if skip_axlabel:
-        axes.set_yticklabels([])
-        axes.set_xticklabels([])
+        axes.set_yticklabels([''] * len(yticks))
+        axes.set_xticklabels([''] * len(xticks))
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)
@@ -2862,10 +2897,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
-        time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
-        time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
-                                    time_diff, [times[-1] + time_diff[-1]]])
-
+        time_lims, = centers_to_edges(times)
         log_yvals = np.concatenate([[yvals[0] / ratio[0]], yvals,
                                     [yvals[-1] * ratio[0]]])
         yval_lims = np.sqrt(log_yvals[:-1] * log_yvals[1:])
@@ -2929,7 +2961,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         if mask.all():
             t_end = ", all points masked)"
         else:
-            fraction = 1 - (np.float(mask.sum()) / np.float(mask.size))
+            fraction = 1 - (np.float64(mask.sum()) / np.float64(mask.size))
             t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
     else:
         t_end = ")"
@@ -3013,6 +3045,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    _user_picked = picks is not None
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
@@ -3024,11 +3057,13 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for name in _DATA_CH_TYPES_SPLIT:
+    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
+                        _DATA_CH_TYPES_SPLIT)
+    for name in allowed_ch_types:
         kwargs = dict(meg=False, ref_meg=False, exclude=[])
         if name in ('mag', 'grad'):
             kwargs['meg'] = name
-        elif name in ('fnirs_raw', 'fnirs_od', 'hbo', 'hbr'):
+        elif name in ('fnirs_cw_amplitude', 'fnirs_od', 'hbo', 'hbr'):
             kwargs['fnirs'] = name
         else:
             kwargs[name] = True
@@ -3184,12 +3219,12 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     linewidth=0.5)
             if hyp_limits is not None:
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                                color=color, alpha=area_alpha)
+                                facecolor=color, alpha=area_alpha)
 
     if not average:
         picks = np.concatenate(picks_list)
         psd_list = np.concatenate(psd_list)
-        types = np.array([channel_type(inst.info, idx) for idx in picks])
+        types = np.array(inst.get_channel_types(picks=picks))
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
@@ -3197,7 +3232,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         valid_channel_types = [
             'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
             'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-            'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
+            'hbr', 'misc', 'fnirs_cw_amplitude', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:
@@ -3240,3 +3275,44 @@ def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
     keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
     return ticks[keep]
+
+
+def _set_window_title(fig, title):
+    if fig.canvas.manager is not None:
+        fig.canvas.manager.set_window_title(title)
+
+
+def centers_to_edges(*arrays):
+    """Convert center points to edges.
+
+    Parameters
+    ----------
+    *arrays : list of ndarray
+        Each input array should be 1D monotonically increasing,
+        and will be cast to float.
+
+    Returns
+    -------
+    arrays : list of ndarray
+        Given each input of shape (N,), the output will have shape (N+1,).
+
+    Examples
+    --------
+    >>> x = [0., 0.1, 0.2, 0.3]
+    >>> y = [20, 30, 40]
+    >>> centers_to_edges(x, y)  # doctest: +SKIP
+    [array([-0.05, 0.05, 0.15, 0.25, 0.35]), array([15., 25., 35., 45.])]
+    """
+    out = list()
+    for ai, arr in enumerate(arrays):
+        arr = np.asarray(arr, dtype=float)
+        _check_option(f'arrays[{ai}].ndim', arr.ndim, (1,))
+        if len(arr) > 1:
+            arr_diff = np.diff(arr) / 2.
+        else:
+            arr_diff = [abs(arr[0]) * 0.001] if arr[0] != 0 else [0.001]
+        out.append(np.concatenate([
+            [arr[0] - arr_diff[0]],
+            arr[:-1] + arr_diff,
+            [arr[-1] + arr_diff[-1]]]))
+    return out

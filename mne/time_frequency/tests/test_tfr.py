@@ -3,8 +3,7 @@ import datetime
 import os.path as op
 
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+from numpy.testing import (assert_array_equal, assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
 
@@ -81,8 +80,6 @@ def test_time_frequency():
                             use_fft=True, return_itc=True)
     # Now compute evoked
     evoked = epochs.average()
-    power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
-                              return_itc=False)
     pytest.raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
@@ -103,10 +100,20 @@ def test_time_frequency():
                    return_itc=False, picks=picks, average=False)
     power_picks_avg = epochs_power_picks.average()
     # the actual data arrays here are equivalent, too...
-    assert_array_almost_equal(power.data, power_picks.data)
-    assert_array_almost_equal(power.data, power_picks_avg.data)
-    assert_array_almost_equal(itc.data, itc_picks.data)
-    assert_array_almost_equal(power.data, power_evoked.data)
+    assert_allclose(power.data, power_picks.data)
+    assert_allclose(power.data, power_picks_avg.data)
+    assert_allclose(itc.data, itc_picks.data)
+
+    # test on evoked
+    power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
+                              return_itc=False)
+    # one is squared magnitude of the average (evoked) and
+    # the other is average of the squared magnitudes (epochs PSD)
+    # so values shouldn't match, but shapes should
+    assert_array_equal(power.data.shape, power_evoked.data.shape)
+    pytest.raises(AssertionError, assert_allclose,
+                  power.data, power_evoked.data)
+
     # complex output
     pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
                   return_itc=False, average=True, output="complex")
@@ -115,17 +122,20 @@ def test_time_frequency():
     epochs_power_complex = tfr_morlet(epochs, freqs, n_cycles,
                                       output="complex", average=False,
                                       return_itc=False)
-    epochs_power_2 = abs(epochs_power_complex)
-    epochs_power_3 = epochs_power_2.copy()
-    epochs_power_3.data[:] = np.inf  # test that it's actually copied
-    assert_array_almost_equal(epochs_power_2.data, epochs_power_picks.data)
-    power_2 = epochs_power_2.average()
-    assert_array_almost_equal(power_2.data, power.data)
+    epochs_amplitude_2 = abs(epochs_power_complex)
+    epochs_amplitude_3 = epochs_amplitude_2.copy()
+    epochs_amplitude_3.data[:] = np.inf  # test that it's actually copied
+
+    # test that the power computed via `complex` is equivalent to power
+    # computed within the method.
+    assert_allclose(epochs_amplitude_2.data**2, epochs_power_picks.data)
 
     print(itc)  # test repr
     print(itc.ch_names)  # test property
     itc += power  # test add
     itc -= power  # test sub
+    ret = itc * 23  # test mult
+    itc = ret / 23  # test dic
 
     power = power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
 
@@ -153,15 +163,15 @@ def test_time_frequency():
     assert itc2.ch_names[1:] == gave.ch_names
     assert gave.nave == 2
     itc2.drop_channels(itc2.info["bads"])
-    assert_array_almost_equal(gave.data, itc2.data)
+    assert_allclose(gave.data, itc2.data)
     itc2.data = np.ones(itc2.data.shape)
     itc.data = np.zeros(itc.data.shape)
     itc2.nave = 2
     itc.nave = 1
     itc.drop_channels([itc.ch_names[0]])
     combined_itc = combine_tfr([itc2, itc])
-    assert_array_almost_equal(combined_itc.data,
-                              np.ones(combined_itc.data.shape) * 2 / 3)
+    assert_allclose(combined_itc.data,
+                    np.ones(combined_itc.data.shape) * 2 / 3)
 
     # more tests
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2, use_fft=False,
@@ -190,13 +200,10 @@ def test_time_frequency():
     single_power4 = tfr_morlet(epochs, freqs, 2, decim=slice(2, 4),
                                average=False, return_itc=False).data
 
-    assert_array_almost_equal(np.mean(single_power, axis=0), power.data)
-    assert_array_almost_equal(np.mean(single_power2, axis=0),
-                              power.data[:, :, :2])
-    assert_array_almost_equal(np.mean(single_power3, axis=0),
-                              power.data[:, :, 1:3])
-    assert_array_almost_equal(np.mean(single_power4, axis=0),
-                              power.data[:, :, 2:4])
+    assert_allclose(np.mean(single_power, axis=0), power.data)
+    assert_allclose(np.mean(single_power2, axis=0), power.data[:, :, :2])
+    assert_allclose(np.mean(single_power3, axis=0), power.data[:, :, 1:3])
+    assert_allclose(np.mean(single_power4, axis=0), power.data[:, :, 2:4])
 
     power_pick = power.pick_channels(power.ch_names[:10:2])
     assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
@@ -285,7 +292,7 @@ def test_tfr_multitaper():
     seed = 42
     rng = np.random.RandomState(seed)
     noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
-    t = np.arange(n_times, dtype=np.float) / sfreq
+    t = np.arange(n_times, dtype=np.float64) / sfreq
     signal = np.sin(np.pi * 2. * 50. * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0.  # Hard windowing
     on_time = np.logical_and(t >= 0.45, t <= 0.55)
@@ -302,7 +309,7 @@ def test_tfr_multitaper():
     epochs = EpochsArray(data=dat, info=info, events=events, event_id=event_id,
                          reject=reject)
 
-    freqs = np.arange(35, 70, 5, dtype=np.float)
+    freqs = np.arange(35, 70, 5, dtype=np.float64)
 
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
@@ -332,18 +339,18 @@ def test_tfr_multitaper():
                   return_itc=True, average=False)
 
     # test picks argument
-    assert_array_almost_equal(power.data, power_picks.data)
-    assert_array_almost_equal(power.data, power_averaged.data)
-    assert_array_almost_equal(power.times, power_epochs.times)
-    assert_array_almost_equal(power.times, power_averaged.times)
+    assert_allclose(power.data, power_picks.data)
+    assert_allclose(power.data, power_averaged.data)
+    assert_allclose(power.times, power_epochs.times)
+    assert_allclose(power.times, power_averaged.times)
     assert_equal(power.nave, power_averaged.nave)
     assert_equal(power_epochs.data.shape, (3, 2, 7, 200))
-    assert_array_almost_equal(itc.data, itc_picks.data)
+    assert_allclose(itc.data, itc_picks.data)
     # one is squared magnitude of the average (evoked) and
     # the other is average of the squared magnitudes (epochs PSD)
     # so values shouldn't match, but shapes should
     assert_array_equal(power.data.shape, power_evoked.data.shape)
-    pytest.raises(AssertionError, assert_array_almost_equal,
+    pytest.raises(AssertionError, assert_allclose,
                   power.data, power_evoked.data)
 
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
@@ -409,7 +416,9 @@ def test_io():
 
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
-    info['meas_date'] = datetime.datetime(year=2020, month=2, day=5)
+    info['meas_date'] = datetime.datetime(year=2020, month=2, day=5,
+                                          tzinfo=datetime.timezone.utc)
+    info._check_consistency()
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
@@ -426,6 +435,8 @@ def test_io():
     pytest.raises(IOError, tfr.save, fname)
 
     tfr.comment = None
+    # test old meas_date
+    info['meas_date'] = (1, 2)
     tfr.save(fname, overwrite=True)
     assert_equal(read_tfrs(fname, condition=0).comment, tfr.comment)
     tfr.comment = 'test-A'
@@ -651,9 +662,9 @@ def test_compute_tfr():
 
         # Check types
         if output in ('complex', 'avg_power_itc'):
-            assert_equal(np.complex, out.dtype)
+            assert_equal(np.complex128, out.dtype)
         else:
-            assert_equal(np.float, out.dtype)
+            assert_equal(np.float64, out.dtype)
         assert (np.all(np.isfinite(out)))
 
     # Check errors params

@@ -57,7 +57,7 @@ evoked.plot(time_unit='s')
 evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag',
                     time_unit='s')
 
-# Show whitening
+# Show whitening:
 evoked.plot_white(noise_cov, time_unit='s')
 
 del epochs, raw  # to save memory
@@ -132,6 +132,7 @@ brain.add_text(0.1, 0.9, 'dSPM (plus location of maximal activation)', 'title',
 ###############################################################################
 # Morph data to average brain
 # ---------------------------
+# Next we morph data to ``fsaverage``.
 
 # setup source morph
 morph = mne.compute_source_morph(
@@ -167,16 +168,7 @@ del stc_vec
 # the source space.
 #
 # For more information about dipole orientations, see
-# :ref:`tut-dipole-orientations`.
-
-###############################################################################
-# Now let's look at each solver:
-
-surfer_kwargs['clim'].update(kind='percent', lims=[99, 99.9, 99.99])
-for mi, method in enumerate(['dSPM', 'sLORETA', 'eLORETA']):
-    stc = apply_inverse(evoked, inverse_operator, lambda2,
-                        method=method, pick_ori=None,
-                        verbose=True)
-    brain = stc.plot(figure=mi, **surfer_kwargs)
-    brain.add_text(0.1, 0.9, method, 'title', font_size=20)
-    del stc
+# :ref:`tut-dipole-orientations`. To see outputs using different methods, see
+# :ref:`tut-mne-fixed-free`. For other examples using evoked data, see
+# :ref:`examples using apply_inverse
+# <sphx_glr_backreferences_mne.minimum_norm.apply_inverse>`.

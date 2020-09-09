@@ -1,5 +1,3 @@
-:orphan:
-
 .. _whats_new:
 
 What's new
@@ -8,6 +6,7 @@ What's new
 .. currentmodule:: mne
 
 .. include:: changes/latest.inc
+.. include:: changes/0.20.inc
 .. include:: changes/0.19.inc
 .. include:: changes/0.18.inc
 .. include:: changes/0.17.inc

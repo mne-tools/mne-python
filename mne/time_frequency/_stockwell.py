@@ -10,7 +10,7 @@ from scipy import fftpack
 # XXX explore cuda optimization at some point.
 
 from ..io.pick import _pick_data_channels, pick_info
-from ..utils import verbose, warn, fill_doc
+from ..utils import verbose, warn, fill_doc, _validate_type
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 
@@ -47,7 +47,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
 
     k = width  # 1 for classical stowckwell transform
     f_range = np.arange(start_f, stop_f, 1)
-    windows = np.empty((len(f_range), len(tw)), dtype=np.complex)
+    windows = np.empty((len(f_range), len(tw)), dtype=np.complex128)
     for i_f, f in enumerate(f_range):
         if f == 0.:
             window = np.ones(len(tw))
@@ -62,7 +62,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
 def _st(x, start_f, windows):
     """Compute ST based on Ali Moukadem MATLAB code (used in tests)."""
     n_samp = x.shape[-1]
-    ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
+    ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex128)
     # do the work
     Fx = fftpack.fft(x)
     XF = np.concatenate([Fx, Fx], axis=-1)
@@ -107,9 +107,8 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 
     Parameters
     ----------
-    data : ndarray
-        The signal to transform. Any dimensionality supported as long
-        as the last dimension is time.
+    data : ndarray, shape (n_epochs, n_channels, n_times)
+        The signal to transform.
     sfreq : float
         The sampling frequency.
     fmin : None, float
@@ -168,8 +167,13 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
        individuals diagnosed with alcoholism.
        Clinical Neurophysiology 117 2128--2143
     """
+    _validate_type(data, np.ndarray, 'data')
+    if data.ndim != 3:
+        raise ValueError(
+            'data must be 3D with shape (n_epochs, n_channels, n_times), '
+            f'got {data.shape}')
     n_epochs, n_channels = data.shape[:2]
-    n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
+    n_out = data.shape[2] // decim + bool(data.shape[-1] % decim)
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
     freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)

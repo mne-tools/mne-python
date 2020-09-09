@@ -29,6 +29,9 @@ class _NoCloseRead(object):
     def __exit__(self, type_, value, traceback):
         return
 
+    def close(self):
+        return
+
     def seek(self, offset, whence=SEEK_SET):
         return self.fid.seek(offset, whence)
 
@@ -118,6 +121,14 @@ def fiff_open(fname, preload=False, verbose=None):
         A list of tags.
     """
     fid = _fiff_get_fid(fname)
+    try:
+        return _fiff_open(fname, fid, preload)
+    except Exception:
+        fid.close()
+        raise
+
+
+def _fiff_open(fname, fid, preload):
     # do preloading of entire file
     if preload:
         # note that StringIO objects instantiated this way are read-only,

@@ -51,9 +51,9 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     subject : str
         Subject name.
     source : str | list of str
-        Type to load. Common choices would be `'bem'` or `'head'`. We first
-        try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
-        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory by going
+        Type to load. Common choices would be ``'bem'`` or ``'head'``. We first
+        try loading ``'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'``, and
+        then look for ``'$SUBJECT*$SOURCE.fif'`` in the same directory by going
         through all files matching the pattern. The head surface will be read
         from the first file containing a head surface. Can also be a list
         to try multiple strings.
@@ -144,7 +144,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     will be approximated based on the sensor locations.
     """
     from scipy.spatial import ConvexHull, Delaunay
-    from .bem import read_bem_surfaces
+    from .bem import read_bem_surfaces, _fit_sphere
     system, have_helmet = _get_meg_system(info)
     if have_helmet:
         logger.info('Getting helmet for system %s' % system)
@@ -158,10 +158,19 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
                                               exclude=())])
         logger.info('Getting helmet for system %s (derived from %d MEG '
                     'channel locations)' % (system, len(rr)))
-        rr = rr[np.unique(ConvexHull(rr).simplices)]
-        com = rr.mean(axis=0)
-        xy = _pol_to_cart(_cart_to_sph(rr - com)[:, 1:][:, ::-1])
-        tris = _reorder_ccw(rr, Delaunay(xy).simplices)
+        hull = ConvexHull(rr)
+        rr = rr[np.unique(hull.simplices)]
+        R, center = _fit_sphere(rr, disp=False)
+        sph = _cart_to_sph(rr - center)[:, 1:]
+        # add a point at the front of the helmet (where the face should be):
+        # 90 deg az and maximal el (down from Z/up axis)
+        front_sph = [[np.pi / 2., sph[:, 1].max()]]
+        sph = np.concatenate((sph, front_sph))
+        xy = _pol_to_cart(sph[:, ::-1])
+        tris = Delaunay(xy).simplices
+        # remove the frontal point we added from the simplices
+        tris = tris[(tris != len(sph) - 1).all(-1)]
+        tris = _reorder_ccw(rr, tris)
 
         surf = dict(rr=rr, tris=tris)
         complete_surface_info(surf, copy=False, verbose=False)
@@ -617,7 +626,7 @@ def _fread3(fobj):
 def _fread3_many(fobj, n):
     """Read 3-byte ints from an open binary file object."""
     b1, b2, b3 = np.fromfile(fobj, ">u1",
-                             3 * n).reshape(-1, 3).astype(np.int).T
+                             3 * n).reshape(-1, 3).astype(np.int64).T
     return (b1 << 16) + (b2 << 8) + b3
 
 
@@ -626,16 +635,15 @@ def read_curvature(filepath, binary=True):
 
     Parameters
     ----------
-    filepath: str
+    filepath : str
         Input path to the .curv file.
-    binary: bool
+    binary : bool
         Specify if the output array is to hold binary values. Defaults to True.
 
     Returns
     -------
-    curv: array, shape=(n_vertices,)
+    curv : array, shape=(n_vertices,)
         The curvature values loaded from the user given file.
-
     """
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
@@ -647,13 +655,14 @@ def read_curvature(filepath, binary=True):
             _fread3(fobj)
             curv = np.fromfile(fobj, ">i2", vnum) / 100
     if binary:
-        return 1 - np.array(curv != 0, np.int)
+        return 1 - np.array(curv != 0, np.int64)
     else:
         return curv
 
 
 @verbose
-def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
+def read_surface(fname, read_metadata=False, return_dict=False,
+                 file_format='auto', verbose=None):
     """Load a Freesurfer surface mesh in triangular format.
 
     Parameters
@@ -661,7 +670,9 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     fname : str
         The name of the file containing the surface.
     read_metadata : bool
-        Read metadata as key-value pairs.
+        Read metadata as key-value pairs. Only works when reading a FreeSurfer
+        surface file. For .obj files this dictionary will be empty.
+
         Valid keys:
 
             * 'head' : array of int
@@ -678,6 +689,13 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
 
     return_dict : bool
         If True, a dictionary with surface parameters is returned.
+    file_format : 'auto' | 'freesurfer' | 'obj'
+        File format to use. Can be 'freesurfer' to read a FreeSurfer surface
+        file, or 'obj' to read a Wavefront .obj file (common format for
+        importing in other software), or 'auto' to attempt to infer from the
+        file name. Defaults to 'auto'.
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
@@ -698,11 +716,108 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     read_tri
     """
     fname = _check_fname(fname, 'read', True)
-    ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+    _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
+
+    if file_format == 'auto':
+        _, ext = op.splitext(fname)
+        if ext.lower() == '.obj':
+            file_format = 'obj'
+        else:
+            file_format = 'freesurfer'
+
+    if file_format == 'freesurfer':
+        ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+    elif file_format == 'obj':
+        ret = _read_wavefront_obj(fname)
+        if read_metadata:
+            ret += (dict(),)
+
     if return_dict:
         ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
                      np=len(ret[0])),)
     return ret
+
+
+def _read_wavefront_obj(fname):
+    """Read a surface form a Wavefront .obj file.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the .obj file to read.
+
+    Returns
+    -------
+    coords : ndarray, shape (n_points, 3)
+        The XYZ coordinates of each vertex.
+    faces : ndarray, shape (n_faces, 3)
+        For each face of the mesh, the integer indices of the vertices that
+        make up the face.
+    """
+    coords = []
+    faces = []
+    with open(fname) as f:
+        for line in f:
+            line = line.strip()
+            if len(line) == 0 or line[0] == "#":
+                continue
+            split = line.split()
+            if split[0] == "v":  # vertex
+                coords.append([float(item) for item in split[1:]])
+            elif split[0] == "f":  # face
+                dat = [int(item.split("/")[0]) for item in split[1:]]
+                if len(dat) != 3:
+                    raise RuntimeError('Only triangle faces allowed.')
+                # In .obj files, indexing starts at 1
+                faces.append([d - 1 for d in dat])
+    return np.array(coords), np.array(faces)
+
+
+def _read_patch(fname):
+    """Load a FreeSurfer binary patch file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+
+    Returns
+    -------
+    rrs : ndarray, shape (n_vertices, 3)
+        The points.
+    tris : ndarray, shape (n_tris, 3)
+        The patches. Not all vertices will be present.
+    """
+    # This is adapted from PySurfer PR #269, Bruce Fischl's read_patch.m,
+    # and PyCortex (BSD)
+    patch = dict()
+    with open(fname, 'r') as fid:
+        ver = np.fromfile(fid, dtype='>i4', count=1)[0]
+        if ver != -1:
+            raise RuntimeError(f'incorrect version # {ver} (not -1) found')
+        npts = np.fromfile(fid, dtype='>i4', count=1)[0]
+        dtype = np.dtype(
+            [('vertno', '>i4'), ('x', '>f'), ('y', '>f'), ('z', '>f')])
+        recs = np.fromfile(fid, dtype=dtype, count=npts)
+    # numpy to dict
+    patch = {key: recs[key] for key in dtype.fields.keys()}
+    patch['vertno'] -= 1
+
+    # read surrogate surface
+    rrs, tris = read_surface(
+        op.join(op.dirname(fname), op.basename(fname)[:3] + 'sphere'))
+    orig_tris = tris
+    is_vert = patch['vertno'] > 0  # negative are edges, ignored for now
+    verts = patch['vertno'][is_vert]
+
+    # eliminate invalid tris and zero out unused rrs
+    mask = np.zeros((len(rrs),), dtype=bool)
+    mask[verts] = True
+    rrs[~mask] = 0.
+    tris = tris[mask[tris].all(1)]
+    for ii, key in enumerate(['x', 'y', 'z']):
+        rrs[verts, ii] = patch[key][is_vert]
+    return rrs, tris, orig_tris
 
 
 ##############################################################################
@@ -918,7 +1033,7 @@ def _decimate_surface_spacing(surf, spacing):
 
 
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
-                  overwrite=False):
+                  file_format='auto', overwrite=False):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -950,6 +1065,13 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
             * 'cras' : array of float, shape (3,)
 
         .. versionadded:: 0.13.0
+    file_format : 'auto' | 'freesurfer' | 'obj'
+        File format to use. Can be 'freesurfer' to write a FreeSurfer surface
+        file, or 'obj' to write a Wavefront .obj file (common format for
+        importing in other software), or 'auto' to attempt to infer from the
+        file name. Defaults to 'auto'.
+
+        .. versionadded:: 0.21.0
     overwrite : bool
         If True, overwrite the file if it exists.
 
@@ -959,33 +1081,52 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     read_tri
     """
     fname = _check_fname(fname, overwrite=overwrite)
-    try:
-        import nibabel as nib
-        has_nibabel = True
-    except ImportError:
-        has_nibabel = False
-    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
-        nib.freesurfer.io.write_geometry(fname, coords, faces,
-                                         create_stamp=create_stamp,
-                                         volume_info=volume_info)
-        return
-    if len(create_stamp.splitlines()) > 1:
-        raise ValueError("create_stamp can only contain one line")
+    _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
-    with open(fname, 'wb') as fid:
-        fid.write(pack('>3B', 255, 255, 254))
-        strs = ['%s\n' % create_stamp, '\n']
-        strs = [s.encode('utf-8') for s in strs]
-        fid.writelines(strs)
-        vnum = len(coords)
-        fnum = len(faces)
-        fid.write(pack('>2i', vnum, fnum))
-        fid.write(np.array(coords, dtype='>f4').tostring())
-        fid.write(np.array(faces, dtype='>i4').tostring())
+    if file_format == 'auto':
+        _, ext = op.splitext(fname)
+        if ext.lower() == '.obj':
+            file_format = 'obj'
+        else:
+            file_format = 'freesurfer'
 
-        # Add volume info, if given
-        if volume_info is not None and len(volume_info) > 0:
-            fid.write(_serialize_volume_info(volume_info))
+    if file_format == 'freesurfer':
+        try:
+            import nibabel as nib
+            has_nibabel = LooseVersion(nib.__version__) > LooseVersion('2.1.0')
+        except ImportError:
+            has_nibabel = False
+        if has_nibabel:
+            nib.freesurfer.io.write_geometry(fname, coords, faces,
+                                             create_stamp=create_stamp,
+                                             volume_info=volume_info)
+            return
+        if len(create_stamp.splitlines()) > 1:
+            raise ValueError("create_stamp can only contain one line")
+
+        with open(fname, 'wb') as fid:
+            fid.write(pack('>3B', 255, 255, 254))
+            strs = ['%s\n' % create_stamp, '\n']
+            strs = [s.encode('utf-8') for s in strs]
+            fid.writelines(strs)
+            vnum = len(coords)
+            fnum = len(faces)
+            fid.write(pack('>2i', vnum, fnum))
+            fid.write(np.array(coords, dtype='>f4').tobytes())
+            fid.write(np.array(faces, dtype='>i4').tobytes())
+
+            # Add volume info, if given
+            if volume_info is not None and len(volume_info) > 0:
+                fid.write(_serialize_volume_info(volume_info))
+
+    elif file_format == 'obj':
+        with open(fname, 'w') as fid:
+            for line in create_stamp.splitlines():
+                fid.write(f'# {line}\n')
+            for v in coords:
+                fid.write(f'v {v[0]} {v[1]} {v[2]}\n')
+            for f in faces:
+                fid.write(f'f {f[0] + 1} {f[1] + 1} {f[2] + 1}\n')
 
 
 ###############################################################################
@@ -1426,6 +1567,8 @@ def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
         pqs = np.empty((len(drs), 2))
         dists = np.empty(len(drs))
         dist = np.inf
+        # make life easier for numba var typing
+        p, q, pt = np.float64(0.), np.float64(1.), np.int64(0)
         found = False
         for ii in range(len(drs)):
             pqs[ii] = np.dot(mats[ii], np.dot(r1213s[ii], drs[ii]))
@@ -1514,8 +1657,8 @@ def mesh_edges(tris):
         The adjacency matrix.
     """
     if np.max(tris) > len(np.unique(tris)):
-        raise ValueError('Cannot compute connectivity on a selection of '
-                         'triangles.')
+        raise ValueError(
+            'Cannot compute adjacency on a selection of triangles.')
 
     npoints = np.max(tris) + 1
     ones_ntris = np.ones(3 * len(tris))
@@ -1596,10 +1739,10 @@ def read_tri(fname_in, swap=False, verbose=None):
         inds = range(1, 4)
     else:
         raise IOError('Unrecognized format of data.')
-    rr = np.array([np.array([float(v) for v in l.split()])[inds]
-                   for l in lines[1:n_nodes + 1]])
-    tris = np.array([np.array([int(v) for v in l.split()])[inds]
-                     for l in lines[n_nodes + 2:n_nodes + 2 + n_tris]])
+    rr = np.array([np.array([float(v) for v in line.split()])[inds]
+                   for line in lines[1:n_nodes + 1]])
+    tris = np.array([np.array([int(v) for v in line.split()])[inds]
+                     for line in lines[n_nodes + 2:n_nodes + 2 + n_tris]])
     if swap:
         tris[:, [2, 1]] = tris[:, [1, 2]]
     tris -= 1

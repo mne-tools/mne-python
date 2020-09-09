@@ -22,22 +22,21 @@ from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import fill_doc
 
 
-def split_list(l, n, idx=False):
+def split_list(v, n, idx=False):
     """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
-    tot = len(l)
+    tot = len(v)
     sz = tot // n
     start = stop = 0
     for i in range(n - 1):
         stop += sz
-        yield (np.arange(start, stop), l[start:stop]) if idx else l[start:stop]
+        yield (np.arange(start, stop), v[start:stop]) if idx else v[start:stop]
         start += sz
-    yield (np.arange(start, tot), l[start:]) if idx else l[start]
+    yield (np.arange(start, tot), v[start:]) if idx else v[start]
 
 
 def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
@@ -88,8 +87,8 @@ def _compute_row_norms(data):
     return norms
 
 
-def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
-    """Compute a regularized pseudoinverse of a square matrix.
+def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
+    """Compute a regularized pseudoinverse of Hermitian matrices.
 
     Regularization is performed by adding a constant value to each diagonal
     element of the matrix before inversion. This is known as "diagonal
@@ -103,8 +102,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
 
     Parameters
     ----------
-    x : ndarray, shape (n, n)
-        Square matrix to invert.
+    x : ndarray, shape (..., n, n)
+        Square, Hermitian matrices to invert.
     reg : float
         Regularization parameter. Defaults to 0.
     rank : int | None | 'full'
@@ -124,7 +123,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
 
     Returns
     -------
-    x_inv : ndarray, shape (n, n)
+    x_inv : ndarray, shape (..., n, n)
         The inverted matrix.
     loading_factor : float
         Value added to the diagonal of the matrix during regularization.
@@ -136,66 +135,63 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     from ..rank import _estimate_rank_from_s
     if rank is not None and rank != 'full':
         rank = int(operator.index(rank))
-    if x.ndim != 2 or x.shape[0] != x.shape[1]:
+    if x.ndim < 2 or x.shape[-2] != x.shape[-1]:
         raise ValueError('Input matrix must be square.')
-    if not np.allclose(x, x.conj().T):
+    if not np.allclose(x, x.conj().swapaxes(-2, -1)):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
+    assert x.ndim >= 2 and x.shape[-2] == x.shape[-1]
+    n = x.shape[-1]
 
-    # Decompose the matrix
-    if svd_lwork is None:
-        svd_lwork = _svd_lwork(x.shape, x.dtype)
-    U, s, V = _repeated_svd(x, lwork=svd_lwork)
+    # Decompose the matrix, not necessarily positive semidefinite
+    from mne.fixes import svd
+    U, s, Vh = svd(x, hermitian=True)
 
     # Estimate the rank before regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_before = _estimate_rank_from_s(s, tol)
 
     # Decompose the matrix again after regularization
-    loading_factor = reg * np.mean(s)
-    U, s, V = _repeated_svd(x + loading_factor * np.eye(len(x)),
-                            lwork=svd_lwork)
+    loading_factor = reg * np.mean(s, axis=-1)
+    if reg:
+        U, s, Vh = svd(
+            x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n),
+            hermitian=True)
 
     # Estimate the rank after regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_after = _estimate_rank_from_s(s, tol)
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
-    if rank_after < len(x) and reg == 0 and rank == 'full' and rcond == 1e-15:
+    if (rank_after < n).any() and reg == 0 and \
+            rank == 'full' and rcond == 1e-15:
         warn('Covariance matrix is rank-deficient and no regularization is '
              'done.')
-    elif isinstance(rank, int) and rank > len(x):
+    elif isinstance(rank, int) and rank > n:
         raise ValueError('Invalid value for the rank parameter (%d) given '
                          'the shape of the input matrix (%d x %d).' %
                          (rank, x.shape[0], x.shape[1]))
 
     # Pick the requested number of singular values
+    mask = np.arange(s.shape[-1]).reshape((1,) * (x.ndim - 2) + (-1,))
     if rank is None:
-        sel_s = s[:rank_before]
+        cmp = ret = rank_before
     elif rank == 'full':
-        sel_s = s[:rank_after]
+        cmp = rank_after
+        ret = rank_before
     else:
-        sel_s = s[:rank]
+        cmp = ret = rank
+    mask = mask < np.asarray(cmp)[..., np.newaxis]
+    mask &= s > 0
 
     # Invert only non-zero singular values
     s_inv = np.zeros(s.shape)
-    nonzero_inds = np.flatnonzero(sel_s != 0)
-    if len(nonzero_inds) > 0:
-        s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
+    s_inv[mask] = 1. / s[mask]
 
     # Compute the pseudo inverse
-    U *= s_inv
-    if U.dtype == np.float64:
-        gemm = dgemm
-    else:
-        assert U.dtype == np.complex128
-        gemm = zgemm
-    x_inv = gemm(1., U, V).T
+    x_inv = np.matmul(U * s_inv[..., np.newaxis, :], Vh)
 
-    if rank is None or rank == 'full':
-        return x_inv, loading_factor, rank_before
-    else:
-        return x_inv, loading_factor, rank
+    return x_inv, loading_factor, ret
 
 
 def _gen_events(n_epochs):
@@ -528,19 +524,20 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
-    """Make grand average of a list evoked or AverageTFR data.
+    """Make grand average of a list of Evoked or AverageTFR data.
 
-    For evoked data, the function interpolates bad channels based on the
-    ``interpolate_bads`` parameter. If ``interpolate_bads`` is True, the grand
-    average file will contain good channels and the bad channels interpolated
-    from the good MEG/EEG channels.
-    For AverageTFR data, the function takes the subset of channels not marked
-    as bad in any of the instances.
+    For :class:`mne.Evoked` data, the function interpolates bad channels based
+    on the ``interpolate_bads`` parameter. If ``interpolate_bads`` is True,
+    the grand average file will contain good channels and the bad channels
+    interpolated from the good MEG/EEG channels.
+    For :class:`mne.time_frequency.AverageTFR` data, the function takes the
+    subset of channels not marked as bad in any of the instances.
 
-    The grand_average.nave attribute will be equal to the number
+    The ``grand_average.nave`` attribute will be equal to the number
     of evoked datasets used to calculate the grand average.
 
-    Note: Grand average evoked should not be used for source localization.
+    .. note:: A grand average evoked should not be used for source
+              localization.
 
     Parameters
     ----------
@@ -568,7 +565,12 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
     from ..channels.channels import equalize_channels
-    assert len(all_inst) > 1
+
+    if not all_inst:
+        raise ValueError('Please pass a list of Evoked or AverageTFR objects.')
+    elif len(all_inst) == 1:
+        warn('Only a single dataset was passed to mne.grand_average().')
+
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
     for inst in all_inst:
@@ -583,10 +585,8 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
             all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
                         else inst for inst in all_inst]
         from ..evoked import combine_evoked as combine
-        weights = [1. / len(all_inst)] * len(all_inst)
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
-        weights = 'equal'
 
     if drop_bads:
         bads = list({b for inst in all_inst for b in inst.info['bads']})
@@ -596,7 +596,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
 
     equalize_channels(all_inst, copy=False)
     # make grand_average object using combine_[evoked/tfr]
-    grand_average = combine(all_inst, weights=weights)
+    grand_average = combine(all_inst, weights='equal')
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_inst)
     # change comment field
@@ -638,7 +638,7 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
-        h.update(x.tostring())
+        h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif hasattr(x, '__len__'):
@@ -753,7 +753,10 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes, np.generic)):
+    elif isinstance(a, float):
+        if not _array_equal_nan(a, b):
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
@@ -1005,4 +1008,41 @@ def _stamp_to_dt(utc_stamp):
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
     return (datetime.fromtimestamp(0, tz=timezone.utc) +
-            timedelta(0, stamp[0], stamp[1]))  # day, sec, μs
+            timedelta(0, stamp[0], stamp[1]))  # day, sec, µs
+
+
+class _ReuseCycle(object):
+    """Cycle over a variable, preferring to reuse earlier indices.
+
+    Requires the values in ``x`` to be hashable and unique. This holds
+    nicely for matplotlib's color cycle, which gives HTML hex color strings.
+    """
+
+    def __init__(self, x):
+        self.indices = list()
+        self.popped = dict()
+        assert len(x) > 0
+        self.x = x
+
+    def __iter__(self):
+        while True:
+            yield self.__next__()
+
+    def __next__(self):
+        if not len(self.indices):
+            self.indices = list(range(len(self.x)))
+            self.popped = dict()
+        idx = self.indices.pop(0)
+        val = self.x[idx]
+        assert val not in self.popped
+        self.popped[val] = idx
+        return val
+
+    def restore(self, val):
+        try:
+            idx = self.popped.pop(val)
+        except KeyError:
+            warn('Could not find value: %s' % (val,))
+        else:
+            loc = np.searchsorted(self.indices, idx)
+            self.indices.insert(loc, idx)

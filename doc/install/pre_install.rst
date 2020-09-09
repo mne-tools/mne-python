@@ -18,7 +18,7 @@ Overview of the MNE tools suite
 
 - :doc:`MNE-Python <../python_reference>` reimplements the functionality of
   MNE-C, and extends considerably the analysis and visualization capabilities.
-  MNE-Python is collaboratively developed and has more than 150 contributors.
+  MNE-Python is collaboratively developed and has more than 200 contributors.
 
 - The :ref:`mne_matlab` provides a MATLAB interface to the .fif file
   format and other MNE data structures, and provides example MATLAB
@@ -56,6 +56,8 @@ MNE-Python, including packages for:
 - post-hoc modification of linear models (`posthoc`_)
 - a python implementation of the Preprocessing Pipeline (PREP) for EEG data
   (`pyprep`_)
+- automatic multi-dipole localization and uncertainty quantification with
+  the Bayesian algorithm SESAME (`sesameeg`_)
 
 
 What should I install?
@@ -70,11 +72,13 @@ actively developed than the MNE-Python module, and hence are considerably less
 feature-complete.
 
 If you want to transform sensor recordings into estimates of localized brain
-activity, you will most likely also need :doc:`FreeSurfer <freesurfer>` to
+activity, you will need MNE-Python, plus :doc:`FreeSurfer <freesurfer>` to
 convert structural MRI scans into models of the scalp, inner/outer skull, and
 cortical surfaces (specifically, for command-line functions
-:ref:`gen_mne_flash_bem`, :ref:`gen_mne_watershed_bem`, and
-:ref:`gen_mne_make_scalp_surfaces`).
+:ref:`mne flash_bem`, :ref:`mne watershed_bem`, and
+:ref:`mne make_scalp_surfaces`). If you follow the recommended installation
+procedure using anaconda, you don't need to do anything extra — Freesurfer will
+automatically be installed.
 
 
 Getting help
@@ -100,3 +104,4 @@ Help with installation is available through the `MNE mailing list`_ and
 .. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html
 .. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
 .. _pyprep: https://github.com/sappelhoff/pyprep
+.. _sesameeg: https://pybees.github.io/sesameeg

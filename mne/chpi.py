@@ -25,6 +25,7 @@ import numpy as np
 from scipy import linalg
 import itertools
 
+from .io.base import BaseRaw
 from .io.meas_info import _simplify_info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
@@ -36,8 +37,8 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .dipole import _make_guesses
 from .fixes import jit
-from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils, _get_mf_picks,
-                                    _regularize_out)
+from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils,
+                                    _regularize_out, _get_mf_picks_fix_mags)
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points,
                          _quat_to_affine)
@@ -214,10 +215,12 @@ def extract_chpi_locs_ctf(raw, verbose=None):
 # ############################################################################
 # Estimate positions from data
 @verbose
-def _get_hpi_info(info, verbose=None):
+def _get_hpi_info(info, allow_empty=False, verbose=None):
     """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
+        if allow_empty:
+            return np.empty(0), None, np.empty(0)
         raise RuntimeError('Appropriate cHPI information not found in'
                            'info["hpi_meas"] and info["hpi_subsystem"], '
                            'cannot process cHPI')
@@ -435,16 +438,19 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
 
 @verbose
 def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
-                                 ext_order=1, verbose=None):
+                                 ext_order=1, allow_empty=False, verbose=None):
     """Generate HPI structure for HPI localization."""
     # grab basic info.
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info, allow_empty=allow_empty)
     _validate_type(t_window, (str, 'numeric'), 't_window')
     if isinstance(t_window, str):
         if t_window != 'auto':
             raise ValueError('t_window must be "auto" if a string, got %r'
                              % (t_window,))
-        t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
+        if len(hpi_freqs):
+            t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
+        else:
+            t_window = 0.2
     t_window = float(t_window)
     if t_window <= 0:
         raise ValueError('t_window (%s) must be > 0' % (t_window,))
@@ -469,7 +475,7 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
     else:
         line_freqs = np.zeros([0])
     logger.info('Line interference frequencies: %s Hz'
-                % ' '.join(['%d' % l for l in line_freqs]))
+                % ' '.join(['%d' % lf for lf in line_freqs]))
 
     # build model to extract sinusoidal amplitudes.
     slope = np.linspace(-0.5, 0.5, model_n_window)[:, np.newaxis]
@@ -504,14 +510,14 @@ def _reorder_inv_model(inv_model, n_freqs):
 def _setup_ext_proj(info, ext_order):
     meg_picks = pick_types(info, meg=True, eeg=False, exclude='bads')
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
-    _, _, _, _, mag_or_fine = _get_mf_picks(
+    _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
         info, int_order=0, ext_order=ext_order, ignore_ref=True,
         verbose='error')
     mf_coils = _prep_mf_coils(info, verbose='error')
     ext = _sss_basis(
         dict(origin=(0., 0., 0.), int_order=0, ext_order=ext_order),
         mf_coils).T
-    out_removes = _regularize_out(0, 1, mag_or_fine)
+    out_removes = _regularize_out(0, 1, mag_or_fine, [])
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
     ext = linalg.orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)
@@ -551,7 +557,7 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi):
             # loads hpi_stim channel
             chpi_data = raw[hpi['hpi_pick'], time_sl][0]
 
-        ons = (np.round(chpi_data).astype(np.int) &
+        ons = (np.round(chpi_data).astype(np.int64) &
                hpi['on'][:, np.newaxis]).astype(bool)
         n_on = ons.all(axis=-1).sum(axis=0)
         if not (n_on >= 3).all():
@@ -852,20 +858,18 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
         (len(sin_fits['times']),
          len(hpi['freqs']),
          len(sin_fits['proj']['data']['col_names'])))
-    # Don't use a ProgressBar in debug mode
-    with ProgressBar(fit_idxs, mesg='cHPI amplitudes') as pb:
-        for mi, midpt in enumerate(pb):
-            #
-            # 0. determine samples to fit.
-            #
-            time_sl = midpt - hpi['n_window'] // 2
-            time_sl = slice(max(time_sl, 0),
-                            min(time_sl + hpi['n_window'], len(raw.times)))
+    for mi, midpt in enumerate(ProgressBar(fit_idxs, mesg='cHPI amplitudes')):
+        #
+        # 0. determine samples to fit.
+        #
+        time_sl = midpt - hpi['n_window'] // 2
+        time_sl = slice(max(time_sl, 0),
+                        min(time_sl + hpi['n_window'], len(raw.times)))
 
-            #
-            # 1. Fit amplitudes for each channel from each of the N sinusoids
-            #
-            sin_fits['slopes'][mi] = _fit_chpi_amplitudes(raw, time_sl, hpi)
+        #
+        # 1. Fit amplitudes for each channel from each of the N sinusoids
+        #
+        sin_fits['slopes'][mi] = _fit_chpi_amplitudes(raw, time_sl, hpi)
     return sin_fits
 
 
@@ -962,41 +966,40 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     last = dict(sin_fit=None, coil_fit_time=sin_fits['times'][0] - 1,
                 coil_dev_rrs=hpi_dig_dev_rrs)
     del hpi_dig_dev_rrs
-    with ProgressBar(iter_, mesg='cHPI locations ') as pb:
-        for fit_time, sin_fit in pb:
-            # skip this window if bad
-            if not np.isfinite(sin_fit).all():
+    for fit_time, sin_fit in ProgressBar(iter_, mesg='cHPI locations '):
+        # skip this window if bad
+        if not np.isfinite(sin_fit).all():
+            continue
+
+        # check if data has sufficiently changed
+        if last['sin_fit'] is not None:  # first iteration
+            corrs = np.array(
+                [np.corrcoef(s, l)[0, 1]
+                    for s, l in zip(sin_fit, last['sin_fit'])])
+            corrs *= corrs
+            # check to see if we need to continue
+            if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
+                    (corrs > 0.98).sum() >= 3:
+                # don't need to refit data
                 continue
 
-            # check if data has sufficiently changed
-            if last['sin_fit'] is not None:  # first iteration
-                corrs = np.array(
-                    [np.corrcoef(s, l)[0, 1]
-                     for s, l in zip(sin_fit, last['sin_fit'])])
-                corrs *= corrs
-                # check to see if we need to continue
-                if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
-                        (corrs > 0.98).sum() >= 3:
-                    # don't need to refit data
-                    continue
+        # update 'last' sin_fit *before* inplace sign mult
+        last['sin_fit'] = sin_fit.copy()
 
-            # update 'last' sin_fit *before* inplace sign mult
-            last['sin_fit'] = sin_fit.copy()
-
-            #
-            # 2. Fit magnetic dipole for each coil to obtain coil positions
-            #    in device coordinates
-            #
-            coil_fits = [_fit_magnetic_dipole(f, x0, too_close, whitener,
-                                              meg_coils, guesses)
-                         for f, x0 in zip(sin_fit, last['coil_dev_rrs'])]
-            rrs, gofs, moments = zip(*coil_fits)
-            chpi_locs['times'].append(fit_time)
-            chpi_locs['rrs'].append(rrs)
-            chpi_locs['gofs'].append(gofs)
-            chpi_locs['moments'].append(moments)
-            last['coil_fit_time'] = fit_time
-            last['coil_dev_rrs'] = rrs
+        #
+        # 2. Fit magnetic dipole for each coil to obtain coil positions
+        #    in device coordinates
+        #
+        coil_fits = [_fit_magnetic_dipole(f, x0, too_close, whitener,
+                                          meg_coils, guesses)
+                     for f, x0 in zip(sin_fit, last['coil_dev_rrs'])]
+        rrs, gofs, moments = zip(*coil_fits)
+        chpi_locs['times'].append(fit_time)
+        chpi_locs['rrs'].append(rrs)
+        chpi_locs['gofs'].append(gofs)
+        chpi_locs['moments'].append(moments)
+        last['coil_fit_time'] = fit_time
+        last['coil_dev_rrs'] = rrs
     for key, val in chpi_locs.items():
         chpi_locs[key] = np.array(val, float)
     return chpi_locs
@@ -1014,8 +1017,8 @@ def _chpi_locs_to_times_dig(chpi_locs):
 
 
 @verbose
-def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
-                ext_order=1, verbose=None):
+def filter_chpi(raw, include_line=True, t_step=0.01, t_window='auto',
+                ext_order=1, allow_line_only=False, verbose=None):
     """Remove cHPI and line noise from data.
 
     .. note:: This function will only work properly if cHPI was on
@@ -1031,6 +1034,11 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
         Time step to use for estimation, default is 0.01 (10 ms).
     %(chpi_t_window)s
     %(chpi_ext_order)s
+    allow_line_only : bool
+        If True, allow filtering line noise only. The default is False,
+        which only allows the function to run when cHPI information is present.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1047,19 +1055,19 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
 
     .. versionadded:: 0.12
     """
+    _validate_type(raw, BaseRaw, 'raw')
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
-    if t_window is None:
-        warn('The default for t_window is 0.2 in MNE 0.20 but will change '
-             'to "auto" in 0.21, set it explicitly to avoid this warning',
-             DeprecationWarning)
-        t_window = 0.2
     t_step = float(t_step)
     if t_step <= 0:
         raise ValueError('t_step (%s) must be > 0' % (t_step,))
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
-    hpi = _setup_hpi_amplitude_fitting(raw.info, t_window, remove_aliased=True,
-                                       ext_order=ext_order, verbose=False)
+    if include_line and raw.info['line_freq'] is None:
+        raise RuntimeError('include_line=True but raw.info["line_freq"] is '
+                           'None, consider setting it to the line frequency')
+    hpi = _setup_hpi_amplitude_fitting(
+        raw.info, t_window, remove_aliased=True, ext_order=ext_order,
+        allow_empty=allow_line_only, verbose=False)
 
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])
@@ -1108,7 +1116,6 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
             right_edge, chunk = chunks.pop(0)
             raw._data[meg_picks,
                       right_edge - chunk.shape[1]:right_edge] -= chunk
-    pb.done()
     return raw
 
 

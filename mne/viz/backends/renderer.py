@@ -17,26 +17,24 @@ MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
 
 
-_fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
-             '_set_3d_view', '_set_3d_title', '_close_3d_figure',
-             '_take_3d_screenshot', '_testing_context')
-_name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
+_backend_name_map = dict(
+    mayavi='._pysurfer_mayavi',
+    pyvista='._pyvista',
+    notebook='._notebook',
+)
+backend = None
 
 
 def _reload_backend(backend_name):
-    # This is (hopefully) the equivalent to:
-    #    from ._whatever_name import ...
-    _mod = importlib.__import__(
-        _name_map[backend_name], {'__name__': __name__},
-        level=1, fromlist=_fromlist)
-    for key in _fromlist:
-        globals()[key] = getattr(_mod, key)
+    global backend
+    backend = importlib.import_module(name=_backend_name_map[backend_name],
+                                      package='mne.viz.backends')
     logger.info('Using %s 3d backend.\n' % backend_name)
 
 
 def _get_renderer(*args, **kwargs):
-    set_3d_backend(get_3d_backend(), verbose=False)
-    return _Renderer(*args, **kwargs)  # noqa: F821
+    set_3d_backend(_get_3d_backend(), verbose=False)
+    return backend._Renderer(*args, **kwargs)
 
 
 @verbose
@@ -64,7 +62,7 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
        | 3D function:                         | mayavi | pyvista |
        +======================================+========+=========+
-       | :func:`plot_vector_source_estimates` | ✓      |         |
+       | :func:`plot_vector_source_estimates` | ✓      | ✓       |
        +--------------------------------------+--------+---------+
        | :func:`plot_source_estimates`        | ✓      | ✓       |
        +--------------------------------------+--------+---------+
@@ -97,14 +95,15 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
        | Subplotting                          | ✓      | ✓       |
        +--------------------------------------+--------+---------+
+       | Save offline movie                   | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
        | Point picking                        |        | ✓       |
        +--------------------------------------+--------+---------+
-       | Linked cameras                       |        |         |
-       +--------------------------------------+--------+---------+
-       | Eye-dome lighting                    |        |         |
-       +--------------------------------------+--------+---------+
-       | Exports to movie/GIF                 |        |         |
-       +--------------------------------------+--------+---------+
+
+    .. note::
+        In the case of `plot_vector_source_estimates` with PyVista, the glyph
+        size is not consistent with Mayavi, it is also possible that a dark
+        filter is visible on the mesh when depth peeling is not available.
     """
     global MNE_3D_BACKEND
     try:
@@ -122,24 +121,34 @@ def get_3d_backend():
 
     Returns
     -------
-    backend_used : str
-        The 3d backend currently in use.
+    backend_used : str | None
+        The 3d backend currently in use. If no backend is found,
+        returns ``None``.
     """
+    try:
+        backend = _get_3d_backend()
+    except RuntimeError:
+        return None
+    return backend
+
+
+def _get_3d_backend():
+    """Load and return the current 3d backend."""
     global MNE_3D_BACKEND
     if MNE_3D_BACKEND is None:
         MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
         if MNE_3D_BACKEND is None:  # try them in order
             for name in VALID_3D_BACKENDS:
-                MNE_3D_BACKEND = name
                 try:
                     _reload_backend(name)
                 except ImportError:
-                    pass
+                    continue
                 else:
+                    MNE_3D_BACKEND = name
                     break
             else:
-                raise RuntimeError('Could not load any valid 3D backend: %s'
-                                   % (VALID_3D_BACKENDS))
+                raise RuntimeError(f'Could not load any valid 3D backend: '
+                                   f'{", ".join(VALID_3D_BACKENDS)}')
         else:
             _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
             _reload_backend(MNE_3D_BACKEND)
@@ -157,7 +166,7 @@ def use_3d_backend(backend_name):
     backend_name : str
         The 3d backend to use in the context.
     """
-    old_backend = get_3d_backend()
+    old_backend = _get_3d_backend()
     set_3d_backend(backend_name)
     try:
         yield
@@ -184,14 +193,14 @@ def _use_test_3d_backend(backend_name, interactive=False):
     MNE_3D_BACKEND_TESTING = True
     try:
         with use_3d_backend(backend_name):
-            with _testing_context(interactive):  # noqa: F821
+            with backend._testing_context(interactive):
                 yield
     finally:
         MNE_3D_BACKEND_TESTING = orig_testing
 
 
 def set_3d_view(figure, azimuth=None, elevation=None,
-                focalpoint=None, distance=None):
+                focalpoint=None, distance=None, roll=None):
     """Configure the view of the given scene.
 
     Parameters
@@ -206,10 +215,12 @@ def set_3d_view(figure, azimuth=None, elevation=None,
         The focal point of the view: (x, y, z).
     distance : float
         The distance to the focal point.
+    roll : float
+        The view roll.
     """
-    _set_3d_view(figure=figure, azimuth=azimuth,  # noqa: F821
-                 elevation=elevation, focalpoint=focalpoint,
-                 distance=distance)
+    backend._set_3d_view(figure=figure, azimuth=azimuth,
+                         elevation=elevation, focalpoint=focalpoint,
+                         distance=distance, roll=roll)
 
 
 def set_3d_title(figure, title, size=40):
@@ -224,11 +235,17 @@ def set_3d_title(figure, title, size=40):
     size : int
         The size of the title.
     """
-    _set_3d_title(figure=figure, title=title, size=size)  # noqa: F821
+    backend._set_3d_title(figure=figure, title=title, size=size)
 
 
-def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
+def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
+                     handle=None, scene=True):
     """Return an empty figure based on the current 3d backend.
+
+    .. warning:: Proceed with caution when the renderer object is
+                 returned (with ``scene=False``) because the _Renderer
+                 API is not necessarily stable enough for production,
+                 it's still actively in development.
 
     Parameters
     ----------
@@ -236,13 +253,42 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
         The dimensions of the 3d figure (width, height).
     bgcolor : tuple
         The color of the background.
+    smooth_shading : bool
+        If True, smooth shading is enabled. Defaults to True.
     handle : int | None
         The figure identifier.
+    scene : bool
+        Specify if the returned object is the scene. If False,
+        the renderer object is returned. Defaults to True.
 
     Returns
     -------
     figure : object
-        The requested empty scene.
+        The requested empty scene or the renderer object if
+        ``scene=False``.
     """
-    renderer = _get_renderer(fig=handle, size=size, bgcolor=bgcolor)
-    return renderer.scene()
+    renderer = _get_renderer(
+        fig=handle,
+        size=size,
+        bgcolor=bgcolor,
+        smooth_shading=smooth_shading,
+    )
+    if scene:
+        return renderer.scene()
+    else:
+        return renderer
+
+
+def get_brain_class():
+    """Return the proper Brain class based on the current 3d backend.
+
+    Returns
+    -------
+    brain : object
+        The Brain class corresponding to the current 3d backend.
+    """
+    if get_3d_backend() == "mayavi":
+        from surfer import Brain
+    else:  # PyVista
+        from ...viz._brain import _Brain as Brain
+    return Brain

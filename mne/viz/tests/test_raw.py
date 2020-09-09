@@ -102,7 +102,7 @@ def _annotation_helper(raw, events=False):
                 kind='release')
     if mpl_good_enough:
         assert raw.annotations.onset[n_anns] == onset
-        assert_allclose(raw.annotations.duration[n_anns], 1.5)
+        assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4->1.5
     # modify annotation from beginning
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1, kind='motion')
@@ -147,7 +147,8 @@ def _annotation_helper(raw, events=False):
 
 
 def _proj_status(ax):
-    return [l.get_visible() for l in ax.findobj(matplotlib.lines.Line2D)][::2]
+    return [line.get_visible()
+            for line in ax.findobj(matplotlib.lines.Line2D)][::2]
 
 
 def test_scale_bar():
@@ -155,14 +156,14 @@ def test_scale_bar():
     sfreq = 1000.
     t = np.arange(10000) / sfreq
     data = np.sin(2 * np.pi * 10. * t)
-    # +/- 1000 fT, 400 fT/cm, 20 uV
+    # +/- 1000 fT, 400 fT/cm, 20 µV
     data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
     info = create_info(3, sfreq, ('mag', 'grad', 'eeg'))
     raw = RawArray(data, info)
     fig = raw.plot()
     ax = fig.axes[0]
     assert len(ax.texts) == 3  # our labels
-    for text, want in zip(ax.texts, ('800.0 fT/cm', '2000.0 fT', '40.0 uV')):
+    for text, want in zip(ax.texts, ('800.0 fT/cm', '2000.0 fT', '40.0 µV')):
         assert text.get_text().strip() == want
     assert len(ax.lines) == 8  # green, data, nan, bars
     for data, bar in zip(ax.lines[1:4], ax.lines[5:8]):
@@ -173,14 +174,15 @@ def test_scale_bar():
     plt.close('all')
 
 
-def test_plot_raw():
+def test_plot_raw_traces():
     """Test plotting of raw data."""
     raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
     plt.close('all')  # ensure all are closed
     assert len(plt.get_fignums()) == 0
-    fig = raw.plot(events=events, order=[1, 7, 3], group_by='original')
+    fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
+                   group_by='original')
     assert len(plt.get_fignums()) == 1
 
     # make sure fig._mne_params is present
@@ -190,13 +192,21 @@ def test_plot_raw():
     x = fig.get_axes()[0].lines[1].get_xdata().mean()
     y = fig.get_axes()[0].lines[1].get_ydata().mean()
     data_ax = fig.axes[0]
+    assert len(fig.axes) == 5
 
     _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
     _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
     _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-    _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
-    _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+    _fake_click(fig, fig.axes[1], [0.5, 0.5])  # change time
+    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
+    _fake_click(fig, fig.axes[2], [0.5, 0.01])  # change channels to end
+    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    assert labels == [raw.ch_names[2], raw.ch_names[3]]
+    _fake_click(fig, fig.axes[2], [0.5, 0.5])  # change channels to mid
+    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
     assert len(plt.get_fignums()) == 1
     # open SSP window
     _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5])
@@ -218,8 +228,10 @@ def test_plot_raw():
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all off
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
     assert _proj_status(ax) == [False] * 3
+    assert fig._mne_params['projector'] is None  # actually off
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all on
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
+    assert fig._mne_params['projector'] is not None  # on
     assert _proj_status(ax) == [True] * 3
 
     # test keypresses
@@ -290,6 +302,12 @@ def test_plot_raw():
             break
     for key in ['down', 'up', 'escape']:
         fig.canvas.key_press_event(key)
+
+    raw._data[:] = np.nan
+    # this should (at least) not die, the output should pretty clearly show
+    # that there is a problem so probably okay to just plot something blank
+    with pytest.warns(None):
+        raw.plot(scalings='auto')
 
     plt.close('all')
 
@@ -369,7 +387,8 @@ def test_plot_raw_psd():
     raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()
-    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
+    with pytest.raises(ValueError, match='2 axes must be supplied, got 1'):
+        raw.plot_psd(ax=ax, average=True)
     plt.close('all')
     ax = plt.subplots(2)[1]
     raw.plot_psd(tmax=None, ax=ax, average=True)
@@ -410,6 +429,7 @@ def test_plot_raw_psd():
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
+    plt.close('all')
 
     # test fmax value checking
     with pytest.raises(ValueError, match='not exceed one half the sampling'):
@@ -421,15 +441,25 @@ def test_plot_raw_psd():
 
     # gh-5046
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
-    picks = pick_types(raw.info)
+    picks = pick_types(raw.info, meg=True)
     raw.plot_psd(picks=picks, average=False)
     raw.plot_psd(picks=picks, average=True)
     plt.close('all')
     raw.set_channel_types({'MEG 0113': 'hbo', 'MEG 0112': 'hbr',
-                           'MEG 0122': 'fnirs_raw', 'MEG 0123': 'fnirs_od'},
+                           'MEG 0122': 'fnirs_cw_amplitude',
+                           'MEG 0123': 'fnirs_od'},
                           verbose='error')
     fig = raw.plot_psd()
     assert len(fig.axes) == 10
+    plt.close('all')
+
+    # gh-7631
+    data = 1e-3 * np.random.rand(2, 100)
+    info = create_info(['CH1', 'CH2'], 100)
+    raw = RawArray(data, info)
+    picks = pick_types(raw.info, misc=True)
+    raw.plot_psd(picks=picks, spatial_colors=False)
+    plt.close('all')
 
 
 def test_plot_sensors():
@@ -462,9 +492,9 @@ def test_plot_sensors():
     plt.draw()
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
-    _fake_click(fig, ax, (0.65, 0.65), xform='ax', kind='motion')
+    _fake_click(fig, ax, (0.65, 0.7), xform='ax', kind='motion')
     fig.canvas.key_press_event('control')
-    _fake_click(fig, ax, (0, 0.65), xform='ax', kind='release')
+    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release')
     assert fig.lasso.selection == ['MEG 0121']
 
     # check that point appearance changes

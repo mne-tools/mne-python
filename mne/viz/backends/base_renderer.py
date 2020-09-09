@@ -28,13 +28,16 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def set_interactive(self):
-        """Enable interactive mode."""
+    def set_interaction(self, interaction):
+        """Set interaction mode."""
         pass
 
     @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, interpolate_before_map=True,
+             representation='surface', line_width=1., normals=None,
+             polygon_offset=None, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -57,6 +60,28 @@ class _BaseRenderer(metaclass=ABCMeta):
             If True, enable the mesh shading.
         backface_culling: bool
             If True, enable backface culling on the mesh.
+        scalars: ndarray, shape (n_vertices,)
+            The scalar valued associated to the vertices.
+        vmin: float | None
+            vmin is used to scale the colormap.
+            If None, the min of the data will be used
+        vmax: float | None
+            vmax is used to scale the colormap.
+            If None, the max of the data will be used
+        colormap:
+            The colormap to use.
+        interpolate_before_map:
+            Enabling makes for a smoother scalars display. Default is True.
+            When False, OpenGL will interpolate the mapped colors which can
+            result is showing colors that are not present in the color map.
+        representation: str
+            The representation of the mesh: either 'surface' or 'wireframe'.
+        line_width: int
+            The width of the lines when representation='wireframe'.
+        normals: array, shape (n_vertices, 3)
+            The array containing the normal of each vertex.
+        polygon_offset: float
+            If not None, the factor used to resolve coincident topology.
         kwargs: args
             The arguments to pass to triangular_mesh
 
@@ -106,8 +131,9 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
-                backface_culling=False):
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
+                backface_culling=False, polygon_offset=None):
         """Add a surface in the scene.
 
         Parameters
@@ -132,6 +158,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The scalar valued associated to the vertices.
         backface_culling: bool
             If True, enable backface culling on the surface.
+        polygon_offset: float
+            If not None, the factor used to resolve coincident topology.
         """
         pass
 
@@ -211,7 +239,8 @@ class _BaseRenderer(metaclass=ABCMeta):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+                 backface_culling=False, colormap=None, vmin=None, vmax=None,
+                 line_width=2., name=None):
         """Add quiver3d in the scene.
 
         Parameters
@@ -256,6 +285,16 @@ class _BaseRenderer(metaclass=ABCMeta):
             The optional scalar data to use.
         backface_culling: bool
             If True, enable backface culling on the quiver.
+        colormap:
+            The colormap to use.
+        vmin: float | None
+            vmin is used to scale the colormap.
+            If None, the min of the data will be used
+        vmax: float | None
+            vmax is used to scale the colormap.
+            If None, the max of the data will be used
+        line_width: float
+            The width of the 2d arrows.
         """
         pass
 
@@ -306,17 +345,22 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, color="white", title=None, n_labels=4,
+                  bgcolor=None):
         """Add a scalar bar in the scene.
 
         Parameters
         ----------
         source:
             The object of the scene used for the colormap.
+        color:
+            The color of the label text.
         title: str | None
             The title of the scalar bar.
         n_labels: int | None
             The number of labels to display on the scalar bar.
+        bgcolor:
+            The color of the background when there is transparency.
         """
         pass
 
@@ -377,5 +421,21 @@ class _BaseRenderer(metaclass=ABCMeta):
             The points to project.
         ch_names: array, shape(_n_points,)
             Names of the channels.
+        """
+        pass
+
+    @abstractclassmethod
+    def enable_depth_peeling(self):
+        """Enable depth peeling."""
+        pass
+
+    @abstractclassmethod
+    def remove_mesh(self, mesh_data):
+        """Remove the given mesh from the scene.
+
+        Parameters
+        ----------
+        mesh_data : tuple | Surface
+            The mesh to remove.
         """
         pass

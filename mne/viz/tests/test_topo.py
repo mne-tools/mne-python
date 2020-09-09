@@ -2,6 +2,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -13,7 +14,8 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_channels_evoked, read_cov
+from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
+                 compute_proj_evoked)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
@@ -93,13 +95,27 @@ def test_plot_joint():
                           topomap_args=dict(axes=axes[2:]))
     plt.close('all')
 
+    # test proj options
+    assert len(evoked.info['projs']) == 0
+    evoked.pick_types(meg=True)
+    evoked.add_proj(compute_proj_evoked(
+        evoked, n_mag=1, n_grad=1, meg='combined'))
+    assert len(evoked.info['projs']) == 1
+    with pytest.raises(ValueError, match='must match ts_args'):
+        evoked.plot_joint(ts_args=dict(proj=True),
+                          topomap_args=dict(proj=False))
+    evoked.plot_joint(ts_args=dict(proj='reconstruct'),
+                      topomap_args=dict(proj='reconstruct'))
+    plt.close('all')
+
 
 def test_plot_topo():
     """Test plotting of ERP topography."""
     # Show topography
     evoked = _get_epochs().average()
     # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
+    plot_evoked_topo([evoked, evoked], merge_grads=True,
+                     background_color='w')
 
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -159,6 +175,14 @@ def test_plot_topo():
     for ax, idx in iter_topography(evoked.info):  # brief test with false
         ax.plot([0, 1, 2])
         break
+    plt.close('all')
+
+
+def test_plot_topo_nirs(fnirs_evoked):
+    """Test plotting of ERP topography for nirs data."""
+    fnirs_evoked.pick(picks='hbo')
+    fig = plot_evoked_topo(fnirs_evoked)
+    assert len(fig.axes) == 1
     plt.close('all')
 
 

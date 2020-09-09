@@ -63,7 +63,6 @@ def _read_header(fid):
         for event in range(info['n_events']):
             event_codes = ''.join(np.fromfile(fid, 'S1', 4).astype('U1'))
             info['event_codes'].append(event_codes)
-        info['event_codes'] = np.array(info['event_codes'])
     else:
         raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
@@ -107,7 +106,7 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     include : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None.
-       Note. Overrides `exclude` parameter.
+       Note. Overrides ``exclude`` parameter.
     exclude : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None. If None, channels that have more than
@@ -219,14 +218,14 @@ class RawEGI(BaseRaw):
             logger.info('    Excluding events {%s} ...' %
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
-            self._new_trigger = _combine_triggers(egi_events[include_],
-                                                  remapping=event_ids)
+            egi_info['new_trigger'] = _combine_triggers(
+                egi_events[include_], remapping=event_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], event_ids))
         else:
             # No events
             self.event_id = None
-            self._new_trigger = None
+            egi_info['new_trigger'] = None
         info = _empty_info(egi_info['samp_rate'])
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
@@ -236,7 +235,7 @@ class RawEGI(BaseRaw):
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        if self._new_trigger is not None:
+        if egi_info['new_trigger'] is not None:
             ch_names.append('STI 014')  # our new_trigger
         nchan = len(ch_names)
         cals = np.repeat(cal, nchan)
@@ -246,7 +245,7 @@ class RawEGI(BaseRaw):
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
-            chs[idx].update({'unit_mul': 0, 'cal': 1,
+            chs[idx].update({'unit_mul': FIFF.FIFF_UNITM_NONE, 'cal': 1.,
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
@@ -263,6 +262,7 @@ class RawEGI(BaseRaw):
         dtype = egi_info['dtype']
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
         offset = 36 + egi_info['n_events'] * 4
+        trigger_ch = egi_info['new_trigger']
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=dtype, n_channels=n_chan_read, offset=offset,
-                            trigger_ch=self._new_trigger)
+                            trigger_ch=trigger_ch)

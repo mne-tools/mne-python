@@ -2,18 +2,22 @@
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-import collections
+from collections import Counter
+from collections.abc import Iterable
 import warnings
+from textwrap import shorten
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
-                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp)
+                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
+                    _check_fname)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -64,8 +68,9 @@ class Annotations(object):
     ----------
     onset : array of float, shape (n_annotations,)
         The starting time of annotations in seconds after ``orig_time``.
-    duration : array of float, shape (n_annotations,)
-        Durations of the annotations in seconds.
+    duration : array of float, shape (n_annotations,) | float
+        Durations of the annotations in seconds. If a float, all the
+        annotations are given the same duration.
     description : array of str, shape (n_annotations,) | str
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
@@ -203,16 +208,12 @@ class Annotations(object):
 
     def __repr__(self):
         """Show the representation."""
-        counter = collections.Counter(self.description)
-        kinds = ['%s (%s)' % k for k in counter.items()]
-        kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
+        counter = Counter(self.description)
+        kinds = ', '.join(['%s (%s)' % k for k in sorted(counter.items())])
         kinds = (': ' if len(kinds) > 0 else '') + kinds
-        if self.orig_time is None:
-            orig = 'orig_time : None'
-        else:
-            orig = 'orig_time : %s' % self.orig_time
-        return ('<Annotations  |  %s segment%s %s, %s>'
-                % (len(self.onset), _pl(len(self.onset)), kinds, orig))
+        s = ('Annotations | %s segment%s%s' %
+             (len(self.onset), _pl(len(self.onset)), kinds))
+        return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 
     def __len__(self):
         """Return the number of annotations."""
@@ -249,7 +250,7 @@ class Annotations(object):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            return collections.OrderedDict(zip(out_keys, out_vals))
+            return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],
@@ -631,7 +632,11 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
-
+    _validate_type(fname, 'path-like', 'fname')
+    fname = _check_fname(
+        fname, overwrite='read', must_exist=True,
+        allow_dir=str(fname).endswith('.ds'),  # allow_dir for CTF
+        name='fname')
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
         # Read FiF files
@@ -912,7 +917,7 @@ def _check_event_description(event_desc, events):
     if isinstance(event_desc, dict):
         for val in event_desc.values():
             _validate_type(val, (str, None), 'Event names')
-    elif isinstance(event_desc, collections.Iterable):
+    elif isinstance(event_desc, Iterable):
         event_desc = np.asarray(event_desc)
         if event_desc.ndim != 1:
             raise ValueError('event_desc must be 1D, got shape {}'.format(
@@ -1004,8 +1009,9 @@ def events_from_annotations(raw, event_id="auto",
 
     if chunk_duration is None:
         inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
-                                 origin=annotations.orig_time) + raw.first_samp
-
+                                 origin=annotations.orig_time)
+        if annotations.orig_time is not None:
+            inds += raw.first_samp
         values = [event_id_[kk] for kk in annotations.description[event_sel]]
         inds = inds[event_sel]
     else:

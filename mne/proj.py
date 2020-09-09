@@ -17,11 +17,11 @@ from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
-from .source_estimate import SourceEstimate, VolSourceEstimate
-from .rank import _get_rank_sss
+from .source_estimate import _make_stc
 
 
-def read_proj(fname):
+@verbose
+def read_proj(fname, verbose=None):
     """Read projections from a FIF file.
 
     Parameters
@@ -29,6 +29,7 @@ def read_proj(fname):
     fname : str
         The name of file containing the projections vectors. It should end with
         -proj.fif or -proj.fif.gz.
+    %(verbose)s
 
     Returns
     -------
@@ -82,8 +83,6 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
 
     _check_option('meg', meg, ['separate', 'combined'])
     if meg == 'combined':
-        _get_rank_sss(info, msg='meg="combined" can only be used with '
-                      'Maxfiltered data', verbose=False)
         if n_grad != n_mag:
             raise ValueError('n_grad (%d) must be equal to n_mag (%d) when '
                              'using meg="combined"')
@@ -444,12 +443,6 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         sensitivity_map /= np.max(sensitivity_map)
 
     subject = _subject_from_forward(fwd)
-    if fwd['src'][0]['type'] == 'vol':  # volume source space
-        vertices = fwd['src'][0]['vertno']
-        SEClass = VolSourceEstimate
-    else:
-        vertices = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
-        SEClass = SourceEstimate
-    stc = SEClass(sensitivity_map[:, np.newaxis], vertices=vertices, tmin=0,
-                  tstep=1, subject=subject)
-    return stc
+    vertices = [s['vertno'] for s in fwd['src']]
+    return _make_stc(sensitivity_map[:, np.newaxis], vertices, fwd['src'].kind,
+                     tmin=0., tstep=1., subject=subject)

@@ -4,31 +4,37 @@
 
 from copy import deepcopy
 import os.path as op
+import re
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 from scipy import sparse
+from scipy.optimize import fmin_cobyla
 
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
                  read_source_estimate, extract_label_time_course,
-                 spatio_temporal_tris_connectivity,
-                 spatio_temporal_src_connectivity, read_cov,
-                 spatial_inter_hemi_connectivity, read_forward_solution,
-                 spatial_src_connectivity, spatial_tris_connectivity,
+                 spatio_temporal_tris_adjacency,
+                 spatio_temporal_src_adjacency, read_cov,
+                 spatial_inter_hemi_adjacency, read_forward_solution,
+                 spatial_src_adjacency, spatial_tris_adjacency,
                  SourceSpaces, VolVectorSourceEstimate,
+                 MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward)
 from mne.datasets import testing
+from mne.externals.h5io import write_hdf5
 from mne.fixes import fft, _get_img_fdata
+from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
+from mne.transforms import apply_trans, invert_transform
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
-from mne.utils import (requires_pandas, requires_sklearn,
+from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
                        requires_h5py, run_tests_if_main, requires_nibabel)
 from mne.io import read_raw_fif
 
@@ -47,12 +53,15 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+fname_fs_t1 = op.join(data_path, 'subjects', 'fsaverage', 'mri', 'T1.mgz')
+fname_aseg = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                        'fsaverage-ico-5-src.fif')
-fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-oct-4-src.fif')
+bem_path = op.join(data_path, 'subjects', 'sample', 'bem')
+fname_src_3 = op.join(bem_path, 'sample-oct-4-src.fif')
+fname_src_vol = op.join(bem_path, 'sample-volume-7mm-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
 fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
@@ -64,16 +73,16 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-def test_spatial_inter_hemi_connectivity():
-    """Test spatial connectivity between hemispheres."""
+def test_spatial_inter_hemi_adjacency():
+    """Test spatial adjacency between hemispheres."""
     # trivial cases
-    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e-6)
+    conn = spatial_inter_hemi_adjacency(fname_src_3, 5e-6)
     assert_equal(conn.data.size, 0)
-    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e6)
+    conn = spatial_inter_hemi_adjacency(fname_src_3, 5e6)
     assert_equal(conn.data.size, np.prod(conn.shape) // 2)
     # actually interesting case (1cm), should be between 2 and 10% of verts
     src = read_source_spaces(fname_src_3)
-    conn = spatial_inter_hemi_connectivity(src, 10e-3)
+    conn = spatial_inter_hemi_adjacency(src, 10e-3)
     conn = conn.tocsr()
     n_src = conn.shape[0]
     assert (n_src * 0.02 < conn.data.size < n_src * 0.10)
@@ -92,8 +101,8 @@ def test_spatial_inter_hemi_connectivity():
                                                           axis=1 - hi))[0]]
         labels = read_labels_from_annot('sample', 'aparc.a2009s', hemi,
                                         subjects_dir=subjects_dir)
-        use_labels = [l.name[:-3] for l in labels
-                      if np.in1d(l.vertices, has_neighbors).any()]
+        use_labels = [label.name[:-3] for label in labels
+                      if np.in1d(label.vertices, has_neighbors).any()]
         assert (set(use_labels) - set(good_labels) == set())
 
 
@@ -116,21 +125,32 @@ def test_volume_stc(tmpdir):
     vertno_reads = [vertno, vertno, np.arange(2), np.arange(2)]
     for data, vertno, vertno_read in zip(datas, vertnos, vertno_reads):
         if data.ndim in (1, 2):
-            stc = VolSourceEstimate(data, vertno, 0, 1)
+            stc = VolSourceEstimate(data, [vertno], 0, 1)
             ext = 'stc'
             klass = VolSourceEstimate
         else:
             assert data.ndim == 3
-            stc = VolVectorSourceEstimate(data, vertno, 0, 1)
+            stc = VolVectorSourceEstimate(data, [vertno], 0, 1)
             ext = 'h5'
             klass = VolVectorSourceEstimate
         fname_temp = tmpdir.join('temp-vl.' + ext)
         stc_new = stc
-        for _ in range(2):
-            stc_new.save(fname_temp)
+        n = 3 if ext == 'h5' else 2
+        for ii in range(n):
+            if ii < 2:
+                stc_new.save(fname_temp)
+            else:
+                # Pass stc.vertices[0], an ndarray, to ensure support for
+                # the way we used to write volume STCs
+                write_hdf5(
+                    str(fname_temp), dict(
+                        vertices=stc.vertices[0], data=stc.data,
+                        tmin=stc.tmin, tstep=stc.tstep,
+                        subject=stc.subject, src_type=stc._src_type),
+                    title='mnepython', overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, klass)
-            assert_array_equal(vertno_read, stc_new.vertices)
+            assert_array_equal(vertno_read, stc_new.vertices[0])
             assert_array_almost_equal(stc.data, stc_new.data)
 
     # now let's actually read a MNE-C processed file
@@ -146,7 +166,7 @@ def test_volume_stc(tmpdir):
             stc_new.save(fname_temp, ftype=ftype)
             stc_new = read_source_estimate(fname_temp)
             assert (isinstance(stc_new, VolSourceEstimate))
-            assert_array_equal(stc.vertices, stc_new.vertices)
+            assert_array_equal(stc.vertices[0], stc_new.vertices[0])
             assert_array_almost_equal(stc.data, stc_new.data)
 
 
@@ -210,7 +230,7 @@ def test_save_vol_stc_as_nifti(tmpdir):
 
     src = SourceSpaces([src[0], src[0]])
     stc = VolSourceEstimate(np.r_[stc.data, stc.data],
-                            [stc.vertices, stc.vertices],
+                            [stc.vertices[0], stc.vertices[0]],
                             tmin=stc.tmin, tstep=stc.tstep, subject='sample')
     img = stc.as_volume(src, dest='mri', mri_resolution=False)
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
@@ -241,14 +261,22 @@ def test_expand():
         pytest.raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
 
-def _fake_stc(n_time=10):
+def _fake_stc(n_time=10, is_complex=False):
+    np.random.seed(7)
     verts = [np.arange(10), np.arange(90)]
-    return SourceEstimate(np.random.rand(100, n_time), verts, 0, 1e-1, 'foo')
+    data = np.random.rand(100, n_time)
+    if is_complex:
+        data.astype(complex)
+    return SourceEstimate(data, verts, 0, 1e-1, 'foo')
 
 
-def _fake_vec_stc(n_time=10):
+def _fake_vec_stc(n_time=10, is_complex=False):
+    np.random.seed(7)
     verts = [np.arange(10), np.arange(90)]
-    return VectorSourceEstimate(np.random.rand(100, 3, n_time), verts, 0, 1e-1,
+    data = np.random.rand(100, 3, n_time)
+    if is_complex:
+        data.astype(complex)
+    return VectorSourceEstimate(data, verts, 0, 1e-1,
                                 'foo')
 
 
@@ -335,7 +363,7 @@ def test_stc_attributes():
     stc = _fake_stc()
     data = stc.data[:, np.newaxis, :]
     with pytest.raises(ValueError, match='2 dimensions for SourceEstimate'):
-        SourceEstimate(data, stc.vertices)
+        SourceEstimate(data, stc.vertices, 0, 1)
     stc = SourceEstimate(data[:, 0, 0], stc.vertices, 0, 1)
     assert stc.data.shape == (len(data), 1)
 
@@ -352,30 +380,39 @@ def test_io_stc(tmpdir):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    # test warning for complex data
+    stc2.data = stc2.data.astype(np.complex128)
+    with pytest.raises(ValueError, match='Cannot save complex-valued STC'):
+        stc2.save(tmpdir.join('complex.stc'))
 
 
 @requires_h5py
-def test_io_stc_h5(tmpdir):
+@pytest.mark.parametrize('is_complex', (True, False))
+@pytest.mark.parametrize('vector', (True, False))
+def test_io_stc_h5(tmpdir, is_complex, vector):
     """Test IO for STC files using HDF5."""
-    for stc in [_fake_stc(), _fake_vec_stc()]:
-        pytest.raises(ValueError, stc.save, tmpdir.join('tmp'),
-                      ftype='foo')
-        out_name = tmpdir.join('tmp')
-        stc.save(out_name, ftype='h5')
-        stc.save(out_name, ftype='h5')  # test overwrite
-        stc3 = read_source_estimate(out_name)
-        stc4 = read_source_estimate(out_name + '-stc')
-        stc5 = read_source_estimate(out_name + '-stc.h5')
-        pytest.raises(RuntimeError, read_source_estimate, out_name,
-                      subject='bar')
-        for stc_new in stc3, stc4, stc5:
-            assert_equal(stc_new.subject, stc.subject)
-            assert_array_equal(stc_new.data, stc.data)
-            assert_array_equal(stc_new.tmin, stc.tmin)
-            assert_array_equal(stc_new.tstep, stc.tstep)
-            assert_equal(len(stc_new.vertices), len(stc.vertices))
-            for v1, v2 in zip(stc_new.vertices, stc.vertices):
-                assert_array_equal(v1, v2)
+    if vector:
+        stc = _fake_vec_stc(is_complex=is_complex)
+    else:
+        stc = _fake_stc(is_complex=is_complex)
+    pytest.raises(ValueError, stc.save, tmpdir.join('tmp'),
+                  ftype='foo')
+    out_name = tmpdir.join('tmp')
+    stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5')  # test overwrite
+    stc3 = read_source_estimate(out_name)
+    stc4 = read_source_estimate(out_name + '-stc')
+    stc5 = read_source_estimate(out_name + '-stc.h5')
+    pytest.raises(RuntimeError, read_source_estimate, out_name,
+                  subject='bar')
+    for stc_new in stc3, stc4, stc5:
+        assert_equal(stc_new.subject, stc.subject)
+        assert_array_equal(stc_new.data, stc.data)
+        assert_array_equal(stc_new.tmin, stc.tmin)
+        assert_array_equal(stc_new.tstep, stc.tstep)
+        assert_equal(len(stc_new.vertices), len(stc.vertices))
+        for v1, v2 in zip(stc_new.vertices, stc.vertices):
+            assert_array_equal(v1, v2)
 
 
 def test_io_w(tmpdir):
@@ -508,14 +545,29 @@ def test_center_of_mass():
 
 
 @testing.requires_testing_data
-def test_extract_label_time_course():
-    """Test extraction of label time courses from stc."""
+@pytest.mark.parametrize('kind', ('surface', 'mixed'))
+@pytest.mark.parametrize('vector', (False, True))
+def test_extract_label_time_course(kind, vector):
+    """Test extraction of label time courses from (Mixed)SourceEstimate."""
     n_stcs = 3
     n_times = 50
 
     src = read_inverse_operator(fname_inv)['src']
-    vertices = [src[0]['vertno'], src[1]['vertno']]
-    n_verts = len(vertices[0]) + len(vertices[1])
+    if kind == 'mixed':
+        label_names = ('Left-Cerebellum-Cortex',
+                       'Right-Cerebellum-Cortex')
+        src += setup_volume_source_space(
+            'sample', pos=20., volume_label=label_names,
+            subjects_dir=subjects_dir, add_interpolator=False)
+        klass = MixedVectorSourceEstimate
+    else:
+        klass = VectorSourceEstimate
+    if not vector:
+        klass = klass._scalar_class
+    vertices = [s['vertno'] for s in src]
+    n_verts = np.array([len(v) for v in vertices])
+    vol_means = np.arange(-1, 1 - len(src), -1)
+    vol_means_t = np.repeat(vol_means[:, np.newaxis], n_times, axis=1)
 
     # get some labels
     labels_lh = read_labels_from_annot('sample', hemi='lh',
@@ -528,18 +580,21 @@ def test_extract_label_time_course():
 
     n_labels = len(labels)
 
-    label_means = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
-    label_maxs = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
+    label_tcs = dict(
+        mean=np.arange(n_labels)[:, None] * np.ones((n_labels, n_times)))
+    label_tcs['max'] = label_tcs['mean']
 
     # compute the mean with sign flip
-    label_means_flipped = np.zeros_like(label_means)
+    label_tcs['mean_flip'] = np.zeros_like(label_tcs['mean'])
     for i, label in enumerate(labels):
-        label_means_flipped[i] = i * np.mean(label_sign_flip(label, src))
+        label_tcs['mean_flip'][i] = i * np.mean(
+            label_sign_flip(label, src[:2]))
 
     # generate some stc's with known data
     stcs = list()
+    pad = (((0, 0), (2, 0), (0, 0)), 'constant')
     for i in range(n_stcs):
-        data = np.zeros((n_verts, n_times))
+        data = np.zeros((n_verts.sum(), n_times))
         # set the value of the stc within each label
         for j, label in enumerate(labels):
             if label.hemi == 'lh':
@@ -548,33 +603,51 @@ def test_extract_label_time_course():
             elif label.hemi == 'rh':
                 idx = np.intersect1d(vertices[1], label.vertices)
                 idx = len(vertices[0]) + np.searchsorted(vertices[1], idx)
-            data[idx] = label_means[j]
+            data[idx] = label_tcs['mean'][j]
+        for j in range(len(vol_means)):
+            offset = n_verts[:2 + j].sum()
+            data[offset:offset + n_verts[j]] = vol_means[j]
 
-        this_stc = SourceEstimate(data, vertices, 0, 1)
+        if vector:
+            # the values it on the Z axis
+            data = np.pad(data[:, np.newaxis], *pad)
+        this_stc = klass(data, vertices, 0, 1)
         stcs.append(this_stc)
 
+    if vector:
+        for key in label_tcs:
+            label_tcs[key] = np.pad(label_tcs[key][:, np.newaxis], *pad)
+        vol_means_t = np.pad(vol_means_t[:, np.newaxis], *pad)
+
     # test some invalid inputs
-    pytest.raises(ValueError, extract_label_time_course, stcs, labels,
-                  src, mode='notamode')
+    with pytest.raises(ValueError, match="Invalid value for the 'mode'"):
+        extract_label_time_course(stcs, labels, src, mode='notamode')
 
     # have an empty label
     empty_label = labels[0].copy()
     empty_label.vertices += 1000000
-    pytest.raises(ValueError, extract_label_time_course, stcs, empty_label,
-                  src, mode='mean')
+    with pytest.raises(ValueError, match='does not contain any vertices'):
+        extract_label_time_course(stcs, empty_label, src)
 
     # but this works:
     with pytest.warns(RuntimeWarning, match='does not contain any vertices'):
-        tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
+        tc = extract_label_time_course(stcs, empty_label, src,
                                        allow_empty=True)
+    end_shape = (3, n_times) if vector else (n_times,)
     for arr in tc:
-        assert (arr.shape == (1, n_times))
-        assert_array_equal(arr, np.zeros((1, n_times)))
+        assert arr.shape == (1 + len(vol_means),) + end_shape
+        assert_array_equal(arr[:1], np.zeros((1,) + end_shape))
+        if len(vol_means):
+            assert_array_equal(arr[1:], vol_means_t)
 
     # test the different modes
-    modes = ['mean', 'mean_flip', 'pca_flip', 'max']
+    modes = ['mean', 'mean_flip', 'pca_flip', 'max', 'auto']
 
     for mode in modes:
+        if vector and mode not in ('mean', 'max', 'auto'):
+            with pytest.raises(ValueError, match='when using a vector'):
+                extract_label_time_course(stcs, labels, src, mode=mode)
+            continue
         label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
                                                          mode=mode)
@@ -582,23 +655,179 @@ def test_extract_label_time_course():
         assert (len(label_tc) == n_stcs)
         assert (len(label_tc_method) == n_stcs)
         for tc1, tc2 in zip(label_tc, label_tc_method):
-            assert (tc1.shape == (n_labels, n_times))
-            assert (tc2.shape == (n_labels, n_times))
-            assert (np.allclose(tc1, tc2, rtol=1e-8, atol=1e-16))
-            if mode == 'mean':
-                assert_array_almost_equal(tc1, label_means)
-            if mode == 'mean_flip':
-                assert_array_almost_equal(tc1, label_means_flipped)
-            if mode == 'max':
-                assert_array_almost_equal(tc1, label_maxs)
+            assert tc1.shape == (n_labels + len(vol_means),) + end_shape
+            assert tc2.shape == (n_labels + len(vol_means),) + end_shape
+            assert_allclose(tc1, tc2, rtol=1e-8, atol=1e-16)
+            if mode == 'auto':
+                use_mode = 'mean' if vector else 'mean_flip'
+            else:
+                use_mode = mode
+            # XXX we don't check pca_flip, probably should someday...
+            if use_mode in ('mean', 'max', 'mean_flip'):
+                assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
+            assert_array_almost_equal(tc1[n_labels:], vol_means_t)
 
     # test label with very few vertices (check SVD conditionals)
     label = Label(vertices=src[0]['vertno'][:2], hemi='lh')
-    x = label_sign_flip(label, src)
+    x = label_sign_flip(label, src[:2])
     assert (len(x) == 2)
     label = Label(vertices=[], hemi='lh')
-    x = label_sign_flip(label, src)
+    x = label_sign_flip(label, src[:2])
     assert (x.size == 0)
+
+
+@pytest.mark.parametrize('label_type, mri_res, vector, test_label, cf, call', [
+    (str, False, False, False, 'head', 'meth'),  # head frame
+    (str, False, False, str, 'mri', 'func'),  # fastest, default for testing
+    (str, False, True, int, 'mri', 'func'),  # vector
+    (str, True, False, False, 'mri', 'func'),  # mri_resolution
+    (list, True, False, False, 'mri', 'func'),  # volume label as list
+    (dict, True, False, False, 'mri', 'func'),  # volume label as dict
+])
+def test_extract_label_time_course_volume(
+        src_volume_labels, label_type, mri_res, vector, test_label, cf, call):
+    """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
+    src_labels, volume_labels, lut = src_volume_labels
+    n_tot = 46
+    assert n_tot == len(src_labels)
+    inv = read_inverse_operator(fname_inv_vol)
+    trans = inv['mri_head_t']
+    if cf == 'head':
+        src = inv['src']
+        assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        rr = apply_trans(invert_transform(inv['mri_head_t']), src[0]['rr'])
+    else:
+        assert cf == 'mri'
+        src = read_source_spaces(fname_src_vol)
+        assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        rr = src[0]['rr']
+    for s in src_labels:
+        assert_allclose(s['rr'], rr, atol=1e-7)
+    assert len(src) == 1 and src.kind == 'volume'
+    klass = VolVectorSourceEstimate
+    if not vector:
+        klass = klass._scalar_class
+    vertices = [src[0]['vertno']]
+    n_verts = len(src[0]['vertno'])
+    n_times = 50
+    data = vertex_values = np.arange(1, n_verts + 1)
+    end_shape = (n_times,)
+    if vector:
+        end_shape = (3,) + end_shape
+        data = np.pad(data[:, np.newaxis], ((0, 0), (2, 0)), 'constant')
+    data = np.repeat(data[..., np.newaxis], n_times, -1)
+    stcs = [klass(data.astype(float), vertices, 0, 1)]
+
+    def eltc(*args, **kwargs):
+        if call == 'func':
+            return extract_label_time_course(stcs, *args, **kwargs)
+        else:
+            assert call == 'meth'
+            return [stcs[0].extract_label_time_course(*args, **kwargs)]
+
+    with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
+        eltc(fname_fs_t1, src, trans=trans, mri_resolution=mri_res)
+    assert len(src_labels) == 46  # includes unknown
+    assert_array_equal(
+        src[0]['vertno'],  # src includes some in "unknown" space
+        np.sort(np.concatenate([s['vertno'] for s in src_labels])))
+    # spot check
+    assert src_labels[-1]['seg_name'] == 'CC_Anterior'
+    assert src[0]['nuse'] == 4157
+    assert len(src[0]['vertno']) == 4157
+    assert sum(s['nuse'] for s in src_labels) == 4157
+    assert_array_equal(src_labels[-1]['vertno'], [8011, 8032, 8557])
+    assert_array_equal(
+        np.where(np.in1d(src[0]['vertno'], [8011, 8032, 8557]))[0],
+        [2672, 2688, 2995])
+    # triage "labels" argument
+    if mri_res:
+        # All should be there
+        missing = []
+    else:
+        # Nearest misses these
+        missing = ['Left-vessel', 'Right-vessel', '5th-Ventricle',
+                   'non-WM-hypointensities']
+    n_want = len(src_labels)
+    if label_type is str:
+        labels = fname_aseg
+    elif label_type is list:
+        labels = (fname_aseg, volume_labels)
+    else:
+        assert label_type is dict
+        labels = (fname_aseg, {k: lut[k] for k in volume_labels})
+        assert mri_res
+        assert len(missing) == 0
+        # we're going to add one that won't exist
+        missing = ['intentionally_bad']
+        labels[1][missing[0]] = 10000
+        n_want += 1
+        n_tot += 1
+    n_want -= len(missing)
+
+    # actually do the testing
+    if cf == 'head' and not mri_res:  # no trans is an error
+        with pytest.raises(TypeError, match='trans must be .* Transform'):
+            eltc(labels, src, mri_resolution=mri_res)
+    for mode in ('mean', 'max'):
+        with catch_logging() as log:
+            label_tc = eltc(labels, src, mode=mode, allow_empty='ignore',
+                            trans=trans, mri_resolution=mri_res, verbose=True)
+        log = log.getvalue()
+        assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
+        if len(missing):
+            # assert that the missing ones get logged
+            assert 'does not contain' in log
+            assert repr(missing) in log
+        else:
+            assert 'does not contain' not in log
+        assert '\n%d/%d atlas regions had at least' % (n_want, n_tot) in log
+        assert len(label_tc) == 1
+        label_tc = label_tc[0]
+        assert label_tc.shape == (n_tot,) + end_shape
+        if vector:
+            assert_array_equal(label_tc[:, :2], 0.)
+            label_tc = label_tc[:, 2]
+        assert label_tc.shape == (n_tot, n_times)
+        # let's test some actual values by trusting the masks provided by
+        # setup_volume_source_space. mri_resolution=True does some
+        # interpolation so we should not expect equivalence, False does
+        # nearest so we should.
+        if mri_res:
+            rtol = 0.2 if mode == 'mean' else 0.8  # max much more sensitive
+        else:
+            rtol = 0.
+        for si, s in enumerate(src_labels):
+            func = dict(mean=np.mean, max=np.max)[mode]
+            these = vertex_values[np.in1d(src[0]['vertno'], s['vertno'])]
+            assert len(these) == s['nuse']
+            if si == 0 and s['seg_name'] == 'Unknown':
+                continue  # unknown is crappy
+            if s['nuse'] == 0:
+                want = 0.
+                if mri_res:
+                    # this one is totally due to interpolation, so no easy
+                    # test here
+                    continue
+            else:
+                want = func(these)
+            assert_allclose(label_tc[si], want, atol=1e-6, rtol=rtol)
+            # compare with in_label, only on every fourth for speed
+            if test_label is not False and si % 4 == 0:
+                label = s['seg_name']
+                if test_label is int:
+                    label = lut[label]
+                in_label = stcs[0].in_label(
+                    label, fname_aseg, src, trans).data
+                assert in_label.shape == (s['nuse'],) + end_shape
+                if vector:
+                    assert_array_equal(in_label[:, :2], 0.)
+                    in_label = in_label[:, 2]
+                if want == 0:
+                    assert in_label.shape[0] == 0
+                else:
+                    in_label = func(in_label)
+                    assert_allclose(in_label, want, atol=1e-6, rtol=rtol)
 
 
 @testing.requires_testing_data
@@ -636,7 +865,7 @@ def test_transform_data():
     kernel = rng.randn(n_vertices, n_sensors)
     sens_data = rng.randn(n_sensors, n_times)
 
-    vertices = np.arange(n_vertices)
+    vertices = [np.arange(n_vertices)]
     data = np.dot(kernel, sens_data)
 
     for idx, tmin_idx, tmax_idx in\
@@ -660,7 +889,7 @@ def test_transform_data():
     # bad sens_data
     sens_data = sens_data[..., np.newaxis]
     with pytest.raises(ValueError, match='sensor data must have 2'):
-        VolSourceEstimate((kernel, sens_data), vertices)
+        VolSourceEstimate((kernel, sens_data), vertices, 0, 1)
 
 
 def test_transform():
@@ -718,12 +947,12 @@ def test_transform():
 
 
 @requires_sklearn
-def test_spatio_temporal_tris_connectivity():
-    """Test spatio-temporal connectivity from triangles."""
+def test_spatio_temporal_tris_adjacency():
+    """Test spatio-temporal adjacency from triangles."""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
-    connectivity = spatio_temporal_tris_connectivity(tris, 2)
+    adjacency = spatio_temporal_tris_adjacency(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
-    components = stats.cluster_level._get_components(np.array(x), connectivity)
+    components = stats.cluster_level._get_components(np.array(x), adjacency)
     # _get_components works differently now...
     old_fmt = [0, 0, -2, -2, -2, -2, 0, -2, -2, -2, -2, 1]
     new_fmt = np.array(old_fmt)
@@ -735,34 +964,35 @@ def test_spatio_temporal_tris_connectivity():
 
 
 @testing.requires_testing_data
-def test_spatio_temporal_src_connectivity():
-    """Test spatio-temporal connectivity from source spaces."""
+def test_spatio_temporal_src_adjacency():
+    """Test spatio-temporal adjacency from source spaces."""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
-    connectivity = spatio_temporal_tris_connectivity(tris, 2)
+    adjacency = spatio_temporal_tris_adjacency(tris, 2).todense()
+    assert_allclose(np.diag(adjacency), 1.)
     src[0]['use_tris'] = np.array([[0, 1, 2]])
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     src[0]['vertno'] = np.array([0, 1, 2])
     src[1]['vertno'] = np.array([0, 1, 2])
     src[0]['type'] = 'surf'
     src[1]['type'] = 'surf'
-    connectivity2 = spatio_temporal_src_connectivity(src, 2)
-    assert_array_equal(connectivity.todense(), connectivity2.todense())
-    # add test for dist connectivity
+    adjacency2 = spatio_temporal_src_adjacency(src, 2)
+    assert_array_equal(adjacency2.todense(), adjacency)
+    # add test for dist adjacency
     src[0]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[1]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[0]['vertno'] = [0, 1, 2]
     src[1]['vertno'] = [0, 1, 2]
     src[0]['type'] = 'surf'
     src[1]['type'] = 'surf'
-    connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
-    assert_array_equal(connectivity.todense(), connectivity3.todense())
-    # add test for source space connectivity with omitted vertices
+    adjacency3 = spatio_temporal_src_adjacency(src, 2, dist=2)
+    assert_array_equal(adjacency3.todense(), adjacency)
+    # add test for source space adjacency with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
     src_ = inverse_operator['src']
     with pytest.warns(RuntimeWarning, match='will have holes'):
-        connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
-    a = connectivity.shape[0] / 2
+        adjacency = spatio_temporal_src_adjacency(src_, n_times=2)
+    a = adjacency.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert (a == b)
 
@@ -773,11 +1003,11 @@ def test_spatio_temporal_src_connectivity():
 def test_to_data_frame():
     """Test stc Pandas exporter."""
     n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
-    stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
+    stc_vol = VolSourceEstimate(data, vertices=vertices[:1], tmin=0, tstep=1,
                                 subject='sample')
     for stc in [stc_surf, stc_vol]:
         df = stc.to_data_frame()
@@ -795,7 +1025,7 @@ def test_to_data_frame():
 def test_to_data_frame_index(index):
     """Test index creation in stc Pandas exporter."""
     n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
     stc = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                          subject='sample')
@@ -810,36 +1040,58 @@ def test_to_data_frame_index(index):
         assert all(np.in1d(non_index, df.columns))
 
 
-def test_get_peak():
+@pytest.mark.parametrize('kind', ('surface', 'mixed', 'volume'))
+@pytest.mark.parametrize('vector', (False, True))
+@pytest.mark.parametrize('n_times', (5, 1))
+def test_get_peak(kind, vector, n_times):
     """Test peak getter."""
-    n_vert, n_times = 10, 5
-    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = rng.randn(n_vert, n_times)
-    stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
-                              subject='sample')
-    stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
-                                subject='sample')
+    n_vert = 10
+    vertices = [np.arange(n_vert)]
+    if kind == 'surface':
+        klass = VectorSourceEstimate
+        vertices += [np.empty(0, int)]
+    elif kind == 'mixed':
+        klass = MixedVectorSourceEstimate
+        vertices += [np.empty(0, int), np.empty(0, int)]
+    else:
+        assert kind == 'volume'
+        klass = VolVectorSourceEstimate
+    data = np.zeros((n_vert, n_times))
+    data[1, -1] = 1
+    if vector:
+        data = np.repeat(data[:, np.newaxis], 3, 1)
+    else:
+        klass = klass._scalar_class
+    stc = klass(data, vertices, 0, 1)
 
-    # Versions with only one time point
-    stc_surf_1 = SourceEstimate(data[:, :1], vertices=vertices, tmin=0,
-                                tstep=1, subject='sample')
-    stc_vol_1 = VolSourceEstimate(data[:, :1], vertices=vertices[0], tmin=0,
-                                  tstep=1, subject='sample')
+    with pytest.raises(ValueError, match='out of bounds'):
+        stc.get_peak(tmin=-100)
+    with pytest.raises(ValueError, match='out of bounds'):
+        stc.get_peak(tmax=90)
+    with pytest.raises(ValueError,
+                       match='smaller or equal' if n_times > 1 else 'out of'):
+        stc.get_peak(tmin=0.002, tmax=0.001)
 
-    for ii, stc in enumerate([stc_surf, stc_vol, stc_surf_1, stc_vol_1]):
-        pytest.raises(ValueError, stc.get_peak, tmin=-100)
-        pytest.raises(ValueError, stc.get_peak, tmax=90)
-        pytest.raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
-
-        vert_idx, time_idx = stc.get_peak()
-        vertno = np.concatenate(stc.vertices) if ii in [0, 2] else stc.vertices
-        assert (vert_idx in vertno)
-        assert (time_idx in stc.times)
-
-        data_idx, time_idx = stc.get_peak(vert_as_index=True,
-                                          time_as_index=True)
-        assert_equal(data_idx, np.argmax(np.abs(stc.data[:, time_idx])))
-        assert_equal(time_idx, np.argmax(np.abs(stc.data[data_idx, :])))
+    vert_idx, time_idx = stc.get_peak()
+    vertno = np.concatenate(stc.vertices)
+    assert vert_idx in vertno
+    assert time_idx in stc.times
+    data_idx, time_idx = stc.get_peak(vert_as_index=True, time_as_index=True)
+    if vector:
+        use_data = stc.magnitude().data
+    else:
+        use_data = stc.data
+    assert data_idx == 1
+    assert time_idx == n_times - 1
+    assert data_idx == np.argmax(np.abs(use_data[:, time_idx]))
+    assert time_idx == np.argmax(np.abs(use_data[data_idx, :]))
+    if kind == 'surface':
+        data_idx_2, time_idx_2 = stc.get_peak(
+            vert_as_index=True, time_as_index=True, hemi='lh')
+        assert data_idx_2 == data_idx
+        assert time_idx_2 == time_idx
+        with pytest.raises(RuntimeError, match='no vertices'):
+            stc.get_peak(hemi='rh')
 
 
 @requires_h5py
@@ -862,7 +1114,8 @@ def test_mixed_stc(tmpdir):
     vol = read_source_spaces(fname_vsrc)
 
     # make sure error is raised for plotting surface with volume source
-    pytest.raises(ValueError, stc.plot_surface, src=vol)
+    with pytest.deprecated_call(match='plot_surface'):
+        pytest.raises(ValueError, stc.plot_surface, src=vol)
 
     fname = tmpdir.join('mixed-stc.h5')
     stc.save(fname)
@@ -874,53 +1127,159 @@ def test_mixed_stc(tmpdir):
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-@pytest.mark.parametrize('klass, kind',
-                         ((VectorSourceEstimate, 'surf'),
-                          (VolVectorSourceEstimate, 'vol'),
-                          (VolVectorSourceEstimate, 'discrete')))
-def test_vec_stc_basic(klass, kind):
+@requires_h5py
+@pytest.mark.parametrize('klass, kind', [
+    (VectorSourceEstimate, 'surf'),
+    (VolVectorSourceEstimate, 'vol'),
+    (VolVectorSourceEstimate, 'discrete'),
+    (MixedVectorSourceEstimate, 'mixed'),
+])
+@pytest.mark.parametrize('dtype', [
+    np.float32, np.float64, np.complex64, np.complex128])
+def test_vec_stc_basic(tmpdir, klass, kind, dtype):
     """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
         [0, 1, 0],
-        [0, 0, 1],
+        [np.sqrt(1. / 2.), 0, np.sqrt(1. / 2.)],
         [np.sqrt(1 / 3.)] * 3
-    ])
+    ], np.float32)
 
     data = np.array([
         [1, 0, 0],
         [0, 2, 0],
-        [3, 0, 0],
+        [-3, 0, 0],
         [1, 1, 1],
-    ])[:, :, np.newaxis]
+    ], dtype)[:, :, np.newaxis]
+    amplitudes = np.array([1, 2, 3, np.sqrt(3)], dtype)
+    magnitudes = amplitudes.copy()
+    normals = np.array([1, 2, -3. / np.sqrt(2), np.sqrt(3)], dtype)
+    if dtype in (np.complex64, np.complex128):
+        data *= 1j
+        amplitudes *= 1j
+        normals *= 1j
+    directions = np.array(
+        [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [1. / np.sqrt(3)] * 3])
+    vol_kind = kind if kind in ('discrete', 'vol') else 'vol'
+    vol_src = SourceSpaces([dict(nn=nn, type=vol_kind)])
+    assert vol_src.kind == dict(vol='volume').get(vol_kind, vol_kind)
+    vol_verts = [np.arange(4)]
+    surf_src = SourceSpaces([dict(nn=nn[:2], type='surf'),
+                             dict(nn=nn[2:], type='surf')])
+    assert surf_src.kind == 'surface'
+    surf_verts = [np.array([0, 1]), np.array([0, 1])]
     if klass is VolVectorSourceEstimate:
-        src = SourceSpaces([dict(nn=nn, type=kind)])
-        verts = np.arange(4)
-    else:
-        src = SourceSpaces([dict(nn=nn[:2], type=kind),
-                            dict(nn=nn[2:], type=kind)])
-        verts = [np.array([0, 1]), np.array([0, 1])]
+        src = vol_src
+        verts = vol_verts
+    elif klass is VectorSourceEstimate:
+        src = surf_src
+        verts = surf_verts
+    if klass is MixedVectorSourceEstimate:
+        src = surf_src + vol_src
+        verts = surf_verts + vol_verts
+        assert src.kind == 'mixed'
+        data = np.tile(data, (2, 1, 1))
+        amplitudes = np.tile(amplitudes, 2)
+        magnitudes = np.tile(magnitudes, 2)
+        normals = np.tile(normals, 2)
+        directions = np.tile(directions, (2, 1))
     stc = klass(data, verts, 0, 1, 'foo')
+    amplitudes = amplitudes[:, np.newaxis]
+    magnitudes = magnitudes[:, np.newaxis]
 
     # Magnitude of the vectors
-    assert_array_equal(stc.magnitude().data[:, 0], [1, 2, 3, np.sqrt(3)])
+    assert_array_equal(stc.magnitude().data, magnitudes)
 
     # Vector components projected onto the vertex normals
-    if kind == 'vol':
+    if kind in ('vol', 'mixed'):
         with pytest.raises(RuntimeError, match='surface or discrete'):
-            stc.normal(src)
-        return
-    normal = stc.normal(src)
-    assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
+            stc.project('normal', src)[0]
+    else:
+        normal = stc.project('normal', src)[0]
+        assert_allclose(normal.data[:, 0], normals)
+
+    # Maximal-variance component, either to keep amps pos or to align to src-nn
+    projected, got_directions = stc.project('pca')
+    assert_allclose(got_directions, directions)
+    assert_allclose(projected.data, amplitudes)
+    projected, got_directions = stc.project('pca', src)
+    flips = np.array([[1], [1], [-1.], [1]])
+    if klass is MixedVectorSourceEstimate:
+        flips = np.tile(flips, (2, 1))
+    assert_allclose(got_directions, directions * flips)
+    assert_allclose(projected.data, amplitudes * flips)
+
+    out_name = tmpdir.join('temp.h5')
+    stc.save(out_name)
+    stc_read = read_source_estimate(out_name)
+    assert_allclose(stc.data, stc_read.data)
+    assert len(stc.vertices) == len(stc_read.vertices)
+    for v1, v2 in zip(stc.vertices, stc_read.vertices):
+        assert_array_equal(v1, v2)
 
     stc = klass(data[:, :, 0], verts, 0, 1)  # upbroadcast
     assert stc.data.shape == (len(data), 3, 1)
     # Bad data
-    with pytest.raises(ValueError, match='of length 3'):
+    with pytest.raises(ValueError, match='must have shape.*3'):
         klass(data[:, :2], verts, 0, 1)
     data = data[:, :, np.newaxis]
     with pytest.raises(ValueError, match='3 dimensions for .*VectorSource'):
         klass(data, verts, 0, 1)
+
+
+@pytest.mark.parametrize('real', (True, False))
+def test_source_estime_project(real):
+    """Test projecting a source estimate onto direction of max power."""
+    n_src, n_times = 4, 100
+    rng = np.random.RandomState(0)
+    data = rng.randn(n_src, 3, n_times)
+    if not real:
+        data = data + 1j * rng.randn(n_src, 3, n_times)
+        assert data.dtype == np.complex128
+    else:
+        assert data.dtype == np.float64
+
+    # Make sure that the normal we get maximizes the power
+    # (i.e., minimizes the negative power)
+    want_nn = np.empty((n_src, 3))
+    for ii in range(n_src):
+        x0 = np.ones(3)
+
+        def objective(x):
+            x = x / np.linalg.norm(x)
+            return -np.linalg.norm(np.dot(x, data[ii]))
+        want_nn[ii] = fmin_cobyla(objective, x0, (), rhobeg=0.1, rhoend=1e-6)
+    want_nn /= np.linalg.norm(want_nn, axis=1, keepdims=True)
+
+    stc = VolVectorSourceEstimate(data, [np.arange(n_src)], 0, 1)
+    stc_max, directions = stc.project('pca')
+    flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
+    directions *= flips
+    assert_allclose(directions, want_nn, atol=1e-6)
+
+
+def test_source_estime_project_label():
+    """Test projecting a source estimate onto direction of max power."""
+    fwd = read_forward_solution(fname_fwd)
+    fwd = pick_types_forward(fwd, meg=True, eeg=False)
+
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
+    noise_cov = read_cov(fname_cov)
+    free = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=1.)
+    stc_free = apply_inverse(evoked, free, pick_ori='vector')
+
+    stc_pca = stc_free.project('pca', fwd['src'])[0]
+
+    labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                       subjects_dir=subjects_dir)
+    new_label = labels_lh[0] + labels_lh[1]
+
+    stc_in_label = stc_free.in_label(new_label)
+    stc_pca_in_label = stc_pca.in_label(new_label)
+
+    stc_in_label_pca = stc_in_label.project('pca', fwd['src'])[0]
+    assert_array_equal(stc_pca_in_label.data, stc_in_label_pca.data)
 
 
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
@@ -985,13 +1344,17 @@ def test_vec_stc_inv_fixed(invs, pick_ori):
     """Test vector STC behavior with fixed-orientation inverses."""
     evoked, _, _, _, fixed, fixedish = invs
     stc_fixed = apply_inverse(evoked, fixed)
+    stc_fixed_vector = apply_inverse(evoked, fixed, pick_ori='vector')
+    assert_allclose(stc_fixed.data,
+                    stc_fixed_vector.project('normal', fixed['src'])[0].data)
     stc_fixedish = apply_inverse(evoked, fixedish, pick_ori=pick_ori)
     if pick_ori == 'vector':
+        assert_allclose(stc_fixed_vector.data, stc_fixedish.data, atol=1e-2)
         # two ways here: with magnitude...
         assert_allclose(
             abs(stc_fixed).data, stc_fixedish.magnitude().data, atol=1e-2)
         # ... and when picking the normal (signed)
-        stc_fixedish = stc_fixedish.normal(fixedish['src'])
+        stc_fixedish = stc_fixedish.project('normal', fixedish['src'])[0]
     elif pick_ori is None:
         stc_fixed = abs(stc_fixed)
     else:
@@ -1031,44 +1394,44 @@ def test_epochs_vector_inverse():
 
 @requires_sklearn
 @testing.requires_testing_data
-def test_vol_connectivity():
-    """Test volume connectivity."""
+def test_vol_adjacency():
+    """Test volume adjacency."""
     vol = read_source_spaces(fname_vsrc)
 
-    pytest.raises(ValueError, spatial_src_connectivity, vol, dist=1.)
+    pytest.raises(ValueError, spatial_src_adjacency, vol, dist=1.)
 
-    connectivity = spatial_src_connectivity(vol)
+    adjacency = spatial_src_adjacency(vol)
     n_vertices = vol[0]['inuse'].sum()
-    assert_equal(connectivity.shape, (n_vertices, n_vertices))
-    assert (np.all(connectivity.data == 1))
-    assert (isinstance(connectivity, sparse.coo_matrix))
+    assert_equal(adjacency.shape, (n_vertices, n_vertices))
+    assert (np.all(adjacency.data == 1))
+    assert (isinstance(adjacency, sparse.coo_matrix))
 
-    connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
-    assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
-    assert (np.all(connectivity2.data == 1))
+    adjacency2 = spatio_temporal_src_adjacency(vol, n_times=2)
+    assert_equal(adjacency2.shape, (2 * n_vertices, 2 * n_vertices))
+    assert (np.all(adjacency2.data == 1))
 
 
 @testing.requires_testing_data
-def test_spatial_src_connectivity():
-    """Test spatial connectivity functionality."""
+def test_spatial_src_adjacency():
+    """Test spatial adjacency functionality."""
     # oct
     src = read_source_spaces(fname_src)
     assert src[0]['dist'] is not None  # distance info
     with pytest.warns(RuntimeWarning, match='will have holes'):
-        con = spatial_src_connectivity(src).toarray()
-    con_dist = spatial_src_connectivity(src, dist=0.01).toarray()
+        con = spatial_src_adjacency(src).toarray()
+    con_dist = spatial_src_adjacency(src, dist=0.01).toarray()
     assert (con == con_dist).mean() > 0.75
     # ico
     src = read_source_spaces(fname_src_fs)
-    con = spatial_src_connectivity(src).tocsr()
-    con_tris = spatial_tris_connectivity(grade_to_tris(5)).tocsr()
+    con = spatial_src_adjacency(src).tocsr()
+    con_tris = spatial_tris_adjacency(grade_to_tris(5)).tocsr()
     assert con.shape == con_tris.shape
     assert_array_equal(con.data, con_tris.data)
     assert_array_equal(con.indptr, con_tris.indptr)
     assert_array_equal(con.indices, con_tris.indices)
     # one hemi
-    con_lh = spatial_src_connectivity(src[:1]).tocsr()
-    con_lh_tris = spatial_tris_connectivity(grade_to_tris(5)).tocsr()
+    con_lh = spatial_src_adjacency(src[:1]).tocsr()
+    con_lh_tris = spatial_tris_adjacency(grade_to_tris(5)).tocsr()
     con_lh_tris = con_lh_tris[:10242, :10242].tocsr()
     assert_array_equal(con_lh.data, con_lh_tris.data)
     assert_array_equal(con_lh.indptr, con_lh_tris.indptr)
@@ -1083,8 +1446,8 @@ def test_vol_mask():
     src = read_source_spaces(fname_vsrc)
     mask = _get_vol_mask(src)
     # Let's use an alternative way that should be equivalent
-    vertices = src[0]['vertno']
-    n_vertices = len(vertices)
+    vertices = [src[0]['vertno']]
+    n_vertices = len(vertices[0])
     data = (1 + np.arange(n_vertices))[:, np.newaxis]
     stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
     img = stc_tmp.as_volume(src, mri_resolution=False)

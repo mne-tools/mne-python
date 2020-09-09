@@ -97,7 +97,7 @@ upload-pipy:
 flake:
 	@if command -v flake8 > /dev/null; then \
 		echo "Running flake8"; \
-		flake8 --count mne examples tutorials setup.py; \
+		flake8 --count; \
 	else \
 		echo "flake8 not found, please install it!"; \
 		exit 1; \
@@ -105,10 +105,10 @@ flake:
 	@echo "flake8 passed"
 
 codespell:  # running manually
-	@codespell -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+	@codespell --builtin clear,rare,informal,names,usage -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
 
 codespell-error:  # running on travis
-	@codespell -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+	@codespell --builtin clear,rare,informal,names,usage -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
 
 pydocstyle:
 	@echo "Running pydocstyle"
@@ -119,7 +119,7 @@ docstring:
 	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
 
 check-manifest:
-	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
+	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
 
 check-readme: clean wheel_quiet
 	twine check dist/*

@@ -49,7 +49,7 @@ def pick_events(events, include=None, exclude=None, step=False):
     if include is not None:
         if not isinstance(include, list):
             include = [include]
-        mask = np.zeros(len(events), dtype=np.bool)
+        mask = np.zeros(len(events), dtype=bool)
         for e in include:
             mask = np.logical_or(mask, events[:, 2] == e)
             if step:
@@ -58,7 +58,7 @@ def pick_events(events, include=None, exclude=None, step=False):
     elif exclude is not None:
         if not isinstance(exclude, list):
             exclude = [exclude]
-        mask = np.ones(len(events), dtype=np.bool)
+        mask = np.ones(len(events), dtype=bool)
         for e in exclude:
             mask = np.logical_and(mask, events[:, 2] != e)
             if step:
@@ -181,7 +181,7 @@ def _read_events_fif(fid, tree):
         elif kind == FIFF.FIFF_MNE_EVENT_COMMENTS:
             tag = read_tag(fid, pos)
             event_id = tag.data
-            event_id = event_id.tostring().decode('latin-1').split('\x00')[:-1]
+            event_id = event_id.tobytes().decode('latin-1').split('\x00')[:-1]
             assert len(event_id) == len(event_list)
             event_id = {k: v[2] for k, v in zip(event_id, event_list)}
             break
@@ -432,7 +432,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     if np.any(data < 0):
         warn('Trigger channel contains negative values, using absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
-    data = data.astype(np.int)
+    data = data.astype(np.int64)
 
     return _find_stim_steps(data, raw.first_samp, pad_start=pad_start,
                             pad_stop=pad_stop, merge=merge)
@@ -452,9 +452,9 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     else:
         merge = 0
 
-    data = data.astype(np.int)
+    data = data.astype(np.int64)
     if uint_cast:
-        data = data.astype(np.uint16).astype(np.int)
+        data = data.astype(np.uint16).astype(np.int64)
     if data.min() < 0:
         warn('Trigger channel contains negative values, using absolute '
              'value. If data were acquired on a Neuromag system with '

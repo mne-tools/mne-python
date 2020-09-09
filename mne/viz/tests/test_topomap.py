@@ -2,6 +2,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -19,21 +20,21 @@ from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
                  compute_proj_evoked, find_layout, pick_types, create_info,
-                 EvokedArray)
+                 read_cov)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_standard_montage, make_dig_montage
+from mne.channels import read_layout, make_dig_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import run_tests_if_main
 
-from mne.viz import plot_evoked_topomap, plot_projs_topomap
+from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
+from mne.utils import requires_sklearn
 
 
 data_dir = testing.data_path(download=False)
@@ -47,6 +48,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 ctf_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 layout = read_layout('Vectorview-all')
+cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
 def test_plot_topomap_interactive():
@@ -125,6 +127,11 @@ def test_plot_projs_topomap():
         plot_projs_topomap(projs[:-1], info, vlim=vlim, colorbar=True)
     plt.close('all')
 
+    eeg_proj = make_eeg_average_ref_proj(info)
+    info_meg = pick_info(info, pick_types(info, meg=True, eeg=False))
+    with pytest.raises(ValueError, match='No channel names in info match p'):
+        plot_projs_topomap([eeg_proj], info_meg)
+
 
 def test_plot_topomap_animation():
     """Test topomap plotting."""
@@ -137,23 +144,17 @@ def test_plot_topomap_animation():
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
 
-    # Test plotting of fnirs types
-    montage = make_standard_montage('biosemi16')
-    ch_names = montage.ch_names
-    ch_types = ['eeg'] * 16
-    info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
-    evoked_data = np.random.randn(16, 30)
-    evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
-    evokeds.set_montage(montage)
-    evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
-                               'Fz': 'hbo'}, verbose='error')
-    fig, anim = evokeds.animate_topomap(ch_type='hbo')
+
+def test_plot_topomap_animation_nirs(fnirs_evoked):
+    """Test topomap plotting for nirs data."""
+    fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     assert len(fig.axes) == 2
+    plt.close('all')
 
 
 @pytest.mark.slowtest
-def test_plot_topomap_basic():
+def test_plot_topomap_basic(monkeypatch):
     """Test basics of topomap plotting."""
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
@@ -165,8 +166,6 @@ def test_plot_topomap_basic():
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
     pytest.raises(ValueError, plt_topomap, ch_type='mag')
-    with pytest.deprecated_call(match='head_pos'):
-        plt_topomap(head_pos='foo')
     pytest.raises(ValueError, plt_topomap, times=[-100])  # bad time
     pytest.raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
@@ -214,7 +213,7 @@ def test_plot_topomap_basic():
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert np.abs(img_data[10, 54]) < 0.3
+    assert np.abs(img_data[10, 55]) < 0.3
 
     # border='mean'
     ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
@@ -230,15 +229,25 @@ def test_plot_topomap_basic():
         plot_topomap(data, info, extrapolate='head', border=[1, 2, 3])
 
     # error when str is not 'mean':
-    error_msg = 'border must be numeric or "mean", got \'fancy\''
+    error_msg = "The only allowed value is 'mean', but got 'fancy' instead."
     with pytest.raises(ValueError, match=error_msg):
         plot_topomap(data, info, extrapolate='head', border='fancy')
+
+    # test channel placement when only 'grad' are picked:
+    # ---------------------------------------------------
+    info_grad = evoked.copy().pick('grad').info
+    n_grads = len(info_grad['ch_names'])
+    data = np.random.randn(n_grads)
+    img, _ = plot_topomap(data, info_grad)
+
+    # check that channels are scattered around x == 0
+    pos = img.axes.collections[-1].get_offsets()
+    prop_channels_on_the_right = (pos[:, 0] > 0).mean()
+    assert prop_channels_on_the_right < 0.6
 
     # other:
     # ------
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
-    with pytest.deprecated_call(match='layout'):
-        plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
     axes = [plt.subplot(221), plt.subplot(222)]
     plt_topomap(axes=axes, colorbar=False)
@@ -268,8 +277,10 @@ def test_plot_topomap_basic():
     plt_topomap(times, ch_type='grad', mask=mask, show_names=True,
                 mask_params={'marker': 'x'})
     plt.close('all')
-    pytest.raises(ValueError, plt_topomap, times, ch_type='eeg', average=-1e3)
-    pytest.raises(ValueError, plt_topomap, times, ch_type='eeg', average='x')
+    with pytest.raises(ValueError, match='number of seconds; got -'):
+        plt_topomap(times, ch_type='eeg', average=-1e3)
+    with pytest.raises(TypeError, match='number of seconds; got type'):
+        plt_topomap(times, ch_type='eeg', average='x')
 
     p = plt_topomap(times, ch_type='grad', image_interp='bilinear',
                     show_names=lambda x: x.replace('MEG', ''))
@@ -303,7 +314,7 @@ def test_plot_topomap_basic():
     plt.close('all')
 
     # delaunay triangulation warning
-    plt_topomap(times, ch_type='mag', layout=None)
+    plt_topomap(times, ch_type='mag')
     # projs have already been applied
     pytest.raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                   proj='interactive', time_unit='s')
@@ -320,8 +331,12 @@ def test_plot_topomap_basic():
     # make sure projector gets toggled
     assert (np.max(fig1.axes[0].images[0]._A) != data_max)
 
-    pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
-                  np.repeat(.1, 50), time_unit='s')
+    with monkeypatch.context() as m:  # speed it up by not actually plotting
+        m.setattr(topomap, '_plot_topomap',
+                  lambda *args, **kwargs: (None, None, None))
+        with pytest.warns(RuntimeWarning, match='More than 25 topomaps plots'):
+            plot_evoked_topomap(evoked, [0.1] * 26, colorbar=False)
+
     pytest.raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
                   time_unit='s')
 
@@ -523,8 +538,6 @@ def test_plot_topomap_neuromag122():
                       explained_var=0.5)
 
     plot_projs_topomap([proj], evoked.info, **fast_test)
-    with pytest.deprecated_call(match='layout'):
-        plot_projs_topomap([proj], evoked.info, layout=layout, **fast_test)
 
 
 def test_plot_topomap_bads():
@@ -541,4 +554,29 @@ def test_plot_topomap_bads():
     plt.close('all')
 
 
-run_tests_if_main()
+def test_plot_topomap_nirs_overlap(fnirs_epochs):
+    """Test plotting nirs topomap with overlapping channels (gh-7414)."""
+    fig = fnirs_epochs['A'].average(picks='hbo').plot_topomap()
+    assert len(fig.axes) == 5
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_topomap_nirs_ica(fnirs_epochs):
+    """Test plotting nirs ica topomap."""
+    from mne.preprocessing import ICA
+    fnirs_epochs = fnirs_epochs.load_data().pick(picks='hbo')
+    fnirs_epochs = fnirs_epochs.pick(picks=range(30))
+    ica = ICA().fit(fnirs_epochs)
+    fig = ica.plot_components()
+    assert len(fig[0].axes) == 20
+    plt.close('all')
+
+
+def test_plot_cov_topomap():
+    """Test plotting a covariance topomap."""
+    cov = read_cov(cov_fname)
+    info = read_info(evoked_fname)
+    cov.plot_topomap(info)
+    cov.plot_topomap(info, noise_cov=cov)
+    plt.close('all')

@@ -191,9 +191,9 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
                      with_power, with_plv, pick_ori, decim, verbose=None):
     """Aux function for induced power and PLV."""
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
-    power = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    power = np.zeros(shape, dtype=np.float64)  # power or raw TFR
     # phase lock
-    plv = np.zeros(shape, dtype=np.complex) if with_plv else None
+    plv = np.zeros(shape, dtype=np.complex128) if with_plv else None
 
     for epoch in data:
         epoch = epoch[sel]  # keep only selected channels
@@ -215,9 +215,9 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
 def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
                       with_plv, with_power):
     """Compute single trial TFRs, either ITC, power or raw TFR."""
-    tfr_e = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    tfr_e = np.zeros(shape, dtype=np.float64)  # power or raw TFR
     # phase lock
-    plv_e = np.zeros(shape, dtype=np.complex) if with_plv else None
+    plv_e = np.zeros(shape, dtype=np.complex128) if with_plv else None
     n_sources, _, n_times = shape
     for f, w in enumerate(Ws):
         tfr_ = cwt(data, [w], use_fft=use_fft, decim=decim)
@@ -225,9 +225,9 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
         # phase lock and power at freq f
         if with_plv:
-            plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
+            plv_f = np.zeros((n_sources, n_times), dtype=np.complex128)
 
-        tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
+        tfr_f = np.zeros((n_sources, n_times), dtype=np.float64)
 
         for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
             sol = np.dot(K, t)
@@ -302,8 +302,8 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
     else:
         plv = None
 
-    if method != "MNE":
-        power *= noise_norm.ravel()[:, None, None] ** 2
+    if noise_norm is not None:
+        power *= noise_norm[:, :, np.newaxis] ** 2
 
     return power, plv, vertno
 
@@ -499,7 +499,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc_psd : instance of SourceEstimate | VolSourceEstimate
         The PSD of each of the sources.
     sensor_psd : instance of EvokedArray
-        The PSD of each sensor. Only returned if `return_sensor` is True.
+        The PSD of each sensor. Only returned if ``return_sensor`` is True.
 
     See Also
     --------
@@ -609,8 +609,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
     subject = _subject_from_inverse(inverse_operator)
-    iter_epochs = ProgressBar(n_epochs)
-    iter_epochs.iterable = epochs
+    iter_epochs = ProgressBar(epochs, max_value=n_epochs)
     evoked_info = pick_info(epochs.info, sel, verbose=False)
     for k, e in enumerate(iter_epochs):
         data = np.dot(Vh, e[sel])  # reducing data rank
@@ -673,7 +672,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         if is_free_ori and pick_ori is None:
             psd = combine_xyz(psd, square=False)
 
-        if method != "MNE":
+        if noise_norm is not None:
             psd *= noise_norm ** 2
 
         out = _make_stc(psd, tmin=freqs[0], tstep=fstep, vertices=vertno,
@@ -688,7 +687,6 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         yield out
 
     iter_epochs.update(n_epochs)  # in case some were skipped
-    iter_epochs.__exit__(None, None, None)
 
 
 @verbose

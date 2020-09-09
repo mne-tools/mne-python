@@ -6,7 +6,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_version
+from mne.utils import requires_sklearn
 from mne.fixes import _get_args
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
@@ -24,7 +24,7 @@ def make_data():
     return X, y
 
 
-@requires_version('sklearn', '0.17')
+@requires_sklearn
 def test_search_light():
     """Test SlidingEstimator."""
     from sklearn.linear_model import Ridge, LogisticRegression
@@ -171,7 +171,7 @@ def test_search_light():
         assert (isinstance(pipe.estimators_[0], BaggingClassifier))
 
 
-@requires_version('sklearn', '0.17')
+@requires_sklearn
 def test_generalization_light():
     """Test GeneralizingEstimator."""
     from sklearn.pipeline import make_pipeline
@@ -258,7 +258,7 @@ def test_generalization_light():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_version('sklearn', '0.19')  # 0.18 does not raise when it should
+@requires_sklearn
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
     from sklearn.linear_model import LinearRegression

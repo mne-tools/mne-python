@@ -234,14 +234,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH',
         'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
         'limo': 'MNE_DATASETS_LIMO_PATH',
+        'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
     }[name]
 
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.80', misc='0.5')
+    releases = dict(testing='0.106', misc='0.6')
     # And also update the "md5_hashes['testing']" variable below.
-
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
 
@@ -271,7 +271,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         mtrf='https://osf.io/h85s2/download?version=1',
         kiloword='https://osf.io/qkvf9/download?version=1',
         fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
-        phantom_4dbti='https://osf.io/v2brw/download?version=1',
+        phantom_4dbti='https://osf.io/v2brw/download?version=2',
+        refmeg_noise='https://osf.io/drt6v/download?version=1',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -290,6 +291,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
                               'MNE-visual_92_categories-data-part2.tar.gz'],
         phantom_4dbti='MNE-phantom-4DBTi.zip',
+        refmeg_noise='sample_reference_MEG_noise-raw.zip'
     )
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
@@ -310,6 +312,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories='MNE-visual_92_categories-data',
         fieldtrip_cmc='MNE-fieldtrip_cmc-data',
         phantom_4dbti='MNE-phantom-4DBTi',
+        refmeg_noise='MNE-refmeg-noise-data'
     )
     md5_hashes = dict(
         brainstorm=dict(
@@ -319,11 +322,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='84e606998ac379ef53029b3b1cf37918',
+        misc='e00808c3b05123059e2cf49ff276e919',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='ea825966c0a1e9b2f84e3826c5500161',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='de51a47739798064fd20bd3345d5eba0',
+        testing='d67eff9e1089f15b69f88931dbbf35df',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -332,7 +335,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         kiloword='3a124170795abbd2e48aae8727e719a8',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
-        phantom_4dbti='f1d96f81d46480d0cc52a7ba4f125367'
+        phantom_4dbti='938a601440f3ffa780d20a17bae039ff',
+        refmeg_noise='779fecd890d98b73a4832e717d7c7c45'
     )
     assert set(md5_hashes.keys()) == set(urls.keys())
     url = urls[name]
@@ -549,6 +553,7 @@ def has_dataset(name):
             'kiloword': 'MNE-kiloword-data',
             'phantom_4dbti': 'MNE-phantom-4DBTi',
             'mtrf': 'mTRF_1.5',
+            'refmeg_noise': 'MNE-refmeg-noise-data'
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
@@ -570,8 +575,8 @@ def _download_all_example_data(verbose=True):
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor)
-    sample.data_path()
+                   fnirs_motor, refmeg_noise)
+    sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
@@ -584,6 +589,7 @@ def _download_all_example_data(verbose=True):
     fieldtrip_cmc.data_path()
     kiloword.data_path()
     phantom_4dbti.data_path()
+    refmeg_noise.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()
@@ -603,7 +609,7 @@ def _download_all_example_data(verbose=True):
     fetch_fsaverage(None)
     sys.argv += ['--accept-hcpmmp-license']
     try:
-        fetch_hcp_mmp_parcellation()
+        fetch_hcp_mmp_parcellation(subjects_dir=sample_path + '/subjects')
     finally:
         sys.argv.pop(-1)
     limo.load_data(subject=1, update_path=True)
@@ -645,8 +651,9 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
-    This will download and install the HCP-MMP parcellation [1]_ files for
-    FreeSurfer's fsaverage [2]_ to the specified directory.
+    This will download and install the HCP-MMP parcellation
+    :footcite:`GlasserEtAl2016` files for FreeSurfer's fsaverage
+    :footcite:`Mills2016` to the specified directory.
 
     Parameters
     ----------
@@ -655,7 +662,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         ``subjects_dir + '/fsaverage/label'``.
     combine : bool
         If True, also produce the combined/reduced set of 23 labels per
-        hemisphere as ``HCPMMP1_combined.annot`` [3]_.
+        hemisphere as ``HCPMMP1_combined.annot``
+        :footcite:`GlasserEtAl2016supp`.
     %(verbose)s
 
     Notes
@@ -665,13 +673,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
 
     References
     ----------
-    .. [1] Glasser MF et al. (2016) A multi-modal parcellation of human
-           cerebral cortex. Nature 536:171-178.
-    .. [2] Mills K (2016) HCP-MMP1.0 projected on fsaverage.
-           https://figshare.com/articles/HCP-MMP1_0_projected_on_fsaverage/3498446/2
-    .. [3] Glasser MF et al. (2016) Supplemental information.
-           https://images.nature.com/full/nature-assets/nature/journal/v536/n7615/extref/nature18933-s3.pdf
-    """  # noqa: E501
+    .. footbibliography::
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
@@ -758,7 +761,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
 
         for hemi in ('lh', 'rh'):
             labels = read_labels_from_annot('fsaverage', 'HCPMMP1', hemi=hemi,
-                                            subjects_dir=subjects_dir)
+                                            subjects_dir=subjects_dir,
+                                            sort=False)
             label_names = [
                 '???' if label.name.startswith('???') else
                 label.name.split('_')[1] for label in labels]
@@ -783,8 +787,11 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
                 labels_out.append(these_labels)
             assert used.all()
         assert len(labels_out) == 46
-        write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
-                              hemi='both', subjects_dir=subjects_dir)
+        for hemi, side in (('lh', 'left'), ('rh', 'right')):
+            table_name = './%s.fsaverage164.label.gii' % (side,)
+            write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
+                                  hemi=hemi, subjects_dir=subjects_dir,
+                                  sort=False, table_name=table_name)
 
 
 def _manifest_check_download(manifest_path, destination, url, hash_):

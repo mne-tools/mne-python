@@ -69,9 +69,9 @@ vol_src = setup_volume_source_space(
 src += vol_src
 
 # Load data
-raw = read_raw_fif(fname_raw, preload=True)
+raw = read_raw_fif(fname_raw)
+raw.pick_types(meg=True, eeg=False, eog=True, stim=True).load_data()
 events = mne.find_events(raw)
-raw.pick_types(meg=True, eeg=False, eog=True)
 noise_cov = mne.read_cov(fname_cov)
 
 # compute the fwd matrix

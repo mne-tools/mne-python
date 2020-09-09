@@ -1,12 +1,10 @@
-{{ fullname }}
-{{ underline }}
+{{ fullname | escape | underline}}
 
 .. currentmodule:: {{ module }}
 
 .. autofunction:: {{ objname }}
 
-.. include:: {{ fullname }}.examples
+.. _sphx_glr_backreferences_{{ fullname }}:
 
-.. raw:: html
-
-    <div style='clear:both'></div>
+.. minigallery:: {{ fullname }}
+    :add-heading:

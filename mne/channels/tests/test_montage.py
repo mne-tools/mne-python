@@ -15,19 +15,21 @@ from string import ascii_lowercase
 
 from numpy.testing import (assert_array_equal,
                            assert_allclose, assert_equal)
+import matplotlib.pyplot as plt
 
-from mne import __file__ as _mne_file, create_info, read_evokeds
-from mne.utils._testing import _dig_sort_key
+from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
+from mne.fixes import nullcontext
+from mne.utils._testing import _dig_sort_key, assert_object_equal
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
-                          read_dig_egi, read_dig_captrack, read_dig_fif,
+                          read_dig_egi, read_dig_captrak, read_dig_fif,
+                          read_dig_captrack,  # XXX: remove with 0.22
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
                           read_dig_polhemus_isotrak,
                           read_polhemus_fastscan,
                           read_dig_hpts)
-from mne.channels.montage import (_set_montage, transform_to_head,
-                                  _check_get_coord_frame)
-from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
+from mne.channels.montage import transform_to_head, _check_get_coord_frame
+from mne.utils import run_tests_if_main, assert_dig_allclose
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
@@ -144,12 +146,13 @@ def test_documented():
     assert_equal(set(montages), set(kinds))
 
 
-@pytest.mark.parametrize('reader, file_content, expected_dig, ext', [
+@pytest.mark.parametrize('reader, file_content, expected_dig, ext, warning', [
     pytest.param(
         partial(read_custom_montage, head_size=None),
         ('FidNz 0       9.071585155     -2.359754454\n'
          'FidT9 -6.711765       0.040402876     -3.251600355\n'
          'very_very_very_long_name -5.831241498 -4.494821698  4.955347697\n'
+         'Cz 0       0       1\n'
          'Cz 0       0       8.899186843'),
         make_dig_montage(
             ch_pos={
@@ -160,7 +163,32 @@ def test_documented():
             lpa=[-6.711765, 0.04040287, -3.2516003],
             rpa=None,
         ),
-        'sfp', id='sfp'),
+        'sfp',
+        (RuntimeWarning, r'Duplicate.*last will be used for Cz \(2\)'),
+        id='sfp_duplicate'),
+
+    pytest.param(
+        partial(read_custom_montage, head_size=None),
+        ('FidNz 0       9.071585155     -2.359754454\n'
+         'FidT9 -6.711765       0.040402876     -3.251600355\n'
+         'headshape 1 2 3\n'
+         'headshape 4 5 6\n'
+         'Cz 0       0       8.899186843'),
+        make_dig_montage(
+            hsp=[
+                [1, 2, 3],
+                [4, 5, 6],
+            ],
+            ch_pos={
+                'Cz': [0., 0., 8.899187],
+            },
+            nasion=[0., 9.071585, -2.3597546],
+            lpa=[-6.711765, 0.04040287, -3.2516003],
+            rpa=None,
+        ),
+        'sfp',
+        None,
+        id='sfp_headshape'),
 
     pytest.param(
         partial(read_custom_montage, head_size=1),
@@ -177,7 +205,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None, coord_frame='head',
         ),
-        'loc', id='EEGLAB'),
+        'loc',
+        None,
+        id='EEGLAB'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None, coord_frame='mri'),
@@ -196,7 +226,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None, coord_frame='mri',
         ),
-        'csd', id='matlab'),
+        'csd',
+        None,
+        id='matlab'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
@@ -216,7 +248,9 @@ def test_documented():
             lpa=[-0.0860761, -0.0199897, -0.047986],
             rpa=[0.0857939, -0.0200093, -0.048031],
         ),
-        'elc', id='ASA electrode'),
+        'elc',
+        None,
+        id='ASA electrode'),
 
     pytest.param(
         partial(read_custom_montage, head_size=1),
@@ -234,7 +268,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None,
         ),
-        'txt', id='generic theta-phi (txt)'),
+        'txt',
+        None,
+        id='generic theta-phi (txt)'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
@@ -257,7 +293,9 @@ def test_documented():
             lpa=[-7.35898963e-01, 9.01216309e-17, -4.25385374e-01],
             rpa=[0.73589896, 0., -0.42538537],
         ),
-        'elp', id='BESA spherical model'),
+        'elp',
+        None,
+        id='BESA spherical model'),
 
     pytest.param(
         partial(read_dig_hpts, unit='m'),
@@ -272,7 +310,9 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None,
         ),
-        'hpts', id='legacy mne-c'),
+        'hpts',
+        None,
+        id='legacy mne-c'),
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
@@ -317,25 +357,36 @@ def test_documented():
             },
             nasion=None, lpa=None, rpa=None,
         ),
-        'bvef', id='brainvision'),
+        'bvef',
+        None,
+        id='brainvision'),
 ])
 def test_montage_readers(
-    reader, file_content, expected_dig, ext, tmpdir
+    reader, file_content, expected_dig, ext, warning, tmpdir
 ):
     """Test that we have an equivalent of read_montage for all file formats."""
     fname = op.join(str(tmpdir), 'test.{ext}'.format(ext=ext))
     with open(fname, 'w') as fid:
         fid.write(file_content)
 
-    dig_montage = reader(fname)
+    if warning is None:
+        ctx = nullcontext()
+    else:
+        ctx = pytest.warns(warning[0], match=warning[1])
+    with ctx:
+        dig_montage = reader(fname)
     assert isinstance(dig_montage, DigMontage)
 
     actual_ch_pos = dig_montage._get_ch_pos()
     expected_ch_pos = expected_dig._get_ch_pos()
     for kk in actual_ch_pos:
         assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
+    assert len(dig_montage.dig) == len(expected_dig.dig)
     for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
         assert d1['coord_frame'] == d2['coord_frame']
+        for key in ('coord_frame', 'ident', 'kind'):
+            assert isinstance(d1[key], int)
+            assert isinstance(d2[key], int)
 
 
 @testing.requires_testing_data
@@ -354,17 +405,18 @@ def test_read_locs():
     )
 
 
-def test_read_dig_dat():
+def test_read_dig_dat(tmpdir):
     """Test reading *.dat electrode locations."""
     rows = [
         ['Nasion', 78, 0.00, 1.00, 0.00],
         ['Left', 76, -1.00, 0.00, 0.00],
         ['Right', 82, 1.00, -0.00, 0.00],
         ['O2', 69, -0.50, -0.90, 0.05],
+        ['O2', 68, 0.00, 0.01, 0.02],
         ['Centroid', 67, 0.00, 0.00, 0.00],
     ]
     # write mock test.dat file
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     fname_temp = op.join(temp_dir, 'test.dat')
     with open(fname_temp, 'w') as fid:
         for row in rows:
@@ -376,6 +428,7 @@ def test_read_dig_dat():
         78: FIFF.FIFFV_POINT_NASION,
         76: FIFF.FIFFV_POINT_LPA,
         82: FIFF.FIFFV_POINT_RPA,
+        68: 1,
         69: 1,
     }
     kinds = {
@@ -383,12 +436,15 @@ def test_read_dig_dat():
         76: FIFF.FIFFV_POINT_CARDINAL,
         82: FIFF.FIFFV_POINT_CARDINAL,
         69: FIFF.FIFFV_POINT_EEG,
+        68: FIFF.FIFFV_POINT_EEG,
     }
     target = {row[0]: {'r': row[2:], 'ident': idents[row[1]],
                        'kind': kinds[row[1]], 'coord_frame': 0}
               for row in rows[:-1]}
+    assert_allclose(target['O2']['r'], [0, 0.01, 0.02])
     # read it
-    dig = read_dig_dat(fname_temp)
+    with pytest.warns(RuntimeWarning, match=r'Duplic.*for O2 \(2\)'):
+        dig = read_dig_dat(fname_temp)
     assert set(dig.ch_names) == {'O2'}
     keys = chain(['Left', 'Nasion', 'Right'], dig.ch_names)
     target = [target[k] for k in keys]
@@ -721,12 +777,12 @@ def test_set_dig_montage():
 
 
 @testing.requires_testing_data
-def test_fif_dig_montage():
+def test_fif_dig_montage(tmpdir):
     """Test FIF dig montage support."""
     dig_montage = read_dig_fif(fif_dig_montage_fname)
 
     # test round-trip IO
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     fname_temp = op.join(temp_dir, 'test.fif')
     _check_roundtrip(dig_montage, fname_temp)
 
@@ -782,7 +838,7 @@ def test_fif_dig_montage():
 
 
 @testing.requires_testing_data
-def test_egi_dig_montage():
+def test_egi_dig_montage(tmpdir):
     """Test EGI MFF XML dig montage support."""
     dig_montage = read_dig_egi(egi_dig_montage_fname)
     fid, coord = _get_fid_coords(dig_montage.dig)
@@ -820,7 +876,7 @@ def test_egi_dig_montage():
     )
 
     # test round-trip IO
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     fname_temp = op.join(temp_dir, 'egi_test.fif')
     _check_roundtrip(dig_montage_in_head, fname_temp)  # XXX: write forces head
 
@@ -837,9 +893,9 @@ def _pop_montage(dig_montage, ch_name):
 
 
 @testing.requires_testing_data
-def test_read_dig_captrack(tmpdir):
-    """Test reading a captrack montage file."""
-    EXPECTED_CH_NAMES = [
+def test_read_dig_captrak(tmpdir):
+    """Test reading a captrak montage file."""
+    EXPECTED_CH_NAMES_OLD = [
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
         'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CPz', 'Cz', 'F1', 'F2', 'F3', 'F4',
         'F5', 'F6', 'F7', 'F8', 'FC1', 'FC2', 'FC3', 'FC4', 'FC5', 'FC6',
@@ -848,9 +904,27 @@ def test_read_dig_captrack(tmpdir):
         'PO4', 'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'REF', 'T7', 'T8', 'TP10',
         'TP7', 'TP8', 'TP9'
     ]
-    montage = read_dig_captrack(
+    EXPECTED_CH_NAMES = [
+        'T7', 'FC5', 'F7', 'C5', 'FT7', 'FT9', 'TP7', 'TP9', 'P7', 'CP5',
+        'PO7', 'C3', 'CP3', 'P5', 'P3', 'PO3', 'PO9', 'O1', 'Oz', 'POz', 'O2',
+        'PO4', 'P1', 'Pz', 'P2', 'CP2', 'CP1', 'CPz', 'Cz', 'C1', 'FC1', 'FC3',
+        'REF', 'F3', 'F1', 'Fz', 'F5', 'AF7', 'AF3', 'Fp1', 'GND', 'F2', 'AF4',
+        'Fp2', 'F4', 'F8', 'F6', 'AF8', 'FC2', 'FC6', 'FC4', 'C2', 'C4', 'P4',
+        'CP4', 'PO8', 'P8', 'P6', 'CP6', 'PO10', 'TP10', 'TP8', 'FT10', 'T8',
+        'C6', 'FT8'
+    ]
+    assert set(EXPECTED_CH_NAMES) == set(EXPECTED_CH_NAMES_OLD)
+    montage = read_dig_captrak(
         fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
     )
+
+    # XXX: remove with 0.22 once captrCK is deprecated
+    with pytest.warns(DeprecationWarning,
+                      match='read_dig_captrack is deprecated'):
+        montage2 = read_dig_captrack(
+            fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
+        )
+        assert repr(montage) == repr(montage2)
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (
@@ -883,21 +957,58 @@ def test_read_dig_captrack(tmpdir):
                             [-0.005103, 0.05395, 0.144622], rtol=1e-04)
 
 
-def test_set_montage_mgh():
+# https://gist.github.com/larsoner/2264fb5895070d29a8c9aa7c0dc0e8a6
+_MGH60 = [
+    'Fz', 'F2', 'AF4', 'Fpz', 'Fp1', 'AF8', 'FT9', 'F7', 'FC5', 'FC6', 'FT7',
+    'F1', 'AF7', 'FT8', 'F6', 'F5', 'FC1', 'FC2', 'FT10', 'T9', 'Cz', 'F4',
+    'T7', 'C2', 'C4', 'C1', 'C3', 'F8', 'F3', 'C5', 'Fp2', 'AF3',
+    'CP2', 'P2', 'O2', 'Iz', 'Oz', 'PO4', 'O1', 'P8', 'PO8', 'P6', 'PO7', 'PO3', 'C6', 'TP9', 'TP8', 'CP4', 'P4',  # noqa
+    'CP3', 'CP1', 'TP7', 'P3', 'Pz', 'P1', 'P7', 'P5', 'TP10', 'T8', 'T10',
+]
+
+
+@pytest.mark.parametrize('rename', ('raw', 'montage', 'custom'))
+def test_set_montage_mgh(rename):
     """Test setting 'mgh60' montage to old fif."""
     raw = read_raw_fif(fif_fname)
-    raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
+    eeg_picks = pick_types(raw.info, meg=False, eeg=True, exclude=())
+    assert list(eeg_picks) == [ii for ii, name in enumerate(raw.ch_names)
+                               if name.startswith('EEG')]
+    orig_pos = np.array([raw.info['chs'][pick]['loc'][:3]
+                         for pick in eeg_picks])
+    atol = 1e-6
+    if rename == 'raw':
+        raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
+        raw.set_montage('mgh60')  # test loading with string argument
+    elif rename == 'montage':
+        mon = make_standard_montage('mgh60')
+        mon.rename_channels(lambda x: x.replace('EEG', 'EEG '))
+        assert [raw.ch_names[pick] for pick in eeg_picks] == mon.ch_names
+        raw.set_montage(mon)
+    else:
+        atol = 3e-3  # XXX old defs here apparently (maybe not realistic)?
+        assert rename == 'custom'
+        assert len(_MGH60) == 60
+        mon = make_standard_montage('standard_1020')
 
-    orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
-                         if ch['ch_name'].startswith('EEG')])
+        def renamer(x):
+            try:
+                return 'EEG %03d' % (_MGH60.index(x) + 1,)
+            except ValueError:
+                return x
 
-    raw.set_montage('mgh60')  # test loading with string argument
+        mon.rename_channels(renamer)
+        raw.set_montage(mon)
+
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert ((orig_pos != new_pos).all())
 
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0.000775, 0.006881, 0.047398], atol=1e-3)
+    # spot check
+    assert_allclose(new_pos[:2], [[0.000273, 0.084920, 0.105838],
+                                  [0.028822, 0.083529, 0.099164]], atol=atol)
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig
@@ -1081,8 +1192,11 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
     info = create_info(ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg')
-    with pytest.raises(ValueError, match=_MSG):
+    with pytest.raises(ValueError, match=_MSG) as exc:
         info.set_montage(montage)
+    # plus suggestions
+    assert exc.match('set_channel_types')
+    assert exc.match('on_missing')
 
 
 def test_heterogeneous_ch_type():
@@ -1149,29 +1263,129 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     )
 
 
-def test_set_dig_montage_parameters_deprecation():
-    """Test parameter deprecation for set_montage."""
-    # XXX: This is testing deprecated behavior and should be removed in 0.21.
-    N_CHANNELS = 3
-    raw = _make_toy_raw(N_CHANNELS)
-    montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
+def test_set_montage_with_missing_coordinates():
+    """Test set montage with missing coordinates."""
+    N_CHANNELS, NaN = 3, np.nan
 
-    # ok
+    raw = _make_toy_raw(N_CHANNELS)
+    raw.set_channel_types({ch: 'ecog' for ch in raw.ch_names})
+    # don't include all the channels
+    ch_names = raw.ch_names[1:]
+    n_channels = len(ch_names)
+    ch_coords = np.arange(n_channels * 3).reshape(n_channels, 3)
+    montage_in_mri = make_dig_montage(
+        ch_pos=dict(zip(ch_names, ch_coords,)),
+        coord_frame='unknown',
+        nasion=[0, 1, 0], lpa=[1, 0, 0], rpa=[-1, 0, 0],
+    )
+
+    with pytest.raises(ValueError, match='DigMontage is '
+                                         'only a subset of info'):
+        raw.set_montage(montage_in_mri)
+
+    with pytest.raises(ValueError, match='Invalid value'):
+        raw.set_montage(montage_in_mri, on_missing='foo')
+
+    with pytest.raises(TypeError, match='must be an instance'):
+        raw.set_montage(montage_in_mri, on_missing=True)
+
+    with pytest.warns(RuntimeWarning, match='DigMontage is '
+                                            'only a subset of info'):
+        raw.set_montage(montage_in_mri, on_missing='warn')
+
+    raw.set_montage(montage_in_mri, on_missing='ignore')
+    assert_allclose(
+        actual=np.array([ch['loc'] for ch in raw.info['chs']]),
+        desired=[
+            [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+            [0., 1., -2., 0., 0., 0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [-3., 4., -5., 0., 0., 0., NaN, NaN, NaN, NaN, NaN, NaN],
+        ]
+    )
+
+
+def test_get_montage():
+    """Test get montage from Instance.
+
+    Test with standard montage and then loaded in montage.
+    """
+    # 1. read in testing data and assert montage roundtrip
+    # for testing dataset: 'test_raw.fif'
+    raw = read_raw_fif(fif_fname)
+    raw = raw.rename_channels(lambda name: name.replace('EEG ', 'EEG'))
+    raw2 = raw.copy()
+    # get montage and then set montage and
+    # it should be the same
+    montage = raw.get_montage()
+    raw.set_montage(montage, on_missing='raise')
+    test_montage = raw.get_montage()
+    assert_object_equal(raw.info['chs'], raw2.info['chs'])
+    assert_dig_allclose(raw2.info, raw.info)
+    assert_object_equal(raw2.info['dig'], raw.info['dig'])
+
+    # the montage does not change
+    assert_object_equal(montage.dig, test_montage.dig)
+
+    # 2. now do a standard montage
+    montage = make_standard_montage('mgh60')
+    # set the montage; note renaming to make standard montage map
     raw.set_montage(montage)
 
-    with pytest.deprecated_call():
-        raw.set_montage(montage, raise_if_subset=True)
+    # get montage back and set it
+    # the channel locations should be the same
+    raw2 = raw.copy()
+    test_montage = raw.get_montage()
+    raw.set_montage(test_montage, on_missing='ignore')
 
-    _msg = 'since 0.20 its value can only be True.'
-    with pytest.raises(ValueError, match=_msg):
-        raw.set_montage(montage, raise_if_subset=False)
+    # chs should not change
+    assert_object_equal(raw2.info['chs'], raw.info['chs'])
+    # dig order might be different after set_montage
+    assert montage.ch_names == test_montage.ch_names
+    # note that test_montage will have different coordinate frame
+    # compared to standard montage
+    assert_dig_allclose(raw2.info, raw.info)
+    assert_object_equal(raw2.info['dig'], raw.info['dig'])
 
-    # Already deleted parameters in 0.20, just for completeness
-    with pytest.raises(TypeError, match='unexpected keyword argument'):
-        raw.set_montage(montage, set_dig=True)
+    # 3. if montage gets set to None
+    raw.set_montage(None)
+    assert raw.get_montage() is None
 
-    with pytest.raises(TypeError, match='unexpected keyword argument'):
-        _set_montage(raw.info, montage, update_ch_names=False)
+    # 4. read in BV test dataset and make sure montage
+    # fulfills roundtrip on non-standard montage
+    dig_montage = read_dig_fif(fif_dig_montage_fname)
+
+    # Make a BrainVision file like the one the user would have had
+    # with testing dataset 'test.vhdr'
+    raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    raw_bv_2 = raw_bv.copy()
+
+    # rename channels to make it have the full set
+    # of channels
+    mapping = dict()
+    for ii, ch_name in enumerate(raw_bv.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 1,)
+    raw_bv.rename_channels(mapping)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 33,)
+    raw_bv_2.rename_channels(mapping)
+    raw_bv.add_channels([raw_bv_2])
+    for ch in raw_bv.info['chs']:
+        ch['kind'] = FIFF.FIFFV_EEG_CH
+
+    # Set the montage and roundtrip
+    raw_bv.set_montage(dig_montage)
+    raw_bv2 = raw_bv.copy()
+
+    # reset the montage
+    test_montage = raw_bv.get_montage()
+    raw_bv.set_montage(test_montage, on_missing='ignore')
+    # dig order might be different after set_montage
+    assert_object_equal(raw_bv2.info['dig'], raw_bv.info['dig'])
+    assert_dig_allclose(raw_bv2.info, raw_bv.info)
+
+    # if dig is not set in the info, then montage returns None
+    raw.info['dig'] = None
+    assert raw.get_montage() is None
 
 
 def test_read_dig_hpts():
@@ -1191,6 +1405,15 @@ def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
     EXPECTED_NUM = 24
     assert len(get_builtin_montages()) == EXPECTED_NUM
+
+
+@testing.requires_testing_data
+def test_plot_montage():
+    """Test plotting montage."""
+    # gh-8025
+    montage = read_dig_captrak(bvct_dig_montage_fname)
+    montage.plot()
+    plt.close('all')
 
 
 run_tests_if_main()

@@ -43,7 +43,7 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
     raw : instance of RawArray
         A Raw Object containing the loaded data.
     """
-    from ...externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader import read_mat
 
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
@@ -107,7 +107,7 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     epochs : instance of EpochsArray
         An EpochsArray containing the loaded data.
     """
-    from ...externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader import read_mat
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
@@ -120,7 +120,10 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     info = _create_info(ft_struct, info)  # create info structure
     data = np.array(ft_struct['trial'])  # create the epochs data array
     events = _create_events(ft_struct, trialinfo_column)
-    metadata = _create_event_metadata(ft_struct)
+    if events is not None:
+        metadata = _create_event_metadata(ft_struct)
+    else:
+        metadata = None
     tmin = _set_tmin(ft_struct)  # create start time
 
     epochs = EpochsArray(data=data, info=info, tmin=tmin,
@@ -161,7 +164,7 @@ def read_evoked_fieldtrip(fname, info, comment=None,
     evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
     """
-    from ...externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader import read_mat
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])

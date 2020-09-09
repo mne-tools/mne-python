@@ -13,7 +13,7 @@ from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
 from mne.surface import (read_morph_map, _compute_nearest, _tessellate_sphere,
                          fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf, _normal_orth)
+                         get_meg_helmet_surf, _normal_orth, _read_patch)
 from mne.utils import (_TempDir, requires_vtk, catch_logging,
                        run_tests_if_main, object_diff, requires_freesurfer)
 from mne.io import read_info
@@ -45,16 +45,16 @@ def test_helmet():
     trans = _get_trans(fname_trans)[0]
     new_info = read_info(fname_raw)
     artemis_info = new_info.copy()
-    for pick in pick_types(new_info):
+    for pick in pick_types(new_info, meg=True):
         new_info['chs'][pick]['coil_type'] = 9999
         artemis_info['chs'][pick]['coil_type'] = \
             FIFF.FIFFV_COIL_ARTEMIS123_GRAD
     for info, n, name in [(read_info(fname_raw), 304, '306m'),
-                          (read_info(fname_kit_raw), 304, 'KIT'),
+                          (read_info(fname_kit_raw), 150, 'KIT'),  # Delaunay
                           (read_info(fname_bti_raw), 304, 'Magnes'),
                           (read_info(fname_ctf_raw), 342, 'CTF'),
-                          (new_info, 102, 'unknown'),
-                          (artemis_info, 102, 'ARTEMIS123')
+                          (new_info, 102, 'unknown'),  # Delaunay
+                          (artemis_info, 102, 'ARTEMIS123'),  # Delaunay
                           ]:
         with catch_logging() as log:
             helmet = get_meg_helmet_surf(info, trans, verbose=True)
@@ -90,7 +90,7 @@ def test_compute_nearest():
     """Test nearest neighbor searches."""
     x = rng.randn(500, 3)
     x /= np.sqrt(np.sum(x ** 2, axis=1))[:, None]
-    nn_true = rng.permutation(np.arange(500, dtype=np.int))[:20]
+    nn_true = rng.permutation(np.arange(500, dtype=np.int64))[:20]
     y = x[nn_true]
 
     nn1 = _compute_nearest(x, y, method='BallTree')
@@ -159,8 +159,8 @@ def test_io_surface():
     tempdir = _TempDir()
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
-    fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
-                        'lh.inflated')
+    fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'inner_skull.surf')
     for fname in (fname_quad, fname_tri):
         with pytest.warns(None):  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
@@ -172,6 +172,22 @@ def test_io_surface():
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
         assert_equal(object_diff(vol_info, c_vol_info), '')
+        if fname != fname_tri:  # don't bother testing wavefront for the bigger
+            continue
+
+        # Test writing/reading a Wavefront .obj file
+        write_surface(op.join(tempdir, 'tmp.obj'), pts, tri, volume_info=None,
+                      overwrite=True)
+        c_pts, c_tri = read_surface(op.join(tempdir, 'tmp.obj'),
+                                    read_metadata=False)
+        assert_array_equal(pts, c_pts)
+        assert_array_equal(tri, c_tri)
+
+    # reading patches (just a smoke test, let the flatmap viz tests be more
+    # complete)
+    fname_patch = op.join(
+        data_path, 'subjects', 'fsaverage', 'surf', 'rh.cortex.patch.flat')
+    _read_patch(fname_patch)
 
 
 @testing.requires_testing_data

@@ -5,8 +5,8 @@
 Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 ===========================================================================
 
-Decoding of motor imagery applied to EEG data decomposed using CSP.
-Here the classifier is applied to features extracted on CSP filtered signals.
+Decoding of motor imagery applied to EEG data decomposed using CSP. A
+classifier is then applied to features extracted on CSP-filtered signals.
 
 See https://en.wikipedia.org/wiki/Common_spatial_pattern and [1]_. The EEGBCI
 dataset is documented in [2]_. The data set is available at PhysioNet [3]_.

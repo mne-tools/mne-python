@@ -254,7 +254,6 @@
 
 .. _Milan Rybář: http://milanrybar.cz
 
-<<<<<<< HEAD
 .. _Joshua Bear: https://github.com/joshbear
 
 .. _Eberhard Eich: https://github.com/ebeich
@@ -302,3 +301,23 @@
 .. _Ramiro Gatti: https://github.com/ragatti
 
 .. _Liberty Hamilton: https://github.com/libertyh
+
+.. _Svea Marie Meyer: https://github.com/SveaMeyer13
+
+.. _Lx37: https://github.com/Lx37
+
+.. _Kyle Mathewson: https://github.com/kylemath
+
+.. _Ezequiel Mikulan: https://github.com/ezemikulan
+
+.. _Jan Sedivy: https://github.com/honzaseda
+
+.. _Johann Benerradi: https://github.com/HanBnrd
+
+.. _Rahul Nadkarni: https://github.com/rahuln
+
+.. _Lau Møller Andersen: https://github.com/ualsbombe
+
+.. _Martin Schulz: https://github.com/marsipu
+
+.. _Jeroen Van Der Donckt: https://github.com/jvdd

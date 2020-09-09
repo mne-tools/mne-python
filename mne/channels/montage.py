@@ -12,11 +12,10 @@
 # License: Simplified BSD
 
 from collections import OrderedDict
+from copy import deepcopy
+from functools import partial
 import os.path as op
 import re
-from copy import deepcopy
-from itertools import takewhile, chain
-from functools import partial
 
 import numpy as np
 
@@ -30,13 +29,13 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const)
-from ..io.meas_info import DEPRECATED_PARAM
+from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
-                     _check_option, _validate_type, _check_fname,
-                     fill_doc)
+                     _check_option, _validate_type, _check_fname, _on_missing,
+                     fill_doc, deprecated)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -112,7 +111,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
@@ -120,9 +119,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     if ch_pos is None:
         ch_names = None
     else:
-        ch_names = list(ch_pos.keys())
-        if not isinstance(ch_pos, OrderedDict):
-            ch_names = sorted(ch_names)
+        ch_names = list(ch_pos)
     dig = _make_dig_points(
         nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
         dig_ch_pos=ch_pos, coord_frame=coord_frame
@@ -149,7 +146,7 @@ class DigMontage(object):
 
     See Also
     --------
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -192,6 +189,23 @@ class DigMontage(object):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
                             sphere=sphere)
+
+    def rename_channels(self, mapping):
+        """Rename the channels.
+
+        Parameters
+        ----------
+        %(rename_channels_mapping)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance. Operates in-place.
+        """
+        from .channels import rename_channels
+        temp_info = create_info(list(self._get_ch_pos()), 1000., 'eeg')
+        rename_channels(temp_info, mapping)
+        self.ch_names = temp_info['ch_names']
 
     def save(self, fname):
         """Save digitization points to FIF.
@@ -276,7 +290,7 @@ class DigMontage(object):
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
         assert len(self.ch_names) == len(pos)
-        return dict(zip(self.ch_names, pos))
+        return OrderedDict(zip(self.ch_names, pos))
 
     def _get_dig_names(self):
         NAMED_KIND = (FIFF.FIFFV_POINT_EEG,)
@@ -289,9 +303,12 @@ class DigMontage(object):
         return dig_names
 
 
-def _check_unit_and_get_scaling(unit, valid_scales):
-    _check_option('unit', unit, list(valid_scales.keys()))
-    return valid_scales[unit]
+VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+
+
+def _check_unit_and_get_scaling(unit):
+    _check_option('unit', unit, sorted(VALID_SCALES.keys()))
+    return VALID_SCALES[unit]
 
 
 def transform_to_head(montage):
@@ -331,7 +348,7 @@ def read_dig_dat(fname):
     .. Warning::
         This function was implemented based on ``*.dat`` files available from
         `Compumedics <https://compumedicsneuroscan.com/scan-acquire-
-        configuration-files/>`_ and might not work as expected with novel
+        configuration-files/>`__ and might not work as expected with novel
         files. If it does not read your files correctly please contact the
         mne-python developers.
 
@@ -347,7 +364,7 @@ def read_dig_dat(fname):
 
     See Also
     --------
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -360,12 +377,13 @@ def read_dig_dat(fname):
     ``*.dat`` files are plain text files and can be inspected and amended with
     a plain text editor.
     """
+    from ._standard_montage_utils import _check_dupes_odict
     fname = _check_fname(fname, overwrite='read', must_exist=True)
 
     with open(fname, 'r') as fid:
         lines = fid.readlines()
 
-    electrodes = {}
+    ch_names, poss = list(), list()
     nasion = lpa = rpa = None
     for i, line in enumerate(lines):
         items = line.split()
@@ -386,7 +404,9 @@ def read_dig_dat(fname):
         elif num == '82':
             rpa = pos
         else:
-            electrodes[items[0]] = pos
+            ch_names.append(items[0])
+            poss.append(pos)
+    electrodes = _check_dupes_odict(ch_names, poss)
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
@@ -412,7 +432,7 @@ def read_dig_fif(fname):
     DigMontage
     read_dig_dat
     read_dig_egi
-    read_dig_captrack
+    read_dig_captrak
     read_dig_polhemus_isotrak
     read_dig_hpts
     make_dig_montage
@@ -450,7 +470,7 @@ def read_dig_hpts(fname, unit='mm'):
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -467,8 +487,8 @@ def read_dig_hpts(fname, unit='mm'):
     where:
 
     ``<*category*>``
-        defines the type of points. Allowed categories are: `hpi`,
-        `cardinal` (fiducial), `eeg`, and `extra` corresponding to
+        defines the type of points. Allowed categories are: ``hpi``,
+        ``cardinal`` (fiducial), ``eeg``, and ``extra`` corresponding to
         head-position indicator coil locations, cardinal landmarks, EEG
         electrode locations, and additional head surface points,
         respectively.
@@ -501,8 +521,7 @@ def read_dig_hpts(fname, unit='mm'):
 
     """
     from ._standard_montage_utils import _str_names, _str
-    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+    _scale = _check_unit_and_get_scaling(unit)
 
     out = np.genfromtxt(fname, comments='#',
                         dtype=(_str, _str, 'f8', 'f8', 'f8'))
@@ -541,7 +560,7 @@ def read_dig_egi(fname):
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_fif
     read_dig_hpts
@@ -564,7 +583,7 @@ def read_dig_egi(fname):
     return make_dig_montage(**data)
 
 
-def read_dig_captrack(fname):
+def read_dig_captrak(fname):
     """Read electrode locations from CapTrak Brain Products system.
 
     Parameters
@@ -591,12 +610,37 @@ def read_dig_captrack(fname):
     _check_fname(fname, overwrite='read', must_exist=True)
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
-    # XXX: to change to the new naming in v.0.20 (all this block should go)
-    data.pop('point_names')
-    data['hpi'] = data.pop('elp')
-    data['ch_pos'] = data.pop('dig_ch_pos')
-
     return make_dig_montage(**data)
+
+
+@deprecated('read_dig_captrack is deprecated and will be removed in 0.22; '
+            'please use read_dig_captrak instead '
+            '(note the spelling correction: captraCK -> captraK).')
+def read_dig_captrack(fname):
+    """Read electrode locations from CapTrak Brain Products system.
+
+    Parameters
+    ----------
+    fname : path-like
+        BrainVision CapTrak coordinates file from which to read EEG electrode
+        locations. This is typically in XML format with the .bvct extension.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    return read_dig_captrak(fname)
 
 
 def _get_montage_in_head(montage):
@@ -607,56 +651,8 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
-def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
-                                    raise_if_subset):
-    """Manage deprecation policy for _set_montage.
-
-    montage : instance of DigMontage | 'kind' | None
-        The montage.
-    update_ch_names : bool | None
-        Whether to update or not ``ch_names`` in info. None in 0.20
-    set_dig : bool
-        Whether to copy or not ``montage.dig`` into ``info['dig']``.
-        None in 0.20
-    raise_if_subset: bool
-        Flag to grant raise/warn backward compatibility.
-
-    Notes
-    -----
-    v0.19:
-       - deprecate all montage types but DigMontage (or None, or valid 'kind')
-       - deprecate using update_ch_names and set_dig
-       - add raise_if_subset flag (defaults to False)
-
-    v0.20:
-       - montage is only DigMontage
-       - update_ch_names and set_dig disappear
-       - raise_if_subset defaults to True, still warns
-
-    v0.21:
-       - remove raise_if_subset
-    """
-    assert update_ch_names is None
-    assert set_dig is None
-
-    # This is unlikely to be trigger but it applies in all cases
-    if raise_if_subset is not DEPRECATED_PARAM:
-        if raise_if_subset:
-            warn((
-                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
-                ' and ``set_dig`` will be  removed in 0.21'
-            ), DeprecationWarning)
-        else:
-            raise ValueError(
-                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
-                ' and since 0.20 its value can only be True.'
-                ' It will be  removed in 0.21'
-            )
-
-
 @fill_doc
-def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
-                 match_case=True):
+def _set_montage(info, montage, match_case=True, on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -670,16 +666,8 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
     info : instance of Info
         The measurement info to update.
     %(montage)s
-    raise_if_subset: bool
-        If True, ValueError will be raised when montage.ch_names is a
-        subset of info['ch_names']. This parameter was introduced for
-        backward compatibility when set to False.
-
-        Defaults to False in 0.19, it will change to default to True in
-        0.20, and will be removed in 0.21.
-
-        .. versionadded: 0.19
     %(match_case)s
+    %(on_missing_montage)s
 
     Notes
     -----
@@ -687,7 +675,6 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
     """
     _validate_type(montage, types=(DigMontage, type(None), str),
                    item_name='montage')
-    _set_montage_deprecation_helper(montage, None, None, raise_if_subset)
 
     if isinstance(montage, str):  # load builtin montage
         _check_option('montage', montage, _BUILT_IN_MONTAGES)
@@ -702,15 +689,35 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
             else:
                 return np.concatenate((pos, ref_pos))
 
+        # get the channels in the montage in head
         ch_pos = mnt_head._get_ch_pos()
-        refs = set(ch_pos) & {'EEG000', 'REF'}
-        assert len(refs) <= 1
-        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
 
-        # This raises based on info being subset/superset of montage
+        # only get the eeg, seeg, ecog channels
         _pick_chs = partial(
             pick_types, exclude=[], eeg=True, seeg=True, ecog=True, meg=False,
         )
+
+        # get the reference position from the loc[3:6]
+        chs = info['chs']
+        ref_pos = [chs[ii]['loc'][3:6] for ii in _pick_chs(info)]
+
+        # keep reference location from EEG/ECoG/SEEG channels if they
+        # already exist and are all the same.
+        custom_eeg_ref_dig = False
+        # Note: ref position is an empty list for fieldtrip data
+        if ref_pos:
+            if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]) \
+                    and not np.equal(ref_pos[0], [0, 0, 0]).all():
+                eeg_ref_pos = ref_pos[0]
+                # since we have an EEG reference position, we have
+                # to add it into the info['dig'] as EEG000
+                custom_eeg_ref_dig = True
+        if not custom_eeg_ref_dig:
+            refs = set(ch_pos) & {'EEG000', 'REF'}
+            assert len(refs) <= 1
+            eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
+
+        # This raises based on info being subset/superset of montage
         info_names = [info['ch_names'][ii] for ii in _pick_chs(info)]
         dig_names = mnt_head._get_dig_names()
         ref_names = [None, 'EEG000', 'REF']
@@ -720,7 +727,8 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
             info_names_use = info_names
             dig_names_use = dig_names
         else:
-            ch_pos_use = {name.lower(): pos for name, pos in ch_pos.items()}
+            ch_pos_use = OrderedDict(
+                (name.lower(), pos) for name, pos in ch_pos.items())
             info_names_use = [name.lower() for name in info_names]
             dig_names_use = [name.lower() if name is not None else name
                              for name in dig_names]
@@ -734,24 +742,58 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
             if n_dup:
                 raise ValueError('Cannot use match_case=False as %s channel '
                                  'name(s) require case sensitivity' % n_dup)
+
+        # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
         if len(not_in_montage):  # DigMontage is subset of info
-            raise ValueError('DigMontage is a only a subset of info. '
-                             'There are %s channel position%s not present in '
-                             'the DigMontage. The required channels are: %s'
-                             % (len(not_in_montage), _pl(not_in_montage),
-                                not_in_montage))
+            missing_coord_msg = (
+                'DigMontage is only a subset of info. There are '
+                f'{len(not_in_montage)} channel position{_pl(not_in_montage)} '
+                'not present in the DigMontage. The required channels are:\n\n'
+                f'{not_in_montage}.\n\nConsider using inst.set_channel_types '
+                'if these are not EEG channels, or use the on_missing '
+                'parameter if the channel positions are allowed to be unknown '
+                'in your analyses.'
+            )
+            _on_missing(on_missing, missing_coord_msg)
+
+            # set ch coordinates and names from digmontage or nan coords
+            ch_pos_use = dict(
+                (name, ch_pos_use.get(name, [np.nan] * 3))
+                for name in info_names)  # order does not matter here
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
             _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
 
+        del ch_pos_use
+
         # XXX this is probably wrong as it uses the order from the montage
         # rather than the order of our info['ch_names'] ...
-        info['dig'] = _format_dig_points([
+        digpoints = [
             mnt_head.dig[ii] for ii, name in enumerate(dig_names_use)
-            if name in (info_names_use + ref_names)])
+            if name in (info_names_use + ref_names)]
+
+        # get a copy of the old dig
+        if info['dig'] is not None:
+            old_dig = info['dig'].copy()
+        else:
+            old_dig = []
+
+        # determine if needed to add an extra EEG REF DigPoint
+        if custom_eeg_ref_dig:
+            # ref_name = 'EEG000' if match_case else 'eeg000'
+            ref_dig_dict = {'kind': FIFF.FIFFV_POINT_EEG,
+                            'r': eeg_ref_pos,
+                            'ident': 0,
+                            'coord_frame': info['dig'].pop()['coord_frame']}
+            ref_dig_point = _format_dig_points([ref_dig_dict])[0]
+            # only append the reference dig point if it was already
+            # in the old dig
+            if ref_dig_point in old_dig:
+                digpoints.append(ref_dig_point)
+        info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
         if mnt_head.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
@@ -806,26 +848,28 @@ def _read_isotrak_hsp_points(fname):
         The dictionary containing locations for 'nasion', 'lpa', 'rpa'
         and 'points'.
     """
-    def consume(fid, predicate):  # just a consumer to move around conveniently
-        while(predicate(fid.readline())):
-            pass
-
     def get_hsp_fiducial(line):
         return np.fromstring(line.replace('%F', ''), dtype=float, sep='\t')
 
     with open(fname) as ff:
-        consume(ff, lambda l: 'position of fiducials' not in l.lower())
+        for line in ff:
+            if 'position of fiducials' in line.lower():
+                break
 
         nasion = get_hsp_fiducial(ff.readline())
         lpa = get_hsp_fiducial(ff.readline())
         rpa = get_hsp_fiducial(ff.readline())
 
         _ = ff.readline()
-        n_points, n_cols = np.fromstring(ff.readline(), dtype=int, sep='\t')
-        points = np.fromstring(
-            string=ff.read(), dtype=float, sep='\t',
-        ).reshape(-1, n_cols)
-        assert points.shape[0] == n_points
+        line = ff.readline()
+        if line:
+            n_points, n_cols = np.fromstring(line, dtype=int, sep='\t')
+            points = np.fromstring(
+                string=ff.read(), dtype=float, sep='\t',
+            ).reshape(-1, n_cols)
+            assert points.shape[0] == n_points
+        else:
+            points = np.empty((0, 3))
 
     return {
         'nasion': nasion, 'lpa': lpa, 'rpa': rpa, 'points': points
@@ -842,7 +886,9 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
         File extension is expected to be '.hsp', '.elp' or '.eeg'.
     ch_names : None | list of str
         The names of the points. This will make the points
-        considered as EEG channels.
+        considered as EEG channels. If None, channels will be assumed
+        to be HPI if the extension is ``'.elp'``, and extra headshape
+        points otherwise.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
         exported in meters. Defaults to 'm'
@@ -857,14 +903,13 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     DigMontage
     make_dig_montage
     read_polhemus_fastscan
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
-    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+    _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
     _check_option('fname', ext, VALID_FILE_EXT)
@@ -887,7 +932,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     else:
         points = data.pop('points')
         if points.shape[0] == len(ch_names):
-            data['ch_pos'] = dict(zip(ch_names, points))
+            data['ch_pos'] = OrderedDict(zip(ch_names, points))
         else:
             raise ValueError((
                 "Length of ``ch_names`` does not match the number of points"
@@ -900,11 +945,15 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     return make_dig_montage(**data)
 
 
-def _get_polhemus_fastscan_header(fname):
+def _is_polhemus_fastscan(fname):
+    header = ''
     with open(fname, 'r') as fid:
-        header = [l for l in takewhile(lambda line: line.startswith('%'), fid)]
+        for line in fid:
+            if not line.startswith('%'):
+                break
+            header += line
 
-    return ''.join(header)
+    return 'FastSCAN' in header
 
 
 def read_polhemus_fastscan(fname, unit='mm'):
@@ -929,16 +978,14 @@ def read_polhemus_fastscan(fname, unit='mm'):
     make_dig_montage
     """
     VALID_FILE_EXT = ['.txt']
-    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+    _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
     _check_option('fname', ext, VALID_FILE_EXT)
 
-    if _get_polhemus_fastscan_header(fname).find('FastSCAN') == -1:
+    if not _is_polhemus_fastscan(fname):
         raise ValueError(
-            "%s does not contain Polhemus FastSCAN header" % fname
-        )
+            "%s does not contain Polhemus FastSCAN header" % fname)
 
     points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
 
@@ -967,8 +1014,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         '.elc', '.txt', '.csd', '.elp' (BESA spherical),
         '.bvef' (BrainVision files).
     head_size : float | None
-        The size of the head in meters. If `None`, returns the values read from
-        the montage file with no modification. Defaults to 0.095m.
+        The size of the head (radius, in [m]). If ``None``, returns the values
+        read from the montage file with no modification. Defaults to 0.095m.
     coord_frame : str | None
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to None, which is "unknown" for
@@ -1012,7 +1059,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     }
 
     _, ext = op.splitext(fname)
-    _check_option('fname', ext, list(chain(*SUPPORTED_FILE_EXT.values())))
+    _check_option('fname', ext, list(sum(SUPPORTED_FILE_EXT.values(), ())))
 
     if ext in SUPPORTED_FILE_EXT['eeglab']:
         if head_size is None:
@@ -1023,7 +1070,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         pos *= scale
 
         montage = make_dig_montage(
-            ch_pos=dict(zip(ch_names, pos)),
+            ch_pos=OrderedDict(zip(ch_names, pos)),
             coord_frame='head',
         )
 
@@ -1142,7 +1189,7 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     kind : str
         The name of the montage to use. See notes for valid kinds.
     head_size : float
-        The head size (in meters) to use for spherical montages.
+        The head size (radius, in meters) to use for spherical montages.
         Defaults to 95mm.
 
     Returns
@@ -1159,7 +1206,7 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrack`, :func:`read_dig_dat`, :func:`read_dig_egi`,
+    :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
     :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
     :func:`read_dig_hpts` or made with :func:`make_dig_montage`.
 

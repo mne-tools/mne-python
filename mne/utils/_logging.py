@@ -13,7 +13,6 @@ import logging
 import os.path as op
 import warnings
 
-from ..fixes import _get_args
 from ..externals.decorator import FunctionMaker
 
 
@@ -62,36 +61,41 @@ def verbose(function):
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
     from .docs import fill_doc
-    arg_names = _get_args(function)
     try:
         fill_doc(function)
     except TypeError:  # nothing to add
         pass
 
-    def wrapper(*args, **kwargs):
-        default_level = verbose_level = None
-        if len(arg_names) > 0 and arg_names[0] == 'self':
-            default_level = getattr(args[0], 'verbose', None)
-        if 'verbose' in kwargs:
-            verbose_level = kwargs.pop('verbose')
-        else:
-            try:
-                verbose_level = args[arg_names.index('verbose')]
-            except (IndexError, ValueError):
-                pass
-
-        # This ensures that object.method(verbose=None) will use object.verbose
-        if verbose_level is None:
-            verbose_level = default_level
-        if verbose_level is not None:
-            # set it back if we get an exception
-            with use_log_level(verbose_level):
-                return function(*args, **kwargs)
-        return function(*args, **kwargs)
+    # Anything using verbose should either have `verbose=None` in the signature
+    # or have a `self.verbose` attribute (if in a method). This code path
+    # will raise an error if neither is the case.
+    wrap_src = """\
+try:
+    verbose
+except UnboundLocalError:
+    try:
+        verbose = self.verbose
+    except NameError:
+        raise RuntimeError('Function %%s does not accept verbose parameter'
+                           %% (_function_,))
+    except AttributeError:
+        raise RuntimeError('Method %%s class does not have self.verbose'
+                           %% (_function_,))
+if verbose is None:
+    try:
+        verbose = self.verbose
+    except (NameError, AttributeError):
+        pass
+if verbose is not None:
+    with _use_log_level_(verbose):
+        return _function_(%(signature)s)
+return _function_(%(signature)s)"""
+    evaldict = dict(
+        _use_log_level_=use_log_level, _function_=function)
     return FunctionMaker.create(
-        function, 'return decfunc(%(signature)s)',
-        dict(decfunc=wrapper), __wrapped__=function,
-        __qualname__=function.__qualname__)
+        function, wrap_src, evaldict,
+        __wrapped__=function, __qualname__=function.__qualname__,
+        module=function.__module__)
 
 
 class use_log_level(object):
@@ -134,6 +138,7 @@ def set_log_level(verbose=None, return_old_level=False):
         The old level. Only returned if ``return_old_level`` is True.
     """
     from .config import get_config
+    from .check import _check_option
     if verbose is None:
         verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
     elif isinstance(verbose, bool):
@@ -146,12 +151,12 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if verbose not in logging_types:
-            raise ValueError('verbose must be of a valid type')
+        _check_option('verbose', verbose, logging_types, '(when a string)')
         verbose = logging_types[verbose]
     logger = logging.getLogger('mne')
     old_verbose = logger.level
-    logger.setLevel(verbose)
+    if verbose != old_verbose:
+        logger.setLevel(verbose)
     return (old_verbose if return_old_level else None)
 
 
@@ -176,13 +181,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         entries will be appended.
     """
     logger = logging.getLogger('mne')
-    handlers = logger.handlers
-    for h in handlers:
-        # only remove our handlers (get along nicely with nose)
-        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
-            if isinstance(h, logging.FileHandler):
-                h.close()
-            logger.removeHandler(h)
+    _remove_close_handlers(logger)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
             # Don't use warn() here because we just want to
@@ -205,6 +204,26 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
+def _remove_close_handlers(logger):
+    for h in list(logger.handlers):
+        # only remove our handlers (get along nicely with nose)
+        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+            if isinstance(h, logging.FileHandler):
+                h.close()
+            logger.removeHandler(h)
+
+
+class ClosingStringIO(StringIO):
+    """StringIO that closes after getvalue()."""
+
+    def getvalue(self, close=True):
+        """Get the value."""
+        out = super().getvalue()
+        if close:
+            self.close()
+        return out
+
+
 class catch_logging(object):
     """Store logging.
 
@@ -213,12 +232,11 @@ class catch_logging(object):
     """
 
     def __enter__(self):  # noqa: D105
-        self._data = StringIO()
+        self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
         self._lh._mne_file_like = True  # monkey patch for warn() use
-        for lh in logger.handlers:
-            logger.removeHandler(lh)
+        _remove_close_handlers(logger)
         logger.addHandler(self._lh)
         return self._data
 
@@ -243,7 +261,7 @@ class WrapStdOut(object):
             raise AttributeError("'file' object has not attribute '%s'" % name)
 
 
-_verbose_dec_re = re.compile('^<.*decorator\\.py:decorator-gen.*>$')
+_verbose_dec_re = re.compile('^<decorator-gen-[0-9]+>$')
 
 
 def warn(message, category=RuntimeWarning, module='mne'):
@@ -268,24 +286,18 @@ def warn(message, category=RuntimeWarning, module='mne'):
     root_dir = op.dirname(mne.__file__)
     frame = None
     if logger.level <= logging.WARN:
-        last_fname = ''
         frame = inspect.currentframe()
         while frame:
             fname = frame.f_code.co_filename
             lineno = frame.f_lineno
             # in verbose dec
-            if _verbose_dec_re.match(fname) and \
-                    last_fname == op.basename(__file__):
-                last_fname = fname
-                frame = frame.f_back
-                continue
-            # treat tests as scripts
-            # and don't capture unittest/case.py (assert_raises)
-            if not (fname.startswith(root_dir) or
-                    ('unittest' in fname and 'case' in fname)) or \
-                    op.basename(op.dirname(fname)) == 'tests':
-                break
-            last_fname = op.basename(fname)
+            if not _verbose_dec_re.search(fname):
+                # treat tests as scripts
+                # and don't capture unittest/case.py (assert_raises)
+                if not (fname.startswith(root_dir) or
+                        ('unittest' in fname and 'case' in fname)) or \
+                        op.basename(op.dirname(fname)) == 'tests':
+                    break
             frame = frame.f_back
         del frame
         # We need to use this instead of warn(message, category, stacklevel)
@@ -300,6 +312,16 @@ def warn(message, category=RuntimeWarning, module='mne'):
                                                          False)
            for h in logger.handlers):
         logger.warning(message)
+
+
+def _get_call_line():
+    """Get the call line from within a function."""
+    frame = inspect.currentframe().f_back.f_back
+    if _verbose_dec_re.search(frame.f_code.co_filename):
+        frame = frame.f_back
+    context = inspect.getframeinfo(frame).code_context
+    context = 'unknown' if context is None else context[0].strip()
+    return context
 
 
 def filter_out_warnings(warn_record, category=None, match=None):
@@ -365,14 +387,28 @@ class ETSContext(object):
 
 
 @contextlib.contextmanager
-def wrapped_stdout(indent=''):
-    """Wrap stdout writes to logger.info, with an optional indent prefix."""
+def wrapped_stdout(indent='', cull_newlines=False):
+    """Wrap stdout writes to logger.info, with an optional indent prefix.
+
+    Parameters
+    ----------
+    indent : str
+        The indentation to add.
+    cull_newlines : bool
+        If True, cull any new/blank lines at the end.
+    """
     orig_stdout = sys.stdout
-    my_out = StringIO()
+    my_out = ClosingStringIO()
     sys.stdout = my_out
     try:
         yield
     finally:
         sys.stdout = orig_stdout
+        pending_newlines = 0
         for line in my_out.getvalue().split('\n'):
+            if not line.strip() and cull_newlines:
+                pending_newlines += 1
+                continue
+            for _ in range(pending_newlines):
+                logger.info('\n')
             logger.info(indent + line)

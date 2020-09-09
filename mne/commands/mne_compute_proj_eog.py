@@ -81,10 +81,10 @@ def run():
                       help="Magnetometers rejection parameter in fT (peak to "
                       "peak amplitude)", default=3000)
     parser.add_option("--rej-eeg", dest="rej_eeg", type="float",
-                      help="EEG rejection parameter in uV (peak to peak "
+                      help="EEG rejection parameter in µV (peak to peak "
                       "amplitude)", default=50)
     parser.add_option("--rej-eog", dest="rej_eog", type="float",
-                      help="EOG rejection parameter in uV (peak to peak "
+                      help="EOG rejection parameter in µV (peak to peak "
                       "amplitude)", default=1e9)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                       help="Add EEG average reference proj",

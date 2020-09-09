@@ -174,6 +174,7 @@ def test_norm_epsilon():
                      w_time=mult * np.ones(n_coefs)))
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 @pytest.mark.timeout(60)  # ~30 sec on Travis OSX and Linux OpenBLAS
 def test_dgapl21l1():
     """Test duality gap for L21 + L1 regularization."""
@@ -238,6 +239,7 @@ def test_tf_mxne_vs_mxne():
     assert_allclose(X_hat_tf, X_hat_l21, rtol=1e-1)
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 def test_iterative_reweighted_mxne():
     """Test convergence of irMxNE solver."""
     n, p, t, alpha = 30, 40, 20, 1
@@ -307,6 +309,7 @@ def test_iterative_reweighted_mxne():
     assert_array_equal(X_hat_bcd, X_hat_cd, 5)
 
 
+@pytest.mark.slowtest
 def test_iterative_reweighted_tfmxne():
     """Test convergence of irTF-MxNE solver."""
     M, G, true_active_set = _generate_tf_data()

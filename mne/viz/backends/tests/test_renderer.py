@@ -12,6 +12,7 @@ import numpy as np
 
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
                                            skips_if_not_pyvista)
+from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 
 
 @pytest.fixture
@@ -45,14 +46,14 @@ def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
     # Mayavi actually needs something in the display to set the title
-    wrap_renderer = renderer._Renderer(fig=fig)
+    wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
-    renderer._check_3d_figure(fig)
-    renderer._set_3d_view(figure=fig, azimuth=None, elevation=None,
-                          focalpoint=(0., 0., 0.), distance=None)
-    renderer._set_3d_title(figure=fig, title='foo')
-    renderer._take_3d_screenshot(figure=fig)
-    renderer._close_all()
+    renderer.backend._check_3d_figure(fig)
+    renderer.backend._set_3d_view(figure=fig, azimuth=None, elevation=None,
+                                  focalpoint=(0., 0., 0.), distance=None)
+    renderer.backend._set_3d_title(figure=fig, title='foo')
+    renderer.backend._take_3d_screenshot(figure=fig)
+    renderer.backend._close_all()
 
 
 def test_3d_backend(renderer):
@@ -82,7 +83,6 @@ def test_3d_backend(renderer):
         "tris": tet_indices
     }
 
-    qv_mode = "arrow"
     qv_color = 'blue'
     qv_scale = tet_size / 2.0
     qv_center = np.array([np.mean((sph_center[va, :],
@@ -102,13 +102,24 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer._Renderer(size=win_size, bgcolor=win_color)
-    rend.set_interactive()
+    rend = renderer.create_3d_figure(
+        size=win_size,
+        bgcolor=win_color,
+        smooth_shading=True,
+        scene=False,
+    )
+    for interaction in ('terrain', 'trackball'):
+        rend.set_interaction(interaction)
 
     # use mesh
-    rend.mesh(x=tet_x, y=tet_y, z=tet_z,
-              triangles=tet_indices,
-              color=tet_color)
+    mesh_data = rend.mesh(
+        x=tet_x,
+        y=tet_y,
+        z=tet_z,
+        triangles=tet_indices,
+        color=tet_color,
+    )
+    rend.remove_mesh(mesh_data)
 
     # use contour
     rend.contour(surface=ct_surface, scalars=ct_scalars,
@@ -121,17 +132,22 @@ def test_3d_backend(renderer):
                 scale=sph_scale, radius=1.0)
 
     # use quiver3d
-    rend.quiver3d(x=qv_center[:, 0],
-                  y=qv_center[:, 1],
-                  z=qv_center[:, 2],
-                  u=qv_dir[:, 0],
-                  v=qv_dir[:, 1],
-                  w=qv_dir[:, 2],
-                  color=qv_color,
-                  scale=qv_scale,
-                  scale_mode=qv_scale_mode,
-                  scalars=qv_scalars,
-                  mode=qv_mode)
+    kwargs = dict(
+        x=qv_center[:, 0],
+        y=qv_center[:, 1],
+        z=qv_center[:, 2],
+        u=qv_dir[:, 0],
+        v=qv_dir[:, 1],
+        w=qv_dir[:, 2],
+        color=qv_color,
+        scale=qv_scale,
+        scale_mode=qv_scale_mode,
+        scalars=qv_scalars,
+    )
+    for mode in ALLOWED_QUIVER_MODES:
+        rend.quiver3d(mode=mode, **kwargs)
+    with pytest.raises(ValueError, match='Invalid value'):
+        rend.quiver3d(mode='foo', **kwargs)
 
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]),
@@ -152,3 +168,11 @@ def test_3d_backend(renderer):
                     focalpoint=center)
     rend.reset_camera()
     rend.show()
+
+
+def test_get_3d_backend(renderer):
+    """Test get_3d_backend function call for side-effects."""
+    # Test twice to ensure the first call had no side-effect
+    orig_backend = renderer.MNE_3D_BACKEND
+    assert renderer.get_3d_backend() == orig_backend
+    assert renderer.get_3d_backend() == orig_backend

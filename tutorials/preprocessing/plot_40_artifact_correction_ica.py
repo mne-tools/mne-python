@@ -247,7 +247,7 @@ ica.plot_sources(raw)
 # Components, `this EEGLAB tutorial`_ is a good resource). We can also
 # visualize the scalp field distribution of each component using
 # :meth:`~mne.preprocessing.ICA.plot_components`. These are interpolated based
-# on the values in the ICA unmixing matrix:
+# on the values in the ICA mixing matrix:
 
 # sphinx_gallery_thumbnail_number = 9
 ica.plot_components()
@@ -375,7 +375,8 @@ ica.plot_sources(eog_evoked)
 
 ica.exclude = []
 # find which ICs match the ECG pattern
-ecg_indices, ecg_scores = ica.find_bads_ecg(raw, method='correlation')
+ecg_indices, ecg_scores = ica.find_bads_ecg(raw, method='correlation',
+                                            threshold='auto')
 ica.exclude = ecg_indices
 
 # barplot of ICA component "ECG match" scores
@@ -405,7 +406,8 @@ new_ica = ICA(n_components=30, random_state=97)
 new_ica.fit(filt_raw)
 
 # find which ICs match the ECG pattern
-ecg_indices, ecg_scores = new_ica.find_bads_ecg(raw, method='correlation')
+ecg_indices, ecg_scores = new_ica.find_bads_ecg(raw, method='correlation',
+                                                threshold='auto')
 new_ica.exclude = ecg_indices
 
 # barplot of ICA component "ECG match" scores

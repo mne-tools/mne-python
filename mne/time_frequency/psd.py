@@ -2,6 +2,7 @@
 #           Denis A. Engemann <denis.engemann@gmail.com>
 # License : BSD 3-clause
 
+from functools import partial
 import numpy as np
 
 from ..parallel import parallel_func
@@ -10,17 +11,30 @@ from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
 
 
-def _spect_func(epoch, n_overlap, n_per_seg, nfft, fs, freq_mask, func,
-                average):
-    """Aux function."""
-    _, _, spect = func(epoch, fs=fs, nperseg=n_per_seg, noverlap=n_overlap,
-                       nfft=nfft, window='hamming')
-    spect = spect[..., freq_mask, :]
+def _decomp_aggregate_mask(epoch, func, average, freq_sl):
+    _, _, spect = func(epoch)
+    spect = spect[..., freq_sl, :]
     # Do the averaging here (per epoch) to save memory
     if average == 'mean':
         spect = np.nanmean(spect, axis=-1)
     elif average == 'median':
         spect = np.nanmedian(spect, axis=-1)
+    return spect
+
+
+def _spect_func(epoch, func, freq_sl, average):
+    """Aux function."""
+    # Decide if we should split this to save memory or not, since doing
+    # multiple calls will incur some performance overhead. Eventually we might
+    # want to write (really, go back to) our own spectrogram implementation
+    # that, if possible, averages after each transform, but this will incur
+    # a lot of overhead because of the many Python calls required.
+    kwargs = dict(func=func, average=average, freq_sl=freq_sl)
+    if epoch.nbytes > 10e6:
+        spect = np.apply_along_axis(
+            _decomp_aggregate_mask, -1, epoch, **kwargs)
+    else:
+        spect = _decomp_aggregate_mask(epoch, **kwargs)
     return spect
 
 
@@ -131,17 +145,21 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     logger.info("Effective window size : %0.3f (s)" % win_size)
     freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[freq_mask]
+    if not freq_mask.any():
+        raise ValueError(
+            f'No frequencies found between fmin={fmin} and fmax={fmax}')
+    freq_sl = slice(*(np.where(freq_mask)[0][[0, -1]] + [0, 1]))
+    del freq_mask
+    freqs = freqs[freq_sl]
 
     # Parallelize across first N-1 dimensions
     x_splits = np.array_split(x, n_jobs)
 
     from scipy.signal import spectrogram
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
-
-    f_spect = parallel(my_spect_func(d, n_overlap=n_overlap,
-                                     n_per_seg=n_per_seg, nfft=n_fft, fs=sfreq,
-                                     freq_mask=freq_mask, func=spectrogram,
+    func = partial(spectrogram, noverlap=n_overlap, nperseg=n_per_seg,
+                   nfft=n_fft, fs=sfreq)
+    f_spect = parallel(my_spect_func(d, func=func, freq_sl=freq_sl,
                                      average=average)
                        for d in x_splits)
     psds = np.concatenate(f_spect, axis=0)
@@ -188,11 +206,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
     %(n_jobs)s
-    reject_by_annotation : bool
-        Whether to omit bad segments from the data while computing the
-        PSD. If True, annotated segments with a description that starts
-        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
-        Evoked object. Defaults to True.
+    %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.15.0
     average : str | None

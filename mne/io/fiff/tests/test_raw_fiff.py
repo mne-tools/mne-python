@@ -21,6 +21,7 @@ from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif
+from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
@@ -366,8 +367,8 @@ def test_split_files(tmpdir):
     split_fname = tmpdir.join('split_raw_meg.fif')
     # intended filenames
     split_fname_elekta_part2 = tmpdir.join('split_raw_meg-1.fif')
-    split_fname_bids_part1 = tmpdir.join('split_raw_part-01_meg.fif')
-    split_fname_bids_part2 = tmpdir.join('split_raw_part-02_meg.fif')
+    split_fname_bids_part1 = tmpdir.join('split_raw_split-01_meg.fif')
+    split_fname_bids_part2 = tmpdir.join('split_raw_split-02_meg.fif')
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
@@ -431,32 +432,25 @@ def test_split_files(tmpdir):
     raw_crop = raw_1.copy().crop(0, 1)
     raw_crop.save(split_fname, buffer_size_sec=1., overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 1
-    assert raw_read._raw_extras[0][0]['nsamp'] == 301
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (301,))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     # 2 buffers required
     raw_crop.save(split_fname, buffer_size_sec=0.5, overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 2
-    assert raw_read._raw_extras[0][0]['nsamp'] == 151
-    assert raw_read._raw_extras[0][1]['nsamp'] == 150
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (151, 150))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     # 2 buffers required
     raw_crop.save(split_fname,
                   buffer_size_sec=1. - 1.01 / raw_crop.info['sfreq'],
                   overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 2
-    assert raw_read._raw_extras[0][0]['nsamp'] == 300
-    assert raw_read._raw_extras[0][1]['nsamp'] == 1
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (300, 1))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     raw_crop.save(split_fname,
                   buffer_size_sec=1. - 2.01 / raw_crop.info['sfreq'],
                   overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert len(raw_read._raw_extras[0]) == 2
-    assert raw_read._raw_extras[0][0]['nsamp'] == 299
-    assert raw_read._raw_extras[0][1]['nsamp'] == 2
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (299, 2))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
 
 
@@ -734,10 +728,25 @@ def test_proj(tmpdir):
         assert_allclose(data_proj_1, data_proj_2)
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
 
+    # Test that picking removes projectors ...
+    raw = read_raw_fif(fif_fname)
+    n_projs = len(raw.info['projs'])
+    raw.pick_types(meg=False, eeg=True)
+    assert len(raw.info['projs']) == n_projs - 3
+
+    # ... but only if it doesn't apply to any channels in the dataset anymore.
+    raw = read_raw_fif(fif_fname)
+    n_projs = len(raw.info['projs'])
+    raw.pick_types(meg='mag', eeg=True)
+    assert len(raw.info['projs']) == n_projs
+
+    # I/O roundtrip of an MEG projector with a Raw that only contains EEG
+    # data.
     out_fname = tmpdir.join('test_raw.fif')
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
+    proj = raw.info['projs'][-1]
     raw.pick_types(meg=False, eeg=True)
-    raw.info['projs'] = [raw.info['projs'][-1]]
+    raw.info['projs'] = [proj]  # Restore, because picking removed it!
     raw._data.fill(0)
     raw._data[-1] = 1.
     raw.save(out_fname)
@@ -847,8 +856,10 @@ def test_filter():
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
     # now use the sinusoidal fitting
+    assert raw.times[-1] < 10  # catch error with filter_length > n_times
     raw_notch = raw.copy().notch_filter(
-        None, picks=picks, n_jobs=2, method='spectrum_fit')
+        None, picks=picks, n_jobs=2, method='spectrum_fit',
+        filter_length='10s')
     data_notch, _ = raw_notch[picks, :]
     data, _ = raw[picks, :]
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
@@ -972,10 +983,22 @@ def test_crop():
 
 
 @testing.requires_testing_data
-def test_resample(tmpdir):
+def test_resample_equiv():
+    """Test resample (with I/O and multiple files)."""
+    raw = read_raw_fif(fif_fname).crop(0, 1)
+    raw_preload = raw.copy().load_data()
+    for r in (raw, raw_preload):
+        r.resample(r.info['sfreq'] / 4.)
+    assert_allclose(raw._data, raw_preload._data)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('preload', (True, False))
+def test_resample(tmpdir, preload):
     """Test resample (with I/O and multiple files)."""
     raw = read_raw_fif(fif_fname).crop(0, 3)
-    raw.load_data()
+    if preload:
+        raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
@@ -986,22 +1009,22 @@ def test_resample(tmpdir):
                               preload=True)
     assert sfreq == raw_resamp.info['sfreq'] / 2
     assert raw.n_times == raw_resamp.n_times // 2
-    assert raw_resamp._data.shape[1] == raw_resamp.n_times
-    assert raw._data.shape[0] == raw_resamp._data.shape[0]
+    assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
+    assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
     raw_resamp.resample(sfreq, n_jobs=1, npad='auto')
     assert raw_resamp.info['sfreq'] == sfreq
-    assert raw._data.shape == raw_resamp._data.shape
+    assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp
     assert raw.last_samp == raw.last_samp
     # upsampling then downsampling doubles resampling error, but this still
     # works (hooray). Note that the stim channels had to be sub-sampled
     # without filtering to be accurately preserved
     # note we have to treat MEG and EEG+STIM channels differently (tols)
-    assert_allclose(raw._data[:306, 200:-200],
+    assert_allclose(raw.get_data()[:306, 200:-200],
                     raw_resamp._data[:306, 200:-200],
                     rtol=1e-2, atol=1e-12)
-    assert_allclose(raw._data[306:, 200:-200],
+    assert_allclose(raw.get_data()[306:, 200:-200],
                     raw_resamp._data[306:, 200:-200],
                     rtol=1e-2, atol=1e-7)
 
@@ -1023,6 +1046,9 @@ def test_resample(tmpdir):
     assert raw1.first_samp == raw3.first_samp
     assert raw1.last_samp == raw3.last_samp
     assert raw1.info['sfreq'] == raw3.info['sfreq']
+
+    # smoke test crop after resample
+    raw4.crop(tmin=raw4.times[1], tmax=raw4.times[-1])
 
     # test resampling of stim channel
 
@@ -1220,6 +1246,18 @@ def test_add_channels():
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
     assert_object_equal(raw_arr.info['dev_head_t'], orig_head_t)
+    # Make sure all variants work
+    for simult in (False, True):  # simultaneous adding or not
+        raw_new = raw_meg.copy()
+        if simult:
+            raw_new.add_channels([raw_eeg, raw_stim])
+        else:
+            raw_new.add_channels([raw_eeg])
+            raw_new.add_channels([raw_stim])
+        for other in (raw_meg, raw_stim, raw_eeg):
+            assert_allclose(
+                raw_new.copy().pick_channels(other.ch_names).get_data(),
+                other.get_data())
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
@@ -1256,6 +1294,12 @@ def test_save(tmpdir):
     assert_array_equal(annot.duration, new_raw.annotations.duration)
     assert_array_equal(annot.description, new_raw.annotations.description)
     assert annot.orig_time == new_raw.annotations.orig_time
+
+    # test set_meas_date(None)
+    raw.set_meas_date(None)
+    raw.save(new_fname, overwrite=True)
+    new_raw = read_raw_fif(new_fname, preload=False)
+    assert new_raw.info['meas_date'] is None
 
 
 @testing.requires_testing_data
@@ -1439,30 +1483,39 @@ def test_drop_channels_mixin():
     assert len(ch_names) == len(raw._cals)
     assert len(ch_names) == raw._data.shape[0]
 
+    # Test that dropping all channels a projector applies to will lead to the
+    # removal of said projector.
+    raw = read_raw_fif(fif_fname)
+    n_projs = len(raw.info['projs'])
+    eeg_names = raw.info['projs'][-1]['data']['col_names']
+    with pytest.raises(RuntimeError, match='loaded'):
+        raw.copy().apply_proj().drop_channels(eeg_names)
+    raw.load_data().drop_channels(eeg_names)  # EEG proj
+    assert len(raw.info['projs']) == n_projs - 1
+
 
 @testing.requires_testing_data
-def test_pick_channels_mixin():
+@pytest.mark.parametrize('preload', (True, False))
+def test_pick_channels_mixin(preload):
     """Test channel-picking functionality."""
-    # preload is True
-
-    raw = read_raw_fif(fif_fname, preload=True)
+    raw = read_raw_fif(fif_fname, preload=preload)
+    raw_orig = raw.copy()
     ch_names = raw.ch_names[:3]
 
     ch_names_orig = raw.ch_names
     dummy = raw.copy().pick_channels(ch_names)
     assert ch_names == dummy.ch_names
     assert ch_names_orig == raw.ch_names
-    assert len(ch_names_orig) == raw._data.shape[0]
+    assert len(ch_names_orig) == raw.get_data().shape[0]
 
     raw.pick_channels(ch_names)  # copy is False
     assert ch_names == raw.ch_names
     assert len(ch_names) == len(raw._cals)
-    assert len(ch_names) == raw._data.shape[0]
-    pytest.raises(ValueError, raw.pick_channels, ch_names[0])
+    assert len(ch_names) == raw.get_data().shape[0]
+    with pytest.raises(ValueError, match='must be'):
+        raw.pick_channels(ch_names[0])
 
-    raw = read_raw_fif(fif_fname, preload=False)
-    pytest.raises(RuntimeError, raw.pick_channels, ch_names)
-    pytest.raises(RuntimeError, raw.drop_channels, ch_names)
+    assert_allclose(raw[:][0], raw_orig[:3][0])
 
 
 @testing.requires_testing_data
@@ -1535,7 +1588,7 @@ def test_file_like(kind, preload, split, tmpdir):
     else:
         fname = test_fif_fname
     if preload is str:
-        preload = tmpdir.join('memmap')
+        preload = str(tmpdir.join('memmap'))
     with open(str(fname), 'rb') as file_fid:
         fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
         assert not fid.closed
@@ -1564,6 +1617,24 @@ def test_str_like():
     raw_path = read_raw_fif(fname, preload=True)
     raw_str = read_raw_fif(test_fif_fname, preload=True)
     assert_allclose(raw_path._data, raw_str._data)
+
+
+@pytest.mark.parametrize('fname', [
+    test_fif_fname,
+    testing._pytest_param(fif_fname),
+    testing._pytest_param(ms_fname),
+])
+def test_bad_acq(fname):
+    """Test handling of acquisition errors."""
+    # see gh-7844
+    raw = read_raw_fif(fname, allow_maxshield='yes').load_data()
+    with open(fname, 'rb') as fid:
+        for ent in raw._raw_extras[0]['ent']:
+            fid.seek(ent.pos, 0)
+            tag = _read_tag_header(fid)
+            # hack these, others (kind, type) should be correct
+            tag.pos, tag.next = ent.pos, ent.next
+            assert tag == ent
 
 
 run_tests_if_main()

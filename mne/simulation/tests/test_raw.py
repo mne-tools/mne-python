@@ -61,6 +61,7 @@ def _assert_iter_sim(raw_sim, raw_new, new_event_id):
     assert_array_equal(data_new, data_sim)
 
 
+@pytest.mark.slowtest
 def test_iterable():
     """Test iterable support for simulate_raw."""
     raw = read_raw_fif(raw_fname_short).load_data()
@@ -73,16 +74,16 @@ def test_iterable():
     sphere = make_sphere_model(head_radius=None, info=raw.info)
     tstep = 1. / raw.info['sfreq']
     rng = np.random.RandomState(0)
-    vertices = np.array([1])
+    vertices = [np.array([1])]
     data = rng.randn(1, 2)
     stc = VolSourceEstimate(data, vertices, 0, tstep)
-    assert isinstance(stc.vertices, np.ndarray)
+    assert isinstance(stc.vertices[0], np.ndarray)
     with pytest.raises(ValueError, match='at least three time points'):
         simulate_raw(raw.info, stc, trans, src, sphere, None)
     data = rng.randn(1, 1000)
     n_events = (len(raw.times) - 1) // 1000 + 1
     stc = VolSourceEstimate(data, vertices, 0, tstep)
-    assert isinstance(stc.vertices, np.ndarray)
+    assert isinstance(stc.vertices[0], np.ndarray)
     raw_sim = simulate_raw(raw.info, [stc] * 15, trans, src, sphere, None,
                            first_samp=raw.first_samp)
     raw_sim.crop(0, raw.times[-1])
@@ -137,16 +138,16 @@ def test_iterable():
         while ii < 100:
             ii += 1
             stc_new = stc.copy()
-            stc_new.vertices = np.array([ii % 2])
+            stc_new.vertices[0] = np.array([ii % 2])
             yield stc_new
     with pytest.raises(RuntimeError, match=r'Vertex mismatch for stc\[1\]'):
         simulate_raw(raw.info, stc_iter_bad(), trans, src, sphere, None)
 
     # Forward omission
-    vertices = np.array([0, 1])
+    vertices = [np.array([0, 1])]
     data = rng.randn(2, 1000)
     stc = VolSourceEstimate(data, vertices, 0, tstep)
-    assert isinstance(stc.vertices, np.ndarray)
+    assert isinstance(stc.vertices[0], np.ndarray)
     # XXX eventually we should support filtering based on sphere radius, too,
     # by refactoring the code in source_space.py that does it!
     surf = _get_ico_surface(3)
@@ -223,7 +224,7 @@ def test_simulate_raw_sphere(raw_data, tmpdir):
     cov['projs'] = raw.info['projs']
     raw.info['bads'] = raw.ch_names[:1]
     sphere_norad = make_sphere_model('auto', None, raw.info)
-    raw_meg = raw.copy().pick_types()
+    raw_meg = raw.copy().pick_types(meg=True)
     raw_sim = simulate_raw(raw_meg.info, stc, trans, src, sphere_norad,
                            head_pos=head_pos_sim)
     # Test IO on processed data

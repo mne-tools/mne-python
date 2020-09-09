@@ -16,7 +16,7 @@ import pytest
 from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
-                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 write_labels_to_annot, split_label, spatial_tris_adjacency,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
@@ -365,16 +365,16 @@ def test_annot_io():
                                     subjects_dir=tempdir)
 
     # test saving parcellation only covering one hemisphere
-    parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
+    parc = [label for label in labels if label.name == 'LOBE.TEMPORAL-lh']
     write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
     parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
-    parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
+    parc1 = [label for label in parc1 if not label.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
-    for l1, l in zip(parc1, parc):
-        assert_labels_equal(l1, l)
+    for lt, rt in zip(parc1, parc):
+        assert_labels_equal(lt, rt)
 
     # test saving only one hemisphere
-    parc = [l for l in labels if l.name.startswith('LOBE')]
+    parc = [label for label in labels if label.name.startswith('LOBE')]
     write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
                           subjects_dir=tempdir)
     annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
@@ -383,9 +383,9 @@ def test_annot_io():
     parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)
-    parc_lh = [l for l in parc if l.name.endswith('lh')]
-    for l1, l in zip(parc1, parc_lh):
-        assert_labels_equal(l1, l)
+    parc_lh = [label for label in parc if label.name.endswith('lh')]
+    for lt, rt in zip(parc1, parc_lh):
+        assert_labels_equal(lt, rt)
 
     # test that the annotation is complete (test Label() support)
     rr = read_surface(op.join(surf_dir, 'lh.white'))[0]
@@ -716,10 +716,10 @@ def test_stc_to_label():
 
     # test getting tris
     tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
-    pytest.raises(ValueError, spatial_tris_connectivity, tris,
+    pytest.raises(ValueError, spatial_tris_adjacency, tris,
                   remap_vertices=False)
-    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
-    assert (connectivity.shape[0] == len(stc.vertices[0]))
+    adjacency = spatial_tris_adjacency(tris, remap_vertices=True)
+    assert (adjacency.shape[0] == len(stc.vertices[0]))
 
     # "src" as a subject name
     pytest.raises(TypeError, stc_to_label, stc, src=1, smooth=False,

@@ -43,7 +43,18 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
         or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
-        is used in the code base, e.g. for plotting.
+        is used in the code base, e.g. for plotting. See also
+        :term:`data channels`.
+
+    data channels
+        Many functions in MNE operate by default on "data channels". These are
+        channels that typically hold *brain electophysiological* data,
+        as opposed to other forms of data, such as EOG, ECG, stimulus trigger,
+        or acquisition system status data. The set of channels considered
+        "data channels" in MNE is (along with their typical scale factors for
+        plotting, as they are stored in objects in SI units):
+
+        .. mne:: data channels list
 
     DICS
         Dynamic Imaging of Coherent Sources, a method for computing source
@@ -275,6 +286,17 @@ general neuroimaging concepts. If you think a term is missing, please consider
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
 
+    whitening
+        A linear operation that transforms data with a known covariance
+        structure into "whitened data" which has a covariance structure that
+        is the identity matrix (i.e., it creates virtual channels that are
+        uncorrelated and have unit variance).
+
+        The term "whitening" comes from the fact that light with a flat
+        frequency spectrum in the visible range is white, whereas
+        non-uniform frequency spectra lead to perception of different colors
+        (e.g., "pink noise" has a ``1/f`` characteristic, which for visible
+        light would appear pink).
 
 .. LINKS
 

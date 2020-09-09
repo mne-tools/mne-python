@@ -6,11 +6,12 @@
 
 from copy import deepcopy
 import numpy as np
+from scipy import linalg
 
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .proj import setup_proj
-from .pick import pick_types, pick_channels
+from .pick import pick_types, pick_channels, pick_channels_forward
 from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
@@ -46,56 +47,9 @@ def _copy_channel(inst, ch_name, new_ch_name):
     return inst
 
 
-def _apply_reference(inst, ref_from, ref_to=None, ch_type='auto'):
-    """Apply a custom EEG referencing scheme.
-
-    This function modifies the instance in-place.
-
-    Calculates a reference signal by taking the mean of a set of channels and
-    applies the reference to another set of channels. Input data can be in the
-    form of Raw, Epochs or Evoked.
-
-    Parameters
-    ----------
-    inst : instance of Raw | Epochs | Evoked
-        Data containing the EEG channels and reference channel(s).
-    ref_from : list of str
-        The names of the channels to use to construct the reference. If an
-        empty list is specified, the data is assumed to already have a proper
-        reference and MNE will not attempt any re-referencing of the data.
-    ref_to : list of str | None
-        The names of the channels to apply the reference to. If None (which is
-        the default), all EEG channels are chosen.
-    ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
-        The name of the channel type to apply the reference to. If 'auto', the
-        first channel type of eeg, ecog or seeg that is found (in that order)
-        will be selected.
-
-    Returns
-    -------
-    inst : instance of Raw | Epochs | Evoked
-        The data with EEG channels re-referenced.
-    ref_data : array, shape (n_times,)
-        Array of reference data subtracted from EEG channels.
-
-    Notes
-    -----
-    This function operates in-place.
-
-    1. If the reference is applied to any EEG channels, this function removes
-       any pre-existing average reference projections.
-
-    2. During source localization, the EEG signal should have an average
-       reference.
-
-    3. The data must be preloaded.
-
-    See Also
-    --------
-    set_eeg_reference : Convenience function for creating an EEG reference.
-    set_bipolar_reference : Convenience function for creating a bipolar
-                            reference.
-    """
+def _apply_reference(inst, ref_from, ref_to=None, forward=None,
+                     ch_type='auto'):
+    """Apply a custom EEG referencing scheme."""
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
@@ -164,6 +118,7 @@ def _apply_reference(inst, ref_from, ref_to=None, ch_type='auto'):
         # behavior that [] gives all. Also use ordered=True just to make sure
         # that all supplied channels actually exist.
         assert len(ref_to) > 0
+        ref_names = ref_from
         ref_from = pick_channels(inst.ch_names, ref_from, ordered=True)
         ref_to = pick_channels(inst.ch_names, ref_to, ordered=True)
 
@@ -176,6 +131,22 @@ def _apply_reference(inst, ref_from, ref_to=None, ch_type='auto'):
         # that a non-CAR has been applied.
         if len(np.intersect1d(ref_to, eeg_idx)) > 0:
             inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+        # REST
+        if forward is not None:
+            # use ch_sel and the given forward
+            forward = pick_channels_forward(forward, ref_names, ordered=True)
+            # 1-3. Compute a forward (G) and avg-ref'ed data (done above)
+            G = forward['sol']['data']
+            assert G.shape[0] == len(ref_names)
+            # 4. Compute the forward (G) and average-reference it (Ga):
+            Ga = G - np.mean(G, axis=0, keepdims=True)
+            # 5. Compute the Ga_inv by SVD
+            Ga_inv = linalg.pinv(Ga, rcond=1e-6)
+            # 6. Compute Ra = (G @ Ga_inv) in eq (8) from G and Ga_inv
+            Ra = G @ Ga_inv
+            # 7-8. Compute Vp = Ra @ Va; then Vpa=average(Vp)
+            Vpa = np.mean(Ra @ data[..., ref_from, :], axis=-2, keepdims=True)
+            data[..., ref_to, :] += Vpa
     else:
         ref_data = None
 
@@ -305,44 +276,26 @@ def _check_can_reref(inst):
 
 @verbose
 def set_eeg_reference(inst, ref_channels='average', copy=True,
-                      projection=False, ch_type='auto', verbose=None):
+                      projection=False, ch_type='auto', forward=None,
+                      verbose=None):
     """Specify which reference to use for EEG data.
 
-    By default, MNE-Python will automatically re-reference the EEG signal to
-    use an average reference (see below). Use this function to explicitly
-    specify the desired reference for EEG. This can be either an existing
-    electrode or a new virtual channel. This function will re-reference the
-    data according to the desired reference and prevent MNE-Python from
-    automatically adding an average reference projection.
+    Use this function to explicitly specify the desired reference for EEG.
+    This can be either an existing electrode or a new virtual channel.
+    This function will re-reference the data according to the desired
+    reference.
 
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    ref_channels : list of str | str
-        The name(s) of the channel(s) used to construct the reference. To apply
-        an average reference, specify ``'average'`` here (default). If an empty
-        list is specified, the data is assumed to already have a proper
-        reference and MNE will not attempt any re-referencing of the data.
-        Defaults to an average reference.
+    %(set_eeg_reference_ref_channels)s
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
-    projection : bool
-        If ``ref_channels='average'`` this argument specifies if the average
-        reference should be computed as a projection (True) or not (False;
-        default). If ``projection=True``, the average reference is added as a
-        projection and is not applied to the data (it can be applied
-        afterwards with the ``apply_proj`` method). If ``projection=False``,
-        the average reference is directly applied to the data.
-        If ``ref_channels`` is not ``'average'``, ``projection`` must be set to
-        ``False`` (the default in this case).
-    ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
-        The name of the channel type to apply the reference to. If 'auto', the
-        first channel type of eeg, ecog or seeg that is found (in that order)
-        will be selected.
-
-        .. versionadded:: 0.19
+    %(set_eeg_reference_projection)s
+    %(set_eeg_reference_ch_type)s
+    %(set_eeg_reference_forward)s
     %(verbose)s
 
     Returns
@@ -353,53 +306,10 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         re-referencing the data.
     ref_data : array
         Array of reference data subtracted from EEG channels. This will be
-        ``None`` if ``ref_channels='average'`` and ``projection=True``.
-
-    See Also
-    --------
-    set_bipolar_reference : Convenience function for creating bipolar
-                            references.
-
-    Notes
-    -----
-    Some common referencing schemes and the corresponding value for the
-    ``ref_channels`` parameter:
-
-    No re-referencing:
-        If the EEG data is already using the proper reference, set
-        ``ref_channels=[]``. This will prevent MNE-Python from automatically
-        adding an average reference projection.
-
-    Average reference:
-        A new virtual reference electrode is created by averaging the current
-        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
-        automatically excluded if they are properly set in ``info['bads']``.
-
-    A single electrode:
-        Set ``ref_channels`` to a list containing the name of the channel that
-        will act as the new reference, for example ``ref_channels=['Cz']``.
-
-    The mean of multiple electrodes:
-        A new virtual reference electrode is created by computing the average
-        of the current EEG signal recorded from two or more selected channels.
-        Set ``ref_channels`` to a list of channel names, indicating which
-        channels to use. For example, to apply an average mastoid reference,
-        when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
-
-    1. If a reference is requested that is not the average reference, this
-       function removes any pre-existing average reference projections.
-
-    2. During source localization, the EEG signal should have an average
-       reference.
-
-    3. In order to apply a reference, the data must be preloaded. This is not
-       necessary if ``ref_channels='average'`` and ``projection=True``.
-
-    4. For an average reference, bad EEG channels are automatically excluded if
-       they are properly set in ``info['bads']``.
-
-    .. versionadded:: 0.9.0
+        ``None`` if ``projection=True`` or ``ref_channels='REST'``.
+    %(set_eeg_reference_see_also_notes)s
     """
+    from ..forward import Forward
     _check_can_reref(inst)
 
     if projection:  # average reference projector
@@ -410,7 +320,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         if _has_eeg_average_ref_proj(inst.info['projs']):
             warn('An average reference projection was already added. The data '
                  'has been left untouched.')
-            return inst, None
         else:
             # Creating an average reference may fail. In this case, make
             # sure that the custom_ref_applied flag is left untouched.
@@ -428,7 +337,8 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                 logger.info('Average reference projection was added, '
                             'but has not been applied yet. Use the '
                             'apply_proj method to apply it.')
-            return inst, None
+        return inst, None
+    del projection  # not used anymore
 
     inst = inst.copy() if copy else inst
 
@@ -447,24 +357,30 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         else:
             raise ValueError('No EEG, ECoG or sEEG channels found '
                              'to rereference.')
+    else:
+        type_ = ch_type
 
     ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
     eeg_idx = pick_types(inst.info, **ch_dict)
     ch_sel = [inst.ch_names[i] for i in eeg_idx]
 
-    if ref_channels == 'average' and not projection:  # apply average reference
-        logger.info('Applying average reference.')
+    if ref_channels == 'REST':
+        _validate_type(forward, Forward, 'forward when ref_channels="REST"')
+    else:
+        forward = None  # signal to _apply_reference not to do REST
+
+    if ref_channels in ('average', 'REST'):
+        logger.info(f'Applying {ref_channels} reference.')
         ref_channels = ch_sel
 
     if ref_channels == []:
-        logger.info('EEG data marked as already having the desired reference. '
-                    'Preventing automatic future re-referencing to an average '
-                    'reference.')
+        logger.info('EEG data marked as already having the desired reference.')
     else:
         logger.info('Applying a custom %s '
                     'reference.' % DEFAULTS['titles'][type_])
 
-    return _apply_reference(inst, ref_channels, ch_sel, ch_type=ch_type)
+    return _apply_reference(inst, ref_channels, ch_sel, forward,
+                            ch_type=ch_type)
 
 
 @verbose
@@ -587,7 +503,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
             # otherwise it's modified inplace
             _copy_channel(inst, an, 'TMP')
             an = 'TMP'
-        _apply_reference(inst, [ca], [an])
+        _apply_reference(inst, [ca], [an])  # ensures preloaded
         an_idx = inst.ch_names.index(an)
         inst.info['chs'][an_idx] = chs
         inst.info['chs'][an_idx]['ch_name'] = name

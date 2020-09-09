@@ -15,7 +15,7 @@ from scipy import linalg
 
 from .cov import read_cov, compute_whitener
 from .io.constants import FIFF
-from .io.pick import pick_types, channel_type
+from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
@@ -112,7 +112,7 @@ class Dipole(object):
         s = "n_times : %s" % len(self.times)
         s += ", tmin : %0.3f" % np.min(self.times)
         s += ", tmax : %0.3f" % np.max(self.times)
-        return "<Dipole  |  %s>" % s
+        return "<Dipole | %s>" % s
 
     def save(self, fname, overwrite=False):
         """Save dipole in a .dip or .bdip file.
@@ -183,7 +183,7 @@ class Dipole(object):
                        mode='orthoview', coord_frame='mri', idx='gof',
                        show_all=True, ax=None, block=False, show=True,
                        scale=5e-3, color=(1.0, 0.0, 0.0), fig=None,
-                       verbose=None):
+                       verbose=None, title=None):
         """Plot dipole locations in 3d.
 
         Parameters
@@ -243,6 +243,9 @@ class Dipole(object):
 
             .. versionadded:: 0.14.0
         %(verbose_meth)s
+        %(dipole_locs_fig_title)s
+
+            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -258,7 +261,8 @@ class Dipole(object):
         from .viz import plot_dipole_locations
         return plot_dipole_locations(
             self, trans, subject, subjects_dir, mode, coord_frame, idx,
-            show_all, ax, block, show, scale=scale, color=color, fig=fig)
+            show_all, ax, block, show, scale=scale, color=color, fig=fig,
+            title=title)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
@@ -355,10 +359,6 @@ class DipoleFixed(ShiftTimeMixin):
         Number of averages.
     aspect_kind : int
         The kind of data.
-    first : int
-        First sample. Deprecated, will be removed in 0.21.
-    last : int
-        Last sample. Deprecated, will be removed in 0.21.
     comment : str
         The dipole comment.
     %(verbose)s
@@ -380,17 +380,13 @@ class DipoleFixed(ShiftTimeMixin):
 
     @verbose
     def __init__(self, info, data, times, nave, aspect_kind,
-                 first=None, last=None, comment='',
-                 verbose=None):  # noqa: D102
+                 comment='', verbose=None):  # noqa: D102
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
         self.kind = _aspect_rev.get(aspect_kind, 'unknown')
         self.comment = comment
         self.times = times
-        if first is not None or last is not None:
-            warn(DeprecationWarning, 'first and last are deprecated, '
-                 'do not pass them')
         self.data = data
         self.verbose = verbose
         self.preload = True
@@ -400,7 +396,7 @@ class DipoleFixed(ShiftTimeMixin):
         s = "n_times : %s" % len(self.times)
         s += ", tmin : %s" % np.min(self.times)
         s += ", tmax : %s" % np.max(self.times)
-        return "<DipoleFixed  |  %s>" % s
+        return "<DipoleFixed | %s>" % s
 
     def copy(self):
         """Copy the DipoleFixed object.
@@ -683,27 +679,27 @@ def _read_dipole_bdip(fname):
 def _write_dipole_bdip(fname, dip):
     with open(fname, 'wb+') as fid:
         for ti, t in enumerate(dip.times):
-            fid.write(np.zeros(1, '>i4').tostring())  # int dipole
-            fid.write(np.array([t, 0]).astype('>f4').tostring())
-            fid.write(np.zeros(3, '>f4').tostring())  # r0
-            fid.write(dip.pos[ti].astype('>f4').tostring())  # pos
+            fid.write(np.zeros(1, '>i4').tobytes())  # int dipole
+            fid.write(np.array([t, 0]).astype('>f4').tobytes())
+            fid.write(np.zeros(3, '>f4').tobytes())  # r0
+            fid.write(dip.pos[ti].astype('>f4').tobytes())  # pos
             Q = dip.amplitude[ti] * dip.ori[ti]
-            fid.write(Q.astype('>f4').tostring())
-            fid.write(np.array(dip.gof[ti] / 100., '>f4').tostring())
+            fid.write(Q.astype('>f4').tobytes())
+            fid.write(np.array(dip.gof[ti] / 100., '>f4').tobytes())
             has_errors = int(bool(len(dip.conf)))
-            fid.write(np.array(has_errors, '>i4').tostring())  # has_errors
-            fid.write(np.zeros(1, '>f4').tostring())  # noise level
+            fid.write(np.array(has_errors, '>i4').tobytes())  # has_errors
+            fid.write(np.zeros(1, '>f4').tobytes())  # noise level
             for key in _BDIP_ERROR_KEYS:
                 val = dip.conf[key][ti] if key in dip.conf else 0.
                 assert val.shape == ()
-                fid.write(np.array(val, '>f4').tostring())
-            fid.write(np.zeros(25, '>f4').tostring())
+                fid.write(np.array(val, '>f4').tobytes())
+            fid.write(np.zeros(25, '>f4').tobytes())
             conf = dip.conf['vol'][ti] if 'vol' in dip.conf else 0.
-            fid.write(np.array(conf, '>f4').tostring())
+            fid.write(np.array(conf, '>f4').tobytes())
             khi2 = dip.khi2[ti] if dip.khi2 is not None else 0
-            fid.write(np.array(khi2, '>f4').tostring())
-            fid.write(np.zeros(1, '>f4').tostring())  # prob
-            fid.write(np.zeros(1, '>f4').tostring())  # total noise est
+            fid.write(np.array(khi2, '>f4').tobytes())
+            fid.write(np.zeros(1, '>f4').tobytes())  # prob
+            fid.write(np.zeros(1, '>f4').tobytes())  # total noise est
 
 
 # #############################################################################
@@ -740,12 +736,12 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
                     % (1000 * surf['R']))
     logger.info('Filtering (grid = %6.f mm)...' % (1000 * grid))
     src = _make_volume_source_space(surf, grid, exclude, 1000 * mindist,
-                                    do_neighbors=False, n_jobs=n_jobs)
+                                    do_neighbors=False, n_jobs=n_jobs)[0]
     assert 'vertno' in src
     # simplify the result to make things easier later
     src = dict(rr=src['rr'][src['vertno']], nn=src['nn'][src['vertno']],
                nuse=src['nuse'], coord_frame=src['coord_frame'],
-               vertno=np.arange(src['nuse']))
+               vertno=np.arange(src['nuse']), type='discrete')
     return SourceSpaces([src])
 
 
@@ -1283,7 +1279,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     logger.info('%d bad channels total' % len(info['bads']))
 
     # Forward model setup (setup_forward_model from setup.c)
-    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])]
+    ch_types = evoked.get_channel_types()
 
     megcoils, compcoils, megnames, meg_info = [], [], [], None
     eegels, eegnames = [], []
@@ -1310,7 +1306,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
     # nzero = (cov['eig'] > 0)
     # n_chan = len(info_nb['ch_names'])
-    # whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+    # whitener = np.zeros((n_chan, n_chan), dtype=np.float64)
     # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
     # whitener = np.dot(whitener, cov['eigvec'])
 

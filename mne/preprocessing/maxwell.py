@@ -6,7 +6,7 @@
 
 # License: BSD (3-clause)
 
-from collections import Counter
+from collections import Counter, OrderedDict
 from functools import partial
 from math import factorial
 from os import path as op
@@ -28,12 +28,13 @@ from ..io.constants import FIFF, FWD
 from ..io.meas_info import _simplify_info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray
+from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
+                  Projection)
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
-                     _check_option, _ensure_int)
-from ..fixes import _get_args, _safe_svd, einsum, bincount
-from ..channels.channels import _get_T1T2_mag_inds
+                     _check_option, _ensure_int, _validate_type, use_log_level)
+from ..fixes import _get_args, _safe_svd, einsum, bincount, orth
+from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 
 # Note: MF uses single precision and some algorithms might use
@@ -48,7 +49,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', ignore_ref=False, bad_condition='error',
                    head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
-                   skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
+                   skip_by_annotation=('edge', 'bad_acq_skip'),
+                   extended_proj=(), verbose=None):
     """Maxwell filter data using multipole moments.
 
     Parameters
@@ -60,7 +62,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(maxwell_origin_int_ext_calibration_cross)s
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
+    %(maxwell_cross)s
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -75,15 +81,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
     %(maxwell_coord)s
-    destination : str | array-like, shape (3,) | None
-        The destination location for the head. Can be ``None``, which
-        will not change the head position, or a string path to a FIF file
-        containing a MEG device<->head transformation, or a 3-element array
-        giving the coordinates to translate to (with no rotations).
-        For example, ``destination=(0, 0, 0.04)`` would translate the bases
-        as ``--trans default`` would in MaxFilter™ (i.e., to the default
-        head location).
-    %(maxwell_reg_ref_cond_pos)s
+    %(maxwell_dest)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_pos)s
 
         .. versionadded:: 0.12
     %(maxwell_st_fixed_only)s
@@ -93,6 +95,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     %(maxwell_skip)s
 
         .. versionadded:: 0.17
+    %(maxwell_extended)s
     %(verbose)s
 
     Returns
@@ -161,6 +164,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
        +-----------------------------------------------------------------------------+-----+-----------+
        | Certified for clinical use                                                  |     | ✓         |
        +-----------------------------------------------------------------------------+-----+-----------+
+       | Extended external basis (eSSS)                                              | ✓   |           |
+       +-----------------------------------------------------------------------------+-----+-----------+
 
     Epoch-based movement compensation is described in [1]_.
 
@@ -205,7 +210,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
            Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
            https://doi.org/10.1088/0031-9155/51/7/008
     """  # noqa: E501
-    return _maxwell_filter(
+    logger.info('Maxwell filtering raw data')
+    params = _prep_maxwell_filter(
         raw=raw, origin=origin, int_order=int_order, ext_order=ext_order,
         calibration=calibration, cross_talk=cross_talk,
         st_duration=st_duration, st_correlation=st_correlation,
@@ -213,18 +219,24 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         regularize=regularize, ignore_ref=ignore_ref,
         bad_condition=bad_condition, head_pos=head_pos, st_fixed=st_fixed,
         st_only=st_only, mag_scale=mag_scale,
-        skip_by_annotation=skip_by_annotation)
+        skip_by_annotation=skip_by_annotation, extended_proj=extended_proj)
+    raw_sss = _run_maxwell_filter(raw, **params)
+    # Update info
+    _update_sss_info(raw_sss, **params['update_kwargs'])
+    logger.info('[done]')
+    return raw_sss
 
 
 @verbose
-def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
-                    calibration=None, cross_talk=None, st_duration=None,
-                    st_correlation=0.98, coord_frame='head', destination=None,
-                    regularize='in', ignore_ref=False, bad_condition='error',
-                    head_pos=None, st_fixed=True, st_only=False,
-                    mag_scale=100.,
-                    skip_by_annotation=('edge', 'bad_acq_skip'),
-                    reconstruct='in', verbose=None):
+def _prep_maxwell_filter(
+        raw, origin='auto', int_order=8, ext_order=3,
+        calibration=None, cross_talk=None, st_duration=None,
+        st_correlation=0.98, coord_frame='head', destination=None,
+        regularize='in', ignore_ref=False, bad_condition='error',
+        head_pos=None, st_fixed=True, st_only=False,
+        mag_scale=100.,
+        skip_by_annotation=('edge', 'bad_acq_skip'), extended_proj=(),
+        reconstruct='in', verbose=None):
     # There are an absurd number of different possible notations for spherical
     # coordinates, which confounds the notation for spherical harmonics.  Here,
     # we purposefully stay away from shorthand notation in both and use
@@ -233,8 +245,7 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
-    if not isinstance(raw, BaseRaw):
-        raise TypeError('raw must be Raw, not %s' % type(raw))
+    _validate_type(raw, BaseRaw, 'raw')
     _check_usable(raw)
     _check_regularize(regularize)
     st_correlation = float(st_correlation)
@@ -244,16 +255,8 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     _check_option('coord_frame', coord_frame, ['head', 'meg'])
     head_frame = True if coord_frame == 'head' else False
     recon_trans = _check_destination(destination, raw.info, head_frame)
-    onsets, ends = _annotations_starts_stops(
-        raw, skip_by_annotation, invert=True)
-    max_samps = (ends - onsets).max()
     if st_duration is not None:
         st_duration = float(st_duration)
-        if not 0. < st_duration * raw.info['sfreq'] <= max_samps + 1.:
-            raise ValueError('st_duration (%0.1fs) must be between 0 and the '
-                             'longest contiguous duration of the data '
-                             '(%0.1fs).' % (st_duration,
-                                            max_samps / raw.info['sfreq']))
         st_correlation = float(st_correlation)
         st_duration = int(round(st_duration * raw.info['sfreq']))
         if not 0. < st_correlation <= 1:
@@ -274,30 +277,43 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                 ctc=not st_only and cross_talk is not None)
 
     # Now we can actually get moving
-
-    logger.info('Maxwell filtering raw data')
-    add_channels = (head_pos[0] is not None) and not st_only
-    raw_sss, pos_picks = _copy_preload_add_channels(
-        raw, add_channels=add_channels)
-    del raw
-    if not st_only:
-        # remove MEG projectors, they won't apply now
-        _remove_meg_projs(raw_sss)
-    info = raw_sss.info
-    meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine = \
-        _get_mf_picks(info, int_order, ext_order, ignore_ref)
+    info = raw.info.copy()
+    meg_picks, mag_picks, grad_picks, good_mask, mag_or_fine = \
+        _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref)
 
     # Magnetometers are scaled to improve numerical stability
     coil_scale, mag_scale = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, info)
 
     #
+    # Extended projection vectors
+    #
+    _validate_type(extended_proj, (list, tuple), 'extended_proj')
+    good_names = [info['ch_names'][c] for c in meg_picks[good_mask]]
+    if len(extended_proj) > 0:
+        extended_proj_ = list()
+        for pi, proj in enumerate(extended_proj):
+            item = 'extended_proj[%d]' % (pi,)
+            _validate_type(proj, Projection, item)
+            got_names = proj['data']['col_names']
+            diff = sorted(set(got_names).symmetric_difference(set(good_names)))
+            if diff:
+                raise ValueError('%s channel names (length %d) do not match '
+                                 'the good MEG channel names (length %d):\n%s'
+                                 % (item, len(got_names), len(good_names),
+                                    ', '.join(diff)))
+            extended_proj_.append(proj['data']['data'])
+        extended_proj = np.concatenate(extended_proj_)
+        logger.info('    Extending external SSS basis using %d projection '
+                    'vectors' % (len(extended_proj),))
+
+    #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
     #
     sss_cal = dict()
     if calibration is not None:
-        calibration, sss_cal = _update_sensor_geometry(info, calibration,
-                                                       ignore_ref)
+        calibration, sss_cal = _update_sensor_geometry(
+            info, calibration, ignore_ref)
         mag_or_fine.fill(True)  # all channels now have some mag-type data
 
     # Determine/check the origin of the expansion
@@ -307,36 +323,20 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         origin_head = apply_trans(info['dev_head_t'], origin)
     else:
         origin_head = origin
-    orig_origin, orig_coord_frame = origin, coord_frame
-    del origin, coord_frame
+    update_kwargs = dict(
+        origin=origin, coord_frame=coord_frame, sss_cal=sss_cal,
+        int_order=int_order, ext_order=ext_order,
+        extended_proj=extended_proj)
+    del origin, coord_frame, sss_cal
     origin_head.setflags(write=False)
 
     #
     # Cross-talk processing
     #
-    if cross_talk is not None:
-        sss_ctc = _read_ctc(cross_talk)
-        ctc_chs = sss_ctc['proj_items_chs']
-        meg_ch_names = [info['ch_names'][p] for p in meg_picks]
-        # checking for extra space ambiguity in channel names
-        # between old and new fif files
-        if meg_ch_names[0] not in ctc_chs:
-            ctc_chs = _clean_names(ctc_chs, remove_whitespace=True)
-        missing = sorted(list(set(meg_ch_names) - set(ctc_chs)))
-        if len(missing) != 0:
-            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
-                               % missing)
-        missing = sorted(list(set(ctc_chs) - set(meg_ch_names)))
-        if len(missing) > 0:
-            warn('Not all cross-talk channels in raw:\n%s' % missing)
-        ctc_picks = [ctc_chs.index(info['ch_names'][c])
-                     for c in meg_picks[good_picks]]
-        assert len(ctc_picks) == len(good_picks)  # otherwise we errored
-        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
-        # I have no idea why, but MF transposes this for storage..
-        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
-    else:
-        sss_ctc = dict()
+    meg_ch_names = [info['ch_names'][p] for p in meg_picks]
+    ctc, sss_ctc = _read_cross_talk(cross_talk, meg_ch_names)
+    update_kwargs['sss_ctc'] = sss_ctc
+    del sss_ctc
 
     #
     # Translate to destination frame (always use non-fine-cal bases)
@@ -345,6 +345,8 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     all_coils = _prep_mf_coils(info, ignore_ref)
     S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
     exp['ext_order'] = ext_order
+    exp['extended_proj'] = extended_proj
+    del extended_proj
     # Reconstruct data from internal space only (Eq. 38), and rescale S_recon
     S_recon /= coil_scale
     if recon_trans is not None:
@@ -370,12 +372,78 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         st_when = 'before' if st_fixed else 'after'  # relative to movecomp
     else:
         # st_duration from here on will act like the chunk size
-        st_duration = max(int(round(10. * info['sfreq'])), 1)
+        st_duration = min(max(int(round(10. * info['sfreq'])), 1),
+                          len(raw.times))
         st_correlation = None
         st_when = 'never'
-    st_duration = min(max_samps, st_duration)
-    del st_fixed
+    update_kwargs['max_st'] = max_st
+    del st_fixed, max_st
 
+    # Figure out which transforms we need for each tSSS block
+    # (and transform pos[1] to times)
+    head_pos[1] = raw.time_as_index(head_pos[1], use_rounding=True)
+    # Compute the first bit of pos_data for cHPI reporting
+    if info['dev_head_t'] is not None and head_pos[0] is not None:
+        this_pos_quat = np.concatenate([
+            rot_to_quat(info['dev_head_t']['trans'][:3, :3]),
+            info['dev_head_t']['trans'][:3, 3],
+            np.zeros(3)])
+    else:
+        this_pos_quat = None
+    _get_this_decomp_trans = partial(
+        _get_decomp, all_coils=all_coils,
+        cal=calibration, regularize=regularize,
+        exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
+        grad_picks=grad_picks, mag_picks=mag_picks, good_mask=good_mask,
+        mag_or_fine=mag_or_fine, bad_condition=bad_condition,
+        mag_scale=mag_scale)
+    update_kwargs.update(
+        nchan=good_mask.sum(), st_only=st_only, recon_trans=recon_trans)
+    params = dict(
+        skip_by_annotation=skip_by_annotation,
+        st_duration=st_duration, st_correlation=st_correlation,
+        st_only=st_only, st_when=st_when, ctc=ctc, coil_scale=coil_scale,
+        this_pos_quat=this_pos_quat, meg_picks=meg_picks,
+        good_mask=good_mask, grad_picks=grad_picks, head_pos=head_pos,
+        info=info, _get_this_decomp_trans=_get_this_decomp_trans,
+        S_recon=S_recon, update_kwargs=update_kwargs)
+    return params
+
+
+def _run_maxwell_filter(
+        raw, skip_by_annotation, st_duration, st_correlation, st_only,
+        st_when, ctc, coil_scale, this_pos_quat, meg_picks, good_mask,
+        grad_picks, head_pos, info, _get_this_decomp_trans, S_recon,
+        update_kwargs,
+        reconstruct='in', copy=True):
+    # Eventually find_bad_channels_maxwell could be sped up by moving this
+    # outside the loop (e.g., in the prep function) but regularization depends
+    # on which channels are being used, so easier just to include it here.
+    # The time it takes to recompute S and pS themselves is roughly on par
+    # with the np.dot with the data, so not a huge gain to be made there.
+    S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
+        _get_this_decomp_trans(info['dev_head_t'], t=0.)
+    update_kwargs.update(reg_moments=reg_moments.copy())
+    if ctc is not None:
+        ctc = ctc[good_mask][:, good_mask]
+
+    add_channels = (head_pos[0] is not None) and (not st_only) and copy
+    raw_sss, pos_picks = _copy_preload_add_channels(
+        raw, add_channels, copy, info)
+    sfreq = info['sfreq']
+    del raw
+    if not st_only:
+        # remove MEG projectors, they won't apply now
+        _remove_meg_projs(raw_sss)
+    # Figure out which segments of data we can use
+    onsets, ends = _annotations_starts_stops(
+        raw_sss, skip_by_annotation, invert=True)
+    max_samps = (ends - onsets).max()
+    if not 0. < st_duration <= max_samps + 1.:
+        raise ValueError('st_duration (%0.1fs) must be between 0 and the '
+                         'longest contiguous duration of the data '
+                         '(%0.1fs).' % (st_duration / sfreq,
+                                        max_samps / sfreq))
     # Generate time points to break up data into equal-length windows
     starts, stops = list(), list()
     for onset, end in zip(onsets, ends):
@@ -392,48 +460,24 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                         '    Spatiotemporal window did not fit evenly into'
                         'contiguous data segment. %0.2f seconds were lumped '
                         'into the previous window.'
-                        % ((n_last_buf - st_duration) / info['sfreq'],))
+                        % ((n_last_buf - st_duration) / sfreq,))
                 else:
                     logger.info(
                         '    Contiguous data segment of duration %0.2f '
                         'seconds is too short to be processed with tSSS '
                         'using duration %0.2f'
-                        % (n_last_buf / info['sfreq'],
-                           st_duration / info['sfreq']))
+                        % (n_last_buf / sfreq, st_duration / sfreq))
         assert len(read_lims) >= 2
         assert read_lims[0] == onset and read_lims[-1] == end
         starts.extend(read_lims[:-1])
         stops.extend(read_lims[1:])
         del read_lims
+    st_duration = min(max_samps, st_duration)
 
-    #
-    # Do the heavy lifting
-    #
-
-    # Figure out which transforms we need for each tSSS block
-    # (and transform pos[1] to times)
-    head_pos[1] = raw_sss.time_as_index(head_pos[1], use_rounding=True)
-    # Compute the first bit of pos_data for cHPI reporting
-    if info['dev_head_t'] is not None and head_pos[0] is not None:
-        this_pos_quat = np.concatenate([
-            rot_to_quat(info['dev_head_t']['trans'][:3, :3]),
-            info['dev_head_t']['trans'][:3, 3],
-            np.zeros(3)])
-    else:
-        this_pos_quat = None
-    _get_this_decomp_trans = partial(
-        _get_decomp, all_coils=all_coils,
-        cal=calibration, regularize=regularize,
-        exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
-        grad_picks=grad_picks, mag_picks=mag_picks, good_picks=good_picks,
-        mag_or_fine=mag_or_fine, bad_condition=bad_condition,
-        mag_scale=mag_scale)
-    S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
-        _get_this_decomp_trans(info['dev_head_t'], t=0.)
-    reg_moments_0 = reg_moments.copy()
     # Loop through buffer windows of data
     n_sig = int(np.floor(np.log10(max(len(starts), 0)))) + 1
-    logger.info('    Processing %s data chunk%s' % (len(starts), _pl(starts)))
+    logger.info(
+        '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
     for ii, (start, stop) in enumerate(zip(starts, stops)):
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
@@ -441,12 +485,12 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         t_str += ('(#%d/%d)' % (ii + 1, len(starts))).rjust(2 * n_sig + 5)
 
         # Get original data
-        orig_data = raw_sss._data[meg_picks[good_picks], start:stop]
+        orig_data = raw_sss._data[meg_picks[good_mask], start:stop]
         # This could just be np.empty if not st_only, but shouldn't be slow
         # this way so might as well just always take the original data
         out_meg_data = raw_sss._data[meg_picks, start:stop]
         # Apply cross-talk correction
-        if cross_talk is not None:
+        if ctc is not None:
             orig_data = ctc.dot(orig_data)
         out_pos_data = np.empty((len(pos_picks), stop - start))
 
@@ -535,14 +579,6 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                         % (n_positions, _pl(n_positions), t_str))
         raw_sss._data[meg_picks, start:stop] = out_meg_data
         raw_sss._data[pos_picks, start:stop] = out_pos_data
-
-    # Update info
-    if not st_only:
-        info['dev_head_t'] = recon_trans  # set the reconstruction transform
-    _update_sss_info(raw_sss, orig_origin, int_order, ext_order,
-                     len(good_picks), orig_coord_frame, sss_ctc, sss_cal,
-                     max_st, reg_moments_0, st_only)
-    logger.info('[done]')
     return raw_sss
 
 
@@ -718,9 +754,11 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
 
 
-def _copy_preload_add_channels(raw, add_channels):
+def _copy_preload_add_channels(raw, add_channels, copy, info):
     """Load data for processing and (maybe) add cHPI pos channels."""
-    raw = raw.copy()
+    if copy:
+        raw = raw.copy()
+    raw.info['chs'] = info['chs']  # updated coil types
     if add_channels:
         kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
                  FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
@@ -753,16 +791,18 @@ def _copy_preload_add_channels(raw, add_channels):
                               len(raw.ch_names))
         return raw, pos_picks
     else:
-        if not raw.preload:
-            logger.info('    Loading raw data from disk')
-            raw.load_data(verbose=False)
-        else:
-            logger.info('    Using loaded raw data')
+        if copy:
+            if not raw.preload:
+                logger.info('    Loading raw data from disk')
+                raw.load_data(verbose=False)
+            else:
+                logger.info('    Using loaded raw data')
         return raw, np.array([], int)
 
 
 def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     """Check for a valid pos array and transform it to a more usable form."""
+    _validate_type(pos, (np.ndarray, None), 'head_pos')
     if pos is None:
         return [None, np.array([-1])]
     if not head_frame:
@@ -797,7 +837,7 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
 
 
 def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
-                coil_scale, grad_picks, mag_picks, good_picks, mag_or_fine,
+                coil_scale, grad_picks, mag_picks, good_mask, mag_or_fine,
                 bad_condition, t, mag_scale):
     """Get a decomposition matrix and pseudoinverse matrices."""
     #
@@ -805,20 +845,55 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
     #
     S_decomp_full = _get_s_decomp(
         exp, all_coils, trans, coil_scale, cal, ignore_ref, grad_picks,
-        mag_picks, good_picks, mag_scale)
-    S_decomp = S_decomp_full[good_picks]
+        mag_picks, mag_scale)
+    S_decomp = S_decomp_full[good_mask]
+    #
+    # Extended SSS basis (eSSS)
+    #
+    extended_proj = exp.get('extended_proj', ())
+    if len(extended_proj) > 0:
+        rcond = 1e-4
+        thresh = 1e-4
+        extended_proj = extended_proj.T * coil_scale[good_mask]
+        extended_proj /= np.linalg.norm(extended_proj, axis=0)
+        n_int = _get_n_moments(exp['int_order'])
+        if S_decomp.shape[1] > n_int:
+            S_ext = S_decomp[:, n_int:].copy()
+            S_ext /= np.linalg.norm(S_ext, axis=0)
+            S_ext_orth = orth(S_ext, rcond=rcond)
+            assert S_ext_orth.shape[1] == S_ext.shape[1]
+            extended_proj -= np.dot(S_ext_orth,
+                                    np.dot(S_ext_orth.T, extended_proj))
+            scale = np.mean(np.linalg.norm(S_decomp[n_int:], axis=0))
+        else:
+            scale = np.mean(np.linalg.norm(S_decomp[:n_int], axis=0))
+        mask = np.linalg.norm(extended_proj, axis=0) > thresh
+        extended_remove = list(np.where(~mask)[0] + S_decomp.shape[1])
+        logger.debug('    Reducing %d -> %d'
+                     % (extended_proj.shape[1], mask.sum()))
+        extended_proj /= np.linalg.norm(extended_proj, axis=0) / scale
+        S_decomp = np.concatenate([S_decomp, extended_proj], axis=-1)
+        if extended_proj.shape[1]:
+            S_decomp_full = np.pad(
+                S_decomp_full, ((0, 0), (0, extended_proj.shape[1])),
+                'constant')
+            S_decomp_full[good_mask, -extended_proj.shape[1]:] = extended_proj
+    else:
+        extended_remove = list()
+    del extended_proj
 
     #
     # Regularization
     #
-    S_decomp, pS_decomp, sing, reg_moments, n_use_in = _regularize(
-        regularize, exp, S_decomp, mag_or_fine, t=t)
+    S_decomp, reg_moments, n_use_in = _regularize(
+        regularize, exp, S_decomp, mag_or_fine, extended_remove, t=t)
     S_decomp_full = S_decomp_full.take(reg_moments, axis=1)
 
+    #
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
+    #
+    pS_decomp, sing = _col_norm_pinv(S_decomp.copy())
     cond = sing[0] / sing[-1]
-    logger.debug('    Decomposition matrix condition (%0.3f/%0.3f): %0.1f'
-                 % (sing[0], sing[-1], cond))
     if bad_condition != 'ignore' and cond >= 1000.:
         msg = 'Matrix is badly conditioned: %0.0f >= 1000' % cond
         if bad_condition == 'error':
@@ -829,82 +904,87 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
             logger.info(msg)
 
     # Build in our data scaling here
-    pS_decomp *= coil_scale[good_picks].T
-    S_decomp /= coil_scale[good_picks]
+    pS_decomp *= coil_scale[good_mask].T
+    S_decomp /= coil_scale[good_mask]
     S_decomp_full /= coil_scale
     return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in
 
 
 def _get_s_decomp(exp, all_coils, trans, coil_scale, cal, ignore_ref,
-                  grad_picks, mag_picks, good_picks, mag_scale):
+                  grad_picks, mag_picks, mag_scale):
     """Get S_decomp."""
     S_decomp = _trans_sss_basis(exp, all_coils, trans, coil_scale)
     if cal is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
         grad_cals = _sss_basis_point(exp, trans, cal, ignore_ref, mag_scale)
         # Add point like magnetometer data to bases.
-        S_decomp[grad_picks, :] += grad_cals
+        if len(grad_picks) > 0:
+            S_decomp[grad_picks, :] += grad_cals
         # Scale magnetometers by calibration coefficient
-        S_decomp[mag_picks, :] /= cal['mag_cals']
+        if len(mag_picks) > 0:
+            S_decomp[mag_picks, :] /= cal['mag_cals']
         # We need to be careful about KIT gradiometers
     return S_decomp
 
 
 @verbose
-def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
+def _regularize(regularize, exp, S_decomp, mag_or_fine, extended_remove, t,
+                verbose=None):
     """Regularize a decomposition matrix."""
     # ALWAYS regularize the out components according to norm, since
     # gradiometer-only setups (e.g., KIT) can have zero first-order
     # (homogeneous field) components
     int_order, ext_order = exp['int_order'], exp['ext_order']
-    n_in, n_out = _get_n_moments([int_order, ext_order])
+    n_in = _get_n_moments(int_order)
+    n_out = S_decomp.shape[1] - n_in
     t_str = '%8.3f' % t
     if regularize is not None:  # regularize='in'
         in_removes, out_removes = _regularize_in(
-            int_order, ext_order, S_decomp, mag_or_fine)
+            int_order, ext_order, S_decomp, mag_or_fine, extended_remove)
     else:
         in_removes = []
-        out_removes = _regularize_out(int_order, ext_order, mag_or_fine)
+        out_removes = _regularize_out(int_order, ext_order, mag_or_fine,
+                                      extended_remove)
     reg_in_moments = np.setdiff1d(np.arange(n_in), in_removes)
-    reg_out_moments = np.setdiff1d(np.arange(n_in, n_in + n_out),
+    reg_out_moments = np.setdiff1d(np.arange(n_in, S_decomp.shape[1]),
                                    out_removes)
     n_use_in = len(reg_in_moments)
     n_use_out = len(reg_out_moments)
     reg_moments = np.concatenate((reg_in_moments, reg_out_moments))
     S_decomp = S_decomp.take(reg_moments, axis=1)
-    pS_decomp, sing = _col_norm_pinv(S_decomp.copy())
     if regularize is not None or n_use_out != n_out:
         logger.info('        Using %s/%s harmonic components for %s  '
                     '(%s/%s in, %s/%s out)'
                     % (n_use_in + n_use_out, n_in + n_out, t_str,
                        n_use_in, n_in, n_use_out, n_out))
-    return S_decomp, pS_decomp, sing, reg_moments, n_use_in
+    return S_decomp, reg_moments, n_use_in
 
 
 @verbose
-def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, verbose=None):
-    """Pick types for Maxwell filtering."""
+def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False,
+                           verbose=None):
+    """Pick types for Maxwell filtering and fix magnetometers."""
     # Check for T1/T2 mag types
-    mag_inds_T1T2 = _get_T1T2_mag_inds(info)
+    mag_inds_T1T2 = _get_T1T2_mag_inds(info, use_cal=True)
     if len(mag_inds_T1T2) > 0:
-        warn('%d T1/T2 magnetometer channel types found. If using SSS, it is '
-             'advised to replace coil types using "fix_mag_coil_types".'
-             % len(mag_inds_T1T2))
+        fix_mag_coil_types(info, use_cal=True)
     # Get indices of channels to use in multipolar moment calculation
     ref = not ignore_ref
     meg_picks = pick_types(info, meg=True, ref_meg=ref, exclude=[])
     meg_info = pick_info(_simplify_info(info), meg_picks)
     del info
-    good_picks = pick_types(meg_info, meg=True, ref_meg=ref, exclude='bads')
+    good_mask = np.zeros(len(meg_picks,), bool)
+    good_mask[pick_types(meg_info, meg=True, ref_meg=ref, exclude='bads')] = 1
     n_bases = _get_n_moments([int_order, ext_order]).sum()
-    if n_bases > len(good_picks):
+    if n_bases > good_mask.sum():
         raise ValueError('Number of requested bases (%s) exceeds number of '
-                         'good sensors (%s)' % (str(n_bases), len(good_picks)))
+                         'good sensors (%s)' % (str(n_bases), good_mask.sum()))
     recons = [ch for ch in meg_info['bads']]
     if len(recons) > 0:
-        logger.info('    Bad MEG channels being reconstructed: %s' % recons)
+        msg = '    Bad MEG channels being reconstructed: %s' % recons
     else:
-        logger.info('    No bad MEG channels')
+        msg = '    No bad MEG channels'
+    logger.info(msg)
     ref_meg = False if ignore_ref else 'mag'
     mag_picks = pick_types(meg_info, meg='mag', ref_meg=ref_meg, exclude=[])
     ref_meg = False if ignore_ref else 'grad'
@@ -929,7 +1009,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, verbose=None):
     if n_kit > 0:
         msg += ' (of which %s are actually KIT gradiometers)' % n_kit
     logger.info(msg)
-    return meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine
+    return meg_picks, mag_picks, grad_picks, good_mask, mag_or_fine
 
 
 def _check_regularize(regularize):
@@ -1010,6 +1090,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     from scipy.special import sph_harm
     int_order, ext_order = exp['int_order'], exp['ext_order']
     origin = exp['origin']
+    assert 'extended_proj' not in exp  # advanced option not supported
     # Compute vector between origin and coil, convert to spherical coords
     if method == 'standard':
         # Get position, normal, weights, and number of integration pts.
@@ -1399,7 +1480,8 @@ def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
 
 
 def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
-                     sss_ctc, sss_cal, max_st, reg_moments, st_only):
+                     sss_ctc, sss_cal, max_st, reg_moments, st_only,
+                     recon_trans, extended_proj):
     """Update info inplace after Maxwell filtering.
 
     Parameters
@@ -1425,10 +1507,14 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         The moments that were used.
     st_only : bool
         Whether tSSS only was performed.
+    recon_trans : instance of Transformation
+        The reconstruction trans.
+    extended_proj : ndarray
+        Extended external bases.
     """
     n_in, n_out = _get_n_moments([int_order, ext_order])
     raw.info['maxshield'] = False
-    components = np.zeros(n_in + n_out).astype('int32')
+    components = np.zeros(n_in + n_out + len(extended_proj)).astype('int32')
     components[reg_moments] = 1
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
                          nchan=nchan, origin=origin.astype('float32'),
@@ -1444,6 +1530,8 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
                              sss_ctc=sss_ctc)
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
+        # set the reconstruction transform
+        raw.info['dev_head_t'] = recon_trans
     block_id = _generate_meas_id()
     raw.info['proc_history'].insert(0, dict(
         max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
@@ -1517,13 +1605,17 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _update_sensor_geometry(info, fine_cal, ignore_ref):
-    """Replace sensor geometry information and reorder cal_chs."""
+def _prep_fine_cal(info, fine_cal):
     from ._fine_cal import read_fine_calibration
-    logger.info('    Using fine calibration %s' % op.basename(fine_cal))
-    fine_cal = read_fine_calibration(fine_cal)  # filename -> dict
+    _validate_type(fine_cal, (dict, 'path-like'))
+    if not isinstance(fine_cal, dict):
+        fine_cal = read_fine_calibration(fine_cal)
+        extra = op.basename(str(fine_cal))
+    else:
+        extra = 'dict'
+    logger.info(f'    Using fine calibration {extra}')
     ch_names = _clean_names(info['ch_names'], remove_whitespace=True)
-    info_to_cal = dict()
+    info_to_cal = OrderedDict()
     missing = list()
     for ci, name in enumerate(fine_cal['ch_names']):
         if name not in ch_names:
@@ -1539,13 +1631,19 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
                           set(fine_cal['ch_names']))))
     if len(missing):
         warn('Found cal channel%s not in data: %s' % (_pl(missing), missing))
+    return info_to_cal, fine_cal, ch_names
+
+
+def _update_sensor_geometry(info, fine_cal, ignore_ref):
+    """Replace sensor geometry information and reorder cal_chs."""
+    info_to_cal, fine_cal, ch_names = _prep_fine_cal(info, fine_cal)
     grad_picks = pick_types(info, meg='grad', exclude=())
     mag_picks = pick_types(info, meg='mag', exclude=())
 
     # Determine gradiometer imbalances and magnetometer calibrations
     grad_imbalances = np.array([fine_cal['imb_cals'][info_to_cal[gi]]
                                 for gi in grad_picks]).T
-    if grad_imbalances.shape[0] not in [1, 3]:
+    if grad_imbalances.shape[0] not in [0, 1, 3]:
         raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
                          'magnetometers. Currently have %i' %
                          grad_imbalances.shape[0])
@@ -1558,13 +1656,12 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
                        grad_coilsets=grad_coilsets, mag_cals=mag_cals)
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = np.zeros((len(fine_cal['ch_names']), 3))
+    ang_shift = list()
     used = np.zeros(len(info['chs']), bool)
     cal_corrs = list()
     cal_chans = list()
     adjust_logged = False
     for oi, ci in info_to_cal.items():
-        assert ch_names[oi] == fine_cal['ch_names'][ci]
         assert not used[oi]
         used[oi] = True
         info_ch = info['chs'][oi]
@@ -1583,8 +1680,8 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
                 logger.info('        Adjusting non-orthogonal EX and EY')
                 adjust_logged = True
             # find the rotation matrix that goes from one to the other
-            this_trans = _find_vector_rotation(ch_coil_rot[:, 2],
-                                               cal_coil_rot[:, 2])
+            this_trans = _find_vector_rotation(
+                ch_coil_rot[:, 2], cal_coil_rot[:, 2])
             cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
 
         # calculate shift angle
@@ -1592,7 +1689,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         _normalize_vectors(v1)
         v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
         _normalize_vectors(v2)
-        ang_shift[ci] = np.sum(v1 * v2, axis=0)
+        ang_shift.append(np.sum(v1 * v2, axis=0))
         if oi in grad_picks:
             extra = [1., fine_cal['imb_cals'][ci][0]]
         else:
@@ -1602,15 +1699,16 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         # Channel positions are not changed
         info_ch['loc'][3:] = cal_loc[3:]
         assert (info_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)
+    meg_picks = pick_types(info, meg=True, exclude=())
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
-    ang_shift = ang_shift[list(info_to_cal.values())]  # subselect used ones
     # This gets written to the Info struct
     sss_cal = dict(cal_corrs=np.array(cal_corrs),
                    cal_chans=np.array(cal_chans))
 
     # Log quantification of sensor changes
     # Deal with numerical precision giving absolute vals slightly more than 1.
+    ang_shift = np.array(ang_shift)
     np.clip(ang_shift, -1., 1., ang_shift)
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
     logger.info('        Adjusted coil positions by (μ ± σ): '
@@ -1627,8 +1725,10 @@ def _get_grad_point_coilsets(info, n_types, ignore_ref):
         y=np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1.]]),
         z=np.eye(4))
     grad_coilsets = list()
-    grad_info = pick_info(
-        _simplify_info(info), pick_types(info, meg='grad', exclude=[]))
+    grad_picks = pick_types(info, meg='grad', exclude=[])
+    if len(grad_picks) == 0:
+        return grad_coilsets
+    grad_info = pick_info(_simplify_info(info), grad_picks)
     # Coil_type values for x, y, z point magnetometers
     # Note: 1D correction files only have x-direction corrections
     for ch in grad_info['chs']:
@@ -1660,14 +1760,15 @@ def _sss_basis_point(exp, trans, cal, ignore_ref=False, mag_scale=100.):
     return S_tot
 
 
-def _regularize_out(int_order, ext_order, mag_or_fine):
+def _regularize_out(int_order, ext_order, mag_or_fine, extended_remove):
     """Regularize out components based on norm."""
     n_in = _get_n_moments(int_order)
-    out_removes = list(np.arange(0 if mag_or_fine.any() else 3) + n_in)
-    return list(out_removes)
+    remove_homog = ext_order > 0 and not mag_or_fine.any()
+    return list(range(n_in, n_in + 3 * remove_homog)) + extended_remove
 
 
-def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
+def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
+                   extended_remove):
     """Regularize basis set using idealized SNR measure."""
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
@@ -1680,8 +1781,9 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
 
     I_tots = np.zeros(n_in)  # we might not traverse all, so use np.zeros
     in_keepers = list(range(n_in))
-    out_removes = _regularize_out(int_order, ext_order, mag_or_fine)
-    out_keepers = list(np.setdiff1d(np.arange(n_in, n_in + n_out),
+    out_removes = _regularize_out(int_order, ext_order, mag_or_fine,
+                                  extended_remove)
+    out_keepers = list(np.setdiff1d(np.arange(n_in, S_decomp.shape[1]),
                                     out_removes))
     remove_order = []
     S_decomp = S_decomp.copy()
@@ -1753,7 +1855,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
         logger.debug('            Condition %0.3f/%0.3f = %03.1f, '
                      'Removing in component %s: l=%s, m=%+0.0f'
                      % (tuple(eigs[ii]) + (eigs[ii, 0] / eigs[ii, 1],
-                        ri, degrees[ri], orders[ri])))
+                                           ri, degrees[ri], orders[ri])))
     logger.debug('        Resulting information: %0.1f bits/sample '
                  '(%0.1f%% of peak %0.1f)'
                  % (I_tots[lim_idx], 100 * I_tots[lim_idx] / max_info,
@@ -1826,11 +1928,12 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
 # st_only
 @verbose
 def find_bad_channels_maxwell(
-        raw, limit=7., duration=5., min_count=5,
+        raw, limit=7., duration=5., min_count=5, return_scores=False,
         origin='auto', int_order=8, ext_order=3, calibration=None,
         cross_talk=None, coord_frame='head', regularize='in', ignore_ref=False,
         bad_condition='error', head_pos=None, mag_scale=100.,
-        skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
+        skip_by_annotation=('edge', 'bad_acq_skip'), h_freq=40.0,
+        extended_proj=(), verbose=None):
     r"""Find bad channels using Maxwell filtering.
 
     Parameters
@@ -1838,25 +1941,91 @@ def find_bad_channels_maxwell(
     raw : instance of Raw
         Raw data to process.
     limit : float
-        Detection limit (default 7.). Smaller values will find more bad
-        channels at increased risk of including good ones.
+        Detection limit for noisy segments (default is 7.). Smaller values will
+        find more bad channels at increased risk of including good ones. This
+        value can be interpreted as the standard score of differences between
+        the original and Maxwell-filtered data. See the ``Notes`` section for
+        details.
+
+        .. note:: This setting only concerns *noisy* channel detection.
+                  The limit for *flat* channel detection currently cannot be
+                  controlled by the user. Flat channel detection is always run
+                  before noisy channel detection.
     duration : float
-        Duration into which to window the data for processing. Default is 1.
+        Duration of the segments into which to slice the data for processing,
+        in seconds. Default is 5.
     min_count : int
         Minimum number of times a channel must show up as bad in a chunk.
         Default is 5.
-    %(maxwell_origin_int_ext_calibration_cross)s
+    return_scores : bool
+        If ``True``, return a dictionary with scoring information for each
+        evaluated segment of the data. Default is ``False``.
+
+        .. warning:: This feature is experimental and may change in a future
+                     version of MNE-Python without prior notice. Please
+                     report any problems and enhancement proposals to the
+                     developers.
+
+        .. versionadded:: 0.21
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
+    %(maxwell_cross)s
     %(maxwell_coord)s
-    %(maxwell_reg_ref_cond_pos)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_pos)s
     %(maxwell_mag)s
     %(maxwell_skip)s
+    h_freq : float | None
+        The cutoff frequency (in Hz) of the low-pass filter that will be
+        applied before processing the data. This defaults to ``40.``, which
+        should provide similar results to MaxFilter. If you do not wish to
+        apply a filter, set this to ``None``.
+    %(maxwell_extended)s
     %(verbose)s
 
     Returns
     -------
-    bads : list
-        List of bad MEG channels that were automatically detected among
-        the good MEG channels.
+    noisy_chs : list
+        List of bad MEG channels that were automatically detected as being
+        noisy among the good MEG channels.
+    flat_chs : list
+        List of MEG channels that were detected as being flat in at least
+        ``min_count`` segments.
+    scores : dict
+        A dictionary with information produced by the scoring algorithms.
+        Only returned when ``return_scores`` is ``True``. It contains the
+        following keys:
+
+        - ``ch_names`` : ndarray, shape (n_meg,)
+            The names of the MEG channels. Their order corresponds to the
+            order of rows in the ``scores`` and ``limits`` arrays.
+        - ``ch_types`` : ndarray, shape (n_meg,)
+            The types of the MEG channels in ``ch_names`` (``'mag'``,
+            ``'grad'``).
+        - ``bins`` : ndarray, shape (n_windows, 2)
+            The inclusive window boundaries (start and stop; in seconds) used
+            to calculate the scores.
+        - ``scores_flat`` : ndarray, shape (n_meg, n_windows)
+            The scores for testing whether MEG channels are flat. These values
+            correspond to the standard deviation of a segment.
+            See the ``Notes`` section for details.
+        - ``limits_flat`` : ndarray, shape (n_meg, 1)
+            The score thresholds (in standard deviation) above which a segment
+            was classified as "flat".
+        - ``scores_noisy`` : ndarray, shape (n_meg, n_windows)
+            The scores for testing whether MEG channels are noisy. These values
+            correspond to the standard score of a segment.
+            See the ``Notes`` section for details.
+        - ``limits_noisy`` : ndarray, shape (n_meg, 1)
+            The score thresholds (in standard scores) above which a segment was
+            classified as "noisy".
+
+        .. note:: The scores and limits for channels marked as ``bad`` in the
+                  input data will be set to ``np.nan``.
 
     See Also
     --------
@@ -1865,27 +2034,36 @@ def find_bad_channels_maxwell(
 
     Notes
     -----
-    All arguments after ``raw``, ``limit``, ``duration``, and ``min_count``
-    are the same as :func:`~maxwell_filter`, except that the following are
-    not allowed in this function because they are unused: ``st_duration``,
-    ``st_correlation``, ``destination``, ``st_fixed``, and ``st_only``.
+    All arguments after ``raw``, ``limit``, ``duration``, ``min_count``, and
+    ``return_scores`` are the same as :func:`~maxwell_filter`, except that the
+    following are not allowed in this function because they are unused:
+    ``st_duration``, ``st_correlation``, ``destination``, ``st_fixed``, and
+    ``st_only``.
 
     This algorithm, for a given chunk of data:
 
     1. Runs SSS on the data, without removing external components.
-    2. Exclude channels as flat that have had low variance (< 0.01 fT or fT/cm
-       in a 30 ms window) in the given or any previous chunk.
-    3. Low-pass and decimate (by a factor of ``duration``) the data.
-    4. For each channel :math:`k`, computes the peak-to-peak :math:`d_k`
-       of the difference between the reconstructed and original data.
-    5. Computes the average :math:`\mu_d` and standard deviation
-       :math:`\sigma_d` of the deltas (after scaling magnetometer data
+    2. Excludes channels as *flat* that have had low variability
+       (standard deviation < 0.01 fT or fT/cm in a 30 ms window) in the given
+       or any previous chunk.
+    3. For each channel :math:`k`, computes the *range* or peak-to-peak
+       :math:`d_k` of the difference between the reconstructed and original
+       data.
+    4. Computes the average :math:`\mu_d` and standard deviation
+       :math:`\sigma_d` of the differences (after scaling magnetometer data
        to roughly match the scale of the gradiometer data using ``mag_scale``).
-    6. Channels are marked as bad for the chunk when
-       :math:`d_k > \mu_d + \textrm{limit} \times \sigma_d`.
+    5. Marks channels as bad for the chunk when
+       :math:`d_k > \mu_d + \textrm{limit} \times \sigma_d`. Note that this
+       expression can be easily transformed into
+       :math:`(d_k - \mu_d) / \sigma_d > \textrm{limit}`, which is equivalent
+       to :math:`z(d_k) > \textrm{limit}`, with :math:`z(d_k)` being the
+       standard or z-score of the difference.
 
     Data are processed in chunks of the given ``duration``, and channels that
     are bad for at least ``min_count`` chunks are returned.
+
+    Channels marked as *flat* in step 2 are excluded from all subsequent steps
+    of noisy channel detection.
 
     This algorithm gives results similar to, but not identical with,
     MaxFilter. Differences arise because MaxFilter processes on a
@@ -1897,7 +2075,18 @@ def find_bad_channels_maxwell(
 
     .. versionadded:: 0.20
     """
-    from scipy.signal import get_window
+    if h_freq is not None:
+        if raw.info.get('lowpass') and raw.info['lowpass'] < h_freq:
+            msg = (f'The input data has already been low-pass filtered with a '
+                   f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
+                   f'below the requested cutoff of {h_freq} Hz. Not applying '
+                   f'low-pass filter.')
+            logger.info(msg)
+        else:
+            logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
+                        f'frequency ...')
+            raw = raw.copy().load_data().filter(l_freq=None, h_freq=h_freq)
+
     limit = float(limit)
     onsets, ends = _annotations_starts_stops(
         raw, skip_by_annotation, invert=True)
@@ -1908,7 +2097,7 @@ def find_bad_channels_maxwell(
     step = int(round(raw.info['sfreq'] * duration))
     for onset, end in zip(onsets, ends):
         if end - onset >= step:
-            ss = np.arange(onset, end - step, step)
+            ss = np.arange(onset, end - step + 1, step)
             starts.extend(ss)
             ss = ss + step
             ss[-1] = end
@@ -1916,92 +2105,170 @@ def find_bad_channels_maxwell(
     min_count = min(_ensure_int(min_count, 'min_count'), len(starts))
     logger.info('Scanning for bad channels in %d interval%s (%0.1f sec) ...'
                 % (len(starts), _pl(starts), step / raw.info['sfreq']))
-    bads = Counter()
-    meg_picks, mag_picks, grad_picks, good_picks, _ = \
-        _get_mf_picks(raw.info, 8, 3, ignore_ref=True)
-    coil_scale_, _ = _get_coil_scale(
-        meg_picks, mag_picks, grad_picks, mag_scale, raw.info)
-    coil_scale = np.ones(len(raw.ch_names))
-    coil_scale[meg_picks] = coil_scale_[:, 0]
-    flat_limits = dict(grad=0.01e-13, mag=0.01e-15)
-    these_limits = np.array([
-        flat_limits['grad'] if pick in grad_picks else flat_limits['mag']
-        for pick in good_picks])
-    del meg_picks, mag_picks, grad_picks, coil_scale_
-    flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
-    all_flats = set()
-    # filtered version
-    ds = max(int(round(duration)), 1)
-    h_freq = raw.info['sfreq'] / (ds * 3.)
-    logger.info('    Low-pass filtering data at %0.1f Hz' % (h_freq,))
-    mf_kwargs = dict(
-        verbose=False, skip_by_annotation=[],  # already accounted for
+    params = _prep_maxwell_filter(
+        raw, skip_by_annotation=[],  # already accounted for
         origin=origin, int_order=int_order, ext_order=ext_order,
         calibration=calibration, cross_talk=cross_talk,
         coord_frame=coord_frame, regularize=regularize,
         ignore_ref=ignore_ref, bad_condition=bad_condition, head_pos=head_pos,
-        mag_scale=mag_scale,
-    )
+        mag_scale=mag_scale, extended_proj=extended_proj)
     del origin, int_order, ext_order, calibration, cross_talk, coord_frame
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
+    good_meg_picks = params['meg_picks'][params['good_mask']]
+    assert len(params['meg_picks']) == len(params['coil_scale'])
+    assert len(params['good_mask']) == len(params['meg_picks'])
+    noisy_chs = Counter()
+    flat_chs = Counter()
+    flat_limits = dict(grad=0.01e-13, mag=0.01e-15)
+    these_limits = np.array([
+        flat_limits['grad']
+        if pick in params['grad_picks'] else
+        flat_limits['mag']
+        for pick in good_meg_picks])
+
+    flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
+    all_flats = set()
+
+    # Prepare variables to return if `return_scores=True`.
+    bins = np.empty((len(starts), 2))  # To store start, stop of each segment
+    # We create ndarrays with one row per channel, regardless of channel type
+    # and whether the channel has been marked as "bad" in info or not. This
+    # makes indexing in the loop easier. We only filter this down to the subset
+    # of MEG channels after all processing is done.
+    ch_names = np.array(raw.ch_names)
+    ch_types = np.array(raw.get_channel_types())
+
+    scores_flat = np.full((len(ch_names), len(starts)), np.nan)
+    scores_noisy = np.full_like(scores_flat, fill_value=np.nan)
+
+    thresh_flat = np.full((len(ch_names), 1), np.nan)
+    thresh_noisy = np.full_like(thresh_flat, fill_value=np.nan)
+
     for si, (start, stop) in enumerate(zip(starts, stops)):
-        prefix = '%03d:' % (si,)
         n_iter = 0
-        chunk_raw = raw.copy().crop(start / raw.info['sfreq'],
-                                    (stop - 1) / raw.info['sfreq']).load_data()
-        # Flat pass: var < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
+        orig_data = raw.get_data(None, start, stop, verbose=False)
+        chunk_raw = RawArray(
+            orig_data, params['info'],
+            first_samp=raw.first_samp + start, copy='data', verbose=False)
+
+        t = chunk_raw.times[[0, -1]] + start / raw.info['sfreq']
+        logger.info('        Interval %3d: %8.3f - %8.3f'
+                    % ((si + 1,) + tuple(t[[0, -1]])))
+
+        # Flat pass: SD < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
         flat_stop = n - (n % flat_step)
-        data = chunk_raw.get_data(good_picks, 0, flat_stop)
+        data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
         data.shape = (data.shape[0], -1, flat_step)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
+
+        # We may want to return this later if `return_scores=True`.
+        bins[si, :] = t[0], t[-1]
+        scores_flat[good_meg_picks, si] = delta
+        thresh_flat[good_meg_picks] = these_limits.reshape(-1, 1)
+
         chunk_flats = delta < these_limits
         chunk_flats = np.where(chunk_flats)[0]
-        chunk_flats = [raw.ch_names[good_picks[chunk_flat]]
+        chunk_flats = [raw.ch_names[good_meg_picks[chunk_flat]]
                        for chunk_flat in chunk_flats]
+        flat_chs.update(chunk_flats)
         all_flats |= set(chunk_flats)
-        flats = sorted(all_flats)
-        if len(flats):
-            logger.info('    %s Flat (%2d): %s'
-                        % (prefix, len(flats), ' '.join(flats)))
-            prefix = '    '
-        these_picks = [pick for pick in good_picks
-                       if raw.ch_names[pick] not in flats]
+        chunk_flats = sorted(all_flats)
+        these_picks = [pick for pick in good_meg_picks
+                       if raw.ch_names[pick] not in chunk_flats]
         # Bad pass
-        chunk_bads = list()
-        # downsample, windowing in time to avoid edge artifacts
-        chunk_raw._data *= get_window(('tukey', 0.1), n, False)
-        chunk_raw.filter(None, h_freq, h_trans_bandwidth=1., verbose='error')
-        chunk_raw = RawArray(
-            chunk_raw._data[:, ::ds],
-            chunk_raw.info, first_samp=chunk_raw.first_samp // ds,
-            verbose=False)
-        while True and n_iter < 100:  # iteratively exclude the worst ones
-            n_iter += 1
-            assert set(raw.info['bads']) & set(chunk_bads) == set()
-            chunk_raw.info['bads'] = raw.info['bads'] + chunk_bads + flats
-            chunk_raw_sss = _maxwell_filter(
-                chunk_raw, reconstruct='orig', **mf_kwargs)
+        chunk_noisy = list()
+        params['st_duration'] = int(round(
+            chunk_raw.times[-1] * raw.info['sfreq']))
+        for n_iter in range(1, 101):  # iteratively exclude the worst ones
+            assert set(raw.info['bads']) & set(chunk_noisy) == set()
+            params['good_mask'][:] = [
+                chunk_raw.ch_names[pick] not in
+                raw.info['bads'] + chunk_noisy + chunk_flats
+                for pick in params['meg_picks']]
+            chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
-            delta -= chunk_raw_sss.get_data(these_picks)
+            with use_log_level(False):
+                _run_maxwell_filter(
+                    chunk_raw, reconstruct='orig', copy=False, **params)
+
+            if n_iter == 1 and len(chunk_flats):
+                logger.info('            Flat (%2d): %s'
+                            % (len(chunk_flats), ' '.join(chunk_flats)))
+            delta -= chunk_raw.get_data(these_picks)
             # p2p
             range_ = np.ptp(delta, axis=-1)
-            range_ *= coil_scale[these_picks]
+            cs_picks = np.searchsorted(params['meg_picks'], these_picks)
+            range_ *= params['coil_scale'][cs_picks, 0]
             mean, std = np.mean(range_), np.std(range_)
             # z score
             z = (range_ - mean) / std
             idx = np.argmax(z)
             max_ = z[idx]
+
+            # We may want to return this later if `return_scores=True`.
+            scores_noisy[these_picks, si] = z
+            thresh_noisy[these_picks] = limit
+
             if max_ < limit:
                 break
+
             name = raw.ch_names[these_picks[idx]]
-            logger.debug('    %s Bad:       %s %0.1f' % (prefix, name, max_))
-            prefix = '    '
+            logger.debug('            Bad:       %s %0.1f'
+                         % (name, max_))
             these_picks.pop(idx)
-            chunk_bads.append(name)
-        bads.update(chunk_bads)
-    bads = [b for b, c in bads.items() if c >= min_count]
-    bads = sorted(bads, key=lambda x: raw.ch_names.index(x))
-    logger.info('    Static bad channels: %s' % (bads,))
+            chunk_noisy.append(name)
+        noisy_chs.update(chunk_noisy)
+    noisy_chs = sorted((b for b, c in noisy_chs.items() if c >= min_count),
+                       key=lambda x: raw.ch_names.index(x))
+    flat_chs = sorted((f for f, c in flat_chs.items() if c >= min_count),
+                      key=lambda x: raw.ch_names.index(x))
+
+    # Only include MEG channels.
+    ch_names = ch_names[params['meg_picks']]
+    ch_types = ch_types[params['meg_picks']]
+    scores_flat = scores_flat[params['meg_picks']]
+    thresh_flat = thresh_flat[params['meg_picks']]
+    scores_noisy = scores_noisy[params['meg_picks']]
+    thresh_noisy = thresh_noisy[params['meg_picks']]
+
+    logger.info('    Static bad channels:  %s' % (noisy_chs,))
+    logger.info('    Static flat channels: %s' % (flat_chs,))
     logger.info('[done]')
-    return bads
+
+    if return_scores:
+        scores = dict(ch_names=ch_names,
+                      ch_types=ch_types,
+                      bins=bins,
+                      scores_flat=scores_flat,
+                      limits_flat=thresh_flat,
+                      scores_noisy=scores_noisy,
+                      limits_noisy=thresh_noisy)
+        return noisy_chs, flat_chs, scores
+    else:
+        return noisy_chs, flat_chs
+
+
+def _read_cross_talk(cross_talk, ch_names):
+    sss_ctc = dict()
+    ctc = None
+    if cross_talk is not None:
+        sss_ctc = _read_ctc(cross_talk)
+        ctc_chs = sss_ctc['proj_items_chs']
+        # checking for extra space ambiguity in channel names
+        # between old and new fif files
+        if ch_names[0] not in ctc_chs:
+            ctc_chs = _clean_names(ctc_chs, remove_whitespace=True)
+            ch_names = _clean_names(ch_names, remove_whitespace=True)
+        missing = sorted(list(set(ch_names) - set(ctc_chs)))
+        if len(missing) != 0:
+            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
+                               % missing)
+        missing = sorted(list(set(ctc_chs) - set(ch_names)))
+        if len(missing) > 0:
+            warn('Not all cross-talk channels in raw:\n%s' % missing)
+        ctc_picks = [ctc_chs.index(name) for name in ch_names]
+        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
+        # I have no idea why, but MF transposes this for storage..
+        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
+    return ctc, sss_ctc

@@ -37,7 +37,8 @@ from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _set_source_space_vertices,
-                            _write_source_spaces_to_fid, _get_src_nn)
+                            _write_source_spaces_to_fid, _get_src_nn,
+                            _src_kind_dict)
 from ..source_estimate import _BaseSourceEstimate
 from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
@@ -45,7 +46,7 @@ from ..transforms import (transform_surface_to, invert_transform,
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units, _stamp_to_dt)
+                     _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
 from ..fixes import einsum
 
@@ -175,12 +176,12 @@ def _block_diag(A, n):
     if na % n > 0:
         raise ValueError('Width of matrix must be a multiple of n')
 
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
+    tmp = np.arange(ma * bdn, dtype=np.int64).reshape(bdn, ma)
     tmp = np.tile(tmp, (1, n))
     ii = tmp.ravel()
 
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
+    jj = np.arange(na, dtype=np.int64)[None, :]
+    jj = jj * np.ones(ma, dtype=np.int64)[:, None]
     jj = jj.T.ravel()  # column indices foreach sparse bd
 
     bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
@@ -967,48 +968,104 @@ def _select_orient_forward(forward, info, noise_cov=None, copy=True):
     return forward, info_picked
 
 
+def _triage_loose(src, loose, fixed='auto'):
+    _validate_type(loose, (str, dict, 'numeric'), 'loose')
+    _validate_type(fixed, (str, bool), 'fixed')
+    orig_loose = loose
+    if isinstance(loose, str):
+        _check_option('loose', loose, ('auto',))
+        if fixed is True:
+            loose = 0.
+        else:  # False or auto
+            loose = 0.2 if src.kind == 'surface' else 1.
+    src_types = set(_src_kind_dict[s['type']] for s in src)
+    if not isinstance(loose, dict):
+        loose = float(loose)
+        loose = {key: loose for key in src_types}
+    loose_keys = set(loose.keys())
+    if loose_keys != src_types:
+        raise ValueError(
+            f'loose, if dict, must have keys {sorted(src_types)} to match the '
+            f'source space, got {sorted(loose_keys)}')
+    # if fixed is auto it can be ignored, if it's False it can be ignored,
+    # only really need to care about fixed=True
+    if fixed is True:
+        if not all(v == 0. for v in loose.values()):
+            raise ValueError(
+                'When using fixed=True, loose must be 0. or "auto", '
+                f'got {orig_loose}')
+    elif fixed is False:
+        if any(v == 0. for v in loose.values()):
+            raise ValueError(
+                'If loose==0., then fixed must be True or "auto", got False')
+    del fixed
+
+    for key, this_loose in loose.items():
+        if key != 'surface' and this_loose != 1:
+            raise ValueError(
+                'loose parameter has to be 1 or "auto" for non-surface '
+                f'source spaces, got loose["{key}"] = {this_loose}')
+        if not 0 <= this_loose <= 1:
+            raise ValueError(
+                f'loose ({key}) must be between 0 and 1, got {this_loose}')
+    return loose
+
+
 @verbose
-def compute_orient_prior(forward, loose=0.2, verbose=None):
+def compute_orient_prior(forward, loose='auto', verbose=None):
     """Compute orientation prior.
 
     Parameters
     ----------
     forward : instance of Forward
         Forward operator.
-    loose : float
-        The loose orientation parameter (between 0 and 1).
+    %(loose)s
     %(verbose)s
 
     Returns
     -------
-    orient_prior : ndarray, shape (n_vertices,)
+    orient_prior : ndarray, shape (n_sources,)
         Orientation priors.
 
     See Also
     --------
     compute_depth_prior
     """
-    is_fixed_ori = is_fixed_orient(forward)
+    _validate_type(forward, Forward, 'forward')
     n_sources = forward['sol']['data'].shape[1]
-    loose = float(loose)
-    if not (0 <= loose <= 1):
-        raise ValueError('loose value should be between 0 and 1, '
-                         'got %s.' % (loose,))
-    orient_prior = np.ones(n_sources, dtype=np.float)
-    if loose > 0.:
-        if is_fixed_ori:
+
+    loose = _triage_loose(forward['src'], loose)
+    orient_prior = np.ones(n_sources, dtype=np.float64)
+    if is_fixed_orient(forward):
+        if any(v > 0. for v in loose.values()):
             raise ValueError('loose must be 0. with forward operator '
                              'with fixed orientation, got %s' % (loose,))
-        if loose < 1:
-            if not forward['surf_ori']:
-                raise ValueError('Forward operator is not oriented in surface '
-                                 'coordinates. loose parameter should be 1 '
-                                 'not %s.' % (loose,))
-            logger.info('Applying loose dipole orientations. Loose value '
-                        'of %s.' % loose)
-            orient_prior[0::3] *= loose
-            orient_prior[1::3] *= loose
-
+        return orient_prior
+    if all(v == 1. for v in loose.values()):
+        return orient_prior
+    # We actually need non-unity prior, compute it for each source space
+    # separately
+    if not forward['surf_ori']:
+        raise ValueError('Forward operator is not oriented in surface '
+                         'coordinates. loose parameter should be 1. '
+                         'not %s.' % (loose,))
+    start = 0
+    logged = dict()
+    for s in forward['src']:
+        this_type = _src_kind_dict[s['type']]
+        use_loose = loose[this_type]
+        if not logged.get(this_type):
+            if use_loose == 1.:
+                name = 'free'
+            else:
+                name = 'fixed' if use_loose == 0. else 'loose'
+            logger.info(f'Applying {name.ljust(5)} dipole orientations to '
+                        f'{this_type.ljust(7)} source spaces: {use_loose}')
+            logged[this_type] = True
+        stop = start + 3 * s['nuse']
+        orient_prior[start:stop:3] *= use_loose
+        orient_prior[start + 1:stop:3] *= use_loose
+        start = stop
     return orient_prior
 
 
@@ -1210,7 +1267,7 @@ def _stc_src_sel(src, stc, on_missing='raise',
         vertices = stc
     else:
         assert isinstance(stc, _BaseSourceEstimate)
-        vertices = stc._vertices_list
+        vertices = stc.vertices
     del stc
     if not len(src) == len(vertices):
         raise RuntimeError('Mismatch between number of source spaces (%s) and '
@@ -1236,12 +1293,7 @@ def _stc_src_sel(src, stc, on_missing='raise',
                'source space%s'
                % (n_joint, n_stc, 'vertex' if n_stc == 1 else 'vertices',
                   extra))
-        if on_missing == 'raise':
-            raise RuntimeError(msg)
-        elif on_missing == 'warn':
-            warn(msg)
-        else:
-            assert on_missing == 'ignore'
+        _on_missing(on_missing, msg)
     return src_sel, stc_sel, out_vertices
 
 
@@ -1324,7 +1376,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     %(use_cps)s
 
         .. versionadded:: 0.15
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1391,7 +1444,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1438,7 +1492,8 @@ def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
         Forward operator.
     stc : instance of SourceEstimate
         Source estimate.
-    %(on_missing)s Default is "ignore".
+    %(on_missing_fwd)s
+        Default is "ignore".
 
         .. versionadded:: 0.18
 
@@ -1816,7 +1871,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
 
 @verbose
-def average_forward_solutions(fwds, weights=None):
+def average_forward_solutions(fwds, weights=None, verbose=None):
     """Average forward solutions.
 
     Parameters
@@ -1828,6 +1883,7 @@ def average_forward_solutions(fwds, weights=None):
         Weights to apply to each forward solution in averaging. If None,
         forward solutions will be equally weighted. Weights must be
         non-negative, and will be adjusted to sum to one.
+    %(verbose)s
 
     Returns
     -------

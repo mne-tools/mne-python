@@ -133,7 +133,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     # allocate space for output
     out_shape = list(cohy.shape)
     out_shape[freq_dim] = n_bands
-    psi = np.zeros(out_shape, dtype=np.float)
+    psi = np.zeros(out_shape, dtype=np.float64)
 
     # allocate accumulator
     acc_shape = copy.copy(out_shape)

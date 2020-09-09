@@ -15,7 +15,7 @@ from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import requires_version, run_tests_if_main
+from mne.utils import run_tests_if_main
 from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
@@ -71,7 +71,6 @@ def test_array_copy():
 
 
 @pytest.mark.slowtest
-@requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array."""
     # creating
@@ -86,7 +85,7 @@ def test_array_raw():
     types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
     types.extend(['stim'] * 9)
     types.extend(['eeg'] * 60)
-    picks = np.concatenate([pick_types(raw.info)[::20],
+    picks = np.concatenate([pick_types(raw.info, meg=True)[::20],
                             pick_types(raw.info, meg=False, stim=True),
                             pick_types(raw.info, meg=False, eeg=True)[::20]])
     del raw
@@ -114,7 +113,7 @@ def test_array_raw():
     pytest.raises(TypeError, RawArray, info, data)
 
     # filtering
-    picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
+    picks = pick_types(raw2.info, meg=True, misc=True, exclude='bads')[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
     kwargs = dict(fir_design='firwin', picks=picks)

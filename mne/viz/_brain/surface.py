@@ -9,8 +9,9 @@
 from os import path as path
 
 import numpy as np
-from ...utils import _check_option, get_subjects_dir
-from ...surface import complete_surface_info, read_surface, read_curvature
+from ...utils import _check_option, get_subjects_dir, _check_fname
+from ...surface import (complete_surface_info, read_surface, read_curvature,
+                        _read_patch)
 
 
 class Surface(object):
@@ -108,9 +109,17 @@ class Surface(object):
         -------
         None
         """
-        surf_path = path.join(self.data_path, 'surf',
-                              '%s.%s' % (self.hemi, self.surf))
-        coords, faces = read_surface(surf_path)
+        if self.surf == 'flat':  # special case
+            fname = path.join(self.data_path, 'surf',
+                              '%s.%s' % (self.hemi, 'cortex.patch.flat'))
+            _check_fname(fname, overwrite='read', must_exist=True,
+                         name='flatmap surface file')
+            coords, faces, orig_faces = _read_patch(fname)
+        else:
+            coords, faces = read_surface(
+                path.join(self.data_path, 'surf',
+                          '%s.%s' % (self.hemi, self.surf)))
+            orig_faces = faces
         if self.units == 'm':
             coords /= 1000.
         if self.offset is not None:
@@ -121,15 +130,10 @@ class Surface(object):
         surf = dict(rr=coords, tris=faces)
         complete_surface_info(surf, copy=False, verbose=False)
         nn = surf['nn']
-
-        if self.coords is None:
-            self.coords = coords
-            self.faces = faces
-            self.nn = nn
-        else:
-            self.coords[:] = coords
-            self.faces[:] = faces
-            self.nn[:] = nn
+        self.coords = coords
+        self.faces = faces
+        self.orig_faces = orig_faces
+        self.nn = nn
 
     def __len__(self):
         """Return number of vertices."""
@@ -151,7 +155,7 @@ class Surface(object):
         """Load in curvature values from the ?h.curv file."""
         curv_path = path.join(self.data_path, 'surf', '%s.curv' % self.hemi)
         self.curv = read_curvature(curv_path, binary=False)
-        self.bin_curv = np.array(self.curv > 0, np.int)
+        self.bin_curv = np.array(self.curv > 0, np.int64)
         # morphometry (curvature) normalization in order to get gray cortex
         # TODO: delete self.grey_curv after cortex parameter
         # will be fully supported

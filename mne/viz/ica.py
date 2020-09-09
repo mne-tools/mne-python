@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
-                    _plot_raw_onscroll, _mouse_click,
+                    _plot_raw_onscroll, _mouse_click, _plot_annotations,
                     _plot_raw_onkey, plt_show, _convert_psds)
 from .topomap import (_prepare_topomap_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap, _make_head_outlines)
@@ -23,8 +23,7 @@ from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import (pick_types, _picks_to_idx, _get_channel_types,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+from ..io.pick import (pick_types, _picks_to_idx, _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments
 
@@ -150,7 +149,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                            values=0.0,
                            axis=0)
     from ..epochs import EpochsArray
-    epochs_src = EpochsArray(epoch_data, epochs_src.info, verbose=0)
+    epochs_src = EpochsArray(epoch_data, epochs_src.info, tmin=epochs_src.tmin,
+                             verbose=0)
 
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
                       combine=None, colorbar=False, show=False,
@@ -258,7 +258,8 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
 @fill_doc
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto'):
+                        psd_args=None, figsize=None, show=True, reject='auto',
+                        reject_by_annotation=True):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -309,6 +310,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
+    %(reject_by_annotation_raw)s
+
+        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -390,12 +394,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # break up continuous signal into segments
         from ..epochs import make_fixed_length_epochs
-        inst_rejected = make_fixed_length_epochs(inst_rejected,
-                                                 duration=2.,
-                                                 verbose=False,
-                                                 preload=True)
-        inst = make_fixed_length_epochs(inst, duration=2., verbose=False,
-                                        preload=True)
+        inst_rejected = make_fixed_length_epochs(
+            inst_rejected,
+            duration=2,
+            preload=True,
+            reject_by_annotation=reject_by_annotation,
+            verbose=False)
+        inst = make_fixed_length_epochs(
+            inst,
+            duration=2,
+            preload=True,
+            reject_by_annotation=reject_by_annotation,
+            verbose=False)
         kind = "Segment"
     else:
         drop_inds = None
@@ -585,7 +595,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
 
 
 def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=None, show=True):
+                    title='ICA component scores', figsize=None,
+                    n_cols=None, show=True):
     """Plot scores related to detected components.
 
     Use this function to asses how well your score describes outlier
@@ -602,7 +613,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         will be used.
     labels : str | list | 'ecg' | 'eog' | None
         The labels to consider for the axes tests. Defaults to None.
-        If list, should match the outer shape of `scores`.
+        If list, should match the outer shape of ``scores``.
         If 'ecg' or 'eog', the ``labels_`` attributes will be looked up.
         Note that '/' is used internally for sublabels specifying ECG and
         EOG channels.
@@ -612,6 +623,11 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         The figure title.
     figsize : tuple of int | None
         The figure size. If None it gets set automatically.
+    n_cols : int | None
+        Scores are plotted in a grid. This parameter controls how
+        many to plot side by side before starting a new row. By
+        default, a number will be chosen to make the grid as square as
+        possible.
     show : bool
         Show figure if True.
 
@@ -627,30 +643,48 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     exclude = np.unique(exclude)
     if not isinstance(scores[0], (list, np.ndarray)):
         scores = [scores]
-    n_rows = len(scores)
+    n_scores = len(scores)
+
+    if n_cols is None:
+        # prefer more rows.
+        n_rows = int(np.ceil(np.sqrt(n_scores)))
+        n_cols = (n_scores - 1) // n_rows + 1
+    else:
+        n_cols = min(n_scores, n_cols)
+        n_rows = (n_scores - 1) // n_cols + 1
+
     if figsize is None:
-        figsize = (6.4, 2.7 * n_rows)
-    fig, axes = plt.subplots(n_rows, figsize=figsize, sharex=True, sharey=True)
+        figsize = (6.4 * n_cols, 2.7 * n_rows)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize,
+                             sharex=True, sharey=True)
+
     if isinstance(axes, np.ndarray):
         axes = axes.flatten()
     else:
         axes = [axes]
-    axes[0].set_title(title)
+
+    fig.suptitle(title)
 
     if labels == 'ecg':
-        labels = [l for l in ica.labels_ if l.startswith('ecg/')]
-    elif labels == 'eog':
-        labels = [l for l in ica.labels_ if l.startswith('eog/')]
+        labels = [label for label in ica.labels_ if label.startswith('ecg/')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        if len(labels) == 0:
+            labels = [label for label in ica.labels_ if
+                      label.startswith('ecg')]
+    elif labels == 'eog':
+        labels = [label for label in ica.labels_ if label.startswith('eog/')]
+        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        if len(labels) == 0:
+            labels = [label for label in ica.labels_ if
+                      label.startswith('eog')]
     elif isinstance(labels, str):
-        if len(axes) > 1:
-            raise ValueError('Need as many labels as axes (%i)' % len(axes))
         labels = [labels]
-    elif isinstance(labels, (tuple, list)):
-        if len(labels) != len(axes):
-            raise ValueError('Need as many labels as axes (%i)' % len(axes))
     elif labels is None:
-        labels = (None,) * n_rows
+        labels = (None,) * n_scores
+
+    if len(labels) != n_scores:
+        raise ValueError('Need as many labels (%i) as scores (%i)'
+                         % (len(labels), n_scores))
 
     for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
@@ -677,6 +711,8 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
 
     tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.90)
+    fig.canvas.draw()
     plt_show(show)
     return fig
 
@@ -727,7 +763,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         title = 'Signals before (red) and after (black) cleaning'
     picks = ica.ch_names if picks is None else picks
     picks = _picks_to_idx(inst.info, picks, exclude=())
-    ch_types_used = _get_channel_types(inst.info, picks=picks, unique=True)
+    ch_types_used = inst.get_channel_types(picks=picks, unique=True)
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
@@ -807,10 +843,12 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     Parameters
     ----------
-    ica : instance of mne.preprocessing.ICA
-        The ICA object.
-    epochs : instance of mne.Epochs
-        The Epochs to be regarded.
+    evoked : instance of mne.Evoked
+        The Evoked before IC rejection.
+    evoked_cln : instance of mne.Evoked
+        The Evoked after IC rejection.
+    title : str | None
+        The title of the figure.
     show : bool
         If True, all open plots will be shown.
 
@@ -829,13 +867,15 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
                          'Found different channels.')
 
     fig, axes = plt.subplots(n_rows, 1)
-    fig.suptitle('Average signal before (red) and after (black) ICA')
+    if title is None:
+        title = 'Average signal before (red) and after (black) ICA'
+    fig.suptitle(title)
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
     evoked.plot(axes=axes, show=show, time_unit='s')
     for ax in fig.axes:
-        for l in ax.get_lines():
-            l.set_color('r')
+        for line in ax.get_lines():
+            line.set_color('r')
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=show, time_unit='s')
     tight_layout(fig=fig)
@@ -901,13 +941,14 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
                   first_time=first_time, data_picks=[], decim=1,
                   noise_cov=None, whitened_ch_names=(), clipping=None,
-                  show_scrollbars=show_scrollbars,
+                  added_label=list(), show_scrollbars=show_scrollbars,
                   show_scalebars=False)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
     params['plot_fun'] = partial(_plot_raw_traces, params=params, color=color,
                                  bad_color=bad_color)
+    _plot_annotations(raw, params)
     params['update_fun'] = partial(_update_data, params)
     params['pick_bads_fun'] = partial(_pick_bads, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
@@ -1065,10 +1106,10 @@ def _label_clicked(pos, params):
     data = np.dot(ica.mixing_matrix_[:, ic_idx].T,
                   ica.pca_components_[:ica.n_components_])
     data = np.atleast_2d(data)
-    fig, axes = _prepare_trellis(len(types), max_col=3)
+    fig, axes, _, _ = _prepare_trellis(len(types), ncols=3)
     for ch_idx, ch_type in enumerate(types):
         try:
-            data_picks, pos, merge_grads, _, _, this_sphere, clip_origin = \
+            data_picks, pos, merge_channels, _, _, this_sphere, clip_origin = \
                 _prepare_topomap_plot(ica, ch_type)
         except Exception as exc:
             warn(str(exc))
@@ -1077,11 +1118,12 @@ def _label_clicked(pos, params):
         outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
         this_data = data[:, data_picks]
         ax = axes[ch_idx]
-        if merge_grads:
-            from ..channels.layout import _merge_grad_data
+        if merge_channels:
+            from ..channels.layout import _merge_ch_data
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
-            data_ = _merge_grad_data(data_) if merge_grads else data_
+            if merge_channels:
+                data_, _ = _merge_ch_data(data_, 'grad', [])
             plot_topomap(data_.flatten(), pos, axes=ax, show=False,
                          sphere=this_sphere, outlines=outlines)
             _hide_frame(ax)

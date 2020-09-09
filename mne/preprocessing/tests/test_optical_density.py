@@ -17,18 +17,18 @@ from mne.datasets import testing
 
 
 fname_nirx = op.join(data_path(download=False),
-                     'NIRx', 'nirx_15_2_recording_w_short')
+                     'NIRx', 'nirscout', 'nirx_15_2_recording_w_short')
 
 
 @testing.requires_testing_data
 def test_optical_density():
     """Test return type for optical density."""
     raw = read_raw_nirx(fname_nirx, preload=False)
-    assert 'fnirs_raw' in raw
+    assert 'fnirs_cw_amplitude' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)
     _validate_type(raw, BaseRaw, 'raw')
-    assert 'fnirs_raw' not in raw
+    assert 'fnirs_cw_amplitude' not in raw
     assert 'fnirs_od' in raw
 
 

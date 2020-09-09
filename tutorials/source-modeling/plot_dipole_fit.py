@@ -4,7 +4,7 @@
 Source localization with equivalent current dipole (ECD) fit
 ============================================================
 
-This shows how to fit a dipole [1]_ using mne-python.
+This shows how to fit a dipole :footcite:`Sarvas1987` using mne-python.
 
 For a comparison of fits between MNE-C and mne-python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
@@ -45,6 +45,7 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 # Plot the result in 3D brain with the MRI image.
 dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 
+###############################################################################
 # Plot the result in 3D brain with the MRI image using Nilearn
 # In MRI coordinates and in MNI coordinates (template brain)
 
@@ -76,7 +77,9 @@ print('Highest GOF %0.1f%% at t=%0.1f ms with confidence volume %0.1f cm^3'
       % (dip.gof[best_idx], best_time * 1000,
          dip.conf['vol'][best_idx] * 100 ** 3))
 # remember to create a subplot for the colorbar
-fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4])
+fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4],
+                         gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1],
+                                          top=0.85))
 vmin, vmax = -400, 400  # make sure each plot has same colour range
 
 # first plot the topography at the time of the best fitting (single) dipole
@@ -89,11 +92,12 @@ pred_evoked.plot_topomap(time_format='Predicted field', axes=axes[1],
                          **plot_params)
 
 # Subtract predicted from measured data (apply equal weights)
-diff = combine_evoked([evoked, -pred_evoked], weights='equal')
+diff = combine_evoked([evoked, pred_evoked], weights=[1, -1])
 plot_params['colorbar'] = True
-diff.plot_topomap(time_format='Difference', axes=axes[2], **plot_params)
-plt.suptitle('Comparison of measured and predicted fields '
+diff.plot_topomap(time_format='Difference', axes=axes[2:], **plot_params)
+fig.suptitle('Comparison of measured and predicted fields '
              'at {:.0f} ms'.format(best_time * 1000.), fontsize=16)
+fig.tight_layout()
 
 ###############################################################################
 # Estimate the time course of a single dipole with fixed position and
@@ -105,6 +109,4 @@ dip_fixed.plot(time_unit='s')
 ##############################################################################
 # References
 # ----------
-# .. [1] Sarvas, J. (1987). Basic mathematical and electromagnetic concepts of
-#        the biomagnetic inverse problem.
-#        Physics in Medicine & Biology, 32(1), 11.
+# .. footbibliography::

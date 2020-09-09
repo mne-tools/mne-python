@@ -76,7 +76,7 @@ class CrossSpectralDensity(object):
 
     Parameters
     ----------
-    data : ndarray, shape ((n_channels**2 + n_channels) / 2, n_frequencies)
+    data : ndarray, shape ((n_channels**2 + n_channels) // 2, n_frequencies)
         For each frequency, the cross-spectral density matrix in vector format.
     ch_names : list of str
         List of string names for each channel.
@@ -136,7 +136,10 @@ class CrossSpectralDensity(object):
         self.frequencies = frequencies
 
         self.n_fft = n_fft
-        self.projs = cp.deepcopy(projs)
+        if projs is None:
+            self.projs = []
+        else:
+            self.projs = cp.deepcopy(projs)
 
     @property
     def n_channels(self):
@@ -178,7 +181,7 @@ class CrossSpectralDensity(object):
             time_str = 'unknown'
 
         return (
-            '<CrossSpectralDensity  |  '
+            '<CrossSpectralDensity | '
             'n_channels={}, time={}, frequencies={}>'
         ).format(self.n_channels, time_str, freq_str)
 
@@ -248,7 +251,7 @@ class CrossSpectralDensity(object):
         csd_out = CrossSpectralDensity(data=new_data, ch_names=self.ch_names,
                                        tmin=self.tmin, tmax=self.tmax,
                                        frequencies=new_frequencies,
-                                       n_fft=self.n_fft)
+                                       n_fft=self.n_fft, projs=self.projs)
         return csd_out
 
     def mean(self, fmin=None, fmax=None):
@@ -339,7 +342,7 @@ class CrossSpectralDensity(object):
 
         return self[index]
 
-    def get_data(self, frequency=None, index=None):
+    def get_data(self, frequency=None, index=None, as_cov=False):
         """Get the CSD matrix for a given frequency as NumPy array.
 
         If there is only one matrix defined in the CSD object, calling this
@@ -355,10 +358,15 @@ class CrossSpectralDensity(object):
         index : int | None
             Return the CSD matrix for the frequency or frequency-bin with the
             given index.
+        as_cov : bool
+            Whether to return the data as a numpy array (`False`, the default),
+            or pack it in a :class:`mne.Covariance` object (`True`).
+
+            .. versionadded:: 0.20
 
         Returns
         -------
-        csd : ndarray, shape (n_channels, n_channels)
+        csd : ndarray, shape (n_channels, n_channels) | instance of Covariance
             The CSD matrix corresponding to the requested frequency.
 
         See Also
@@ -376,7 +384,14 @@ class CrossSpectralDensity(object):
                 raise ValueError('Cannot specify both a frequency and index.')
             index = self._get_frequency_index(frequency)
 
-        return _vector_to_sym_mat(self._data[:, index])
+        data = _vector_to_sym_mat(self._data[:, index])
+        if as_cov:
+            # Pack the data into a Covariance object
+            from ..cov import Covariance  # to avoid circular import
+            return Covariance(data, self.ch_names, bads=[], projs=self.projs,
+                              nfree=self.n_fft)
+        else:
+            return data
 
     @copy_function_doc_to_method_doc(plot_csd)
     def plot(self, info=None, mode='csd', colorbar=True, cmap='viridis',
@@ -385,12 +400,15 @@ class CrossSpectralDensity(object):
                         cmap=cmap, n_cols=n_cols, show=show)
 
     def __setstate__(self, state):  # noqa: D105
+        # Avoid circular import
+        from ..proj import Projection
         self._data = state['data']
         self.tmin = state['tmin']
         self.tmax = state['tmax']
         self.ch_names = state['ch_names']
         self.frequencies = state['frequencies']
         self.n_fft = state['n_fft']
+        self.projs = [Projection(**proj) for proj in state['projs']]
 
     def __getstate__(self):  # noqa: D105
         return dict(
@@ -400,6 +418,7 @@ class CrossSpectralDensity(object):
             ch_names=self.ch_names,
             frequencies=self.frequencies,
             n_fft=self.n_fft,
+            projs=self.projs,
         )
 
     def __getitem__(self, sel):  # noqa: D105
@@ -420,6 +439,7 @@ class CrossSpectralDensity(object):
             tmax=self.tmax,
             frequencies=np.atleast_1d(self.frequencies)[sel].tolist(),
             n_fft=self.n_fft,
+            projs=self.projs,
         )
 
     def save(self, fname):
@@ -711,7 +731,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    picks=None, n_fft=None, bandwidth=None, adaptive=False,
                    low_bias=True, projs=None, n_jobs=1, verbose=None):
-    """Estimate cross-spectral density from epochs using Morlet wavelets.
+    """Estimate cross-spectral density from epochs using a multitaper method.
 
     Parameters
     ----------
@@ -771,7 +791,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                          tmax=None, ch_names=None, n_fft=None, bandwidth=None,
                          adaptive=False, low_bias=True, projs=None, n_jobs=1,
                          verbose=None):
-    """Estimate cross-spectral density from an array using Morlet wavelets.
+    """Estimate cross-spectral density from an array using a multitaper method.
 
     Parameters
     ----------
@@ -1112,7 +1132,7 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
     n_freqs = len(frequencies)
     csds_mean = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
-                         dtype=np.complex)
+                         dtype=np.complex128)
 
     # Prepare the function that does the actual CSD computation for parallel
     # execution.

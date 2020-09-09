@@ -19,22 +19,24 @@ KIT.DOUBLE = 8
 # channel parameters
 KIT.CALIB_FACTOR = 1.0  # mne_manual p.272
 KIT.RANGE = 1.  # mne_manual p.272
-KIT.UNIT_MUL = 0  # default is 0 mne_manual p.273
+KIT.UNIT_MUL = FIFF.FIFF_UNITM_NONE  # default is 0 mne_manual p.273
 KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 
 KIT.HPFS = {
     1: (0, 1, 3, 3),
-    2: (0, 1, 3, 0.3),
+    2: (0, 0.03, 0.1, 0.3, 1, 3, 10, 30),
     3: (0, 0.03, 0.1, 0.3, 1, 3, 10, 30),
     4: (0, 1, 3, 10, 30, 100, 200, 500),
 }
 KIT.LPFS = {
     1: (10, 20, 50, 100, 200, 500, 1000, 2000),
+    2: (10, 20, 50, 100, 200, 500, 1000, 2000),
     3: (10, 20, 50, 100, 200, 500, 1000, 10000),
     4: (10, 30, 100, 300, 1000, 2000, 5000, 10000),
 }
 KIT.BEFS = {
     1: (0, 50, 60, 60),
+    2: (0, 0, 0),
     3: (0, 60, 50, 50),
 }
 
@@ -48,6 +50,7 @@ KIT.FLL_SETTINGS = {
     100: (3, 3, 3),  # Low Band Kapper Type
     120: (3, 3, 3),  # Low Band Kapper Type
     200: (4, 4, 3),  # High Band Kapper Type
+    300: (2, 2, 2),  # Kapper Type
 }
 
 # channel types
@@ -86,6 +89,14 @@ KIT.CHANNELS_MISC = (
     KIT.CHANNEL_ECG,
     KIT.CHANNEL_ETC,
 )
+KIT.CHANNEL_NAME_NCHAR = {
+    KIT.CHANNEL_MAGNETOMETER: 6,
+    KIT.CHANNEL_AXIAL_GRADIOMETER: 6,
+    KIT.CHANNEL_TRIGGER: 32,
+    KIT.CHANNEL_EEG: 8,
+    KIT.CHANNEL_ECG: 32,
+    KIT.CHANNEL_ETC: 32,
+}
 KIT.CH_TO_FIFF_COIL = {
     # KIT.CHANNEL_MAGNETOMETER: FIFF.???,
     KIT.CHANNEL_MAGNETOMETER_REFERENCE: FIFF.FIFFV_COIL_KIT_REF_MAG,
@@ -150,6 +161,9 @@ KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
 KIT.SYSTEM_UMD_2019_09 = 54  # UMD September 3, 2019 -
+KIT.SYSTEM_YOKOGAWA_2017_01 = 1001  # Kanazawa (until 2017)
+KIT.SYSTEM_YOKOGAWA_2018_01 = 10020  # Kanazawa (since 2018)
+KIT.SYSTEM_YOKOGAWA_2020_08 = 10021  # Kanazawa (since August 2020)
 # Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
@@ -167,6 +181,9 @@ KIT_LAYOUT = {
     KIT.SYSTEM_UMD_2014_07: None,
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
     KIT.SYSTEM_UMD_2019_09: None,
+    KIT.SYSTEM_YOKOGAWA_2017_01: None,
+    KIT.SYSTEM_YOKOGAWA_2018_01: None,
+    KIT.SYSTEM_YOKOGAWA_2020_08: None,
 }
 # Sensor neighbor definitions
 KIT_NEIGHBORS = {
@@ -185,6 +202,9 @@ KIT_NEIGHBORS = {
     KIT.SYSTEM_UMD_2014_07: 'KIT-UMD-2',
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
     KIT.SYSTEM_UMD_2019_09: 'KIT-UMD-4',
+    KIT.SYSTEM_YOKOGAWA_2017_01: None,
+    KIT.SYSTEM_YOKOGAWA_2018_01: None,
+    KIT.SYSTEM_YOKOGAWA_2020_08: None,
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
@@ -202,6 +222,9 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
     KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
     KIT.SYSTEM_UMD_2019_09: 'University of Maryland, 2019-',
+    KIT.SYSTEM_YOKOGAWA_2017_01: 'Yokogawa of Kanazawa (until 2017)',
+    KIT.SYSTEM_YOKOGAWA_2018_01: 'Yokogawa of Kanazawa (since 2018)',
+    KIT.SYSTEM_YOKOGAWA_2020_08: 'Yokogawa of Kanazawa (since August 2020)',
 }
 
 LEGACY_AMP_PARAMS = {
@@ -210,3 +233,21 @@ LEGACY_AMP_PARAMS = {
     KIT.SYSTEM_NYU_2010: (5., 11.),
     KIT.SYSTEM_UMD_2004: (5., 11.),
 }
+
+# Ones that we don't use are commented out
+KIT.DIR_INDEX_DIR = 0
+KIT.DIR_INDEX_SYSTEM = 1
+KIT.DIR_INDEX_CHANNELS = 4
+KIT.DIR_INDEX_CALIBRATION = 5
+# FLL = 6
+KIT.DIR_INDEX_AMP_FILTER = 7
+KIT.DIR_INDEX_ACQ_COND = 8
+KIT.DIR_INDEX_RAW_DATA = 9
+# AVERAGED_DATA = 10
+# MRI = 11
+KIT.DIR_INDEX_COREG = 12
+# MAGNETIC_SOURCE = 13
+# TRIGGER = 14
+# BOOKMARKS = 15
+# DIGITIZER = 25
+KIT.DIR_INDEX_DIG_POINTS = 26

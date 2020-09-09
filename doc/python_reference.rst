@@ -53,6 +53,7 @@ Reading raw data
    :toctree: generated/
 
    anonymize_info
+   read_raw
    read_raw_artemis123
    read_raw_bti
    read_raw_cnt
@@ -64,12 +65,15 @@ Reading raw data
    read_raw_kit
    read_raw_nicolet
    read_raw_nirx
+   read_raw_snirf
    read_raw_eeglab
    read_raw_brainvision
    read_raw_egi
    read_raw_fif
    read_raw_eximia
    read_raw_fieldtrip
+   read_raw_persyst
+   read_raw_nihon
 
 Base class:
 
@@ -118,6 +122,7 @@ File I/O
    read_events
    read_evokeds
    read_evoked_fieldtrip
+   read_freesurfer_lut
    read_forward_solution
    read_label
    read_morph_map
@@ -203,6 +208,7 @@ Datasets
    spm_face.data_path
    visual_92_categories.data_path
    phantom_4dbti.data_path
+   refmeg_noise.data_path
 
 
 Visualization
@@ -221,8 +227,10 @@ Visualization
 
    ClickableImage
    add_background_image
+   centers_to_edges
    compare_fiff
    circular_layout
+   iter_topography
    mne_analyze_colormap
    plot_bem
    plot_brain_colorbar
@@ -233,6 +241,7 @@ Visualization
    plot_dipole_locations
    plot_drop_log
    plot_epochs
+   plot_epochs_psd_topomap
    plot_events
    plot_evoked
    plot_evoked_image
@@ -273,9 +282,11 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   set_3d_options
    set_3d_view
    set_3d_title
    create_3d_figure
+   get_brain_class
 
 
 Preprocessing
@@ -313,7 +324,7 @@ Projections:
    get_builtin_montages
    make_dig_montage
    read_dig_polhemus_isotrak
-   read_dig_captrack
+   read_dig_captrak
    read_dig_dat
    read_dig_egi
    read_dig_fif
@@ -325,12 +336,13 @@ Projections:
    find_layout
    make_eeg_layout
    make_grid_layout
-   find_ch_connectivity
-   read_ch_connectivity
+   find_ch_adjacency
+   read_ch_adjacency
    equalize_channels
    rename_channels
    generate_2d_layout
    make_1020_channel_selections
+   combine_channels
 
 :py:mod:`mne.preprocessing`:
 
@@ -346,8 +358,10 @@ Projections:
    ICA
    Xdawn
    annotate_movement
+   annotate_muscle_zscore
    compute_average_dev_head_t
    compute_current_source_density
+   compute_fine_calibration
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -364,9 +378,11 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
-   run_ica
+   regress_artifact
    corrmap
    read_ica_eeglab
+   read_fine_calibration
+   write_fine_calibration
 
 :py:mod:`mne.preprocessing.nirs`:
 
@@ -384,6 +400,7 @@ Projections:
    source_detector_distances
    short_channels
    scalp_coupling_index
+   temporal_derivative_distribution_repair
 
 EEG referencing:
 
@@ -530,6 +547,19 @@ Sensor Space Data
    read_selection
    rename_channels
 
+:py:mod:`mne.baseline`:
+
+.. automodule:: mne.baseline
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.baseline
+
+.. autosummary::
+   :toctree: generated/
+
+   rescale
+
 
 Covariance computation
 ======================
@@ -613,6 +643,7 @@ Forward Modeling
    setup_source_space
    setup_volume_source_space
    surface.complete_surface_info
+   surface.read_curvature
    use_coil_def
    write_bem_surfaces
    write_trans
@@ -747,6 +778,7 @@ Source Space Data
    BiHemiLabel
    Label
    MixedSourceEstimate
+   MixedVectorSourceEstimate
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
@@ -890,6 +922,7 @@ options):
    :toctree: generated/
 
    ttest_1samp_no_p
+   ttest_ind_no_p
    f_oneway
    f_mway_rm
    f_threshold_mway_rm
@@ -909,6 +942,7 @@ Non-parametric (clustering) resampling methods:
 .. autosummary::
    :toctree: generated/
 
+   combine_adjacency
    permutation_cluster_test
    permutation_cluster_1samp_test
    permutation_t_test
@@ -917,22 +951,22 @@ Non-parametric (clustering) resampling methods:
    summarize_clusters_stc
    bootstrap_confidence_interval
 
-Compute ``connectivity`` matrices for cluster-level statistics:
+Compute ``adjacency`` matrices for cluster-level statistics:
 
 .. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
 
-   channels.find_ch_connectivity
-   channels.read_ch_connectivity
-   spatial_dist_connectivity
-   spatial_src_connectivity
-   spatial_tris_connectivity
-   spatial_inter_hemi_connectivity
-   spatio_temporal_src_connectivity
-   spatio_temporal_tris_connectivity
-   spatio_temporal_dist_connectivity
+   channels.find_ch_adjacency
+   channels.read_ch_adjacency
+   spatial_dist_adjacency
+   spatial_src_adjacency
+   spatial_tris_adjacency
+   spatial_inter_hemi_adjacency
+   spatio_temporal_src_adjacency
+   spatio_temporal_tris_adjacency
+   spatio_temporal_dist_adjacency
 
 
 Simulation
@@ -1033,6 +1067,7 @@ Logging and Configuration
    set_log_level
    set_log_file
    set_config
+   set_cache_dir
    sys_info
    verbose
 

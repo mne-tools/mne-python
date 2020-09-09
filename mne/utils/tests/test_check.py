@@ -18,12 +18,14 @@ from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
-                       check_version, _check_path_like)
+                       check_version, _check_path_like, _validate_type,
+                       _suggest, _on_missing)
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_event = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
 fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_mgz = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
@@ -82,7 +84,8 @@ def _get_data():
 
     # decimate for speed
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.pick_types(raw.info, selection=left_temporal_channels)
+    picks = mne.pick_types(raw.info, meg=True,
+                           selection=left_temporal_channels)
     picks = picks[::2]
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     del picks
@@ -174,3 +177,36 @@ def test_check_path_like():
     assert _check_path_like(str_path) is True
     assert _check_path_like(pathlib_path) is True
     assert _check_path_like(no_path) is False
+
+
+def test_validate_type():
+    """Test _validate_type."""
+    _validate_type(1, 'int-like')
+    with pytest.raises(TypeError, match='int-like'):
+        _validate_type(False, 'int-like')
+
+
+@testing.requires_testing_data
+def test_suggest():
+    """Test suggestions."""
+    names = mne.get_volume_labels_from_aseg(fname_mgz)
+    sug = _suggest('', names)
+    assert sug == ''  # nothing
+    sug = _suggest('Left-cerebellum', names)
+    assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
+    sug = _suggest('Cerebellum-Cortex', names)
+    assert sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501
+
+
+def test_on_missing():
+    """Test _on_missing."""
+    msg = 'test'
+    with pytest.raises(ValueError, match=msg):
+        _on_missing('raise', msg)
+    with pytest.warns(RuntimeWarning, match=msg):
+        _on_missing('warn', msg)
+    _on_missing('ignore', msg)
+
+    with pytest.raises(ValueError,
+                       match='Invalid value for the \'on_missing\' parameter'):
+        _on_missing('foo', msg)

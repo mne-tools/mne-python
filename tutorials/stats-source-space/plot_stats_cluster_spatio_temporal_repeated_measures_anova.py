@@ -198,11 +198,11 @@ def stat_fun(*args):
 # ----------------------------
 #
 # To use an algorithm optimized for spatio-temporal clustering, we
-# just pass the spatial connectivity matrix (instead of spatio-temporal).
+# just pass the spatial adjacency matrix (instead of spatio-temporal).
 
-# as we only have one hemisphere we need only need half the connectivity
-print('Computing connectivity.')
-connectivity = mne.spatial_src_connectivity(src[:1])
+# as we only have one hemisphere we need only need half the adjacency
+print('Computing adjacency.')
+adjacency = mne.spatial_src_adjacency(src[:1])
 
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...
@@ -214,7 +214,7 @@ n_permutations = 128  # ... run fewer permutations (reduces sensitivity)
 
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
+    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
                                  buffer_size=None)

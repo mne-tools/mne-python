@@ -46,7 +46,7 @@ FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
 FIFFV_COILTYPES = {"meg": FIFF.FIFFV_COIL_CTF_GRAD, "eeg": FIFF.FIFFV_COIL_EEG,
                    "misc": FIFF.FIFFV_COIL_NONE}
 SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
-SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, μ=1e-6, n=1e-9, p=1e-12, f=1e-15)
+SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, µ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 CurryParameters = namedtuple('CurryParameters',
                              'n_samples, sfreq, is_ascii, unit_dict')
@@ -434,11 +434,11 @@ class RawCurry(BaseRaw):
         info, n_samples, is_ascii = _read_curry_info(curry_paths)
 
         last_samps = [n_samples - 1]
-        self._is_ascii = is_ascii
+        raw_extras = dict(is_ascii=is_ascii)
 
         super(RawCurry, self).__init__(
             info, preload, filenames=[data_fname], last_samps=last_samps,
-            orig_format='int', verbose=verbose)
+            orig_format='int', raw_extras=[raw_extras], verbose=verbose)
 
         if 'events' in curry_paths:
             logger.info('Event file found. Extracting Annotations from'
@@ -451,24 +451,20 @@ class RawCurry(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        if self._is_ascii:
-            ch_idx = range(0, len(self.ch_names))
+        if self._raw_extras[fi]['is_ascii']:
+            if isinstance(idx, slice):
+                idx = np.arange(idx.start, idx.stop)
+            kwargs = dict(skiprows=start, usecols=idx)
             if check_version("numpy", "1.16.0"):
-                block = np.loadtxt(self.filenames[0],
-                                   skiprows=start,
-                                   usecols=ch_idx[idx],
-                                   max_rows=stop - start).T
+                kwargs['max_rows'] = stop - start
             else:
                 warn("Data reading might take longer for ASCII files. Update "
                      "numpy to version 1.16.0 or greater for more efficient "
                      "data reading.")
-                block = np.loadtxt(self.filenames[0],
-                                   skiprows=start,
-                                   usecols=ch_idx[idx]).T
-                block = block[:, :stop - start]
+            block = np.loadtxt(self._filenames[0], **kwargs)[:stop - start].T
             data_view = data[:, :block.shape[1]]
             _mult_cal_one(data_view, block, idx, cals, mult)
 
         else:
-            _read_segments_file(self, data, idx, fi, start, stop, cals,
-                                mult, dtype="<f4")
+            _read_segments_file(
+                self, data, idx, fi, start, stop, cals, mult, dtype="<f4")

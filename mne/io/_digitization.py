@@ -7,7 +7,8 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict, Counter
+import heapq
+from collections import Counter, OrderedDict
 
 import datetime
 import os.path as op
@@ -15,7 +16,7 @@ import re
 
 import numpy as np
 
-from ..utils import logger, warn, _check_option, Bunch
+from ..utils import logger, warn, _check_option, Bunch, _validate_type
 
 from .constants import FIFF
 from .tree import dir_tree_find
@@ -47,8 +48,49 @@ _dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
 _cardinal_kind_rev = {1: 'LPA', 2: 'Nasion', 3: 'RPA', 4: 'Inion'}
 
 
-def _format_dig_points(dig):
+def _format_dig_points(dig, enforce_order=False):
     """Format the dig points nicely."""
+    if enforce_order and dig is not None:
+        # reorder points based on type:
+        # Fiducials/HPI, EEG, extra (headshape)
+        fids_digpoints = []
+        hpi_digpoints = []
+        eeg_digpoints = []
+        extra_digpoints = []
+        head_digpoints = []
+
+        # use a heap to enforce order on FIDS, EEG, Extra
+        for idx, digpoint in enumerate(dig):
+            ident = digpoint['ident']
+            kind = digpoint['kind']
+
+            # push onto heap based on 'ident' (for the order) for
+            # each of the possible DigPoint 'kind's
+            # keep track of 'idx' in case of any clashes in
+            # the 'ident' variable, which can occur when
+            # user passes in DigMontage + DigMontage
+            if kind == FIFF.FIFFV_POINT_CARDINAL:
+                heapq.heappush(fids_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_HPI:
+                heapq.heappush(hpi_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_EEG:
+                heapq.heappush(eeg_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_EXTRA:
+                heapq.heappush(extra_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_HEAD:
+                heapq.heappush(head_digpoints, (ident, idx, digpoint))
+
+        # now recreate dig based on sorted order
+        fids_digpoints.sort(), hpi_digpoints.sort()
+        eeg_digpoints.sort()
+        extra_digpoints.sort(), head_digpoints.sort()
+        new_dig = []
+        for idx, d in enumerate(fids_digpoints + hpi_digpoints +
+                                extra_digpoints + eeg_digpoints +
+                                head_digpoints):
+            new_dig.append(d[-1])
+        dig = new_dig
+
     return [DigPoint(d) for d in dig] if dig is not None else dig
 
 
@@ -65,6 +107,9 @@ def _count_points_by_type(dig):
         eeg=occurrences[FIFF.FIFFV_POINT_EEG],
         extra=occurrences[FIFF.FIFFV_POINT_EXTRA],
     )
+
+
+_dig_keys = {'kind', 'ident', 'r', 'coord_frame'}
 
 
 class DigPoint(dict):
@@ -90,16 +135,22 @@ class DigPoint(dict):
 
     def __repr__(self):  # noqa: D105
         if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            id_ = _cardinal_kind_rev.get(
-                self.get('ident', -1), 'Unknown cardinal')
+            id_ = _cardinal_kind_rev.get(self['ident'], 'Unknown cardinal')
         else:
             id_ = _dig_kind_proper[
-                _dig_kind_rev.get(self.get('kind', -1), 'unknown')]
-            id_ = ('%s #%s' % (id_, self.get('ident', -1)))
+                _dig_kind_rev.get(self['kind'], 'unknown')]
+            id_ = ('%s #%s' % (id_, self['ident']))
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self['coord_frame'])
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
+
+    # speed up info copy by only deep copying the mutable item
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        return DigPoint(
+            kind=self['kind'], r=self['r'].copy(),
+            ident=self['ident'], coord_frame=self['coord_frame'])
 
     def __eq__(self, other):  # noqa: D105
         """Compare two DigPoints.
@@ -108,9 +159,9 @@ class DigPoint(dict):
         coordinate frame and position.
         """
         my_keys = ['kind', 'ident', 'coord_frame']
-        if sorted(self.keys()) != sorted(other.keys()):
+        if set(self.keys()) != set(other.keys()):
             return False
-        elif any([self[_] != other[_] for _ in my_keys]):
+        elif any(self[_] != other[_] for _ in my_keys):
             return False
         else:
             return np.allclose(self['r'], other['r'])
@@ -173,12 +224,23 @@ _cardinal_ident_mapping = {
 }
 
 
-def _foo_get_data_from_dig(dig):
-    # XXXX:
-    # This does something really similar to _read_dig_montage_fif but:
-    #   - does not check coord_frame
-    #   - does not do any operation that implies assumptions with the names
+# XXXX:
+# This does something really similar to _read_dig_montage_fif but:
+#   - does not check coord_frame
+#   - does not do any operation that implies assumptions with the names
+def _get_data_as_dict_from_dig(dig):
+    """Obtain coordinate data from a Dig.
 
+    Parameters
+    ----------
+    dig : list of dicts
+        A container of DigPoints to be added to the info['dig'].
+
+    Returns
+    -------
+    ch_pos : dict
+        The container of all relevant channel positions inside dig.
+    """
     # Split up the dig points by category
     hsp, hpi, elp = list(), list(), list()
     fids, dig_ch_pos_location = dict(), list()
@@ -194,7 +256,8 @@ def _foo_get_data_from_dig(dig):
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
             # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-            dig_ch_pos_location.append(d['r'])
+            if d['ident'] != 0:  # ref channel
+                dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
     assert len(dig_coord_frames) == 1, \
@@ -271,6 +334,9 @@ def _read_dig_points(fname, comments='%', unit='auto'):
         #      read_dig_montage. To be deprecated
         # raise RuntimeError('if you are reading isotrak files please use'
         #                    ' read_dig_polhemus_isotrak')
+        # Eventually it should use read_dig_polhemus_isotrak and/or
+        # read_dig_polhemus_fastscan, but needs refactoring to handle
+        # these formats better.
         with open(fname) as fid:
             file_str = fid.read()
         value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
@@ -416,19 +482,15 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        keys = dig_ch_pos.keys()
-        if not isinstance(dig_ch_pos, OrderedDict):
-            keys = sorted(keys)
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
             idents = []
-            for key in keys:
-                if not isinstance(key, str):
-                    raise ValueError()
+            for key in dig_ch_pos:
+                _validate_type(key, str, 'dig_ch_pos')
                 idents.append(int(key[-3:]))
         except ValueError:  # and if any conversion fails, simply use arange
-            idents = np.arange(1, len(keys) + 1)
-        for key, ident in zip(keys, idents):
-            dig.append({'r': dig_ch_pos[key], 'ident': ident,
+            idents = np.arange(1, len(dig_ch_pos) + 1)
+        for key, ident in zip(dig_ch_pos, idents):
+            dig.append({'r': dig_ch_pos[key], 'ident': int(ident),
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': coord_frame})
 
@@ -462,7 +524,7 @@ def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
 
 ##############################################################################
 # From mne.io.kit
-def _set_dig_kit(mrk, elp, hsp):
+def _set_dig_kit(mrk, elp, hsp, eeg):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -481,6 +543,8 @@ def _set_dig_kit(mrk, elp, hsp):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
+    eeg : dict
+        Ordered dict of EEG dig points.
 
     Returns
     -------
@@ -511,8 +575,8 @@ def _set_dig_kit(mrk, elp, hsp):
             raise ValueError("File %r should contain 8 points; got shape "
                              "%s." % (elp, elp_points.shape))
         elp = elp_points
-    elif len(elp) != 8:
-        raise ValueError("ELP should contain 8 points; got shape "
+    elif len(elp) not in (7, 8):
+        raise ValueError("ELP should contain 7 or 8 points; got shape "
                          "%s." % (elp.shape,))
     if isinstance(mrk, str):
         mrk = read_mrk(mrk)
@@ -523,6 +587,7 @@ def _set_dig_kit(mrk, elp, hsp):
     nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     elp = apply_trans(nmtrans, elp)
     hsp = apply_trans(nmtrans, hsp)
+    eeg = OrderedDict((k, apply_trans(nmtrans, p)) for k, p in eeg.items())
 
     # device head transform
     trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
@@ -530,7 +595,7 @@ def _set_dig_kit(mrk, elp, hsp):
     nasion, lpa, rpa = elp[:3]
     elp = elp[3:]
 
-    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
+    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp, dig_ch_pos=eeg)
     dev_head_t = Transform('meg', 'head', trans)
 
     return dig_points, dev_head_t

@@ -42,19 +42,22 @@ reject = dict(eog=150e-6)
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
                      picks=picks, reject=reject, proj=True)
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(
+    nrows=4, ncols=1, sharex=True, figsize=(6, 10))
 
-# No reference. This assumes that the EEG has already been referenced properly.
-# This explicitly prevents MNE from adding a default EEG reference. Any average
-# reference projector is automatically removed.
-raw.set_eeg_reference([])
+# We first want to plot the data without any added reference (i.e., using only
+# the reference that was applied during recording of the data).
+# However, this particular data already has an average reference projection
+# applied that we now need to remove again using :func:`mne.set_eeg_reference`
+raw, _ = mne.set_eeg_reference(raw, [])  # use [] to remove average projection
 evoked_no_ref = mne.Epochs(raw, **epochs_params).average()
 
 evoked_no_ref.plot(axes=ax1, titles=dict(eeg='Original reference'), show=False,
                    time_unit='s')
 
-# Average reference. This is normally added by default, but can also be added
-# explicitly.
+# Now we want to plot the data with an average reference, so let's add the
+# projection we removed earlier back to the data. Note that we can use
+# "set_eeg_reference" as a method on the ``raw`` object as well.
 raw.set_eeg_reference('average', projection=True)
 evoked_car = mne.Epochs(raw, **epochs_params).average()
 
@@ -67,4 +70,21 @@ raw.set_eeg_reference(['EEG 001', 'EEG 002'])
 evoked_custom = mne.Epochs(raw, **epochs_params).average()
 
 evoked_custom.plot(axes=ax3, titles=dict(eeg='Custom reference'),
-                   time_unit='s')
+                   time_unit='s', show=False)
+
+# Re-reference using REST :footcite:`Yao2001`. To do this, we need a forward
+# solution, which we can quickly create:
+sphere = mne.make_sphere_model('auto', 'auto', raw.info)
+src = mne.setup_volume_source_space(sphere=sphere, exclude=30.,
+                                    pos=15.)  # large "pos" just for speed!
+forward = mne.make_forward_solution(raw.info, trans=None, src=src, bem=sphere)
+raw.set_eeg_reference('REST', forward=forward)
+evoked_rest = mne.Epochs(raw, **epochs_params).average()
+
+evoked_rest.plot(axes=ax4, titles=dict(eeg='REST (∞) reference'),
+                 time_unit='s', show=True)
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

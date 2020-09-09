@@ -7,7 +7,7 @@
 import numpy as np
 
 from ...utils import verbose
-from ._utils import _fetch_one, _data_path, AGE_SLEEP_RECORDS
+from ._utils import _fetch_one, _data_path, _on_missing, AGE_SLEEP_RECORDS
 from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
@@ -17,16 +17,16 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/
 
 @verbose
 def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
-               update_path=None, base_url=BASE_URL,
+               update_path=None, base_url=BASE_URL, on_missing='raise',
                verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
     study of age effects on sleep in healthy subjects [1]_[2]_. This
-    corresponds to a subset of 20 subjects, 10 males and 10 females that were
-    25-34 years old at the time of the recordings. There are two night
-    recordings per subject except for subject 13 since the second record was
-    lost.
+    corresponds to a subset of 153 recordings from 37 males and 41 females that
+    were 25-101 years old at the time of the recordings. There are two night
+    recordings per subject except for subjects 13, 36 and 52 which have one
+    record missing each due to missing recording hardware.
 
     See more details in
     `physionet website <https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/>`_.
@@ -34,9 +34,12 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     Parameters
     ----------
     subjects : list of int
-        The subjects to use. Can be in the range of 0-19 (inclusive).
+        The subjects to use. Can be in the range of 0-82 (inclusive), however
+        the following subjects are not available: 39, 68, 69, 78 and 79.
     recording : list of int
         The night recording indices. Valid values are : [1], [2], or [1, 2].
+        The following recordings are not available: recording 1 for subject 36
+        and 52, and recording 2 for subject 13.
     path : None | str
         Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
@@ -49,6 +52,11 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    on_missing : 'raise' | 'warn' | 'ignore'
+        What to do if one or several recordings are not available. Valid keys
+        are 'raise' | 'warn' | 'ignore'. Default is 'error'. If on_missing
+        is 'warn' it will proceed but warn, if 'ignore' it will proceed
+        silently.
     %(verbose)s
 
     Returns
@@ -94,7 +102,18 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     path = data_path(path=path, update_path=update_path)
     params = [path, force_update, base_url]
 
-    _check_subjects(subjects, 20)
+    _check_subjects(
+        subjects, 83, missing=[39, 68, 69, 78, 79], on_missing=on_missing)
+
+    # Check for missing recordings
+    if set(subjects) & {36, 52} and 1 in recording:
+        msg = ('Requested recording 1 for subject 36 and/or 52, but it is not '
+               'available in corpus.')
+        _on_missing(on_missing, msg)
+    if 13 in subjects and 2 in recording:
+        msg = ('Requested recording 2 for subject 13, but it is not available '
+               'in corpus.')
+        _on_missing(on_missing, msg)
 
     fnames = []
     for subject in subjects:

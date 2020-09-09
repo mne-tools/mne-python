@@ -5,25 +5,30 @@
 from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
+import os.path as op
+import datetime as dt
 
 import numpy as np
 
 from ..base import BaseRaw
+from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
-from ...utils import logger, verbose, fill_doc
+from ...utils import logger, verbose, fill_doc, warn
 
 
 @fill_doc
 def read_raw_nirx(fname, preload=False, verbose=None):
     """Reader for a NIRX fNIRS recording.
 
+    This function has only been tested with NIRScout devices.
+
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder.
+        Path to the NIRX data folder or header file.
     %(preload)s
     %(verbose)s
 
@@ -50,7 +55,7 @@ class RawNIRX(BaseRaw):
     Parameters
     ----------
     fname : str
-        Path to the NIRX data folder.
+        Path to the NIRX data folder or header file.
     %(preload)s
     %(verbose)s
 
@@ -65,9 +70,15 @@ class RawNIRX(BaseRaw):
         from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
 
+        if fname.endswith('.hdr'):
+            fname = op.dirname(op.abspath(fname))
+
+        if not op.isdir(fname):
+            raise FileNotFoundError('The path you specified does not exist.')
+
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('dat', 'evt', 'hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
+        keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
                 'config.txt', 'probeInfo.mat')
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
@@ -75,41 +86,17 @@ class RawNIRX(BaseRaw):
                 raise RuntimeError('Expect one %s file, got %d' %
                                    (key, len(files[key]),))
             files[key] = files[key][0]
+        if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
+            warn("A single dat file was expected in the specified path, but "
+                 "got %d. This may indicate that the file structure has been "
+                 "modified since the measurement was saved." %
+                 (len(glob.glob('%s/*%s' % (fname, 'dat')))))
 
         # Read number of rows/samples of wavelength data
         last_sample = -1
         with _open(files['wl1']) as fid:
             for line in fid:
                 last_sample += 1
-
-        # Read participant information file
-        inf = ConfigParser(allow_no_value=True)
-        inf.read(files['inf'])
-        inf = inf._sections['Subject Demographics']
-
-        # Store subject information from inf file in mne format
-        # Note: NIRX also records "Study Type", "Experiment History",
-        #       "Additional Notes", "Contact Information" and this information
-        #       is currently discarded
-        subject_info = {}
-        names = inf['name'].split()
-        if len(names) > 0:
-            subject_info['first_name'] = \
-                inf['name'].split()[0].replace("\"", "")
-        if len(names) > 1:
-            subject_info['last_name'] = \
-                inf['name'].split()[-1].replace("\"", "")
-        if len(names) > 2:
-            subject_info['middle_name'] = \
-                inf['name'].split()[-2].replace("\"", "")
-        # subject_info['birthday'] = inf['age']  # TODO: not formatted properly
-        subject_info['sex'] = inf['gender'].replace("\"", "")
-        # Recode values
-        if subject_info['sex'] in {'M', 'Male', '1'}:
-            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
-        elif subject_info['sex'] in {'F', 'Female', '2'}:
-            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
-        # NIRStar does not record an id, or handedness by default
 
         # Read header file
         # The header file isn't compliant with the configparser. So all the
@@ -121,35 +108,96 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
-                   ["\"15.0\"", "\"15.2\""]):
+        if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
             raise RuntimeError('MNE does not support this NIRStar version'
                                ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
+        if "NIRScout" not in hdr['GeneralInfo']['Device']:
+            warn("Only import of data from NIRScout devices have been "
+                 "thoroughly tested. You are using a %s device. " %
+                 hdr['GeneralInfo']['Device'])
 
         # Parse required header fields
+
+        # Extract measurement date and time
+        datetime_str = hdr['GeneralInfo']['Date'] + hdr['GeneralInfo']['Time']
+        meas_date = None
+        # Several formats have been observed so we try each in turn
+        for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
+                        '"%a, %d %b %Y""%H:%M:%S.%f"']:
+            try:
+                meas_date = dt.datetime.strptime(datetime_str, dt_code)
+                meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                break
+            except ValueError:
+                pass
+        if meas_date is None:
+            warn("Extraction of measurement date from NIRX file failed. "
+                 "This can be caused by files saved in certain locales. "
+                 "Please report this as a github issue. "
+                 "The date is being set to January 1st, 2000, "
+                 "instead of {}".format(datetime_str))
+            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0,
+                                    tzinfo=dt.timezone.utc)
 
         # Extract frequencies of light used by machine
         fnirs_wavelengths = [int(s) for s in
                              re.findall(r'(\d+)',
-                             hdr['ImagingParameters']['Wavelengths'])]
+                                        hdr['ImagingParameters'][
+                                            'Wavelengths'])]
 
         # Extract source-detectors
         sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
-                              hdr['DataStructure']['S-D-Key'])], int)
+                                                         hdr['DataStructure'][
+                                                             'S-D-Key'])], int)
         detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
-                                hdr['DataStructure']['S-D-Key'])], int)
+                                                           hdr['DataStructure']
+                                                           ['S-D-Key'])],
+                               int)
 
         # Determine if short channels are present and on which detectors
         if 'shortbundles' in hdr['ImagingParameters']:
             short_det = [int(s) for s in
                          re.findall(r'(\d+)',
-                         hdr['ImagingParameters']['ShortDetIndex'])]
+                                    hdr['ImagingParameters']['ShortDetIndex'])]
             short_det = np.array(short_det, int)
         else:
             short_det = []
 
         # Extract sampling rate
         samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
+
+        # Read participant information file
+        inf = ConfigParser(allow_no_value=True)
+        inf.read(files['inf'])
+        inf = inf._sections['Subject Demographics']
+
+        # Store subject information from inf file in mne format
+        # Note: NIRX also records "Study Type", "Experiment History",
+        #       "Additional Notes", "Contact Information" and this information
+        #       is currently discarded
+        # NIRStar does not record an id, or handedness by default
+        subject_info = {}
+        names = inf['name'].split()
+        if len(names) > 0:
+            subject_info['first_name'] = \
+                inf['name'].split()[0].replace("\"", "")
+        if len(names) > 1:
+            subject_info['last_name'] = \
+                inf['name'].split()[-1].replace("\"", "")
+        if len(names) > 2:
+            subject_info['middle_name'] = \
+                inf['name'].split()[-2].replace("\"", "")
+        subject_info['sex'] = inf['gender'].replace("\"", "")
+        # Recode values
+        if subject_info['sex'] in {'M', 'Male', '1'}:
+            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
+        elif subject_info['sex'] in {'F', 'Female', '2'}:
+            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
+        else:
+            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
+        subject_info['birthday'] = (meas_date.year - int(inf['age']),
+                                    meas_date.month,
+                                    meas_date.day)
 
         # Read information about probe/montage/optodes
         # A word on terminology used here:
@@ -198,10 +246,11 @@ class RawNIRX(BaseRaw):
         req_ind = req_ind.astype(int)
 
         # Generate meaningful channel names
-        def prepend(list, str):
+        def prepend(li, str):
             str += '{0}'
-            list = [str.format(i) for i in list]
-            return(list)
+            li = [str.format(i) for i in li]
+            return li
+
         snames = prepend(sources[req_ind], 'S')
         dnames = prepend(detectors[req_ind], '_D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
@@ -212,8 +261,9 @@ class RawNIRX(BaseRaw):
         # Create mne structure
         info = create_info(chnames,
                            samplingrate,
-                           ch_types='fnirs_raw')
+                           ch_types='fnirs_cw_amplitude')
         info.update(subject_info=subject_info, dig=dig)
+        info['meas_date'] = meas_date
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.
@@ -230,37 +280,54 @@ class RawNIRX(BaseRaw):
             det = int(requested_channels[ch_idx2, 1]) - 1
             info['chs'][ch_idx2 * 2]['loc'][6:9] = det_locs[det, :]
             info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
-            # Store channel location
-            # Channel locations for short channels are bodged,
-            # for short channels use the source location.
-            if det + 1 in short_det:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-            else:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
+            # Store channel location as midpoint between source and detector.
+            midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
+            info['chs'][ch_idx2 * 2]['loc'][:3] = midpoint
+            info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = midpoint
             info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
             info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
-        raw_extras = {"sd_index": req_ind, 'files': files}
+
+        # Extract the start/stop numbers for samples in the CSV. In theory the
+        # sample bounds should just be 10 * the number of channels, but some
+        # files have mixed \n and \n\r endings (!) so we can't rely on it, and
+        # instead make a single pass over the entire file at the beginning so
+        # that we know how to seek and read later.
+        bounds = dict()
+        for key in ('wl1', 'wl2'):
+            offset = 0
+            bounds[key] = [offset]
+            with open(files[key], 'rb') as fid:
+                for line in fid:
+                    offset += len(line)
+                    bounds[key].append(offset)
+                assert offset == fid.tell()
+
+        # Extras required for reading data
+        raw_extras = {
+            'sd_index': req_ind,
+            'files': files,
+            'bounds': bounds,
+        }
 
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
             raw_extras=[raw_extras], verbose=verbose)
 
         # Read triggers from event file
-        with _open(files['evt']) as fid:
-            t = [re.findall(r'(\d+)', line) for line in fid]
-        onset = np.zeros(len(t), float)
-        duration = np.zeros(len(t), float)
-        description = [''] * len(t)
-        for t_idx in range(len(t)):
-            binary_value = ''.join(t[t_idx][1:])[::-1]
-            trigger_frame = float(t[t_idx][0])
-            onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
-            duration[t_idx] = 1.0  # No duration info stored in files
-            description[t_idx] = int(binary_value, 2) * 1.
-        annot = Annotations(onset, duration, description)
-        self.set_annotations(annot)
+        if op.isfile(files['hdr'][:-3] + 'evt'):
+            with _open(files['hdr'][:-3] + 'evt') as fid:
+                t = [re.findall(r'(\d+)', line) for line in fid]
+            onset = np.zeros(len(t), float)
+            duration = np.zeros(len(t), float)
+            description = [''] * len(t)
+            for t_idx in range(len(t)):
+                binary_value = ''.join(t[t_idx][1:])[::-1]
+                trigger_frame = float(t[t_idx][0])
+                onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
+                duration[t_idx] = 1.0  # No duration info stored in files
+                description[t_idx] = int(binary_value, 2) * 1.
+            annot = Annotations(onset, duration, description)
+            self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
@@ -273,7 +340,8 @@ class RawNIRX(BaseRaw):
         wls = [
             _read_csv_rows_cols(
                 self._raw_extras[fi]['files'][key],
-                start, stop, sdindex, len(self.ch_names) // 2).T
+                start, stop, sdindex,
+                self._raw_extras[fi]['bounds'][key]).T
             for key in ('wl1', 'wl2')
         ]
 
@@ -283,23 +351,15 @@ class RawNIRX(BaseRaw):
         this_data = np.zeros((len(wls[0]) * 2, stop - start))
         this_data[0::2, :] = wls[0]
         this_data[1::2, :] = wls[1]
-        data[:] = this_data[idx]
-
+        _mult_cal_one(data, this_data, idx, cals, mult)
         return data
 
 
-def _read_csv_rows_cols(fname, start, stop, cols, n_cols):
-    # The following is equivalent to:
-    # x = pandas.read_csv(fname, header=None, usecols=cols, skiprows=start,
-    #                     nrows=stop - start, delimiter=' ')
-    # But does not require Pandas, and is hopefully fast enough, as the
-    # reading should be done in C (CPython), as should the conversion to float
-    # (NumPy).
-    x = np.zeros((stop - start, n_cols))
-    with _open(fname) as fid:
-        for li, line in enumerate(fid):
-            if li >= start:
-                if li >= stop:
-                    break
-                x[li - start] = np.array(line.split(), float)[cols]
+def _read_csv_rows_cols(fname, start, stop, cols, bounds):
+    with open(fname, 'rb') as fid:
+        fid.seek(bounds[start])
+        data = fid.read(bounds[stop] - bounds[start]).decode('latin-1')
+        x = np.fromstring(data, float, sep=' ')
+    x.shape = (stop - start, -1)
+    x = x[:, cols]
     return x

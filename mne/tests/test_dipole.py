@@ -262,6 +262,7 @@ def test_len_index_dipoles():
     _compare_dipoles(d_mask, dipole[idx])
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 @testing.requires_testing_data
 def test_min_distance_fit_dipole():
     """Test dipole min_dist to inner_skull."""
@@ -402,7 +403,7 @@ def test_get_phantom_dipoles():
 def test_confidence(tmpdir):
     """Test confidence limits."""
     evoked = read_evokeds(fname_evo_full, 'Left Auditory', baseline=(None, 0))
-    evoked.crop(0.08, 0.08).pick_types()  # MEG-only
+    evoked.crop(0.08, 0.08).pick_types(meg=True)  # MEG-only
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0., 0., 0.04), 0.08)
     dip_py = fit_dipole(evoked, cov, sphere)[0]

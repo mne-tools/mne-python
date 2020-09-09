@@ -12,15 +12,17 @@ from numpy.testing import assert_allclose, assert_array_less
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
-from mne.preprocessing.nirs import optical_density, scalp_coupling_index
+from mne.preprocessing.nirs import optical_density, scalp_coupling_index,\
+    beer_lambert_law
 from mne.datasets import testing
 
 fname_nirx_15_0 = op.join(data_path(download=False),
-                          'NIRx', 'nirx_15_0_recording')
+                          'NIRx', 'nirscout', 'nirx_15_0_recording')
 fname_nirx_15_2 = op.join(data_path(download=False),
-                          'NIRx', 'nirx_15_2_recording')
+                          'NIRx', 'nirscout', 'nirx_15_2_recording')
 fname_nirx_15_2_short = op.join(data_path(download=False),
-                                'NIRx', 'nirx_15_2_recording_w_short')
+                                'NIRx', 'nirscout',
+                                'nirx_15_2_recording_w_short')
 
 
 @testing.requires_testing_data
@@ -30,7 +32,10 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 def test_scalp_coupling_index(fname, fmt, tmpdir):
     """Test converting NIRX files."""
     assert fmt in ('nirx', 'fif')
-    raw = read_raw_nirx(fname)
+    raw = read_raw_nirx(fname).load_data()
+    with pytest.raises(RuntimeError, match='Scalp'):
+        scalp_coupling_index(raw)
+
     raw = optical_density(raw)
     sci = scalp_coupling_index(raw)
 
@@ -58,3 +63,8 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     assert_allclose(sci[0:6], [1, 1, 1, 1, -1, -1], atol=0.01)
     assert np.abs(sci[6]) < 0.5
     assert np.abs(sci[7]) < 0.5
+
+    # Ensure function errors if wrong type is passed in
+    raw = beer_lambert_law(raw)
+    with pytest.raises(RuntimeError, match='Scalp'):
+        scalp_coupling_index(raw)

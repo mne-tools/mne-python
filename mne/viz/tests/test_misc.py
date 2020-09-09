@@ -70,8 +70,39 @@ def test_plot_filter():
                            iir_params=dict(output='ba'))
     plot_filter(iir_ba, sfreq, freq, gain)
     plt.close('all')
-    plot_filter(h, sfreq, freq, gain, fscale='linear')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear')
+    assert len(fig.axes) == 3
     plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=('time', 'delay'))
+    assert len(fig.axes) == 2
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=['magnitude', 'delay'])
+    assert len(fig.axes) == 2
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot='magnitude')
+    assert len(fig.axes) == 1
+    plt.close('all')
+    fig = plot_filter(h, sfreq, freq, gain, fscale='linear',
+                      plot=('magnitude'))
+    assert len(fig.axes) == 1
+    plt.close('all')
+    with pytest.raises(ValueError, match='Invalid value for the .plot'):
+        plot_filter(h, sfreq, freq, gain, plot=('turtles'))
+    _, axes = plt.subplots(1)
+    fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude'), axes=axes)
+    assert len(fig.axes) == 1
+    _, axes = plt.subplots(2)
+    fig = plot_filter(h, sfreq, freq, gain, plot=('magnitude', 'delay'),
+                      axes=axes)
+    assert len(fig.axes) == 2
+    plt.close('all')
+    _, axes = plt.subplots(1)
+    with pytest.raises(ValueError, match='Length of axes'):
+        plot_filter(h, sfreq, freq, gain,
+                    plot=('magnitude', 'delay'), axes=axes)
 
 
 def test_plot_cov():
@@ -87,19 +118,26 @@ def test_plot_cov():
 @requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
-    with pytest.raises(IOError, match='MRI file .* does not exist'):
+    with pytest.raises(IOError, match='MRI file .* not found'):
         plot_bem(subject='bad-subject', subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match="Invalid value for the 'orientation"):
         plot_bem(subject='sample', subjects_dir=subjects_dir,
                  orientation='bad-ori')
     with pytest.raises(ValueError, match="sorted 1D array"):
         plot_bem(subject='sample', subjects_dir=subjects_dir, slices=[0, 500])
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='sagittal', slices=[25, 50])
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='coronal', brain_surfaces='white')
-    plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='coronal', slices=[25, 50], src=src_fname)
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='sagittal', slices=[25, 50])
+    assert len(fig.axes) == 2
+    assert len(fig.axes[0].collections) == 3  # 3 BEM surfaces ...
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='coronal', brain_surfaces='white')
+    assert len(fig.axes[0].collections) == 5  # 3 BEM surfaces + 2 hemis
+    fig = plot_bem(subject='sample', subjects_dir=subjects_dir,
+                   orientation='coronal', slices=[25, 50], src=src_fname)
+    assert len(fig.axes[0].collections) == 4  # 3 BEM surfaces + 1 src contour
+    with pytest.raises(ValueError, match='MRI coordinates, got head'):
+        plot_bem(subject='sample', subjects_dir=subjects_dir,
+                 src=inv_fname)
 
 
 def test_event_colors():
@@ -143,9 +181,24 @@ def test_plot_events():
     with pytest.warns(RuntimeWarning, match=multimatch):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id={'aud_l': 1}, color=color)
+    extra_id = {'missing': 111}
     with pytest.raises(ValueError, match='from event_id is not present in'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
-                    event_id={'aud_l': 111}, color=color)
+                    event_id=extra_id)
+    with pytest.raises(RuntimeError, match='No usable event IDs'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=extra_id, on_missing='ignore')
+    extra_id = {'aud_l': 1, 'missing': 111}
+    with pytest.warns(RuntimeWarning, match='from event_id is not present in'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=extra_id, on_missing='warn')
+    with pytest.warns(RuntimeWarning, match='event 2 missing'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=extra_id, on_missing='ignore')
+    events = events[events[:, 2] == 1]
+    assert len(events) > 0
+    plot_events(events, raw.info['sfreq'], raw.first_samp,
+                event_id=extra_id, on_missing='ignore')
     with pytest.raises(ValueError, match='No events'):
         plot_events(np.empty((0, 3)))
     plt.close('all')
