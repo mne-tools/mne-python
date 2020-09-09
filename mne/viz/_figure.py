@@ -52,6 +52,10 @@ class MNEFigure(Figure):
         if event.key == self.mne.close_key:
             self._close(event)
 
+    def _pick(self, event):
+        """Handle matplotlib pick events."""
+        pass
+
     def _buttonpress(self, event):
         """Handle buttonpress events."""
         pass
@@ -89,7 +93,8 @@ class MNEFigure(Figure):
         callbacks = dict(resize_event=self._resize,
                          key_press_event=self._keypress,
                          button_press_event=self._buttonpress,
-                         close_event=self._close)
+                         close_event=self._close,
+                         pick_event=self._pick)
         callbacks.update(kwargs)
         callback_ids = dict()
         for event, callback in callbacks.items():
@@ -582,36 +587,38 @@ class MNEBrowseFigure(MNEFigure):
         else:  # check for close key
             super()._keypress(event)
 
+    def _pick(self, event):
+        """Handle matplotlib pick events."""
+        from matplotlib.text import Text
+        if self.mne.butterfly:
+            return
+        # clicked on channel name
+        if isinstance(event.artist, Text):
+            ch_name = event.artist.get_text()
+            ind = self.mne.ch_names[self.mne.picks].tolist().index(ch_name)
+            self._toggle_bad_channel(ind)
+
     def _buttonpress(self, event):
         """Handle mouse clicks."""
+        butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
         # ignore middle clicks or scroll wheel events
         if event.button not in (1, 3):
             return
         elif event.button == 1:  # left-click (primary)
-            if event.inaxes is None:  # clicked on channel name
-                if self.mne.n_channels > 100:  # too dense to identify
-                    return
-                ylim = self.mne.ax_main.get_ylim()
-                xy = (event.x, event.y)
-                x, y = self.mne.ax_main.transData.inverted().transform(xy)
-                if x > self.mne.t_start or y < 0 or y > ylim[0]:
-                    return
-                self._label_clicked(x, y)
-            # click in horizontal scrollbar
-            elif event.inaxes == self.mne.ax_main and not annotating:
-                if not self.mne.butterfly:
+            # click in main axes
+            if (event.inaxes == self.mne.ax_main and not annotating):
+                if not butterfly:
                     cont, cont_dict = self.mne.traces.contains(event)
                     if cont:
-                        idx = cont_dict['ind']
-                        assert len(idx) == 1  # TODO for testing, to be removed
-                        # TODO above will def. fail if marking channel that is
-                        # adjacent to a very bad channel. Should get value of
-                        # all involved channels at the cursor x and
-                        # (de)activate the one with value closest to cursor y.
-                        self._toggle_bad_channel(idx[0])
+                        ind = cont_dict['ind']
+                        x_ind = self.mne.inst.time_as_index(event.xdata)
+                        dists = self.mne.data[ind, x_ind] + ind - event.ydata
+                        ind = ind[np.argmin(np.abs(dists))]
+                        self._toggle_bad_channel(ind)
                         return
                 self._show_vline(event.xdata)  # butterfly / not on data trace
+                return
             # click in vertical scrollbar
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
@@ -644,13 +651,6 @@ class MNEBrowseFigure(MNEFigure):
                 self.canvas.draw()
             elif event.inaxes == ax:  # hide green line
                 self._hide_vline()
-
-    def _label_clicked(self, x, y):
-        """Handle left-click on channel names."""
-        if self.mne.butterfly:
-            return
-        idx = np.searchsorted(self.mne.trace_offsets, y - 0.5)
-        self._toggle_bad_channel(idx)
 
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
@@ -1446,7 +1446,8 @@ class MNEBrowseFigure(MNEFigure):
             ticklabels = np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[ixs]
         else:
             ticklabels = self.mne.ch_names[self.mne.picks]
-        self.mne.ax_main.set_yticklabels(ticklabels, fontstyle=fontstyle)
+        self.mne.ax_main.set_yticklabels(ticklabels, fontstyle=fontstyle,
+                                         picker=True)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
