@@ -152,13 +152,11 @@ def _split_gof(M, X, gain):
     # assuming x is estimated using elements of gain, with residual res
     # along the first axis
     assert M.ndim == X.ndim == gain.ndim == 2, (M.ndim, X.ndim, gain.ndim)
-    assert gain.shape == (M.shape[0], X.shape[0])
+    assert gain.shape == (M.shape[0], X.shape[0]), (gain.shape, M.shape)
     assert M.shape[1] == X.shape[1]
+    U, s, Vh = np.linalg.svd(gain, full_matrices=False)
     M_est = gain @ X
-    assert M.shape == M_est.shape
     res = M - M_est
-    assert gain.shape[0] == M.shape[0], (gain.shape, M.shape)
-    U, _, Vh = np.linalg.svd(gain, full_matrices=False)
     # the part that gets explained
     fit_orth = U.T @ M
     # the part that got over-explained (landed in residual)
@@ -173,6 +171,10 @@ def _split_gof(M, X, gain):
         (fit_back * fit_back.conj()).real -
         (res_back * res_back.conj()).real) / norm
     assert gof_back.shape == X.shape, (gof_back.shape, X.shape)
+    assert (gof_back >= -1e-12).all()
+    gof_sum = gof_back.sum(0)
+    gof = 100. - 100. * (res * res.conj()).real.sum(0) / norm[0]
+    np.testing.assert_allclose(gof_sum, gof)
     return gof_back
 
 
@@ -440,7 +442,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     # Reapply weights to have correct unit
     X = _reapply_source_weighting(X, source_weighting, active_set)
+    source_weighting[source_weighting == 0] = 1  # zeros
     gain_active /= source_weighting[active_set]
+    del source_weighting
     M_estimate = np.dot(gain_active, X)
 
     outs = list()

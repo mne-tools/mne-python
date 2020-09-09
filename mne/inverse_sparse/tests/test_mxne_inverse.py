@@ -256,7 +256,7 @@ def test_mxne_vol_sphere():
     assert_array_almost_equal(stc.times, evoked.times, 5)
 
 
-@pytest.mark.parametrize('mod', (None, 'mult', 'augment', 'sign'))
+@pytest.mark.parametrize('mod', (None, 'mult', 'augment', 'sign', 'same'))
 def test_split_gof_basic(mod):
     """Test splitting the goodness of fit."""
     # first a trivial case
@@ -275,6 +275,10 @@ def test_split_gof_basic(mod):
         gain[1] *= -1
         M[1] *= -1
         M_est[1] *= -1
+    elif mod == 'same':
+        gain[:, 1] = gain[:, 0]
+        X[:, 0] = [2. / 3., 1. / 3.]  # half as big
+        M_est = gain @ X
     else:
         assert mod is None
     res = M - M_est
@@ -286,6 +290,8 @@ def test_split_gof_basic(mod):
         want = np.concatenate((want, [[0]]))
     if mod == 'mult':
         assert_array_less(gof_split[1], gof_split[0])
+    elif mod == 'same':
+        assert_allclose(gof_split[0], gof_split[1])
     else:
         assert_allclose(gof_split, want, atol=1e-12)
 
@@ -299,7 +305,7 @@ def test_split_gof_basic(mod):
     ([0, 15157, 19448], [1, 1, 1]),
     ([0, 15157, 19448], [1e-2, 1, 5]),
 ])
-def test_gof_split_meg(forward, idx, weights):
+def test_split_gof_meg(forward, idx, weights):
     """Test GOF splitting on MEG data."""
     gain = forward['sol']['data'][:, idx]
     # close to orthogonal

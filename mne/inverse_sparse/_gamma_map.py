@@ -268,7 +268,9 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
             X_xyz.shape = (len(active_src) * 3, X.shape[1])
             X = X_xyz
         active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
+    source_weighting[source_weighting == 0] = 1  # zeros
     gain_active = gain[:, active_set] / source_weighting[active_set]
+    del source_weighting
 
     tmin = evoked.times[0]
     tstep = 1.0 / evoked.info['sfreq']
