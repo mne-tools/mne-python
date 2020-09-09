@@ -1656,7 +1656,7 @@ class MNEBrowseFigure(MNEFigure):
             n_visible_events = len(this_event_times)
             colors = to_rgba_array([self.mne.event_color_dict[n]
                                     for n in this_event_nums])
-            # plot event lines
+            # create event lines
             ylim = self.mne.ax_main.get_ylim()
             xs = np.repeat(this_event_times, 2)
             ys = np.tile(ylim, n_visible_events)
@@ -1665,7 +1665,7 @@ class MNEBrowseFigure(MNEFigure):
                                          colors=colors, zorder=0)
             self.mne.ax_main.add_collection(event_lines)
             self.mne.event_lines = event_lines
-            # add event labels
+            # create event labels
             while len(self.mne.event_texts):
                 text = self.mne.event_texts.pop()
                 self.mne.ax_main.texts.remove(text)
@@ -1675,6 +1675,7 @@ class MNEBrowseFigure(MNEFigure):
                     label, (_t, ylim[1]), ha='center', va='baseline', color=_c,
                     xytext=(0, 4), textcoords='offset points')
                 self.mne.event_texts.append(this_text)
+            # draw
             for artist in [self.mne.event_lines] + self.mne.event_texts:
                 self.mne.ax_main.draw_artist(artist)
 
