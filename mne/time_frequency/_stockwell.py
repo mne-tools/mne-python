@@ -103,10 +103,8 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
                         width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
-    Same computation as the function tfr_stockwell.
-    Difference: tfr_stockwell takes epochs in the mne.Epochs format as input.
-    This function, tfr_array_stockwell, takes epochs in the numpy.array format
-    as input.
+    Same computation as `~mne.time_frequency.tfr_stockwell`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     See :footcite:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`
     for more information.
@@ -199,9 +197,8 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   verbose=None):
     """Compute Time-Frequency Representation (TFR) using Stockwell Transform.
 
-    Same computation as the function tfr_array_stockwell.
-    Difference: tfr_stockwell takes epochs in the mne.Epochs format as input;
-    tfr_array_stockwell takes epochs in the numpy.array format as input.
+    Same computation as `~mne.time_frequency.tfr_array_stockwell`, but operates
+    on `~mne.Epochs` objects instead of :class:`NumPy arrays <numpy.ndarray>`.
 
     See :footcite:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`
     for more information.

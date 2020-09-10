@@ -724,10 +724,8 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      n_jobs=1, verbose=None):
     """Compute time-frequency transform using Morlet wavelets.
 
-    Same computation as the function tfr_morlet.
-    Difference: tfr_morlet takes epochs in the mne.Epochs format as input.
-    This function, tfr_array_morlet, takes epochs in the numpy.array format
-    as input.
+    Same computation as `~mne.time_frequency.tfr_morlet`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     Parameters
     ----------
@@ -801,9 +799,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    n_jobs=1, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
-    Same computation as the function tfr_array_multitaper.
-    Difference: tfr_multitaper takes epochs in the mne.Epochs format as input;
-    tfr_array_multitaper takes epochs in the numpy.array format as input.
+    Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
+    operates on `~mne.Epochs` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
     ----------

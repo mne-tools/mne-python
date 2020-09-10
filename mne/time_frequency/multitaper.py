@@ -460,10 +460,8 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
-    Same computation as the function tfr_multitaper.
-    Difference: tfr_multitaper takes epochs in the mne.Epochs format as input.
-    This function, tfr_array_multitaper, takes epochs in the numpy.array format
-    as input.
+    Same computation as `~mne.time_frequency.tfr_multitaper`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     Parameters
     ----------
