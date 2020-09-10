@@ -225,6 +225,20 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         %(notes_tmax_included_by_default)s
         """
+        if tmin is None:
+            tmin = self.tmin
+        elif tmin < self.tmin:
+            warn('tmin is not in Evoked time interval. tmin is set to '
+                 'Evoked.tmin')
+            tmin = self.tmin
+
+        if tmax is None:
+            tmax = self.tmax
+        elif tmax > self.tmax:
+            warn('tmax is not in Evoked time interval. tmax is set to '
+                 'Evoked.tmax')
+            tmax = self.tmax
+
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
         self.times = self.times[mask]
@@ -233,7 +247,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         try:
             _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
-        except ValueError:  # in no longer applies, wipe it out
+        except ValueError:  # It no longer applies, wipe it out
             warn('Cropping removes baseline period, setting baseline=None')
             self.baseline = None
 
