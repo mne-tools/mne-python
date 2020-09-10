@@ -843,7 +843,7 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
           Ensures that neighboring frequencies can be disambiguated.
 
     The output is meant to be used with :func:`~mne.chpi.compute_chpi_locs`.
-    
+
     .. versionadded:: 0.20
     """
     hpi = _setup_hpi_amplitude_fitting(raw.info, t_window, ext_order=ext_order)
@@ -924,7 +924,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     The number of fitted points ``n_pos`` will depend on the velocity of head
     movements as well as ``t_step_max`` (and ``t_step_min`` from
     :func:`mne.chpi.compute_chpi_amplitudes`).
-    
+
     .. versionadded:: 0.20
     """
     # Set up magnetic dipole fits
