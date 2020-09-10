@@ -204,6 +204,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Channel names."""
         return self.info['ch_names']
 
+    @property
+    def tmin(self):
+        """First time point."""
+        return self.times[0]
+
+    @property
+    def tmax(self):
+        """Last time point."""
+        return self.times[-1]
+
     @fill_doc
     def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Crop data to a given time interval.
