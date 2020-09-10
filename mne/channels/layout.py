@@ -21,7 +21,7 @@ from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
-                     _check_option, _check_sphere)
+                     _check_option, _check_sphere, logger)
 from .channels import _get_ch_info
 
 
@@ -657,6 +657,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     """
     from scipy.spatial.distance import pdist, squareform
     sphere = _check_sphere(sphere, info)
+    logger.debug(f'Generating coords using: {sphere}')
 
     picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
     chs = [info['chs'][i] for i in picks]
