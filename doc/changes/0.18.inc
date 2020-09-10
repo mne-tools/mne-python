@@ -90,7 +90,7 @@ Changelog
 
 - Add option to improve rendering in :ref:`mne coreg` for modern graphics cards by `Eric Larson`_
 
-- Add :func:`mne.preprocessing.mark_flat` to automate marking of flat channels and segments of raw data by `Eric Larson`_
+- Add ``mne.preprocessing.mark_flat`` to automate marking of flat channels and segments of raw data by `Eric Larson`_
 
 - Add support for CUDA-based correlation computations and progress bars in :class:`mne.decoding.ReceptiveField` by `Eric Larson`_
 
@@ -161,7 +161,7 @@ Bug
 
 - Fix :func:`mne.events_from_annotations` to ignore ``'BAD_'` and ``'EDGE_'`` annotations by default using a new default ``regexp`` by `Eric Larson`_
 
-- Fix bug in :func:`mne.preprocessing.mark_flat` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
+- Fix bug in ``mne.preprocessing.mark_flat`` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 

@@ -357,6 +357,7 @@ Projections:
 
    ICA
    Xdawn
+   annotate_flat
    annotate_movement
    annotate_muscle_zscore
    compute_average_dev_head_t
@@ -373,7 +374,6 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
-   mark_flat
    maxwell_filter
    oversampled_temporal_projection
    peak_finder
