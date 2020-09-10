@@ -47,6 +47,8 @@ Changelog
 
 - Add support for mixed source spaces to :func:`mne.compute_source_morph` by `Eric Larson`_
 
+- Add support for volume and mixed source spaces to :func:`mne.stats.summarize_clusters_stc` by `Eric Larson`_
+
 - Add support for omitting the SDR step in volumetric morphing by passing ``n_iter_sdr=()`` to `mne.compute_source_morph` by `Eric Larson`_
 
 - Add ``single_volume`` argument to :func:`mne.setup_volume_source_space` to facilitate creating source spaces with many volumes (e.g., all subvolumes of ``aseg.mgz``) by `Eric Larson`_
@@ -350,6 +352,8 @@ Bug
 - Fix bug with :meth:`mne.preprocessing.ICA.plot_properties` where a :class:`mne.io.Raw` object with annotations would lead to an error by `Yu-Han Luo`_
 
 - Fix bug with :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>` when ``orig_time`` of annotations is None and ``raw.first_time > 0``, by `Alex Gramfort`_
+
+- Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' by `Liberty Hamilton`_
 
 - Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length by `Steven Bierer`_
 
