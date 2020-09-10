@@ -465,9 +465,7 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
                            % (hpi_freqs[~keepers].tolist(), highest))
     # calculate optimal window length.
     if isinstance(t_window, str):
-        if t_window != 'auto':
-            raise ValueError('t_window must be "auto" if a string, got %r'
-                             % (t_window,))
+        _check_option('t_window', t_window, ('auto',), extra='if a string')
         if len(hpi_freqs):
             all_freqs = np.concatenate((hpi_freqs, line_freqs))
             delta_freqs = np.diff(np.unique(all_freqs))
@@ -837,8 +835,15 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
        sinusoidal amplitudes to MEG channels.
        It uses SVD to determine the phase/amplitude of the sinusoids.
 
-    The output is meant to be used with :func:`~mne.chpi.compute_chpi_locs`.
+    In "auto" mode, ``t_window`` will be set to the longer of:
 
+    1. Five cycles of the lowest HPI or line frequency.
+          Ensures that the frequency estimate is stable.
+    2. The reciprocal of the smallest difference between HPI and line freqs.
+          Ensures that neighboring frequencies can be disambiguated.
+
+    The output is meant to be used with :func:`~mne.chpi.compute_chpi_locs`.
+    
     .. versionadded:: 0.20
     """
     hpi = _setup_hpi_amplitude_fitting(raw.info, t_window, ext_order=ext_order)
@@ -919,14 +924,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     The number of fitted points ``n_pos`` will depend on the velocity of head
     movements as well as ``t_step_max`` (and ``t_step_min`` from
     :func:`mne.chpi.compute_chpi_amplitudes`).
-
-    In "auto" mode, ``t_window`` will be set to the longer of:
-
-    1. Five cycles of the lowest HPI frequency.
-          Ensures that the frequency estimate is stable.
-    2. The reciprocal of the smallest difference between HPI frequencies.
-          Ensures that neighboring frequencies can be disambiguated.
-
+    
     .. versionadded:: 0.20
     """
     # Set up magnetic dipole fits

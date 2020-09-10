@@ -351,7 +351,7 @@ Bug
 
 - Fix bug with :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>` when ``orig_time`` of annotations is None and ``raw.first_time > 0``, by `Alex Gramfort`_
 
-- Fix bug with :func:`mne.chpi.computer_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length by `Steven Bierer`_
+- Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length by `Steven Bierer`_
 
 API
 ~~~
