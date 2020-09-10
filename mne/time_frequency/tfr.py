@@ -659,7 +659,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
                output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
-    
+
     Same computation as `~mne.time_frequency.tfr_array_morlet`, but
     operates on `~mne.Epochs` objects instead of
     :class:`NumPy arrays <numpy.ndarray>`.
