@@ -674,6 +674,8 @@ def test_time_as_index_and_crop():
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax], atol=atol)
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
+
+    evoked = read_evokeds(fname, condition=0)
     evoked.crop(tmin, tmax, include_tmax=False)
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
 
