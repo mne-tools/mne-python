@@ -710,7 +710,7 @@ def test_add_channels():
     pytest.raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
 
-def test_evoked_baseline():
+def test_evoked_baseline(tmpdir):
     """Test evoked baseline."""
     evoked = read_evokeds(fname, condition=0, baseline=None)
 
@@ -720,9 +720,29 @@ def test_evoked_baseline():
 
     # Mean baseline correction is applied, since the data is equal to its mean
     # the resulting data should be a matrix of zeroes.
-    evoked.apply_baseline((None, None))
-
+    baseline = (None, None)
+    evoked.apply_baseline(baseline)
+    assert evoked.baseline == baseline
     assert_allclose(evoked.data, np.zeros_like(evoked.data))
+
+    # Test that the .baseline attribute changes if we apply a different
+    # baseline now.
+    baseline = (evoked.times[0], 0)
+    evoked.apply_baseline(baseline)
+    assert evoked.baseline == baseline
+
+    # Test that the .baseline attribute is set when we call read_evokeds()
+    # with a `baseline` parameter.
+    baseline = (-0.2, -0.1)
+    evoked = read_evokeds(fname, condition=0, baseline=baseline)
+    assert evoked.baseline == baseline
+
+    # XXX failing
+    # Test that the .baseline attribute survives an I/O roundtrip.
+    # tmp_fname = tmpdir / 'test-ave.fif'
+    # evoked.save(tmp_fname)
+    # evoked = read_evokeds(tmp_fname, 0)
+    # assert evoked.baseline == baseline
 
 
 def test_hilbert():
