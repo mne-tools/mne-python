@@ -2954,7 +2954,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
                                  'from the source space, likely mismatch'
                                  % (n_missing, len(v), hemi))
     else:
-        vertno = src['vertno']
+        vertno = [s['vertno'] for s in src]
 
     nvert = [len(vn) for vn in vertno]
 
