@@ -134,7 +134,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     subjects with the ``mris_left_right_register`` FreeSurfer command. The
     ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
     obtained as described `here
-    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
+    <https://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
     comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
     model is recommended to minimize bias :footcite:`GreveEtAl2013`.
 
