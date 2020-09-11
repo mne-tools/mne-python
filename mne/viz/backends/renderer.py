@@ -15,6 +15,7 @@ from ...utils import logger, verbose, get_config, _check_option
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
+MNE_3D_BACKEND_INTERACTIVE = False
 
 
 _backend_name_map = dict(

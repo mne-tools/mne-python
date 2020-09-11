@@ -36,6 +36,7 @@ with warnings.catch_warnings():
         from pyvista import BackgroundPlotter
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
+    from pyvista.plotting.mapper import make_mapper
 VTK9 = LooseVersion(vtk.VTK_VERSION) >= LooseVersion('9.0')
 
 
@@ -651,17 +652,25 @@ def _compute_normals(mesh):
 
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
-    _process_events(plotter)
-    mesh = kwargs.get('mesh')
-    if 'smooth_shading' in kwargs:
-        smooth_shading = kwargs.pop('smooth_shading')
+    from . import renderer
+    if renderer.MNE_3D_BACKEND_TESTING:
+        actor = vtk.vtkActor()
+        mapper = make_mapper(vtk.vtkDataSetMapper)
+        actor.SetMapper(mapper)
+        plotter.mapper = mapper
+        return actor
     else:
-        smooth_shading = True
-    actor = plotter.add_mesh(*args, **kwargs)
-    if smooth_shading and 'Normals' in mesh.point_arrays:
-        prop = actor.GetProperty()
-        prop.SetInterpolationToPhong()
-    return actor
+        _process_events(plotter)
+        mesh = kwargs.get('mesh')
+        if 'smooth_shading' in kwargs:
+            smooth_shading = kwargs.pop('smooth_shading')
+        else:
+            smooth_shading = True
+        actor = plotter.add_mesh(*args, **kwargs)
+        if smooth_shading and 'Normals' in mesh.point_arrays:
+            prop = actor.GetProperty()
+            prop.SetInterpolationToPhong()
+        return actor
 
 
 def _deg2rad(deg):
@@ -1072,16 +1081,20 @@ def _testing_context(interactive):
     from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
+    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
+    renderer.MNE_3D_BACKEND_TESTING = True
     if interactive:
         pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_TESTING = False
+        renderer.MNE_3D_BACKEND_INTERACTIVE = True
     else:
         pyvista.OFF_SCREEN = True
+        renderer.MNE_3D_BACKEND_INTERACTIVE = False
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
 @contextmanager
