@@ -960,8 +960,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
     .. versionchanged:: 0.21
         If the read `~mne.Evoked` objects had been baseline-corrected before
-        saving, this will be reflected in their `~mne.Evoked.baseline`
-        attribute after reading.
+        saving, this will be reflected in their ``baseline`` attribute after
+        reading.
 
     Parameters
     ----------
