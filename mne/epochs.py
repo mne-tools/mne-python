@@ -3205,7 +3205,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
                                             n_events=count, kind='average',
-                                            comment=epochs._name)
+                                            comment=epochs._name,
+                                            baseline=epochs.baseline)
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked

@@ -1209,9 +1209,11 @@ def test_evoked_io_from_epochs(tmpdir):
     raw, events, picks = _get_data()
     raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
+    baseline = None
     epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
-                    picks=picks, decim=5)
+                    picks=picks, decim=5, baseline=baseline)
     evoked = epochs.average()
+    assert evoked.baseline == baseline
     evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
     fname_temp = op.join(tempdir, 'evoked-ave.fif')
     evoked.save(fname_temp)
@@ -1220,21 +1222,27 @@ def test_evoked_io_from_epochs(tmpdir):
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
                     atol=1 / evoked.info['sfreq'])
+    # assert evoked2.baseline == baseline XXX find I/O roundtrip
 
     # now let's do one with negative time
+    baseline = (0.1, 0.2)
     epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
-                    picks=picks, baseline=(0.1, 0.2), decim=5)
+                    picks=picks, decim=5, baseline=baseline)
     evoked = epochs.average()
+    assert evoked.baseline == baseline
     evoked.save(fname_temp)
     evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
+    # assert evoked2.baseline == baseline XXX find I/O roundtrip
 
     # should be equivalent to a cropped original
+    baseline = (0.1, 0.2)
     epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
-                    picks=picks, baseline=(0.1, 0.2), decim=5)
+                    picks=picks, decim=5, baseline=baseline)
     evoked = epochs.average()
     evoked.crop(0.099, None)
+    assert evoked.baseline == baseline
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
