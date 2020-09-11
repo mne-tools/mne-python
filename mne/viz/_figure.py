@@ -288,10 +288,6 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
-        # vlines
-        self.mne.vline = None
-        self.mne.vline_hscroll = None
-        self.mne.vline_text = None
         # ancillary child figures
         self.mne.fig_help = None
         self.mne.fig_proj = None
@@ -357,6 +353,14 @@ class MNEBrowseFigure(MNEFigure):
         ax_hscroll.add_patch(hsel_patch)
         ax_hscroll.set_xlim(self.mne.first_time, self.mne.first_time +
                             self.mne.n_times / self.mne.info['sfreq'])
+        # VLINE
+        vline_color = 'C8'
+        vline_kw = dict(visible=False, color=vline_color, animated=True)
+        vline = ax.axvline(0, zorder=4, **vline_kw)
+        vline_hscroll = ax_hscroll.axvline(0, zorder=2, **vline_kw)
+        vline_text = ax_hscroll.text(
+            self.mne.first_time, 1.2, '', fontsize=10, ha='right', va='bottom',
+            **vline_kw)
 
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
@@ -384,7 +388,7 @@ class MNEBrowseFigure(MNEFigure):
         # INIT TRACES
         segments = np.full((1, 1, 2), np.nan)
         kwargs = dict(segments=segments, offsets=np.zeros((1, 2)),
-                      linewidths=0.5, antialiaseds=True)
+                      linewidths=0.5, antialiaseds=True)  # TODO animated=True
         self.mne.traces = LineCollection(colors=fgcolor, zorder=1, **kwargs)
         self.mne.bad_traces = LineCollection(colors=self.mne.ch_color_bad,
                                              zorder=0, **kwargs)
@@ -395,7 +399,8 @@ class MNEBrowseFigure(MNEFigure):
         vars(self.mne).update(
             ax_main=ax, ax_help=ax_help, ax_proj=ax_proj,
             ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
-            vsel_patch=vsel_patch, hsel_patch=hsel_patch)
+            vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
+            vline_hscroll=vline_hscroll, vline_text=vline_text)
 
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
@@ -438,6 +443,10 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
         self.mne.fig_size_px = (new_width, new_height)
+        # for blitting
+        self.canvas.draw_idle()
+        self.canvas.flush_events()
+        self.mne.bg = self.canvas.copy_from_bbox(self.bbox)
 
     def _hover(self, event):
         """Handle motion event when annotating."""
@@ -690,6 +699,7 @@ class MNEBrowseFigure(MNEFigure):
         self._update_picks()
         self._update_trace_offsets()
         self._redraw(annotations=True)
+        self._show_vline(self.mne.vline.get_xdata())
         if self.mne.fig_selection is not None:
             # Show all radio buttons as selected when in butterfly mode
             fig = self.mne.fig_selection
@@ -1627,6 +1637,8 @@ class MNEBrowseFigure(MNEFigure):
         if annotations:
             self._draw_annotations()
         self.canvas.draw_idle()
+        self.canvas.flush_events()
+        self.mne.bg = self.canvas.copy_from_bbox(self.bbox)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # EVENT LINES AND MARKER LINES
@@ -1666,31 +1678,27 @@ class MNEBrowseFigure(MNEFigure):
 
     def _show_vline(self, xdata):
         """Show the vertical line."""
-        if self.mne.vline is None:
-            vline_color = 'C8'
-            self.mne.vline = self.mne.ax_main.axvline(
-                xdata, zorder=4, color=vline_color)
-            self.mne.vline_hscroll = self.mne.ax_hscroll.axvline(
-                xdata, zorder=2, color=vline_color)
-            self.mne.vline_text = self.mne.ax_hscroll.text(
-                self.mne.first_time, 1.2, f'{xdata:0.2f}  ', color=vline_color,
-                fontsize=10, ha='right', va='bottom')
-        else:
-            self.mne.vline.set_xdata(xdata)
-            self.mne.vline_hscroll.set_xdata(xdata)
-            self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
-        # for some reason self.draw_artist() doesn't work here?
-        self.canvas.draw_idle()
+        self.canvas.restore_region(self.mne.bg)
+        self.mne.vline.set_xdata(xdata)
+        self.mne.vline_hscroll.set_xdata(xdata)
+        self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
+        # redraw
+        for artist in (self.mne.vline, self.mne.vline_hscroll,
+                       self.mne.vline_text):
+            artist.set_visible(True)
+            self.draw_artist(artist)
+        self.canvas.blit()
+        self.canvas.flush_events()
 
-    def _hide_vline(self, xdata=None):
+    def _hide_vline(self):
         """Hide the vertical line."""
-        self.mne.ax_main.lines.remove(self.mne.vline)
-        self.mne.ax_hscroll.lines.remove(self.mne.vline_hscroll)
-        self.mne.ax_hscroll.texts.remove(self.mne.vline_text)
-        self.mne.vline = None
-        self.mne.vline_hscroll = None
-        self.mne.vline_text = None
-        self.canvas.draw_idle()
+        self.canvas.restore_region(self.mne.bg)
+        for artist in (self.mne.vline, self.mne.vline_hscroll,
+                       self.mne.vline_text):
+            artist.set_visible(False)
+            self.draw_artist(artist)
+        self.canvas.blit()
+        self.canvas.flush_events()
 
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):

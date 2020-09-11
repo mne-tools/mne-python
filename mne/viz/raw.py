@@ -299,6 +299,10 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if show_options:
         fig._toggle_proj_fig()
 
+    # for blitting
+    fig.canvas.flush_events()
+    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
+
     return fig
 
 
