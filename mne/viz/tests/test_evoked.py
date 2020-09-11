@@ -399,7 +399,8 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds([list(evoked_dict.values())], picks=[0],
                          ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)
-    red.crop(0.01, None)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        red.crop(0.01, None)
     assert len(red.times) > 2
     plot_compare_evokeds(red)
     # plot a flat channel

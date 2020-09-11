@@ -39,6 +39,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield
 
+
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
     'standard_error': FIFF.FIFFV_ASPECT_STD_ERR,
@@ -257,7 +258,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         try:
             _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
-        except ValueError:  # It no longer applies, wipe it out
+        except ValueError:  # It no longer applies, wipe it out.
             warn('Cropping removes baseline period, setting baseline=None')
             self.baseline = None
 
@@ -1205,6 +1206,8 @@ def write_evokeds(fname, evoked):
 def _write_evokeds(fname, evoked, check=True):
     """Write evoked data."""
     from .epochs import _compare_epochs_infos
+    from .dipole import DipoleFixed  # avoid circular import
+
     if check:
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
@@ -1242,7 +1245,7 @@ def _write_evokeds(fname, evoked, check=True):
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 
             # Baseline
-            if e.baseline is not None:
+            if not isinstance(e, DipoleFixed) and e.baseline is not None:
                 bmin, bmax = e.baseline
                 bmin = e.times[0] if bmin is None else bmin
                 bmax = e.times[-1] if bmax is None else bmax

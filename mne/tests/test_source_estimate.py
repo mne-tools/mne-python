@@ -286,7 +286,9 @@ def test_stc_snr():
     inv = read_inverse_operator(fname_inv_fixed)
     fwd = read_forward_solution(fname_fwd)
     cov = read_cov(fname_cov)
-    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked = (read_evokeds(fname_evoked, baseline=(None, 0))[0]
+                  .crop(0, 0.01))
     stc = apply_inverse(evoked, inv)
     assert (stc.data < 0).any()
     with pytest.warns(RuntimeWarning, match='nAm'):
@@ -838,7 +840,9 @@ def test_extract_label_time_course_equiv():
     assert len(label) == 1
     label = label[0]
     inv = read_inverse_operator(fname_inv)
-    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked = (read_evokeds(fname_evoked, baseline=(None, 0))[0]
+                  .crop(0, 0.01))
     stc = apply_inverse(evoked, inv, pick_ori='normal', label=label)
     stc_full = apply_inverse(evoked, inv, pick_ori='normal')
     stc_in_label = stc_full.in_label(label)
