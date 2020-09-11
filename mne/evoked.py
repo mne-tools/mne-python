@@ -176,7 +176,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _check_baseline(baseline, self.times[0], self.times[-1],
                         self.info['sfreq'])
         self.data = rescale(self.data, self.times, baseline, copy=False)
-        self.baseline = baseline
+        if baseline is not None:
+            self.baseline = baseline
         return self
 
     def save(self, fname):
