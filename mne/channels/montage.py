@@ -79,7 +79,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
 
     Parameters
     ----------
-    ch_pos : dict
+    ch_pos : dict | None
         Dictionary of channel positions. Keys are channel names and values
         are 3D coordinates - array of shape (3,) - in native digitizer space
         in m.
@@ -116,6 +116,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_fif
     read_dig_polhemus_isotrak
     """
+    _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:
         ch_names = None
     else:
@@ -301,6 +302,22 @@ class DigMontage(object):
             dig_names[dig_idx] = self.ch_names[ch_name_idx]
 
         return dig_names
+
+    def compute_native_head_t(self):
+        """Compute the transformation to the head coordinate frame.
+
+        Returns
+        -------
+        tr : instance of Transformation
+            The transformation. In the special case where the ``coord_frame``
+            during montage init was ``'mri'``, this will be a :term:`trans`
+            from the MRI to head coordinate frame.
+
+        Notes
+        -----
+        .. versionadded:: 0.21
+        """
+        return compute_native_head_t(self)
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
@@ -1161,7 +1178,7 @@ def compute_native_head_t(montage):
         A native-to-head transformation matrix.
     """
     # Get fiducial points and their coord_frame
-    fid_coords, coord_frame = _get_fid_coords(montage.dig)
+    fid_coords, coord_frame = _get_fid_coords(montage.dig, raise_error=False)
     if coord_frame is None:
         coord_frame = FIFF.FIFFV_COORD_UNKNOWN
     if coord_frame == FIFF.FIFFV_COORD_HEAD:
