@@ -729,7 +729,7 @@ def test_evoked_baseline(tmpdir):
 
     # Test that the .baseline attribute changes if we apply a different
     # baseline now.
-    baseline = (evoked.times[0], 0)
+    baseline = (None, 0)
     evoked.apply_baseline(baseline)
     assert evoked.baseline == baseline
 
@@ -739,12 +739,15 @@ def test_evoked_baseline(tmpdir):
     evoked = read_evokeds(fname, condition=0, baseline=baseline)
     assert evoked.baseline == baseline
 
-    # XXX failing
     # Test that the .baseline attribute survives an I/O roundtrip.
-    # tmp_fname = tmpdir / 'test-ave.fif'
-    # evoked.save(tmp_fname)
-    # evoked = read_evokeds(tmp_fname, 0)
-    # assert evoked.baseline == baseline
+    evoked = read_evokeds(fname, condition=0)
+    baseline = (-0.2, -0.1)
+    evoked.apply_baseline(baseline)
+
+    tmp_fname = tmpdir / 'test-ave.fif'
+    evoked.save(tmp_fname)
+    evoked = read_evokeds(tmp_fname, condition=0)
+    assert_allclose(evoked.baseline, baseline)
 
 
 def test_hilbert():

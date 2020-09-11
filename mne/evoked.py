@@ -955,13 +955,11 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         can contain multiple datasets. If None, all datasets are returned as a
         list.
     %(baseline)s
-        Defaults to ``None``, i.e. no baseline correction.
+        If ``None`` (default), and the `~mne.Evoked` objects read from disk
+        have a ``.baseline`` attribute set, it will be restored without
+        re-applying baseline correction.
 
         .. versionchanged:: 0.21
-           The ``baseline`` argument has been deprecated and will be removed
-           in MNE-Python 0.22. Evoked baselines are now read from disk.
-           Use ``evoked.apply_baseline(baseline)`` to apply a custom
-           baseline.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
@@ -995,10 +993,15 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition = [condition]
         return_list = False
 
-    out = [Evoked(fname, c, kind=kind, proj=proj,
-                  allow_maxshield=allow_maxshield,
-                  verbose=verbose).apply_baseline(baseline)
-           for c in condition]
+    out = []
+    for c in condition:
+        evoked = Evoked(fname, c, kind=kind, proj=proj,
+                        allow_maxshield=allow_maxshield,
+                        verbose=verbose)
+        if baseline:
+            evoked.apply_baseline(baseline)
+
+        out.append(evoked)
 
     return out if return_list else out[0]
 
