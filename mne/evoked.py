@@ -192,6 +192,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         To write multiple conditions into a single file, use
         :func:`mne.write_evokeds`.
+
+        .. versionchanged:: 0.21
+        Information on baseline correction will be stored with the dataset,
+        and will be restored when reading the data again via
+        `~mne.read_evokeds`.
         """
         write_evokeds(fname, self)
 
@@ -209,12 +214,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @property
     def tmin(self):
-        """First time point."""
+        """First time point.
+
+        .. versionadded:: 0.21
+        """
         return self.times[0]
 
     @property
     def tmax(self):
-        """Last time point."""
+        """Last time point.
+
+        .. versionadded:: 0.21
+        """
         return self.times[-1]
 
     @fill_doc
@@ -946,6 +957,11 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
                  proj=True, allow_maxshield=False, verbose=None):
     """Read evoked dataset(s).
 
+    .. versionchanged:: 0.21
+    If the read `~mne.Evoked` objects had been baseline-corrected before
+    saving, this will be reflected in their `~mne.Evoked.baseline` attribute
+    after reading.
+
     Parameters
     ----------
     fname : str
@@ -955,11 +971,16 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         can contain multiple datasets. If None, all datasets are returned as a
         list.
     %(baseline)s
-        If ``None`` (default), and the `~mne.Evoked` objects read from disk
-        have a ``.baseline`` attribute set, it will be restored without
-        re-applying baseline correction.
+        If ``None`` (default), do not apply baseline correction.
 
-        .. versionchanged:: 0.21
+        .. note:: Note that if the read  ~mne.Evoked` objects have already been
+                  baseline corrected, the data retrieved from disk will always
+                  be baseline corrected. Only **after** the data has been
+                  loaded, a custom (additional) baseline correction **may**
+                  be optionally applied by passing a tuple. Passing ``None``
+                  will **not** remove baseline correction  from the data, but
+                  merely omit the optional, additional baseline correction.
+
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
@@ -1204,6 +1225,13 @@ def write_evokeds(fname, evoked):
     See Also
     --------
     read_evokeds
+
+    Notes
+    -----
+    .. versionchanged:: 0.21
+    Information on baseline correction will be stored with each individual
+    `~mne.Evoked` object, and will be restored when reading the data again via
+    `~mne.read_evokeds`.
     """
     _write_evokeds(fname, evoked)
 
