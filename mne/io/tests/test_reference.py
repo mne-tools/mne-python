@@ -244,6 +244,7 @@ def test_set_eeg_reference_ch_type(ch_type):
         reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
                                             verbose=True)
     assert 'Applying a custom ECoG' in log.getvalue()
+    assert reref.info['custom_ref_applied']  # gh-7350
     _test_reference(raw, reref, ref_data, ['0', '1'])
     with pytest.raises(ValueError, match='No channels supplied'):
         set_eeg_reference(raw, ch_type='eeg')

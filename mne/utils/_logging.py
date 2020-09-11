@@ -20,6 +20,34 @@ logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
+# class to provide frame information (should be low overhead, just on logger
+# calls)
+
+class _FrameFilter(logging.Filter):
+    def __init__(self):
+        self.add_frames = 0
+
+    def filter(self, record):
+        record.frame_info = 'Unknown'
+        if self.add_frames:
+            # 5 is the offset necessary to get out of here and the logging
+            # module, reversal is to put the oldest at the top
+            frame_info = _frame_info(5 + self.add_frames)[5:][::-1]
+            if len(frame_info):
+                frame_info[-1] = (frame_info[-1] + ' :').ljust(30)
+                if len(frame_info) > 1:
+                    frame_info[0] = '┌' + frame_info[0]
+                    frame_info[-1] = '└' + frame_info[-1]
+                for ii, info in enumerate(frame_info[1:-1], 1):
+                    frame_info[ii] = '├' + info
+                record.frame_info = '\n'.join(frame_info)
+        return True
+
+
+_filter = _FrameFilter()
+logger.addFilter(_filter)
+
+
 def verbose(function):
     """Verbose decorator to allow functions to override log-level.
 
@@ -105,19 +133,24 @@ class use_log_level(object):
     ----------
     level : int
         The level to use.
+    add_frames : int | None
+        Number of stack frames to include.
     """
 
-    def __init__(self, level):  # noqa: D102
+    def __init__(self, level, add_frames=None):  # noqa: D102
         self.level = level
+        self.add_frames = add_frames
+        self.old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
-        self.old_level = set_log_level(self.level, True)
+        self.old_level = set_log_level(self.level, True, self.add_frames)
 
     def __exit__(self, *args):  # noqa: D105
-        set_log_level(self.old_level)
+        add_frames = self.old_frames if self.add_frames is not None else None
+        set_log_level(self.old_level, add_frames=add_frames)
 
 
-def set_log_level(verbose=None, return_old_level=False):
+def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     """Set the logging level.
 
     Parameters
@@ -131,6 +164,10 @@ def set_log_level(verbose=None, return_old_level=False):
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
+    add_frames : int | None
+        If int, enable (>=1) or disable (0) the printing of stack frame
+        information using formatting. Default (None) does not change the
+        formatting. This can add overhead so is meant only for debugging.
 
     Returns
     -------
@@ -153,10 +190,16 @@ def set_log_level(verbose=None, return_old_level=False):
                              CRITICAL=logging.CRITICAL)
         _check_option('verbose', verbose, logging_types, '(when a string)')
         verbose = logging_types[verbose]
-    logger = logging.getLogger('mne')
     old_verbose = logger.level
     if verbose != old_verbose:
         logger.setLevel(verbose)
+    if add_frames is not None:
+        _filter.add_frames = int(add_frames)
+        fmt = '%(frame_info)s ' if add_frames else ''
+        fmt += '%(message)s'
+        fmt = logging.Formatter(fmt)
+        for handler in logger.handlers:
+            handler.setFormatter(fmt)
     return (old_verbose if return_old_level else None)
 
 
@@ -180,7 +223,6 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         but additionally raises a warning to notify the user that log
         entries will be appended.
     """
-    logger = logging.getLogger('mne')
     _remove_close_handlers(logger)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
@@ -412,3 +454,25 @@ def wrapped_stdout(indent='', cull_newlines=False):
             for _ in range(pending_newlines):
                 logger.info('\n')
             logger.info(indent + line)
+
+
+def _frame_info(n):
+    frame = inspect.currentframe()
+    try:
+        frame = frame.f_back
+        infos = list()
+        for _ in range(n):
+            try:
+                name = frame.f_globals['__name__']
+            except KeyError:  # in our verbose dec
+                pass
+            else:
+                infos.append(f'{name.lstrip("mne.")}:{frame.f_lineno}')
+            frame = frame.f_back
+            if frame is None:
+                break
+        return infos
+    except Exception:
+        return ['unknown']
+    finally:
+        del frame

@@ -11,6 +11,7 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 @testing.requires_testing_data
 @requires_version('nbformat')
 @requires_version('nbclient')
+@requires_version('ipympl')
 def test_notebook_3d_backend(renderer_notebook):
     """Test executing a notebook that should not fail."""
     import nbformat

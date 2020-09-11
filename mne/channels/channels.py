@@ -18,8 +18,9 @@ import numpy as np
 from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
-from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
-                     fill_doc, _check_option)
+from ..transforms import _frame_to_str
+from ..utils import (verbose, logger, warn,
+                     _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
@@ -28,6 +29,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
 from ..io.write import DATE_NONE
+from ..io._digitization import _get_data_as_dict_from_dig
 
 
 def _get_meg_system(info):
@@ -234,6 +236,43 @@ class ContainsMixin(object):
         """
         return _get_channel_types(self.info, picks=picks, unique=unique,
                                   only_data_chs=only_data_chs)
+
+    @fill_doc
+    def get_montage(self):
+        """Get a DigMontage from instance.
+
+        Returns
+        -------
+        %(montage)s
+        """
+        from ..channels.montage import make_dig_montage
+        if self.info['dig'] is None:
+            return None
+        # obtain coord_frame, and landmark coords
+        # (nasion, lpa, rpa, hsp, hpi) from DigPoints
+        montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
+
+        # get the channel names and chs data structure
+        ch_names, chs = self.info['ch_names'], self.info['chs']
+        picks = pick_types(self.info, meg=False, eeg=True,
+                           seeg=True, ecog=True)
+
+        # channel positions from dig do not match ch_names one to one,
+        # so use loc[:3] instead
+        ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
+
+        # create montage
+        montage = make_dig_montage(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
+        )
+        return montage
 
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
@@ -885,8 +924,12 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
 
-        if not isinstance(self, BaseRaw):
-            _check_preload(self, 'adding, dropping, or reordering channels')
+        msg = 'adding, dropping, or reordering channels'
+        if isinstance(self, BaseRaw):
+            if self._projector is not None:
+                _check_preload(self, f'{msg} after calling .apply_proj()')
+        else:
+            _check_preload(self, msg)
 
         if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]

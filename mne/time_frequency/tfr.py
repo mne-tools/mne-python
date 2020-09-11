@@ -283,10 +283,10 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         Sampling frequency of the data.
     method : 'multitaper' | 'morlet', default 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
-        'multitaper' uses Morlet wavelets windowed with multiple DPSS
-        multitapers.
+        'multitaper' uses complex exponentials windowed with multiple DPSS
+        tapers.
     n_cycles : float | array of float, default 7.0
-        Number of cycles  in the Morlet wavelet. Fixed number
+        Number of cycles in the wavelet. Fixed number
         or one per frequency.
     zero_mean : bool | None, default None
         None means True for method='multitaper' and False for method='morlet'.
@@ -660,6 +660,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
+    Same computation as `~mne.time_frequency.tfr_array_morlet`, but
+    operates on `~mne.Epochs` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
+
     Parameters
     ----------
     inst : Epochs | Evoked
@@ -722,9 +726,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
                      n_jobs=1, verbose=None):
-    """Compute time-frequency transform using Morlet wavelets.
+    """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
-    Convolves epoch data with selected Morlet wavelets.
+    Same computation as `~mne.time_frequency.tfr_morlet`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     Parameters
     ----------
@@ -797,6 +802,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
                    n_jobs=1, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
+
+    Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
+    operates on `~mne.Epochs` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
     ----------

@@ -18,7 +18,9 @@ from ..parallel import parallel_func, check_n_jobs
 from ..fixes import jit, has_numba
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
                      check_random_state, _check_option, _validate_type)
-from ..source_estimate import SourceEstimate
+from ..source_estimate import (SourceEstimate, VolSourceEstimate,
+                               MixedSourceEstimate)
+from ..source_space import SourceSpaces
 
 
 def _get_buddies_fallback(r, s, neighbors, indices=None):
@@ -1454,9 +1456,13 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
         The time of the first sample.
     subject : str
         The name of the subject.
-    vertices : list of array | None
+    vertices : list of array | instance of SourceSpaces | None
         The vertex numbers associated with the source space locations. Defaults
         to None. If None, equals ``[np.arange(10242), np.arange(10242)]``.
+        Can also be an instance of SourceSpaces to get vertex numbers from.
+
+        .. versionchanged:: 0.21
+           Added support for SourceSpaces.
 
     Returns
     -------
@@ -1466,12 +1472,30 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
         contain each individual cluster. The magnitude of the activity
         corresponds to the duration spanned by the cluster (duration units are
         determined by ``tstep``).
+
+        .. versionchanged:: 0.21
+           Added support for volume and mixed source estimates.
     """
+    _validate_type(vertices, (None, list, SourceSpaces), 'vertices')
     if vertices is None:
         vertices = [np.arange(10242), np.arange(10242)]
+        klass = SourceEstimate
+    elif isinstance(vertices, SourceSpaces):
+        klass = dict(surface=SourceEstimate,
+                     volume=VolSourceEstimate,
+                     mixed=MixedSourceEstimate)[vertices.kind]
+        vertices = [s['vertno'] for s in vertices]
+    else:
+        klass = {1: VolSourceEstimate,
+                 2: SourceEstimate}.get(len(vertices), MixedSourceEstimate)
+    n_vertices_need = sum(len(v) for v in vertices)
 
     t_obs, clusters, clu_pvals, _ = clu
     n_times, n_vertices = t_obs.shape
+    if n_vertices != n_vertices_need:
+        raise ValueError(
+            f'Number of cluster vertices ({n_vertices}) did not match the '
+            f'provided vertices ({n_vertices_need})')
     good_cluster_inds = np.where(clu_pvals < p_thresh)[0]
 
     #  Build a convenient representation of each cluster, where each
@@ -1493,5 +1517,4 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
         # visualization
     data_summary[:, 0] = np.sum(data_summary, axis=1)
 
-    return SourceEstimate(data_summary, vertices, tmin=tmin, tstep=tstep,
-                          subject=subject)
+    return klass(data_summary, vertices, tmin, tstep, subject)

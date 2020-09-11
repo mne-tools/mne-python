@@ -1792,10 +1792,10 @@ def test_access_by_name(tmpdir):
     pytest.raises(ValueError, Epochs, raw, events, event_id_illegal,
                   tmin, tmax)
     # Test on_missing
-    pytest.raises(ValueError, Epochs, raw, events, 1, tmin, tmax,
-                  on_missing='foo')
+    pytest.raises(ValueError, Epochs, raw, events, event_id_illegal, tmin,
+                  tmax, on_missing='foo')
     with pytest.warns(RuntimeWarning, match='No matching events'):
-        Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='warning')
+        Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='warn')
     Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='ignore')
 
     # Test constructing epochs with a list of ints as events
@@ -2420,7 +2420,7 @@ def test_concatenate_epochs():
     assert_equal(epochs_conc.drop_log, epochs.drop_log * 2)
 
     epochs2 = epochs.copy().load_data()
-    with pytest.raises(ValueError, match='nchan.*must match'):
+    with pytest.raises(ValueError, match=r"epochs\[1\].info\['nchan'\] must"):
         concatenate_epochs(
             [epochs, epochs2.copy().drop_channels(epochs2.ch_names[:1])])
 

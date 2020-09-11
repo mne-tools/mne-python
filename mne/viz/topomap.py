@@ -342,6 +342,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         spheres.append(this_sphere)
         outliness.append(these_outlines)
         ch_typess.append(ch_type)
+        del data, pos, this_sphere, these_outlines, ch_type
     del sphere
 
     # setup axes
@@ -383,7 +384,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                           outlines=_outlines, contours=contours,
                           image_interp=image_interp, show=False,
                           extrapolate=extrapolate, sphere=_sphere,
-                          border=border, ch_type=ch_type)[0]
+                          border=border, ch_type=_ch_type)[0]
 
         if colorbar:
             _add_colorbar(ax, im, cmap)
@@ -591,6 +592,10 @@ class _GridData(object):
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ('numeric', str), 'border')
 
+        # check that border, if string, is correct
+        if isinstance(border, str):
+            _check_option('border', border, ('mean',), extra='when a string')
+
         # Adding points outside the extremes helps the interpolators
         outer_pts, mask_pts, tri = _get_extra_points(
             pos, extrapolate, origin, radii)
@@ -611,10 +616,7 @@ class _GridData(object):
         from scipy.interpolate import CloughTocher2DInterpolator
 
         if isinstance(self.border, str):
-            if self.border != 'mean':
-                msg = 'border must be numeric or "mean", got {!r}'
-                raise ValueError(msg.format(self.border))
-            # border = 'mean'
+            # we've already checked that border = 'mean'
             n_points = v.shape[0]
             v_extra = np.zeros(self.n_extra)
             indices, indptr = self.tri.vertex_neighbor_vertices
@@ -662,7 +664,10 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
+    orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
+    logger.debug('Generating pos outlines with sphere '
+                 f'{sphere} from {orig_sphere} for {ch_type}')
     pos = _find_topomap_coords(
         info, picks, ignore_overlap=True, to_sphere=to_sphere,
         sphere=sphere)
@@ -1018,7 +1023,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         inst=None, plot_std=True, topomap_args=None,
                         image_args=None, psd_args=None, reject='auto',
                         sphere=None):
-    """Project unmixing matrix on interpolated sensor topography.
+    """Project mixing matrix on interpolated sensor topography.
 
     Parameters
     ----------
@@ -1447,52 +1452,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted.
-        If None, then channels are chosen in the order given above.
-    vmin, vmax : float | callable | None
-        Lower and upper bounds of the colormap, in the same units as the data.
-        If ``vmin`` and ``vmax`` are both ``None``, they are set at ± the
-        maximum absolute value of the data (yielding a colormap with midpoint
-        at 0). If only one of ``vmin``, ``vmax`` is ``None``, will use
-        ``min(data)`` or ``max(data)``, respectively. If callable, should
-        accept a :class:`NumPy array <numpy.ndarray>` of data and return a
-        float.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode the colors are adjustable by clicking and dragging the
-        colorbar with left and right mouse button. Left mouse button moves the
-        scale up and down and right mouse button adjusts the range (zoom).
-        The mouse scroll can also be used to adjust the range. Hitting space
-        bar resets the range. Up and down arrows can be used to change the
-        colormap. If None (default), 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
-        (None, True).
-
-        .. warning::  Interactive mode works smoothly only for a small amount
-            of topomaps. Interactive mode is disabled by default for more than
-            2 topomaps.
-
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True (default),
-        circles will be used.
-    colorbar : bool
-        Plot a colorbar in the rightmost column of the figure.
-    scalings : dict | float | None
-        The scalings of the channel types to be applied for plotting.
-        If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
-    units : dict | str | None
-        The unit of the channel type used for colorbar label. If
-        scale is None the unit is automatically determined.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    size : float
-        Side length per topomap in inches.
-    cbar_fmt : str
-        String format for colorbar values.
+    %(topomap_ch_type)s
+    %(topomap_vmin_vmax)s
+    %(topomap_cmap)s
+    %(topomap_sensors)s
+    %(topomap_colorbar)s
+    %(topomap_scalings)s
+    %(topomap_units)s
+    %(topomap_res)s
+    %(topomap_size)s
+    %(topomap_cbar_fmt)s
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).
 
@@ -1500,44 +1469,18 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     time_format : str | None
         String format for topomap values. Defaults (None) to "%%01d ms" if
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
-        "%%g" otherwise.
+        "%%g" otherwise. Can be an empty string to omit the time label.
     %(plot_proj)s
-    show : bool
-        Show figure if True.
+    %(show)s
     %(topomap_show_names)s
-    title : str | None
-        Title. If None (default), no title is displayed.
-    mask : ndarray of bool, shape (n_channels, n_times) | None
-        The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to ``None``.
-    mask_params : dict | None
-        Additional plotting parameters for plotting significant sensors.
-        Default (None) equals::
-
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                 linewidth=0, markersize=4)
+    %(title_None)s
+    %(topomap_mask)s
+    %(topomap_mask_params)s
     %(topomap_outlines)s
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. The values are in µV for EEG, fT for magnetometers and
-        fT/m for gradiometers. If colorbar=True, the ticks in colorbar
-        correspond to the contour levels. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
-    average : float | None
-        The time window around a given time to be used for averaging (seconds).
-        For example, 0.01 would translate into window that starts 5 ms before
-        and ends 5 ms after a given time point. Defaults to None, which means
-        no averaging.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of the
-        same length as ``times`` (unless ``times`` is None). If instance of
-        Axes, ``times`` must be a float or a list of one float.
-        Defaults to None.
+    %(topomap_contours)s
+    %(topomap_image_interp)s
+    %(topomap_average)s
+    %(topomap_axes)s
     %(topomap_extrapolate)s
 
         .. versionadded:: 0.18
@@ -1587,6 +1530,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     # time units / formatting
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     scaling_time = 1. if time_unit == 's' else 1e3
+    _validate_type(time_format, (None, str), 'time_format')
     if time_format is None:
         time_format = '%0.3f s' if time_unit == 's' else '%01d ms'
     del time_unit
@@ -1729,7 +1673,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
-        if time_format is not None:
+        if time_format != '':
             axes[ax_idx].set_title(time_format % (time * scaling_time))
 
     if interactive:

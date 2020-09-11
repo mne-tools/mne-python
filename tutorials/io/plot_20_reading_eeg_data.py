@@ -169,6 +169,21 @@ eXimia EEG data (.nxe)
 EEG data from the Nexstim eXimia system can be read in using the
 :func:`mne.io.read_raw_eximia` function.
 
+
+.. _import-persyst:
+
+Persyst EEG data (.lay, .dat)
+=============================
+
+EEG data from the Persyst system can be read in using the
+:func:`mne.io.read_raw_persyst` function.
+
+Note that not all the subject metadata may be properly read in
+due to the fact that Persyst changes its specification
+sometimes from version to version. Please submit an issue, or
+pull request if you encounter a problem.
+
+
 Setting EEG references
 ======================
 

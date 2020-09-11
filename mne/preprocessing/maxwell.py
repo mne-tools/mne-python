@@ -105,7 +105,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
-    mne.preprocessing.mark_flat
+    mne.preprocessing.annotate_flat
     mne.preprocessing.find_bad_channels_maxwell
     mne.chpi.filter_chpi
     mne.chpi.read_head_pos
@@ -2029,7 +2029,7 @@ def find_bad_channels_maxwell(
 
     See Also
     --------
-    mark_flat
+    annotate_flat
     maxwell_filter
 
     Notes

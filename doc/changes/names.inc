@@ -302,6 +302,8 @@
 
 .. _Ramiro Gatti: https://github.com/ragatti
 
+.. _Liberty Hamilton: https://github.com/libertyh
+
 .. _Svea Marie Meyer: https://github.com/SveaMeyer13
 
 .. _Lx37: https://github.com/Lx37
@@ -319,3 +321,7 @@
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 
 .. _Martin Schulz: https://github.com/marsipu
+
+.. _Jeroen Van Der Donckt: https://github.com/jvdd
+
+.. _Steven Bierer: https://github.com/neurolaunch

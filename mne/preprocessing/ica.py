@@ -438,7 +438,7 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
-        inst : instance of Raw, Epochs or Evoked
+        inst : instance of Raw or Epochs
             Raw measurements to be decomposed.
         %(picks_good_data_noref)s
             This selection remains throughout the initialized ICA solution.

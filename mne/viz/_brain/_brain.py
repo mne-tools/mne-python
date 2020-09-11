@@ -301,6 +301,9 @@ class _Brain(object):
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
 
+        if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
+            self._renderer._orient_lights()
+
     @property
     def interaction(self):
         """The interaction style."""
@@ -629,13 +632,13 @@ class _Brain(object):
             z=self.geo[hemi].coords[:, 2],
             triangles=self.geo[hemi].faces,
             normals=self.geo[hemi].nn,
+            polygon_offset=-2,
             **kwargs,
         )
         if isinstance(mesh_data, tuple):
             actor, mesh = mesh_data
             # add metadata to the mesh for picking
             mesh._hemi = hemi
-            self.resolve_coincident_topology(actor)
         else:
             actor, mesh = mesh_data, None
         return actor, mesh
@@ -702,9 +705,10 @@ class _Brain(object):
             vertices = self._data[hemi]['vertices']
             assert self._data[hemi]['array'].shape[0] == len(vertices)
             # MNE constructs the source space on a uniform grid in MRI space,
-            # but let's make sure
+            # but mne coreg can change it to be non-uniform, so we need to
+            # use all three elements here
             assert np.allclose(
-                src_mri_t[:3, :3], np.diag([src_mri_t[0, 0]] * 3))
+                src_mri_t[:3, :3], np.diag(np.diag(src_mri_t)[:3]))
             spacing = np.diag(src_mri_t)[:3]
             origin = src_mri_t[:3, 3] - spacing / 2.
             scalars = np.zeros(np.prod(dimensions))
@@ -862,10 +866,8 @@ class _Brain(object):
                     color=None,
                     colormap=ctable,
                     backface_culling=False,
+                    polygon_offset=-2,
                 )
-                if isinstance(mesh_data, tuple):
-                    actor, _ = mesh_data
-                    self.resolve_coincident_topology(actor)
             self._label_data.append(mesh_data)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
@@ -1074,6 +1076,7 @@ class _Brain(object):
                 vmax=np.max(ids),
                 scalars=ids,
                 interpolate_before_map=False,
+                polygon_offset=-2,
             )
             if isinstance(mesh_data, tuple):
                 from ..backends._pyvista import _set_colormap_range
@@ -1082,16 +1085,8 @@ class _Brain(object):
                 mesh._hemi = hemi
                 _set_colormap_range(actor, cmap.astype(np.uint8),
                                     None)
-                self.resolve_coincident_topology(actor)
 
         self._update()
-
-    def resolve_coincident_topology(self, actor):
-        """Resolve z-fighting of overlapping surfaces."""
-        mapper = actor.GetMapper()
-        mapper.SetResolveCoincidentTopologyToPolygonOffset()
-        mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
-            -1., -1.)
 
     def close(self):
         """Close all figures and cleanup data structure."""
@@ -1378,7 +1373,9 @@ class _Brain(object):
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = _create_actor(glyph_mapper)
-                glyph_actor.GetProperty().SetLineWidth(2.)
+                prop = glyph_actor.GetProperty()
+                prop.SetLineWidth(2.)
+                prop.SetOpacity(vector_alpha)
                 self._renderer.plotter.add_actor(glyph_actor)
                 hemi_data['glyph_actor'].append(glyph_actor)
             else:

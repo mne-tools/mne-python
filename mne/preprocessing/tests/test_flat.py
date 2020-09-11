@@ -9,14 +9,15 @@ import pytest
 from mne import create_info
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
-from mne.preprocessing import mark_flat
+from mne.preprocessing import annotate_flat, mark_flat
+from mne.tests.test_annotations import _assert_annotations_equal
 
 data_path = testing.data_path(download=False)
 skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
 
 
 @pytest.mark.parametrize('first_samp', (0, 10000))
-def test_mark_flat(first_samp):
+def test_annotate_flat(first_samp):
     """Test marking flat segments."""
     # Test if ECG analysis will work on data that is not preloaded
     n_ch, n_times = 11, 1000
@@ -38,12 +39,17 @@ def test_mark_flat(first_samp):
             (dict(bad_percent=100.), [], 0),
             (dict(bad_percent=99.9), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:  # default (1)
-        raw_time = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
-        want_bads = raw.info['bads'] + bads
-        assert raw_time.info['bads'] == want_bads
+        raw_time = raw_0.copy()
+        annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
+        assert got_bads == bads
+        raw_time.set_annotations(raw_time.annotations + annot)
+        raw_time.info['bads'] += got_bads
         n_good_times = raw_time.get_data(reject_by_annotation='omit').shape[1]
         assert n_good_times == want_times
-
+        with pytest.deprecated_call(match='annotate_flat'):
+            raw_time_2 = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
+        _assert_annotations_equal(raw_time_2.annotations, raw_time.annotations)
+        assert raw_time_2.info['bads'] == raw_time.info['bads']
     #
     # Now make a channel flat for 20% of the time points
     #
@@ -57,26 +63,27 @@ def test_mark_flat(first_samp):
             (dict(bad_percent=threshold), [], n_good_times),
             (dict(bad_percent=threshold - 1e-5), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:
-        raw_time = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
-        want_bads = raw.info['bads'] + bads
-        assert raw_time.info['bads'] == want_bads
+        annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
+        assert got_bads == bads
+        raw_time = raw_0.copy()
+        raw_time.set_annotations(raw_time.annotations + annot)
+        raw_time.info['bads'] += got_bads
         n_good_times = raw_time.get_data(reject_by_annotation='omit').shape[1]
         assert n_good_times == want_times
 
     with pytest.raises(TypeError, match='must be an instance of BaseRaw'):
-        mark_flat(0.)
+        annotate_flat(0.)
     with pytest.raises(ValueError, match='not convert string to float'):
-        mark_flat(raw, 'x')
+        annotate_flat(raw, 'x')
 
 
 @testing.requires_testing_data
 def test_flat_acq_skip():
     """Test that acquisition skips are handled properly."""
     raw = read_raw_fif(skip_fname).load_data()
-    n_annot = len(raw.annotations)
-    mark_flat(raw)
-    assert len(raw.annotations) == n_annot
-    assert raw.info['bads'] == [  # MaxFilter finds the same 21 channels
+    annot, bads = annotate_flat(raw)
+    assert len(annot) == 0
+    assert bads == [  # MaxFilter finds the same 21 channels
         'MEG%04d' % (int(num),) for num in
         '141 331 421 431 611 641 1011 1021 1031 1241 1421 '
         '1741 1841 2011 2131 2141 2241 2531 2541 2611 2621'.split()]

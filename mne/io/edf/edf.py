@@ -7,6 +7,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
 #          Clemens Brunner <clemens.brunner@gmail.com>
+#          Jeroen Van Der Donckt (IDlab - imec) <jeroen.vanderdonckt@ugent.be>
 #
 # License: BSD (3-clause)
 
@@ -17,7 +18,7 @@ import re
 import numpy as np
 
 from ...utils import verbose, logger, warn
-from ..utils import _blk_read_lims
+from ..utils import _blk_read_lims, _mult_cal_one
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _unique_channel_names
 from ..constants import FIFF
@@ -128,7 +129,8 @@ class RawEDF(BaseRaw):
             # Read TAL data exploiting the header info (no regexp)
             idx = np.empty(0, int)
             tal_data = self._read_segment_file(
-                [], idx, 0, 0, int(self.n_times), None, None)
+                np.empty((0, self.n_times)), idx, 0, 0, int(self.n_times),
+                np.ones((len(idx), 1)), None)
             onset, duration, desc = _read_annotations_edf(tal_data[0])
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
@@ -137,7 +139,8 @@ class RawEDF(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], self._filenames[fi])
+                                  self._raw_extras[fi], self._filenames[fi],
+                                  cals, mult)
 
 
 @fill_doc
@@ -206,7 +209,8 @@ class RawGDF(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], self._filenames[fi])
+                                  self._raw_extras[fi], self._filenames[fi],
+                                  cals, mult)
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
@@ -228,7 +232,8 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames):
+def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
+                       cals, mult):
     """Read a chunk of raw data."""
     from scipy.interpolate import interp1d
 
@@ -237,24 +242,20 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames):
     dtype = raw_extras['dtype_np']
     dtype_byte = raw_extras['dtype_byte']
     data_offset = raw_extras['data_offset']
-    stim_channel = raw_extras['stim_channel']
+    stim_channel_idxs = raw_extras['stim_channel_idxs']
     orig_sel = raw_extras['sel']
-    tal_idx = raw_extras.get('tal_idx', [])
+    tal_idx = raw_extras.get('tal_idx', np.empty(0, int))
     subtype = raw_extras['subtype']
     cal = raw_extras['cal']
-
-    # gain constructor
+    offsets = raw_extras['offsets']
     gains = raw_extras['units']
 
-    # physical dimension in µV
-    physical_min = raw_extras['physical_min']
-    digital_min = raw_extras['digital_min']
-
-    offsets = physical_min - (digital_min * cal)
-    this_sel = orig_sel[idx]
-    if len(tal_idx):
-        this_sel = np.concatenate([this_sel, tal_idx])
+    read_sel = np.concatenate([orig_sel[idx], tal_idx])
     tal_data = []
+
+    # only try to read the stim channel if it's not None and it's
+    # actually one of the requested channels
+    idx_arr = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
 
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
@@ -275,21 +276,28 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames):
             # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
             many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
                                   dtype_byte, dtype).reshape(n_read, -1)
-            for ii, ci in enumerate(this_sel):
+            r_sidx = r_lims[ai][0]
+            r_eidx = (buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1])
+            d_sidx = d_lims[ai][0]
+            d_eidx = d_lims[ai + n_read - 1][1]
+            one = np.zeros((len(orig_sel), d_eidx - d_sidx), dtype=data.dtype)
+            for ii, ci in enumerate(read_sel):
                 # This now has size (n_chunks_read, n_samp[ci])
                 ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
 
-                if len(tal_idx) and ci in tal_idx:
+                if ci in tal_idx:
                     tal_data.append(ch_data)
                     continue
 
-                r_sidx = r_lims[ai][0]
-                r_eidx = (buf_len * (n_read - 1) +
-                          r_lims[ai + n_read - 1][1])
-                d_sidx = d_lims[ai][0]
-                d_eidx = d_lims[ai + n_read - 1][1]
+                orig_idx = idx_arr[ii]
+                ch_data = ch_data * cal[orig_idx]
+                ch_data += offsets[orig_idx]
+                ch_data *= gains[orig_idx]
+
+                assert ci == orig_sel[orig_idx]
+
                 if n_samps[ci] != buf_len:
-                    if stim_channel is not None and ci in stim_channel:
+                    if orig_idx in stim_channel_idxs:
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -305,37 +313,10 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames):
                         ch_data = resample(
                             ch_data.astype(np.float64), buf_len, n_samps[ci],
                             npad=0, axis=-1)
-                assert ch_data.shape == (len(ch_data), buf_len)
-                data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
-
-    # only try to read the stim channel if it's not None and it's
-    # actually one of the requested channels
-    if stim_channel is None:  # avoid NumPy comparison to None
-        stim_channel_idx = np.array([], int)
-    else:
-        stim_channel_idx = list()
-        if isinstance(idx, slice):
-            use_idx = np.arange(idx.start, idx.stop)
-        else:
-            use_idx = idx
-        for stim_ch in stim_channel:
-            stim_ch_idx = np.where(use_idx == stim_ch)[0].tolist()
-            if len(stim_ch_idx):
-                stim_channel_idx.append(stim_ch_idx)
-        stim_channel_idx = np.array(stim_channel_idx).ravel()
-
-    if subtype == 'bdf' and len(stim_channel_idx) > 0:
-        cal[stim_channel_idx] = 1
-        offsets[stim_channel_idx] = 0
-        gains[stim_channel_idx] = 1
-    data *= cal[idx][:, np.newaxis]
-    data += offsets[idx][:, np.newaxis]
-    data *= gains[idx][:, np.newaxis]
-
-    if stim_channel is not None and len(stim_channel_idx) > 0:
-        stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                              2**17 - 1)
-        data[stim_channel_idx, :] = stim
+                elif orig_idx in stim_channel_idxs:
+                    ch_data = np.bitwise_and(ch_data.astype(int), 2**17 - 1)
+                one[orig_idx] = ch_data.ravel()[r_sidx:r_eidx]
+            _mult_cal_one(data[:, d_sidx:d_eidx], one, idx, cals, mult)
 
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
@@ -379,8 +360,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
     #      from `edf_info['ch_names']` and `edf_info['tal_idx']` but 'tal_idx'
     #      contains stim channels that are not TAL.
-    stim_ch_idxs, stim_ch_names = _check_stim_channel(stim_channel,
-                                                      edf_info['ch_names'])
+    stim_channel_idxs, _ = _check_stim_channel(
+        stim_channel, edf_info['ch_names'])
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
@@ -404,14 +385,12 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
-    for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
-        ch_name, physical_range, cal = ch_info
+    for idx, ch_name in enumerate(ch_names):
         chan_info = {}
-        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range, cal))
-        chan_info['cal'] = cal
+        chan_info['cal'] = 1.
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
-        chan_info['range'] = physical_range
+        chan_info['range'] = 1.
         chan_info['unit_mul'] = FIFF.FIFF_UNITM_NONE
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
@@ -427,7 +406,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
-        elif idx in stim_ch_idxs:
+        elif idx in stim_channel_idxs:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -437,7 +416,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             edf_info['units'][idx] = 1
         chs.append(chan_info)
 
-    edf_info['stim_channel'] = stim_ch_idxs if len(stim_ch_idxs) else None
+    edf_info['stim_channel_idxs'] = stim_channel_idxs
 
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
@@ -449,7 +428,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     # -------------------------------------------------------------------------
 
     not_stim_ch = [x for x in range(n_samps.shape[0])
-                   if x not in stim_ch_idxs]
+                   if x not in stim_channel_idxs]
     sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
     info = _empty_info(sfreq)
@@ -501,9 +480,18 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     info._update_redundant()
 
     # Later used for reading
-    physical_range = np.array([ch['range'] for ch in chs])
-    cal = (physical_range / np.array([ch['cal'] for ch in chs]))
-    edf_info['cal'] = cal
+    edf_info['cal'] = physical_ranges / cals
+
+    # physical dimension in µV
+    edf_info['offsets'] = (
+        edf_info['physical_min'] - edf_info['digital_min'] * edf_info['cal'])
+    del edf_info['physical_min']
+    del edf_info['digital_min']
+
+    if edf_info['subtype'] == 'bdf':
+        edf_info['cal'][stim_channel_idxs] = 1
+        edf_info['offsets'][stim_channel_idxs] = 0
+        edf_info['units'][stim_channel_idxs] = 1
 
     return info, edf_info, orig_units
 
@@ -1354,6 +1342,7 @@ def _read_annotations_edf(annotations):
             triggers = re.findall(pat, annot_file.read())
     else:
         tals = bytearray()
+        annotations = np.atleast_2d(annotations)
         for chan in annotations:
             this_chan = chan.ravel()
             if this_chan.dtype == np.int32:  # BDF
@@ -1362,12 +1351,13 @@ def _read_annotations_edf(annotations):
                 # Why only keep the first 3 bytes as BDF values
                 # are stored with 24 bits (not 32)
                 this_chan = this_chan[:, :3].ravel()
-                for s in this_chan:
-                    tals.extend(s)
+                # As ravel() returns a 1D array we can add all values at once
+                tals.extend(this_chan)
             else:
-                for s in this_chan:
-                    i = int(s)
-                    tals.extend(np.uint8([i % 256, i // 256]))
+                this_chan = chan.astype(int)
+                # Exploit np vectorized processing
+                tals.extend(np.uint8([this_chan % 256, this_chan // 256])
+                            .flatten('F'))
 
         # use of latin-1 because characters are only encoded for the first 256
         # code points and utf-8 can triggers an "invalid continuation byte"
