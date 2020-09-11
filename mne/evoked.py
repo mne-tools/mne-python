@@ -82,8 +82,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
     %(verbose)s
-    %(baseline)s
-        Defaults to ``None``, i.e. no baseline correction.
 
     Attributes
     ----------
@@ -95,17 +93,22 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Number of averaged epochs.
     kind : str
         Type of data, either average or standard_error.
-    first : int
-        First time sample.
-    last : int
-        Last time sample.
     comment : str
         Comment on dataset. Can be the condition.
     data : array of shape (n_channels, n_times)
         Evoked response.
+    first : int
+        First time sample.
+    last : int
+        Last time sample.
+    tmin : float
+        The first time point in seconds.
+    tmax : flat
+        The last time point in seconds.
     times :  array
         Time vector in seconds. The time interval between consecutive time
         samples is equal to the inverse of the sampling frequency.
+    %(baseline_attribute)s
     %(verbose)s
 
     Notes
@@ -125,7 +128,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._update_first_last()
         self.verbose = verbose
         self.preload = True
-        # project and baseline correct
         if proj:
             self.apply_proj()
 
