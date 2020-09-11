@@ -288,6 +288,10 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
+        # vlines
+        self.mne.vline = None
+        self.mne.vline_hscroll = None
+        self.mne.vline_text = None
         # ancillary child figures
         self.mne.fig_help = None
         self.mne.fig_proj = None
@@ -353,14 +357,6 @@ class MNEBrowseFigure(MNEFigure):
         ax_hscroll.add_patch(hsel_patch)
         ax_hscroll.set_xlim(self.mne.first_time, self.mne.first_time +
                             self.mne.n_times / self.mne.info['sfreq'])
-        vline_color = 'C8'
-        vline_kw = dict(color=vline_color, visible=False)
-        vline = ax.axvline(0, zorder=4, **vline_kw)
-        vline.ch_name = ''
-        vline_hscroll = ax_hscroll.axvline(0, zorder=2, **vline_kw)
-        vline_text = ax_hscroll.text(self.mne.first_time, 1.2, '',
-                                     color=vline_color, fontsize=10,
-                                     ha='right', va='bottom')
 
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
@@ -399,8 +395,7 @@ class MNEBrowseFigure(MNEFigure):
         vars(self.mne).update(
             ax_main=ax, ax_help=ax_help, ax_proj=ax_proj,
             ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
-            vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
-            vline_hscroll=vline_hscroll, vline_text=vline_text)
+            vsel_patch=vsel_patch, hsel_patch=hsel_patch)
 
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
@@ -621,7 +616,7 @@ class MNEBrowseFigure(MNEFigure):
                                  - event.ydata)
                         ind = np.argmin(np.abs(dists))
                         self._toggle_bad_channel(ind)
-                    return
+                        return
                 self._show_vline(event.xdata)  # butterfly / not on data trace
                 return
             # click in vertical scrollbar
@@ -1556,8 +1551,6 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.ax_main.set_ylim(ylim)
         self.mne.ax_main.set_yticks(np.unique(offsets))
         self.mne.vsel_patch.set_height(self.mne.n_channels)
-        _x = self.mne.vline._x
-        self.mne.vline.set_data(_x, np.array(ylim))
         # store new offsets, update axis labels
         self.mne.trace_offsets = offsets
         self._update_yaxis_labels()
@@ -1681,20 +1674,30 @@ class MNEBrowseFigure(MNEFigure):
 
     def _show_vline(self, xdata):
         """Show the vertical line."""
-        self.mne.vline.set_xdata(xdata)
-        self.mne.vline_hscroll.set_xdata(xdata)
-        self.mne.vline.set_visible(True)
-        self.mne.vline_hscroll.set_visible(True)
-        self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
+        if self.mne.vline is None:
+            vline_color = 'C8'
+            self.mne.vline = self.mne.ax_main.axvline(
+                xdata, zorder=4, color=vline_color)
+            self.mne.vline_hscroll = self.mne.ax_hscroll.axvline(
+                xdata, zorder=2, color=vline_color)
+            self.mne.vline_text = self.mne.ax_hscroll.text(
+                self.mne.first_time, 1.2, f'{xdata:0.2f}  ', color=vline_color,
+                fontsize=10, ha='right', va='bottom')
+        else:
+            self.mne.vline.set_xdata(xdata)
+            self.mne.vline_hscroll.set_xdata(xdata)
+            self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
+        # for some reason self.draw_artist() doesn't work here?
         self.canvas.draw_idle()
-        # TODO: maybe better to create/destroy rather than show/hide? might
-        # avoid a full redraw in butterfly mode
 
     def _hide_vline(self, xdata=None):
         """Hide the vertical line."""
-        self.mne.vline.set_visible(False)
-        self.mne.vline_hscroll.set_visible(False)
-        self.mne.vline_text.set_text('')
+        self.mne.ax_main.lines.remove(self.mne.vline)
+        self.mne.ax_hscroll.lines.remove(self.mne.vline_hscroll)
+        self.mne.ax_hscroll.texts.remove(self.mne.vline_text)
+        self.mne.vline = None
+        self.mne.vline_hscroll = None
+        self.mne.vline_text = None
         self.canvas.draw_idle()
 
 
