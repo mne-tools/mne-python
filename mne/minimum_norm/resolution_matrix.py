@@ -12,6 +12,7 @@ from mne.io.constants import FIFF
 from mne.utils import logger, verbose, _validate_type, _pl, warn
 from mne.forward.forward import convert_forward_solution
 from mne.minimum_norm import apply_inverse
+from mne.source_estimate import _prepare_label_extraction
 from mne.label import Label
 
 
@@ -75,9 +76,9 @@ def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
     src : Source Space
         Source space used to compute resolution matrix.
     idx : list of int | Label | list of Label
-        Source for indices for which to compute PSFs or CTFs. If mode is not
-        None, PSFs/CTFs will be returned for all indices. If mode is not None,
-        an according summary measure will be computed across all PSFs/CTFs
+        Source for indices for which to compute PSFs or CTFs. If mode is None,
+        PSFs/CTFs will be returned for all indices. If mode is not None, the
+        corresponding summary measure will be computed across all PSFs/CTFs
         available from idx.
         idx can be:
 
@@ -116,20 +117,42 @@ def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
     -------
     stc: instance of SourceEstimate
         PSFs or CTFs as an STC object.
-        All functions will be returned as successive samples in one STC
-        file, in the order they are specified in idx. Functions for labels
-        are grouped together.
+        All PSFs/CTFs will be returned as successive samples in one STC object,
+        in the order they are specified in idx. PSFs/CTFs for labels are
+        grouped together.
     """
-    # easier later if it is list
-    if type(idx) is not list:
-
-        idx = [idx]
-
     # if label(s) specified get the indices, otherwise just carry on
-    if type(idx[0]) is Label:
+    if (type(idx) is Label) or (type(idx) is list and type(idx[0] is Label)):
 
-        idx = _get_source_space_vertices(stc, idx, src, allow_empty=False,
-                                         use_sparse=False)
+        1 / 0.
+
+        # specify without source time courses, gets indices per label
+        verts_labs, _ = _prepare_label_extraction(
+            stc=None, labels=idx, src=src, mode='mean', allow_empty=False,
+            use_sparse=False)
+
+        # verts can be list of lists
+        # arrange all indices in one list
+        verts = []
+        for v in verts_labs:
+
+            # if two hemispheres present
+            if type(v) is list:
+
+                # indices for both hemispheres in one list
+                this_verts = v[0] + v[1]
+
+            else:
+
+                this_verts = v
+
+            # append indices to single list
+            verts = verts + this_verts
+
+    # if only indices specified (no labels), just carry on
+    else:
+
+        verts = idx
 
     # vertices used in forward and inverse operator
     vertno_lh = src[0]['vertno']
@@ -141,7 +164,7 @@ def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
         resmat = resmat.T
 
     # column of resolution matrix
-    funcs = resmat[:, idx]
+    funcs = resmat[:, verts]
 
     if norm:
         maxval = np.abs(funcs).max()
@@ -193,8 +216,6 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False):
     """
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
                         norm=norm)
-
-    
 
 
 def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False):
@@ -367,129 +388,3 @@ def _check_fixed_ori(inst):
     """Check if inverse or forward was computed for fixed orientations."""
     is_fixed = inst['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
     return is_fixed
-
-
-# def _get_source_space_vertices(stc, labels, src, allow_empty=False,
-#                                use_sparse=False):
-#     """Get indices of vertices in labels for vertices in source space."""
-#     # calls _prepare_label_extraction from source_estimate.py with specific
-#     # parameters and only outputs vertices
-#     # if src is a mixed src space, the first 2 src spaces are surf type and
-#     # the other ones are vol type. For mixed source space n_labels will be
-#     # given by the number of ROIs of the cortical parcellation plus the number
-#     # of vol src space
-#     # stc: SourceEstimate
-#     # labels: Label | list of Label
-#     # src: Source Space (must match stc)
-#     # allow_empty: whether to continue if a label does not overlap with source
-#     # space
-#     # use_sparse: whether source estimate is sparce
-#     # returns: vertidx (indices to source space vertices and columns of
-#     # leadfield)
-
-#     vertidx, _ = _prepare_label_extraction(
-#         stc, labels, src, mode=None, allow_empty=allow_empty, use_sparse=False)
-
-#     return vertidx
-
-
-# TO DO; removed stc, make sure it's called properly
-def _get_source_space_vertices(labels, src, allow_empty=False, use_sparse=False):
-    """Get indices of vertices in labels for vertices in source space."""
-    # if src is a mixed src space, the first 2 src spaces are surf type and
-    # the other ones are vol type. For mixed source space n_labels will be the
-    # given by the number of ROIs of the cortical parcellation plus the number
-    # of vol src space
-    # Based on _prepare_label_extraction() from module source_estimate.py, but
-    # removed "flipping" bits, and no requirement to specify stc
-    # labels: Label | list of Label
-    # src: Source Space
-    # allow_empty: whether to continue if a label does not overlap with source
-    # space
-    # use_sparse: whether source estimate is sparce
-    # returns: label_vertidx (indices to source space vertices and columns of
-    # leadfield)
-
-    # from .label import label_sign_flip, Label, BiHemiLabel
-    from ..label import Label, BiHemiLabel
-
-    vertno = src['vertno']
-    nvert = [len(vn) for vn in vertno]
-
-    # do the initialization
-    label_vertidx = list()
-    bad_labels = list()
-
-    for li, label in enumerate(labels):
-        if use_sparse:  # I don't understand sparse, just left this here
-            assert isinstance(label, dict)
-            vertidx = label['csr']
-            # This can happen if some labels aren't present in the space
-            if vertidx.shape[0] == 0:
-                bad_labels.append(label['name'])
-                vertidx = None
-            # Efficiency shortcut: use linearity early to avoid redundant
-            # calculations
-            # elif mode == 'mean':
-            #     vertidx = sparse.csr_matrix(vertidx.mean(axis=0))
-            label_vertidx.append(vertidx)
-            # label_flip.append(None)
-            continue
-        # standard case
-        _validate_type(label, (Label, BiHemiLabel), 'labels[%d]' % (li,))
-
-        # check if label for one or both hemispheres
-        if label.hemi == 'both':
-            # handle BiHemiLabel
-            sub_labels = [label.lh, label.rh]
-        else:
-            sub_labels = [label]
-        this_vertidx = list()
-        for slabel in sub_labels:
-
-            # adjust vertex indices for right hemisphere
-            if slabel.hemi == 'lh':
-                this_vertices = np.intersect1d(vertno[0], slabel.vertices)
-                vertidx = np.searchsorted(vertno[0], this_vertices)
-            elif slabel.hemi == 'rh':
-                this_vertices = np.intersect1d(vertno[1], slabel.vertices)
-                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertices)
-            else:
-                raise ValueError('label %s has invalid hemi' % label.name)
-            this_vertidx.append(vertidx)
-
-        # convert it to an array
-        this_vertidx = np.concatenate(this_vertidx)
-        # this_flip = None
-        if len(this_vertidx) == 0:
-            bad_labels.append(label.name)
-            this_vertidx = None  # to later check if label is empty
-        # elif mode not in ('mean', 'max'):  # mode-dependent initialization
-        #     # label_sign_flip uses two properties:
-        #     #
-        #     # - src[ii]['nn']
-        #     # - src[ii]['vertno']
-        #     #
-        #     # So if we override vertno with the stc vertices, it will pick
-        #     # the correct normals.
-        #     with _temporary_vertices(src, stc.vertices):
-        #         this_flip = label_sign_flip(label, src[:2])[:, None]
-
-        label_vertidx.append(this_vertidx)
-        # label_flip.append(this_flip)
-
-    if len(bad_labels):
-        msg = ('source space does not contain any vertices for %d label%s:\n%s'
-               % (len(bad_labels), _pl(bad_labels), bad_labels))
-        if not allow_empty:
-            raise ValueError(msg)
-        else:
-            # msg += '\nAssigning all-zero time series.'
-            msg += '\nOutputting empty array of indices.'
-            if allow_empty == 'ignore':
-                logger.info(msg)
-            else:
-                warn(msg)
-
-    # return label_vertidx, label_flip
-    return label_vertidx
