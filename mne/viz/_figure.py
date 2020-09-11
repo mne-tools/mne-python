@@ -1375,13 +1375,13 @@ class MNEBrowseFigure(MNEFigure):
         for ii, ch_ix in enumerate(picks):
             this_name = self.mne.ch_names[ch_ix]
             this_type = self.mne.ch_types[ch_ix]
-            if (this_name not in self.mne.info['bads'] and
-                    this_name not in self.mne.whitened_ch_names and
+            if (this_type not in self.mne.scalebars and
                     this_type != 'stim' and
                     this_type in self.mne.scalings and
                     this_type in getattr(self.mne, 'units', {}) and
                     this_type in getattr(self.mne, 'unit_scalings', {}) and
-                    this_type not in self.mne.scalebars):
+                    this_name not in self.mne.info['bads'] and
+                    this_name not in self.mne.whitened_ch_names):
                 x = (self.mne.times[0] + self.mne.first_time,) * 2
                 denom = 4 if self.mne.butterfly else 2
                 y = tuple(np.array([-1, 1]) / denom + offsets[ii])
