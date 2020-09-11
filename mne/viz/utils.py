@@ -3229,6 +3229,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
         info['chs'] = [inst.info['chs'][p] for p in picks]
+        info['dev_head_t'] = inst.info['dev_head_t']
         valid_channel_types = [
             'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
             'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
