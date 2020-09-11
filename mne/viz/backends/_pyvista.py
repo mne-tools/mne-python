@@ -36,7 +36,6 @@ with warnings.catch_warnings():
         from pyvista import BackgroundPlotter
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
-    from pyvista.plotting.mapper import make_mapper
 VTK9 = LooseVersion(vtk.VTK_VERSION) >= LooseVersion('9.0')
 
 
@@ -653,24 +652,19 @@ def _compute_normals(mesh):
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
     from . import renderer
-    if renderer.MNE_3D_BACKEND_TESTING:
-        actor = vtk.vtkActor()
-        mapper = make_mapper(vtk.vtkDataSetMapper)
-        actor.SetMapper(mapper)
-        plotter.mapper = mapper
-        return actor
+    _process_events(plotter)
+    mesh = kwargs.get('mesh')
+    if 'smooth_shading' in kwargs:
+        smooth_shading = kwargs.pop('smooth_shading')
     else:
-        _process_events(plotter)
-        mesh = kwargs.get('mesh')
-        if 'smooth_shading' in kwargs:
-            smooth_shading = kwargs.pop('smooth_shading')
-        else:
-            smooth_shading = True
-        actor = plotter.add_mesh(*args, **kwargs)
-        if smooth_shading and 'Normals' in mesh.point_arrays:
-            prop = actor.GetProperty()
-            prop.SetInterpolationToPhong()
-        return actor
+        smooth_shading = True
+    actor = plotter.add_mesh(*args, **kwargs)
+    if smooth_shading and 'Normals' in mesh.point_arrays:
+        prop = actor.GetProperty()
+        prop.SetInterpolationToPhong()
+    if renderer.MNE_3D_BACKEND_TESTING:
+        actor.SetVisibility(False)
+    return actor
 
 
 def _deg2rad(deg):
