@@ -120,7 +120,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
 @testing.requires_testing_data
 def test_lcmv_vector():
     """Test vector LCMV solutions."""
-    info = mne.io.read_raw_fif(fname_raw).info
+    info = mne.io.read_info(fname_raw)
 
     # For speed and for rank-deficiency calculation simplicity,
     # just use grads

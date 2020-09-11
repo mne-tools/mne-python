@@ -201,7 +201,8 @@ def _evoked():
     # instead)
     evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
                               baseline=(None, 0))
-    evoked.crop(0, 0.2)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked.crop(0, 0.2)
     return evoked
 
 
