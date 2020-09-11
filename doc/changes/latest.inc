@@ -193,7 +193,7 @@ Changelog
 
 - Use PyVista as the default backend for 3D visualization instead of Mayavi by `Guillaume Favelier`_
 
-- `~mne.Evoked` has gained a new ``baseline``, ``tmin``, and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_
+- `~mne.Evoked` has gained new ``baseline``, ``tmin``, and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_
 
 Bug
 ~~~
