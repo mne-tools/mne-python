@@ -196,9 +196,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         :func:`mne.write_evokeds`.
 
         .. versionchanged:: 0.21
-        Information on baseline correction will be stored with the dataset,
-        and will be restored when reading the data again via
-        `~mne.read_evokeds`.
+            Information on baseline correction will be stored with the dataset,
+            and will be restored when reading the data again via
+            `~mne.read_evokeds`.
         """
         write_evokeds(fname, self)
 
@@ -959,9 +959,9 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     """Read evoked dataset(s).
 
     .. versionchanged:: 0.21
-    If the read `~mne.Evoked` objects had been baseline-corrected before
-    saving, this will be reflected in their `~mne.Evoked.baseline` attribute
-    after reading.
+        If the read `~mne.Evoked` objects had been baseline-corrected before
+        saving, this will be reflected in their `~mne.Evoked.baseline`
+        attribute after reading.
 
     Parameters
     ----------
@@ -1225,9 +1225,9 @@ def write_evokeds(fname, evoked):
     Notes
     -----
     .. versionchanged:: 0.21
-    Information on baseline correction will be stored with each individual
-    `~mne.Evoked` object, and will be restored when reading the data again via
-    `~mne.read_evokeds`.
+        Information on baseline correction will be stored with each individual
+        `~mne.Evoked` object, and will be restored when reading the data again
+        via `~mne.read_evokeds`.
     """
     _write_evokeds(fname, evoked)
 
