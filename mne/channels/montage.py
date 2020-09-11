@@ -308,7 +308,7 @@ class DigMontage(object):
 
         Returns
         -------
-        tr : instance of Transformation
+        tr : instance of Transform
             The transformation. In the special case where the ``coord_frame``
             during montage init was ``'mri'``, this will be a :term:`trans`
             from the MRI to head coordinate frame.
