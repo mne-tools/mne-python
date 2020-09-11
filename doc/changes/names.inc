@@ -321,3 +321,5 @@
 .. _Martin Schulz: https://github.com/marsipu
 
 .. _Jeroen Van Der Donckt: https://github.com/jvdd
+
+.. _Steven Bierer: https://github.com/neurolaunch
