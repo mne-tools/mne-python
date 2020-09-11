@@ -1,7 +1,7 @@
 pytest!=4.6.0
 pytest-cov
 pytest-timeout
-https://github.com/larsoner/python-pytest-harvest/archive/doctest.zip
+git+https://github.com/larsoner/python-pytest-harvest@doctest
 flake8
 flake8-array-spacing
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
