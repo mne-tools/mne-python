@@ -107,7 +107,7 @@ The coordinate systems related to MRI data are:
 **MNI Talairach coordinates**
 
     The definition of this coordinate system is discussed, e.g., in
-    http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach. This transformation
+    https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach. This transformation
     is determined during the FreeSurfer reconstruction process. These
     coordinates are in MNI305 space.
 
@@ -125,7 +125,7 @@ The coordinate systems related to MRI data are:
     transformation, defined separately for negatice and positive MNI Talairach
     :math:`z` coordinates. These two transformations, denoted by :math:`T_-`
     and :math:`T_+` in :ref:`coordinate_system_figure`, are fixed as discussed in
-    http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).
+    https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).
 
 The different coordinate systems are related by coordinate transformations
 depicted in :ref:`coordinate_system_figure`. The arrows and coordinate
