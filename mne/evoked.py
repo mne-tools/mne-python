@@ -103,7 +103,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Last time sample.
     tmin : float
         The first time point in seconds.
-    tmax : flat
+    tmax : float
         The last time point in seconds.
     times :  array
         Time vector in seconds. The time interval between consecutive time
