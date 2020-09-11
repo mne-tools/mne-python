@@ -801,8 +801,7 @@ class EvokedArray(Evoked):
                              '"standard_error"' % (self.kind,))
         self._aspect_kind = _aspect_dict[self.kind]
         self.baseline = baseline
-        if self.baseline is not None:
-            self.apply_baseline(self.baseline, verbose=verbose)
+        self.apply_baseline(self.baseline, verbose=verbose)
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -1014,15 +1013,10 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition = [condition]
         return_list = False
 
-    out = []
-    for c in condition:
-        evoked = Evoked(fname, c, kind=kind, proj=proj,
-                        allow_maxshield=allow_maxshield,
-                        verbose=verbose)
-        if baseline:
-            evoked.apply_baseline(baseline)
-
-        out.append(evoked)
+    out = [Evoked(fname, c, kind=kind, proj=proj,
+                  allow_maxshield=allow_maxshield,
+                  verbose=verbose).apply_baseline(baseline)
+           for c in condition]
 
     return out if return_list else out[0]
 

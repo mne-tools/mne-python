@@ -54,7 +54,9 @@ def test_gamma_map():
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)
     evoked.resample(50, npad=100)
-    evoked.crop(tmin=0.1, tmax=0.14)  # crop to window around peak
+
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked.crop(tmin=0.1, tmax=0.14)  # crop to window around peak
 
     cov = read_cov(fname_cov)
     cov = regularize(cov, evoked.info, rank=None)
@@ -93,7 +95,8 @@ def test_gamma_map_vol_sphere():
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)
     evoked.resample(50, npad=100)
-    evoked.crop(tmin=0.1, tmax=0.16)  # crop to window around peak
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked.crop(tmin=0.1, tmax=0.16)  # crop to window around peak
 
     cov = read_cov(fname_cov)
     cov = regularize(cov, evoked.info, rank=None)
