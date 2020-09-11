@@ -472,6 +472,7 @@ def download_is_error(monkeypatch):
 
 
 def pytest_sessionfinish(session, exitstatus):
+    """Handle the end of the session."""
     n = session.config.option.durations
     if n is None:
         return
@@ -486,7 +487,13 @@ def pytest_sessionfinish(session, exitstatus):
     res = pytest_harvest.get_session_synthesis_dct(session)
     files = dict()
     for key, val in res.items():
-        file_key = '/'.join(Path(key.split(':')[0]).parts[:-1])
+        parts = Path(key.split(':')[0]).parts
+        # split mne/tests/test_whatever.py into separate categories since these
+        # are essentially submodule-level tests. Keeping just [:3] works.
+        parts = parts[:3]
+        if not parts[-1].endswith('.py'):
+            parts = parts + ('',)
+        file_key = '/'.join(parts)
         files[file_key] = files.get(file_key, 0) + val['pytest_duration_s']
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
