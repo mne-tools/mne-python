@@ -753,6 +753,8 @@ class EvokedArray(Evoked):
     %(baseline)s
         Defaults to ``None``, i.e. no baseline correction.
 
+        .. versionadded:: 0.21
+
     See Also
     --------
     EpochsArray, io.RawArray, create_info
