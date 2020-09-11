@@ -357,6 +357,8 @@ Bug
 
 - Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' by `Liberty Hamilton`_
 
+- Fix bug in `~mne.Epochs.apply_baseline` that would – in some situations – lead to an update of the ``baseline`` attribute, even if the data wasn't actually rescaled, by `Richard Höchenberger`_
+
 API
 ~~~
 
