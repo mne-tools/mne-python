@@ -648,7 +648,7 @@ class MNEBrowseFigure(MNEFigure):
                     raw.annotations.delete(ann_idx)  # only first one deleted
                 self._remove_annotation_line()
                 self._draw_annotations()
-                self.canvas.draw()
+                self.canvas.draw_idle()
             elif event.inaxes == ax:  # hide green line
                 self._hide_vline()
 
@@ -989,7 +989,7 @@ class MNEBrowseFigure(MNEFigure):
         _merge_annotations(onset, onset + duration, labels[active_idx],
                            self.mne.inst.annotations)
         self._draw_annotations()
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def _remove_annotation_line(self):
         """Remove annotation line from the plot and reactivate selector."""
@@ -1064,8 +1064,6 @@ class MNEBrowseFigure(MNEFigure):
                                    textcoords='offset points', ha='center',
                                    va='baseline', color=segment_color)
                 self.mne.annotation_texts.append(text)
-        for artist in self.mne.annotations + self.mne.annotation_texts:
-            self.mne.ax_main.draw_artist(artist)
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
@@ -1388,9 +1386,6 @@ class MNEBrowseFigure(MNEFigure):
                 denom = 4 if self.mne.butterfly else 2
                 y = tuple(np.array([-1, 1]) / denom + offsets[ii])
                 self._draw_one_scalebar(x, y, this_type)
-        for artist in (list(self.mne.scalebars.values()) +
-                       list(self.mne.scalebar_texts.values())):
-            self.mne.ax_main.draw_artist(artist)
 
     def _hide_scalebars(self):
         """Remove channel scale bars."""
@@ -1410,7 +1405,7 @@ class MNEBrowseFigure(MNEFigure):
             self._show_scalebars()
         # toggle
         self.mne.scalebars_visible = not self.mne.scalebars_visible
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def _draw_one_scalebar(self, x, y, ch_type):
         """Draw a scalebar."""
@@ -1668,9 +1663,6 @@ class MNEBrowseFigure(MNEFigure):
                     label, (_t, ylim[1]), ha='center', va='baseline', color=_c,
                     xytext=(0, 4), textcoords='offset points')
                 self.mne.event_texts.append(this_text)
-            # draw
-            for artist in [self.mne.event_lines] + self.mne.event_texts:
-                self.mne.ax_main.draw_artist(artist)
 
     def _show_vline(self, xdata):
         """Show the vertical line."""
