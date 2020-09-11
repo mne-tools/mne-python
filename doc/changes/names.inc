@@ -298,6 +298,8 @@
 
 .. _Adam Li: http://github.com/adam2392
 
+.. _Simeon Wong: https://github.com/dtxe
+
 .. _Ramiro Gatti: https://github.com/ragatti
 
 .. _Liberty Hamilton: https://github.com/libertyh
@@ -321,3 +323,5 @@
 .. _Martin Schulz: https://github.com/marsipu
 
 .. _Jeroen Van Der Donckt: https://github.com/jvdd
+
+.. _Steven Bierer: https://github.com/neurolaunch

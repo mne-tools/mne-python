@@ -664,7 +664,10 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
+    orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
+    logger.debug('Generating pos outlines with sphere '
+                 f'{sphere} from {orig_sphere} for {ch_type}')
     pos = _find_topomap_coords(
         info, picks, ignore_overlap=True, to_sphere=to_sphere,
         sphere=sphere)

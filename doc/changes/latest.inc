@@ -218,6 +218,8 @@ Bug
 
 - Fix bug with `mne.SourceSpaces.export_volume` with ``use_lut=False`` where no values were written by `Eric Larson`_
 
+- Fix bug with logging in :meth:`mne.io.Raw.set_eeg_reference` and related functions by `Simeon Wong`_
+
 - Fix bug with :func:`mne.preprocessing.annotate_movement` where bad data segments, specified in ``raw.annotations``, would be handled incorrectly by `Luke Bloy`_
 
 - Fix bug with :func:`mne.compute_source_morph` when more than one volume source space was present (e.g., when using labels) where only the first label would be interpolated when ``mri_resolution=True`` by `Eric Larson`_
@@ -356,6 +358,8 @@ Bug
 - Fix bug with :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>` when ``orig_time`` of annotations is None and ``raw.first_time > 0``, by `Alex Gramfort`_
 
 - Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' by `Liberty Hamilton`_
+
+- Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length by `Steven Bierer`_
 
 - Fix bug in `~mne.Epochs.apply_baseline` that would – in some situations – lead to an update of the ``baseline`` attribute, even if the data wasn't actually rescaled, by `Richard Höchenberger`_
 
