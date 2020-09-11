@@ -216,6 +216,8 @@ Bug
 
 - Fix bug with `mne.SourceSpaces.export_volume` with ``use_lut=False`` where no values were written by `Eric Larson`_
 
+- Fix bug with logging in :meth:`mne.io.Raw.set_eeg_reference` and related functions by `Simeon Wong`_
+
 - Fix bug with :func:`mne.preprocessing.annotate_movement` where bad data segments, specified in ``raw.annotations``, would be handled incorrectly by `Luke Bloy`_
 
 - Fix bug with :func:`mne.compute_source_morph` when more than one volume source space was present (e.g., when using labels) where only the first label would be interpolated when ``mri_resolution=True`` by `Eric Larson`_
