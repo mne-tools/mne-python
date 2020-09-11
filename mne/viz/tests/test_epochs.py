@@ -340,6 +340,14 @@ def test_plot_psd_epochs():
     plt.close('all')
 
 
+def test_plot_psdtopo_nirs(fnirs_epochs):
+    """Test plotting of PSD topography for nirs data."""
+    bands = [(0.2, '0.2 Hz'), (0.4, '0.4 Hz'), (0.8, '0.8 Hz')]
+    fig = fnirs_epochs.plot_psd_topomap(bands=bands)
+    assert len(fig.axes) == 6  # 3 band x (plot + cmap)
+    plt.close('all')
+
+
 @testing.requires_testing_data
 def test_plot_epochs_ctf():
     """Test of basic CTF plotting."""

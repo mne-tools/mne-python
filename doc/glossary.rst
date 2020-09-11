@@ -286,6 +286,17 @@ general neuroimaging concepts. If you think a term is missing, please consider
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
 
+    whitening
+        A linear operation that transforms data with a known covariance
+        structure into "whitened data" which has a covariance structure that
+        is the identity matrix (i.e., it creates virtual channels that are
+        uncorrelated and have unit variance).
+
+        The term "whitening" comes from the fact that light with a flat
+        frequency spectrum in the visible range is white, whereas
+        non-uniform frequency spectra lead to perception of different colors
+        (e.g., "pink noise" has a ``1/f`` characteristic, which for visible
+        light would appear pink).
 
 .. LINKS
 

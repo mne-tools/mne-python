@@ -18,8 +18,9 @@ import numpy as np
 from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
-from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
-                     fill_doc, _check_option)
+from ..transforms import _frame_to_str
+from ..utils import (verbose, logger, warn,
+                     _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
@@ -28,6 +29,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
 from ..io.write import DATE_NONE
+from ..io._digitization import _get_data_as_dict_from_dig
 
 
 def _get_meg_system(info):
@@ -235,6 +237,43 @@ class ContainsMixin(object):
         return _get_channel_types(self.info, picks=picks, unique=unique,
                                   only_data_chs=only_data_chs)
 
+    @fill_doc
+    def get_montage(self):
+        """Get a DigMontage from instance.
+
+        Returns
+        -------
+        %(montage)s
+        """
+        from ..channels.montage import make_dig_montage
+        if self.info['dig'] is None:
+            return None
+        # obtain coord_frame, and landmark coords
+        # (nasion, lpa, rpa, hsp, hpi) from DigPoints
+        montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
+
+        # get the channel names and chs data structure
+        ch_names, chs = self.info['ch_names'], self.info['chs']
+        picks = pick_types(self.info, meg=False, eeg=True,
+                           seeg=True, ecog=True)
+
+        # channel positions from dig do not match ch_names one to one,
+        # so use loc[:3] instead
+        ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
+
+        # create montage
+        montage = make_dig_montage(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
+        )
+        return montage
+
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
@@ -296,7 +335,7 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          ch_type='auto', verbose=None):
+                          ch_type='auto', forward=None, verbose=None):
         """Specify which reference to use for EEG data.
 
         Use this function to explicitly specify the desired reference for EEG.
@@ -306,27 +345,10 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        ref_channels : list of str | str
-            The name(s) of the channel(s) used to construct the reference. To
-            apply an average reference, specify ``'average'`` here (default).
-            If an empty list is specified, the data is assumed to already have
-            a proper reference and MNE will not attempt any re-referencing of
-            the data. Defaults to an average reference.
-        projection : bool
-            If ``ref_channels='average'`` this argument specifies if the
-            average reference should be computed as a projection (True) or not
-            (False; default). If ``projection=True``, the average reference is
-            added as a projection and is not applied to the data (it can be
-            applied afterwards with the ``apply_proj`` method). If
-            ``projection=False``, the average reference is directly applied to
-            the data. If ``ref_channels`` is not ``'average'``, ``projection``
-            must be set to ``False`` (the default in this case).
-        ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
-            The name of the channel type to apply the reference to. If 'auto',
-            the first channel type of eeg, ecog or seeg that is found (in that
-            order) will be selected.
-
-            .. versionadded:: 0.19
+        %(set_eeg_reference_ref_channels)s
+        %(set_eeg_reference_projection)s
+        %(set_eeg_reference_ch_type)s
+        %(set_eeg_reference_forward)s
         %(verbose_meth)s
 
         Returns
@@ -339,7 +361,8 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
-                                 projection=projection, ch_type=ch_type)[0]
+                                 projection=projection, ch_type=ch_type,
+                                 forward=forward)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
@@ -901,8 +924,12 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
 
-        if not isinstance(self, BaseRaw):
-            _check_preload(self, 'adding, dropping, or reordering channels')
+        msg = 'adding, dropping, or reordering channels'
+        if isinstance(self, BaseRaw):
+            if self._projector is not None:
+                _check_preload(self, f'{msg} after calling .apply_proj()')
+        else:
+            _check_preload(self, msg)
 
         if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]
@@ -1730,8 +1757,8 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
         combined_inst = RawArray(new_data, info, first_samp=inst.first_samp,
                                  verbose=inst.verbose)
     elif isinstance(inst, BaseEpochs):
-        combined_inst = EpochsArray(new_data, info, tmin=inst.times[0],
-                                    verbose=inst.verbose)
+        combined_inst = EpochsArray(new_data, info, events=inst.events,
+                                    tmin=inst.times[0], verbose=inst.verbose)
     elif isinstance(inst, Evoked):
         combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
                                     verbose=inst.verbose)

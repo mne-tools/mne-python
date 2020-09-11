@@ -175,9 +175,9 @@ def matplotlib_config():
 
 
 @pytest.fixture(scope='session')
-def travis_macos():
-    """Determine if running on Travis macOS."""
-    return (os.getenv('TRAVIS', 'false').lower() == 'true' and
+def ci_macos():
+    """Determine if running on MacOS CI."""
+    return (os.getenv('CI', 'false').lower() == 'true' and
             sys.platform == 'darwin')
 
 
@@ -189,10 +189,10 @@ def azure_windows():
 
 
 @pytest.fixture()
-def check_gui_ci(travis_macos, azure_windows):
+def check_gui_ci(ci_macos, azure_windows):
     """Skip tests that are not reliable on CIs."""
-    if azure_windows or travis_macos:
-        pytest.skip('Skipping GUI tests on Travis OSX and Azure Windows')
+    if azure_windows or ci_macos:
+        pytest.skip('Skipping GUI tests on MacOS CIs and Azure Windows')
 
 
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
@@ -457,3 +457,13 @@ def src_volume_labels():
     assert volume_labels[0] == 'Unknown'
     assert lut['Unknown'] == 0  # it will be excluded during label gen
     return src, tuple(volume_labels), lut
+
+
+def _fail(*args, **kwargs):
+    raise AssertionError('Test should not download')
+
+
+@pytest.fixture(scope='function')
+def download_is_error(monkeypatch):
+    """Prevent downloading by raising an error when it's attempted."""
+    monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)

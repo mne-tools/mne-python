@@ -11,7 +11,7 @@ from functools import partial
 import pytest
 import numpy as np
 from scipy.io import savemat
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
@@ -33,16 +33,38 @@ eve_fname = op .join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
-def test_reorder_channels():
+@pytest.mark.parametrize('preload', (True, False))
+@pytest.mark.parametrize('proj', (True, False))
+def test_reorder_channels(preload, proj):
     """Test reordering of channels."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj()
+    if proj:  # a no-op but should test it
+        raw._projector = np.eye(len(raw.ch_names))
+    if preload:
+        raw.load_data()
+    # with .reorder_channels
+    if proj and not preload:
+        with pytest.raises(RuntimeError, match='load data'):
+            raw.copy().reorder_channels(raw.ch_names[::-1])
+        return
     raw_new = raw.copy().reorder_channels(raw.ch_names[::-1])
+    assert raw_new.ch_names == raw.ch_names[::-1]
+    if proj:
+        assert_allclose(raw_new._projector, raw._projector, atol=1e-12)
+    else:
+        assert raw._projector is None
+        assert raw_new._projector is None
     assert_array_equal(raw[:][0], raw_new[:][0][::-1])
     raw_new.reorder_channels(raw_new.ch_names[::-1][1:-1])
     raw.drop_channels(raw.ch_names[:1] + raw.ch_names[-1:])
     assert_array_equal(raw[:][0], raw_new[:][0])
     with pytest.raises(ValueError, match='repeated'):
         raw.reorder_channels(raw.ch_names[:1] + raw.ch_names[:1])
+    # and with .pick
+    reord = [1, 0] + list(range(2, len(raw.ch_names)))
+    rev = np.argsort(reord)
+    raw_new = raw.copy().pick(reord)
+    assert_array_equal(raw[:][0], raw_new[rev][0])
 
 
 def test_rename_channels():
@@ -270,7 +292,7 @@ def test_find_ch_adjacency():
     data_path = testing.data_path()
 
     raw = read_raw_fif(raw_fname, preload=True)
-    sizes = {'mag': 828, 'grad': 1700, 'eeg': 386}
+    sizes = {'mag': 828, 'grad': 1700, 'eeg': 384}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
     for ch_type in ['mag', 'grad', 'eeg']:
         conn, ch_names = find_ch_adjacency(raw.info, ch_type)
@@ -372,7 +394,8 @@ def test_combine_channels():
 
     # Test good cases
     combine_channels(raw, good)
-    combine_channels(epochs, good)
+    combined_epochs = combine_channels(epochs, good)
+    assert_array_equal(combined_epochs.events, epochs.events)
     combine_channels(evoked, good)
     combine_channels(raw, good, drop_bad=True)
     combine_channels(raw_ch_bad, good, drop_bad=True)
@@ -390,12 +413,12 @@ def test_combine_channels():
     foo_mean = np.mean(raw.get_data()[good_single['foo']], axis=0)
     foo_median = np.median(raw.get_data()[good_single['foo']], axis=0)
     foo_std = np.std(raw.get_data()[good_single['foo']], axis=0)
-    assert np.array_equal(combined_mean.get_data(),
-                          np.expand_dims(foo_mean, axis=0))
-    assert np.array_equal(combined_median.get_data(),
-                          np.expand_dims(foo_median, axis=0))
-    assert np.array_equal(combined_std.get_data(),
-                          np.expand_dims(foo_std, axis=0))
+    assert_array_equal(combined_mean.get_data(),
+                       np.expand_dims(foo_mean, axis=0))
+    assert_array_equal(combined_median.get_data(),
+                       np.expand_dims(foo_median, axis=0))
+    assert_array_equal(combined_std.get_data(),
+                       np.expand_dims(foo_std, axis=0))
 
     # Test bad cases
     bad1 = dict(foo=[0, 376], bar=[5, 2])  # out of bounds

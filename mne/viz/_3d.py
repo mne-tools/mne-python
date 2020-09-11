@@ -304,7 +304,8 @@ def _set_aspect_equal(ax):
 
 @verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1, fig=None, verbose=None):
+                      n_jobs=1, fig=None, vmax=None, n_contours=21,
+                      verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -316,7 +317,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     time : float | None
         The time point at which the field map shall be displayed. If None,
         the average peak latency (across sensor types) is used.
-    time_label : str
+    time_label : str | None
         How to print info about the time instant visualized.
     %(n_jobs)s
     fig : instance of mayavi.core.api.Scene | None
@@ -324,6 +325,14 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         plot into the given figure.
 
         .. versionadded:: 0.20
+    vmax : float | None
+        Maximum intensity. Can be None to use the max(abs(data)).
+
+        .. versionadded:: 0.21
+    n_contours : int
+        The number of contours.
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -334,6 +343,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     # Update the backend
     from .backends.renderer import _get_renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
+    _validate_type(vmax, (None, 'numeric'), 'vmax')
+    n_contours = _ensure_int(n_contours, 'n_contours')
 
     time_idx = None
     if time is None:
@@ -382,23 +393,27 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         data = np.dot(map_data, evoked.data[pick, time_idx])
 
         # Make a solid surface
-        vlim = np.max(np.abs(data))
+        if vmax is None:
+            vmax = np.max(np.abs(data))
+        vmax = float(vmax)
         alpha = alphas[ii]
         renderer.surface(surface=surf, color=colors[ii],
                          opacity=alpha)
 
         # Now show our field pattern
-        renderer.surface(surface=surf, vmin=-vlim, vmax=vlim,
-                         scalars=data, colormap=colormap)
+        renderer.surface(surface=surf, vmin=-vmax, vmax=vmax,
+                         scalars=data, colormap=colormap,
+                         polygon_offset=-1)
 
         # And the field lines on top
-        renderer.contour(surface=surf, scalars=data, contours=21,
-                         vmin=-vlim, vmax=vlim, opacity=alpha,
+        renderer.contour(surface=surf, scalars=data, contours=n_contours,
+                         vmin=-vmax, vmax=vmax, opacity=alpha,
                          colormap=colormap_lines)
 
-    if '%' in time_label:
-        time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text2d(x_window=0.01, y_window=0.01, text=time_label)
+    if time_label is not None:
+        if '%' in time_label:
+            time_label %= (1e3 * evoked.times[time_idx])
+        renderer.text2d(x_window=0.01, y_window=0.01, text=time_label)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
@@ -1555,6 +1570,10 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
         else:
             raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
+    subjects = [brain._subject_id for brain in brains]
+    if subjects.count(subjects[0]) != len(subjects):
+        raise RuntimeError("Cannot link brains from different subjects.")
+
     # link brains properties
     _LinkViewer(
         brains=brains,
@@ -1777,7 +1796,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    mapdata = _process_clim(clim, colormap, transparent, stc.data,
+    use = stc.magnitude().data if vec else stc.data
+    mapdata = _process_clim(clim, colormap, transparent, use,
                             allow_pos_lims=not vec)
 
     stc_surf, stc_vol, src_vol = _triage_stc(
@@ -2570,6 +2590,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     modes : list
         Should be a list, with each entry being ``'cone'`` or ``'sphere'``
         to specify how the dipoles should be shown.
+        The pivot for the glyphs in ``'cone'`` mode is always the tail
+        whereas the pivot in ``'sphere'`` mode is the center.
     scale_factors : list
         List of floating point scale factors for the markers.
     %(verbose)s
@@ -3116,19 +3138,25 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color=highlight_color)
-    ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, color=highlight_color,
-              pivot='tail')
+    q_kwargs = dict(length=50, color=highlight_color, pivot='tail')
+    ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1], ori[2],
+              **q_kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set(xlim=-dims, ylim=-dims, zlim=dims)
 
-    # Plot slices.
+    # Plot slices
     ax.contourf(xslice, gridx, gridy, offset=offset, zdir='x',
                 cmap='gray', zorder=0, alpha=.5)
     ax.contourf(gridx, yslice, gridy, offset=offset, zdir='y',
                 cmap='gray', zorder=0, alpha=.5)
     ax.contourf(gridx, gridy, zslice, offset=offset, zdir='z',
                 cmap='gray', zorder=0, alpha=.5)
+
+    # Plot orientations
+    args = np.array([list(xyz[idx]) + list(ori)] * 3)
+    for ii in range(3):
+        args[ii, [ii, ii + 3]] = [offset + 0.5, 0]  # half a mm inward  (z ord)
+    ax.quiver(*args.T, alpha=.75, **q_kwargs)
 
     # These are the only two options
     coord_frame_name = 'Head' if coord_frame == 'head' else 'MRI'

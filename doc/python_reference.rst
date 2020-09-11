@@ -72,6 +72,8 @@ Reading raw data
    read_raw_fif
    read_raw_eximia
    read_raw_fieldtrip
+   read_raw_persyst
+   read_raw_nihon
 
 Base class:
 
@@ -355,10 +357,12 @@ Projections:
 
    ICA
    Xdawn
+   annotate_flat
    annotate_movement
    annotate_muscle_zscore
    compute_average_dev_head_t
    compute_current_source_density
+   compute_fine_calibration
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -370,7 +374,6 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
-   mark_flat
    maxwell_filter
    oversampled_temporal_projection
    peak_finder
@@ -378,6 +381,8 @@ Projections:
    regress_artifact
    corrmap
    read_ica_eeglab
+   read_fine_calibration
+   write_fine_calibration
 
 :py:mod:`mne.preprocessing.nirs`:
 

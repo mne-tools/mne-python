@@ -700,3 +700,33 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean %r?' % (options[0],)
     else:
         return ' Did you mean one of %r?' % (options,)
+
+
+def _on_missing(on_missing, msg):
+    """Raise error or print warning with a message.
+
+    Parameters
+    ----------
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Whether to raise an error, print a warning or ignore. Valid keys are
+        'raise' | 'warn' | 'ignore'. Default is 'raise'. If on_missing is
+        'warn' it will proceed but warn, if 'ignore' it will proceed silently.
+    msg : str
+        Message to print along with the error or the warning. Ignore if
+        on_missing is 'ignore'.
+
+    Raises
+    ------
+    ValueError
+        When on_missing is 'raise'.
+    """
+    _validate_type(on_missing, str, 'on_missing')
+    on_missing = 'raise' if on_missing == 'error' else on_missing
+    on_missing = 'warn' if on_missing == 'warning' else on_missing
+    _check_option('on_missing', on_missing, ['raise', 'warn', 'ignore'])
+    if on_missing == 'raise':
+        raise ValueError(msg)
+    elif on_missing == 'warn':
+        warn(msg)
+    else:  # Ignore
+        assert on_missing == 'ignore'

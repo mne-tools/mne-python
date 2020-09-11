@@ -289,9 +289,9 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
        ignored.
     %(preload)s
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%d'
+        Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %03d'.
+        prior to 0.14.0 was 'EEG %%03d'.
     %(verbose)s
 
     Returns
@@ -533,6 +533,7 @@ class RawMff(BaseRaw):
         dtype = '<f4'  # Data read in four byte floats.
 
         egi_info = self._raw_extras[fi]
+        one = np.zeros((egi_info['kind_bounds'][-1], stop - start))
 
         # info about the binary file structure
         n_channels = egi_info['n_channels']
@@ -543,17 +544,18 @@ class RawMff(BaseRaw):
         if isinstance(idx, slice):
             idx = np.arange(idx.start, idx.stop)
         eeg_out = np.where(idx < bounds[1])[0]
+        eeg_one = idx[eeg_out, np.newaxis]
         eeg_in = idx[eeg_out]
         stim_out = np.where((idx >= bounds[1]) & (idx < bounds[2]))[0]
+        stim_one = idx[stim_out]
         stim_in = idx[stim_out] - bounds[1]
         pns_out = np.where((idx >= bounds[2]) & (idx < bounds[3]))[0]
         pns_in = idx[pns_out] - bounds[2]
-        eeg_out = eeg_out[:, np.newaxis]
-        pns_out = pns_out[:, np.newaxis]
+        pns_one = idx[pns_out, np.newaxis]
+        del eeg_out, stim_out, pns_out
 
         # take into account events (already extended to correct size)
-        data[stim_out, :] = egi_info['egi_events'][stim_in, start:stop]
-        del stim_out
+        one[stim_one, :] = egi_info['egi_events'][stim_in, start:stop]
 
         # Convert start and stop to limits in terms of the data
         # actually on disk, plus an indexer (disk_use_idx) that populates
@@ -610,11 +612,11 @@ class RawMff(BaseRaw):
                 s_start = current_data_sample
                 s_end = s_start + samples_read
 
-                data[eeg_out, disk_use_idx[s_start:s_end]] = block_data[eeg_in]
+                one[eeg_one, disk_use_idx[s_start:s_end]] = block_data[eeg_in]
                 samples_to_read = samples_to_read - samples_read
                 current_data_sample = current_data_sample + samples_read
 
-        if len(pns_out) > 0:
+        if len(pns_one) > 0:
             # PNS Data is present and should be read:
             pns_filepath = egi_info['pns_filepath']
             pns_info = egi_info['pns_sample_blocks']
@@ -649,7 +651,7 @@ class RawMff(BaseRaw):
                     if samples_to_read == 1 and fid.tell() == file_size:
                         # We are in the presence of the EEG bug
                         # fill with zeros and break the loop
-                        data[pns_out, -1] = 0
+                        one[pns_one, -1] = 0
                         break
 
                     this_block_info = _block_r(fid)
@@ -677,10 +679,10 @@ class RawMff(BaseRaw):
                     s_start = current_data_sample
                     s_end = s_start + samples_read
 
-                    data[pns_out, disk_use_idx[s_start:s_end]] = \
+                    one[pns_one, disk_use_idx[s_start:s_end]] = \
                         block_data[pns_in]
                     samples_to_read = samples_to_read - samples_read
                     current_data_sample = current_data_sample + samples_read
 
         # do the calibration
-        _mult_cal_one(data, data, slice(None), cals, mult)
+        _mult_cal_one(data, one, idx, cals, mult)

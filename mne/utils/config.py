@@ -117,6 +117,7 @@ known_config_types = (
     'MNE_SKIP_NETWORK_TESTS',
     'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_STIM_CHANNEL',
+    'MNE_TQDM',
     'MNE_USE_CUDA',
     'MNE_USE_NUMBA',
     'SUBJECTS_DIR',

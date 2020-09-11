@@ -7,6 +7,7 @@ import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
+from ..utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
 from ...utils.check import _require_version
@@ -246,6 +247,6 @@ class RawSNIRF(BaseRaw):
         import h5py
 
         with h5py.File(self._filenames[0], 'r') as dat:
-            data[:] = dat.get('/nirs/data1/dataTimeSeries')[start:stop].T[idx]
+            one = dat['/nirs/data1/dataTimeSeries'][start:stop].T
 
-        return data
+        _mult_cal_one(data, one, idx, cals, mult)

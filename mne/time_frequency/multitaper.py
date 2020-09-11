@@ -458,9 +458,10 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
                          decim=1, output='complex', n_jobs=1,
                          verbose=None):
-    """Compute time-frequency transforms using wavelets and multitaper windows.
+    """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
-    Uses Morlet wavelets windowed with multiple DPSS tapers.
+    Same computation as `~mne.time_frequency.tfr_multitaper`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     Parameters
     ----------
@@ -471,7 +472,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     freqs : array-like of float, shape (n_freqs,)
         The frequencies.
     n_cycles : float | array of float
-        Number of cycles  in the Morlet wavelet. Fixed number or one per
+        Number of cycles in the wavelet. Fixed number or one per
         frequency. Defaults to 7.0.
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.

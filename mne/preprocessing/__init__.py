@@ -7,7 +7,7 @@
 #
 # License: BSD (3-clause)
 
-from .flat import mark_flat
+from .flat import annotate_flat, mark_flat
 from .maxfilter import apply_maxfilter
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .eog import find_eog_events, create_eog_epochs
@@ -25,3 +25,5 @@ from . import nirs
 from .artifact_detection import (annotate_movement, compute_average_dev_head_t,
                                  annotate_muscle_zscore)
 from ._regress import regress_artifact
+from ._fine_cal import (compute_fine_calibration,  read_fine_calibration,
+                        write_fine_calibration)

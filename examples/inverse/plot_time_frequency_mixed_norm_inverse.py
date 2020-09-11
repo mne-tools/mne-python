@@ -101,7 +101,8 @@ residual.crop(tmin=-0.05, tmax=0.3)
 # Plot dipole activations
 plot_dipole_amplitudes(dipoles)
 
-# Plot dipole location of the strongest dipole with MRI slices
+###############################################################################
+# Plot location of the strongest dipole with MRI slices
 idx = np.argmax([np.max(np.abs(dip.amplitude)) for dip in dipoles])
 plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
                       subjects_dir=subjects_dir, mode='orthoview',

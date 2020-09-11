@@ -6,7 +6,7 @@
 
 # License: BSD (3-clause)
 
-from collections import Counter
+from collections import Counter, OrderedDict
 from functools import partial
 from math import factorial
 from os import path as op
@@ -62,7 +62,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(maxwell_origin_int_ext_calibration_cross)s
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
+    %(maxwell_cross)s
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -77,15 +81,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
     %(maxwell_coord)s
-    destination : str | array-like, shape (3,) | None
-        The destination location for the head. Can be ``None``, which
-        will not change the head position, or a string path to a FIF file
-        containing a MEG device<->head transformation, or a 3-element array
-        giving the coordinates to translate to (with no rotations).
-        For example, ``destination=(0, 0, 0.04)`` would translate the bases
-        as ``--trans default`` would in MaxFilter™ (i.e., to the default
-        head location).
-    %(maxwell_reg_ref_cond_pos)s
+    %(maxwell_dest)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_pos)s
 
         .. versionadded:: 0.12
     %(maxwell_st_fixed_only)s
@@ -105,7 +105,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
-    mne.preprocessing.mark_flat
+    mne.preprocessing.annotate_flat
     mne.preprocessing.find_bad_channels_maxwell
     mne.chpi.filter_chpi
     mne.chpi.read_head_pos
@@ -333,28 +333,8 @@ def _prep_maxwell_filter(
     #
     # Cross-talk processing
     #
-    sss_ctc = dict()
-    ctc = None
-    if cross_talk is not None:
-        sss_ctc = _read_ctc(cross_talk)
-        ctc_chs = sss_ctc['proj_items_chs']
-        meg_ch_names = [info['ch_names'][p] for p in meg_picks]
-        # checking for extra space ambiguity in channel names
-        # between old and new fif files
-        if meg_ch_names[0] not in ctc_chs:
-            ctc_chs = _clean_names(ctc_chs, remove_whitespace=True)
-            meg_ch_names = _clean_names(meg_ch_names, remove_whitespace=True)
-        missing = sorted(list(set(meg_ch_names) - set(ctc_chs)))
-        if len(missing) != 0:
-            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
-                               % missing)
-        missing = sorted(list(set(ctc_chs) - set(meg_ch_names)))
-        if len(missing) > 0:
-            warn('Not all cross-talk channels in raw:\n%s' % missing)
-        ctc_picks = [ctc_chs.index(name) for name in meg_ch_names]
-        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
-        # I have no idea why, but MF transposes this for storage..
-        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
+    meg_ch_names = [info['ch_names'][p] for p in meg_picks]
+    ctc, sss_ctc = _read_cross_talk(cross_talk, meg_ch_names)
     update_kwargs['sss_ctc'] = sss_ctc
     del sss_ctc
 
@@ -1625,13 +1605,17 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _update_sensor_geometry(info, fine_cal, ignore_ref):
-    """Replace sensor geometry information and reorder cal_chs."""
+def _prep_fine_cal(info, fine_cal):
     from ._fine_cal import read_fine_calibration
-    logger.info('    Using fine calibration %s' % op.basename(fine_cal))
-    fine_cal = read_fine_calibration(fine_cal)  # filename -> dict
+    _validate_type(fine_cal, (dict, 'path-like'))
+    if not isinstance(fine_cal, dict):
+        fine_cal = read_fine_calibration(fine_cal)
+        extra = op.basename(str(fine_cal))
+    else:
+        extra = 'dict'
+    logger.info(f'    Using fine calibration {extra}')
     ch_names = _clean_names(info['ch_names'], remove_whitespace=True)
-    info_to_cal = dict()
+    info_to_cal = OrderedDict()
     missing = list()
     for ci, name in enumerate(fine_cal['ch_names']):
         if name not in ch_names:
@@ -1647,6 +1631,12 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
                           set(fine_cal['ch_names']))))
     if len(missing):
         warn('Found cal channel%s not in data: %s' % (_pl(missing), missing))
+    return info_to_cal, fine_cal, ch_names
+
+
+def _update_sensor_geometry(info, fine_cal, ignore_ref):
+    """Replace sensor geometry information and reorder cal_chs."""
+    info_to_cal, fine_cal, ch_names = _prep_fine_cal(info, fine_cal)
     grad_picks = pick_types(info, meg='grad', exclude=())
     mag_picks = pick_types(info, meg='mag', exclude=())
 
@@ -1666,13 +1656,12 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
                        grad_coilsets=grad_coilsets, mag_cals=mag_cals)
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = np.zeros((len(fine_cal['ch_names']), 3))
+    ang_shift = list()
     used = np.zeros(len(info['chs']), bool)
     cal_corrs = list()
     cal_chans = list()
     adjust_logged = False
     for oi, ci in info_to_cal.items():
-        assert ch_names[oi] == fine_cal['ch_names'][ci]
         assert not used[oi]
         used[oi] = True
         info_ch = info['chs'][oi]
@@ -1691,8 +1680,8 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
                 logger.info('        Adjusting non-orthogonal EX and EY')
                 adjust_logged = True
             # find the rotation matrix that goes from one to the other
-            this_trans = _find_vector_rotation(ch_coil_rot[:, 2],
-                                               cal_coil_rot[:, 2])
+            this_trans = _find_vector_rotation(
+                ch_coil_rot[:, 2], cal_coil_rot[:, 2])
             cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
 
         # calculate shift angle
@@ -1700,7 +1689,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         _normalize_vectors(v1)
         v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
         _normalize_vectors(v2)
-        ang_shift[ci] = np.sum(v1 * v2, axis=0)
+        ang_shift.append(np.sum(v1 * v2, axis=0))
         if oi in grad_picks:
             extra = [1., fine_cal['imb_cals'][ci][0]]
         else:
@@ -1710,15 +1699,16 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         # Channel positions are not changed
         info_ch['loc'][3:] = cal_loc[3:]
         assert (info_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)
+    meg_picks = pick_types(info, meg=True, exclude=())
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
-    ang_shift = ang_shift[list(info_to_cal.values())]  # subselect used ones
     # This gets written to the Info struct
     sss_cal = dict(cal_corrs=np.array(cal_corrs),
                    cal_chans=np.array(cal_chans))
 
     # Log quantification of sensor changes
     # Deal with numerical precision giving absolute vals slightly more than 1.
+    ang_shift = np.array(ang_shift)
     np.clip(ang_shift, -1., 1., ang_shift)
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
     logger.info('        Adjusted coil positions by (μ ± σ): '
@@ -1977,9 +1967,16 @@ def find_bad_channels_maxwell(
                      developers.
 
         .. versionadded:: 0.21
-    %(maxwell_origin_int_ext_calibration_cross)s
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
+    %(maxwell_cross)s
     %(maxwell_coord)s
-    %(maxwell_reg_ref_cond_pos)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_pos)s
     %(maxwell_mag)s
     %(maxwell_skip)s
     h_freq : float | None
@@ -2032,7 +2029,7 @@ def find_bad_channels_maxwell(
 
     See Also
     --------
-    mark_flat
+    annotate_flat
     maxwell_filter
 
     Notes
@@ -2250,3 +2247,28 @@ def find_bad_channels_maxwell(
         return noisy_chs, flat_chs, scores
     else:
         return noisy_chs, flat_chs
+
+
+def _read_cross_talk(cross_talk, ch_names):
+    sss_ctc = dict()
+    ctc = None
+    if cross_talk is not None:
+        sss_ctc = _read_ctc(cross_talk)
+        ctc_chs = sss_ctc['proj_items_chs']
+        # checking for extra space ambiguity in channel names
+        # between old and new fif files
+        if ch_names[0] not in ctc_chs:
+            ctc_chs = _clean_names(ctc_chs, remove_whitespace=True)
+            ch_names = _clean_names(ch_names, remove_whitespace=True)
+        missing = sorted(list(set(ch_names) - set(ctc_chs)))
+        if len(missing) != 0:
+            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
+                               % missing)
+        missing = sorted(list(set(ctc_chs) - set(ch_names)))
+        if len(missing) > 0:
+            warn('Not all cross-talk channels in raw:\n%s' % missing)
+        ctc_picks = [ctc_chs.index(name) for name in ch_names]
+        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
+        # I have no idea why, but MF transposes this for storage..
+        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
+    return ctc, sss_ctc

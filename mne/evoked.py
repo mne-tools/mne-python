@@ -36,7 +36,7 @@ from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
-                       write_id, write_float)
+                       write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield
 
 _aspect_dict = {
@@ -336,10 +336,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
-                   n_jobs=1, fig=None, verbose=None):
+                   n_jobs=1, fig=None, vmax=None, n_contours=21, verbose=None):
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs,
-                                 fig=fig, verbose=verbose)
+                                 fig=fig, vmax=vmax, n_contours=n_contours,
+                                 verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
@@ -1091,7 +1092,10 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         else:
             # Put the old style epochs together
             data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
-        data = data.astype(np.float64)
+        if np.isrealobj(data):
+            data = data.astype(np.float64)
+        else:
+            data = data.astype(np.complex128)
 
         if first_time is not None and nsamp is not None:
             times = first_time + np.arange(nsamp) / info['sfreq']
@@ -1203,7 +1207,12 @@ def _write_evokeds(fname, evoked, check=True):
                 decal[k] = 1.0 / (e.info['chs'][k]['cal'] *
                                   e.info['chs'][k].get('scale', 1.0))
 
-            write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
+            if np.iscomplexobj(e.data):
+                write_function = write_complex_float_matrix
+            else:
+                write_function = write_float_matrix
+
+            write_function(fid, FIFF.FIFF_EPOCH, decal * e.data)
             end_block(fid, aspect)
             end_block(fid, FIFF.FIFFB_EVOKED)
 

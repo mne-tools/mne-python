@@ -7,6 +7,7 @@
 #
 # License: BSD (3-clause)
 
+import heapq
 from collections import Counter, OrderedDict
 
 import datetime
@@ -47,8 +48,49 @@ _dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
 _cardinal_kind_rev = {1: 'LPA', 2: 'Nasion', 3: 'RPA', 4: 'Inion'}
 
 
-def _format_dig_points(dig):
+def _format_dig_points(dig, enforce_order=False):
     """Format the dig points nicely."""
+    if enforce_order and dig is not None:
+        # reorder points based on type:
+        # Fiducials/HPI, EEG, extra (headshape)
+        fids_digpoints = []
+        hpi_digpoints = []
+        eeg_digpoints = []
+        extra_digpoints = []
+        head_digpoints = []
+
+        # use a heap to enforce order on FIDS, EEG, Extra
+        for idx, digpoint in enumerate(dig):
+            ident = digpoint['ident']
+            kind = digpoint['kind']
+
+            # push onto heap based on 'ident' (for the order) for
+            # each of the possible DigPoint 'kind's
+            # keep track of 'idx' in case of any clashes in
+            # the 'ident' variable, which can occur when
+            # user passes in DigMontage + DigMontage
+            if kind == FIFF.FIFFV_POINT_CARDINAL:
+                heapq.heappush(fids_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_HPI:
+                heapq.heappush(hpi_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_EEG:
+                heapq.heappush(eeg_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_EXTRA:
+                heapq.heappush(extra_digpoints, (ident, idx, digpoint))
+            elif kind == FIFF.FIFFV_POINT_HEAD:
+                heapq.heappush(head_digpoints, (ident, idx, digpoint))
+
+        # now recreate dig based on sorted order
+        fids_digpoints.sort(), hpi_digpoints.sort()
+        eeg_digpoints.sort()
+        extra_digpoints.sort(), head_digpoints.sort()
+        new_dig = []
+        for idx, d in enumerate(fids_digpoints + hpi_digpoints +
+                                extra_digpoints + eeg_digpoints +
+                                head_digpoints):
+            new_dig.append(d[-1])
+        dig = new_dig
+
     return [DigPoint(d) for d in dig] if dig is not None else dig
 
 
@@ -182,12 +224,23 @@ _cardinal_ident_mapping = {
 }
 
 
-def _foo_get_data_from_dig(dig):
-    # XXXX:
-    # This does something really similar to _read_dig_montage_fif but:
-    #   - does not check coord_frame
-    #   - does not do any operation that implies assumptions with the names
+# XXXX:
+# This does something really similar to _read_dig_montage_fif but:
+#   - does not check coord_frame
+#   - does not do any operation that implies assumptions with the names
+def _get_data_as_dict_from_dig(dig):
+    """Obtain coordinate data from a Dig.
 
+    Parameters
+    ----------
+    dig : list of dicts
+        A container of DigPoints to be added to the info['dig'].
+
+    Returns
+    -------
+    ch_pos : dict
+        The container of all relevant channel positions inside dig.
+    """
     # Split up the dig points by category
     hsp, hpi, elp = list(), list(), list()
     fids, dig_ch_pos_location = dict(), list()
@@ -203,7 +256,8 @@ def _foo_get_data_from_dig(dig):
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
             # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-            dig_ch_pos_location.append(d['r'])
+            if d['ident'] != 0:  # ref channel
+                dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
     assert len(dig_coord_frames) == 1, \

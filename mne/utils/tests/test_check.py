@@ -19,7 +19,7 @@ from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
                        check_version, _check_path_like, _validate_type,
-                       _suggest)
+                       _suggest, _on_missing)
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -196,3 +196,17 @@ def test_suggest():
     assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
     sug = _suggest('Cerebellum-Cortex', names)
     assert sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501
+
+
+def test_on_missing():
+    """Test _on_missing."""
+    msg = 'test'
+    with pytest.raises(ValueError, match=msg):
+        _on_missing('raise', msg)
+    with pytest.warns(RuntimeWarning, match=msg):
+        _on_missing('warn', msg)
+    _on_missing('ignore', msg)
+
+    with pytest.raises(ValueError,
+                       match='Invalid value for the \'on_missing\' parameter'):
+        _on_missing('foo', msg)

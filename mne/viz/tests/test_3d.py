@@ -873,6 +873,7 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
 @testing.requires_testing_data
 @traits_test
+@pytest.mark.slowtest
 def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
     sample_src = read_source_spaces(src_fname)

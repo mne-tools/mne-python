@@ -2012,8 +2012,7 @@ class DraggableColorbar(object):
         self.cbar.mappable.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
-        self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self._update()
 
     def on_motion(self, event):
         """Handle mouse movements."""
@@ -2032,21 +2031,22 @@ class DraggableColorbar(object):
         elif event.button == 3:
             self.cbar.norm.vmin -= (perc * scale) * np.sign(dy)
             self.cbar.norm.vmax += (perc * scale) * np.sign(dy)
-        self.cbar.draw_all()
-        self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self._update()
 
     def on_release(self, event):
         """Handle release."""
         self.press = None
-        self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self._update()
 
     def on_scroll(self, event):
         """Handle scroll."""
         scale = 1.1 if event.step < 0 else 1. / 1.1
         self.cbar.norm.vmin *= scale
         self.cbar.norm.vmax *= scale
+        self._update()
+
+    def _update(self):
+        self.cbar.set_ticks(None, update_ticks=True)  # use default
         self.cbar.draw_all()
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()
