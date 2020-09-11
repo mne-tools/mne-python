@@ -976,13 +976,14 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     %(baseline)s
         If ``None`` (default), do not apply baseline correction.
 
-        .. note:: Note that if the read  ~mne.Evoked` objects have already been
-                  baseline corrected, the data retrieved from disk will always
-                  be baseline corrected. Only **after** the data has been
-                  loaded, a custom (additional) baseline correction **may**
-                  be optionally applied by passing a tuple. Passing ``None``
-                  will **not** remove baseline correction  from the data, but
-                  merely omit the optional, additional baseline correction.
+        .. note:: Note that if the read  `~mne.Evoked` objects have already
+                  been baseline corrected, the data retrieved from disk will
+                  always be baseline corrected. Only **after** the data has
+                  been loaded, a custom (additional) baseline correction
+                  **may** be optionally applied by passing a tuple. Passing
+                  ``None`` will **not** remove baseline correction  from the
+                  data, but merely omit the optional, additional baseline
+                  correction.
 
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
