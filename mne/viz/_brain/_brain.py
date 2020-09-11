@@ -684,7 +684,7 @@ class _Brain(object):
         surface_alpha = volume_options['surface_alpha']
         resolution = volume_options['resolution']
         if surface_alpha is None:
-            surface_alpha = min(alpha / 2., 0.4)
+            surface_alpha = min(alpha / 2., 0.1)
         del volume_options
         volume_pos = self._data[hemi].get('grid_volume_pos')
         volume_neg = self._data[hemi].get('grid_volume_neg')
