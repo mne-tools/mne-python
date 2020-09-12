@@ -81,7 +81,7 @@ Changelog
 
 - Add :meth:`mne.channels.DigMontage.rename_channels` to allow renaming montage channels by `Eric Larson`_
 
-- Add :meth:`mne.channels.DigMontage.compute_native_head_t` to allow computing the native-to-head transformation that will be applied when doing :meth:`raw.set_montage <mne.io.Raw.set_montage>` and related functions by `Eric Larson`_
+- Document :meth:`mne.channels.compute_native_head_t` to allow computing the native-to-head transformation that will be applied when doing :meth:`raw.set_montage <mne.io.Raw.set_montage>` and related functions by `Eric Larson`_
 
 - Add support to in :meth:`mne.io.Raw.plot` for passing ``clipping`` as a float to clip to a proportion of the dedicated channel range by `Eric Larson`_
 
