@@ -35,7 +35,7 @@ def _check_baseline(baseline, tmin, tmax, sfreq):
         if baseline_tmax > tmax + tstep:
             raise ValueError(
                 "Baseline interval (tmax = %s) is outside of "
-                "data rnge (tmax = %s)" % (baseline_tmax, tmax))
+                "data range (tmax = %s)" % (baseline_tmax, tmax))
         if baseline_tmin > baseline_tmax:
             raise ValueError(
                 "Baseline min (%s) must be less than baseline max (%s)"

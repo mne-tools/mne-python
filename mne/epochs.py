@@ -17,6 +17,7 @@ import json
 import operator
 import os.path as op
 import warnings
+import re
 
 import numpy as np
 
@@ -1524,10 +1525,19 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._data = self._data[:, :, tmask]
         try:
             _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
-        except ValueError:  # in no longer applies, wipe it out
-            warn('Cropping removes baseline period, setting '
-                 'epochs.baseline = None')
-            self.baseline = None
+        except ValueError as err:
+            err_msg = str(err)
+            acceptable_msgs = [
+                'Baseline interval is only one sample',
+                'Baseline interval (tmin = .*) is outside of data range',
+                'Baseline interval (tmax = .*) is outside of data range',
+                'Baseline min (.*) must be less than baseline max']
+
+            if any([re.match(regexp, err_msg) for regexp in acceptable_msgs]):
+                # The baseline period longer applies, so wipe it out.
+                warn('Cropping removes baseline period, setting baseline=None')
+                self.baseline = None
+
         return self
 
     def copy(self):

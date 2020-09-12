@@ -993,7 +993,7 @@ def test_epochs_io_preload(tmpdir, preload):
     assert epochs.times[-1] > 0
     epochs.apply_baseline((None, 0))
     with pytest.warns(RuntimeWarning,
-                      match=r'setting epochs\.baseline = None'):
+                      match='Cropping removes baseline period'):
         epochs.crop(1. / epochs.info['sfreq'], None)
     assert epochs.baseline is None
     epochs.save(fname_temp, overwrite=True)
@@ -1077,7 +1077,8 @@ def test_epochs_io_preload(tmpdir, preload):
 
     # Test that having a single time point works
     assert epochs.baseline is not None
-    with pytest.warns(RuntimeWarning, match=r'setting epochs\.baseline'):
+    with pytest.warns(RuntimeWarning,
+                      match='Cropping removes baseline period'):
         epochs.load_data().crop(0, 0)
     assert epochs.baseline is None
     assert_equal(len(epochs.times), 1)

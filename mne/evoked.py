@@ -9,6 +9,7 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import re
 import numpy as np
 
 from .baseline import rescale, _check_baseline
@@ -272,9 +273,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         try:
             _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
-        except ValueError:  # It no longer applies, wipe it out.
-            warn('Cropping removes baseline period, setting baseline=None')
-            self.baseline = None
+        except ValueError as err:
+            err_msg = str(err)
+            acceptable_msgs = [
+                'Baseline interval is only one sample',
+                'Baseline interval (tmin = .*) is outside of data range',
+                'Baseline interval (tmax = .*) is outside of data range',
+                'Baseline min (.*) must be less than baseline max']
+
+            if any([re.match(regexp, err_msg) for regexp in acceptable_msgs]):
+                # The baseline period longer applies, so wipe it out.
+                warn('Cropping removes baseline period, setting baseline=None')
+                self.baseline = None
 
         return self
 
