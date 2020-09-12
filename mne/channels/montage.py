@@ -303,22 +303,6 @@ class DigMontage(object):
 
         return dig_names
 
-    def compute_native_head_t(self):
-        """Compute the transformation to the head coordinate frame.
-
-        Returns
-        -------
-        tr : instance of Transform
-            The transformation. In the special case where the ``coord_frame``
-            during montage init was ``'mri'``, this will be a :term:`trans`
-            from the MRI to head coordinate frame.
-
-        Notes
-        -----
-        .. versionadded:: 0.21
-        """
-        return compute_native_head_t(self)
-
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
 

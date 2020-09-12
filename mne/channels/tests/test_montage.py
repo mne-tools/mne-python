@@ -25,7 +25,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_captrack,  # XXX: remove with 0.22
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
-                          read_dig_polhemus_isotrak,
+                          read_dig_polhemus_isotrak, compute_native_head_t,
                           read_polhemus_fastscan,
                           read_dig_hpts)
 from mne.channels.montage import transform_to_head, _check_get_coord_frame
@@ -109,7 +109,7 @@ def test_dig_montage_trans():
     ch_pos = {f'EEG{ii:3d}': pos for ii, pos in enumerate(ch_pos, 1)}
     montage = make_dig_montage(ch_pos, nasion=nasion, lpa=lpa, rpa=rpa,
                                coord_frame='mri')
-    trans = montage.compute_native_head_t()
+    trans = compute_native_head_t(montage)
     _ensure_trans(trans)
 
 
@@ -398,7 +398,7 @@ def test_montage_readers(
             assert isinstance(d1[key], int)
             assert isinstance(d2[key], int)
     with pytest.warns(None) as w:
-        xform = dig_montage.compute_native_head_t()
+        xform = compute_native_head_t(dig_montage)
     assert xform['to'] == FIFF.FIFFV_COORD_HEAD
     assert xform['from'] == FIFF.FIFFV_COORD_UNKNOWN
     n = int(np.allclose(xform['trans'], np.eye(4)))

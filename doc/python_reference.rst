@@ -319,6 +319,7 @@ Projections:
 
    Layout
    DigMontage
+   compute_native_head_t
    fix_mag_coil_types
    read_polhemus_fastscan
    get_builtin_montages

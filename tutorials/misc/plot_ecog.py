@@ -62,7 +62,7 @@ print('Created %s channel positions' % len(ch_names))
 # data when applying the montage so that standard plotting functions like
 # :func:`mne.viz.plot_evoked_topomap` will be aligned properly.
 
-trans = montage.compute_native_head_t()
+trans = mne.channels.compute_native_head_t(montage)
 print(trans)
 
 ###############################################################################
