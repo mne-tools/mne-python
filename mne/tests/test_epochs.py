@@ -745,17 +745,13 @@ def test_epochs_baseline(preload):
     expected[0] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
 
-    # Test that Epochs.baseline is only updated if the data was actually
-    # rescalrd.
+    # We shouldn't be able to remove a baseline correction after it has been
+    # applied.
     baseline = (None, None)
     epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=baseline,
                         preload=preload)
-    epochs.apply_baseline(None)
-
-    if preload:
-        assert epochs.baseline == baseline
-    else:
-        assert epochs.baseline is None
+    with pytest.raises(ValueError, match='already been baseline-corrected'):
+        epochs.apply_baseline(None)
 
 
 def test_epochs_bad_baseline():

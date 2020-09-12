@@ -1718,16 +1718,19 @@ baseline_mean = """
 baseline_default = """
     Defaults to ``(None, 0)``, i.e. beginning of the the data until
     time point zero.
+
+    .. versionchanged:: 0.21
+       Once applied, a baseline cannot be removed again by passing ``None``.
 """
 docdict['rescale_baseline'] = baseline_top + baseline_none + baseline_bottom
-docdict['baseline'] = (baseline_top + baseline_bottom + baseline_mean + 
+docdict['baseline'] = (baseline_top + baseline_bottom + baseline_mean +
                        baseline_default)
 docdict['baseline_attribute'] = """
 baseline : None | tuple of length 2
 """
 docdict['baseline_multiple'] = """
-Baseline correction can be done multiple times, but a baseline
-correction can never be removed.
+Baseline correction can be done multiple times, but once applied, it can
+can never be removed.
 """
 
 # Finalize

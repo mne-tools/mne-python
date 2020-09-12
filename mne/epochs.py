@@ -658,18 +658,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         .. versionadded:: 0.10.0
         """
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
-        if self.preload:
+
+        if self.baseline is not None and baseline is None:
+            raise ValueError('The data has already been baseline-corrected. '
+                             'Cannot remove existing basline correction.')
+        elif baseline is None:
+            # Do not rescale
+            logger.info(_log_rescale(None))
+        elif self.preload:
             picks = _pick_data_channels(self.info, exclude=[],
                                         with_ref_meg=True)
             picks_aux = _pick_aux_channels(self.info, exclude=[])
             picks = np.sort(np.concatenate((picks, picks_aux)))
-            if baseline is not None:
-                rescale(self._data, self.times, baseline, copy=False,
-                        picks=picks)
-                self.baseline = baseline
-        else:  # logging happens in "rescale" in "if" branch
-            logger.info(_log_rescale(baseline))
+
+            # Logging happens in rescale().
+            rescale(self._data, self.times, baseline, copy=False,
+                    picks=picks)
             self.baseline = baseline
+        elif not self.preload:
+            logger.info(_log_rescale(None))
+            self.baseline = baseline
+
         return self
 
     def _reject_setup(self, reject, flat):

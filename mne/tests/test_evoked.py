@@ -749,6 +749,14 @@ def test_evoked_baseline(tmpdir):
     evoked = read_evokeds(tmp_fname, condition=0)
     assert_allclose(evoked.baseline, baseline)
 
+    # We shouldn't be able to remove a baseline correction after it has been
+    # applied.
+    evoked = read_evokeds(fname, condition=0)
+    baseline = (-0.2, -0.1)
+    evoked.apply_baseline(baseline)
+    with pytest.raises(ValueError, match='already been baseline-corrected'):
+        evoked.apply_baseline(None)
+
 
 def test_hilbert():
     """Test hilbert on raw, epochs, and evoked."""

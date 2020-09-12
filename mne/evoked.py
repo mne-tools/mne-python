@@ -176,10 +176,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         _check_baseline(baseline, self.times[0], self.times[-1],
                         self.info['sfreq'])
-        if baseline is None:
+        if self.baseline is not None and baseline is None:
+            raise ValueError('The data has already been baseline-corrected. '
+                             'Cannot remove existing basline correction.')
+        elif baseline is None:
+            # Do not rescale
             logger.info(_log_rescale(None))
         else:
-            # Logging happens in rescale()
+            # Atually baseline-correct the data. Logging happens in rescale().
             self.data = rescale(self.data, self.times, baseline, copy=False)
             self.baseline = baseline
 
@@ -1032,10 +1036,14 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition = [condition]
         return_list = False
 
-    out = [Evoked(fname, c, kind=kind, proj=proj,
-                  allow_maxshield=allow_maxshield,
-                  verbose=verbose).apply_baseline(baseline)
-           for c in condition]
+    out = []
+    for c in condition:
+        evoked = Evoked(fname, c, kind=kind, proj=proj,
+                        allow_maxshield=allow_maxshield,
+                        verbose=verbose)
+        if baseline is not None:
+            evoked.apply_baseline(baseline)
+        out.append(evoked)
 
     return out if return_list else out[0]
 
