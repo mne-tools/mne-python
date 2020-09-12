@@ -644,8 +644,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(baseline)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
-            time point zero.
         %(verbose_meth)s
 
         Returns
@@ -655,7 +653,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Baseline correction can be done multiple times.
+        %(baseline_multiple)s
 
         .. versionadded:: 0.10.0
         """
@@ -2029,6 +2027,13 @@ class Epochs(BaseEpochs):
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
     %(baseline_attribute)s
+        The time interval considered as "baseline" when applying baseline
+        correction. If the data has been preloaded, this attribute reflects
+        whether it has been baseline-corrected (it will be a ``tuple``) or not
+        (it will be ``None``). Similarly, if the data has **not** been
+        preloaded, this attribute reflects whether baseline correction will be
+        applied upon loading the data or not (``tuple`` or ``None``,
+        respectively).
     %(verbose)s
 
     See Also

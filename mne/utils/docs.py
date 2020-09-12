@@ -1693,10 +1693,12 @@ Operates in place.
 """
 
 # Baseline
-docdict['rescale_baseline'] = """
+baseline_top = """
 baseline : None | tuple of length 2
     The time interval to consider as "baseline" when applying baseline
-    correction. If ``None``, do not apply baseline correction.
+    correction.
+"""
+baseline_bottom = """
     If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
     (in seconds), including the endpoints.
     If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
@@ -1706,14 +1708,26 @@ baseline : None | tuple of length 2
     .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
                 timepoints ``t`` such that ``a <= t <= b``.
 """
-docdict['baseline'] = """%(rescale_baseline)s
+baseline_none = """
+    If ``None``, do not apply baseline correction.
+"""
+baseline_mean = """
     Correction is applied by computing the mean
     of the baseline period and subtracting it from the data.
-""" % docdict
+"""
+baseline_default = """
+    Defaults to ``(None, 0)``, i.e. beginning of the the data until
+    time point zero.
+"""
+docdict['rescale_baseline'] = baseline_top + baseline_none + baseline_bottom
+docdict['baseline'] = (baseline_top + baseline_bottom + baseline_mean + 
+                       baseline_default)
 docdict['baseline_attribute'] = """
 baseline : None | tuple of length 2
-    The time interval to consider as "baseline" when applying baseline
-    correction.
+"""
+docdict['baseline_multiple'] = """
+Baseline correction can be done multiple times, but a baseline
+correction can never be removed.
 """
 
 # Finalize

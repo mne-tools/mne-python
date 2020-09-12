@@ -110,6 +110,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Time vector in seconds. The time interval between consecutive time
         samples is equal to the inverse of the sampling frequency.
     %(baseline_attribute)s
+        This attribute reflects whether the data has been baseline-corrected
+        (it will be a ``tuple``) or not (it will be ``None``).
     %(verbose)s
 
     Notes
@@ -159,8 +161,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(baseline)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
-            time point zero.
         %(verbose_meth)s
 
         Returns
@@ -170,7 +170,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
-        Baseline correction can be done multiple times.
+        %(baseline_multiple)s
 
         .. versionadded:: 0.13.0
         """
