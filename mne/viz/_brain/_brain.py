@@ -733,11 +733,29 @@ class _Brain(object):
             actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
+            import vtk
             _, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
                 pickable=False)
             prop.SetColor(*self._brain_color[:3])
             prop.SetOpacity(surface_alpha)
+            for ri, ci, v in self._iter_views('vol'):
+                self._renderer.subplot(ri, ci)
+                grid_silhouette = vtk.vtkPolyDataSilhouette()
+                grid_silhouette.SetInputData(grid_mesh.GetInput())
+                grid_silhouette.SetCamera(
+                    self._renderer.plotter.renderer.GetActiveCamera())
+                grid_silhouette.SetEnableFeatureAngle(0)
+                grid_silhouette_mapper = vtk.vtkPolyDataMapper()
+                grid_silhouette_mapper.SetInputConnection(
+                    grid_silhouette.GetOutputPort())
+                _, prop = self._renderer.plotter.add_actor(
+                    grid_silhouette_mapper, reset_camera=False, name=None,
+                    culling=False, pickable=False)
+                prop.SetColor(*self._brain_color[:3])
+                prop.SetOpacity(surface_alpha)
+                prop.SetLineWidth(1.)
+
         return actor_pos, actor_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
