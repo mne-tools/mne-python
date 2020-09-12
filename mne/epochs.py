@@ -664,9 +664,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                         with_ref_meg=True)
             picks_aux = _pick_aux_channels(self.info, exclude=[])
             picks = np.sort(np.concatenate((picks, picks_aux)))
-            # Rescale actually only happens if baseline is not None.
-            rescale(self._data, self.times, baseline, copy=False, picks=picks)
             if baseline is not None:
+                rescale(self._data, self.times, baseline, copy=False,
+                        picks=picks)
                 self.baseline = baseline
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
