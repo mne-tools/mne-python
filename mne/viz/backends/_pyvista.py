@@ -651,6 +651,7 @@ def _compute_normals(mesh):
 
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
+    from . import renderer
     _process_events(plotter)
     mesh = kwargs.get('mesh')
     if 'smooth_shading' in kwargs:
@@ -661,6 +662,8 @@ def _add_mesh(plotter, *args, **kwargs):
     if smooth_shading and 'Normals' in mesh.point_arrays:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
+    if renderer.MNE_3D_BACKEND_TESTING:
+        actor.SetVisibility(False)
     return actor
 
 
@@ -1072,16 +1075,20 @@ def _testing_context(interactive):
     from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
+    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
+    renderer.MNE_3D_BACKEND_TESTING = True
     if interactive:
         pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_TESTING = False
+        renderer.MNE_3D_BACKEND_INTERACTIVE = True
     else:
         pyvista.OFF_SCREEN = True
+        renderer.MNE_3D_BACKEND_INTERACTIVE = False
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
 @contextmanager
