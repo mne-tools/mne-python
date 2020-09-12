@@ -489,8 +489,9 @@ def pytest_sessionfinish(session, exitstatus):
     for key, val in res.items():
         parts = Path(key.split(':')[0]).parts
         # split mne/tests/test_whatever.py into separate categories since these
-        # are essentially submodule-level tests. Keeping just [:3] works.
-        parts = parts[:3]
+        # are essentially submodule-level tests. Keeping just [:3] works,
+        # except for mne/viz where we want level-4 granulatity
+        parts = parts[:4 if parts[:2] == ('mne', 'viz') else 3]
         if not parts[-1].endswith('.py'):
             parts = parts + ('',)
         file_key = '/'.join(parts)
