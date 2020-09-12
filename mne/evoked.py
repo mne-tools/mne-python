@@ -12,7 +12,7 @@ from copy import deepcopy
 import re
 import numpy as np
 
-from .baseline import rescale, _check_baseline
+from .baseline import rescale, _check_baseline, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
@@ -176,9 +176,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         _check_baseline(baseline, self.times[0], self.times[-1],
                         self.info['sfreq'])
-        if baseline is not None:
+        if baseline is None:
+            logger.info(_log_rescale(None))
+        else:
+            # Logging happens in rescale()
             self.data = rescale(self.data, self.times, baseline, copy=False)
             self.baseline = baseline
+
         return self
 
     def save(self, fname):
