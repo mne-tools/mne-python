@@ -294,6 +294,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 # The baseline period no longer applies, so wipe it out.
                 warn('Cropping removes baseline period, setting baseline=None')
                 self.baseline = None
+            else:
+                # Something unexpected happened.
+                raise err
 
         return self
 
