@@ -1527,11 +1527,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
         except ValueError as err:
             err_msg = str(err)
-            acceptable_msgs = [
+            acceptable_msgs = (
                 'Baseline interval is only one sample',
                 'Baseline interval (tmin = .*) is outside of data range',
                 'Baseline interval (tmax = .*) is outside of data range',
-                'Baseline min (.*) must be less than baseline max']
+                'Baseline min (.*) must be less than baseline max'
+            )
 
             if any([re.match(regexp, err_msg) for regexp in acceptable_msgs]):
                 # The baseline period longer applies, so wipe it out.
