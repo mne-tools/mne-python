@@ -1706,7 +1706,8 @@ baseline_bottom = """
     If ``(None, None)``, the entire time interval is used.
 
     .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
+              timepoints ``t`` such that ``a <= t <= b``.
+
 """
 baseline_none = """
     If ``None``, do not apply baseline correction.
@@ -1721,6 +1722,7 @@ baseline_default = """
 
     .. versionchanged:: 0.21
        Once applied, a baseline cannot be removed again by passing ``None``.
+
 """
 docdict['rescale_baseline'] = baseline_top + baseline_none + baseline_bottom
 docdict['baseline'] = (baseline_top + baseline_bottom + baseline_mean +
