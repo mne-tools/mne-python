@@ -1234,7 +1234,7 @@ def test_evoked_io_from_epochs(tmpdir):
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
                     atol=1 / evoked.info['sfreq'])
-    # assert evoked2.baseline == baseline XXX find I/O roundtrip
+    assert evoked2.baseline == baseline
 
     # now let's do one with negative time
     baseline = (0.1, 0.2)
@@ -1246,7 +1246,7 @@ def test_evoked_io_from_epochs(tmpdir):
     evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
-    # assert evoked2.baseline == baseline XXX find I/O roundtrip
+    assert_allclose(evoked2.baseline, baseline)
 
     # should be equivalent to a cropped original
     baseline = (0.1, 0.2)
