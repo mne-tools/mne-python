@@ -283,7 +283,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             )
 
             if any([re.match(regexp, err_msg) for regexp in acceptable_msgs]):
-                # The baseline period longer applies, so wipe it out.
+                # The baseline period no longer applies, so wipe it out.
                 warn('Cropping removes baseline period, setting baseline=None')
                 self.baseline = None
 
