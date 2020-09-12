@@ -676,7 +676,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     picks=picks)
             self.baseline = baseline
         elif not self.preload:
-            logger.info(_log_rescale(None))
+            logger.info(_log_rescale(baseline))
             self.baseline = baseline
 
         return self
