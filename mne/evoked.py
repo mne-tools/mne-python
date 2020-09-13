@@ -999,10 +999,12 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
         .. note:: Note that if the read  `~mne.Evoked` objects have already
                   been baseline-corrected, the data retrieved from disk will
-                  **always** be baseline corrected. Only **after** the data has
-                  been loaded, a custom (additional) baseline correction
-                  **may** be optionally applied by passing a tuple. Passing
-                  ``None`` will **not** remove the existing baseline
+                  **always** be baseline corrected (in fact, only the
+                  baseline-corrected version of the data will be saved, so
+                  there is no way to undo this procedure). Only **after** the
+                  data has been loaded, a custom (additional) baseline
+                  correction **may** be optionally applied by passing a tuple.
+                  Passing ``None`` will **not** remove the existing baseline
                   correction, but merely omit the optional, additional baseline
                   correction.
 
