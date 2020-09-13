@@ -195,7 +195,7 @@ Changelog
 
 - `~mne.Evoked` has gained new ``baseline``, ``tmin``, and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_
 
-- Trying to remove a baseline from already baseline-corrected data by passing ``baseline=None`` to `~mne.Epochs.apply_baseline` will now raise an exception, by `Richard Höchenberger`_
+- Trying to remove a baseline from already baseline-corrected data by passing ``baseline=None`` to `~mne.Epochs.apply_baseline` or `~mne.Evoked.apply_baseline` will now raise an exception, by `Richard Höchenberger`_
 
 Bug
 ~~~
