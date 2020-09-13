@@ -1304,11 +1304,16 @@ volume_options : float | dict | None
         Can be "mip" (default) for maximum intensity projection or
         "composite" for composite blending.
     - ``'alpha'`` : float | None
-        Alpha for the volumetric rendering. Uses 0.4 for vector source
+        Alpha for the volumetric rendering. Defaults are 0.4 for vector source
         estimates and 1.0 for scalar source estimates.
     - ``'surface_alpha'`` : float | None
-        Alpha for the surface enclosing the volume(s). None will use
+        Alpha for the surface enclosing the volume(s). None (default) will use
         half the volume alpha. Set to zero to avoid plotting the surface.
+    - ``'silhouette_alpha'`` : float | None
+        Alpha for a silhouette along the outside of the volume. None (default)
+        will use ``0.25 * surface_alpha``.
+    - ``'silhouette_linewidth'`` : float
+        The line width to use for the silhouette. Default is 2.
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
