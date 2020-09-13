@@ -1735,8 +1735,7 @@ docdict['baseline_evoked'] = docdict['baseline_evoked'].format(
     computation=baseline_computation_evoked)
 docdict['baseline_common_evoked'] = baseline_kwarg.format(
     data_type='evoked',
-    computation=baseline_computation_evoked
-)
+    computation=baseline_computation_evoked)
 
 docdict['baseline_report'] = baseline_kwarg.format(
     data_type="data's",

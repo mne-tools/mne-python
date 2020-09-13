@@ -160,14 +160,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(baseline_evoked)s
-        %(verbose_meth)s
+        baseline : tuple
+            Foo.
+        verbose : bool
+            Bar.
 
         Returns
         -------
         evoked : instance of Evoked
             The baseline-corrected Evoked object.
 
+        Notes
+        -----
         .. versionadded:: 0.13.0
         """
         _check_baseline(baseline, self.times[0], self.times[-1],

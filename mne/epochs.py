@@ -651,6 +651,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         epochs : instance of Epochs
             The baseline-corrected Epochs object.
 
+        Notes
+        -----
         .. versionadded:: 0.10.0
         .. versionchanged:: 0.21
            Once applied, a baseline cannot be removed again by passing
