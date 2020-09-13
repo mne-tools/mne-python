@@ -643,7 +643,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        %(baseline)s
+        %(baseline_epochs)s
         %(verbose_meth)s
 
         Returns
@@ -651,11 +651,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         epochs : instance of Epochs
             The baseline-corrected Epochs object.
 
-        Notes
-        -----
-        %(baseline_multiple)s
-
         .. versionadded:: 0.10.0
+        .. versionchanged:: 0.21
+           Once applied, a baseline cannot be removed again by passing
+           ``None``.
         """
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
 
@@ -1926,7 +1925,7 @@ class Epochs(BaseEpochs):
         Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
         End time after event. If nothing is provided, defaults to 0.5.
-    %(baseline)s
+    %(baseline_epochs)s
     %(picks_all)s
     preload : bool
         Load all epochs from disk when creating the object
@@ -2036,7 +2035,7 @@ class Epochs(BaseEpochs):
         Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
-    %(baseline_attribute)s
+    baseline : None | tuple of length 2
         The time interval considered as "baseline" when applying baseline
         correction. If the data has been preloaded, this attribute reflects
         whether it has been baseline-corrected (it will be a ``tuple``) or not
@@ -2194,7 +2193,7 @@ class EpochsArray(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    %(baseline)s
+    %(baseline_array)s
         Defaults to ``None``, i.e. no baseline correction.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.

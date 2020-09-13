@@ -109,7 +109,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     times :  array
         Time vector in seconds. The time interval between consecutive time
         samples is equal to the inverse of the sampling frequency.
-    %(baseline_attribute)s
+    baseline : None | tuple of length 2
         This attribute reflects whether the data has been baseline-corrected
         (it will be a ``tuple``) or not (it will be ``None``).
     %(verbose)s
@@ -160,17 +160,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(baseline)s
+        %(baseline_evoked)s
         %(verbose_meth)s
 
         Returns
         -------
         evoked : instance of Evoked
             The baseline-corrected Evoked object.
-
-        Notes
-        -----
-        %(baseline_multiple)s
 
         .. versionadded:: 0.13.0
         """
@@ -771,7 +767,7 @@ class EvokedArray(Evoked):
     kind : str
         Type of data, either average or standard_error. Defaults to 'average'.
     %(verbose)s
-    %(baseline)s
+    %(baseline_array)s
         Defaults to ``None``, i.e. no baseline correction.
 
         .. versionadded:: 0.21
@@ -994,7 +990,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
         list.
-    %(baseline)s
+    %(baseline_common_evoked)s
+
         If ``None`` (default), do not apply baseline correction.
 
         .. note:: Note that if the read  `~mne.Evoked` objects have already
@@ -1006,7 +1003,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
                   correction **may** be optionally applied by passing a tuple.
                   Passing ``None`` will **not** remove the existing baseline
                   correction, but merely omit the optional, additional baseline
-                  correction.
+                  correction
 
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
@@ -1023,8 +1020,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     Returns
     -------
     evoked : Evoked or list of Evoked
-        The evoked dataset(s); one Evoked if condition is int or str,
-        or list of Evoked if condition is None or list.
+        The evoked dataset(s); one `~mne.Evoked` if condition is ``int`` or
+        ``str``, or list of Evoked if condition is ``None`` or ``list``.
 
     See Also
     --------

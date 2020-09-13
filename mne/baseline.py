@@ -71,7 +71,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
         dimension should be time.
     times : 1D array
         Time instants is seconds.
-    %(rescale_baseline)s
+    %(baseline_array)s
     mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
         Perform baseline correction by
 
