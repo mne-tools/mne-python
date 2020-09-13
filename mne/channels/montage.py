@@ -186,11 +186,12 @@ class DigMontage(object):
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=True, kind='topomap', show=True,
-             sphere=None):
+             sphere=None, verbose=None):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
                             sphere=sphere)
 
+    @fill_doc
     def rename_channels(self, mapping):
         """Rename the channels.
 
@@ -519,7 +520,6 @@ def read_dig_hpts(fname, unit='mm'):
         eeg    FP2  -31.9297  -70.6852  -57.4881
         eeg    F7  -6.1042  -68.2969   45.4939
         ...
-
     """
     from ._standard_montage_utils import _str_names, _str
     _scale = _check_unit_and_get_scaling(unit)
@@ -892,7 +892,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
         points otherwise.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
-        exported in meters. Defaults to 'm'
+        exported in meters. Defaults to 'm'.
 
     Returns
     -------
@@ -966,7 +966,7 @@ def read_polhemus_fastscan(fname, unit='mm'):
         The filepath of .txt Polhemus FastSCAN file.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
-        exported in millimeters. Defaults to 'mm'
+        exported in millimeters. Defaults to 'mm'.
 
     Returns
     -------
@@ -1029,6 +1029,11 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     montage : instance of DigMontage
         The montage.
 
+    See Also
+    --------
+    make_dig_montage
+    make_standard_montage
+
     Notes
     -----
     The function is a helper to read electrode positions you may have
@@ -1039,11 +1044,6 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     10/10 or 10/05) we recommend you use :func:`make_standard_montage`.
     If you can have positions in memory you can also use
     :func:`make_dig_montage` that takes arrays as input.
-
-    See Also
-    --------
-    make_dig_montage
-    make_standard_montage
     """
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
