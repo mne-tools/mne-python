@@ -1049,8 +1049,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         elif baseline is None and evoked.baseline is not None:
             # Don't touch an existing baseline.
             bmin, bmax = evoked.baseline
-            bmin = None if bmin is None else f'{bmin:.3f}'
-            bmax = None if bmax is None else f'{bmax:.3f}'
+            bmin = None if bmin is None else f'{round(bmin, 3):.3f}'
+            bmax = None if bmax is None else f'{round(bmax, 3):.3f}'
             unit = '' if bmin is None and bmax is None else ' sec'
 
             logger.info(f'Loaded data is baseline-corrected '

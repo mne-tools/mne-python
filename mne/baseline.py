@@ -48,8 +48,8 @@ def _log_rescale(baseline, mode='mean'):
         _check_option('mode', mode, ['logratio', 'ratio', 'zscore', 'mean',
                                      'percent', 'zlogratio'])
         bmin, bmax = baseline
-        bmin = None if bmin is None else f'{bmin:.3f}'
-        bmax = None if bmax is None else f'{bmax:.3f}'
+        bmin = None if bmin is None else f'{round(bmin, 3):.3f}'
+        bmax = None if bmax is None else f'{round(bmax, 3):.3f}'
         unit = '' if bmin is None and bmax is None else ' sec'
 
         msg = (f'Applying baseline correction '
