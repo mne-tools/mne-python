@@ -160,10 +160,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        baseline : tuple
-            Foo.
-        verbose : bool
-            Bar.
+        %(baseline_evoked)s
+        %(verbose_meth)s
 
         Returns
         -------
