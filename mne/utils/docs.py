@@ -1720,7 +1720,8 @@ baseline_default = """
     time point zero.
 
     .. versionchanged:: 0.21
-       Once applied, a baseline cannot be removed again by passing ``None``.
+       Once applied, a baseline **cannot** be removed anymore by passing
+       ``None``.
 """
 docdict['rescale_baseline'] = baseline_top + baseline_none + baseline_bottom
 docdict['baseline'] = (baseline_top + baseline_bottom + baseline_mean +

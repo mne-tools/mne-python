@@ -1927,8 +1927,6 @@ class Epochs(BaseEpochs):
     tmax : float
         End time after event. If nothing is provided, defaults to 0.5.
     %(baseline)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until
-        time point zero.
     %(picks_all)s
     preload : bool
         Load all epochs from disk when creating the object
