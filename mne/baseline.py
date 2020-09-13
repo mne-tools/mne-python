@@ -47,7 +47,13 @@ def _log_rescale(baseline, mode='mean'):
     if baseline is not None:
         _check_option('mode', mode, ['logratio', 'ratio', 'zscore', 'mean',
                                      'percent', 'zlogratio'])
-        msg = 'Applying baseline correction (mode: %s)' % mode
+        bmin, bmax = baseline
+        bmin = None if bmin is None else f'{bmin:.3f}'
+        bmax = None if bmin is None else f'{bmax:.3f}'
+        unit = '' if bmin is None and bmax is None else ' sec'
+
+        msg = (f'Applying baseline correction '
+               f'(baseline: [{bmin}, {bmax}]{unit}, mode: {mode})')
     else:
         msg = 'No baseline correction applied'
     return msg
