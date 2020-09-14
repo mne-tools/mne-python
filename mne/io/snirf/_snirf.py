@@ -226,12 +226,12 @@ class RawSNIRF(BaseRaw):
                 '/nirs/metaDataTags/MeasurementDate')))[0].decode('UTF-8')
             str_time = np.array((dat.get(
                 '/nirs/metaDataTags/MeasurementTime')))[0].decode('UTF-8')
-            str_datetime = str_date + "T" + str_time
+            str_datetime = str_date + str_time
 
             meas_date = None
             # Several formats have been observed so we try each in turn
-            for dt_code in ['%Y-%m-%dT%H:%M:%SZ',
-                            '%Y-%m-%dT%H:%M:%S']:
+            for dt_code in ['%Y-%m-%d%H:%M:%SZ',
+                            '%Y-%m-%d%H:%M:%S']:
                 try:
                     meas_date = datetime.datetime.strptime(
                         str_datetime, dt_code)
