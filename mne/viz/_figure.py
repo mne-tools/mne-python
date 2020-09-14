@@ -169,13 +169,11 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _set_active_button(self, idx):
         """Set active button in annotation dialog figure."""
-        from matplotlib import rcParams
         buttons = self.mne.radio_ax.buttons
         with _events_off(buttons):
             buttons.set_active(idx)
-        bgcolor = rcParams['axes.facecolor']
         for circle in buttons.circles:
-            circle.set_facecolor(bgcolor)
+            circle.set_facecolor(self.mne.parent_fig.mne.bgcolor)
         # active circle gets filled in, partially transparent
         color = list(buttons.circles[idx].get_edgecolor())
         color[-1] = 0.5
@@ -400,7 +398,8 @@ class MNEBrowseFigure(MNEFigure):
             ax_main=ax, ax_help=ax_help, ax_proj=ax_proj,
             ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
-            vline_hscroll=vline_hscroll, vline_text=vline_text)
+            vline_hscroll=vline_hscroll, vline_text=vline_text,
+            fgcolor=fgcolor, bgcolor=bgcolor)
 
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
@@ -691,8 +690,6 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_butterfly(self):
         """Enter or leave butterfly mode."""
-        from matplotlib import rcParams
-        bgcolor = rcParams['axes.facecolor']
         self.mne.ax_vscroll.set_visible(self.mne.butterfly)
         self.mne.butterfly = not self.mne.butterfly
         self.mne.scale_factor *= 0.5 if self.mne.butterfly else 2.
@@ -704,7 +701,8 @@ class MNEBrowseFigure(MNEFigure):
             # Show all radio buttons as selected when in butterfly mode
             fig = self.mne.fig_selection
             buttons = fig.mne.radio_ax.buttons
-            color = buttons.activecolor if self.mne.butterfly else bgcolor
+            color = (buttons.activecolor if self.mne.butterfly else
+                     self.mne.bgcolor)
             for circle in buttons.circles:
                 circle.set_facecolor(color)
             # update the sensors too
@@ -1070,7 +1068,7 @@ class MNEBrowseFigure(MNEFigure):
                 annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
                 self.mne.annotations.append(annot)
                 xy = (visible_segment.mean(), ylim[1])
-                text = ax.annotate(descr, xy, xytext=(0, 4),
+                text = ax.annotate(descr, xy, xytext=(0, 9),
                                    textcoords='offset points', ha='center',
                                    va='baseline', color=segment_color)
                 self.mne.annotation_texts.append(text)
@@ -1092,8 +1090,6 @@ class MNEBrowseFigure(MNEFigure):
 
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
-        from matplotlib import rcParams
-        fgcolor = rcParams['axes.edgecolor']
         from matplotlib.colors import to_rgb
         from matplotlib.widgets import RadioButtons
         # make figure
@@ -1117,14 +1113,14 @@ class MNEBrowseFigure(MNEFigure):
         selections_dict.update(Custom=np.array([], dtype=int))  # for lasso
         labels = list(selections_dict)
         # make & style the radio buttons
-        activecolor = to_rgb(fgcolor) + (0.5,)
+        activecolor = to_rgb(self.mne.fgcolor) + (0.5,)
         radio_ax.buttons = RadioButtons(radio_ax, labels,
                                         activecolor=activecolor)
         fig.mne.old_selection = 0
         for circle in radio_ax.buttons.circles:
             circle.set_radius(0.25 / len(labels))
             circle.set_linewidth(2)
-            circle.set_edgecolor(fgcolor)
+            circle.set_edgecolor(self.mne.fgcolor)
         # add instructions at bottom
         instructions = (
             'To use a custom selection, first click-drag on the sensor plot '
@@ -1562,9 +1558,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _draw_traces(self):
         """Draw (or redraw) the channel data."""
-        from matplotlib import rcParams
         from matplotlib.colors import to_rgba_array
-        fgcolor = rcParams['axes.edgecolor']
         # convenience
         butterfly = self.mne.butterfly
         offsets = self.mne.trace_offsets
@@ -1584,7 +1578,7 @@ class MNEBrowseFigure(MNEFigure):
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         if butterfly:
             for label in labels:
-                label.set_color(fgcolor)
+                label.set_color(self.mne.fgcolor)
         else:
             for label, color in zip(labels, ch_colors):
                 label.set_color(color)
@@ -1672,8 +1666,9 @@ class MNEBrowseFigure(MNEFigure):
             for _t, _n, _c in zip(this_event_times, this_event_nums, colors):
                 label = self.mne.event_id_rev.get(_n, _n)
                 this_text = self.mne.ax_main.annotate(
-                    label, (_t, ylim[1]), ha='center', va='baseline', color=_c,
-                    xytext=(0, 4), textcoords='offset points')
+                    label, (_t, ylim[1]), ha='center', va='baseline',
+                    color=self.mne.fgcolor, xytext=(0, 2),
+                    textcoords='offset points', fontsize=8)
                 self.mne.event_texts.append(this_text)
 
     def _show_vline(self, xdata):
