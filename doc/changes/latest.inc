@@ -195,6 +195,8 @@ Changelog
 
 - Use PyVista as the default backend for 3D visualization instead of Mayavi by `Guillaume Favelier`_
 
+- Add reader for SNIRF NIRS data in :func:`mne.io.read_raw_snirf` by `Robert Luke`_
+
 - `~mne.Evoked` has gained new ``baseline``, ``tmin``, and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_
 
 - Trying to remove a baseline from already baseline-corrected data by passing ``baseline=None`` to `~mne.Epochs.apply_baseline` or `~mne.Evoked.apply_baseline` will now raise an exception, by `Richard Höchenberger`_
