@@ -240,9 +240,9 @@ class RawSNIRF(BaseRaw):
                 except ValueError:
                     pass
             if meas_date is None:
-                warn("Extraction of measurement date from SNIRF file failed. "
+                warn(f"Extraction of measurement date from SNIRF file failed. "
                      "The date is being set to January 1st, 2000, "
-                     "instead of {}".format(str_datetime))
+                     "instead of {str_datetime}")
                 meas_date = datetime.datetime(
                     2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
             info['meas_date'] = meas_date

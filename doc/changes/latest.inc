@@ -193,6 +193,8 @@ Changelog
 
 - Use PyVista as the default backend for 3D visualization instead of Mayavi by `Guillaume Favelier`_
 
+- Add reader for SNIRF NIRS data in :func:`mne.io.read_raw_snirf` by `Robert Luke`_
+
 Bug
 ~~~
 
