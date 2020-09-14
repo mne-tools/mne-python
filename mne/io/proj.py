@@ -443,7 +443,7 @@ def _read_proj(fid, node, verbose=None):
     if len(projs) > 0:
         logger.info('    Read a total of %d projection items:' % len(projs))
         for proj in projs:
-            misc = 'active' if proj['active'] else 'idle'
+            misc = 'active' if proj['active'] else ' idle'
             logger.info(f'        {proj["desc"]} '
                         f'({proj["data"]["nrow"]} x '
                         f'{len(proj["data"]["col_names"])}) {misc}')
