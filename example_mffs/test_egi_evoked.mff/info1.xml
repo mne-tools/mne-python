@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<dataInfo xmlns="http://www.egi.com/info_n_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <generalInformation>
+        <fileDataType>
+            <EEG>
+                <EEGFile />
+                <sensorLayoutName>HydroCel GSN 256 1.0</sensorLayoutName>
+                <montageName>HydroCel GSN 256 1.0</montageName>
+            </EEG>
+        </fileDataType>
+    </generalInformation>
+    <hardwareFilterAdjusted shiftMicroseconds="112000">true</hardwareFilterAdjusted>
+    <filters />
+    <calibrations />
+</dataInfo>

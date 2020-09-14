@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<categories xmlns="http://www.egi.com/categories_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <cat>
+        <name>Category 1</name>
+        <segments>
+            <seg status="unedited">
+                <name>Average</name>
+                <beginTime>0</beginTime>
+                <endTime>20000</endTime>
+                <evtBegin>12000</evtBegin>
+                <evtEnd>12000</evtEnd>
+                <channelStatus>
+                    <channels signalBin="1" exclusion="badChannels">8 11 17 28</channels>
+                    <channels signalBin="2" exclusion="badChannels">1</channels>
+                </channelStatus>
+                <keys>
+                    <key>
+                        <keyCode>#seg</keyCode>
+                        <data dataType="long">3</data>
+                    </key>
+                    <key>
+                        <keyCode>subj</keyCode>
+                        <data dataType="person">example_3</data>
+                    </key>
+                    <key>
+                        <keyCode>FILE</keyCode>
+                        <data dataType="fileReference">example_3_seg.mff</data>
+                    </key>
+                </keys>
+            </seg>
+        </segments>
+    </cat>
+    <cat>
+        <name>Category 2</name>
+        <segments>
+            <seg status="unedited">
+                <name>Average</name>
+                <beginTime>20000</beginTime>
+                <endTime>24000</endTime>
+                <evtBegin>24000</evtBegin>
+                <evtEnd>24000</evtEnd>
+                <channelStatus>
+                    <channels signalBin="1" exclusion="badChannels">257</channels>
+                    <channels signalBin="2" exclusion="badChannels">2</channels>
+                </channelStatus>
+                <keys>
+                    <key>
+                        <keyCode>#seg</keyCode>
+                        <data dataType="long">3</data>
+                    </key>
+                    <key>
+                        <keyCode>subj</keyCode>
+                        <data dataType="person">example_3</data>
+                    </key>
+                    <key>
+                        <keyCode>FILE</keyCode>
+                        <data dataType="fileReference">example_3_seg.mff</data>
+                    </key>
+                </keys>
+            </seg>
+        </segments>
+    </cat>
+</categories>

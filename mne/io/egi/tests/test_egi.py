@@ -14,7 +14,7 @@ from scipy import io as sio
 
 
 from mne import find_events, pick_types
-from mne.io import read_raw_egi
+from mne.io import read_raw_egi, read_evokeds_mff
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi.egi import _combine_triggers
 from mne.utils import run_tests_if_main
@@ -29,6 +29,10 @@ egi_mff_pns_fname = op.join(egi_path, 'test_egi_pns.mff')
 egi_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
 egi_eprime_pause_fname = op.join(egi_path, 'test_egi_multiepoch_eprime.mff')
 egi_pause_w1337_fname = op.join(egi_path, 'w1337_20191014_105416.mff')
+# Example MFFs are stored in a separate repository mne-tools/mne-testing-data
+egi_mff_evoked_fname = op.join('example_mffs', 'test_egi_evoked.mff')
+egi_txt_evoked_cat1_fname = op.join('example_mffs', 'test_egi_evoked_cat1.txt')
+egi_txt_evoked_cat2_fname = op.join('example_mffs', 'test_egi_evoked_cat2.txt')
 
 # absolute event times from NetStation
 egi_pause_events = {'AM40': [7.224, 11.928, 14.413, 16.848],
@@ -286,6 +290,37 @@ def test_io_egi_crop_no_preload():
     raw_preload.crop(17.5, 20.5)
     raw_preload.load_data()
     assert_allclose(raw._data, raw_preload._data)
+
+
+@pytest.mark.parametrize('idx, cond, signals, bads', [
+    (0, 'Category 1', egi_txt_evoked_cat1_fname,
+     ['E8', 'E11', 'E17', 'E28', 'ECG']),
+    (1, 'Category 2', egi_txt_evoked_cat2_fname,
+     ['E257', 'EMG'])
+])
+def test_io_egi_evoked_mff(idx, cond, signals, bads):
+    """Test reading evoked MFF file."""
+    # Test reading all conditions from evokeds
+    evokeds = read_evokeds_mff(egi_mff_evoked_fname)
+    assert_equal(len(evokeds), 2)
+    # Test reading evoked data from single condition
+    evoked_cond = read_evokeds_mff(egi_mff_evoked_fname, condition=cond)
+    evoked_idx = read_evokeds_mff(egi_mff_evoked_fname, condition=idx)
+    # Check signal data
+    data = np.loadtxt(signals, ndmin=2).transpose() * 1e-6 # convert to volts
+    assert_allclose(evoked_cond.data, data, atol=1e-6)
+    assert_allclose(evoked_idx.data, data, atol=1e-6)
+    # Check info
+    assert_equal(evoked_cond.info, evoked_idx.info)
+    assert_equal(evoked_cond.info['description'], cond)
+    assert_equal(evoked_cond.info['bads'], bads)
+    assert_equal(len(evoked_cond.info['ch_names']), 259)
+    assert 'ECG' in evoked_cond.info['ch_names']
+    assert 'EMG' in evoked_cond.info['ch_names']
+    pick_eeg = pick_types(evoked_cond.info, eeg=True, exclude=[])
+    assert_equal(len(pick_eeg), 257)
+    assert_equal(evoked_cond.info['nchan'], 259)
+    assert_equal(evoked_cond.info['sfreq'], 250.0)
 
 
 run_tests_if_main()

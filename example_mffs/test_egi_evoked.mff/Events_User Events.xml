@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<eventTrack xmlns="http://www.egi.com/event_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <name>User Events</name>
+    <trackType>EVNT</trackType>
+    <event>
+        <beginTime>2020-09-14T12:45:24.169179-07:00</beginTime>
+        <relativeBeginTime>12000</relativeBeginTime>
+        <duration>1000</duration>
+        <code>cat1</code>
+        <label>category_1</label>
+        <segmentationEvent>false</segmentationEvent>
+        <keys />
+    </event>
+    <event>
+        <beginTime>2020-09-14T12:45:24.169179-07:00</beginTime>
+        <relativeBeginTime>12000</relativeBeginTime>
+        <duration>1000</duration>
+        <code>cat1</code>
+        <label>category_1</label>
+        <segmentationEvent>false</segmentationEvent>
+        <keys />
+    </event>
+</eventTrack>

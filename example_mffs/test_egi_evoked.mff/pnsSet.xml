@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<PNSSet xmlns="http://www.egi.com/pnsSet_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <name>Physio 16 set 60hz 1.0</name>
+    <ampSeries>400</ampSeries>
+    <sensors>
+        <sensor>
+            <name>ECG</name>
+            <number>0</number>
+            <unit>uV</unit>
+            <psgType>0</psgType>
+            <mapping>1</mapping>
+            <samplingRate>0</samplingRate>
+            <sensorType>ECG</sensorType>
+            <highpass>0.3000000119</highpass>
+            <lowpass>70</lowpass>
+            <notch>60</notch>
+            <groupNumber>1</groupNumber>
+            <gain>1</gain>
+            <defaultDisplayAmplitude>7.5</defaultDisplayAmplitude>
+            <highpassDisplay>0.3000000119</highpassDisplay>
+            <lowpassDisplay>70</lowpassDisplay>
+            <notchDisplay>60</notchDisplay>
+            <color>0.0000,0.0000,0.0000,1.0000</color>
+            <positiveUp>false</positiveUp>
+        </sensor>
+        <sensor>
+            <name>EMG</name>
+            <number>1</number>
+            <unit>uV</unit>
+            <psgType>0</psgType>
+            <mapping>2</mapping>
+            <samplingRate>0</samplingRate>
+            <sensorType>EMG</sensorType>
+            <highpass>10</highpass>
+            <lowpass>100</lowpass>
+            <notch>60</notch>
+            <groupNumber>1</groupNumber>
+            <gain>1</gain>
+            <defaultDisplayAmplitude>7.5</defaultDisplayAmplitude>
+            <highpassDisplay>10</highpassDisplay>
+            <lowpassDisplay>100</lowpassDisplay>
+            <notchDisplay>60</notchDisplay>
+            <color>0.0000,0.0000,0.0000,1.0000</color>
+            <positiveUp>false</positiveUp>
+        </sensor>
+    </sensors>
+</PNSSet>

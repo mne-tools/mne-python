@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<historyEntries xmlns="http://www.egi.com/history_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <entry>
+        <tool>
+            <name>sample_seg</name>
+            <method>Segmentation</method>
+            <version>5.4.2</version>
+            <beginTime>2020-09-14T12:45:13.806749-07:00</beginTime>
+            <endTime>2020-09-14T12:45:14.012411-07:00</endTime>
+            <sourceFiles>
+                <filePath type="" creator="">/Volumes/Elements/MNE/PNS_Data/example_3.mff</filePath>
+            </sourceFiles>
+            <settings>
+                <setting>  1: Rules for category &quot;Category 1&quot;</setting>
+                <setting>    Milliseconds Before: 10</setting>
+                <setting>    Milliseconds After: 10</setting>
+                <setting>    Milliseconds Offset: 0</setting>
+                <setting>    Event 1:</setting>
+                <setting>        Code is &quot;cat1&quot;</setting>
+                <setting>  2: Rules for category &quot;Category 2&quot;</setting>
+                <setting>    Milliseconds Before: 2</setting>
+                <setting>    Milliseconds After: 2</setting>
+                <setting>    Milliseconds Offset: 0</setting>
+                <setting>    Event 1:</setting>
+                <setting>        Code is &quot;cat2&quot;</setting>
+            </settings>
+            <results>
+                <result>Segmented to 2 categories and 6 segments</result>
+                <result>    1  : &quot;Category 1&quot; has 3 segments</result>
+                <result>    2  : &quot;Category 2&quot; has 3 segments</result>
+            </results>
+        </tool>
+    </entry>
+    <entry>
+        <tool>
+            <name>sample_ave</name>
+            <method>Averaging</method>
+            <version>5.4.2</version>
+            <beginTime>2020-09-14T12:45:24.157129-07:00</beginTime>
+            <endTime>2020-09-14T12:45:24.931729-07:00</endTime>
+            <sourceFiles>
+                <filePath>/Volumes/Elements/MNE/PNS_Data/example_3_seg.mff</filePath>
+            </sourceFiles>
+            <settings>
+                <setting>Handle source files together</setting>
+                <setting>Subjects are not averaged together.</setting>
+            </settings>
+            <results>
+                <result>Subjects processed</result>
+                <result>example_3</result>
+                <result>     1: &apos;Category 1&apos; has 1 segments.</result>
+                <result>     2: &apos;Category 2&apos; has 1 segments.</result>
+            </results>
+        </tool>
+    </entry>
+</historyEntries>
