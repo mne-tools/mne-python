@@ -4,6 +4,7 @@
 
 import re
 import numpy as np
+import datetime
 
 from ..base import BaseRaw
 from ..meas_info import create_info
@@ -220,6 +221,24 @@ class RawSNIRF(BaseRaw):
                                                hpi=hpi, dig_ch_pos=extra_ps,
                                                coord_frame=_frame_to_str[
                                                    coord_frame])
+
+            str_date = str(np.array((dat.get('/nirs/metaDataTags'
+                                             '/MeasurementDate'))))
+            str_time = str(np.array((dat.get('/nirs/metaDataTags'
+                                             '/MeasurementTime'))))
+            str_datetime = str_date + "T" + str_time
+            info['meas_date'] = datetime.datetime.strptime(str_datetime,
+                                                           '%Y-%m-%dT'
+                                                           '%H:%M:%SZ')
+            info['meas_date'] = info['meas_date'].replace(
+                tzinfo=datetime.timezone.utc)
+
+            str_birth = str(np.array((dat.get('/nirs/metaDataTags/'
+                                              'DateOfBirth'))))
+            birth_matched = re.fullmatch(r'(\d+)-(\d+)-(\d+)', str_birth)
+            info["subject_info"]['birthday'] = (int(birth_matched.groups()[0]),
+                                                int(birth_matched.groups()[1]),
+                                                int(birth_matched.groups()[2]))
 
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
                                            last_samps=[last_samps],
