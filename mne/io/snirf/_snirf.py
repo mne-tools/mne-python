@@ -248,7 +248,8 @@ class RawSNIRF(BaseRaw):
             info['meas_date'] = meas_date
 
             if 'DateOfBirth' in dat.get('nirs/metaDataTags/'):
-                str_birth = np.array((dat.get('/nirs/metaDataTags/DateOfBirth')))[0].decode()
+                str_birth = np.array((dat.get('/nirs/metaDataTags/'
+                                              'DateOfBirth')))[0].decode()
                 birth_matched = re.fullmatch(r'(\d+)-(\d+)-(\d+)', str_birth)
                 if birth_matched is not None:
                     info["subject_info"]['birthday'] = (
