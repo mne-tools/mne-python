@@ -30,7 +30,8 @@ from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
                     _set_ax_label_style, _draw_vert_line, _simplify_float,
-                    _check_psd_fmax, _set_window_title)
+                    _check_psd_fmax, _set_window_title,
+                    shorten_path_from_middle)
 
 
 def _plot_update_raw_proj(params, bools):
@@ -227,8 +228,8 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             title = fnames.pop(0)
             extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
             title = f'{title}{extra}'
-            prefix = '...' if len(title) > 60 else ''
-            title = f'{prefix}{title[-60:]}'
+            if len(title) > 60:
+                title = shorten_path_from_middle(title)
     elif not isinstance(title, str):
         raise TypeError(f'title must be None or a string, got a {type(title)}')
 
