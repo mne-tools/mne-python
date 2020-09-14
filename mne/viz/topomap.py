@@ -1385,17 +1385,17 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     cmap = _setup_cmap(cmap, norm=norm)
 
-    ax = plt.subplots(figsize=(size, size))[1] if axes is None else axes
+    axes = plt.subplots(figsize=(size, size))[1] if axes is None else axes
     fig = axes.figure
 
-    _hide_frame(ax)
+    _hide_frame(axes)
 
     locator = None
     if not isinstance(contours, (list, np.ndarray)):
         locator, contours = _set_contour_locator(vmin, vmax, contours)
 
     if title is not None:
-        ax.set_title(title)
+        axes.set_title(title)
     fig_wrapper = list()
     selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
@@ -1405,7 +1405,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                         axes=ax, cmap=cmap[0], image_interp='bilinear',
+                         axes=axes, cmap=cmap[0], image_interp='bilinear',
                          contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
                          sensors=sensors, res=res, ch_type=ch_type,
@@ -1414,7 +1414,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if colorbar:
         from matplotlib import ticker
         unit = _handle_default('units', unit)['misc']
-        cbar, cax = _add_colorbar(ax, im, cmap, title=unit, format=cbar_fmt)
+        cbar, cax = _add_colorbar(axes, im, cmap, title=unit, format=cbar_fmt)
         if locator is None:
             locator = ticker.MaxNLocator(nbins=5)
         cbar.locator = locator
@@ -2124,7 +2124,9 @@ def _prepare_topomap(pos, ax, check_nonzero=True):
 
 def _hide_frame(ax):
     """Hide axis frame for topomaps."""
-    ax.set(xticks=[], yticks=[])
+    ax.get_yticks()
+    ax.xaxis.set_ticks([])
+    ax.yaxis.set_ticks([])
     ax.set_frame_on(False)
 
 
