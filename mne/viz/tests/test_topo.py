@@ -192,7 +192,8 @@ def test_plot_topo_single_ch():
     evoked2 = evoked.copy()
     # test plotting several evokeds on different time grids
     evoked.crop(-.19, 0)
-    evoked2.crop(.05, .19)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked2.crop(.05, .19)
     fig = plot_evoked_topo([evoked, evoked2], background_color='w')
     # test status bar message
     ax = plt.gca()

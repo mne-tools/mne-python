@@ -722,9 +722,13 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
     # evokeds and then performing the inverse should yield the same result as
     # computing the difference between the inverses.
     evoked0 = read_evokeds(fname_data, condition=0, baseline=(None, 0))
-    evoked0.crop(0, 0.2)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked0.crop(0, 0.2)
+
     evoked1 = read_evokeds(fname_data, condition=1, baseline=(None, 0))
-    evoked1.crop(0, 0.2)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked1.crop(0, 0.2)
+
     diff = combine_evoked((evoked0, evoked1), [1, -1])
     stc_diff = apply_inverse(diff, inv_1, method='MNE')
     stc_diff_vec = apply_inverse(diff, inv_1, method='MNE', pick_ori='vector')

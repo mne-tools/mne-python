@@ -195,6 +195,10 @@ Changelog
 
 - Use PyVista as the default backend for 3D visualization instead of Mayavi by `Guillaume Favelier`_
 
+- `~mne.Evoked` has gained new ``baseline``, ``tmin``, and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_
+
+- Trying to remove a baseline from already baseline-corrected data by passing ``baseline=None`` to `~mne.Epochs.apply_baseline` or `~mne.Evoked.apply_baseline` will now raise an exception, by `Richard Höchenberger`_
+
 Bug
 ~~~
 
@@ -360,6 +364,8 @@ Bug
 - Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' by `Liberty Hamilton`_
 
 - Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length by `Steven Bierer`_
+
+- Fix bug in `~mne.Epochs.apply_baseline` that would – in some situations – lead to an update of the ``baseline`` attribute, even if the data wasn't actually rescaled, by `Richard Höchenberger`_
 
 API
 ~~~

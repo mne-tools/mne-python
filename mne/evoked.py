@@ -9,9 +9,10 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import re
 import numpy as np
 
-from .baseline import rescale
+from .baseline import rescale, _check_baseline, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
@@ -38,6 +39,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield
+
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -92,18 +94,24 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Number of averaged epochs.
     kind : str
         Type of data, either average or standard_error.
-    first : int
-        First time sample.
-    last : int
-        Last time sample.
     comment : str
         Comment on dataset. Can be the condition.
     data : array of shape (n_channels, n_times)
         Evoked response.
+    first : int
+        First time sample.
+    last : int
+        Last time sample.
+    tmin : float
+        The first time point in seconds.
+    tmax : float
+        The last time point in seconds.
     times :  array
-        Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
-        between consecutive time samples is equal to the inverse of the
-        sampling frequency.
+        Time vector in seconds. The time interval between consecutive time
+        samples is equal to the inverse of the sampling frequency.
+    baseline : None | tuple of length 2
+        This attribute reflects whether the data has been baseline-corrected
+        (it will be a ``tuple``) or not (it will be ``None``).
     %(verbose)s
 
     Notes
@@ -118,11 +126,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
         self.info, self.nave, self._aspect_kind, self.comment, self.times, \
-            self.data = _read_evoked(fname, condition, kind, allow_maxshield)
+            self.data, self.baseline = _read_evoked(fname, condition, kind,
+                                                    allow_maxshield)
         self._update_first_last()
         self.verbose = verbose
         self.preload = True
-        # project and baseline correct
         if proj:
             self.apply_proj()
 
@@ -152,9 +160,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(baseline)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
-            time point zero.
+        %(baseline_evoked)s
         %(verbose_meth)s
 
         Returns
@@ -164,11 +170,21 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
-        Baseline correction can be done multiple times.
-
         .. versionadded:: 0.13.0
         """
-        self.data = rescale(self.data, self.times, baseline, copy=False)
+        _check_baseline(baseline, self.times[0], self.times[-1],
+                        self.info['sfreq'])
+        if self.baseline is not None and baseline is None:
+            raise ValueError('The data has already been baseline-corrected. '
+                             'Cannot remove existing basline correction.')
+        elif baseline is None:
+            # Do not rescale
+            logger.info(_log_rescale(None))
+        else:
+            # Atually baseline-correct the data. Logging happens in rescale().
+            self.data = rescale(self.data, self.times, baseline, copy=False)
+            self.baseline = baseline
+
         return self
 
     def save(self, fname):
@@ -184,6 +200,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         To write multiple conditions into a single file, use
         :func:`mne.write_evokeds`.
+
+        .. versionchanged:: 0.21
+            Information on baseline correction will be stored with the dataset,
+            and will be restored when reading the data again via
+            `~mne.read_evokeds`.
         """
         write_evokeds(fname, self)
 
@@ -198,6 +219,22 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def ch_names(self):
         """Channel names."""
         return self.info['ch_names']
+
+    @property
+    def tmin(self):
+        """First time point.
+
+        .. versionadded:: 0.21
+        """
+        return self.times[0]
+
+    @property
+    def tmax(self):
+        """Last time point.
+
+        .. versionadded:: 0.21
+        """
+        return self.times[-1]
 
     @fill_doc
     def crop(self, tmin=None, tmax=None, include_tmax=True):
@@ -220,11 +257,45 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         %(notes_tmax_included_by_default)s
         """
+        if tmin is None:
+            tmin = self.tmin
+        elif tmin < self.tmin:
+            warn('tmin is not in Evoked time interval. tmin is set to '
+                 'Evoked.tmin')
+            tmin = self.tmin
+
+        if tmax is None:
+            tmax = self.tmax
+        elif tmax > self.tmax:
+            warn('tmax is not in Evoked time interval. tmax is set to '
+                 'Evoked.tmax')
+            tmax = self.tmax
+
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
         self.times = self.times[mask]
         self._update_first_last()
         self.data = self.data[:, mask]
+
+        try:
+            _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
+        except ValueError as err:
+            err_msg = str(err)
+            acceptable_msgs = (
+                'Baseline interval is only one sample',
+                'Baseline interval (tmin = .*) is outside of data range',
+                'Baseline interval (tmax = .*) is outside of data range',
+                'Baseline min (.*) must be less than baseline max'
+            )
+
+            if any([re.match(regexp, err_msg) for regexp in acceptable_msgs]):
+                # The baseline period no longer applies, so wipe it out.
+                warn('Cropping removes baseline period, setting baseline=None')
+                self.baseline = None
+            else:
+                # Something unexpected happened.
+                raise err
+
         return self
 
     @verbose
@@ -698,6 +769,10 @@ class EvokedArray(Evoked):
     kind : str
         Type of data, either average or standard_error. Defaults to 'average'.
     %(verbose)s
+    %(baseline_array)s
+        Defaults to ``None``, i.e. no baseline correction.
+
+        .. versionadded:: 0.21
 
     See Also
     --------
@@ -716,7 +791,7 @@ class EvokedArray(Evoked):
 
     @verbose
     def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
-                 verbose=None):  # noqa: D102
+                 verbose=None, baseline=None):  # noqa: D102
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -748,6 +823,8 @@ class EvokedArray(Evoked):
             raise ValueError('unknown kind "%s", should be "average" or '
                              '"standard_error"' % (self.kind,))
         self._aspect_kind = _aspect_dict[self.kind]
+        self.baseline = baseline
+        self.apply_baseline(self.baseline, verbose=verbose)
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -902,6 +979,11 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
                  proj=True, allow_maxshield=False, verbose=None):
     """Read evoked dataset(s).
 
+    .. versionchanged:: 0.21
+        If the read `~mne.Evoked` objects had been baseline-corrected before
+        saving, this will be reflected in their ``baseline`` attribute after
+        reading.
+
     Parameters
     ----------
     fname : str
@@ -910,8 +992,21 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
         list.
-    %(baseline)s
-        Defaults to ``None``, i.e. no baseline correction.
+    %(baseline_common_evoked)s
+
+        If ``None`` (default), do not apply baseline correction.
+
+        .. note:: Note that if the read  `~mne.Evoked` objects have already
+                  been baseline-corrected, the data retrieved from disk will
+                  **always** be baseline corrected (in fact, only the
+                  baseline-corrected version of the data will be saved, so
+                  there is no way to undo this procedure). Only **after** the
+                  data has been loaded, a custom (additional) baseline
+                  correction **may** be optionally applied by passing a tuple.
+                  Passing ``None`` will **not** remove the existing baseline
+                  correction, but merely omit the optional, additional baseline
+                  correction
+
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
@@ -927,8 +1022,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     Returns
     -------
     evoked : Evoked or list of Evoked
-        The evoked dataset(s); one Evoked if condition is int or str,
-        or list of Evoked if condition is None or list.
+        The evoked dataset(s); one `~mne.Evoked` if condition is ``int`` or
+        ``str``, or list of Evoked if condition is ``None`` or ``list``.
 
     See Also
     --------
@@ -945,10 +1040,25 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition = [condition]
         return_list = False
 
-    out = [Evoked(fname, c, kind=kind, proj=proj,
-                  allow_maxshield=allow_maxshield,
-                  verbose=verbose).apply_baseline(baseline)
-           for c in condition]
+    out = []
+    for c in condition:
+        evoked = Evoked(fname, c, kind=kind, proj=proj,
+                        allow_maxshield=allow_maxshield,
+                        verbose=verbose)
+        if baseline is None and evoked.baseline is None:
+            logger.info(_log_rescale(None))
+        elif baseline is None and evoked.baseline is not None:
+            # Don't touch an existing baseline.
+            bmin, bmax = evoked.baseline
+            bmin = None if bmin is None else f'{round(bmin, 3):.3f}'
+            bmax = None if bmax is None else f'{round(bmax, 3):.3f}'
+            unit = '' if bmin is None and bmax is None else ' sec'
+
+            logger.info(f'Loaded data is baseline-corrected '
+                        f'(baseline: [{bmin}, {bmax}]{unit})')
+        else:
+            evoked.apply_baseline(baseline)
+        out.append(evoked)
 
     return out if return_list else out[0]
 
@@ -1010,6 +1120,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         nchan = 0
         sfreq = -1
         chs = []
+        baseline = bmin = bmax = None
         comment = last = first = first_time = nsamp = None
         for k in range(my_evoked['nent']):
             my_kind = my_evoked['directory'][k].kind
@@ -1038,9 +1149,18 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             elif my_kind == FIFF.FIFF_NO_SAMPLES:
                 tag = read_tag(fid, pos)
                 nsamp = int(tag.data)
+            elif my_kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                tag = read_tag(fid, pos)
+                bmin = float(tag.data)
+            elif my_kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                tag = read_tag(fid, pos)
+                bmax = float(tag.data)
 
         if comment is None:
             comment = 'No comment'
+
+        if bmin is not None or bmax is not None:
+            baseline = (bmin, bmax)
 
         #   Local channel information?
         if nchan > 0:
@@ -1123,7 +1243,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                      for k in range(info['nchan'])])
     data *= cals[:, np.newaxis]
 
-    return info, nave, aspect_kind, comment, times, data
+    return info, nave, aspect_kind, comment, times, data, baseline
 
 
 def write_evokeds(fname, evoked):
@@ -1141,6 +1261,13 @@ def write_evokeds(fname, evoked):
     See Also
     --------
     read_evokeds
+
+    Notes
+    -----
+    .. versionchanged:: 0.21
+        Information on baseline correction will be stored with each individual
+        `~mne.Evoked` object, and will be restored when reading the data again
+        via `~mne.read_evokeds`.
     """
     _write_evokeds(fname, evoked)
 
@@ -1148,6 +1275,8 @@ def write_evokeds(fname, evoked):
 def _write_evokeds(fname, evoked, check=True):
     """Write evoked data."""
     from .epochs import _compare_epochs_infos
+    from .dipole import DipoleFixed  # avoid circular import
+
     if check:
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
@@ -1184,7 +1313,15 @@ def _write_evokeds(fname, evoked, check=True):
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 
-            # The epoch itself
+            # Baseline
+            if not isinstance(e, DipoleFixed) and e.baseline is not None:
+                bmin, bmax = e.baseline
+                bmin = e.times[0] if bmin is None else bmin
+                bmax = e.times[-1] if bmax is None else bmax
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
+
+            # The evoked data itself
             if e.info.get('maxshield'):
                 aspect = FIFF.FIFFB_IAS_ASPECT
             else:

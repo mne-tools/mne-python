@@ -254,7 +254,8 @@ def test_plot_topomap_basic(monkeypatch):
     plt.close('all')
     plt_topomap(times=[-0.1, 0.2])
     plt.close('all')
-    evoked_grad = evoked.copy().crop(0, 0).pick_types(meg='grad')
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked_grad = evoked.copy().crop(0, 0).pick_types(meg='grad')
     mask = np.zeros((204, 1), bool)
     mask[[0, 3, 5, 6]] = True
     names = []

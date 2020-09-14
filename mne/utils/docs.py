@@ -1693,24 +1693,53 @@ Operates in place.
 """
 
 # Baseline
-docdict['rescale_baseline'] = """
+baseline_kwarg = """
 baseline : None | tuple of length 2
-    The time interval to consider as "baseline" when applying baseline
-    correction. If ``None``, do not apply baseline correction.
-    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
-    (in seconds), including the endpoints.
-    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
-    is ``None``, it is set to the **end** of the interval.
-    If ``(None, None)``, the entire time interval is used.
+    If a tuple ``(a, b)``, apply baseline correction with the baseline
+    interval ``[a, b] sec`` (including the endpoints).
+    If ``a`` is ``None``, the **beginning** of the {data_type} time period is
+    used; and if ``b`` is ``None``, the **end** of the time period is used.
+    In case of ``(None, None)``, the **entire** time period is used.
 
     .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
+              timepoints ``t`` such that ``a <= t <= b``.
+{computation}
 """
-docdict['baseline'] = """%(rescale_baseline)s
-    Correction is applied by computing the mean
-    of the baseline period and subtracting it from the data.
-""" % docdict
+baseline_kwarg_none_and_defaults = """
+    If ``None``, do not apply baseline correction.
 
+    Defaults to ``(None, 0)``, i.e., the beginning of the the {data_type} until
+    time point zero.
+
+    .. note:: Baseline correction can be done multiple times, but once applied,
+              it can never be removed.
+"""
+baseline_computation_epochs = """
+    Baseline correction is applied by computing the mean of the baseline period
+    across all {data_type}, and subtracting it from all {data_type}."""
+baseline_computation_evoked = """
+    Baseline correction is applied by computing the mean of the baseline
+    period, and subtracting it from the data."""
+
+docdict['baseline_array'] = baseline_kwarg.format(
+    data_type="array's",
+    computation='')
+docdict['baseline_epochs'] = baseline_kwarg + baseline_kwarg_none_and_defaults
+docdict['baseline_epochs'] = docdict['baseline_epochs'].format(
+    data_type='epochs',
+    computation=baseline_computation_epochs)
+
+docdict['baseline_evoked'] = baseline_kwarg + baseline_kwarg_none_and_defaults
+docdict['baseline_evoked'] = docdict['baseline_evoked'].format(
+    data_type='evoked',
+    computation=baseline_computation_evoked)
+docdict['baseline_common_evoked'] = baseline_kwarg.format(
+    data_type='evoked',
+    computation=baseline_computation_evoked)
+
+docdict['baseline_report'] = baseline_kwarg.format(
+    data_type="data's",
+    computation='')
 
 # Finalize
 docdict = unindent_dict(docdict)
