@@ -243,8 +243,8 @@ class RawSNIRF(BaseRaw):
                 warn("Extraction of measurement date from SNIRF file failed. "
                      "The date is being set to January 1st, 2000, "
                      "instead of {}".format(str_datetime))
-                meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0,
-                                        tzinfo=datetime.timezone.utc)
+                meas_date = datetime.datetime(
+                    2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
             info['meas_date'] = meas_date
 
             if 'DateOfBirth' in dat.get('nirs/metaDataTags/'):
