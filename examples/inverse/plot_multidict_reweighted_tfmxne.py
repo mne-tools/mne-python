@@ -56,7 +56,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     reject=reject, preload=True)
 evoked = epochs.filter(1, None).average()
 evoked = evoked.pick_types(meg=True)
-evoked.crop(tmin=0.008, tmax=0.2)
+evoked.crop(tmin=0.008, tmax=0.2, verbose='error')  # ignore baseline
 
 # Compute noise covariance matrix
 cov = mne.compute_covariance(epochs, rank='info', tmax=0.)

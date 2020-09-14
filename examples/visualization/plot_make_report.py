@@ -38,7 +38,7 @@ report.parse_folder(meg_path, on_error='ignore', mri_decim=10)
 # Load the evoked data
 evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                       baseline=(None, 0), verbose=False)
-evoked.crop(0, .2)
+evoked.crop(0, .2, verbose='error')   # ignore baseline
 times = evoked.times[::4]
 # Create a list of figs for the slider
 figs = list()

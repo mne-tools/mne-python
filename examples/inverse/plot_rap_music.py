@@ -36,7 +36,8 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 condition = 'Right Auditory'
 evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
-evoked.crop(tmin=0.05, tmax=0.15)  # select N100
+# select N100
+evoked.crop(tmin=0.05, tmax=0.15, verbose='error')  # ignore baseline
 
 evoked.pick_types(meg=True, eeg=False)
 
