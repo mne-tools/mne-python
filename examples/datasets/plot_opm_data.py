@@ -44,12 +44,15 @@ tmin, tmax = -0.5, 1
 event_id = dict(Median=257)
 events = mne.find_events(raw, stim_channel='STI101', mask=257, mask_type='and')
 picks = mne.pick_types(raw.info, meg=True, eeg=False)
-# we use verbose='error' to suppress warning about decimation causing aliasing
+# we use verbose='error' to suppress warning about decimation causing aliasing,
+# ideally we would low-pass and then decimate instead
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, verbose='error',
-                    reject=reject, picks=picks, proj=False, decim=4)
+                    reject=reject, picks=picks, proj=False, decim=10,
+                    preload=True)
 evoked = epochs.average()
 evoked.plot()
 cov = mne.compute_covariance(epochs, tmax=0.)
+del epochs, raw
 
 ###############################################################################
 # Examine our coordinate alignment for source localization and compute a
@@ -73,10 +76,12 @@ trans = None
 #         n_jobs=1, verbose=True)
 
 fwd = mne.read_forward_solution(fwd_fname)
+# use fixed orientation here just to save memory later
+mne.convert_forward_solution(fwd, force_fixed=True, copy=False)
 
 with mne.use_coil_def(coil_def_fname):
     fig = mne.viz.plot_alignment(
-        raw.info, trans, subject, subjects_dir, ('head', 'pial'), bem=bem)
+        evoked.info, trans, subject, subjects_dir, ('head', 'pial'), bem=bem)
 
 mne.viz.set_3d_view(figure=fig, azimuth=45, elevation=60, distance=0.4,
                     focalpoint=(0.02, 0, 0.04))
@@ -105,7 +110,8 @@ dip_opm.plot_locations(trans, subject, subjects_dir,
 # areas we are sensitive to might be a good idea.
 
 inverse_operator = mne.minimum_norm.make_inverse_operator(
-    evoked.info, fwd, cov)
+    evoked.info, fwd, cov, loose=0., depth=None)
+del fwd, cov
 
 method = "MNE"
 snr = 3.
