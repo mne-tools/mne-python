@@ -692,8 +692,6 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
 def _read_one_source_space(fid, this):
     """Read one source space."""
-    FIFF_BEM_SURF_NTRI = 3104
-    FIFF_BEM_SURF_TRIANGLES = 3106
 
     res = dict()
 
@@ -796,7 +794,7 @@ def _read_one_source_space(fid, this):
 
     res['np'] = int(tag.data)
 
-    tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
     if tag is None:
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NTRI)
         if tag is None:
@@ -830,7 +828,7 @@ def _read_one_source_space(fid, this):
         raise ValueError('Vertex normal information is incorrect')
 
     if res['ntri'] > 0:
-        tag = find_tag(fid, this, FIFF_BEM_SURF_TRIANGLES)
+        tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_TRIANGLES)
         if tag is None:
             tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES)
             if tag is None:
