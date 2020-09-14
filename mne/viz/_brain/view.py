@@ -19,8 +19,7 @@ _lh_views_dict = {
     'parietal': dict(azimuth=-120., elevation=60., focalpoint=ORIGIN),
     'sagittal': dict(azimuth=180., elevation=-90., focalpoint=ORIGIN),
     'coronal': dict(azimuth=90., elevation=-90., focalpoint=ORIGIN),
-    'axial': dict(azimuth=180., elevation=0., focalpoint=ORIGIN,
-                  roll=180),
+    'axial': dict(azimuth=180., elevation=0., focalpoint=ORIGIN, roll=0),
 }
 _rh_views_dict = {
     'lateral': dict(azimuth=180., elevation=-90., focalpoint=ORIGIN),
@@ -33,8 +32,7 @@ _rh_views_dict = {
     'parietal': dict(azimuth=-60., elevation=60., focalpoint=ORIGIN),
     'sagittal': dict(azimuth=180., elevation=-90., focalpoint=ORIGIN),
     'coronal': dict(azimuth=90., elevation=-90., focalpoint=ORIGIN),
-    'axial': dict(azimuth=180., elevation=0., focalpoint=ORIGIN,
-                  roll=180),
+    'axial': dict(azimuth=180., elevation=0., focalpoint=ORIGIN, roll=0),
 }
 # add short-size version entries into the dict
 lh_views_dict = _lh_views_dict.copy()

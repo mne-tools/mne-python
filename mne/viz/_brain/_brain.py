@@ -666,7 +666,10 @@ class _Brain(object):
             ['resolution', (None, 'numeric')],
             ['blending', (str,)],
             ['alpha', ('numeric', None)],
-            ['surface_alpha', (None, 'numeric')])
+            ['surface_alpha', (None, 'numeric')],
+            ['silhouette_alpha', (None, 'numeric')],
+            ['silhouette_linewidth', ('numeric',)],
+        )
         for key, types in allowed_types:
             _validate_type(volume_options[key], types,
                            f'volume_options[{repr(key)}]')
@@ -681,10 +684,14 @@ class _Brain(object):
         if alpha is None:
             alpha = 0.4 if self._data[hemi]['array'].ndim == 3 else 1.
         alpha = np.clip(float(alpha), 0., 1.)
-        surface_alpha = volume_options['surface_alpha']
         resolution = volume_options['resolution']
+        surface_alpha = volume_options['surface_alpha']
         if surface_alpha is None:
-            surface_alpha = min(alpha / 2., 0.4)
+            surface_alpha = min(alpha / 2., 0.1)
+        silhouette_alpha = volume_options['silhouette_alpha']
+        if silhouette_alpha is None:
+            silhouette_alpha = surface_alpha / 4.
+        silhouette_linewidth = volume_options['silhouette_linewidth']
         del volume_options
         volume_pos = self._data[hemi].get('grid_volume_pos')
         volume_neg = self._data[hemi].get('grid_volume_neg')
@@ -733,11 +740,30 @@ class _Brain(object):
             actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
+            import vtk
             _, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
                 pickable=False)
             prop.SetColor(*self._brain_color[:3])
             prop.SetOpacity(surface_alpha)
+            if silhouette_alpha > 0 and silhouette_linewidth > 0:
+                for ri, ci, v in self._iter_views('vol'):
+                    self._renderer.subplot(ri, ci)
+                    grid_silhouette = vtk.vtkPolyDataSilhouette()
+                    grid_silhouette.SetInputData(grid_mesh.GetInput())
+                    grid_silhouette.SetCamera(
+                        self._renderer.plotter.renderer.GetActiveCamera())
+                    grid_silhouette.SetEnableFeatureAngle(0)
+                    grid_silhouette_mapper = vtk.vtkPolyDataMapper()
+                    grid_silhouette_mapper.SetInputConnection(
+                        grid_silhouette.GetOutputPort())
+                    _, prop = self._renderer.plotter.add_actor(
+                        grid_silhouette_mapper, reset_camera=False, name=None,
+                        culling=False, pickable=False)
+                    prop.SetColor(*self._brain_color[:3])
+                    prop.SetOpacity(silhouette_alpha)
+                    prop.SetLineWidth(silhouette_linewidth)
+
         return actor_pos, actor_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,

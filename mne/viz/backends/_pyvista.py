@@ -1032,8 +1032,8 @@ def _volume(dimensions, origin, spacing, scalars,
         mapper.SetScalarModeToUseCellData()
         mapper.SetInputDataObject(grid)
     else:
-        upsampler = vtk.vtkImageResample()
-        upsampler.SetInterpolationModeToNearestNeighbor()
+        upsampler = vtk.vtkImageReslice()
+        upsampler.SetInterpolationModeToLinear()  # default anyway
         upsampler.SetOutputSpacing(*([resolution] * 3))
         upsampler.SetInputConnection(grid_alg.GetOutputPort())
         mapper.SetInputConnection(upsampler.GetOutputPort())

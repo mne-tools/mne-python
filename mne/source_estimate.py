@@ -1934,7 +1934,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot_3d(self, subject=None, surface='white', hemi='both',
                 colormap='auto', time_label='auto', smoothing_steps=10,
-                transparent=True, alpha=0.2, time_viewer='auto',
+                transparent=True, alpha=0.1, time_viewer='auto',
                 subjects_dir=None,
                 figure=None, views='axial', colorbar=True, clim='auto',
                 cortex="classic", size=800, background="black",
