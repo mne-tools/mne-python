@@ -286,8 +286,8 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         fig._create_selection_fig()
 
     # update projector and data, and plot
-    fig._update_trace_offsets()
     fig._update_projector()
+    fig._update_trace_offsets()
     fig._update_data()
     fig._draw_traces()
 

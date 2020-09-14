@@ -1429,7 +1429,6 @@ class MNEBrowseFigure(MNEFigure):
 
     def _update_yaxis_labels(self):
         """Change the y-axis labels."""
-        fontstyle = 'italic' if self.mne.use_noise_cov else 'normal'
         if self.mne.butterfly and self.mne.fig_selection is not None:
             exclude = ('Vertex', 'Custom')
             ticklabels = list(self.mne.ch_selections)
@@ -1444,8 +1443,12 @@ class MNEBrowseFigure(MNEFigure):
             ticklabels = np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[ixs]
         else:
             ticklabels = self.mne.ch_names[self.mne.picks]
-        self.mne.ax_main.set_yticklabels(ticklabels, fontstyle=fontstyle,
-                                         picker=True)
+        texts = self.mne.ax_main.set_yticklabels(ticklabels, picker=True)
+        for text in texts:
+            sty = ('italic' if text.get_text() in self.mne.whitened_ch_names
+                   else 'normal')
+            text.set_style(sty)
+
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
