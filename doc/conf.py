@@ -449,6 +449,7 @@ class Resetter(object):
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         gc.collect()
+        plt.rcParams['animation.embed_limit'] = 30.
 
 
 def reset_warnings(gallery_conf, fname):

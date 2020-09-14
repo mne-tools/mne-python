@@ -47,7 +47,8 @@ def test_mxne_inverse_standard():
     evoked.crop(tmin=-0.05, tmax=0.2)
 
     evoked_l21 = evoked.copy()
-    evoked_l21.crop(tmin=0.081, tmax=0.1)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked_l21.crop(tmin=0.081, tmax=0.1)
     label = read_label(fname_label)
     assert label.hemi == 'rh'
 
@@ -169,7 +170,8 @@ def test_mxne_vol_sphere():
     cov = read_cov(fname_cov)
 
     evoked_l21 = evoked.copy()
-    evoked_l21.crop(tmin=0.081, tmax=0.1)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        evoked_l21.crop(tmin=0.081, tmax=0.1)
 
     info = evoked.info
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)

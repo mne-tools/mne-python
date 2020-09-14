@@ -1236,7 +1236,8 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     Returns
     -------
     fids_mri : list
-        List of estimated fiducials (each point in a dict)
+        List of estimated fiducials (each point in a dict), in the order
+        LPA, nasion, RPA.
 
     Notes
     -----

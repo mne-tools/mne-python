@@ -275,7 +275,7 @@ def _get_data_as_dict_from_dig(dig):
     )
 
 
-def _get_fid_coords(dig):
+def _get_fid_coords(dig, raise_error=True):
     fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
     fid_coord_frames = dict()
 
@@ -285,7 +285,7 @@ def _get_fid_coords(dig):
             fid_coords[key] = d['r']
             fid_coord_frames[key] = d['coord_frame']
 
-    if len(fid_coord_frames) > 0:
+    if len(fid_coord_frames) > 0 and raise_error:
         if set(fid_coord_frames.keys()) != set(['nasion', 'lpa', 'rpa']):
             raise ValueError("Some fiducial points are missing (got %s)." %
                              fid_coords.keys())

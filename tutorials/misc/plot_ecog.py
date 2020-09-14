@@ -28,6 +28,8 @@ print(__doc__)
 # paths to mne datasets - sample ECoG and FreeSurfer subject
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
+subject = 'sample'
+subjects_dir = sample_path + '/subjects'
 
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
@@ -40,15 +42,28 @@ elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
 ch_pos = dict(zip(ch_names, ch_coords))
+# Ideally the nasion/LPA/RPA will also be present from the digitization, here
+# we use fiducials estimated from the subject's FreeSurfer MNI transformation:
+lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
+    subject, subjects_dir=subjects_dir)
+lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 ###############################################################################
 # Now we make a :class:`mne.channels.DigMontage` stating that the ECoG
-# contacts are in head coordinate system (although they are in MRI). This is
-# compensated below by the fact that we do not specify a trans file so the
-# Head<->MRI transform is the identity.
+# contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system.
 
-montage = mne.channels.make_dig_montage(ch_pos, coord_frame='head')
+montage = mne.channels.make_dig_montage(
+    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
 print('Created %s channel positions' % len(ch_names))
+
+###############################################################################
+# Now we get the :term:`trans` that transforms from our MRI coordinate system
+# to the head coordinate frame. This transform will be applied to the
+# data when applying the montage so that standard plotting functions like
+# :func:`mne.viz.plot_evoked_topomap` will be aligned properly.
+
+trans = mne.channels.compute_native_head_t(montage)
+print(trans)
 
 ###############################################################################
 # Now that we have our montage, we can load in our corresponding
@@ -75,10 +90,9 @@ raw.set_montage(montage)
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
 
-subjects_dir = sample_path + '/subjects'
-fig = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
-                     surfaces=['pial'])
-mne.viz.set_3d_view(fig, 200, 70)
+fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
+                     surfaces=['pial'], trans=trans, coord_frame='mri')
+mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
 
 xy, im = snapshot_brain_montage(fig, montage)
 
