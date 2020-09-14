@@ -19,7 +19,7 @@ from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
-from ..utils import logger, verbose, warn, fill_doc
+from ..utils import logger, verbose, warn, fill_doc, _check_option
 
 
 class Projection(dict):
@@ -357,6 +357,7 @@ def _read_proj(fid, node, verbose=None):
     if len(nodes) == 0:
         return projs
 
+    global_nchan = None
     tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
     if tag is not None:
         global_nchan = int(tag.data)
@@ -431,6 +432,8 @@ def _read_proj(fid, node, verbose=None):
             raise ValueError('Number of channel names does not match the '
                              'size of data matrix')
 
+        nchan = len(col_names) if nchan is None else nchan
+        _check_option('nchan', nchan, (len(col_names),))
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
                          data=dict(nrow=nvec, ncol=nchan, row_names=None,
