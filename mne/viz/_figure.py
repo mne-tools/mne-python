@@ -349,7 +349,7 @@ class MNEBrowseFigure(MNEFigure):
         ax_hscroll.set_xlim(self.mne.first_time, self.mne.first_time +
                             self.mne.n_times / self.mne.info['sfreq'])
         # VLINE
-        vline_color = 'C8'
+        vline_color = (0., 0.75, 0.)
         vline_kw = dict(visible=False, color=vline_color, animated=True)
         vline = ax.axvline(0, zorder=4, **vline_kw)
         vline_hscroll = ax_hscroll.axvline(0, zorder=2, **vline_kw)
