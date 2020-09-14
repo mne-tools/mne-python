@@ -19,8 +19,7 @@ from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
-from ..utils import (logger, verbose, warn, fill_doc, _check_option,
-                     _validate_type)
+from ..utils import logger, verbose, warn, fill_doc, _validate_type
 
 
 class Projection(dict):
