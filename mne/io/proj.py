@@ -19,7 +19,8 @@ from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
-from ..utils import logger, verbose, warn, fill_doc, _check_option
+from ..utils import (logger, verbose, warn, fill_doc, _check_option,
+                     _validate_type)
 
 
 class Projection(dict):
@@ -432,8 +433,8 @@ def _read_proj(fid, node, verbose=None):
             raise ValueError('Number of channel names does not match the '
                              'size of data matrix')
 
-        nchan = len(col_names) if nchan is None else nchan
-        _check_option('nchan', nchan, (len(col_names),))
+        nchan = len(names) if nchan is None else nchan
+        _check_option('nchan', nchan, (len(names),))
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
                          data=dict(nrow=nvec, ncol=nchan, row_names=None,
@@ -471,6 +472,12 @@ def _write_proj(fid, projs):
     """
     if len(projs) == 0:
         return
+
+    # validation
+    _validate_type(projs, (list, tuple), 'projs')
+    for pi, proj in enumerate(projs):
+        _validate_type(proj, Projection, f'projs[{pi}]')
+
     start_block(fid, FIFF.FIFFB_PROJ)
 
     for proj in projs:
