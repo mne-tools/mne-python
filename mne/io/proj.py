@@ -19,7 +19,7 @@ from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
-from ..utils import logger, verbose, warn, fill_doc
+from ..utils import logger, verbose, warn, fill_doc, _validate_type
 
 
 class Projection(dict):
@@ -31,7 +31,7 @@ class Projection(dict):
     def __repr__(self):  # noqa: D105
         s = "%s" % self['desc']
         s += ", active : %s" % self['active']
-        s += ", n_channels : %s" % self['data']['ncol']
+        s += f", n_channels : {len(self['data']['col_names'])}"
         return "<Projection | %s>" % s
 
     # speed up info copy by taking advantage of mutability
@@ -357,18 +357,23 @@ def _read_proj(fid, node, verbose=None):
     if len(nodes) == 0:
         return projs
 
-    tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
-    if tag is not None:
-        global_nchan = int(tag.data)
+    # This might exist but we won't use it:
+    # global_nchan = None
+    # tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
+    # if tag is not None:
+    #     global_nchan = int(tag.data)
 
     items = dir_tree_find(nodes[0], FIFF.FIFFB_PROJ_ITEM)
     for item in items:
         #   Find all desired tags in one item
-        tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
-        if tag is not None:
-            nchan = int(tag.data)
-        else:
-            nchan = global_nchan
+
+        # This probably also exists but used to be written incorrectly
+        # sometimes
+        # tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
+        # if tag is not None:
+        #     nchan = int(tag.data)
+        # else:
+        #     nchan = global_nchan
 
         tag = find_tag(fid, item, FIFF.FIFF_DESCRIPTION)
         if tag is not None:
@@ -379,13 +384,6 @@ def _read_proj(fid, node, verbose=None):
                 desc = tag.data
             else:
                 raise ValueError('Projection item description missing')
-
-        # XXX : is this useful ?
-        # tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
-        # if tag is not None:
-        #     namelist = tag.data
-        # else:
-        #     raise ValueError('Projection item channel list missing')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_KIND)
         if tag is not None:
@@ -431,6 +429,9 @@ def _read_proj(fid, node, verbose=None):
             raise ValueError('Number of channel names does not match the '
                              'size of data matrix')
 
+        # just always use this, we used to have bugs with writing the
+        # number correctly...
+        nchan = len(names)
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
                          data=dict(nrow=nvec, ncol=nchan, row_names=None,
@@ -441,14 +442,11 @@ def _read_proj(fid, node, verbose=None):
 
     if len(projs) > 0:
         logger.info('    Read a total of %d projection items:' % len(projs))
-        for k in range(len(projs)):
-            if projs[k]['active']:
-                misc = 'active'
-            else:
-                misc = ' idle'
-            logger.info('        %s (%d x %d) %s'
-                        % (projs[k]['desc'], projs[k]['data']['nrow'],
-                           projs[k]['data']['ncol'], misc))
+        for proj in projs:
+            misc = 'active' if proj['active'] else ' idle'
+            logger.info(f'        {proj["desc"]} '
+                        f'({proj["data"]["nrow"]} x '
+                        f'{len(proj["data"]["col_names"])}) {misc}')
 
     return projs
 
@@ -468,11 +466,17 @@ def _write_proj(fid, projs):
     """
     if len(projs) == 0:
         return
+
+    # validation
+    _validate_type(projs, (list, tuple), 'projs')
+    for pi, proj in enumerate(projs):
+        _validate_type(proj, Projection, f'projs[{pi}]')
+
     start_block(fid, FIFF.FIFFB_PROJ)
 
     for proj in projs:
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
-        write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
+        write_int(fid, FIFF.FIFF_NCHAN, len(proj['data']['col_names']))
         write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
                         proj['data']['col_names'])
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
@@ -618,6 +622,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                 p['data']['data'] = this_vecs[sel].T
                 p['data']['col_names'] = [p['data']['col_names'][ii]
                                           for ii in vecsel]
+                p['data']['ncol'] = len(p['data']['col_names'])
             nvec += p['data']['nrow']
 
     #   Check whether all of the vectors are exactly zero
