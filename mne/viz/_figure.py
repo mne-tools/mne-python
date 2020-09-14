@@ -234,7 +234,7 @@ class MNESelectionFigure(MNEFigure):
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
 
-    def __init__(self, inst, xlabel='Time (s)', **kwargs):
+    def __init__(self, inst, figsize, xlabel='Time (s)', **kwargs):
         from matplotlib import rcParams
         from matplotlib.colors import to_rgba_array
         from matplotlib.widgets import Button
@@ -242,7 +242,6 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.collections import LineCollection
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-        from .utils import _get_figsize_from_config
         from .. import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
@@ -250,8 +249,6 @@ class MNEBrowseFigure(MNEFigure):
         fgcolor = rcParams['axes.edgecolor']
         bgcolor = rcParams['axes.facecolor']
 
-        # get figsize from config if not provided
-        figsize = kwargs.pop('figsize', _get_figsize_from_config())
         super().__init__(figsize=figsize, inst=inst, **kwargs)
 
         # what kind of data are we dealing with?
@@ -1711,8 +1708,10 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
 
 def browse_figure(inst, **kwargs):
     """Instantiate a new MNE browse-style figure."""
+    from .utils import _get_figsize_from_config
+    figsize = kwargs.pop('figsize', _get_figsize_from_config())
     fig = _figure(inst=inst, toolbar=False, FigureClass=MNEBrowseFigure,
-                  **kwargs)
+                  figsize=figsize, **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig.mne.fig_size_px = fig._get_size_px()
