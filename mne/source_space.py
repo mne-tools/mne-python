@@ -692,7 +692,6 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
 def _read_one_source_space(fid, this):
     """Read one source space."""
-
     res = dict()
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_ID)
