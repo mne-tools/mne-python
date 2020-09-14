@@ -85,8 +85,8 @@ dipoles, residual = tf_mixed_norm(
 # Crop to remove edges
 for dip in dipoles:
     dip.crop(tmin=-0.05, tmax=0.3)
-evoked.crop(tmin=-0.05, tmax=0.3)
-residual.crop(tmin=-0.05, tmax=0.3)
+evoked.crop(tmin=-0.05, tmax=0.3, verbose='error')
+residual.crop(tmin=-0.05, tmax=0.3, verbose='error')
 
 
 ###############################################################################
