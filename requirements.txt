@@ -28,3 +28,5 @@ imageio-ffmpeg>=0.4.1
 pyvista>=0.24
 pyvistaqt>=0.2.0
 tqdm
+git+ssh://git@github.com/BEL-Public/mffpy.git@v0.5.3
+cached_property_bel

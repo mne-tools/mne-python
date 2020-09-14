@@ -9,15 +9,18 @@ from xml.dom.minidom import parse
 
 import numpy as np
 
+from mffpy import Reader
+
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
 from ..base import BaseRaw
 from ..constants import FIFF
-from ..meas_info import _empty_info
+from ..meas_info import _empty_info, create_info
 from ..utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...utils import verbose, logger, warn
+from ...evoked import EvokedArray
 
 
 def _read_mff_header(filepath):
@@ -97,11 +100,6 @@ def _read_mff_header(filepath):
         disk_samps[first:last] = np.arange(offset, offset + n_this)
         offset += n_this
     summaryinfo['disk_samps'] = disk_samps
-
-    # Pull header info from the summary info.
-    categfile = op.join(filepath, 'categories.xml')
-    if op.isfile(categfile):  # epochtype = 'seg'
-        raise NotImplementedError('Only continuous files are supported')
 
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, 'sensorLayout.xml')
@@ -686,3 +684,176 @@ class RawMff(BaseRaw):
 
         # do the calibration
         _mult_cal_one(data, one, idx, cals, mult)
+
+
+def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
+                     baseline=None, verbose=None):
+    """Read averaged MFF file as evoked(s)
+
+    Parameters
+    ----------
+    fname : str
+        File path to averaged MFF file. Should end in .mff
+    condition : int or str | list of int or str | None
+        The index (indices) or category (categories) from which to read in
+        data. Averaged MFF files can contain separate averages for different
+        categories. These can be indexed by the block number or the category
+        name. If `condition` is a list or None, a list of Evoked objects is
+        returned.
+    channel_naming : str
+        Channel naming convention for EEG channels. Defaults to 'E%d'
+        (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
+        prior to 0.14.0 was 'EEG %03d'.
+    baseline : None (default) or tuple of length 2
+        The time interval to apply baseline correction. If None do not apply
+        it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used and if b is None then b
+        is set to the end of the interval. If baseline is equal to (None, None)
+        all the time interval is used. Correction is applied by computing mean
+        of the baseline period and subtracting it from the data. The baseline
+        (a, b) includes both endpoints, i.e. all timepoints t such that
+        a <= t <= b.
+    %(verbose)s
+
+    Returns
+    -------
+    evoked : EvokedArray or list of EvokedArray
+        The evoked dataset(s); one EvokedArray if condition is int or str,
+        or list of EvokedArray if condition is None or list.
+
+    Notes
+    -----
+    Preloading is automatic because we use `EvokedArray` to construct the
+    evoked(s) objects.
+
+    See Also
+    --------
+    Evoked, EvokedArray, create_info
+    """
+    # Confirm `fname` is a path to an MFF file
+    assert fname.endswith('.mff'), 'fname must be an MFF file.'
+    # Eventually we will want to add a check here to ensure the file is
+    # averaged. This will require parsing of history.xml.
+    # Check for categories.xml file
+    assert op.exists(op.join(fname, 'categories.xml')),\
+        'categories.xml not found in MFF directory. \
+        %s may not be an averaged MFF file.' % fname
+    if condition is None:
+        cats = Reader(fname).categories.categories
+        condition = list(cats.keys())
+    elif not isinstance(condition, list):
+        condition = [condition]
+    logger.info('Reading %s evoked datasets from %s ...'
+                % (len(condition), fname))
+    output = [_read_evoked_mff(fname, c, channel_naming=channel_naming,
+                               verbose=verbose).apply_baseline(baseline)
+              for c in condition]
+    return output if len(output) > 1 else output[0]
+
+
+def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
+    """Read evoked data from MFF file."""
+    mff_info = _read_header(fname)
+    mff = Reader(fname)
+    cats = mff.categories.categories
+
+    if type(condition) == str:
+        # Condition is interpreted as category name
+        target_cat = condition
+        target_epoch = mff.epochs[target_cat]
+    elif type(condition) == int:
+        # Condition is interpreted as epoch index
+        target_epoch = mff.epochs[condition]
+        target_cat = target_epoch.name
+    else:
+        raise TypeError('Condition must be either int or str.')
+    assert target_cat in cats.keys(), 'Condition "%s" not found in \
+                                      available conditions %s.'\
+                                      % (target_cat, cats.keys())
+
+    # Read in signals from the target epoch
+    data = mff.get_physical_samples_from_epoch(target_epoch)
+    eeg_data, t0 = data['EEG']
+    if 'PNSData' in data.keys():
+        pns_data, t0 = data['PNSData']
+        all_data = np.vstack((eeg_data, pns_data))
+        ch_types = mff_info['chan_type'] + mff_info['pns_types']
+    else:
+        all_data = eeg_data
+        ch_types = mff_info['chan_type']
+    all_data *= 1e-6 # convert to volts
+
+    # Load metadata into info object
+    ### Exclude info['meas_date'] because record time info in
+    ### averaged MFF is the time of the averaging, not true record time.
+    ### We can populate info['custom_ref_applied'] with info from
+    ### info1.xml, but not sure what to put for type int.
+    ch_names = [channel_naming % (i + 1) for i in
+                range(mff.num_channels['EEG'])]
+    ch_names.extend(mff_info['pns_names'])
+    info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
+    info['nchan'] = sum(n for n in mff.num_channels.values())
+    assert info['nchan'] == all_data.shape[0], 'Number of channels does \
+                                               not match number of signals \
+                                               in binary file(s).'
+
+    # Get calibration info
+    gains = _get_gains(op.join(fname, mff_info['info_fname']))
+    if mff_info['value_range'] != 0 and mff_info['bits'] != 0:
+        cals = [mff_info['value_range'] / 2 ** mff_info['bits'] for i
+                in range(len(mff_info['chan_type']))]
+    else:
+        cal_scales = {'uV': 1e-6, 'V': 1}
+        cals = [cal_scales[t] for t in mff_info['chan_unit']]
+    if 'gcal' in gains:
+        cals *= gains['gcal']
+    if 'ical' in gains:
+        pass  # XXX: currently not used
+    # Initialize calibration for PNS channels, will be updated later
+    cals = np.concatenate(
+        [cals, np.repeat(1, len(mff_info['pns_names']))])
+
+    # Add individual channel info
+    ch_coil = FIFF.FIFFV_COIL_EEG
+    ch_kind = FIFF.FIFFV_EEG_CH
+    chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
+    chs = _read_locs(fname, chs, mff_info)
+    # Update PNS channel info
+    for i_ch, ch_name in enumerate(mff_info['pns_names']):
+        idx = ch_names.index(ch_name)
+        ch_type = mff_info['pns_types'][i_ch]
+        ch_kind = FIFF.FIFFV_BIO_CH
+        if ch_type == 'ecg':
+            ch_kind = FIFF.FIFFV_ECG_CH
+        elif ch_type == 'emg':
+            ch_kind = FIFF.FIFFV_EMG_CH
+        ch_unit = FIFF.FIFF_UNIT_V
+        ch_cal = 1e-6
+        if mff_info['pns_units'][i_ch] != 'uV':
+            ch_unit = FIFF.FIFF_UNIT_NONE
+            ch_cal = 1.0
+        chs[idx].update(cal=ch_cal, kind=ch_kind,
+                        coil_type=FIFF.FIFFV_COIL_NONE, unit=ch_unit)
+    info['chs'] = chs
+
+    # Add bad channels to info
+    info['description'] = target_cat
+    channel_status = cats[target_cat][0]['channelStatus']
+    bads = []
+    # Add bad EEG channels if present
+    if channel_status[0]['exclusion'] == 'badChannels':
+        for ch in channel_status[0]['channels']:
+            bads.append(channel_naming % ch)
+    # Add bad PNS channels if present
+    if len(channel_status) == 2:
+        if channel_status[1]['exclusion'] == 'badChannels':
+            for ch in channel_status[1]['channels']:
+                bads.append(mff_info['pns_names'][ch - 1])
+    info['bads'] = bads
+
+    # Let tmin default to 0
+    # Let nave default to 1 until we can read #seg from categories.xml
+    return EvokedArray(all_data, info, tmin=0.,
+                       comment=target_cat if target_cat else '',
+                       nave=1, verbose=verbose)
+
