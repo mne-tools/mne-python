@@ -16,6 +16,7 @@ public_modules = [
     'mne',
     'mne.baseline',
     'mne.beamformer',
+    'mne.channels',
     'mne.chpi',
     'mne.connectivity',
     'mne.cov',
