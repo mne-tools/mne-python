@@ -228,23 +228,22 @@ class RawSNIRF(BaseRaw):
                 '/nirs/metaDataTags/MeasurementTime')))[0].decode('UTF-8')
             str_datetime = str_date + str_time
 
-            meas_date = None
             # Several formats have been observed so we try each in turn
             for dt_code in ['%Y-%m-%d%H:%M:%SZ',
                             '%Y-%m-%d%H:%M:%S']:
                 try:
                     meas_date = datetime.datetime.strptime(
                         str_datetime, dt_code)
-                    meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
-                    break
                 except ValueError:
                     pass
-            if meas_date is None:
-                warn(f"Extraction of measurement date from SNIRF file failed. "
+                else:
+                    break
+            else:
+                warn("Extraction of measurement date from SNIRF file failed. "
                      "The date is being set to January 1st, 2000, "
-                     "instead of {str_datetime}")
-                meas_date = datetime.datetime(
-                    2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+                     f"instead of {str_datetime}")
+                meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
+            meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
             info['meas_date'] = meas_date
 
             if 'DateOfBirth' in dat.get('nirs/metaDataTags/'):
