@@ -256,7 +256,8 @@ def test_mxne_vol_sphere():
     assert_array_almost_equal(stc.times, evoked.times, 5)
 
 
-@pytest.mark.parametrize('mod', (None, 'mult', 'augment', 'sign', 'same'))
+@pytest.mark.parametrize('mod', (
+    None, 'mult', 'augment', 'sign', 'zero', 'less'))
 def test_split_gof_basic(mod):
     """Test splitting the goodness of fit."""
     # first a trivial case
@@ -275,9 +276,12 @@ def test_split_gof_basic(mod):
         gain[1] *= -1
         M[1] *= -1
         M_est[1] *= -1
-    elif mod == 'same':
-        gain[:, 1] = gain[:, 0]
-        X[:, 0] = [2. / 3., 1. / 3.]  # half as big
+    elif mod in ('zero', 'less'):
+        gain = np.array([[1, 1., 1.], [1., 1., 1.]]).T
+        if mod == 'zero':
+            X[:, 0] = [1., 0.]
+        else:
+            X[:, 0] = [1., 0.5]
         M_est = gain @ X
     else:
         assert mod is None
@@ -288,10 +292,11 @@ def test_split_gof_basic(mod):
     want = gof_split[[0, 0]]
     if mod == 'augment':
         want = np.concatenate((want, [[0]]))
-    if mod == 'mult':
+    if mod in ('mult', 'less'):
         assert_array_less(gof_split[1], gof_split[0])
-    elif mod == 'same':
-        assert_allclose(gof_split[0], gof_split[1])
+    elif mod == 'zero':
+        assert_allclose(gof_split[0], gof_split.sum(0))
+        assert_allclose(gof_split[1], 0., atol=1e-6)
     else:
         assert_allclose(gof_split, want, atol=1e-12)
 
@@ -325,8 +330,8 @@ def test_split_gof_meg(forward, idx, weights):
     gof_split = _split_gof(x, weights, gain)
     want = (norms * weights.T).T ** 2
     want = 100 * want / want.sum()
-    assert_allclose(gof_split, want, atol=1e-3, rtol=1e-3)
-    assert_allclose(gof_split.sum(), 100, atol=1e-6)
+    assert_allclose(gof_split, want, atol=1e-3, rtol=1e-2)
+    assert_allclose(gof_split.sum(), 100, rtol=1e-5)
 
 
 run_tests_if_main()

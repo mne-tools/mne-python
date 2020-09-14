@@ -152,29 +152,32 @@ def _split_gof(M, X, gain):
     # assuming x is estimated using elements of gain, with residual res
     # along the first axis
     assert M.ndim == X.ndim == gain.ndim == 2, (M.ndim, X.ndim, gain.ndim)
-    assert gain.shape == (M.shape[0], X.shape[0]), (gain.shape, M.shape)
+    assert gain.shape == (M.shape[0], X.shape[0])
     assert M.shape[1] == X.shape[1]
-    U, s, Vh = np.linalg.svd(gain, full_matrices=False)
+    norm = (M * M.conj()).real.sum(0, keepdims=True)
+    norm[norm == 0] = np.inf
     M_est = gain @ X
+    assert M.shape == M_est.shape
     res = M - M_est
+    assert gain.shape[0] == M.shape[0], (gain.shape, M.shape)
+    # find an orthonormal basis for our matrices that spans the actual data
+    U, s, _ = np.linalg.svd(gain, full_matrices=False)
+    U = U[:, s >= s[0] * 1e-6]
     # the part that gets explained
     fit_orth = U.T @ M
     # the part that got over-explained (landed in residual)
     res_orth = U.T @ res
-    # project back
-    fit_back = Vh.T @ fit_orth
-    res_back = Vh.T @ res_orth
+    # determine the weights by projecting each one onto this basis
+    w = (U.T @ gain)[:, :, np.newaxis] * X
+    w_norm = np.linalg.norm(w, axis=1, keepdims=True)
+    w_norm[w_norm == 0] = 1.
+    w /= w_norm
+    # our weights are now unit-norm positive (will presrve power)
+    fit_back = np.linalg.norm(fit_orth[:, np.newaxis] * w, axis=0) ** 2
+    res_back = np.linalg.norm(res_orth[:, np.newaxis] * w, axis=0) ** 2
     # and the resulting goodness of fits
-    norm = (M * M.conj()).real.sum(0, keepdims=True)
-    norm[norm == 0] = np.inf
-    gof_back = 100 * (
-        (fit_back * fit_back.conj()).real -
-        (res_back * res_back.conj()).real) / norm
+    gof_back = 100 * (fit_back - res_back) / norm
     assert gof_back.shape == X.shape, (gof_back.shape, X.shape)
-    assert (gof_back >= -1e-12).all()
-    gof_sum = gof_back.sum(0)
-    gof = 100. - 100. * (res * res.conj()).real.sum(0) / norm[0]
-    np.testing.assert_allclose(gof_sum, gof)
     return gof_back
 
 
