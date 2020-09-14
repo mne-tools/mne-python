@@ -57,7 +57,6 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 # You can also morph it to fsaverage and visualize it using a flatmap:
 
 # sphinx_gallery_thumbnail_number = 2
-
 stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,
                                   smooth=5, verbose='error').apply(stc)
 brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
@@ -87,7 +86,8 @@ mpl_fig = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 # Let us load the sensor-level evoked data. We select the MEG channels
 # to keep things simple.
 evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
-evoked.pick_types(meg=True, eeg=False)
+evoked.pick_types(meg=True, eeg=False).crop(
+    0.05, 0.15, verbose='error')  # 'error' here: ignore cutting off baseline
 
 ###############################################################################
 # Then, we can load the precomputed inverse operator from a file.
@@ -102,7 +102,6 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 stc = apply_inverse(evoked, inv, lambda2, method)
-stc.crop(0.0, 0.2)
 
 ###############################################################################
 # This time, we have a different container
@@ -154,8 +153,8 @@ fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 
 inv = read_inverse_operator(fname_inv)
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
-stc.plot(subject='sample', subjects_dir=subjects_dir,
-         initial_time=initial_time)
+brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
+                 initial_time=initial_time)
 
 ###############################################################################
 # Dipole fits

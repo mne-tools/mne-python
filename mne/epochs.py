@@ -1488,8 +1488,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s | %s>' % (class_name, s)
 
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop a time interval from the epochs.
 
         Parameters
@@ -1499,6 +1499,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
+        %(verbose_meth)s
 
         Returns
         -------

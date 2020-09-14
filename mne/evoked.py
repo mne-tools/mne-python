@@ -236,8 +236,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         return self.times[-1]
 
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop data to a given time interval.
 
         Parameters
@@ -247,6 +247,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
+        %(verbose_meth)s
 
         Returns
         -------
