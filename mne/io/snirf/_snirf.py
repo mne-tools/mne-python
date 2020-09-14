@@ -222,23 +222,39 @@ class RawSNIRF(BaseRaw):
                                                coord_frame=_frame_to_str[
                                                    coord_frame])
 
-            str_date = str(np.array((dat.get('/nirs/metaDataTags'
-                                             '/MeasurementDate'))))
-            str_time = str(np.array((dat.get('/nirs/metaDataTags'
-                                             '/MeasurementTime'))))
+            str_date = np.array((dat.get(
+                '/nirs/metaDataTags/MeasurementDate')))[0].decode('UTF-8')
+            str_time = np.array((dat.get(
+                '/nirs/metaDataTags/MeasurementTime')))[0].decode('UTF-8')
             str_datetime = str_date + "T" + str_time
-            info['meas_date'] = datetime.datetime.strptime(str_datetime,
-                                                           '%Y-%m-%dT'
-                                                           '%H:%M:%SZ')
-            info['meas_date'] = info['meas_date'].replace(
-                tzinfo=datetime.timezone.utc)
 
-            str_birth = str(np.array((dat.get('/nirs/metaDataTags/'
-                                              'DateOfBirth'))))
-            birth_matched = re.fullmatch(r'(\d+)-(\d+)-(\d+)', str_birth)
-            info["subject_info"]['birthday'] = (int(birth_matched.groups()[0]),
-                                                int(birth_matched.groups()[1]),
-                                                int(birth_matched.groups()[2]))
+            meas_date = None
+            # Several formats have been observed so we try each in turn
+            for dt_code in ['%Y-%m-%dT%H:%M:%SZ',
+                            '%Y-%m-%dT%H:%M:%S']:
+                try:
+                    meas_date = datetime.datetime.strptime(
+                        str_datetime, dt_code)
+                    meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
+                    break
+                except ValueError:
+                    pass
+            if meas_date is None:
+                warn("Extraction of measurement date from SNIRF file failed. "
+                     "The date is being set to January 1st, 2000, "
+                     "instead of {}".format(str_datetime))
+                meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0,
+                                        tzinfo=datetime.timezone.utc)
+            info['meas_date'] = meas_date
+
+            if 'DateOfBirth' in dat.get('nirs/metaDataTags/'):
+                str_birth = np.array((dat.get('/nirs/metaDataTags/DateOfBirth')))[0].decode()
+                birth_matched = re.fullmatch(r'(\d+)-(\d+)-(\d+)', str_birth)
+                if birth_matched is not None:
+                    info["subject_info"]['birthday'] = (
+                        int(birth_matched.groups()[0]),
+                        int(birth_matched.groups()[1]),
+                        int(birth_matched.groups()[2]))
 
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
                                            last_samps=[last_samps],
