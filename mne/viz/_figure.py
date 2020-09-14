@@ -383,7 +383,7 @@ class MNEBrowseFigure(MNEFigure):
         # INIT TRACES
         segments = np.full((1, 1, 2), np.nan)
         kwargs = dict(segments=segments, offsets=np.zeros((1, 2)),
-                      linewidths=0.5, antialiaseds=True)  # TODO animated=True
+                      linewidths=0.5, antialiaseds=True)
         self.mne.traces = LineCollection(colors=fgcolor, zorder=1, **kwargs)
         self.mne.bad_traces = LineCollection(colors=self.mne.ch_color_bad,
                                              zorder=0, **kwargs)
