@@ -280,6 +280,8 @@ Bug
 
 - Fix bug with writing EGI and CTF `mne.Info` to H5 format, e.g., with `mne.time_frequency.AverageTFR.save` by `Eric Larson`_
 
+- Fix bug with topomap outlines in :meth:`mne.time_frequency.AverageTFR.plot_joint` and :meth:`mne.time_frequency.AverageTFR.plot_topo` by `Eric Larson`_
+
 - Fix bug with :func:`mne.io.Raw.plot` where toggling all projectors did not actually take effect by `Eric Larson`_
 
 - Fix bug with :func:`mne.write_proj` where the number of columns was incorrectly written by `Eric Larson`_

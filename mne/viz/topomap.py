@@ -799,7 +799,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
-    logger.debug('Plotting topomap for data shape %s' % (data.shape,))
+    logger.debug(f'Plotting topomap for {ch_type} data shape {data.shape}')
 
     if isinstance(pos, Info):  # infer pos from Info object
         picks = _pick_data_channels(pos, exclude=())  # pick only data channels
@@ -963,7 +963,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     plt.subplots_adjust(top=.95)
 
     if onselect is not None:
+        lim = ax.dataLim
+        x0, y0, width, height = lim.x0, lim.y0, lim.width, lim.height
         ax.RS = RectangleSelector(ax, onselect=onselect)
+        ax.set(xlim=[x0, x0 + width], ylim=[y0, y0 + height])
     plt_show(show)
     return im, cont, interp
 
@@ -1382,21 +1385,17 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     cmap = _setup_cmap(cmap, norm=norm)
 
-    if axes is None:
-        fig = plt.figure(figsize=(size, size))
-        ax = fig.gca()
-    else:
-        fig = axes.figure
-        ax = axes
+    axes = plt.subplots(figsize=(size, size))[1] if axes is None else axes
+    fig = axes.figure
 
-    _hide_frame(ax)
+    _hide_frame(axes)
 
     locator = None
     if not isinstance(contours, (list, np.ndarray)):
         locator, contours = _set_contour_locator(vmin, vmax, contours)
 
     if title is not None:
-        ax.set_title(title)
+        axes.set_title(title)
     fig_wrapper = list()
     selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
@@ -1406,16 +1405,16 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                         axes=ax, cmap=cmap[0], image_interp='bilinear',
+                         axes=axes, cmap=cmap[0], image_interp='bilinear',
                          contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
-                         sensors=sensors, res=res,
+                         sensors=sensors, res=res, ch_type=ch_type,
                          outlines=outlines, sphere=sphere)
 
     if colorbar:
         from matplotlib import ticker
         unit = _handle_default('units', unit)['misc']
-        cbar, cax = _add_colorbar(ax, im, cmap, title=unit, format=cbar_fmt)
+        cbar, cax = _add_colorbar(axes, im, cmap, title=unit, format=cbar_fmt)
         if locator is None:
             locator = ticker.MaxNLocator(nbins=5)
         cbar.locator = locator
