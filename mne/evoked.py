@@ -200,7 +200,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self.info['ch_names']
 
     @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop data to a given time interval.
 
         Parameters
