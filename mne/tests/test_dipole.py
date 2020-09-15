@@ -192,8 +192,7 @@ def test_dipole_fitting_fixed(tmpdir):
     evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]
     evoked.pick_types(meg=True)
     t_idx = np.argmin(np.abs(tpeak - evoked.times))
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        evoked_crop = evoked.copy().crop(tpeak, tpeak)
+    evoked_crop = evoked.copy().crop(tpeak, tpeak)
     assert len(evoked_crop.times) == 1
     cov = read_cov(fname_cov)
     dip_seq, resid = fit_dipole(evoked_crop, cov, sphere)
@@ -227,8 +226,7 @@ def test_dipole_fitting_fixed(tmpdir):
     evoked.info['bads'] = [evoked.ch_names[3]]
     dip_fixed, resid_fixed = fit_dipole(evoked, cov, sphere, pos=pos, ori=ori)
     # Degenerate conditions
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        evoked_nan = evoked.copy().crop(0, 0)
+    evoked_nan = evoked.copy().crop(0, 0)
     evoked_nan.data[0, 0] = None
     pytest.raises(ValueError, fit_dipole, evoked_nan, cov, sphere)
     pytest.raises(ValueError, fit_dipole, evoked, cov, sphere, ori=[1, 0, 0])
@@ -405,8 +403,7 @@ def test_get_phantom_dipoles():
 def test_confidence(tmpdir):
     """Test confidence limits."""
     evoked = read_evokeds(fname_evo_full, 'Left Auditory', baseline=(None, 0))
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        evoked.crop(0.08, 0.08).pick_types(meg=True)  # MEG-only
+    evoked.crop(0.08, 0.08).pick_types(meg=True)  # MEG-only
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0., 0., 0.04), 0.08)
     dip_py = fit_dipole(evoked, cov, sphere)[0]

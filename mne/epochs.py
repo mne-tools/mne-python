@@ -17,7 +17,6 @@ import json
 import operator
 import os.path as op
 import warnings
-import re
 
 import numpy as np
 
@@ -40,7 +39,7 @@ from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
-from .baseline import rescale, _log_rescale, _check_baseline
+from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin
@@ -643,7 +642,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        %(baseline_epochs)s
+        %(baseline)s
+            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            time point zero.
         %(verbose_meth)s
 
         Returns
@@ -653,33 +654,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
+        Baseline correction can be done multiple times.
+
         .. versionadded:: 0.10.0
-        .. versionchanged:: 0.21
-           Once applied, a baseline cannot be removed again by passing
-           ``None``.
         """
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
-
-        if self.baseline is not None and baseline is None:
-            raise ValueError('The data has already been baseline-corrected. '
-                             'Cannot remove existing basline correction.')
-        elif baseline is None:
-            # Do not rescale
-            logger.info(_log_rescale(None))
-        elif self.preload:
+        if self.preload:
             picks = _pick_data_channels(self.info, exclude=[],
                                         with_ref_meg=True)
             picks_aux = _pick_aux_channels(self.info, exclude=[])
             picks = np.sort(np.concatenate((picks, picks_aux)))
-
-            # Logging happens in rescale().
-            rescale(self._data, self.times, baseline, copy=False,
-                    picks=picks)
-            self.baseline = baseline
-        elif not self.preload:
+            rescale(self._data, self.times, baseline, copy=False, picks=picks)
+        else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
-            self.baseline = baseline
-
+        self.baseline = baseline
         return self
 
     def _reject_setup(self, reject, flat):
@@ -1025,7 +1013,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             kind = "average"
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
-                                            kind, self._name, self.baseline)
+                                            kind, self._name)
 
     @property
     def _name(self):
@@ -1042,15 +1030,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return comment
 
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
-                                comment, baseline):
+                                comment):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
-        # We pass baseline=None because we don't want to apply baseline
-        # correction again – may have been applied to the Epochs already.
         evoked = EvokedArray(data, info, tmin=self.times[0], comment=comment,
-                             nave=n_events, kind=kind, verbose=self.verbose,
-                             baseline=None)
-        evoked.baseline = baseline
+                             nave=n_events, kind=kind, verbose=self.verbose)
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
 
@@ -1534,23 +1518,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._data = self._data[:, :, tmask]
         try:
             _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
-        except ValueError as err:
-            err_msg = str(err)
-            acceptable_msgs = (
-                'Baseline interval is only one sample',
-                'Baseline interval (tmin = .*) is outside of data range',
-                'Baseline interval (tmax = .*) is outside of data range',
-                'Baseline min (.*) must be less than baseline max'
-            )
-
-            if any([re.match(regexp, err_msg) for regexp in acceptable_msgs]):
-                # The baseline period no longer applies, so wipe it out.
-                warn('Cropping removes baseline period, setting baseline=None')
-                self.baseline = None
-            else:
-                # Something unexpected happened.
-                raise err
-
+        except ValueError:  # in no longer applies, wipe it out
+            warn('Cropping removes baseline period, setting '
+                 'epochs.baseline = None')
+            self.baseline = None
         return self
 
     def copy(self):
@@ -1880,6 +1851,39 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
+def _check_baseline(baseline, tmin, tmax, sfreq):
+    """Check for a valid baseline."""
+    if baseline is not None:
+        if not isinstance(baseline, tuple) or len(baseline) != 2:
+            raise ValueError('`baseline=%s` is an invalid argument, must be '
+                             'a tuple of length 2 or None' % str(baseline))
+        # check default value of baseline and `tmin=0`
+        if baseline == (None, 0) and tmin == 0:
+            raise ValueError('Baseline interval is only one sample. Use '
+                             '`baseline=(0, 0)` if this is desired.')
+
+        baseline_tmin, baseline_tmax = baseline
+        tstep = 1. / float(sfreq)
+        if baseline_tmin is None:
+            baseline_tmin = tmin
+        baseline_tmin = float(baseline_tmin)
+        if baseline_tmax is None:
+            baseline_tmax = tmax
+        baseline_tmax = float(baseline_tmax)
+        if baseline_tmin < tmin - tstep:
+            raise ValueError(
+                "Baseline interval (tmin = %s) is outside of epoch "
+                "data (tmin = %s)" % (baseline_tmin, tmin))
+        if baseline_tmax > tmax + tstep:
+            raise ValueError(
+                "Baseline interval (tmax = %s) is outside of epoch "
+                "data (tmax = %s)" % (baseline_tmax, tmax))
+        if baseline_tmin > baseline_tmax:
+            raise ValueError(
+                "Baseline min (%s) must be less than baseline max (%s)"
+                % (baseline_tmin, baseline_tmax))
+
+
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     """Compute drop log stats.
 
@@ -1928,7 +1932,9 @@ class Epochs(BaseEpochs):
         Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
         End time after event. If nothing is provided, defaults to 0.5.
-    %(baseline_epochs)s
+    %(baseline)s
+        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        time point zero.
     %(picks_all)s
     preload : bool
         Load all epochs from disk when creating the object
@@ -2038,14 +2044,6 @@ class Epochs(BaseEpochs):
         Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
-    baseline : None | tuple of length 2
-        The time interval considered as "baseline" when applying baseline
-        correction. If the data has been preloaded, this attribute reflects
-        whether it has been baseline-corrected (it will be a ``tuple``) or not
-        (it will be ``None``). Similarly, if the data has **not** been
-        preloaded, this attribute reflects whether baseline correction will be
-        applied upon loading the data or not (``tuple`` or ``None``,
-        respectively).
     %(verbose)s
 
     See Also
@@ -2196,7 +2194,7 @@ class EpochsArray(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    %(baseline_array)s
+    %(baseline)s
         Defaults to ``None``, i.e. no baseline correction.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
@@ -3236,8 +3234,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
                                             n_events=count, kind='average',
-                                            comment=epochs._name,
-                                            baseline=epochs.baseline)
+                                            comment=epochs._name)
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
