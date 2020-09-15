@@ -155,9 +155,11 @@ def test_volume_stc(tmpdir):
 
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
-    assert (isinstance(stc, VolSourceEstimate))
+    assert isinstance(stc, VolSourceEstimate)
 
-    assert ('sample' in repr(stc))
+    assert 'sample' in repr(stc)
+    assert ' kB' in repr(stc)
+
     stc_new = stc
     pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for ftype in ['w', 'h5']:

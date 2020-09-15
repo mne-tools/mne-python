@@ -189,6 +189,8 @@ Changelog
 
 - Add ``component_order`` parameter to :class:`mne.decoding.CSP` which allows switching between ``mutual_info`` (default) and ``alternate`` (a simpler and frequently used option) by `Martin Billinger`_ and `Clemens Brunner`_
 
+- Add memory size information to the ``repr`` of :class:`mne.SourceSpaces` and :class:`mne.SourceEstimate` and related classes by `Eric Larson`_
+
 - Speed up reading of annotations in EDF+ files by `Jeroen Van Der Donckt`_
 
 - Add reader for Persyst (.lay + .dat format) data in :func:`mne.io.read_raw_persyst` by `Adam Li`_

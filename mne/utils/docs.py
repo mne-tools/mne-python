@@ -1301,8 +1301,8 @@ volume_options : float | dict | None
         space resolution, which is often something like 7 or 5 mm,
         without resampling.
     - ``'blending'`` : str
-        Can be "mip" (default) for maximum intensity projection or
-        "composite" for composite blending.
+        Can be "mip" (default) for :term:`maximum intensity projection` or
+        "composite" for composite blending using alpha values.
     - ``'alpha'`` : float | None
         Alpha for the volumetric rendering. Defaults are 0.4 for vector source
         estimates and 1.0 for scalar source estimates.
