@@ -205,18 +205,10 @@ del filters, filters_vec
 # The plots for the scalar beamformer show brain activity in the right temporal
 # lobe around 100 ms post stimulus. This is expected given the left-ear
 # auditory stimulation of the experiment.
-#
-# Volumetric rendering (3D)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 lims = [0.3, 0.45, 0.6]
 kwargs = dict(src=src, subject='sample', subjects_dir=subjects_dir,
               initial_time=0.087, verbose=True)
-
-brain = stc.plot_3d(
-    clim=dict(kind='value', pos_lims=lims), hemi='both',
-    views=['sagittal', 'coronal', 'axial'], size=(800, 300),
-    view_layout='horizontal', show_traces=0.4, **kwargs)
 
 ###############################################################################
 # On MRI slices (orthoview; 2D)
@@ -231,20 +223,21 @@ stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 ###############################################################################
-# Now let's visualize the vector beamformer case. Here we get three source time
-# courses out per voxel (one for each component of the dipole moment: x, y,
-# and z). To be able to visualize this, the plotting function combines those
-# estimates into one:
+# Volumetric rendering (3D) with vectors
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# These plots can also be shown using a volumetric rendering via
+# :meth:`~mne.VolVectorSourceEstimate.plot_3d`. Let's try visualizing the
+# vector beamformer case. Here we get three source time courses out per voxel
+# (one for each component of the dipole moment: x, y, and z), which appear
+# as small vectors in the visualization (in the 2D plotters, only the
+# magnitude can be shown):
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 7
 
 brain = stc_vec.plot_3d(
     clim=dict(kind='value', lims=lims), hemi='both',
-    views=['sagittal', 'coronal', 'axial'], size=(800, 300),
-    view_layout='horizontal', show_traces=0.4, **kwargs)
-
-###############################################################################
-stc_vec.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+    views=['coronal', 'sagittal', 'axial'], size=(800, 300),
+    view_layout='horizontal', show_traces=0.3, **kwargs)
 
 ###############################################################################
 # Visualize the activity of the maximum voxel with all three components
@@ -286,8 +279,8 @@ morph = mne.compute_source_morph(
 stc_fs = morph.apply(stc)
 del stc
 
-brain = stc_fs.plot_3d(
-    src=src_fs, initial_time=0.085, subjects_dir=subjects_dir,
+stc_fs.plot(
+    src=src_fs, mode='stat_map', initial_time=0.085, subjects_dir=subjects_dir,
     clim=dict(kind='value', pos_lims=lims), verbose=True)
 
 ###############################################################################
