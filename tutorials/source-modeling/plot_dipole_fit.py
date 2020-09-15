@@ -37,7 +37,7 @@ evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
                           baseline=(None, 0))
 evoked.pick_types(meg=True, eeg=False)
 evoked_full = evoked.copy()
-evoked.crop(0.07, 0.08)
+evoked.crop(0.07, 0.08, verbose='error')  # ignore baseline
 
 # Fit a dipole
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
