@@ -1258,7 +1258,7 @@ class MNEBrowseFigure(MNEFigure):
             if active:
                 labels[ix] += ' (already applied)'
         # make figure
-        width = max([4, max([len(label) for label in labels]) / 6 + 0.5])
+        width = max([4, max([len(label) for label in labels]) / 8 + 0.5])
         height = (len(projs) + 1) / 6 + 1.5
         fig = self._new_child_figure(figsize=(width, height),
                                      fig_name='fig_proj',
@@ -1267,7 +1267,7 @@ class MNEBrowseFigure(MNEFigure):
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
-        ax = fig.add_axes(position, frame_on=False)
+        ax = fig.add_axes(position, frame_on=False, aspect='equal')
         # make title
         first_line = ('Projectors already applied to the data are dimmed.\n'
                       if any(self.mne.projs_active) else '')
