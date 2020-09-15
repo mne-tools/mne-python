@@ -34,7 +34,8 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from .utils import (get_subjects_dir, check_fname, logger, verbose,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, has_nibabel, _check_sphere,
-                    _validate_type, _check_option, _is_numeric, _pl, _suggest)
+                    _validate_type, _check_option, _is_numeric, _pl, _suggest,
+                    object_size, sizeof_fmt)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -278,6 +279,9 @@ class SourceSpaces(list):
         subj = self._subject
         if subj is not None:
             extra += ['subject %r' % (subj,)]
+        sz = object_size(self)
+        if sz is not None:
+            extra += [f'~{sizeof_fmt(sz)}']
         return "<SourceSpaces: [%s] %s>" % (
             ', '.join(ss_repr), ', '.join(extra))
 
@@ -1969,7 +1973,7 @@ def _get_mri_info_data(mri, data):
     if data:
         assert mgz is not None
         out['mri_vox_t'] = invert_transform(out['vox_mri_t'])
-        out['data'] = _get_img_fdata(mgz)
+        out['data'] = np.asarray(mgz.dataobj)
     return out
 
 
@@ -2684,7 +2688,8 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
     """
     import nibabel as nib
     atlas = nib.load(mgz_fname)
-    want = np.unique(_get_img_fdata(atlas))
+    data = np.asarray(atlas.dataobj)  # don't need float here
+    want = np.unique(data)
     if atlas_ids is None:
         atlas_ids, colors = read_freesurfer_lut()
     elif return_colors:

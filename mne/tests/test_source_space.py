@@ -226,7 +226,8 @@ def test_discrete_source_space(tmpdir):
     # now do MRI
     pytest.raises(ValueError, setup_volume_source_space, 'sample',
                   pos=pos_dict, mri=fname_mri)
-    assert repr(src_new) == repr(src_c)
+    assert repr(src_new).split('~')[0] == repr(src_c).split('~')[0]
+    assert ' kB' in repr(src_new)
     assert src_new.kind == 'discrete'
     assert _get_src_type(src_new, None) == 'discrete'
 
@@ -267,6 +268,7 @@ def test_volume_source_space(tmpdir):
             'sample', bem=bem, mri=fname_mri, subjects_dir=subjects_dir)
     del bem
     assert repr(src) == repr(src_new)
+    assert ' MB' in repr(src)
     assert src.kind == 'volume'
     # Spheres
     sphere = make_sphere_model(r0=(0., 0., 0.), head_radius=0.1,
@@ -403,8 +405,8 @@ def test_setup_source_space(tmpdir):
         src_new = setup_source_space('fsaverage', spacing='ico5',
                                      subjects_dir=subjects_dir, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
-    assert_equal(repr(src), repr(src_new))
-    assert_equal(repr(src).count('surface ('), 2)
+    assert repr(src).split('~')[0] == repr(src_new).split('~')[0]
+    assert repr(src).count('surface (') == 2
     assert_array_equal(src[0]['vertno'], np.arange(10242))
     assert_array_equal(src[1]['vertno'], np.arange(10242))
 
@@ -758,7 +760,7 @@ def test_combine_source_spaces(tmpdir):
     src.save(src_out_name)
     src_from_file = read_source_spaces(src_out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
-    assert_equal(repr(src), repr(src_from_file))
+    assert repr(src).split('~')[0] == repr(src_from_file).split('~')[0]
     assert_equal(src.kind, 'mixed')
 
     # test that all source spaces are in MRI coordinates

@@ -30,7 +30,8 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed, deprecated,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
-                    _build_data_frame, _check_time_format, _check_path_like)
+                    _build_data_frame, _check_time_format, _check_path_like,
+                    sizeof_fmt, object_size)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -523,6 +524,8 @@ class _BaseSourceEstimate(TimeMixin):
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
         s += ", data shape : %s" % (self.shape,)
+        sz = sum(object_size(x) for x in (self.vertices + [self.data]))
+        s += f", ~{sizeof_fmt(sz)}"
         return "<%s | %s>" % (type(self).__name__, s)
 
     @fill_doc
@@ -3053,12 +3056,14 @@ def _volume_labels(src, labels, trans, mri_resolution):
         _validate_type(mri, 'path-like', 'labels[0]' + extra)
     logger.info('Reading atlas %s' % (mri,))
     vol_info = _get_mri_info_data(str(mri), data=True)
-    atlas_values = np.unique(vol_info['data'])
-    atlas_values = atlas_values[np.isfinite(atlas_values)]
-    if not (atlas_values == np.round(atlas_values)).all():
-        raise RuntimeError('Non-integer values present in atlas, cannot '
-                           'labelize')
-    atlas_values = np.round(atlas_values).astype(np.int64)
+    atlas_data = vol_info['data']
+    atlas_values = np.unique(atlas_data)
+    if atlas_values.dtype.kind == 'f':  # MGZ will be 'i'
+        atlas_values = atlas_values[np.isfinite(atlas_values)]
+        if not (atlas_values == np.round(atlas_values)).all():
+            raise RuntimeError('Non-integer values present in atlas, cannot '
+                               'labelize')
+        atlas_values = np.round(atlas_values).astype(np.int64)
     if infer_labels:
         labels = {
             k: v for k, v in read_freesurfer_lut()[0].items()
@@ -3079,10 +3084,11 @@ def _volume_labels(src, labels, trans, mri_resolution):
             'atlas vox_mri_t does not match that used to create the source '
             'space')
     src_shape = tuple(src[0]['mri_' + k] for k in ('width', 'height', 'depth'))
-    atlas_shape = vol_info['data'].shape
+    atlas_shape = atlas_data.shape
     if atlas_shape != src_shape:
         raise RuntimeError('atlas shape %s does not match source space MRI '
                            'shape %s' % (atlas_shape, src_shape))
+    atlas_data = atlas_data.ravel(order='F')
     if mri_resolution:
         # Upsample then just index
         out_labels = list()
@@ -3090,10 +3096,10 @@ def _volume_labels(src, labels, trans, mri_resolution):
         interp = src[0]['interpolator']
         # should be guaranteed by size checks above and our src interp code
         assert interp.shape[0] == np.prod(src_shape)
-        assert interp.shape == (vol_info['data'].size, len(src[0]['rr']))
+        assert interp.shape == (atlas_data.size, len(src[0]['rr']))
         interp = interp[:, src[0]['vertno']]
         for k, v in labels.items():
-            mask = vol_info['data'].ravel(order='F') == v
+            mask = atlas_data == v
             csr = interp[mask]
             out_labels.append(dict(csr=csr, name=k))
             nnz += csr.shape[0] > 0

@@ -192,6 +192,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         estimate activity for a given source while suppressing cross-talk from
         other regions, see :func:`mne.beamformer.make_lcmv`.
 
+    maximum intensity projection
+        A method of displaying activity within some volume by, for each pixel,
+        finding the maximum value along vector from the viewer to the pixel
+        (i.e., along the vector pependicular to the view plane).
+
     minimum-norm estimation
         Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed
         map of activation on a :term:`source space`, usually on a cortical surface.
