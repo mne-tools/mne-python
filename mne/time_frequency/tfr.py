@@ -945,7 +945,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         return deepcopy(self)
 
     @verbose
-    def apply_baseline(self, baseline, mode='mean', verbose=None):
+    def apply_baseline(self, baseline, mode='mean', *, verbose=None):
         """Baseline correct the data.
 
         Parameters

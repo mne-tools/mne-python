@@ -161,7 +161,13 @@ class FunctionMaker(object):
 
     def make(self, src_templ, evaldict=None, addsource=False, **attrs):
         "Make a new function from a given template and update the signature"
-        src = src_templ % vars(self)  # expand name and signature
+        # Expand name and signature. Remove `*` argument if present
+        # (placed before keyword-only arguments in function signatures).
+        vars_ = vars(self)
+        if 'kwonlyargs' in vars_:
+            vars_['signature'] = vars_['signature'].replace('*, ', '')
+        src = src_templ % vars_
+
         evaldict = evaldict or {}
         mo = DEF.search(src)
         if mo is None:

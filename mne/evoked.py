@@ -155,7 +155,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._data = data
 
     @verbose
-    def apply_baseline(self, baseline=(None, 0), verbose=None):
+    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
         """Baseline correct evoked data.
 
         Parameters
