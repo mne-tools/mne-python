@@ -1497,7 +1497,18 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         trace_GRGT, noise_cov, _ = _prepare_forward(
             forward, info, noise_cov, fixed, loose, rank, pca='white',
             use_cps=use_cps, **depth)
-    del fixed, loose, depth, use_cps
+    # no need to copy any attributes of forward here because there is
+    # a deepcopy in _prepare_forward
+    inv = dict(
+        projs=deepcopy(gain_info['projs']), eigen_leads_weighted=False,
+        source_ori=forward['source_ori'], mri_head_t=forward['mri_head_t'],
+        nsource=forward['nsource'], units='Am',
+        coord_frame=forward['coord_frame'], source_nn=forward['source_nn'],
+        src=forward['src'], fmri_prior=None, info=deepcopy(forward['info']))
+    inv['info']['bads'] = [bad for bad in info['bads']
+                           if bad in forward['info']['ch_names']]
+    inv['info']._check_consistency()
+    del fixed, loose, depth, use_cps, forward
 
     # Decompose the combined matrix
     logger.info('Computing SVD of whitened and weighted lead field matrix.')
@@ -1544,28 +1555,11 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                       kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
                       names=[], projs=[], eig=None, eigvec=None,
                       nfree=1, bads=[])
-    # no need to copy any attributes of forward here because there is
-    # a deepcopy in _prepare_forward
-    inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
-                  sing=sing, nave=1., depth_prior=depth_prior,
-                  source_cov=source_cov, noise_cov=noise_cov,
-                  orient_prior=orient_prior,
-                  projs=deepcopy(gain_info['projs']),
-                  eigen_leads_weighted=False, source_ori=forward['source_ori'],
-                  mri_head_t=forward['mri_head_t'],
-                  methods=methods, nsource=forward['nsource'],
-                  coord_frame=forward['coord_frame'],
-                  source_nn=forward['source_nn'],
-                  src=forward['src'],
-                  fmri_prior=None)
-    inv_info = deepcopy(forward['info'])
-    inv_info['bads'] = [bad for bad in info['bads']
-                        if bad in forward['info']['ch_names']]
-    inv_info._check_consistency()
-    inv_op['units'] = 'Am'
-    inv_op['info'] = inv_info
-
-    return InverseOperator(inv_op)
+    inv.update(
+        eigen_fields=eigen_fields, eigen_leads=eigen_leads, sing=sing, nave=1.,
+        depth_prior=depth_prior, source_cov=source_cov, noise_cov=noise_cov,
+        orient_prior=orient_prior, methods=methods)
+    return InverseOperator(inv)
 
 
 def _compute_reginv(inv, lambda2):

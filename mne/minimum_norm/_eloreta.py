@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
 import numpy as np
 
 from ..defaults import _handle_default
@@ -35,7 +36,11 @@ def _compute_eloreta(inv, lambda2, options):
         raise RuntimeError('eLORETA cannot be computed with weighted eigen '
                            'leads')
     G = np.dot(inv['eigen_fields']['data'].T * inv['sing'],
-               inv['eigen_leads']['data'].T).astype(np.float64)
+               inv['eigen_leads']['data'].T)
+    del inv['eigen_leads']['data']
+    del inv['eigen_fields']['data']
+    del inv['sing']
+    G = G.astype(np.float64)
     n_nzero = compute_rank_inverse(inv)
     G /= np.sqrt(inv['source_cov']['data'])
     # restore orientation prior
@@ -62,18 +67,6 @@ def _compute_eloreta(inv, lambda2, options):
     else:
         R_prior = source_std ** 2
 
-    def _normalize_R(G, R):
-        """Normalize R so that lambda2 is consistent."""
-        if n_orient == 1 or force_equal:
-            R_Gt = R[:, np.newaxis] * G.T
-        else:
-            R_Gt = np.matmul(R, G_3).reshape(n_src * 3, -1)
-        G_R_Gt = np.dot(G, R_Gt)
-        norm = np.trace(G_R_Gt) / n_nzero
-        G_R_Gt /= norm
-        R /= norm
-        return G_R_Gt
-
     # The following was adapted under BSD license by permission of Guido Nolte
     if force_equal or n_orient == 1:
         R_shape = (n_src * n_orient,)
@@ -83,7 +76,10 @@ def _compute_eloreta(inv, lambda2, options):
         R = np.empty(R_shape)
         R[:] = np.eye(n_orient)[np.newaxis]
     R *= R_prior
-    G_R_Gt = _normalize_R(G, R)
+    _this_normalize_R = partial(
+        _normalize_R, n_nzero=n_nzero, force_equal=force_equal,
+        n_src=n_src, n_orient=n_orient)
+    G_R_Gt = _this_normalize_R(G, R, G_3)
     extra = ' (this make take a while)' if n_orient == 3 else ''
     logger.info('        Fitting up to %d iterations%s...'
                 % (max_iter, extra))
@@ -110,7 +106,7 @@ def _compute_eloreta(inv, lambda2, options):
             else:
                 R[:], _ = sqrtm_sym(M, inv=True)
         R *= R_prior  # reapply our prior, eLORETA undoes it
-        G_R_Gt = _normalize_R(G, R)
+        G_R_Gt = _this_normalize_R(G, R, G_3)
 
         # Check for weight convergence
         delta = (np.linalg.norm(R.ravel() - R_last.ravel()) /
@@ -123,10 +119,12 @@ def _compute_eloreta(inv, lambda2, options):
             break
     else:
         warn('eLORETA weight fitting did not converge (>= %s)' % eps)
+    del G_R_Gt
     logger.info('        Updating inverse with weighted eigen leads')
     G /= source_std  # undo our biasing
     G_3 = _get_G_3(G, n_orient)
-    _normalize_R(G, R)
+    _this_normalize_R(G, R, G_3)
+    del G_3
     if n_orient == 1 or force_equal:
         R_sqrt = np.sqrt(R)
     else:
@@ -135,11 +133,12 @@ def _compute_eloreta(inv, lambda2, options):
     A = _R_sqrt_mult(G, R_sqrt)
     del R, G  # the rest will be done in terms of R_sqrt and A
     eigen_fields, sing, eigen_leads = _safe_svd(A, full_matrices=False)
-    inv['sing'][:] = sing
-    inv['reginv'][:] = _compute_reginv(inv, lambda2)
+    del A
+    inv['sing'] = sing
+    inv['reginv'] = _compute_reginv(inv, lambda2)
     inv['eigen_leads_weighted'] = True
-    inv['eigen_leads']['data'][:] = _R_sqrt_mult(eigen_leads, R_sqrt).T
-    inv['eigen_fields']['data'][:] = eigen_fields.T
+    inv['eigen_leads']['data'] = _R_sqrt_mult(eigen_leads, R_sqrt).T
+    inv['eigen_fields']['data'] = eigen_fields.T
     # XXX in theory we should set inv['source_cov'] properly.
     # For fixed ori (or free ori with force_equal=True), we can as these
     # are diagonal matrices. But for free ori without force_equal, it's a
@@ -152,12 +151,24 @@ def _compute_eloreta(inv, lambda2, options):
     logger.info('[done]')
 
 
+def _normalize_R(G, R, G_3, n_nzero, force_equal, n_src, n_orient):
+    """Normalize R so that lambda2 is consistent."""
+    if n_orient == 1 or force_equal:
+        R_Gt = R[:, np.newaxis] * G.T
+    else:
+        R_Gt = np.matmul(R, G_3).reshape(n_src * 3, -1)
+    G_R_Gt = G @ R_Gt
+    norm = np.trace(G_R_Gt) / n_nzero
+    G_R_Gt /= norm
+    R /= norm
+    return G_R_Gt
+
+
 def _get_G_3(G, n_orient):
     if n_orient == 1:
         return None
     else:
-        return np.ascontiguousarray(
-            G.reshape(G.shape[0], -1, n_orient).transpose(1, 2, 0))
+        return G.reshape(G.shape[0], -1, n_orient).transpose(1, 2, 0)
 
 
 def _R_sqrt_mult(other, R_sqrt):

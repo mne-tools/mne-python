@@ -141,6 +141,7 @@ morph = mne.compute_source_morph(
     subjects_dir=subjects_dir)
 # morph data
 stc_fsaverage = morph.apply(stc)
+del stc
 
 brain = stc_fsaverage.plot(**surfer_kwargs)
 brain.add_text(0.1, 0.9, 'Morphed to fsaverage', 'title', font_size=20)

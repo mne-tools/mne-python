@@ -1068,9 +1068,9 @@ except ImportError:  # NumPy < 1.15
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     """
     crop a colorbar to show from cbar_vmin to cbar_vmax
-
     Used when symmetric_cbar=False is used.
     """
+    import matplotlib
     if (cbar_vmin is None) and (cbar_vmax is None):
         return
     cbar_tick_locs = cbar.locator.locs
@@ -1080,12 +1080,24 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
         cbar_vmin = cbar_tick_locs.min()
     new_tick_locs = np.linspace(cbar_vmin, cbar_vmax,
                                 len(cbar_tick_locs))
-    cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
-    outline = cbar.outline.get_xy()
-    outline[:2, 1] += cbar.norm(cbar_vmin)
-    outline[2:6, 1] -= (1. - cbar.norm(cbar_vmax))
-    outline[6:, 1] += cbar.norm(cbar_vmin)
-    cbar.outline.set_xy(outline)
+
+    # matplotlib >= 3.2.0 no longer normalizes axes between 0 and 1
+    # See https://matplotlib.org/3.2.1/api/prev_api_changes/api_changes_3.2.0.html
+    if LooseVersion(matplotlib.__version__) >= LooseVersion("3.2.0"):
+        cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
+        X, _ = cbar._mesh()
+        new_X = np.array([X[0], X[-1]])
+        new_Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
+        xy = cbar._outline(new_X, new_Y)
+        cbar.outline.set_xy(xy)
+    else:
+        cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
+        outline = cbar.outline.get_xy()
+        outline[:2, 1] += cbar.norm(cbar_vmin)
+        outline[2:6, 1] -= (1. - cbar.norm(cbar_vmax))
+        outline[6:, 1] += cbar.norm(cbar_vmin)
+        cbar.outline.set_xy(outline)
+
     cbar.set_ticks(new_tick_locs, update_ticks=True)
 
 
