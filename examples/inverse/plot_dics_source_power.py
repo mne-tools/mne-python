@@ -37,7 +37,7 @@ raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
 
 # Use a shorter segment of raw just for speed here
 raw = mne.io.read_raw_fif(raw_fname)
-raw.crop(0, 120)  # just a couple of minutes for speed
+raw.crop(0, 120)  # one minute for speed (looks similar to using all ~800 sec)
 
 # Read epochs
 events = mne.find_events(raw)
@@ -78,7 +78,7 @@ csd_ers = csd_ers.mean()
 # timecourse.
 fwd = mne.read_forward_solution(fname_fwd)
 filters = make_dics(info, fwd, csd, noise_csd=csd_baseline,
-                    pick_ori='max-power')
+                    pick_ori='max-power', reduce_rank=True)
 del fwd
 
 ###############################################################################
@@ -91,7 +91,7 @@ beta_source_power, freqs = apply_dics_csd(csd_ers, filters)
 # Visualizing source power during ERS activity relative to the baseline power.
 stc = beta_source_power / baseline_source_power
 message = 'DICS source power in the 12-30 Hz frequency band'
-brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
+brain = stc.plot(hemi='both', views='axial', subjects_dir=subjects_dir,
                  subject=subject, time_label=message)
 
 ###############################################################################

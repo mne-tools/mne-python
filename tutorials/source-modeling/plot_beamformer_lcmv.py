@@ -66,10 +66,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     baseline=(None, 0), preload=True, proj=proj,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 
+# for speed purposes, cut to a window of interest (ignore baseline, etc.)
+evoked = epochs.average().crop(0.05, 0.15, verbose='error')
+
 # Visualize averaged sensor space data
-evoked = epochs.average()
 evoked.plot_joint()
-evoked.crop(0.05, 0.15, verbose='error')  # ignore baseline
 
 del raw  # save memory
 
