@@ -2083,7 +2083,7 @@ class SelectFromCollection(object):
     """
 
     def __init__(self, ax, collection, ch_names, alpha_other=0.5,
-                 linewidth_other=0.5):
+                 linewidth_other=0.5, alpha_selected=1, linewidth_selected=1):
         from matplotlib import __version__
         if LooseVersion(__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
@@ -2095,6 +2095,8 @@ class SelectFromCollection(object):
         self.ch_names = ch_names
         self.alpha_other = alpha_other
         self.linewidth_other = linewidth_other
+        self.alpha_selected = alpha_selected
+        self.linewidth_selected = linewidth_selected
 
         self.xys = collection.get_offsets()
         self.Npts = len(self.xys)
@@ -2157,9 +2159,9 @@ class SelectFromCollection(object):
         self.ec[:, -1] = self.alpha_other / 2
         self.lw[:] = self.linewidth_other
         # style sensors at `inds`
-        self.fc[inds, -1] = 1
-        self.ec[inds, -1] = 1
-        self.lw[inds] = 1
+        self.fc[inds, -1] = self.alpha_selected
+        self.ec[inds, -1] = self.alpha_selected
+        self.lw[inds] = self.linewidth_selected
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
         self.collection.set_linewidths(self.lw)
@@ -2168,8 +2170,8 @@ class SelectFromCollection(object):
     def disconnect(self):
         """Disconnect the lasso selector."""
         self.lasso.disconnect_events()
-        self.fc[:, -1] = 1
-        self.ec[:, -1] = 1
+        self.fc[:, -1] = self.alpha_selected
+        self.ec[:, -1] = self.alpha_selected
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()

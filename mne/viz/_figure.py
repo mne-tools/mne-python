@@ -603,7 +603,10 @@ class MNEBrowseFigure(MNEFigure):
         if isinstance(event.artist, Text):
             ch_name = event.artist.get_text()
             ind = self.mne.ch_names[self.mne.picks].tolist().index(ch_name)
-            self._toggle_bad_channel(ind)
+            if event.mouseevent.button == 1:  # left click
+                self._toggle_bad_channel(ind)
+            elif event.mouseevent.button == 3:  # right click
+                self._create_ch_location_fig(ind)
 
     def _buttonpress(self, event):
         """Handle mouse clicks."""
@@ -688,6 +691,30 @@ class MNEBrowseFigure(MNEFigure):
         # redraw
         self._update_projector()
         self._redraw()
+
+    def _create_ch_location_fig(self, idx):
+        """Show channel location figure; idx is index of *visible* channels."""
+        from .utils import _channel_type_prettyprint
+        pick = self.mne.picks[idx]
+        ch_name = self.mne.ch_names[pick]
+        ch_type = self.mne.ch_types[pick]
+        if ch_type not in _DATA_CH_TYPES_SPLIT:
+            return
+        # create figure and axes
+        fig = self._new_child_figure(figsize=(4, 4),
+                                     fig_name='fig_help',
+                                     window_title=f'Location of {ch_name}')
+        ax = fig.add_subplot()
+        title = (f'{_channel_type_prettyprint[ch_type]} positions '
+                 f'({ch_name} highlighted)')
+        plot_sensors(self.mne.info, ch_type=ch_type, axes=ax, title=title,
+                     kind='select')
+        inds = np.in1d(fig.lasso.ch_names, [ch_name])
+        fig.lasso.disconnect()
+        fig.lasso.alpha_other = 0.3
+        fig.lasso.linewidth_selected = 2
+        fig.lasso.style_sensors(inds)
+        fig.mne.parent_fig.mne.foo = ax.collections[0]
 
     def _toggle_butterfly(self):
         """Enter or leave butterfly mode."""
