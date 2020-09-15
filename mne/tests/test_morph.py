@@ -58,9 +58,7 @@ fname_stc = op.join(sample_dir, 'fsaverage_audvis_trunc-meg')
 
 def _real_vec_stc():
     inv = read_inverse_operator(fname_inv_surf)
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        evoked = (read_evokeds(fname_evoked, baseline=(None, 0))[0]
-                  .crop(0, 0.01))
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
     return apply_inverse(evoked, inv, pick_ori='vector')
 
 

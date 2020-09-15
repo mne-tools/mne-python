@@ -86,8 +86,7 @@ def test_render_report(renderer, tmpdir):
     epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        evoked = epochs.average().crop(0.1, None)
+    evoked = epochs.average().crop(0.1, 0.2)
     evoked.save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,

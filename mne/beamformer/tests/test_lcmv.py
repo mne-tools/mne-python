@@ -94,8 +94,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
             baseline=(None, 0), preload=epochs_preload, reject=reject)
         if epochs_preload:
             epochs.resample(200, npad=0)
-        with pytest.warns(RuntimeWarning,
-                          match='Cropping removes baseline period'):
+        with pytest.warns(RuntimeWarning, match='baseline = None'):
             epochs.crop(0, None)
         evoked = epochs.average()
         info = evoked.info
@@ -121,7 +120,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
 @testing.requires_testing_data
 def test_lcmv_vector():
     """Test vector LCMV solutions."""
-    info = mne.io.read_info(fname_raw)
+    info = mne.io.read_raw_fif(fname_raw).info
 
     # For speed and for rank-deficiency calculation simplicity,
     # just use grads

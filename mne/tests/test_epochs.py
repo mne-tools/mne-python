@@ -745,14 +745,6 @@ def test_epochs_baseline(preload):
     expected[0] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
 
-    # We shouldn't be able to remove a baseline correction after it has been
-    # applied.
-    baseline = (None, None)
-    epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=baseline,
-                        preload=preload)
-    with pytest.raises(ValueError, match='already been baseline-corrected'):
-        epochs.apply_baseline(None)
-
 
 def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
@@ -989,7 +981,7 @@ def test_epochs_io_preload(tmpdir, preload):
     assert epochs.times[-1] > 0
     epochs.apply_baseline((None, 0))
     with pytest.warns(RuntimeWarning,
-                      match='Cropping removes baseline period'):
+                      match=r'setting epochs\.baseline = None'):
         epochs.crop(1. / epochs.info['sfreq'], None)
     assert epochs.baseline is None
     epochs.save(fname_temp, overwrite=True)
@@ -1073,8 +1065,7 @@ def test_epochs_io_preload(tmpdir, preload):
 
     # Test that having a single time point works
     assert epochs.baseline is not None
-    with pytest.warns(RuntimeWarning,
-                      match='Cropping removes baseline period'):
+    with pytest.warns(RuntimeWarning, match=r'setting epochs\.baseline'):
         epochs.load_data().crop(0, 0)
     assert epochs.baseline is None
     assert_equal(len(epochs.times), 1)
@@ -1218,11 +1209,9 @@ def test_evoked_io_from_epochs(tmpdir):
     raw, events, picks = _get_data()
     raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
-    baseline = None
     epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
-                    picks=picks, decim=5, baseline=baseline)
+                    picks=picks, decim=5)
     evoked = epochs.average()
-    assert evoked.baseline == baseline
     evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
     fname_temp = op.join(tempdir, 'evoked-ave.fif')
     evoked.save(fname_temp)
@@ -1231,27 +1220,21 @@ def test_evoked_io_from_epochs(tmpdir):
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
                     atol=1 / evoked.info['sfreq'])
-    assert evoked2.baseline == baseline
 
     # now let's do one with negative time
-    baseline = (0.1, 0.2)
     epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
-                    picks=picks, decim=5, baseline=baseline)
+                    picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
-    assert evoked.baseline == baseline
     evoked.save(fname_temp)
     evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
-    assert_allclose(evoked2.baseline, baseline)
 
     # should be equivalent to a cropped original
-    baseline = (0.1, 0.2)
     epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
-                    picks=picks, decim=5, baseline=baseline)
+                    picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
     evoked.crop(0.099, None)
-    assert evoked.baseline == baseline
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 

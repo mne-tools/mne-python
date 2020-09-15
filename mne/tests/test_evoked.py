@@ -674,8 +674,6 @@ def test_time_as_index_and_crop():
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax], atol=atol)
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
-
-    evoked = read_evokeds(fname, condition=0)
     evoked.crop(tmin, tmax, include_tmax=False)
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
 
@@ -712,7 +710,7 @@ def test_add_channels():
     pytest.raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
 
-def test_evoked_baseline(tmpdir):
+def test_evoked_baseline():
     """Test evoked baseline."""
     evoked = read_evokeds(fname, condition=0, baseline=None)
 
@@ -722,40 +720,9 @@ def test_evoked_baseline(tmpdir):
 
     # Mean baseline correction is applied, since the data is equal to its mean
     # the resulting data should be a matrix of zeroes.
-    baseline = (None, None)
-    evoked.apply_baseline(baseline)
-    assert evoked.baseline == baseline
+    evoked.apply_baseline((None, None))
+
     assert_allclose(evoked.data, np.zeros_like(evoked.data))
-
-    # Test that the .baseline attribute changes if we apply a different
-    # baseline now.
-    baseline = (None, 0)
-    evoked.apply_baseline(baseline)
-    assert evoked.baseline == baseline
-
-    # Test that the .baseline attribute is set when we call read_evokeds()
-    # with a `baseline` parameter.
-    baseline = (-0.2, -0.1)
-    evoked = read_evokeds(fname, condition=0, baseline=baseline)
-    assert evoked.baseline == baseline
-
-    # Test that the .baseline attribute survives an I/O roundtrip.
-    evoked = read_evokeds(fname, condition=0)
-    baseline = (-0.2, -0.1)
-    evoked.apply_baseline(baseline)
-
-    tmp_fname = tmpdir / 'test-ave.fif'
-    evoked.save(tmp_fname)
-    evoked = read_evokeds(tmp_fname, condition=0)
-    assert_allclose(evoked.baseline, baseline)
-
-    # We shouldn't be able to remove a baseline correction after it has been
-    # applied.
-    evoked = read_evokeds(fname, condition=0)
-    baseline = (-0.2, -0.1)
-    evoked.apply_baseline(baseline)
-    with pytest.raises(ValueError, match='already been baseline-corrected'):
-        evoked.apply_baseline(None)
 
 
 def test_hilbert():
