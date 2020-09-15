@@ -1485,7 +1485,6 @@ class MNEBrowseFigure(MNEFigure):
                    else 'normal')
             text.set_style(sty)
 
-
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
