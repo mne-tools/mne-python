@@ -575,7 +575,11 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.remove_dc = not self.mne.remove_dc
             self._redraw()
         elif key == 'p':  # toggle draggable annotations
-            self.mne.draggable_annotations = not self.mne.draggable_annotations
+            self._toggle_draggable_annotations(event)
+            if self.mne.fig_annotation is not None:
+                checkbox = self.mne.fig_annotation.mne.drag_checkbox
+                with _events_off(checkbox):
+                    checkbox.set_active(0)
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # toggle noise cov whitening
@@ -813,7 +817,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _create_annotation_fig(self):
         """Create the annotation dialog window."""
-        from matplotlib.widgets import Button, SpanSelector
+        from matplotlib.widgets import Button, SpanSelector, CheckButtons
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         # make figure
@@ -861,6 +865,32 @@ class MNEBrowseFigure(MNEFigure):
         fig.button = Button(button_ax, 'Add new label')
         fig.button.on_clicked(self._add_annotation_label)
         plt_show(fig=fig)
+        # add "draggable" checkbox
+        drag_ax_height = 3 * pad
+        drag_ax = div.append_axes('bottom', size=Fixed(drag_ax_height),
+                                  pad=Fixed(pad), aspect='equal')
+        checkbox = CheckButtons(drag_ax, labels=('Draggable edges?',),
+                                actives=(self.mne.draggable_annotations,))
+        checkbox.on_clicked(self._toggle_draggable_annotations)
+        fig.mne.drag_checkbox = checkbox
+        # reposition & resize axes
+        width_in, height_in = fig.get_size_inches()
+        width_ax = fig._inch_to_rel(width_in - 2 * pad)
+        aspect = width_ax / fig._inch_to_rel(drag_ax_height)
+        drag_ax.set_xlim(0, aspect)
+        drag_ax.set_axis_off()
+        # reposition & resize checkbox & label
+        rect = checkbox.rectangles[0]
+        _pad, _size = (0.2, 0.6)
+        rect.set_bounds(_pad, _pad, _size, _size)
+        lines = checkbox.lines[0]
+        for line, direction in zip(lines, (1, -1)):
+            line.set_xdata((_pad, _pad + _size)[::direction])
+            line.set_ydata((_pad, _pad + _size))
+        text = checkbox.labels[0]
+        text.set(position=(3 * _pad + _size, 0.45), va='center')
+        for artist in lines + (rect, text):
+            artist.set_transform(drag_ax.transData)
         # setup interactivity in plot window
         col = ('#ff0000' if len(fig.mne.radio_ax.buttons.circles) < 1 else
                fig.mne.radio_ax.buttons.circles[0].get_edgecolor())
@@ -871,6 +901,10 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.ax_main.selector = selector
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
+
+    def _toggle_draggable_annotations(self, event):
+        """Enable/disable draggable annotation edges."""
+        self.mne.draggable_annotations = not self.mne.draggable_annotations
 
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
@@ -888,7 +922,7 @@ class MNEBrowseFigure(MNEFigure):
         # populate center axes with labels & radio buttons
         ax.clear()
         title = 'Existing labels:' if len(labels) else 'No existing labels'
-        ax.set_title(title, size=None)
+        ax.set_title(title, size=None, loc='left')
         ax.buttons = RadioButtons(ax, labels)
         # adjust xlim to keep equal aspect & full width (keep circles round)
         aspect = (width - 2 * pad) / var_height
@@ -933,14 +967,16 @@ class MNEBrowseFigure(MNEFigure):
         0.3  text entry
         0.1  padding above button
         0.3  button
+        0.1  padding above checkbox
+        0.3  checkbox
         0.1  bottom margin
         ------------------------------------------
-        2.5  total fixed height
+        2.9  total fixed height
         """
         pad = 0.1
         width = 4.5
         var_height = max(pad, 0.7 * n_labels)
-        fixed_height = 2.5
+        fixed_height = 2.9
         return (width, var_height, fixed_height, pad)
 
     def _add_annotation_label(self, event):
