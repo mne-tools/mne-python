@@ -1268,6 +1268,11 @@ interpolation : str | None
     Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
     or 'cubic'.
 """
+docdict["brain_screenshot_time_viewer"] = """
+time_viewer : bool
+    If True, include time viewer traces. Only used if
+    ``time_viewer=True`` and ``separate_canvas=False``.
+"""
 docdict["show_traces"] = """
 show_traces : bool | str | float
     If True, enable interactive picking of a point on the surface of the

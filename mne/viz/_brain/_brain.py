@@ -1164,20 +1164,54 @@ class _Brain(object):
         """
         self._renderer.screenshot(mode=mode, filename=filename)
 
-    def screenshot(self, mode='rgb'):
+    @fill_doc
+    def screenshot(self, mode='rgb', time_viewer=False):
         """Generate a screenshot of current view.
 
         Parameters
         ----------
         mode : string
             Either 'rgb' or 'rgba' for values to return.
+        %(brain_screenshot_time_viewer)s
 
         Returns
         -------
         screenshot : array
             Image pixel values.
         """
-        return self._renderer.screenshot(mode)
+        img = self._renderer.screenshot(mode)
+        if time_viewer and getattr(self, 'time_viewer', None) is not None and \
+                self.time_viewer.show_traces and \
+                not self.time_viewer.separate_canvas:
+            canvas = self.time_viewer.mpl_canvas.fig.canvas
+            canvas.draw_idle()
+            # In theory, one of these should work:
+            #
+            # trace_img = np.frombuffer(
+            #     canvas.tostring_rgb(), dtype=np.uint8)
+            # trace_img.shape = canvas.get_width_height()[::-1] + (3,)
+            #
+            # or
+            #
+            # trace_img = np.frombuffer(
+            #     canvas.tostring_rgb(), dtype=np.uint8)
+            # size = time_viewer.mpl_canvas.getSize()
+            # trace_img.shape = (size.height(), size.width(), 3)
+            #
+            # But in practice, sometimes the sizes does not match the
+            # renderer tostring_rgb() size. So let's directly use what
+            # matplotlib does in lib/matplotlib/backends/backend_agg.py
+            # before calling tobytes():
+            trace_img = np.asarray(
+                canvas.renderer._renderer).take([0, 1, 2], axis=2)
+            # need to slice into trace_img because generally it's a bit
+            # smaller
+            delta = trace_img.shape[1] - img.shape[1]
+            if delta > 0:
+                start = delta // 2
+                trace_img = trace_img[:, start:start + img.shape[1]]
+            img = np.concatenate([img, trace_img], axis=0)
+        return img
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
         """Update color map.
@@ -1478,6 +1512,7 @@ class _Brain(object):
     def hemis(self):
         return self._hemis
 
+    @fill_doc
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation=None, codec=None,
                    bitrate=None, callback=None, **kwargs):
@@ -1517,6 +1552,7 @@ class _Brain(object):
             A function to call on each iteration. Useful for status message
             updates. It will be passed keyword arguments ``frame`` and
             ``n_frames``.
+        %(brain_screenshot_time_viewer)s
         **kwargs :
             Specify additional options for :mod:`imageio`.
         """
@@ -1558,13 +1594,14 @@ class _Brain(object):
                      % (times, time_idx))
         # Sometimes the first screenshot is rendered with a different
         # resolution on OS X
-        self.screenshot()
+        self.screenshot(time_viewer=time_viewer)
         old_mode = self.time_interpolation
         if interpolation is not None:
             self.set_time_interpolation(interpolation)
         try:
             images = [
-                self.screenshot() for _ in self._iter_time(time_idx, callback)]
+                self.screenshot(time_viewer=time_viewer)
+                for _ in self._iter_time(time_idx, callback)]
         finally:
             self.set_time_interpolation(old_mode)
         if callback is not None:
