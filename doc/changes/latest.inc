@@ -199,7 +199,7 @@ Changelog
 
 - Add reader for SNIRF NIRS data in :func:`mne.io.read_raw_snirf` by `Robert Luke`_
 
-- `~mne.Evoked` has gained ``tmin``, and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_		
+- `~mne.Evoked` has gained ``tmin`` and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_		
 
 Bug
 ~~~
