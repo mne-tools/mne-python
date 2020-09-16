@@ -41,16 +41,19 @@ class MNEFigure(Figure):
 
     def _close(self, event):
         """Handle close events."""
-        from matplotlib.pyplot import close
-        # remove reference from parent fig to ancillary fig
-        if getattr(self.mne, 'parent_fig', None) is not None:
-            setattr(self.mne.parent_fig.mne, self.mne.fig_name, None)
-        close(self)
+        # remove references from parent fig to child fig
+        is_child = getattr(self.mne, 'parent_fig', None) is not None
+        is_named = getattr(self.mne, 'fig_name', None) is not None
+        if is_child:
+            self.mne.parent_fig.mne.child_figs.remove(self)
+            if is_named:
+                setattr(self.mne.parent_fig.mne, self.mne.fig_name, None)
 
     def _keypress(self, event):
         """Handle keypress events."""
         if event.key == self.mne.close_key:
-            self._close(event)
+            from matplotlib.pyplot import close
+            close(self)
 
     def _pick(self, event):
         """Handle matplotlib pick events."""
@@ -117,7 +120,7 @@ class MNEAnnotationFigure(MNEFigure):
         # disconnect hover callback
         callback_id = parent.mne._callback_ids['motion_notify_event']
         parent.canvas.callbacks.disconnect(callback_id)
-        # remove parent reference to self, and close
+        # do all the other cleanup activities
         super()._close(event)
 
     def _keypress(self, event):
@@ -125,7 +128,8 @@ class MNEAnnotationFigure(MNEFigure):
         text = self.label.get_text()
         key = event.key
         if key == self.mne.close_key:
-            self._close(event)
+            from matplotlib.pyplot import close
+            close(self)
         elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
@@ -189,9 +193,11 @@ class MNESelectionFigure(MNEFigure):
 
     def _close(self, event):
         """Handle close events."""
-        super()._close(event)
+        from matplotlib.pyplot import close
+        self.mne.parent_fig.mne.child_figs.remove(self)
+        self.mne.fig_selection = None
         # selection fig & main fig tightly integrated; closing one closes both
-        self.mne.parent_fig._close(event)
+        close(self.mne.parent_fig)
 
     def _keypress(self, event):
         """Handle keypress events."""
@@ -284,6 +290,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
         # ancillary child figures
+        self.mne.child_figs = list()
         self.mne.fig_help = None
         self.mne.fig_proj = None
         self.mne.fig_selection = None
@@ -403,6 +410,9 @@ class MNEBrowseFigure(MNEFigure):
         fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
                       **kwargs)
         fig._add_default_callbacks()
+        self.mne.child_figs.append(fig)
+        if isinstance(fig_name, str):
+            setattr(self.mne, fig_name, fig)
         return fig
 
     def _close(self, event=None):
@@ -412,12 +422,10 @@ class MNEBrowseFigure(MNEFigure):
         # persist changes to proj checkboxes)
         self.mne.info['projs'] = self.mne.inst.info['projs']
         self.mne.inst.info = self.mne.info
-        # Clean up auxiliary figures too
-        aux_figs = ('fig_annotation', 'fig_help', 'fig_proj', 'fig_selection')
-        for fig in aux_figs:
-            if getattr(self.mne, fig, None) is not None:
-                getattr(self.mne, fig).canvas.close_event()
-        close(self)
+        # Clean up child figures too
+        while len(self.mne.child_figs):
+            fig = self.mne.child_figs[-1]
+            close(fig)
 
     def _resize(self, event):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
@@ -701,12 +709,10 @@ class MNEBrowseFigure(MNEFigure):
         if ch_type not in _DATA_CH_TYPES_SPLIT:
             return
         # create figure and axes
-        fig = self._new_child_figure(figsize=(4, 4),
-                                     fig_name='fig_help',
+        fig = self._new_child_figure(figsize=(4, 4), fig_name=None,
                                      window_title=f'Location of {ch_name}')
         ax = fig.add_subplot()
-        title = (f'{_channel_type_prettyprint[ch_type]} positions '
-                 f'({ch_name} highlighted)')
+        title = f'{ch_name} position ({_channel_type_prettyprint[ch_type]})'
         plot_sensors(self.mne.info, ch_type=ch_type, axes=ax, title=title,
                      kind='select')
         inds = np.in1d(fig.lasso.ch_names, [ch_name])
@@ -763,7 +769,6 @@ class MNEBrowseFigure(MNEFigure):
         fig = self._new_child_figure(figsize=(width, height),
                                      fig_name='fig_help',
                                      window_title='Help')
-        self.mne.fig_help = fig
         ax = fig.add_axes((0.01, 0.01, 0.98, 0.98))
         ax.set_axis_off()
         kwargs = dict(va='top', linespacing=1.5, usetex=False)
@@ -775,7 +780,8 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.fig_help is None:
             self._create_help_fig()
         else:
-            self.mne.fig_help.canvas.close_event()
+            from matplotlib.pyplot import close
+            close(self.mne.fig_help)
 
     def _get_help_text(self):
         """Generate help dialog text; `None`-valued entries removed later."""
@@ -856,7 +862,6 @@ class MNEBrowseFigure(MNEFigure):
                                      FigureClass=MNEAnnotationFigure,
                                      fig_name='fig_annotation',
                                      window_title='Annotations')
-        self.mne.fig_annotation = fig
         # make main axes
         left = fig._inch_to_rel(pad)
         bottom = fig._inch_to_rel(pad, horiz=False)
@@ -978,7 +983,8 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.fig_annotation is None:
             self._create_annotation_fig()
         else:
-            self.mne.fig_annotation.canvas.close_event()
+            from matplotlib.pyplot import close
+            close(self.mne.fig_annotation)
 
     def _compute_annotation_figsize(self, n_labels):
         """Adapt size of Annotation UI to accommodate the number of buttons.
@@ -1157,7 +1163,6 @@ class MNEBrowseFigure(MNEFigure):
                                      FigureClass=MNESelectionFigure,
                                      fig_name='fig_selection',
                                      window_title='Channel selection')
-        self.mne.fig_selection = fig
         gs = fig.add_gridspec(15, 1)
         # add sensor plot at top
         fig.mne.sensor_ax = fig.add_subplot(gs[:5])
@@ -1290,7 +1295,6 @@ class MNEBrowseFigure(MNEFigure):
         fig = self._new_child_figure(figsize=(width, height),
                                      fig_name='fig_proj',
                                      window_title='SSP projection vectors')
-        self.mne.fig_proj = fig
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
@@ -1332,7 +1336,8 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.fig_proj is None:
             self._create_proj_fig()
         else:
-            self.mne.fig_proj.canvas.close_event()
+            from matplotlib.pyplot import close
+            close(self.mne.fig_proj)
 
     def _toggle_proj_checkbox(self, event, toggle_all=False):
         """Perform operations when proj boxes clicked."""
