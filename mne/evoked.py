@@ -92,14 +92,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Number of averaged epochs.
     kind : str
         Type of data, either average or standard_error.
-    first : int
-        First time sample.
-    last : int
-        Last time sample.
     comment : str
         Comment on dataset. Can be the condition.
     data : array of shape (n_channels, n_times)
         Evoked response.
+    first : int
+        First time sample.
+    last : int
+        Last time sample.
+    tmin : float
+        The first time point in seconds.
+    tmax : float
+        The last time point in seconds.
     times :  array
         Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
@@ -198,6 +202,22 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def ch_names(self):
         """Channel names."""
         return self.info['ch_names']
+
+    @property
+    def tmin(self):
+        """First time point.
+
+        .. versionadded:: 0.21
+        """
+        return self.times[0]
+
+    @property
+    def tmax(self):
+        """Last time point.
+
+        .. versionadded:: 0.21
+        """
+        return self.times[-1]
 
     @fill_doc
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
