@@ -12,12 +12,37 @@
 Current (0.21.dev0)
 -------------------
 
-Changelog
-~~~~~~~~~
+.. |Rahul Nadkarni| replace:: **Rahul Nadkarni**
+.. |Lau Møller Andersen| replace:: **Lau Møller Andersen**
+.. |Kyle Mathewson| replace:: **Kyle Mathewson**
+.. |Jan Sedivy| replace:: **Jan Sedivy**
+.. |Johann Benerradi| replace:: **Johann Benerradi**
+.. |Martin Schulz| replace:: **Martin Schulz**
+.. |Jeroen Van Der Donckt| replace:: **Jeroen Van Der Donckt**
+.. |Simeon Wong| replace:: **Simeon Wong**
+.. |Svea Marie Meyer| replace:: **Svea Marie Meyer**
+.. |Lx37| replace:: **Lx37**
+.. |Liberty Hamilton| replace:: **Liberty Hamilton**
+.. |Steven Bierer| replace:: **Steven Bierer**
+
+Enhancements
+~~~~~~~~~~~~
+
+- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries **by new contributor** |Rahul Nadkarni|_
+
+- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression **by new contributor** |Kyle Mathewson|_ ** and `Eric Larson`_
+
+- Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes **by new contributor** |Kyle Mathewson|_
+
+- BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` **by new contributor** |Jan Sedivy|_ and `Stefan Appelhoff`_
+
+- Add function :func:`mne.channels.combine_channels` to combine channels from Raw, Epochs, or Evoked according to ROIs (combinations including mean, median, or standard deviation; can also use a callable) **by new contributor** |Johann Benerradi|_
+
+- Improved documentation building instructions and execution on Windows **by new contributor** |Martin Schulz|_, `kalenkovich`_, and `Eric Larson`_
+
+- Speed up reading of annotations in EDF+ files **by new contributor** |Jeroen Van Der Donckt|_
 
 - Add head to mri and mri to voxel space transform details to :ref:`plot_source_alignment` tutorial, by `Alex Rockhill`_
-
-- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
 
 - Improve memory efficiency of :func:`mne.concatenate_epochs` by `Eric Larson`_
 
@@ -87,8 +112,6 @@ Changelog
 
 - Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
 
-- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression by `Kyle Mathewson`_ and `Eric Larson`_
-
 - Add :func:`mne.stats.ttest_ind_no_p` to mirror :func:`mne.stats.ttest_1samp_no_p` with hat correction by `Eric Larson`_
 
 - Add `mne.stats.combine_adjacency` to combine adjacency matrices for independent data dimensions to enable things like spatio-temporal-time-frequency clustering in `mne.stats.permutation_cluster_test` by `Eric Larson`_
@@ -123,8 +146,6 @@ Changelog
 
 - Add ``axes`` argument to :func:`mne.viz.plot_evoked_white`, :meth:`mne.Evoked.plot_white`, and :func:`mne.viz.plot_snr_estimate` by `Eric Larson`_
 
-- Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes by `Kyle Mathewson`_
-
 - Change default to ``surfaces='auto'`` from ``surfaces='head'`` to allow :func:`mne.viz.plot_alignment` to work when just passing a :class:`mne.Info` as ``plot_alignment(info)`` by `Eric Larson`_
 
 - Add ECoG misc EDF dataset to the :ref:`tut_working_with_ecog` tutorial to show snapshots of time-frequency activity by `Adam Li`_
@@ -155,7 +176,7 @@ Changelog
 
 - Add support for reading and writing surfaces in Wavefront .obj format to the :func:`mne.read_surface` and :func:`mne.write_surface` by `Marijn van Vliet`_
 
-- Add tutorial on how to manually fix BEM meshes in Blender by `Marijn van Vliet`_ and `Ezequiel Mikulan`_
+- Add tutorial on how to manually fix BEM meshes in Blender by `Ezequiel Mikulan`_ and `Marijn van Vliet`_
 
 - :func:`mne.write_evokeds` will now accept :class:`mne.Evoked` objects with differing channel orders in ``info['bads']``, which would previously raise an exception by `Richard Höchenberger`_
 
@@ -165,8 +186,6 @@ Changelog
 
 - :func:`mne.preprocessing.find_bad_channels_maxwell` now automatically applies a low-pass filter before running bad channel detection. This can be disabled, restoring previous behavior by `Richard Höchenberger`_
 
-- BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` by `Stefan Appelhoff`_ and `Jan Sedivy`_
-
 - Add ``proj='reconstruct'`` to :meth:`mne.Evoked.plot` and related functions to apply projectors and then undo the signal bias using field mapping by `Eric Larson`_
 
 - Add writing BEM surfaces and solutions in H5 format in :func:`mne.write_bem_surfaces` and :func:`mne.write_bem_solution` by `Eric Larson`_
@@ -174,10 +193,6 @@ Changelog
 - When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
 
 - :class:`mne.Report` now can add topomaps of SSP projectors to the generated report. This behavior can be toggled via the new ``projs`` argument by `Richard Höchenberger`_
-
-- Add function :func:`mne.channels.combine_channels` to combine channels from Raw, Epochs, or Evoked according to ROIs (combinations including mean, median, or standard deviation; can also use a callable) by `Johann Benerradi`_
-
-- Improved documentation building instructions and execution on Windows by `Eric Larson`_, `kalenkovich`_ and `Martin Schulz`_
 
 - When passing a list of `~mne.Evoked` objects to `~mne.viz.plot_compare_evokeds`, each evoked's ``.comment`` attribute will be used to label the trace. If ``.comment`` is empty, a 1-based index is assigned as the label by  `Richard Höchenberger`_
 
@@ -191,8 +206,6 @@ Changelog
 
 - Add memory size information to the ``repr`` of :class:`mne.SourceSpaces` and :class:`mne.SourceEstimate` and related classes by `Eric Larson`_
 
-- Speed up reading of annotations in EDF+ files by `Jeroen Van Der Donckt`_
-
 - Add reader for Persyst (.lay + .dat format) data in :func:`mne.io.read_raw_persyst` by `Adam Li`_
 
 - Use PyVista as the default backend for 3D visualization instead of Mayavi by `Guillaume Favelier`_
@@ -201,16 +214,26 @@ Changelog
 
 - `~mne.Evoked` has gained ``tmin`` and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_		
 
-Bug
-~~~
+Bugs
+~~~~
 
-- Fix bug with non-preloaded data when using ``raw.apply_proj().load_data().get_data()`` where projectors were not applied by `Eric Larson`_
+- Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` **by new contributor** |Lau Møller Andersen|_
 
-- Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` by `Lau Møller Andersen`_
+- Fix bug by adding error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` **by new contributor** |Lau Møller Andersen|_
 
-- Fix bug by adding error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` by `Lau Møller Andersen`_
+- Fix bug with logging in :meth:`mne.io.Raw.set_eeg_reference` and related functions **by new contributor** |Simeon Wong|_
+
+- Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error **by new contributor** |Svea Marie Meyer|_
+
+- Fix bug with :func:`mne.io.read_raw_edf` where recording ID was not read properly for non-ASCII characters **by new contributor** |Lx37|_
+
+- Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' **by new contributor** |Liberty Hamilton|_
+
+- Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length **by new contributor** |Steven Bierer|_
 
 - Fix bug with :func:`mne.preprocessing.ICA.find_bads_eog` when more than one EOG components are present by `Christian O'Reilly`_
+
+- Fix bug with non-preloaded data when using ``raw.apply_proj().load_data().get_data()`` where projectors were not applied by `Eric Larson`_
 
 - Fix bug to permit :meth:`stc.project('nn', src) <mne.VectorSourceEstimate.project>` to be applied after ``stc`` was restricted to an :class:`mne.Label` by `Luke Bloy`_
 
@@ -223,8 +246,6 @@ Bug
 - Fix bug with :func:`mne.io.read_raw_ctf` when reference magnetometers have the compensation grade marked by `Eric Larson`_
 
 - Fix bug with `mne.SourceSpaces.export_volume` with ``use_lut=False`` where no values were written by `Eric Larson`_
-
-- Fix bug with logging in :meth:`mne.io.Raw.set_eeg_reference` and related functions by `Simeon Wong`_
 
 - Fix bug with :func:`mne.preprocessing.annotate_movement` where bad data segments, specified in ``raw.annotations``, would be handled incorrectly by `Luke Bloy`_
 
@@ -329,10 +350,6 @@ Bug
 
 - Fix bug with :func:`mne.epochs.average_movements` where epoch weights were computed using all basis vectors instead of the internal basis only by `Eric Larson`_
 
-- Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
-
-- Fix bug with :func:`mne.io.read_raw_edf` where recording ID was not read properly for non-ASCII characters by `Lx37`_
-
 - Fix bug with :func:`mne.get_volume_labels_from_aseg` where the returned labels were alphabetical instead of reflecting their volumetric ID-based order by `Eric Larson`_
 
 - Fix bug with :func:`mne.preprocessing.find_bad_channels_maxwell` where good data of exactly ``step`` duration would lead to an error by `Eric Larson`_
@@ -367,12 +384,8 @@ Bug
 
 - Fix bug with :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>` when ``orig_time`` of annotations is None and ``raw.first_time > 0``, by `Alex Gramfort`_
 
-- Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' by `Liberty Hamilton`_
-
-- Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length by `Steven Bierer`_
-
-API
-~~~
+API changes
+~~~~~~~~~~~
 
 - Python 3.5 is no longer supported, Python 3.6+ is required, by `Eric Larson`_
 
