@@ -4,7 +4,7 @@ version: 2
 jobs:
     build_docs:
       docker:
-        - image: circleci/python:3.8.1-buster
+        - image: circleci/python:3.8.5-buster
       steps:
         - checkout
         - run:

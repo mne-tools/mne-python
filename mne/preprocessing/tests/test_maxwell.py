@@ -643,9 +643,13 @@ def test_fine_calibration():
 
     # Test 1D SSS fine calibration
     with use_coil_def(elekta_def_fname):
-        raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
-                                 origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore')
+        with catch_logging() as log:
+            raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
+                                     origin=mf_head_origin, regularize=None,
+                                     bad_condition='ignore', verbose=True)
+    log = log.getvalue()
+    assert 'Using fine calibration' in log
+    assert op.basename(fine_cal_fname) in log
     assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert (py_cal is not None)

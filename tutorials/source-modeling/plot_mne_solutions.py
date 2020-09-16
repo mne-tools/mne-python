@@ -30,8 +30,8 @@ fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
-# crop for speed in these examples, and ignore a baseline warning
-evoked.crop(0.05, 0.15, verbose='error')
+# crop for speed in these examples
+evoked.crop(0.05, 0.15)
 
 ###############################################################################
 # Fixed orientation

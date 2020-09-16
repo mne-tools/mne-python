@@ -70,7 +70,7 @@ import mne
 path = mne.datasets.sample.data_path(verbose=False)
 report = mne.Report(verbose=True)
 report.parse_folder(path, pattern='*raw.fif', render_bem=False)
-report.save('report_basic.html')
+report.save('report_basic.html', overwrite=True)
 
 ###############################################################################
 # This report yields a textual summary of the :class:`~mne.io.Raw` files
@@ -85,7 +85,7 @@ report.save('report_basic.html')
 pattern = 'sample_audvis_filt-0-40_raw.fif'
 report = mne.Report(raw_psd=True, projs=True, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save('report_raw_psd.html')
+report.save('report_raw_psd.html', overwrite=True)
 
 ###############################################################################
 # The sample dataset also contains SSP projectors stored as *individual files*.
@@ -98,7 +98,7 @@ info_fname = os.path.join(path, 'MEG', 'sample',
 pattern = 'sample_audvis_*proj.fif'
 report = mne.Report(info_fname=info_fname, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save('report_proj.html')
+report.save('report_proj.html', overwrite=True)
 
 ###############################################################################
 # This time we'll pass a specific ``subject`` and ``subjects_dir`` (even though
@@ -111,7 +111,7 @@ report.save('report_proj.html')
 subjects_dir = os.path.join(path, 'subjects')
 report = mne.Report(subject='sample', subjects_dir=subjects_dir, verbose=True)
 report.parse_folder(path, pattern='', mri_decim=25)
-report.save('report_mri_bem.html')
+report.save('report_mri_bem.html', overwrite=True)
 
 ###############################################################################
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
@@ -122,7 +122,7 @@ report.save('report_mri_bem.html')
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save('report_evoked.html')
+report.save('report_evoked.html', overwrite=True)
 
 ###############################################################################
 # You have probably noticed that the EEG recordings look particularly odd. This
@@ -142,7 +142,7 @@ baseline = (None, 0)
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(baseline=baseline, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save('report_evoked_baseline.html')
+report.save('report_evoked_baseline.html', overwrite=True)
 
 ###############################################################################
 # To render whitened :class:`~mne.Evoked` files with baseline correction, pass
@@ -154,7 +154,7 @@ cov_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 baseline = (None, 0)
 report = mne.Report(cov_fname=cov_fname, baseline=baseline, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save('report_evoked_whitened.html')
+report.save('report_evoked_whitened.html', overwrite=True)
 
 ###############################################################################
 # If you want to actually *view* the noise covariance in the report, make sure
@@ -168,7 +168,7 @@ pattern = 'sample_audvis-cov.fif'
 info_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 report = mne.Report(info_fname=info_fname, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save('report_cov.html')
+report.save('report_cov.html', overwrite=True)
 
 ###############################################################################
 # Adding custom plots to a report
@@ -188,7 +188,7 @@ fig = evoked.plot(show=False)
 
 # add the custom plot to the report:
 report.add_figs_to_section(fig, captions='Left Auditory', section='evoked')
-report.save('report_custom.html')
+report.save('report_custom.html', overwrite=True)
 
 ###############################################################################
 # Managing report sections
@@ -231,7 +231,7 @@ with mne.open_report('report.h5') as report:
                                captions='Left Auditory',
                                section='evoked',
                                replace=True)
-    report.save('report_final.html')
+    report.save('report_final.html', overwrite=True)
 
 ###############################################################################
 # With the context manager, the updated report is also automatically saved

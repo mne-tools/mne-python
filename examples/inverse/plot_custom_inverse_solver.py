@@ -36,7 +36,7 @@ condition = 'Left Auditory'
 noise_cov = mne.read_cov(cov_fname)
 # Handling average file
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
-evoked.crop(tmin=0.04, tmax=0.18, verbose='error')  # ignore baseline
+evoked.crop(tmin=0.04, tmax=0.18)
 
 evoked = evoked.pick_types(eeg=False, meg=True)
 # Handling forward solution

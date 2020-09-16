@@ -198,7 +198,7 @@ bem = mne.make_bem_solution(model)
 # parameter.
 
 fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
-                                meg=True, eeg=False, mindist=5.0, n_jobs=2,
+                                meg=True, eeg=False, mindist=5.0, n_jobs=1,
                                 verbose=True)
 print(fwd)
 
