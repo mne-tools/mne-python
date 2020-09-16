@@ -53,8 +53,14 @@ _, peak_time = stc.magnitude().get_peak(hemi='lh')
 
 ###############################################################################
 # Plot the source estimate:
+
+# sphinx_gallery_thumbnail_number = 2
 brain = stc.plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir)
+
+# You can save a brain movie with:
+# brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16, framerate=10,
+#                  interpolation='linear', time_viewer=True)
 
 ###############################################################################
 # Plot the activation in the direction of maximal power for this data:

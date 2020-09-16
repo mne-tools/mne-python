@@ -1714,7 +1714,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
         .. versionadded:: 0.17.0
     %(show_traces)s
-    %(src_volume_options_layout)s
+    %(src_volume_options)s
+    %(view_layout)s
     %(add_data_kwargs)s
     %(verbose)s
 
@@ -2509,7 +2510,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     %(show_traces)s
-    %(src_volume_options_layout)s
+    %(src_volume_options)s
+    %(view_layout)s
     %(add_data_kwargs)s
     %(verbose)s
 

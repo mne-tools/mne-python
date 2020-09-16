@@ -121,7 +121,7 @@ residual.plot(axes=axes)
 # Here we use peak getter to move visualization to the time point of the peak
 # and draw a marker at the maximum peak vertex.
 
-# sphinx_gallery_thumbnail_number = 8
+# sphinx_gallery_thumbnail_number = 9
 
 vertno_max, time_max = stc.get_peak(hemi='rh')
 
@@ -135,6 +135,10 @@ brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
                scale_factor=0.6, alpha=0.5)
 brain.add_text(0.1, 0.9, 'dSPM (plus location of maximal activation)', 'title',
                font_size=14)
+
+# The documentation website's movie is generated with:
+# brain.save_movie(..., tmin=0.05, tmax=0.15, interpolation='linear',
+#                  time_dilation=20, framerate=10, time_viewer=True)
 
 ###############################################################################
 # There are many other ways to visualize and work with source data, see

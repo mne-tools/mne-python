@@ -393,21 +393,34 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
         time_viewer.on_pick(test_picker, None)
         assert len(spheres) < old_len
 
-    # and the scraper for it (will close the instance)
-    if not check_version('sphinx_gallery'):
-        return
     screenshot = brain_data.screenshot()
-    fnames = [str(tmpdir.join('temp.png'))]
+    screenshot_all = brain_data.screenshot(time_viewer=True)
+    assert screenshot.shape[0] < screenshot_all.shape[0]
+    # and the scraper for it (will close the instance)
+    # only test one condition to save time
+    if not (hemi == 'rh' and src == 'surface' and
+            check_version('sphinx_gallery')):
+        return
+    fnames = [str(tmpdir.join(f'temp_{ii}.png')) for ii in range(2)]
     block_vars = dict(image_path_iterator=iter(fnames),
                       example_globals=dict(brain=brain_data))
-    gallery_conf = dict(src_dir=str(tmpdir))
+    block = ('code', """
+something
+# brain.save_movie(time_dilation=1, framerate=1,
+#                  interpolation='linear', time_viewer=True)
+#
+""", 1)
+    gallery_conf = dict(src_dir=str(tmpdir), compress_images=[])
     scraper = _BrainScraper()
-    rst = scraper(None, block_vars, gallery_conf)
-    assert 'temp.png' in rst
-    assert path.isfile(fnames[0])
-    img = image.imread(fnames[0])
-    assert img.shape[1] == screenshot.shape[1]  # same width
-    assert img.shape[0] > screenshot.shape[0]  # larger height
+    rst = scraper(block, block_vars, gallery_conf)
+    gif_0 = fnames[0][:-3] + 'gif'
+    for fname in (gif_0, fnames[1]):
+        assert path.basename(fname) in rst
+        assert path.isfile(fname)
+        img = image.imread(fname)
+        assert img.shape[1] == screenshot.shape[1]  # same width
+        assert img.shape[0] > screenshot.shape[0]  # larger height
+        assert img.shape[:2] == screenshot_all.shape[:2]
 
 
 @testing.requires_testing_data

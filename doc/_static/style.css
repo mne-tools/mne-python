@@ -512,6 +512,9 @@ img.logo {
   max-width: 360px;
   width: 100%;
 }
+img.hidden {
+  visibility: hidden;
+}
 div.border-top {
   border-top: 1px solid #ccc;
 }

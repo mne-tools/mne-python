@@ -1259,14 +1259,21 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
 """
 docdict["transparent"] = """
 transparent : bool | None
-    If True, use a linear transparency between fmin and fmid.
-    None will choose automatically based on colormap type.
+    If True: use a linear transparency between fmin and fmid
+    and make values below fmin fully transparent (symmetrically for
+    divergent colormaps). None will choose automatically based on colormap
+    type.
 """
 docdict["brain_time_interpolation"] = """
 interpolation : str | None
     Interpolation method (:func:`scipy.interpolate.interp1d` parameter).
     Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
     or 'cubic'.
+"""
+docdict["brain_screenshot_time_viewer"] = """
+time_viewer : bool
+    If True, include time viewer traces. Only used if
+    ``time_viewer=True`` and ``separate_canvas=False``.
 """
 docdict["show_traces"] = """
 show_traces : bool | str | float
@@ -1288,7 +1295,26 @@ time_label : str | callable | None
     default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
-docdict["src_volume_options_layout"] = """
+docdict["fmin_fmid_fmax"] = """
+fmin : float
+    Minimum value in colormap (uses real fmin if None).
+fmid : float
+    Intermediate value in colormap (fmid between fmin and
+    fmax if None).
+fmax : float
+    Maximum value in colormap (uses real max if None).
+"""
+docdict["thresh"] = """
+thresh : None or float
+    Not supported yet.
+    If not None, values below thresh will not be visible.
+"""
+docdict["center"] = """
+center : float or None
+    If not None, center of a divergent colormap, changes the meaning of
+    fmin, fmax and fmid.
+"""
+docdict["src_volume_options"] = """
 src : instance of SourceSpaces | None
     The source space corresponding to the source estimate. Only necessary
     if the STC is a volume or mixed source estimate.
@@ -1317,6 +1343,8 @@ volume_options : float | dict | None
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
+"""
+docdict['view_layout'] = """
 view_layout : str
     Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
     the PyVista backend must be used and hemi cannot be "split".
