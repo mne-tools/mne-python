@@ -3,9 +3,9 @@
    whats_new page will have a link to the function/class documentation.
 
 .. NOTE: there are 3 separate sections for changes, based on type:
-   - "Changelog" for new features
-   - "Bug" for bug fixes
-   - "API" for backward-incompatible changes
+   - "Enhancements" for new features
+   - "Bugs" for bug fixes
+   - "API changes" for backward-incompatible changes
 
 .. _current:
 
@@ -30,7 +30,7 @@ Enhancements
 
 - Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries **by new contributor** |Rahul Nadkarni|_
 
-- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression **by new contributor** |Kyle Mathewson|_ ** and `Eric Larson`_
+- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression **by new contributor** |Kyle Mathewson|_ and `Eric Larson`_
 
 - Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes **by new contributor** |Kyle Mathewson|_
 
@@ -176,7 +176,7 @@ Enhancements
 
 - Add support for reading and writing surfaces in Wavefront .obj format to the :func:`mne.read_surface` and :func:`mne.write_surface` by `Marijn van Vliet`_
 
-- Add tutorial on how to manually fix BEM meshes in Blender by `Ezequiel Mikulan`_ and `Marijn van Vliet`_
+- Add tutorial on how to manually fix BEM meshes in Blender by `Marijn van Vliet`_ and `Ezequiel Mikulan`_
 
 - :func:`mne.write_evokeds` will now accept :class:`mne.Evoked` objects with differing channel orders in ``info['bads']``, which would previously raise an exception by `Richard Höchenberger`_
 
