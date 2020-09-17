@@ -15,7 +15,7 @@ addons:
 env:
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
-    global: PYTHON_VERSION=3.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning
+    global: PYTHON_VERSION=3.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning MAMBA=True
             CONDA_VERSION=">=4.3.27" OPENBLAS_NUM_THREADS=1 PYTHONUNBUFFERED=1
 
 matrix:
