@@ -156,7 +156,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(baseline)s
+        %(baseline_evoked)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
         %(verbose_meth)s
@@ -931,7 +931,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
         list.
-    %(baseline)s
+    %(baseline_evoked)s
         Defaults to ``None``, i.e. no baseline correction.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.

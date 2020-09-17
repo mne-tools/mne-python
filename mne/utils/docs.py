@@ -1711,9 +1711,29 @@ baseline : None | tuple of length 2
     .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
                 timepoints ``t`` such that ``a <= t <= b``.
 """
-docdict['baseline'] = """%(rescale_baseline)s
-    Correction is applied by computing the mean
-    of the baseline period and subtracting it from the data.
+docdict['baseline_epochs'] = """%(rescale_baseline)s
+    Correction is applied **to each epoch and channel individually** in the
+    following way:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** epoch.
+
+""" % docdict
+docdict['baseline_evoked'] = """%(rescale_baseline)s
+    Correction is applied **to each channel individually** in the following
+    way:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** ``Evoked``.
+
+""" % docdict
+docdict['baseline_report'] = """%(rescale_baseline)s
+    Correction is applied in the following way **for each channel**:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** time period.
+
+    For `~mne.Epochs`, this algorithm is run **on each epoch individually**.
 """ % docdict
 
 
