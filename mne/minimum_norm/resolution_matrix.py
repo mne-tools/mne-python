@@ -7,9 +7,11 @@ from copy import deepcopy
 
 import numpy as np
 
+from scipy import linalg
+
 from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
-from mne.utils import logger, verbose, _validate_type, _pl, warn
+from mne.utils import logger, verbose
 from mne.forward.forward import convert_forward_solution
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _prepare_label_extraction
@@ -65,8 +67,7 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
     return resmat
 
 
-def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
-                 norm=False):
+def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_svd_vars):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions.
 
     Parameters
@@ -75,7 +76,7 @@ def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
         Forward Operator.
     src : Source Space
         Source space used to compute resolution matrix.
-    idx : list of int | Label | list of Label
+    idx : list of int | list of Label
         Source for indices for which to compute PSFs or CTFs. If mode is None,
         PSFs/CTFs will be returned for all indices. If mode is not None, the
         corresponding summary measure will be computed across all PSFs/CTFs
@@ -84,8 +85,268 @@ def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
 
         - list of integers:
             Compute PSFs/CTFs for all indices specified in idx.
-        - Label:
-            Compute PSFs/CTFs for all indices in this label.
+        - list of Label:
+            Compute PSFs/CTFs for all indices in specified labels.
+
+    func : str ('psf' | 'ctf')
+        Whether to produce PSFs or CTFs. Defaults to psf.
+    mode: None | 'sum' | 'mean' | 'maxval' | 'maxnorm' | 'svd'
+        Compute summary of PSFs/CTFs across all indices specified in 'idx'.
+
+        Can be:
+        - None (default):
+            Output individual PSFs/CTFs for each specific vertex.
+        - 'sum':
+            The sum of PSFs/CTFs across vertices.
+        - 'mean':
+            The mean of PSFs/CTFs across vertices.
+        - 'maxval':
+            PSFs/CTFs with maximum absolute value across vertices. Returns the
+            n_comp largest PSFs/CTFs.
+        - 'maxnorm':
+            PSFs/CTFs with maximum norm across vertices. Returns the n_comp
+            largest PSFs/CTFs.
+        - 'svd':
+            SVD components across PSFs/CTFs across vertices. Returns the n_comp
+            first SVD components.
+
+    n_comp: int
+        Number of PSF/CTF components to return for mode='max' or mode='svd'.
+        Default n_comp=1.
+    norm : None | 'max' | 'norm'
+        Whether and how to normalise the PSFs and CTFs.
+
+        Can be:
+        - None (default):
+            Use un-normalized PSFs/CTFs.
+        - 'max':
+            Normalize to maximum absolute value across all PSFs/CTFs.
+        - 'norm':
+            Normalize to maximum norm across all PSFs/CTFs.
+
+        This will be applied before computing summaries as specified in 'mode'.
+    return_svd_vars: Bool
+        Whether or not to return the explained variances across the specified
+        vertices for individual SVD components. This is only valid if
+        mode='svd'. Default return_svd_vars=False.
+
+    Returns
+    -------
+    stc: instance of SourceEstimate
+        PSFs or CTFs as an STC object.
+        All PSFs/CTFs will be returned as successive samples in one STC object,
+        in the order they are specified in idx. PSFs/CTFs for labels are
+        grouped together.
+    return_svd_vars: 1D array
+        The explained variances of SVD components across the PSFs/CTFs for the
+        specified vertices. Only returned if mode='svd' and
+        return_svd_vars=True.
+    """
+    # check for consistencies in input parameters
+    _check_get_psf_ctf_params(mode, n_comp, return_svd_vars)
+
+    # backward compatibility
+    if norm is True:
+
+        norm = 'max'
+
+    # get relevant vertices in source space
+    verts = _vertices_for_get_psf_ctf(idx, src)
+
+    # vertices used in forward and inverse operator
+    vertno_lh = src[0]['vertno']
+    vertno_rh = src[1]['vertno']
+    vertno = [vertno_lh, vertno_rh]
+
+    # the following will operate on columns of funcs
+    if func == 'ctf':
+        resmat = resmat.T
+
+    # get relevant PSFs or CTFs for specified vertices
+    funcs = resmat[:, verts]
+
+    # normalise PSFs/CTFs if requested
+    if norm is not None:
+
+        funcs = _normalise_psf_ctf(funcs, norm)
+
+    # summarise PSFs/CTFs across vertices if requested
+    s_var = None  # variances computed only if return_svd_vars=True
+    if mode is not None:
+
+        funcs, s_var = _summarise_psf_ctf(funcs, mode, n_comp, return_svd_vars)
+
+    if s_var is not None:  # if explained variance for SVD returned
+        var_comp = np.sum(s_var)
+
+        logger.info('Your %d component(s) explain(s) %.1f%% variance.' %
+                    (n_comp, var_comp))
+
+        for c in np.arange(0, n_comp):
+            logger.info('Component %d: %f' % (c + 1, s_var[c]))
+
+    # convert to source estimate
+    stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+
+    if s_var is not None:
+
+        return stc, s_var
+
+    else:
+
+        return stc
+
+
+def _check_get_psf_ctf_params(mode, n_comp, return_svd_vars):
+    """Check input parameters of _get_psf_ctf() for consistency."""
+    if mode in [None, 'sum', 'mean'] and n_comp > 1:
+
+        msg = 'n_comp must be 1 for mode=%s.' % mode
+
+        raise ValueError(msg)
+
+    if mode != 'svd' and return_svd_vars:
+
+        msg = 'SVD variances can only be returned if mode=''svd''.'
+
+        raise ValueError(msg)
+
+
+def _vertices_for_get_psf_ctf(idx, src):
+    """Get vertices in source space for PSFs/CTFs in _get_psf_ctf()."""
+    # if label(s) specified get the indices, otherwise just carry on
+    if type(idx[0]) is Label:
+
+        # specify without source time courses, gets indices per label
+        verts_labs, _ = _prepare_label_extraction(
+            stc=None, labels=idx, src=src, mode='mean', allow_empty=False,
+            use_sparse=False)
+
+        # verts can be list of lists
+        # arrange all indices in one list
+        verts = []
+        for v in verts_labs:
+
+            # if two hemispheres present
+            if type(v) is list:
+
+                # indices for both hemispheres in one list
+                this_verts = np.concatenate((v[0], v[1]))
+
+            else:
+
+                this_verts = np.array(v)
+
+            # append indices as integers to single list
+            verts = np.concatenate((verts, this_verts)).astype(int)
+
+    # if only indices specified (no labels), just carry on
+    else:
+
+        verts = idx
+
+    return verts
+
+
+def _normalise_psf_ctf(funcs, norm):
+    """Normalise PSFs/CTFs in _get_psf_ctf()."""
+    # normalise PSFs/CTFs if specified
+    if norm == 'max':
+
+        maxval = np.abs(funcs).max()  # normalise to maximum absolute value
+
+        funcs = funcs / maxval
+
+    elif norm == 'norm':  # normalise to maximum norm across columns
+
+        norms = np.sqrt(np.sum(funcs ** 2, axis=0))
+
+        funcs = funcs / norms.max()
+
+    return funcs
+
+
+def _summarise_psf_ctf(funcs, mode, n_comp, return_svd_vars):
+    """Summarise PSFs/CTFs across vertices."""
+    s_var = None  # only computed for return_svd_vars=True
+
+    if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
+
+        absvals = np.abs(funcs).max(axis=0)
+
+        if n_comp > 1:  # only keep requested number of sorted PSFs/CTFs
+
+            sortidx = np.argsort(absvals)
+
+            maxidx = sortidx[-n_comp:]
+
+        else:  # faster if only one required
+
+            maxidx = absvals.argmax()
+
+        funcs = funcs[:, maxidx]
+
+    elif mode == 'maxnorm':  # pick PSF/CTF with maximum norm
+
+        norms = np.sqrt(np.sum(funcs ** 2, axis=0))
+
+        if n_comp > 1:  # only keep requested number of sorted PSFs/CTFs
+
+            sortidx = np.argsort(norms)
+
+            maxidx = sortidx[-n_comp:]
+
+        else:  # faster if only one required
+
+            maxidx = norms.argmax()
+
+        funcs = funcs[:, maxidx]
+
+    elif mode == 'sum':  # sum across PSFs/CTFs
+
+        funcs = np.sum(funcs, axis=1)
+
+    elif mode == 'mean':  # mean of PSFs/CTFs
+
+        funcs = np.mean(funcs, axis=1)
+
+    elif mode == 'svd':  # SVD across PSFs/CTFs
+
+        # compute SVD of PSFs/CTFs across vertices
+        u, s, _ = linalg.svd(funcs, full_matrices=False, compute_uv=True)
+
+        funcs = u[:, :n_comp]
+
+        # if explained variances for SVD components requested
+        if return_svd_vars:
+
+            # explained variance of individual SVD components
+            s_comp = s[:n_comp]
+            s2_sum = np.sum(s * s)
+            s_var = 100. * s_comp * s_comp / s2_sum
+
+    return funcs, s_var
+
+
+def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
+                     return_svd_vars=False):
+    """Get point-spread (PSFs) functions for vertices.
+
+    Parameters
+    ----------
+    resmat : array, shape (n_dipoles, n_dipoles)
+        Forward Operator.
+    src : instance of SourceSpaces
+        Source space used to compute resolution matrix.
+    idx : list of int | list of Label
+        Source for indices for which to compute PSFs or CTFs. If mode is None,
+        PSFs/CTFs will be returned for all indices. If mode is not None, the
+        corresponding summary measure will be computed across all PSFs/CTFs
+        available from idx.
+        idx can be:
+
+        - list of integers:
+            Compute PSFs/CTFs for all indices specified in idx.
         - list of Label:
             Compute PSFs/CTFs for all indices in specified labels.
 
@@ -112,6 +373,10 @@ def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
         Whether to normalise to maximum across all PSFs and CTFs (default:
         False). This will be applied before computing summaries as specified in
         'mode'.
+    return_svd_vars: Bool
+        Whether or not to return the explained variances across the specified
+        vertices for individual SVD components. This is only valid if
+        mode='svd'.
 
     Returns
     -------
@@ -120,105 +385,17 @@ def _get_psf_ctf(resmat, src, idx, func='psf', mode=None, n_comp=1,
         All PSFs/CTFs will be returned as successive samples in one STC object,
         in the order they are specified in idx. PSFs/CTFs for labels are
         grouped together.
-    """
-    # if label(s) specified get the indices, otherwise just carry on
-    if (type(idx) is Label) or (type(idx) is list and type(idx[0] is Label)):
-
-        1 / 0.
-
-        # specify without source time courses, gets indices per label
-        verts_labs, _ = _prepare_label_extraction(
-            stc=None, labels=idx, src=src, mode='mean', allow_empty=False,
-            use_sparse=False)
-
-        # verts can be list of lists
-        # arrange all indices in one list
-        verts = []
-        for v in verts_labs:
-
-            # if two hemispheres present
-            if type(v) is list:
-
-                # indices for both hemispheres in one list
-                this_verts = v[0] + v[1]
-
-            else:
-
-                this_verts = v
-
-            # append indices to single list
-            verts = verts + this_verts
-
-    # if only indices specified (no labels), just carry on
-    else:
-
-        verts = idx
-
-    # vertices used in forward and inverse operator
-    vertno_lh = src[0]['vertno']
-    vertno_rh = src[1]['vertno']
-    vertno = [vertno_lh, vertno_rh]
-
-    # in everything below indices refer to columns
-    if func == 'ctf':
-        resmat = resmat.T
-
-    # column of resolution matrix
-    funcs = resmat[:, verts]
-
-    if norm:
-        maxval = np.abs(funcs).max()
-        funcs = funcs / maxval
-
-    # convert to source estimate
-    stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
-
-    return stc
-
-
-def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False):
-    """Get point-spread (PSFs) functions for vertices.
-
-    Parameters
-    ----------
-    resmat : array, shape (n_dipoles, n_dipoles)
-        Forward Operator.
-    src : instance of SourceSpaces
-        Source space used to compute resolution matrix.
-    idx : list of int
-        Vertex indices for which PSFs or CTFs to produce.
-    mode: None | 'mean' | 'max' | 'svd'
-        Compute summary of PSFs/CTFs across all indices specified in 'idx'.
-
-        Can be:
-        - None (default):
-            Output individual PSFs/CTFs for each specific vertex.
-        - 'mean':
-            Mean of PSFs/CTFs across vertices.
-        - 'max':
-            PSFs/CTFs with maximum norm across vertices. Returns the n_comp
-            largest PSFs/CTFs.
-        - 'svd':
-            SVD components across PSFs/CTFs across vertices. Returns the n_comp
-            first SVD components.
-
-    n_comp: int
-        Number of PSF/CTF components to return for mode='max' or mode='svd'.
-    norm : bool
-        Whether to normalise to maximum across all PSFs and CTFs (default:
-        False). This will be applied before computing summaries as specified in
-        'mode'.
-
-    Returns
-    -------
-    stc: instance of SourceEstimate
-        PSFs as an stc object.
+    return_svd_vars: 1D array
+        The explained variances of SVD components across the PSFs/CTFs for the
+        specified vertices. Only returned if mode='svd' and
+        return_svd_vars=True. Default return_svd_vars=False.
     """
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
-                        norm=norm)
+                        norm=norm, return_svd_vars=return_svd_vars)
 
 
-def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False):
+def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
+                   return_svd_vars=False):
     """Get cross-talk (CTFs) function for vertices.
 
     Parameters
@@ -227,8 +404,20 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False):
         Forward Operator.
     src : instance of SourceSpaces
         Source space used to compute resolution matrix.
-    idx : list of int
-        Vertex indices for which PSFs or CTFs to produce.
+    idx : list of int | list of Label
+        Source for indices for which to compute PSFs or CTFs. If mode is None,
+        PSFs/CTFs will be returned for all indices. If mode is not None, the
+        corresponding summary measure will be computed across all PSFs/CTFs
+        available from idx.
+        idx can be:
+
+        - list of integers:
+            Compute PSFs/CTFs for all indices specified in idx.
+        - list of Label:
+            Compute PSFs/CTFs for all indices in specified labels.
+
+    func : str ('psf' | 'ctf')
+        Whether to produce PSFs or CTFs. Defaults to psf.
     mode: None | 'mean' | 'max' | 'svd'
         Compute summary of PSFs/CTFs across all indices specified in 'idx'.
 
@@ -250,14 +439,25 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False):
         Whether to normalise to maximum across all PSFs and CTFs (default:
         False). This will be applied before computing summaries as specified in
         'mode'.
+    return_svd_vars: Bool
+        Whether or not to return the explained variances across the specified
+        vertices for individual SVD components. This is only valid if
+        mode='svd'.
 
     Returns
     -------
     stc: instance of SourceEstimate
-        CTFs as an stc object.
+        PSFs or CTFs as an STC object.
+        All PSFs/CTFs will be returned as successive samples in one STC object,
+        in the order they are specified in idx. PSFs/CTFs for labels are
+        grouped together.
+    return_svd_vars: 1D array
+        The explained variances of SVD components across the PSFs/CTFs for the
+        specified vertices. Only returned if mode='svd' and
+        return_svd_vars=True. Default return_svd_vars=False.
     """
     return _get_psf_ctf(resmat, src, idx, func='ctf', mode=mode, n_comp=n_comp,
-                        norm=norm)
+                        norm=norm, return_svd_vars=return_svd_vars)
 
 
 def _convert_forward_match_inv(fwd, inv):

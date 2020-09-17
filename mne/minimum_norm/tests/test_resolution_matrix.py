@@ -15,6 +15,7 @@ from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import (make_inverse_resolution_matrix,
                                                 get_cross_talk,
                                                 get_point_spread)
+from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -116,12 +117,40 @@ def test_resolution_matrix():
     assert_array_almost_equal(rm_mne, rm_mne.T)
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
 
-    # Test conversion to STC
+    # Some arbitrary vertex numbers
     idx = [1, 100, 400]
-    stc_psf = get_point_spread(rm_mne, forward_fxd['src'], idx, norm=True)
-    stc_ctf = get_cross_talk(rm_mne, forward_fxd['src'], idx, norm=True)
 
-    assert_array_almost_equal(stc_psf.data, stc_ctf.data)
+    # check various summary and normalisation options
+    for mode in [None, 'sum', 'mean', 'maxval', 'maxnorm', 'svd']:
+
+        n_comp = 3
+
+        if mode in [None, 'sum', 'mean']:
+
+            n_comp = 1
+
+        for norm in [None, 'max', 'norm']:
+
+            stc_psf = get_point_spread(
+                rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
+                norm='norm', return_svd_vars=False)
+            stc_ctf = get_cross_talk(
+                rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
+                norm='norm', return_svd_vars=False)
+
+            assert_array_almost_equal(stc_psf.data, stc_ctf.data)
+
+    # check SVD variances
+    stc_psf, s_vars_psf = get_point_spread(
+        rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
+        norm='norm', return_svd_vars=True)
+    stc_ctf, s_vars_ctf = get_cross_talk(
+        rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
+        norm='norm', return_svd_vars=True)
+
+    assert_array_almost_equal(s_vars_psf, s_vars_ctf)
+
+    assert s_vars_psf[0] > s_vars_psf[1] > s_vars_psf[2]
 
     # Test application of free inv to fixed fwd
     assert_equal(rm_mne_fxdfree.shape, (3 * rm_mne.shape[0],
@@ -130,7 +159,28 @@ def test_resolution_matrix():
     # Test PSF/CTF for labels
     label = mne.read_label(fname_label)
 
-    stc_psf_label = get_point_spread(rm_mne, forward_fxd['src'], label,
-                                     norm=True)
+    # must be list of Label
+    label = [label]
+    label2 = 2 * label
 
-test_resolution_matrix()
+    stc_psf_label = get_point_spread(rm_mne, forward_fxd['src'], label,
+                                     norm='max')
+
+    stc_ctf_label = get_cross_talk(rm_mne, forward_fxd['src'], label,
+                                   norm='max')
+
+    # For MNE, PSF and CTF for same vertices should be the same
+    assert_array_almost_equal(stc_psf_label.data, stc_ctf_label.data)
+
+    # test multiple labels
+    stc_psf_label2 = get_point_spread(rm_mne, forward_fxd['src'], label2,
+                                      norm='max')
+
+    m, n = stc_psf_label.data.shape
+
+    assert_array_equal(
+        stc_psf_label.data, stc_psf_label2.data[:, :n])
+    assert_array_equal(
+        stc_psf_label.data, stc_psf_label2.data[:, n:])
+
+run_tests_if_main()
