@@ -414,7 +414,7 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
         - list of Label:
             Compute PSFs/CTFs for all indices in specified labels.
 
-    mode: None | 'mean' | 'max' | 'svd'
+    mode : None | 'mean' | 'max' | 'svd'
         Compute summary of PSFs/CTFs across all indices specified in 'idx'.
 
         Can be:
@@ -429,25 +429,25 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
             SVD components across PSFs/CTFs across vertices. Returns the n_comp
             first SVD components.
 
-    n_comp: int
+    n_comp : int
         Number of PSF/CTF components to return for mode='max' or mode='svd'.
     norm : bool
         Whether to normalise to maximum across all PSFs and CTFs (default:
         False). This will be applied before computing summaries as specified in
         'mode'.
-    return_svd_vars: Bool
+    return_svd_vars : Bool
         Whether or not to return the explained variances across the specified
         vertices for individual SVD components. This is only valid if
         mode='svd'.
 
     Returns
     -------
-    stc: instance of SourceEstimate
+    stc : instance of SourceEstimate
         PSFs or CTFs as an STC object.
         All PSFs/CTFs will be returned as successive samples in one STC object,
         in the order they are specified in idx. PSFs/CTFs for labels are
         grouped together.
-    return_svd_vars: 1D array
+    return_svd_vars : 1D array
         The explained variances of SVD components across the PSFs/CTFs for the
         specified vertices. Only returned if mode='svd' and
         return_svd_vars=True. Default return_svd_vars=False.
