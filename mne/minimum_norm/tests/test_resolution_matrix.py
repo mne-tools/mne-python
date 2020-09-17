@@ -15,7 +15,6 @@ from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import (make_inverse_resolution_matrix,
                                                 get_cross_talk,
                                                 get_point_spread)
-from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -182,5 +181,3 @@ def test_resolution_matrix():
         stc_psf_label.data, stc_psf_label2.data[:, :n])
     assert_array_equal(
         stc_psf_label.data, stc_psf_label2.data[:, n:])
-
-run_tests_if_main()
