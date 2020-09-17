@@ -350,8 +350,6 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
         - list of Label:
             Compute PSFs/CTFs for all indices in specified labels.
 
-    func : str ('psf' | 'ctf')
-        Whether to produce PSFs or CTFs. Defaults to psf.
     mode : None | 'mean' | 'max' | 'svd'
         Compute summary of PSFs/CTFs across all indices specified in 'idx'.
 
@@ -416,8 +414,6 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
         - list of Label:
             Compute PSFs/CTFs for all indices in specified labels.
 
-    func : str ('psf' | 'ctf')
-        Whether to produce PSFs or CTFs. Defaults to psf.
     mode: None | 'mean' | 'max' | 'svd'
         Compute summary of PSFs/CTFs across all indices specified in 'idx'.
 
