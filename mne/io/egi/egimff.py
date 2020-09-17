@@ -686,14 +686,15 @@ class RawMff(BaseRaw):
         _mult_cal_one(data, one, idx, cals, mult)
 
 
+@verbose
 def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
                      baseline=None, verbose=None):
-    """Read averaged MFF file as evoked(s)
+    """Read averaged MFF file as evoked(s).
 
     Parameters
     ----------
     fname : str
-        File path to averaged MFF file. Should end in .mff
+        File path to averaged MFF file. Should end in .mff.
     condition : int or str | list of int or str | None
         The index (indices) or category (categories) from which to read in
         data. Averaged MFF files can contain separate averages for different
@@ -701,9 +702,8 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
         name. If `condition` is a list or None, a list of Evoked objects is
         returned.
     channel_naming : str
-        Channel naming convention for EEG channels. Defaults to 'E%d'
-        (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %03d'.
+        Channel naming convention for EEG channels. Defaults to 'E%%d'
+        (resulting in channel names 'E1', 'E2', 'E3'...).
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
@@ -721,14 +721,21 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
         The evoked dataset(s); one EvokedArray if condition is int or str,
         or list of EvokedArray if condition is None or list.
 
-    Notes
-    -----
-    Preloading is automatic because we use `EvokedArray` to construct the
-    evoked(s) objects.
+    Raises
+    ------
+    AssertionError
+        If `fname` has file extension other than '.mff'.
+    AssertionError
+        If no categories.xml file in `fname` directory.
 
     See Also
     --------
     Evoked, EvokedArray, create_info
+
+    Notes
+    -----
+    Preloading is automatic because we use `EvokedArray` to construct the
+    evoked(s) objects.
     """
     # Confirm `fname` is a path to an MFF file
     assert fname.endswith('.mff'), 'fname must be an MFF file.'
@@ -743,7 +750,7 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
         condition = list(cats.keys())
     elif not isinstance(condition, list):
         condition = [condition]
-    logger.info('Reading %s evoked datasets from %s ...'
+    logger.info('Reading %d evoked datasets from %s ...'
                 % (len(condition), fname))
     output = [_read_evoked_mff(fname, c, channel_naming=channel_naming,
                                verbose=verbose).apply_baseline(baseline)
@@ -781,18 +788,18 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     else:
         all_data = eeg_data
         ch_types = mff_info['chan_type']
-    all_data *= 1e-6 # convert to volts
+    all_data *= 1e-6  # convert to volts
 
     # Load metadata into info object
-    ### Exclude info['meas_date'] because record time info in
-    ### averaged MFF is the time of the averaging, not true record time.
-    ### We can populate info['custom_ref_applied'] with info from
-    ### info1.xml, but not sure what to put for type int.
+    # Exclude info['meas_date'] because record time info in
+    # averaged MFF is the time of the averaging, not true record time.
+    # We can populate info['custom_ref_applied'] with info from
+    # info1.xml, but not sure what to put for type int.
     ch_names = [channel_naming % (i + 1) for i in
                 range(mff.num_channels['EEG'])]
     ch_names.extend(mff_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
-    info['nchan'] = sum(n for n in mff.num_channels.values())
+    info['nchan'] = sum(mff.num_channels.values())
     assert info['nchan'] == all_data.shape[0], 'Number of channels does \
                                                not match number of signals \
                                                in binary file(s).'
@@ -800,8 +807,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # Get calibration info
     gains = _get_gains(op.join(fname, mff_info['info_fname']))
     if mff_info['value_range'] != 0 and mff_info['bits'] != 0:
-        cals = [mff_info['value_range'] / 2 ** mff_info['bits'] for i
-                in range(len(mff_info['chan_type']))]
+        cals = [mff_info['value_range'] / 2 ** mff_info['bits']] * \
+            len(mff_info['chan_type'])
     else:
         cal_scales = {'uV': 1e-6, 'V': 1}
         cals = [cal_scales[t] for t in mff_info['chan_unit']]

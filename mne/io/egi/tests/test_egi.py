@@ -307,7 +307,7 @@ def test_io_egi_evoked_mff(idx, cond, signals, bads):
     evoked_cond = read_evokeds_mff(egi_mff_evoked_fname, condition=cond)
     evoked_idx = read_evokeds_mff(egi_mff_evoked_fname, condition=idx)
     # Check signal data
-    data = np.loadtxt(signals, ndmin=2).transpose() * 1e-6 # convert to volts
+    data = np.loadtxt(signals, ndmin=2).transpose() * 1e-6  # convert to volts
     assert_allclose(evoked_cond.data, data, atol=1e-6)
     assert_allclose(evoked_idx.data, data, atol=1e-6)
     # Check info
