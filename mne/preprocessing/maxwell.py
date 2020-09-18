@@ -1609,8 +1609,8 @@ def _prep_fine_cal(info, fine_cal):
     from ._fine_cal import read_fine_calibration
     _validate_type(fine_cal, (dict, 'path-like'))
     if not isinstance(fine_cal, dict):
-        fine_cal = read_fine_calibration(fine_cal)
         extra = op.basename(str(fine_cal))
+        fine_cal = read_fine_calibration(fine_cal)
     else:
         extra = 'dict'
     logger.info(f'    Using fine calibration {extra}')

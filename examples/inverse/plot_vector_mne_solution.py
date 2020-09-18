@@ -1,4 +1,7 @@
 """
+
+.. _ex-vector-mne-solution:
+
 ============================================
 Plotting the full vector-valued MNE solution
 ============================================

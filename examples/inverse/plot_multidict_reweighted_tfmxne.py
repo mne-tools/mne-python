@@ -56,7 +56,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     reject=reject, preload=True)
 evoked = epochs.filter(1, None).average()
 evoked = evoked.pick_types(meg=True)
-evoked.crop(tmin=0.008, tmax=0.2, verbose='error')  # ignore baseline
+evoked.crop(tmin=0.008, tmax=0.2)
 
 # Compute noise covariance matrix
 cov = mne.compute_covariance(epochs, rank='info', tmax=0.)
@@ -85,8 +85,8 @@ dipoles, residual = tf_mixed_norm(
 # Crop to remove edges
 for dip in dipoles:
     dip.crop(tmin=-0.05, tmax=0.3)
-evoked.crop(tmin=-0.05, tmax=0.3, verbose='error')
-residual.crop(tmin=-0.05, tmax=0.3, verbose='error')
+evoked.crop(tmin=-0.05, tmax=0.3)
+residual.crop(tmin=-0.05, tmax=0.3)
 
 
 ###############################################################################

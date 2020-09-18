@@ -6,7 +6,7 @@ Plotting sensor layouts of EEG systems
 ======================================
 
 This example illustrates how to load all the EEG system montages
-shipped in MNE-python, and display it on fsaverage template.
+shipped in MNE-python, and display it on the fsaverage template subject.
 """  # noqa: D205, D400
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>

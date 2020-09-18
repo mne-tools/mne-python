@@ -223,8 +223,7 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 # keywords like ``'head'``, ``'outer_skull'``, or ``'brain'`` to the
 # ``surfaces`` parameter) making it useful for :ref:`assessing coordinate frame
 # transformations <plot_source_alignment>`. For examples of various uses of
-# :func:`~mne.viz.plot_alignment`, see
-# :doc:`../../auto_examples/visualization/plot_montage`,
+# :func:`~mne.viz.plot_alignment`, see :ref:`plot_montage`,
 # :doc:`../../auto_examples/visualization/plot_eeg_on_scalp`, and
 # :doc:`../../auto_examples/visualization/plot_meg_sensors`.
 #
