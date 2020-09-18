@@ -183,7 +183,8 @@ def _split_gof(M, X, gain):
 
 @verbose
 def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
-                         gain_active, active_is_idx=False, verbose=None):
+                         gain_active, active_is_idx=False,
+                         verbose=None):
     times = tmin + tstep * np.arange(X.shape[1])
 
     if not active_is_idx:
@@ -200,7 +201,10 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
-        active_idx = np.unique(active_idx // n_dip_per_pos)
+        active_idx = active_idx // n_dip_per_pos
+        _, keep = np.unique(active_idx, return_index=True)
+        keep.sort()  # maintain old order
+        active_idx = active_idx[keep]
         gof_split.shape = (len(active_idx), n_dip_per_pos, len(times))
         gof_split = gof_split.sum(1)
         assert (gof_split < 100).all()
@@ -208,6 +212,7 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
+        print(i_dip)
         i_pos = forward['source_rr'][i_dip][np.newaxis, :]
         i_pos = i_pos.repeat(len(times), axis=0)
         X_ = X[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
@@ -219,8 +224,7 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
             if forward['surf_ori']:
                 X_ = np.dot(forward['source_nn'][
                     i_dip * n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
-
-            amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
+            amplitude = np.linalg.norm(X_, axis=0)
             i_ori = np.zeros((len(times), 3))
             i_ori[amplitude > 0.] = (X_[:, amplitude > 0.] /
                                      amplitude[amplitude > 0.]).T

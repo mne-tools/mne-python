@@ -7,7 +7,7 @@ from scipy import linalg
 
 from ..forward import is_fixed_orient
 
-from ..minimum_norm.inverse import _check_reference
+from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (_check_ori, _make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
@@ -250,6 +250,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     if len(active_set) == 0:
         raise Exception("No active dipoles found. alpha is too big.")
 
+    M_estimate = gain[:, active_set] @ X
+
     # Reapply weights to have correct unit
     X = _reapply_source_weighting(X, source_weighting, active_set)
 
@@ -283,6 +285,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
                                active_is_idx=True, pick_ori=pick_ori,
                                verbose=verbose)
 
+    _log_exp_var(M, M_estimate, prefix='')
     logger.info('[done]')
 
     if return_residual:

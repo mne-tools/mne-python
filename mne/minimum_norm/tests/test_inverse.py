@@ -602,6 +602,7 @@ def assert_var_exp_log(log, lower, upper):
     assert exp_var is not None, f'No explained variance found:\n{log}'
     exp_var = float(exp_var.group(1))
     assert lower <= exp_var <= upper
+    return exp_var
 
 
 @pytest.mark.parametrize('method', INVERSE_METHODS)

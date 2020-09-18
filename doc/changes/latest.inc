@@ -51,7 +51,7 @@ Changelog
 
 - Add support for providing the destination surface source space in the ``src_to`` argument of :func:`mne.compute_source_morph` by `Eric Larson`_
 
-- Add explained variance logging to :func:`mne.inverse_sparse.mixed_norm` by `Eric Larson`_
+- Add explained variance logging to :func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.gamma_map`, and :func:`mne.beamformer.rap_music` by `Eric Larson`_
 
 - Add ``tol_kind`` option to :func:`mne.compute_rank` by `Eric Larson`_
 
@@ -206,7 +206,7 @@ Bug
 
 - Fix bug with convex-hull based MEG helmet creation where the face area could be covered up, by `Eric Larson`_
 
-- Fix bug with :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.gamma_map` with ``return_as_dipoles=True`` where ``dip.gof`` was the same for all dipoles. GOF values / explained variance across all dipoles now gets split among the dipoles using SVD of the lead fields. To get the total GOF, ``sum(dip.gof for dip in dipoles)`` can be used, by `Eric Larson`_
+- Fix bug with :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.gamma_map` with ``return_as_dipoles=True`` and :func:`mne.beamformer.rap_music` where ``dip.gof`` was the same for all dipoles. GOF values / explained variance across all dipoles now gets split among the dipoles using SVD of the lead fields. To get the total GOF, ``sum(dip.gof for dip in dipoles)`` can be used, by `Eric Larson`_
 
 - Fix bug with :func:`mne.inverse_sparse.gamma_map` where output data was not assigned properly when using a free-orientation forward and ``xyz_same_gamma=False`` by `Eric Larson`_
 

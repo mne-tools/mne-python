@@ -6,7 +6,7 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 
 import mne
 from mne.datasets import testing
@@ -15,9 +15,10 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
-from mne.minimum_norm.tests.test_inverse import assert_stc_res
+from mne.minimum_norm.tests.test_inverse import (assert_stc_res,
+                                                 assert_var_exp_log)
 from mne import pick_types_forward
-from mne.utils import assert_stcs_equal, run_tests_if_main
+from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
@@ -68,13 +69,18 @@ def test_gamma_map_standard():
     cov = regularize(cov, evoked.info, rank=None)
 
     alpha = 0.5
-    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                    xyz_same_gamma=True, update_mode=1)
+    with catch_logging() as log:
+        stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                        xyz_same_gamma=True, update_mode=1, verbose=True)
     _check_stc(stc, evoked, 68477, 'lh', fwd=forward)
+    assert_var_exp_log(log.getvalue(), 20, 22)
 
-    stc_vec, res = gamma_map(
-        evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
-        update_mode=1, pick_ori='vector', return_residual=True)
+    with catch_logging() as log:
+        stc_vec, res = gamma_map(
+            evoked, forward, cov, alpha, tol=1e-4, xyz_same_gamma=True,
+            update_mode=1, pick_ori='vector', return_residual=True,
+            verbose=True)
+    assert_var_exp_log(log.getvalue(), 20, 22)
     assert_stcs_equal(stc_vec.magnitude(), stc)
     _check_stc(stc_vec, evoked, 68477, 'lh', fwd=forward, res=res)
 
@@ -84,9 +90,13 @@ def test_gamma_map_standard():
     _check_stc(stc, evoked, 82010, 'lh', fwd=forward, dist_limit=6., ratio=2.,
                res=res)
 
-    dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                     xyz_same_gamma=False, update_mode=1,
-                     return_as_dipoles=True)
+    with catch_logging() as log:
+        dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                         xyz_same_gamma=False, update_mode=1,
+                         return_as_dipoles=True, verbose=True)
+    exp_var = assert_var_exp_log(log.getvalue(), 58, 60)
+    dip_exp_var = np.mean(sum(dip.gof for dip in dips))
+    assert_allclose(exp_var, dip_exp_var, atol=10)  # not really equiv, close
     assert (isinstance(dips[0], Dipole))
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert_stcs_equal(stc.magnitude(), stc_dip)
