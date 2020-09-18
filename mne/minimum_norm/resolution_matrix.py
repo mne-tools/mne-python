@@ -125,7 +125,7 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_svd_vars):
             Normalize to maximum norm across all PSFs/CTFs.
 
         This will be applied before computing summaries as specified in 'mode'.
-    return_svd_vars : Bool
+    return_svd_vars : bool
         Whether or not to return the explained variances across the specified
         vertices for individual SVD components. This is only valid if
         mode='svd'. Default return_svd_vars=False.
@@ -343,7 +343,8 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
         PSFs/CTFs will be returned for all indices. If mode is not None, the
         corresponding summary measure will be computed across all PSFs/CTFs
         available from idx.
-        idx can be:
+
+        Can be:
 
         - list of integers:
             Compute PSFs/CTFs for all indices specified in idx.
@@ -371,7 +372,7 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
         Whether to normalise to maximum across all PSFs and CTFs (default:
         False). This will be applied before computing summaries as specified in
         'mode'.
-    return_svd_vars : Bool
+    return_svd_vars : bool
         Whether or not to return the explained variances across the specified
         vertices for individual SVD components. This is only valid if
         mode='svd'.
@@ -407,8 +408,8 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
         PSFs/CTFs will be returned for all indices. If mode is not None, the
         corresponding summary measure will be computed across all PSFs/CTFs
         available from idx.
-        idx can be:
 
+        Can be:
         - list of integers:
             Compute PSFs/CTFs for all indices specified in idx.
         - list of Label:
@@ -435,7 +436,7 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
         Whether to normalise to maximum across all PSFs and CTFs (default:
         False). This will be applied before computing summaries as specified in
         'mode'.
-    return_svd_vars : Bool
+    return_svd_vars : bool
         Whether or not to return the explained variances across the specified
         vertices for individual SVD components. This is only valid if
         mode='svd'.
