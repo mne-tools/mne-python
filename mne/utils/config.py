@@ -493,8 +493,11 @@ def sys_info(fid=None, show_paths=False):
         # platform.mac_ver() if we're on Darwin, so we don't get a nice macOS
         # version number. Therefore, let's do this manually here.
         macos_ver = platform.mac_ver()[0]
-        macos_architecture = re.match('Darwin-.*?-(.*)', platform_str)[1]
-        platform_str = f'macOS-{macos_ver}-{macos_architecture}'
+        macos_architecture = re.findall('Darwin-.*?-(.*)', platform_str)
+        if macos_architecture:
+            macos_architecture = macos_architecture[0]
+            platform_str = f'macOS-{macos_ver}-{macos_architecture}'
+        del macos_ver, macos_architecture
 
     out = 'Platform:'.ljust(ljust) + platform_str + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
