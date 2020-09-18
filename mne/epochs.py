@@ -642,7 +642,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        %(baseline)s
+        %(baseline_epochs)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
         %(verbose_meth)s
@@ -1932,7 +1932,7 @@ class Epochs(BaseEpochs):
         Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
         End time after event. If nothing is provided, defaults to 0.5.
-    %(baseline)s
+    %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
         time point zero.
     %(picks_all)s
@@ -2194,7 +2194,7 @@ class EpochsArray(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    %(baseline)s
+    %(baseline_epochs)s
         Defaults to ``None``, i.e. no baseline correction.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.

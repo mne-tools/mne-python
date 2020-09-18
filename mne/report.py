@@ -868,7 +868,7 @@ class Report(object):
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    %(baseline)s
+    %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
     image_format : str
         Default image format to use (default is 'png').
