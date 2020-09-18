@@ -3310,6 +3310,8 @@ def shorten_path_from_middle(path, max_len=60, replacement='...'):
     from os.path import sep
     if len(path) > max_len:
         pathlist = path.split(sep)
+        # indices starting from middle, alternating sides, omitting final elem:
+        # range(8) → 3, 4, 2, 5, 1, 6; range(7) → 2, 3, 1, 4, 0, 5
         ixs_to_trunc = list(zip(range(len(pathlist) // 2 - 1, -1, -1),
                                 range(len(pathlist) // 2, len(pathlist) - 1)))
         ixs_to_trunc = np.array(ixs_to_trunc).flatten()
@@ -3320,6 +3322,7 @@ def shorten_path_from_middle(path, max_len=60, replacement='...'):
             if len(newpath) < max_len:
                 break
         return newpath
+    return path
 
 
 def centers_to_edges(*arrays):
