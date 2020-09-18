@@ -1,4 +1,5 @@
 import os
+import platform
 import pytest
 from pathlib import Path
 
@@ -83,3 +84,6 @@ def test_sys_info():
     sys_info(fid=out)
     out = out.getvalue()
     assert ('numpy:' in out)
+
+    if platform.system() == 'Darwin':
+        assert 'Platform:      macOS-' in out

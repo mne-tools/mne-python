@@ -13,6 +13,7 @@ import platform
 import shutil
 import sys
 import tempfile
+import re
 
 import numpy as np
 
@@ -486,7 +487,19 @@ def sys_info(fid=None, show_paths=False):
         PyQt5:         5.15.0
     """  # noqa: E501
     ljust = 15
-    out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
+    platform_str = platform.platform()
+    if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
+        # platform.platform() in Python < 3.8 doesn't call
+        # platform.mac_ver() if we're on Darwin, so we don't get a nice macOS
+        # version number. Therefore, let's do this manually here.
+        macos_ver = platform.mac_ver()[0]
+        macos_architecture = re.findall('Darwin-.*?-(.*)', platform_str)
+        if macos_architecture:
+            macos_architecture = macos_architecture[0]
+            platform_str = f'macOS-{macos_ver}-{macos_architecture}'
+        del macos_ver, macos_architecture
+
+    out = 'Platform:'.ljust(ljust) + platform_str + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
     out += 'Executable:'.ljust(ljust) + sys.executable + '\n'
     out += 'CPU:'.ljust(ljust) + ('%s: ' % platform.processor())
