@@ -287,7 +287,7 @@ html_show_sphinx = False
 # variables to pass to HTML templating engine
 build_dev_html = bool(int(os.environ.get('BUILD_DEV_HTML', False)))
 
-html_context = {'use_google_analytics': True, 'use_twitter': True,
+html_context = {'use_google_analytics': True,
                 'use_media_buttons': True, 'build_dev_html': build_dev_html}
 
 # This is the file name suffix for HTML files (e.g. ".xhtml").
