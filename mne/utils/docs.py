@@ -1728,12 +1728,12 @@ docdict['baseline_evoked'] = """%(rescale_baseline)s
 
 """ % docdict
 docdict['baseline_report'] = """%(rescale_baseline)s
-    Correction is applied in the following way **for each channel**:
+    Correction is applied in the following way **to each channel:**
 
     1. Calculate the mean signal of the baseline period.
     2. Subtract this mean from the **entire** time period.
 
-    For `~mne.Epochs`, this algorithm is run **on each epoch individually**.
+    For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
 """ % docdict
 
 
