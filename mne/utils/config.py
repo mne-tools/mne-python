@@ -489,7 +489,7 @@ def sys_info(fid=None, show_paths=False):
     ljust = 15
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
-        # platform.system() in Python < 3.8 doesn't call
+        # platform.platform() in Python < 3.8 doesn't call
         # platform.mac_ver() if we're on Darwin, so we don't get a nice macOS
         # version number. Therefore, let's do this manually here.
         macos_ver = platform.mac_ver()[0]
