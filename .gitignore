@@ -55,6 +55,7 @@ doc/auto_examples/
 doc/auto_tutorials/
 doc/modules/generated/
 doc/sphinxext/cachedir
+tutorials/misc/report.h5
 pip-log.txt
 .coverage*
 tags
