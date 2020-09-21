@@ -543,9 +543,8 @@ def _read_edf_header(fname, exclude):
                                  tzinfo=timezone.utc)
         except ValueError:
             warn(f'Invalid date encountered ({year + century:04d}-{month:02d}-'
-                 f'{day:02d} {hour:02d}:{minute:02d}:{sec:02d}), setting it to'
-                 '1900-01-01 00:00:00.')
-            meas_date = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+                 f'{day:02d} {hour:02d}:{minute:02d}:{sec:02d}).')
+            meas_date = None
 
         header_nbytes = _edf_str_int(fid.read(8))
 
