@@ -20,8 +20,7 @@ Enhancements
 Bugs
 ~~~~
 
-- ...
-
+- Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly, by `Eric Larson`_
 
 API changes
 ~~~~~~~~~~~
