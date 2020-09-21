@@ -7,10 +7,10 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
-.. _current:
+.. _changes_0_21:
 
-Current (0.21.dev0)
--------------------
+Version 0.21
+------------
 
 .. |Rahul Nadkarni| replace:: **Rahul Nadkarni**
 .. |Lau Møller Andersen| replace:: **Lau Møller Andersen**
@@ -431,3 +431,54 @@ API changes
 - The default argument ``meg=True`` in :func:`mne.pick_types` will change to ``meg=False`` in version 0.22 by `Clemens Brunner`_
 
 - Added :meth:`mne.io.Raw.get_montage`, which obtains the montage that an instance has, by `Adam Li`_
+
+
+Authors
+~~~~~~~
+
+People who contributed to this release in alphabetical order
+(people with a + are first time contributors):
+
+* Adam Li
+* Adonay Nunes
+* Alejandro Weinstein
+* Alex
+* Alex Rockhill
+* Alexandre Gramfort
+* Anton Nikolas Waniek
+* Britta Westner
+* Christian O'Reilly
+* Clemens Brunner
+* Daniel McCloy
+* Eric Larson
+* Evgenii Kalenkovich
+* Fede Raimondo
+* Guillaume Favelier
+* Hubert Banville
+* Jeroen Van Der Donckt +
+* Johann Benerradi +
+* Kyle Mathewson +
+* Lau Møller Andersen +
+* Liberty Hamilton +
+* Luke Bloy
+* Lx37 +
+* Mainak Jas
+* Marijn van Vliet
+* Martin Billinger
+* Martin Schulz +
+* Martin van Harmelen
+* Mikolaj Magnuski
+* Olaf Hauk
+* Rahul Nadkarni +
+* Richard Höchenberger
+* Robert Luke
+* Sara Sommariva
+* Simeon Wong +
+* Stefan Appelhoff
+* Steven Bierer +
+* Svea Marie Meyer +
+* Teon Brooks
+* Thomas Hartmann
+* Yu-Han Luo
+* chapochn
+* mshader
