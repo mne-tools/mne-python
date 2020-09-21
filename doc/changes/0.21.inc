@@ -442,7 +442,6 @@ People who contributed to this release in alphabetical order
 * Adam Li
 * Adonay Nunes
 * Alejandro Weinstein
-* Alex
 * Alex Rockhill
 * Alexandre Gramfort
 * Anton Nikolas Waniek
