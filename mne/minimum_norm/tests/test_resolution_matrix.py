@@ -122,22 +122,25 @@ def test_resolution_matrix():
     # check various summary and normalisation options
     for mode in [None, 'sum', 'mean', 'maxval', 'maxnorm', 'svd']:
 
-        n_comp = 3
+        n_comps = [1, 3]
 
         if mode in [None, 'sum', 'mean']:
 
-            n_comp = 1
+            n_comps = [1]
 
-        for norm in [None, 'max', 'norm']:
+        for n_comp in n_comps:
 
-            stc_psf = get_point_spread(
-                rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                norm='norm', return_svd_vars=False)
-            stc_ctf = get_cross_talk(
-                rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                norm='norm', return_svd_vars=False)
+            for norm in [None, 'max', 'norm', True]:
 
-            assert_array_almost_equal(stc_psf.data, stc_ctf.data)
+                stc_psf = get_point_spread(
+                    rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
+                    norm='norm', return_svd_vars=False)
+                stc_ctf = get_cross_talk(
+                    rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
+                    norm='norm', return_svd_vars=False)
+
+                # for MNE, PSF/CTFs for same vertices should be the same
+                assert_array_almost_equal(stc_psf.data, stc_ctf.data)
 
     # check SVD variances
     stc_psf, s_vars_psf = get_point_spread(

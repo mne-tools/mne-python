@@ -81,12 +81,14 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_svd_vars):
         PSFs/CTFs will be returned for all indices. If mode is not None, the
         corresponding summary measure will be computed across all PSFs/CTFs
         available from idx.
-        idx can be:
+
+        Can be:
 
         - list of integers:
-            Compute PSFs/CTFs for all indices specified in idx.
+          Compute PSFs/CTFs for all indices to source space vertices specified
+          in idx.
         - list of Label:
-            Compute PSFs/CTFs for all indices in specified labels.
+          Compute PSFs/CTFs for source space vertices in specified labels.
 
     func : str ('psf' | 'ctf')
         Whether to produce PSFs or CTFs. Defaults to psf.
@@ -95,20 +97,20 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_svd_vars):
 
         Can be:
         - None (default):
-            Output individual PSFs/CTFs for each specific vertex.
+          Output individual PSFs/CTFs for each specific vertex.
         - 'sum':
-            The sum of PSFs/CTFs across vertices.
+          The sum of PSFs/CTFs across vertices.
         - 'mean':
-            The mean of PSFs/CTFs across vertices.
+          The mean of PSFs/CTFs across vertices.
         - 'maxval':
-            PSFs/CTFs with maximum absolute value across vertices. Returns the
-            n_comp largest PSFs/CTFs.
+          PSFs/CTFs with maximum absolute value across vertices. Returns the
+          n_comp largest PSFs/CTFs.
         - 'maxnorm':
-            PSFs/CTFs with maximum norm across vertices. Returns the n_comp
-            largest PSFs/CTFs.
+          PSFs/CTFs with maximum norm across vertices. Returns the n_comp
+          largest PSFs/CTFs.
         - 'svd':
-            SVD components across PSFs/CTFs across vertices. Returns the n_comp
-            first SVD components.
+          SVD components across PSFs/CTFs across vertices. Returns the n_comp
+          first SVD components.
 
     n_comp : int
         Number of PSF/CTF components to return for mode='max' or mode='svd'.
@@ -118,11 +120,11 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_svd_vars):
 
         Can be:
         - None (default):
-            Use un-normalized PSFs/CTFs.
+          Use un-normalized PSFs/CTFs.
         - 'max':
-            Normalize to maximum absolute value across all PSFs/CTFs.
+          Normalize to maximum absolute value across all PSFs/CTFs.
         - 'norm':
-            Normalize to maximum norm across all PSFs/CTFs.
+          Normalize to maximum norm across all PSFs/CTFs.
 
         This will be applied before computing summaries as specified in 'mode'.
     return_svd_vars : bool
@@ -347,24 +349,25 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
         Can be:
 
         - list of integers:
-            Compute PSFs/CTFs for all indices specified in idx.
+          Compute PSFs/CTFs for all indices to source space vertices specified
+          in idx.
         - list of Label:
-            Compute PSFs/CTFs for all indices in specified labels.
+          Compute PSFs/CTFs for source space vertices in specified labels.
 
     mode : None | 'mean' | 'max' | 'svd'
         Compute summary of PSFs/CTFs across all indices specified in 'idx'.
 
         Can be:
         - None (default):
-            Output individual PSFs/CTFs for each specific vertex.
+          Output individual PSFs/CTFs for each specific vertex.
         - 'mean':
-            Mean of PSFs/CTFs across vertices.
+          Mean of PSFs/CTFs across vertices.
         - 'max':
-            PSFs/CTFs with maximum norm across vertices. Returns the n_comp
-            largest PSFs/CTFs.
+          PSFs/CTFs with maximum norm across vertices. Returns the n_comp
+          largest PSFs/CTFs.
         - 'svd':
-            SVD components across PSFs/CTFs across vertices. Returns the n_comp
-            first SVD components.
+          SVD components across PSFs/CTFs across vertices. Returns the n_comp
+          first SVD components.
 
     n_comp : int
         Number of PSF/CTF components to return for mode='max' or mode='svd'.
@@ -410,25 +413,27 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
         available from idx.
 
         Can be:
+
         - list of integers:
-            Compute PSFs/CTFs for all indices specified in idx.
+          Compute PSFs/CTFs for all indices to source space vertices specified
+          in idx.
         - list of Label:
-            Compute PSFs/CTFs for all indices in specified labels.
+          Compute PSFs/CTFs for source space vertices in specified labels.
 
     mode : None | 'mean' | 'max' | 'svd'
         Compute summary of PSFs/CTFs across all indices specified in 'idx'.
 
         Can be:
         - None (default):
-            Output individual PSFs/CTFs for each specific vertex.
+          Output individual PSFs/CTFs for each specific vertex.
         - 'mean':
-            Mean of PSFs/CTFs across vertices.
+          Mean of PSFs/CTFs across vertices.
         - 'max':
-            PSFs/CTFs with maximum norm across vertices. Returns the n_comp
-            largest PSFs/CTFs.
+          PSFs/CTFs with maximum norm across vertices. Returns the n_comp
+          largest PSFs/CTFs.
         - 'svd':
-            SVD components across PSFs/CTFs across vertices. Returns the n_comp
-            first SVD components.
+          SVD components across PSFs/CTFs across vertices. Returns the n_comp
+          first SVD components.
 
     n_comp : int
         Number of PSF/CTF components to return for mode='max' or mode='svd'.
