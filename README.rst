@@ -25,7 +25,7 @@
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
 .. _Zenodo: https://doi.org/10.5281/zenodo.592483
 
-.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.png
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
 .. _MNE: https://mne.tools/dev/
 
 MNE-Python
