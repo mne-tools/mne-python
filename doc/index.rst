@@ -26,7 +26,7 @@
 
   <div class="col-xs-12 col-sm-6 col-md-3">
     <div class="panel panel-default">
-      <div class="panel-heading"><h3 class="panel-title">Version 0.21.dev0</h3></div>
+      <div class="panel-heading"><h3 class="panel-title">Version 0.21</h3></div>
       <div class="panel-body">
         <ul>
         <li><a href="whats_new.html">What's new</a></li>
