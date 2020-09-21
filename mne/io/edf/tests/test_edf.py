@@ -10,6 +10,7 @@
 
 import os.path as op
 import inspect
+import tempfile
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -383,9 +384,6 @@ def test_bdf_multiple_annotation_channels():
     assert_array_equal(descriptions, raw.annotations.description)
 
 
-run_tests_if_main()
-
-
 @testing.requires_testing_data
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
@@ -399,3 +397,26 @@ def test_edf_annot_sub_s_onset():
     """Test reading of sub-second annotation onsets."""
     raw = read_raw_edf(edf_annot_sub_s_path)
     assert_allclose(raw.annotations.onset, [1.951172, 3.492188])
+
+
+def test_invalid_date():
+    """Test handling of invalid date in EDF header."""
+    with open(edf_path, 'rb') as f:
+        edf = bytearray(f.read())
+    # original date in header is 29.04.14 (2014-04-29) at pos 168:176
+    # create invalid date 29.02.14 (2014 is not a leap year)
+    edf[172] = ord('2')
+    with tempfile.NamedTemporaryFile(suffix='.edf') as f:
+        f.write(edf)
+        with pytest.warns(RuntimeWarning, match='Invalid date'):
+            read_raw_edf(f.name, preload=True)
+
+    # another invalid date 29.00.14 (0 is not a month)
+    edf[172] = ord('0')
+    with tempfile.NamedTemporaryFile(suffix='.edf') as f:
+        f.write(edf)
+        with pytest.warns(RuntimeWarning, match='Invalid date'):
+            read_raw_edf(f.name, preload=True)
+
+
+run_tests_if_main()
