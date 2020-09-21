@@ -212,7 +212,6 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
-        print(i_dip)
         i_pos = forward['source_rr'][i_dip][np.newaxis, :]
         i_pos = i_pos.repeat(len(times), axis=0)
         X_ = X[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
