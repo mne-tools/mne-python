@@ -538,8 +538,14 @@ def _read_edf_header(fname, exclude):
         hour, minute, sec = [int(x) for x in
                              re.findall(r'(\d+)', fid.read(8).decode())]
         century = 2000 if year < 50 else 1900
-        meas_date = datetime(year + century, month, day, hour, minute, sec,
-                             tzinfo=timezone.utc)
+        try:
+            meas_date = datetime(year + century, month, day, hour, minute, sec,
+                                 tzinfo=timezone.utc)
+        except ValueError:
+            warn(f'Invalid date encountered ({year + century:04d}-{month:02d}-'
+                 f'{day:02d} {hour:02d}:{minute:02d}:{sec:02d}), setting it to'
+                 '1900-01-01 00:00:00.')
+            meas_date = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
         header_nbytes = _edf_str_int(fid.read(8))
 
