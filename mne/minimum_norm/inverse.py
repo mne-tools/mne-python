@@ -900,6 +900,15 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     return out
 
 
+def _log_exp_var(data, est, prefix='    '):
+    res = data - est
+    var_exp = 1 - ((res * res.conj()).sum().real /
+                   (data * data.conj()).sum().real)
+    var_exp *= 100
+    logger.info(f'{prefix}Explained {var_exp:5.1f}% variance')
+    return var_exp
+
+
 def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
                    prepared, label, method_params, return_residual, use_cps):
     _validate_type(evoked, Evoked, 'evoked')
@@ -939,11 +948,7 @@ def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
                       np.dot(inv['eigen_fields']['data'].T,  # U
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
-    res_w = data_w - data_est_w
-    var_exp = 1 - ((res_w * res_w.conj()).sum().real /
-                   (data_w * data_w.conj()).sum().real)
-    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
-
+    _log_exp_var(data_w, data_est_w)
     if return_residual:
         residual = evoked.copy()
         residual.data[sel] -= data_est

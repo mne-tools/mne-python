@@ -5,7 +5,8 @@
 
 import os.path as op
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_less)
 import pytest
 
 import mne
@@ -14,9 +15,11 @@ from mne.label import read_label
 from mne import (read_cov, read_forward_solution, read_evokeds,
                  convert_forward_solution)
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
-from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
+from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles, _split_gof
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import assert_stcs_equal, run_tests_if_main
+from mne.minimum_norm.tests.test_inverse import \
+    assert_var_exp_log, assert_stc_res
+from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
 
@@ -31,10 +34,16 @@ label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
+@pytest.fixture(scope='module', params=[testing._pytest_param])
+def forward():
+    """Get a forward solution."""
+    # module scope it for speed (but don't overwrite in use!)
+    return read_forward_solution(fname_fwd)
+
+
 @pytest.mark.timeout(150)  # ~30 sec on Travis Linux
 @pytest.mark.slowtest
-@testing.requires_testing_data
-def test_mxne_inverse_standard():
+def test_mxne_inverse_standard(forward):
     """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
     cov = read_cov(fname_cov)
@@ -51,7 +60,6 @@ def test_mxne_inverse_standard():
     label = read_label(fname_label)
     assert label.hemi == 'rh'
 
-    forward = read_forward_solution(fname_fwd)
     forward = convert_forward_solution(forward, surf_ori=True)
 
     # Reduce source space to make test computation faster
@@ -101,34 +109,51 @@ def test_mxne_inverse_standard():
         mixed_norm(evoked_l21, forward, cov, alpha, loose=0, maxit=2,
                    pick_ori='vector')
 
-    with pytest.warns(None):  # CD
+    with pytest.warns(None), catch_logging() as log:  # CD
         dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                           weights=stc_dspm, weights_min=weights_min,
-                          solver='cd', return_as_dipoles=True)
+                          solver='cd', return_as_dipoles=True, verbose=True)
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert isinstance(dips[0], Dipole)
     assert stc_dip.subject == "sample"
     assert_stcs_equal(stc_cd, stc_dip)
+    assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
 
-    with pytest.warns(None):  # CD
-        stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                            depth=depth, maxit=300, tol=1e-8,
-                            weights=stc_dspm,  # gh-6382
-                            active_set_size=10, return_residual=True,
-                            solver='cd')
+    # Single time point things should match
+    with pytest.warns(None), catch_logging() as log:
+        dips = mixed_norm(evoked_l21.copy().crop(0.081, 0.081),
+                          forward, cov, alpha, loose=loose,
+                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+                          weights=stc_dspm, weights_min=weights_min,
+                          solver='cd', return_as_dipoles=True, verbose=True)
+    assert_var_exp_log(log.getvalue(), 37.8, 38.0)  # 37.9
+    gof = sum(dip.gof[0] for dip in dips)  # these are now partial exp vars
+    assert_allclose(gof, 37.9, atol=0.1)
+
+    with pytest.warns(None), catch_logging() as log:
+        stc, res = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                              depth=depth, maxit=300, tol=1e-8,
+                              weights=stc_dspm,  # gh-6382
+                              active_set_size=10, return_residual=True,
+                              solver='cd', verbose=True)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
+    assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
+    assert stc.data.min() < -1e-9  # signed
+    assert_stc_res(evoked_l21, stc, forward, res)
 
     # irMxNE tests
-    with pytest.warns(None):  # CD
-        stc = mixed_norm(evoked_l21, forward, cov, alpha,
-                         n_mxne_iter=5, loose=loose, depth=depth,
-                         maxit=300, tol=1e-8, active_set_size=10,
-                         solver='cd')
+    with pytest.warns(None), catch_logging() as log:  # CD
+        stc, residual = mixed_norm(
+            evoked_l21, forward, cov, alpha, n_mxne_iter=5, loose=0.0001,
+            depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+            solver='cd', return_residual=True, pick_ori='vector', verbose=True)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
     assert stc.vertices == [[63152], [79017]]
+    assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
+    assert_stc_res(evoked_l21, stc, forward, residual)
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter
@@ -147,11 +172,11 @@ def test_mxne_inverse_standard():
         evoked, forward, cov, loose=1, depth=depth, maxit=2, tol=1e-4,
         tstep=4, wsize=16, window=0.1, weights=stc_dspm,
         weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio)
-    stc_vec = tf_mixed_norm(
+    stc_vec, residual = tf_mixed_norm(
         evoked, forward, cov, loose=1, depth=depth, maxit=2, tol=1e-4,
         tstep=4, wsize=16, window=0.1, weights=stc_dspm,
         weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio,
-        pick_ori='vector')
+        pick_ori='vector', return_residual=True)
     assert_stcs_equal(stc_vec.magnitude(), stc_nrm)
 
     pytest.raises(ValueError, tf_mixed_norm, evoked, forward, cov,
@@ -190,11 +215,13 @@ def test_mxne_vol_sphere():
                   maxit=3, tol=1e-8, active_set_size=10)
 
     # irMxNE tests
-    stc = mixed_norm(evoked_l21, fwd, cov, alpha,
-                     n_mxne_iter=1, maxit=30, tol=1e-8,
-                     active_set_size=10)
+    with catch_logging() as log:
+        stc = mixed_norm(evoked_l21, fwd, cov, alpha,
+                         n_mxne_iter=1, maxit=30, tol=1e-8,
+                         active_set_size=10, verbose=True)
     assert isinstance(stc, VolSourceEstimate)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
+    assert_var_exp_log(log.getvalue(), 9, 11)  # 10.2
 
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
@@ -227,6 +254,84 @@ def test_mxne_vol_sphere():
                            l1_ratio=l1_ratio, return_residual=True)
     assert isinstance(stc, VolSourceEstimate)
     assert_array_almost_equal(stc.times, evoked.times, 5)
+
+
+@pytest.mark.parametrize('mod', (
+    None, 'mult', 'augment', 'sign', 'zero', 'less'))
+def test_split_gof_basic(mod):
+    """Test splitting the goodness of fit."""
+    # first a trivial case
+    gain = np.array([[0., 1., 1.], [1., 1., 0.]]).T
+    M = np.ones((3, 1))
+    X = np.ones((2, 1))
+    M_est = gain @ X
+    assert_allclose(M_est, np.array([[1., 2., 1.]]).T)  # a reasonable estimate
+    if mod == 'mult':
+        gain *= [1., -0.5]
+        X[1] *= -2
+    elif mod == 'augment':
+        gain = np.concatenate((gain, np.zeros((3, 1))), axis=1)
+        X = np.concatenate((X, [[1.]]))
+    elif mod == 'sign':
+        gain[1] *= -1
+        M[1] *= -1
+        M_est[1] *= -1
+    elif mod in ('zero', 'less'):
+        gain = np.array([[1, 1., 1.], [1., 1., 1.]]).T
+        if mod == 'zero':
+            X[:, 0] = [1., 0.]
+        else:
+            X[:, 0] = [1., 0.5]
+        M_est = gain @ X
+    else:
+        assert mod is None
+    res = M - M_est
+    gof = 100 * (1. - (res * res).sum() / (M * M).sum())
+    gof_split = _split_gof(M, X, gain)
+    assert_allclose(gof_split.sum(), gof)
+    want = gof_split[[0, 0]]
+    if mod == 'augment':
+        want = np.concatenate((want, [[0]]))
+    if mod in ('mult', 'less'):
+        assert_array_less(gof_split[1], gof_split[0])
+    elif mod == 'zero':
+        assert_allclose(gof_split[0], gof_split.sum(0))
+        assert_allclose(gof_split[1], 0., atol=1e-6)
+    else:
+        assert_allclose(gof_split, want, atol=1e-12)
+
+
+@pytest.mark.parametrize('idx, weights', [
+    # empirically determined approximately orthogonal columns: 0, 15157, 19448
+    ([0], [1]),
+    ([0, 15157], [1, 1]),
+    ([0, 15157], [1, 3]),
+    ([0, 15157], [5, -1]),
+    ([0, 15157, 19448], [1, 1, 1]),
+    ([0, 15157, 19448], [1e-2, 1, 5]),
+])
+def test_split_gof_meg(forward, idx, weights):
+    """Test GOF splitting on MEG data."""
+    gain = forward['sol']['data'][:, idx]
+    # close to orthogonal
+    norms = np.linalg.norm(gain, axis=0)
+    triu = np.triu_indices(len(idx), 1)
+    prods = np.abs(np.dot(gain.T, gain) / np.outer(norms, norms))[triu]
+    assert_array_less(prods, 5e-3)  # approximately orthogonal
+    # first, split across time (one dipole per time point)
+    M = gain * weights
+    gof_split = _split_gof(M, np.diag(weights), gain)
+    assert_allclose(gof_split.sum(0), 100., atol=1e-5)  # all sum to 100
+    assert_allclose(gof_split, 100 * np.eye(len(weights)), atol=1)  # loc
+    # next, summed to a single time point (all dipoles active at one time pt)
+    weights = np.array(weights)[:, np.newaxis]
+    x = gain @ weights
+    assert x.shape == (gain.shape[0], 1)
+    gof_split = _split_gof(x, weights, gain)
+    want = (norms * weights.T).T ** 2
+    want = 100 * want / want.sum()
+    assert_allclose(gof_split, want, atol=1e-3, rtol=1e-2)
+    assert_allclose(gof_split.sum(), 100, rtol=1e-5)
 
 
 run_tests_if_main()
