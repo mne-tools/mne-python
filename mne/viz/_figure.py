@@ -270,10 +270,9 @@ class MNEBrowseFigure(MNEFigure):
 
         # additional params for browse figures
         self.mne.ch_start = 0
+        self.mne.butterfly_image = None
         self.mne.projector = None
         self.mne.projs_active = np.array([p['active'] for p in self.mne.projs])
-        self.mne.event_lines = None
-        self.mne.event_texts = list()
         self.mne.whitened_ch_names = list()
         self.mne.use_noise_cov = self.mne.noise_cov is not None
         # annotations
@@ -285,6 +284,10 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.annotation_segment_colors = dict()
         self.mne.annotation_hover_line = None
         self.mne.draggable_annotations = False
+        # lines
+        self.mne.event_lines = None
+        self.mne.event_texts = list()
+        self.mne.vline_visible = False
         # scalings
         self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
         self.mne.scalebars = dict()
@@ -732,7 +735,8 @@ class MNEBrowseFigure(MNEFigure):
         self._update_picks()
         self._update_trace_offsets()
         self._redraw(annotations=True)
-        self._show_vline(self.mne.vline.get_xdata())
+        if self.mne.vline_visible:
+            self._show_vline(self.mne.vline.get_xdata()[0])
         if self.mne.fig_selection is not None:
             # Show all radio buttons as selected when in butterfly mode
             fig = self.mne.fig_selection
@@ -1754,6 +1758,7 @@ class MNEBrowseFigure(MNEFigure):
             self.draw_artist(artist)
         self.canvas.blit()
         self.canvas.flush_events()
+        self.mne.vline_visible = True
 
     def _hide_vline(self):
         """Hide the vertical line."""
@@ -1764,6 +1769,7 @@ class MNEBrowseFigure(MNEFigure):
             self.draw_artist(artist)
         self.canvas.blit()
         self.canvas.flush_events()
+        self.mne.vline_visible = False
 
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
