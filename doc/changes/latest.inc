@@ -22,7 +22,7 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly by `Eric Larson`_ (`#8285 <https://github.com/mne-tools/mne-python/pull/8285>`_)
 
-- :func:`mne.io.read_raw_edf` now supports EDF files with invalid recording dates by `Clemens Brunner`_ (`#8283 <https://github.com/mne-tools/mne-python/pull/8283>`_)
+- :func:`mne.io.read_raw_edf` now supports EDF files with invalid recording dates by `Clemens Brunner`_ (:gh:`8283`)
 
 
 API changes
