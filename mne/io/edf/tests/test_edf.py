@@ -20,7 +20,7 @@ import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_pandas
+from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
@@ -383,9 +383,6 @@ def test_bdf_multiple_annotation_channels():
     assert_array_equal(descriptions, raw.annotations.description)
 
 
-run_tests_if_main()
-
-
 @testing.requires_testing_data
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
@@ -399,3 +396,27 @@ def test_edf_annot_sub_s_onset():
     """Test reading of sub-second annotation onsets."""
     raw = read_raw_edf(edf_annot_sub_s_path)
     assert_allclose(raw.annotations.onset, [1.951172, 3.492188])
+
+
+def test_invalid_date():
+    """Test handling of invalid date in EDF header."""
+    tempdir = _TempDir()
+    with open(edf_path, 'rb') as f:  # read valid test file
+        edf = bytearray(f.read())
+    # original date in header is 29.04.14 (2014-04-29) at pos 168:176
+    # create invalid date 29.02.14 (2014 is not a leap year)
+    edf[172] = ord('2')
+    with open(op.join(tempdir, "temp.edf"), "wb") as f:
+        f.write(edf)
+    with pytest.warns(RuntimeWarning, match='Invalid date'):
+        read_raw_edf(op.join(tempdir, "temp.edf"), preload=True)
+
+    # another invalid date 29.00.14 (0 is not a month)
+    edf[172] = ord('0')
+    with open(op.join(tempdir, "temp.edf"), "wb") as f:
+        f.write(edf)
+    with pytest.warns(RuntimeWarning, match='Invalid date'):
+        read_raw_edf(op.join(tempdir, "temp.edf"), preload=True)
+
+
+run_tests_if_main()

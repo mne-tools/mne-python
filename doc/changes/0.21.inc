@@ -16,8 +16,9 @@ Version 0.21.1
 Bugs
 ~~~~
 
-- Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly, by `Eric Larson`_
+- Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly by `Eric Larson`_ (:gh:`8285`)
 
+- :func:`mne.io.read_raw_edf` now supports EDF files with invalid recording dates by `Clemens Brunner`_ (:gh:`8283`)
 
 .. _changes_0_21:
 
