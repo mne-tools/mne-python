@@ -10,7 +10,6 @@
 
 import os.path as op
 import inspect
-import tempfile
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -21,7 +20,7 @@ import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_pandas
+from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
@@ -401,22 +400,23 @@ def test_edf_annot_sub_s_onset():
 
 def test_invalid_date():
     """Test handling of invalid date in EDF header."""
-    with open(edf_path, 'rb') as f:
+    tempdir = _TempDir()
+    with open(edf_path, 'rb') as f:  # read valid test file
         edf = bytearray(f.read())
     # original date in header is 29.04.14 (2014-04-29) at pos 168:176
     # create invalid date 29.02.14 (2014 is not a leap year)
     edf[172] = ord('2')
-    with tempfile.NamedTemporaryFile(suffix='.edf') as f:
+    with open(op.join(tempdir, "temp.edf"), "wb") as f:
         f.write(edf)
-        with pytest.warns(RuntimeWarning, match='Invalid date'):
-            read_raw_edf(f.name, preload=True)
+    with pytest.warns(RuntimeWarning, match='Invalid date'):
+        read_raw_edf(op.join(tempdir, "temp.edf"), preload=True)
 
     # another invalid date 29.00.14 (0 is not a month)
     edf[172] = ord('0')
-    with tempfile.NamedTemporaryFile(suffix='.edf') as f:
+    with open(op.join(tempdir, "temp.edf"), "wb") as f:
         f.write(edf)
-        with pytest.warns(RuntimeWarning, match='Invalid date'):
-            read_raw_edf(f.name, preload=True)
+    with pytest.warns(RuntimeWarning, match='Invalid date'):
+        read_raw_edf(op.join(tempdir, "temp.edf"), preload=True)
 
 
 run_tests_if_main()
