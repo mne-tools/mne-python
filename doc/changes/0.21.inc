@@ -7,6 +7,18 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
+
+.. _changes_0_21_1:
+
+Version 0.21.1
+--------------
+
+Bugs
+~~~~
+
+- Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly, by `Eric Larson`_
+
+
 .. _changes_0_21:
 
 Version 0.21
