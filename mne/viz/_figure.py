@@ -281,9 +281,9 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.hscroll_annotations = list()
         self.mne.annotation_segments = list()
         self.mne.annotation_texts = list()
-        self.mne.added_labels = list()
-        self.mne.segment_colors = dict()
-        self.mne.segment_line = None
+        self.mne.new_annotation_labels = list()
+        self.mne.annotation_segment_colors = dict()
+        self.mne.annotation_hover_line = None
         self.mne.draggable_annotations = False
         # scalings
         self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
@@ -458,7 +458,7 @@ class MNEBrowseFigure(MNEFigure):
                 event.inaxes != self.mne.ax_main):
             return
         if not self.mne.draggable_annotations:
-            self._remove_annotation_line()
+            self._remove_annotation_hover_line()
             return
         from matplotlib.patheffects import Stroke, Normal
         for coll in self.mne.annotations:
@@ -478,24 +478,26 @@ class MNEBrowseFigure(MNEFigure):
                     path.vertices[mask, 0] = x0
 
                 # create or update the DraggableLine
-                if self.mne.segment_line is None:
+                hover_line = self.mne.annotation_hover_line
+                if hover_line is None:
                     line = self.mne.ax_main.plot([x, x], ylim, color=color,
                                                  linewidth=2, pickradius=5.)[0]
-                    self.mne.segment_line = DraggableLine(
+                    hover_line = DraggableLine(
                         line, self._modify_annotation, drag_callback)
                 else:
-                    self.mne.segment_line.set_x(x)
-                    self.mne.segment_line.drag_callback = drag_callback
+                    hover_line.set_x(x)
+                    hover_line.drag_callback = drag_callback
                 # style the line
-                line = self.mne.segment_line.line
+                line = hover_line.line
                 patheff = [Stroke(linewidth=4, foreground=color, alpha=0.5),
                            Normal()]
                 line.set_path_effects(patheff if line.contains(event)[0] else
                                       patheff[1:])
                 self.mne.ax_main.selector.active = False
+                self.mne.annotation_hover_line = hover_line
                 self.canvas.draw_idle()
                 return
-        self._remove_annotation_line()
+        self._remove_annotation_hover_line()
 
     def _keypress(self, event):
         """Handle keypress events."""
@@ -666,7 +668,7 @@ class MNEBrowseFigure(MNEFigure):
                     end = start + raw.annotations.duration
                     ann_idx = np.where((xdata > start) & (xdata < end))[0]
                     raw.annotations.delete(ann_idx)  # only first one deleted
-                self._remove_annotation_line()
+                self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
             elif event.inaxes == ax:  # hide green line
@@ -946,7 +948,7 @@ class MNEBrowseFigure(MNEFigure):
         ax = fig.mne.radio_ax
         # get all the labels
         labels = list(set(self.mne.inst.annotations.description))
-        labels = np.union1d(labels, self.mne.added_labels)
+        labels = np.union1d(labels, self.mne.new_annotation_labels)
         # compute new figsize
         width, var_height, fixed_height, pad = \
             self._compute_annotation_figsize(len(labels))
@@ -967,7 +969,8 @@ class MNEBrowseFigure(MNEFigure):
             center = ax.transData.inverted().transform(
                 ax.transAxes.transform((0.1, 0)))
             circle.set_center((center[0], circle.center[1]))
-            circle.set_edgecolor(self.mne.segment_colors[label.get_text()])
+            circle.set_edgecolor(
+                self.mne.annotation_segment_colors[label.get_text()])
             circle.set_linewidth(4)
             circle.set_radius(radius / len(labels))
         # style the selected button
@@ -1015,7 +1018,7 @@ class MNEBrowseFigure(MNEFigure):
     def _add_annotation_label(self, event):
         """Add new annotation description."""
         text = self.mne.fig_annotation.label.get_text()
-        self.mne.added_labels.append(text)
+        self.mne.new_annotation_labels.append(text)
         self._setup_annotation_colors()
         self._update_annotation_fig()
         # automatically activate new label's radio button
@@ -1033,11 +1036,11 @@ class MNEBrowseFigure(MNEFigure):
 
         # TODO disable for epochs/ica instance types
         raw = self.mne.inst
-        segment_colors = getattr(self.mne, 'segment_colors', dict())
+        segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
         # sort the segments by start time
         ann_order = raw.annotations.onset.argsort(axis=0)
         descriptions = raw.annotations.description[ann_order]
-        color_keys = np.union1d(descriptions, self.mne.added_labels)
+        color_keys = np.union1d(descriptions, self.mne.new_annotation_labels)
         colors, red = _get_color_list(annotations=True)
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
@@ -1051,7 +1054,7 @@ class MNEBrowseFigure(MNEFigure):
                 segment_colors[key] = red
             else:
                 segment_colors[key] = next(color_cycle)
-        self.mne.segment_colors = segment_colors
+        self.mne.annotation_segment_colors = segment_colors
 
     def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
@@ -1065,11 +1068,11 @@ class MNEBrowseFigure(MNEFigure):
         self._draw_annotations()
         self.canvas.draw_idle()
 
-    def _remove_annotation_line(self):
+    def _remove_annotation_hover_line(self):
         """Remove annotation line from the plot and reactivate selector."""
-        if self.mne.segment_line is not None:
-            self.mne.segment_line.remove()
-            self.mne.segment_line = None
+        if self.mne.annotation_hover_line is not None:
+            self.mne.annotation_hover_line.remove()
+            self.mne.annotation_hover_line = None
             self.mne.ax_main.selector.active = True
             self.canvas.draw()
 
@@ -1097,7 +1100,7 @@ class MNEBrowseFigure(MNEFigure):
                            annotations.description[ann_idx],
                            annotations, ann_idx)
         self._draw_annotations()
-        self._remove_annotation_line()
+        self._remove_annotation_hover_line()
         self.canvas.draw_idle()
 
     def _clear_annotations(self):
@@ -1122,7 +1125,7 @@ class MNEBrowseFigure(MNEFigure):
         ylim = ax.get_ylim()
         for idx, (start, end) in enumerate(segments):
             descr = self.mne.inst.annotations.description[idx]
-            segment_color = self.mne.segment_colors[descr]
+            segment_color = self.mne.annotation_segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3)
             # draw all segments on ax_hscroll
             annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
