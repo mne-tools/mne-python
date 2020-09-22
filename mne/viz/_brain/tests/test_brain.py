@@ -311,6 +311,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     brain_data = _create_testing_brain(
         hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
         volume_options=None,  # for speed, don't upsample
+        n_time=1 if src == 'mixed' else 5,
     )
     with pytest.raises(RuntimeError, match='already'):
         _TimeViewer(brain_data)
@@ -550,7 +551,7 @@ def test_brain_colormap():
 
 
 def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
-                          **kwargs):
+                          n_time=5, **kwargs):
     assert src in ('surface', 'mixed', 'volume')
     meth = 'plot'
     if src in ('surface', 'mixed'):
@@ -574,7 +575,6 @@ def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
     # dense version
     rng = np.random.RandomState(0)
     vertices = [s['vertno'] for s in sample_src]
-    n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros((n_verts * n_time))
     stc_size = stc_data.size
