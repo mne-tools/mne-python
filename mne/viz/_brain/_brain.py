@@ -1702,7 +1702,7 @@ def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
     from scipy.interpolate import interp1d
     if y.shape[axis] == 1:
         def func(x):
-            return y.copy()
+            return np.take(y, np.zeros(np.asarray(x).shape, int), axis=axis)
         return func
     else:
         return interp1d(x, y, kind, axis=axis, assume_sorted=assume_sorted)
