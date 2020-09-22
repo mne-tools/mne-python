@@ -508,21 +508,40 @@ img.institution {
   max-height: 42px;
   max-width: 52px;
 }
+img.logo {
+  max-width: 360px;
+  width: 100%;
+}
 div.border-top {
   border-top: 1px solid #ccc;
 }
 .hidden {
   display: none;
 }
-.funding {
-  font-size: 12px;
+ul.list-funding {
+  padding-left: 0;
+  list-style: none;
 }
-.funding li {
+ul.list-funding li {
   padding-left: 28px;
   margin-top: 0px;
   margin-bottom: 8px;
   min-height: 24px;
-} /* Pandas DataFrame _repr_html_ */
+}
+ul.list-funding li img {
+  float: left;
+  position: relative;
+  left: -28px;
+  top: 0px;
+  width: 24px;
+  margin: 0px -24px 0px 0px;
+  clear: both;
+}
+ul.list-funding li p {
+  font-size: 12px;
+  margin-bottom: 0px;
+}
+/* Pandas DataFrame _repr_html_ */
 table.dataframe th,
 td {
   padding: 5px;
@@ -557,5 +576,9 @@ div[id^="examples-using-"] h2 {
 }
 /* Avoid awkward extra spacing in .. contents:: */
 div.contents ul li p {
+  margin: 0 0 0px;
+}
+/* Avoid extra spacing in our nested version */
+h3.panel-title p {
   margin: 0 0 0px;
 }
