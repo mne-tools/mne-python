@@ -136,6 +136,10 @@ brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
 brain.add_text(0.1, 0.9, 'dSPM (plus location of maximal activation)', 'title',
                font_size=14)
 
+# The documentation website's movie is generated with:
+# brain.save_movie(..., tmin=0.05, tmax=0.15, interpolation='linear',
+#                  time_dilation=20, framerate=10, time_viewer=True)
+
 ###############################################################################
 # There are many other ways to visualize and work with source data, see
 # for example:
