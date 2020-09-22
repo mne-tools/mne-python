@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+from functools import partial
 import os
 import os.path as op
 
@@ -1515,7 +1516,7 @@ class _Brain(object):
     @fill_doc
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation=None, codec=None,
-                   bitrate=None, callback=None, **kwargs):
+                   bitrate=None, callback=None, time_viewer=False, **kwargs):
         """Save a movie (for data with a time axis).
 
         The movie is created through the :mod:`imageio` module. The format is
@@ -1557,8 +1558,9 @@ class _Brain(object):
             Specify additional options for :mod:`imageio`.
         """
         import imageio
-        from math import floor
-
+        images, kwargs = self._make_movie_frames(
+            time_dilation, tmin, tmax, framerate, interpolation, callback,
+            time_viewer)
         # find imageio FFMPEG parameters
         if 'fps' not in kwargs:
             kwargs['fps'] = framerate
@@ -1566,6 +1568,12 @@ class _Brain(object):
             kwargs['codec'] = codec
         if bitrate is not None:
             kwargs['bitrate'] = bitrate
+
+        imageio.mimwrite(filename, images)
+
+    def _make_movie_frames(self, time_dilation, tmin, tmax, framerate,
+                           interpolation, callback, time_viewer):
+        from math import floor
 
         # find tmin
         if tmin is None:
@@ -1601,14 +1609,14 @@ class _Brain(object):
         try:
             images = [
                 self.screenshot(time_viewer=time_viewer)
-                for _ in self._iter_time(time_idx, callback)]
+                for _ in self._iter_time(time_idx, callback, time_viewer)]
         finally:
             self.set_time_interpolation(old_mode)
         if callback is not None:
             callback(frame=len(time_idx), n_frames=len(time_idx))
-        imageio.mimwrite(filename, images, **kwargs)
+        return images
 
-    def _iter_time(self, time_idx, callback):
+    def _iter_time(self, time_idx, callback, time_viewer=False):
         """Iterate through time points, then reset to current time.
 
         Parameters
@@ -1617,6 +1625,8 @@ class _Brain(object):
             Time point indexes through which to iterate.
         callback : callable | None
             Callback to call before yielding each frame.
+        time_viewer : bool
+            If True, route through self.time_viewer.
 
         Yields
         ------
@@ -1627,15 +1637,17 @@ class _Brain(object):
         -----
         Used by movie and image sequence saving functions.
         """
+        func = partial(self.time_viewer.callbacks["time"], update_widget=True)
+        # func = self.set_time_point
         current_time_idx = self._data["time_idx"]
         for ii, idx in enumerate(time_idx):
-            self.set_time_point(idx)
+            func(idx)
             if callback is not None:
                 callback(frame=ii, n_frames=len(time_idx))
             yield idx
 
         # Restore original time index
-        self.set_time_point(current_time_idx)
+        func(current_time_idx)
 
     def _show(self):
         """Request rendering of the window."""
