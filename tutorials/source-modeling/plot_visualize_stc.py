@@ -56,7 +56,7 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 ###############################################################################
 # You can also morph it to fsaverage and visualize it using a flatmap:
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 3
 stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,
                                   smooth=5, verbose='error').apply(stc)
 brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
@@ -65,6 +65,9 @@ brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                     smoothing_steps=5, time_viewer=False,
                     add_data_kwargs=dict(
                         colorbar_kwargs=dict(label_font_size=10)))
+# You can save a movie like the one on our documentation website with:
+# brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16,
+#                  interpolation='linear')
 
 ###############################################################################
 # Note that here we used ``initial_time=0.1``, but we can also browse through

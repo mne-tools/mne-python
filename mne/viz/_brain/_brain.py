@@ -1637,8 +1637,11 @@ class _Brain(object):
         -----
         Used by movie and image sequence saving functions.
         """
-        func = partial(self.time_viewer.callbacks["time"], update_widget=True)
-        # func = self.set_time_point
+        if hasattr(self, 'time_viewer'):
+            func = partial(self.time_viewer.callbacks["time"],
+                           update_widget=True)
+        else:
+            func = self.set_time_point
         current_time_idx = self._data["time_idx"]
         for ii, idx in enumerate(time_idx):
             func(idx)
