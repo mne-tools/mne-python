@@ -1683,7 +1683,7 @@ class MNEBrowseFigure(MNEFigure):
                 bottom = max(this_offset - clip, ylim[1])
                 height = min(2 * clip, ylim[0] - bottom)
                 rect = Rectangle(xy=(time_range[0], bottom),
-                                 width=np.diff(time_range),
+                                 width=time_range[1] - time_range[0],
                                  height=height,
                                  transform=self.mne.ax_main.transData)
                 line.set_clip_path(rect)
