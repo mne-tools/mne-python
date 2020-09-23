@@ -1081,7 +1081,7 @@ class MNEBrowseFigure(MNEFigure):
         for idx, (start, end) in enumerate(segments):
             descr = self.mne.inst.annotations.description[idx]
             segment_color = self.mne.annotation_segment_colors[descr]
-            kwargs = dict(color=segment_color, alpha=0.3)
+            kwargs = dict(color=segment_color, alpha=0.3, zorder=0)
             # draw all segments on ax_hscroll
             annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
                                                       **kwargs)
