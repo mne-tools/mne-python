@@ -606,16 +606,11 @@ class MNEBrowseFigure(MNEFigure):
             # click in main axes
             if (event.inaxes == ax_main and not annotating):
                 if not butterfly:
-                    good_cont, _ = self.mne.traces.contains(event)
-                    bad_cont, _ = self.mne.bad_traces.contains(event)
-                    if good_cont or bad_cont:
-                        x_ind = self.mne.inst.time_as_index(event.xdata)[0]
-                        dists = (self.mne.data[:, x_ind]
-                                 + self.mne.trace_offsets
-                                 - event.ydata)
-                        ind = np.argmin(np.abs(dists))
-                        self._toggle_bad_channel(ind)
-                        return
+                    for line in self.mne.traces:
+                        if line.contains(event)[0]:
+                            idx = self.mne.traces.index(line)
+                            self._toggle_bad_channel(idx)
+                            return
                 self._show_vline(event.xdata)  # butterfly / not on data trace
                 return
             # click in vertical scrollbar
