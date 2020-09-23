@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2019 Alexandre Gramfort
+# Copyright (C) 2011-2020 Alexandre Gramfort
 # <alexandre.gramfort@inria.fr>
 
 import os
