@@ -147,10 +147,9 @@ def test_docstring_parameters():
             module = getattr(module, submod)
         classes = inspect.getmembers(module, inspect.isclass)
         # XXX eventually this should be public
-        # XXX this should be correct but it's not
-        # if name == 'mne.viz':
-        #     from mne.viz._brain import _Brain
-        #     classes.append(('Brain', _Brain))
+        if name == 'mne.viz':
+            from mne.viz._brain import _Brain
+            classes.append(('Brain', _Brain))
         for cname, cls in classes:
             if cname.startswith('_'):
                 continue
