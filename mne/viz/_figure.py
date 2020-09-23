@@ -245,7 +245,6 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.colors import to_rgba_array
         from matplotlib.widgets import Button
         from matplotlib.patches import Rectangle
-        from matplotlib.collections import LineCollection
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         from .. import BaseEpochs
@@ -320,9 +319,9 @@ class MNEBrowseFigure(MNEFigure):
         position = [left, bottom, width, height]
         # Main axes must be a subplot for subplots_adjust to work (so user can
         # adjust margins). That's why we don't use the Divider class directly.
-        ax = self.add_subplot(1, 1, 1, position=position)
+        ax_main = self.add_subplot(1, 1, 1, position=position)
         self.subplotpars.update(left=left, bottom=bottom, top=top, right=right)
-        div = make_axes_locatable(ax)
+        div = make_axes_locatable(ax_main)
 
         # SCROLLBARS
         ax_hscroll = div.append_axes(position='bottom',
@@ -394,18 +393,13 @@ class MNEBrowseFigure(MNEFigure):
             _ = Button(ax_proj, 'Prj')  # listener handled in _buttonpress()
 
         # INIT TRACES
-        segments = np.full((1, 1, 2), np.nan)
-        kwargs = dict(segments=segments, offsets=np.zeros((1, 2)),
-                      linewidths=0.5, antialiaseds=True)
-        self.mne.traces = LineCollection(colors=fgcolor, zorder=1, **kwargs)
-        self.mne.bad_traces = LineCollection(colors=self.mne.ch_color_bad,
-                                             zorder=0, **kwargs)
-        ax.add_collection(self.mne.traces)
-        ax.add_collection(self.mne.bad_traces)
+        self.mne.traces = ax_main.plot(
+            np.full((1, self.mne.n_channels), np.nan),
+            antialiased=True, linewidth=0.5)
 
         # SAVE UI ELEMENT HANDLES
         vars(self.mne).update(
-            ax_main=ax, ax_help=ax_help, ax_proj=ax_proj,
+            ax_main=ax_main, ax_help=ax_help, ax_proj=ax_proj,
             ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
             vline_hscroll=vline_hscroll, vline_text=vline_text,
@@ -1637,9 +1631,7 @@ class MNEBrowseFigure(MNEFigure):
     def _draw_traces(self):
         """Draw (or redraw) the channel data."""
         from matplotlib.colors import to_rgba_array
-        # convenience
-        butterfly = self.mne.butterfly
-        offsets = self.mne.trace_offsets
+        from matplotlib.patches import Rectangle
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
@@ -1654,7 +1646,7 @@ class MNEBrowseFigure(MNEFigure):
                                    for bad, _color in zip(bads, def_colors)])
         self.mne.def_colors = np.array(def_colors)
         labels = self.mne.ax_main.yaxis.get_ticklabels()
-        if butterfly:
+        if self.mne.butterfly:
             for label in labels:
                 label.set_color(self.mne.fgcolor)
         else:
@@ -1668,32 +1660,54 @@ class MNEBrowseFigure(MNEFigure):
         decim_times = {decim_value:
                        self.mne.times[::decim_value] + self.mne.first_time
                        for decim_value in set(decim)}
-        this_data = self.mne.data * self.mne.scale_factor * -1
-        # convert to masked array
-        np.ma.array(this_data, mask=np.zeros_like(this_data, dtype=bool),
-                    shrink=False)
-        # clip
-        if self.mne.clipping == 'clamp':
-            this_data = np.ma.clip(this_data, -0.5, 0.5)
-        elif self.mne.clipping is not None:
-            clip = self.mne.clipping * (0.2 if butterfly else 1)
-            v1, v2 = clip * np.array([-1, 1])
-            this_data = np.ma.masked_outside(this_data, v1, v2, copy=False)
-        # draw bads separately so they can have a lower z-order
-        bad_data = np.ma.array(this_data, mask=this_data.mask, copy=True)
-        bad_data[np.nonzero(np.logical_not(bads)), :] = np.ma.masked
-        this_data[np.nonzero(bads), :] = np.ma.masked
-        # update line collections
-        this_offsets = np.ma.vstack((np.zeros_like(offsets), offsets)).T
-        for attr, data in dict(bad_traces=bad_data, traces=this_data).items():
-            segments = [np.ma.vstack((decim_times[_dec], _dat[..., ::_dec])).T
-                        for _dat, _dec in zip(data, decim)]
-            lc = getattr(self.mne, attr)
-            lc.set_offsets(this_offsets)  # must set before segments
-            lc.set(segments=segments, color=ch_colors)
+        # add more traces if needed
+        n_picks = len(picks)
+        if n_picks > len(self.mne.traces):
+            n_new_chs = n_picks - len(self.mne.traces)
+            new_traces = self.mne.ax_main.plot(np.full((1, n_new_chs), np.nan),
+                                               antialiased=True, linewidth=0.5)
+            self.mne.traces.extend(new_traces)
+        # remove extra traces if needed
+        extra_traces = self.mne.traces[n_picks:]
+        for trace in extra_traces:
+            self.mne.ax_main.lines.remove(trace)
+        self.mne.traces = self.mne.traces[:n_picks]
+        # update traces
+        time_range = (self.mne.times + self.mne.first_time)[[0, -1]]
+        ylim = self.mne.ax_main.get_ylim()
+        for ii, line in enumerate(self.mne.traces):
+            this_name = ch_names[ii]
+            this_type = ch_types[ii]
+            this_offset = self.mne.trace_offsets[ii]
+            this_times = decim_times[decim[ii]]
+            this_data = this_offset - self.mne.data[ii] * self.mne.scale_factor
+            # clip
+            if self.mne.clipping == 'clamp':
+                this_data = np.clip(this_data, -0.5, 0.5)
+            elif self.mne.clipping is not None:
+                clip = self.mne.clipping * (0.2 if self.mne.butterfly else 1)
+                bottom = max(this_offset - clip, ylim[1])
+                height = min(2 * clip, ylim[0] - bottom)
+                rect = Rectangle(xy=(time_range[0], bottom),
+                                 width=np.diff(time_range),
+                                 height=height,
+                                 transform=self.mne.ax_main.transData)
+                line.set_clip_path(rect)
+            # subtraction yields correct orientation given inverted ylim
+            line.set_xdata(this_times)
+            line.set_ydata(this_data[..., ::decim[ii]])
+            line.set_color(ch_colors[ii])
+            z_key = 'bads' if this_name in self.mne.info['bads'] else 'data'
+            this_z = self.mne.zorder[z_key]
+            if self.mne.butterfly:
+                if this_name not in self.mne.info['bads']:
+                    if this_type == 'mag':
+                        this_z = self.mne.zorder['mag']
+                    elif this_type == 'grad':
+                        this_z = self.mne.zorder['grad']
+            line.set_zorder(this_z)
         # update xlim
-        this_times = self.mne.times + self.mne.first_time
-        self.mne.ax_main.set_xlim(this_times[0], this_times[-1])
+        self.mne.ax_main.set_xlim(*time_range)
         # draw scalebars maybe
         if self.mne.scalebars_visible:
             self._show_scalebars()
