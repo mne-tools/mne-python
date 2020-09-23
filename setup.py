@@ -72,6 +72,12 @@ if __name__ == "__main__":
                        'Operating System :: MacOS',
                        'Programming Language :: Python :: 3',
                        ],
+          keywords='neuroscience neuroimaging MEG EEG ECog fNIRS brain',
+          project_urls={
+              'Documentation': 'https://mne.tools/',
+              'Source': 'https://github.com/mne-tools/mne-python/',
+              'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
+          },
           platforms='any',
           python_requires='>=3.6',
           install_requires=['numpy>=1.11.3', 'scipy>=0.17.1'],
