@@ -51,6 +51,8 @@ class _BrainScraper(object):
                                      ('time_viewer', False)]:
                     if key not in kwargs:
                         kwargs[key] = default
+                if hasattr(brain, 'time_viewer'):
+                    assert kwargs['time_viewer'], 'Must use time_viewer=True'
                 frames = brain._make_movie_frames(callback=None, **kwargs)
 
                 # Turn them into an animation

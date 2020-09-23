@@ -121,7 +121,7 @@ residual.plot(axes=axes)
 # Here we use peak getter to move visualization to the time point of the peak
 # and draw a marker at the maximum peak vertex.
 
-# sphinx_gallery_thumbnail_number = 8
+# sphinx_gallery_thumbnail_number = 9
 
 vertno_max, time_max = stc.get_peak(hemi='rh')
 
