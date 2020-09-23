@@ -1917,7 +1917,6 @@ class Report(object):
 
         html = []
         for ei, ev in enumerate(evokeds):
-            global_id = self._get_id()
             kwargs = dict(show=False)
             logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
@@ -1934,14 +1933,16 @@ class Report(object):
             for fig_num, fig in enumerate(figs):
                 img = _fig_to_img(fig, image_format)
                 if fig_num == 0:
+                    global_id = self._get_id()
                     caption = self._gen_caption(prefix='Evoked',
                                                 suffix=f'({ev.comment})',
                                                 fname=evoked_fname,
                                                 data_path=data_path)
                 else:
+                    global_id = None
                     caption = None
                 html.append(image_template.substitute(
-                    img=img, id=global_id, div_klass='evoked',
+                    img=img, div_klass='evoked', id=global_id,
                     img_klass='evoked', caption=caption, show=True,
                     image_format=image_format))
 
