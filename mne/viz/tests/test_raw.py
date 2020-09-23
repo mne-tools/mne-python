@@ -500,8 +500,8 @@ def test_plot_sensors():
     # check that point appearance changes
     fc = fig.lasso.collection.get_facecolors()
     ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.3, 1., 0.3]).all()
-    assert (ec[:, -1] == [0.3, 1., 0.3]).all()
+    assert (fc[:, -1] == np.array([0.3, 1., 0.3])).all()
+    assert (ec[:, -1] == np.array([0.3, 1., 0.3])).all()
 
     _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
     xy = ax.collections[0].get_offsets()

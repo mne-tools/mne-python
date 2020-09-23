@@ -1682,7 +1682,7 @@ class MNEBrowseFigure(MNEFigure):
                 clip = self.mne.clipping * (0.2 if self.mne.butterfly else 1)
                 bottom = max(this_offset - clip, ylim[1])
                 height = min(2 * clip, ylim[0] - bottom)
-                rect = Rectangle(xy=(time_range[0], bottom),
+                rect = Rectangle(xy=np.array([time_range[0], bottom]),
                                  width=time_range[1] - time_range[0],
                                  height=height,
                                  transform=self.mne.ax_main.transData)
