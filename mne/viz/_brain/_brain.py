@@ -28,6 +28,7 @@ from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch)
 
 
+@fill_doc
 class _Brain(object):
     """Class for visualizing a brain.
 
@@ -46,7 +47,7 @@ class _Brain(object):
         In the case of 'split' hemispheres are displayed side-by-side
         in different viewing panes.
     surf : str
-        freesurfer surface mesh name (ie 'white', 'inflated', etc.).
+        FreeSurfer surface mesh name (ie 'white', 'inflated', etc.).
     title : str
         Title for the window.
     cortex : str or None
@@ -75,7 +76,7 @@ class _Brain(object):
         instead of the value set using the SUBJECTS_DIR environment
         variable.
     views : list | str
-        views to use.
+        The views to use.
     offset : bool
         If True, aligs origin with medial wall. Useful for viewing inflated
         surface where hemispheres typically overlap (Default: True).
@@ -90,6 +91,7 @@ class _Brain(object):
         camera.
     units : str
         Can be 'm' or 'mm' (default).
+    %(view_layout)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -157,7 +159,6 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | flatmaps                  |              | ✓                     |
        +---------------------------+--------------+-----------------------+
-
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
@@ -234,7 +235,7 @@ class _Brain(object):
         self.geo, self._overlays = {}, {}
         self.set_time_interpolation('nearest')
 
-        geo_kwargs = self.cortex_colormap(cortex)
+        geo_kwargs = self._cortex_colormap(cortex)
         # evaluate at the midpoint of the used colormap
         val = -geo_kwargs['vmin'] / (geo_kwargs['vmax'] - geo_kwargs['vmin'])
         self._brain_color = get_cmap(geo_kwargs['colormap'])(val)
@@ -319,7 +320,7 @@ class _Brain(object):
             self._renderer.subplot(ri, ci)
             self._renderer.set_interaction(interaction)
 
-    def cortex_colormap(self, cortex):
+    def _cortex_colormap(self, cortex):
         """Return the colormap corresponding to the cortex."""
         colormap_map = dict(classic=dict(colormap="Greys",
                                          vmin=-1, vmax=2),
@@ -363,42 +364,30 @@ class _Brain(object):
             If vectors with no time dimension are desired, consider using a
             singleton (e.g., ``np.newaxis``) to create a "time" dimension
             and pass ``time_label=None`` (vector values are not supported).
-        fmin : float
-            Minimum value in colormap (uses real fmin if None).
-        fmid : float
-            Intermediate value in colormap (fmid between fmin and
-            fmax if None).
-        fmax : float
-            Maximum value in colormap (uses real max if None).
-        thresh : None or float
-            Not supported yet.
-            if not None, values below thresh will not be visible
-        center : float or None
-            if not None, center of a divergent colormap, changes the meaning of
-            fmin, fmax and fmid.
-        transparent : bool
-            if True: use a linear transparency between fmin and fmid
-            and make values below fmin fully transparent (symmetrically for
-            divergent colormaps)
+        %(fmin_fmid_fmax)s
+        %(thresh)s
+        %(center)s
+        %(transparent)s
         colormap : str, list of color, or array
-            name of matplotlib colormap to use, a list of matplotlib colors,
+            Name of matplotlib colormap to use, a list of matplotlib colors,
             or a custom look up table (an n x 4 array coded with RBGA values
             between 0 and 255), the default "auto" chooses a default divergent
             colormap, if "center" is given (currently "icefire"), otherwise a
             default sequential colormap (currently "rocket").
         alpha : float in [0, 1]
-            alpha level to control opacity of the overlay.
+            Alpha level to control opacity of the overlay.
         vertices : numpy array
-            vertices for which the data is defined (needed if len(data) < nvtx)
+            Vertices for which the data is defined (needed if
+            ``len(data) < nvtx``).
         smoothing_steps : int or None
-            number of smoothing steps (smoothing is used if len(data) < nvtx)
-            The value 'nearest' can be used too.
-            Default : 7
+            Number of smoothing steps (smoothing is used if len(data) < nvtx)
+            The value 'nearest' can be used too. None (default) will use as
+            many as necessary to fill the surface.
         time : numpy array
-            time points in the data array (if data is 2D or 3D)
+            Time points in the data array (if data is 2D or 3D).
         %(time_label)s
         colorbar : bool
-            whether to add a colorbar to the figure. Can also be a tuple
+            Whether to add a colorbar to the figure. Can also be a tuple
             to give the (row, col) index of where to put the colorbar.
         hemi : str | None
             If None, it is assumed to belong to the hemisphere being
@@ -409,21 +398,19 @@ class _Brain(object):
             Remove surface added by previous "add_data" call. Useful for
             conserving memory when displaying different data in a loop.
         time_label_size : int
-            Font size of the time label (default 14)
+            Font size of the time label (default 14).
         initial_time : float | None
             Time initially shown in the plot. ``None`` to use the first time
             sample (default).
         scale_factor : float | None (default)
-            Not supported yet.
             The scale factor to use when displaying glyphs for vector-valued
             data.
         vector_alpha : float | None
-            Not supported yet.
-            alpha level to control opacity of the arrows. Only used for
+            Alpha level to control opacity of the arrows. Only used for
             vector-valued data. If None (default), ``alpha`` is used.
         clim : dict
             Original clim arguments.
-        %(src_volume_options_layout)s
+        %(src_volume_options)s
         colorbar_kwargs : dict | None
             Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
             (e.g., ``dict(title_font_size=10)``).
@@ -774,18 +761,18 @@ class _Brain(object):
         Parameters
         ----------
         label : str | instance of Label
-            label filepath or name. Can also be an instance of
+            Label filepath or name. Can also be an instance of
             an object with attributes "hemi", "vertices", "name", and
             optionally "color" and "values" (if scalar_thresh is not None).
         color : matplotlib-style color | None
-            anything matplotlib accepts: string, RGB, hex, etc. (default
-            "crimson")
+            Anything matplotlib accepts: string, RGB, hex, etc. (default
+            "crimson").
         alpha : float in [0, 1]
-            alpha level to control opacity
+            Alpha level to control opacity.
         scalar_thresh : None or number
-            threshold the label ids using this value in the label
+            Threshold the label ids using this value in the label
             file's scalar field (i.e. label only vertices with
-            scalar >= thresh)
+            scalar >= thresh).
         borders : bool | int
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
@@ -913,21 +900,21 @@ class _Brain(object):
 
         Parameters
         ----------
-        coords : numpy array
-            x, y, z coordinates in stereotaxic space (default) or array of
-            vertex ids (with ``coord_as_verts=True``)
+        coords : ndarray, shape (n_coords, 3)
+            Coordinates in stereotaxic space (default) or array of
+            vertex ids (with ``coord_as_verts=True``).
         coords_as_verts : bool
-            whether the coords parameter should be interpreted as vertex ids
+            Whether the coords parameter should be interpreted as vertex ids.
         map_surface : Freesurfer surf or None
-            surface to map coordinates through, or None to use raw coords
+            Surface to map coordinates through, or None to use raw coords.
         scale_factor : float
             Controls the size of the foci spheres (relative to 1cm).
         color : matplotlib color code
-            HTML name, RBG tuple, or hex code
+            HTML name, RBG tuple, or hex code.
         alpha : float in [0, 1]
-            opacity of focus gylphs
+            Opacity of focus gylphs.
         name : str
-            internal name to use
+            Internal name to use.
         hemi : str | None
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, an error will
@@ -963,23 +950,27 @@ class _Brain(object):
         Parameters
         ----------
         x : Float
-            x coordinate
+            X coordinate.
         y : Float
-            y coordinate
+            Y coordinate.
         text : str
-            Text to add
+            Text to add.
         name : str
-            Name of the text (text label can be updated using update_text())
-        color : Tuple
+            Name of the text (text label can be updated using update_text()).
+        color : tuple
             Color of the text. Default is the foreground color set during
             initialization (default is black or white depending on the
             background color).
-        opacity : Float
-            Opacity of the text. Default: 1.0
+        opacity : float
+            Opacity of the text (default 1.0).
         row : int
-            Row index of which brain to use
+            Row index of which brain to use.
         col : int
-            Column index of which brain to use
+            Column index of which brain to use.
+        font_size : float | None
+            The font size to use.
+        justification : str | None
+            The text justification.
         """
         # XXX: support `name` should be added when update_text/remove_text
         # are implemented
@@ -1126,7 +1117,23 @@ class _Brain(object):
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
                   hemi=None):
-        """Orient camera to display view."""
+        """Orient camera to display view.
+
+        Parameters
+        ----------
+        view : str | dict
+            String view, or a dict with azimuth and elevation.
+        roll : float | None
+            The roll.
+        distance : float | None
+            The distance.
+        row : int
+            The row to set.
+        col : int
+            The column to set.
+        hemi : str
+            Which hemi to use for string lookup (when in "both" mode).
+        """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
             if (self._view_layout == 'vertical' and col == 1 or
@@ -1158,9 +1165,9 @@ class _Brain(object):
 
         Parameters
         ----------
-        filename: string
-            path to new image file
-        mode : string
+        filename : str
+            Path to new image file.
+        mode : str
             Either 'rgb' or 'rgba' for values to return.
         """
         self._renderer.screenshot(mode=mode, filename=filename)
@@ -1171,7 +1178,7 @@ class _Brain(object):
 
         Parameters
         ----------
-        mode : string
+        mode : str
             Either 'rgb' or 'rgba' for values to return.
         %(brain_screenshot_time_viewer)s
 
@@ -1214,18 +1221,13 @@ class _Brain(object):
             img = np.concatenate([img, trace_img], axis=0)
         return img
 
+    @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None):
         """Update color map.
 
         Parameters
         ----------
-        fmin : float | None
-            Minimum value in colormap.
-        fmid : float | None
-            Intermediate value in colormap (fmid between fmin and
-            fmax).
-        fmax : float | None
-            Maximum value in colormap.
+        %(fmin_fmid_fmax)s
         """
         from ..backends._pyvista import _set_colormap_range, _set_volume_range
         center = self._data['center']
@@ -1280,7 +1282,7 @@ class _Brain(object):
         Parameters
         ----------
         n_steps : int
-            Number of smoothing steps
+            Number of smoothing steps.
         """
         from ...morph import _hemi_morph
         for hemi in ['lh', 'rh']:
@@ -1341,7 +1343,14 @@ class _Brain(object):
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
     def set_time_point(self, time_idx):
-        """Set the time point shown (can be a float to interpolate)."""
+        """Set the time point shown (can be a float to interpolate).
+
+        Parameters
+        ----------
+        time_idx : int | float
+            The time index to use. Can be a float to use interpolation
+            between indices.
+        """
         from ..backends._pyvista import _set_mesh_scalars
         self._current_act_data = dict()
         time_actor = self._data.get('time_actor', None)
@@ -1466,7 +1475,7 @@ class _Brain(object):
         fmax = self._data['fmax'] * fscale
         self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
 
-    def update_auto_scaling(self, restore=False):
+    def _update_auto_scaling(self, restore=False):
         user_clim = self._data['clim']
         if user_clim is not None and 'lims' in user_clim:
             allow_pos_lims = False
@@ -1549,12 +1558,16 @@ class _Brain(object):
         %(brain_time_interpolation)s
             If None, it uses the current ``brain.interpolation``,
             which defaults to ``'nearest'``. Defaults to None.
+        codec : str | None
+            The codec to use.
+        bitrate : float | None
+            The bitrate to use.
         callback : callable | None
             A function to call on each iteration. Useful for status message
             updates. It will be passed keyword arguments ``frame`` and
             ``n_frames``.
         %(brain_screenshot_time_viewer)s
-        **kwargs :
+        **kwargs : dict
             Specify additional options for :mod:`imageio`.
         """
         import imageio
@@ -1711,9 +1724,21 @@ class _Brain(object):
             show[keep_idx] = 1
             label *= show
 
+    @verbose
     def scale_data_colormap(self, fmin, fmid, fmax, transparent,
-                            center=None, alpha=1.0, data=None, verbose=None):
-        """Scale the data colormap."""
+                            center=None, alpha=1.0, verbose=None):
+        """Scale the data colormap.
+
+        Parameters
+        ----------
+        %(fmin_fmid_fmax)s
+        %(transparent)s
+        %(center)s
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+        %(verbose_meth)s
+        """
+        # XXX fmid/transparent/center not used, this is a bug
         lut_lst = self._data['ctable']
         n_col = len(lut_lst)
 
@@ -1744,7 +1769,13 @@ class _Brain(object):
                 self._renderer.figure.display.update()
 
     def get_picked_points(self):
-        """Return the vertices of the picked points."""
+        """Return the vertices of the picked points.
+
+        Returns
+        -------
+        points : list of int | None
+            The vertices picked by the time viewer.
+        """
         if hasattr(self, "time_viewer"):
             return self.time_viewer.picked_points
 

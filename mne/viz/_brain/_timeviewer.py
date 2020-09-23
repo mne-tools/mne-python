@@ -273,13 +273,13 @@ class _TimeViewer(object):
             return
 
     def apply_auto_scaling(self):
-        self.brain.update_auto_scaling()
+        self.brain._update_auto_scaling()
         for key in ('fmin', 'fmid', 'fmax'):
             self.reps[key].SetValue(self.brain._data[key])
         self.plotter.update()
 
     def restore_user_scaling(self):
-        self.brain.update_auto_scaling(restore=True)
+        self.brain._update_auto_scaling(restore=True)
         for key in ('fmin', 'fmid', 'fmax'):
             self.reps[key].SetValue(self.brain._data[key])
         self.plotter.update()
