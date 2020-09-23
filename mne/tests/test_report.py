@@ -120,7 +120,6 @@ def test_render_report(renderer, tmpdir):
     assert f'SSP Projectors: {op.basename(proj_fname_new)}' in html
     # Evoked in `evoked_fname`
     assert f'Evoked: {op.basename(evoked_fname)} ({evoked.comment})' in html
-    assert 'Topomap (ch_type =' in html
     assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
 
     assert_equal(len(report.html), len(fnames))
