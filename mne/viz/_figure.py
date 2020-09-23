@@ -30,7 +30,7 @@ class MNEFigParams:
 
 
 class MNEFigure(Figure):
-    """Base class for our figures/dialogs; wraps matplotlib.figure.Figure."""
+    """Base class for 2D figures & dialogs; wraps matplotlib.figure.Figure."""
 
     def __init__(self, **kwargs):
         # figsize is the only kwarg we pass to matplotlib Figure()
@@ -55,35 +55,17 @@ class MNEFigure(Figure):
             from matplotlib.pyplot import close
             close(self)
 
-    def _pick(self, event):
-        """Handle matplotlib pick events."""
-        pass
-
     def _buttonpress(self, event):
         """Handle buttonpress events."""
+        pass
+
+    def _pick(self, event):
+        """Handle matplotlib pick events."""
         pass
 
     def _resize(self, event):
         """Handle window resize events."""
         pass
-
-    def _get_dpi_ratio(self):
-        """Get DPI ratio (to handle hi-DPI screens)."""
-        dpi_ratio = 1.
-        for key in ('_dpi_ratio', '_device_scale'):
-            dpi_ratio = getattr(self.canvas, key, dpi_ratio)
-        return dpi_ratio
-
-    def _get_size_px(self):
-        """Get figure size in pixels."""
-        dpi_ratio = self._get_dpi_ratio()
-        return self.get_size_inches() * self.dpi / dpi_ratio
-
-    def _inch_to_rel(self, dim_inches, horiz=True):
-        """Convert inches to figure-relative distances."""
-        fig_w, fig_h = self.get_size_inches()
-        w_or_h = fig_w if horiz else fig_h
-        return dim_inches / w_or_h
 
     def _add_default_callbacks(self, **kwargs):
         """Remove some matplotlib default callbacks and add MNE-Python ones."""
@@ -104,6 +86,24 @@ class MNEFigure(Figure):
             callback_ids[event] = self.canvas.mpl_connect(event, callback)
         # store callback references so they aren't garbage-collected
         self.mne._callback_ids = callback_ids
+
+    def _get_dpi_ratio(self):
+        """Get DPI ratio (to handle hi-DPI screens)."""
+        dpi_ratio = 1.
+        for key in ('_dpi_ratio', '_device_scale'):
+            dpi_ratio = getattr(self.canvas, key, dpi_ratio)
+        return dpi_ratio
+
+    def _get_size_px(self):
+        """Get figure size in pixels."""
+        dpi_ratio = self._get_dpi_ratio()
+        return self.get_size_inches() * self.dpi / dpi_ratio
+
+    def _inch_to_rel(self, dim_inches, horiz=True):
+        """Convert inches to figure-relative distances."""
+        fig_w, fig_h = self.get_size_inches()
+        w_or_h = fig_w if horiz else fig_h
+        return dim_inches / w_or_h
 
 
 class MNEAnnotationFigure(MNEFigure):
@@ -408,17 +408,7 @@ class MNEBrowseFigure(MNEFigure):
             vline_hscroll=vline_hscroll, vline_text=vline_text,
             fgcolor=fgcolor, bgcolor=bgcolor)
 
-    def _new_child_figure(self, fig_name, **kwargs):
-        """Instantiate a new MNE dialog figure (with event listeners)."""
-        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
-                      **kwargs)
-        fig._add_default_callbacks()
-        self.mne.child_figs.append(fig)
-        if isinstance(fig_name, str):
-            setattr(self.mne, fig_name, fig)
-        return fig
-
-    def _close(self, event=None):
+    def _close(self, event):
         """Handle close events (via keypress or window [x])."""
         from matplotlib.pyplot import close
         # write temporary info object back to instance (for bads, but don't
@@ -607,30 +597,18 @@ class MNEBrowseFigure(MNEFigure):
         else:  # check for close key
             super()._keypress(event)
 
-    def _pick(self, event):
-        """Handle matplotlib pick events."""
-        from matplotlib.text import Text
-        if self.mne.butterfly:
-            return
-        # clicked on channel name
-        if isinstance(event.artist, Text):
-            ch_name = event.artist.get_text()
-            ind = self.mne.ch_names[self.mne.picks].tolist().index(ch_name)
-            if event.mouseevent.button == 1:  # left click
-                self._toggle_bad_channel(ind)
-            elif event.mouseevent.button == 3:  # right click
-                self._create_ch_location_fig(ind)
-
     def _buttonpress(self, event):
         """Handle mouse clicks."""
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
-        # ignore middle clicks or scroll wheel events
-        if event.button not in (1, 3):
+        ax_main = self.mne.ax_main
+        raw = self.mne.inst
+        # ignore middle clicks, scroll wheel events, and clicks outside axes
+        if event.button not in (1, 3) or event.inaxes is None:
             return
         elif event.button == 1:  # left-click (primary)
             # click in main axes
-            if (event.inaxes == self.mne.ax_main and not annotating):
+            if (event.inaxes == ax_main and not annotating):
                 if not butterfly:
                     good_cont, _ = self.mne.traces.contains(event)
                     bad_cont, _ = self.mne.bad_traces.contains(event)
@@ -662,10 +640,8 @@ class MNEBrowseFigure(MNEFigure):
             elif event.inaxes == self.mne.ax_help:
                 self._toggle_help_fig(event)
         else:  # right-click (secondary)
-            ax = self.mne.ax_main
-            raw = self.mne.inst
             if annotating:
-                if any(c.contains(event)[0] for c in ax.collections):
+                if any(c.contains(event)[0] for c in ax_main.collections):
                     xdata = event.xdata - self.mne.first_time
                     start = _sync_onset(raw, raw.annotations.onset)
                     end = start + raw.annotations.duration
@@ -674,36 +650,32 @@ class MNEBrowseFigure(MNEFigure):
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
-            elif event.inaxes == ax:  # hide green line
+            elif event.inaxes == ax_main:  # hide green line
                 self._hide_vline()
 
-    def _toggle_bad_channel(self, idx):
-        """Mark/unmark bad channels; `idx` is index of *visible* channels."""
-        pick = self.mne.picks[idx]
-        ch_name = self.mne.ch_names[pick]
-        if not len(ch_name):
+    def _pick(self, event):
+        """Handle matplotlib pick events."""
+        from matplotlib.text import Text
+        if self.mne.butterfly:
             return
-        # add/remove from bads list
-        bads = self.mne.info['bads']
-        marked_bad = ch_name not in bads
-        if marked_bad:
-            bads.append(ch_name)
-            color = self.mne.ch_color_bad
-        else:
-            while ch_name in bads:  # to make sure duplicates are removed
-                bads.remove(ch_name)
-            color = self.mne.def_colors[idx]
-        self.mne.info['bads'] = bads
-        # update sensor color (if in selection mode)
-        if self.mne.fig_selection is not None:
-            self._update_bad_sensors(pick, marked_bad)
-        # update vscroll color
-        vscroll_idx = (self.mne.ch_order == pick).nonzero()[0]
-        for _idx in vscroll_idx:
-            self.mne.ax_vscroll.patches[_idx].set_color(color)
-        # redraw
-        self._update_projector()
-        self._redraw()
+        # clicked on channel name
+        if isinstance(event.artist, Text):
+            ch_name = event.artist.get_text()
+            ind = self.mne.ch_names[self.mne.picks].tolist().index(ch_name)
+            if event.mouseevent.button == 1:  # left click
+                self._toggle_bad_channel(ind)
+            elif event.mouseevent.button == 3:  # right click
+                self._create_ch_location_fig(ind)
+
+    def _new_child_figure(self, fig_name, **kwargs):
+        """Instantiate a new MNE dialog figure (with event listeners)."""
+        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
+                      **kwargs)
+        fig._add_default_callbacks()
+        self.mne.child_figs.append(fig)
+        if isinstance(fig_name, str):
+            setattr(self.mne, fig_name, fig)
+        return fig
 
     def _create_ch_location_fig(self, idx):
         """Show channel location figure; idx is index of *visible* channels."""
@@ -726,27 +698,6 @@ class MNEBrowseFigure(MNEFigure):
         fig.lasso.linewidth_selected = 2
         fig.lasso.style_sensors(inds)
         fig.mne.parent_fig.mne.foo = ax.collections[0]
-
-    def _toggle_butterfly(self):
-        """Enter or leave butterfly mode."""
-        self.mne.ax_vscroll.set_visible(self.mne.butterfly)
-        self.mne.butterfly = not self.mne.butterfly
-        self.mne.scale_factor *= 0.5 if self.mne.butterfly else 2.
-        self._update_picks()
-        self._update_trace_offsets()
-        self._redraw(annotations=True)
-        if self.mne.vline_visible:
-            self._show_vline(self.mne.vline.get_xdata()[0])
-        if self.mne.fig_selection is not None:
-            # Show all radio buttons as selected when in butterfly mode
-            fig = self.mne.fig_selection
-            buttons = fig.mne.radio_ax.buttons
-            color = (buttons.activecolor if self.mne.butterfly else
-                     self.mne.bgcolor)
-            for circle in buttons.circles:
-                circle.set_facecolor(color)
-            # update the sensors too
-            self._update_highlighted_sensors()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
@@ -1158,7 +1109,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.annotation_segments = np.array(segments)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # CHANNEL SELECTIONS
+    # CHANNEL SELECTION GUI
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _create_selection_fig(self):
@@ -1284,7 +1235,7 @@ class MNEBrowseFigure(MNEFigure):
         fig.canvas.draw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # PROJECTORS
+    # PROJECTORS & BAD CHANNELS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _create_proj_fig(self):
@@ -1380,6 +1331,34 @@ class MNEBrowseFigure(MNEFigure):
                                              True, self.mne.use_noise_cov)
         self.mne.whitened_ch_names = list(wh_chs)
         self.mne.projector = proj
+
+    def _toggle_bad_channel(self, idx):
+        """Mark/unmark bad channels; `idx` is index of *visible* channels."""
+        pick = self.mne.picks[idx]
+        ch_name = self.mne.ch_names[pick]
+        if not len(ch_name):
+            return
+        # add/remove from bads list
+        bads = self.mne.info['bads']
+        marked_bad = ch_name not in bads
+        if marked_bad:
+            bads.append(ch_name)
+            color = self.mne.ch_color_bad
+        else:
+            while ch_name in bads:  # to make sure duplicates are removed
+                bads.remove(ch_name)
+            color = self.mne.def_colors[idx]
+        self.mne.info['bads'] = bads
+        # update sensor color (if in selection mode)
+        if self.mne.fig_selection is not None:
+            self._update_bad_sensors(pick, marked_bad)
+        # update vscroll color
+        vscroll_idx = (self.mne.ch_order == pick).nonzero()[0]
+        for _idx in vscroll_idx:
+            self.mne.ax_vscroll.patches[_idx].set_color(color)
+        # redraw
+        self._update_projector()
+        self._redraw()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # SCROLLBARS
@@ -1527,6 +1506,27 @@ class MNEBrowseFigure(MNEFigure):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _toggle_butterfly(self):
+        """Enter or leave butterfly mode."""
+        self.mne.ax_vscroll.set_visible(self.mne.butterfly)
+        self.mne.butterfly = not self.mne.butterfly
+        self.mne.scale_factor *= 0.5 if self.mne.butterfly else 2.
+        self._update_picks()
+        self._update_trace_offsets()
+        self._redraw(annotations=True)
+        if self.mne.vline_visible:
+            self._show_vline(self.mne.vline.get_xdata()[0])
+        if self.mne.fig_selection is not None:
+            # Show all radio buttons as selected when in butterfly mode
+            fig = self.mne.fig_selection
+            buttons = fig.mne.radio_ax.buttons
+            color = (buttons.activecolor if self.mne.butterfly else
+                     self.mne.bgcolor)
+            for circle in buttons.circles:
+                circle.set_facecolor(color)
+            # update the sensors too
+            self._update_highlighted_sensors()
 
     def _update_picks(self):
         """Compute which channel indices to show."""
