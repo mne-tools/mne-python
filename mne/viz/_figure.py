@@ -275,6 +275,8 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.projs_active = np.array([p['active'] for p in self.mne.projs])
         self.mne.whitened_ch_names = list()
         self.mne.use_noise_cov = self.mne.noise_cov is not None
+        self.mne.zorder = dict(ann=0, events=1, bads=2, data=3, mag=4, grad=5,
+                               scalebar=6, vline=7)
         # annotations
         self.mne.annotations = list()
         self.mne.hscroll_annotations = list()
@@ -360,9 +362,10 @@ class MNEBrowseFigure(MNEFigure):
                             self.mne.n_times / self.mne.info['sfreq'])
         # VLINE
         vline_color = (0., 0.75, 0.)
-        vline_kw = dict(visible=False, color=vline_color, animated=True)
-        vline = ax.axvline(0, zorder=4, **vline_kw)
-        vline_hscroll = ax_hscroll.axvline(0, zorder=2, **vline_kw)
+        vline_kw = dict(visible=False, color=vline_color, animated=True,
+                        zorder=self.mne.zorder['vline'])
+        vline = ax_main.axvline(0, **vline_kw)
+        vline_hscroll = ax_hscroll.axvline(0, **vline_kw)
         vline_text = ax_hscroll.text(
             self.mne.first_time, 1.2, '', fontsize=10, ha='right', va='bottom',
             **vline_kw)
@@ -1081,7 +1084,8 @@ class MNEBrowseFigure(MNEFigure):
         for idx, (start, end) in enumerate(segments):
             descr = self.mne.inst.annotations.description[idx]
             segment_color = self.mne.annotation_segment_colors[descr]
-            kwargs = dict(color=segment_color, alpha=0.3, zorder=0)
+            kwargs = dict(color=segment_color, alpha=0.3,
+                          zorder=self.mne.zorder['ann'])
             # draw all segments on ax_hscroll
             annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
                                                       **kwargs)
@@ -1468,7 +1472,7 @@ class MNEBrowseFigure(MNEFigure):
         """Draw a scalebar."""
         from .utils import _simplify_float
         color = '#AA3377'  # purple
-        kwargs = dict(color=color, zorder=5)
+        kwargs = dict(color=color, zorder=self.mne.zorder['scalebar'])
         scaler = 1 if self.mne.butterfly else 2
         inv_norm = (scaler *
                     self.mne.scalings[ch_type] *
@@ -1729,8 +1733,8 @@ class MNEBrowseFigure(MNEFigure):
             xs = np.repeat(this_event_times, 2)
             ys = np.tile(ylim, n_visible_events)
             segs = np.vstack([xs, ys]).T.reshape(n_visible_events, 2, 2)
-            event_lines = LineCollection(segs, linewidths=0.5,
-                                         colors=colors, zorder=0)
+            event_lines = LineCollection(segs, linewidths=0.5, colors=colors,
+                                         zorder=self.mne.zorder['events'])
             self.mne.ax_main.add_collection(event_lines)
             self.mne.event_lines = event_lines
             # create event labels
