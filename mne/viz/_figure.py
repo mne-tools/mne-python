@@ -1687,7 +1687,7 @@ class MNEBrowseFigure(MNEFigure):
                                  height=height,
                                  transform=self.mne.ax_main.transData)
                 line.set_clip_path(rect)
-            # subtraction yields correct orientation given inverted ylim
+            # update line data & color
             line.set_xdata(this_times)
             line.set_ydata(this_data[..., ::decim[ii]])
             line.set_color(ch_colors[ii])
