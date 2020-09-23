@@ -1968,13 +1968,19 @@ class Report(object):
         # Plot GFP comparison.
         figs = plot_compare_evokeds(evokeds=evokeds, ci=None,
                                     show_sensors=True, **kwargs)
-        for fig in figs:
+        for fig_num, fig in enumerate(figs):
             img = _fig_to_img(fig, image_format)
-            caption = self._gen_caption(prefix='Evoked',
-                                        suffix='(GFPs)',
-                                        fname=evoked_fname,
-                                        data_path=data_path)
-            global_id = self._get_id()
+
+            if fig_num == 0:
+                global_id = self._get_id()
+                caption = self._gen_caption(prefix='Evoked',
+                                            suffix='(GFPs)',
+                                            fname=evoked_fname,
+                                            data_path=data_path)
+            else:
+                global_id = None
+                caption = None
+
             html.append(image_template.substitute(
                 img=img, id=global_id, div_klass='evoked',
                 img_klass='evoked', caption=caption, show=True,
