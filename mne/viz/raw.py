@@ -104,16 +104,189 @@ _RAW_CLIP_DEF = 1.5
 
 
 @verbose
-def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
-                 bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
-                 event_color='cyan', scalings=None, remove_dc=True, order=None,
-                 show_options=False, title=None, show=True, block=False,
-                 highpass=None, lowpass=None, filtorder=4,
-                 clipping=_RAW_CLIP_DEF,
-                 show_first_samp=False, proj=True, group_by='type',
-                 butterfly=False, decim='auto', noise_cov=None, event_id=None,
-                 show_scrollbars=True, show_scalebars=True, verbose=None):
-    """."""
+def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
+             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             event_color='cyan', scalings=None, remove_dc=True, order=None,
+             show_options=False, title=None, show=True, block=False,
+             highpass=None, lowpass=None, filtorder=4,
+             clipping=_RAW_CLIP_DEF,
+             show_first_samp=False, proj=True, group_by='type',
+             butterfly=False, decim='auto', noise_cov=None, event_id=None,
+             show_scrollbars=True, show_scalebars=True, verbose=None):
+    """Plot raw data.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data to plot.
+    events : array | None
+        Events to show with vertical bars.
+    duration : float
+        Time window (s) to plot. The lesser of this value and the duration
+        of the raw file will be used.
+    start : float
+        Initial time to show (can be changed dynamically once plotted). If
+        show_first_samp is True, then it is taken relative to
+        ``raw.first_samp``.
+    n_channels : int
+        Number of channels to plot at once. Defaults to 20. The lesser of
+        ``n_channels`` and ``len(raw.ch_names)`` will be shown.
+        Has no effect if ``order`` is 'position', 'selection' or 'butterfly'.
+    bgcolor : color object
+        Color of the background.
+    color : dict | color object | None
+        Color for the data traces. If None, defaults to::
+
+            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
+                 emg='k', ref_meg='steelblue', misc='k', stim='k',
+                 resp='k', chpi='k')
+
+    bad_color : color object
+        Color to make bad channels.
+    event_color : color object | dict
+        Color(s) to use for events. For all events in the same color, pass any
+        matplotlib-compatible color. Can also be a `dict` mapping event numbers
+        to colors, but if so it must include all events or include a "fallback"
+        entry with key ``-1``.
+    scalings : dict | None
+        Scaling factors for the traces. If any fields in scalings are 'auto',
+        the scaling factor is set to match the 99.5th percentile of a subset of
+        the corresponding data. If scalings == 'auto', all scalings fields are
+        set to 'auto'. If any fields are 'auto' and data is not preloaded, a
+        subset of times up to 100mb will be loaded. If None, defaults to::
+
+            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                 resp=1, chpi=1e-4, whitened=1e2)
+
+    remove_dc : bool
+        If True remove DC component when plotting data.
+    order : array of int | None
+        Order in which to plot data. If the array is shorter than the number of
+        channels, only the given channels are plotted. If None (default), all
+        channels are plotted. If ``group_by`` is ``'position'`` or
+        ``'selection'``, the ``order`` parameter is used only for selecting the
+        channels to be plotted.
+    show_options : bool
+        If True, a dialog for options related to projection is shown.
+    title : str | None
+        The title of the window. If None, and either the filename of the
+        raw object or '<unknown>' will be displayed as title.
+    show : bool
+        Show figure if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        Useful for setting bad channels on the fly by clicking on a line.
+        May not work on all systems / platforms.
+    highpass : float | None
+        Highpass to apply when displaying data.
+    lowpass : float | None
+        Lowpass to apply when displaying data.
+        If highpass > lowpass, a bandstop rather than bandpass filter
+        will be applied.
+    filtorder : int
+        Filtering order. 0 will use FIR filtering with MNE defaults.
+        Other values will construct an IIR filter of the given order
+        and apply it with :func:`~scipy.signal.filtfilt` (making the effective
+        order twice ``filtorder``). Filtering may produce some edge artifacts
+        (at the left and right edges) of the signals during display.
+
+        .. versionchanged:: 0.18
+           Support for ``filtorder=0`` to use FIR filtering.
+    clipping : str | float | None
+        If None, channels are allowed to exceed their designated bounds in
+        the plot. If "clamp", then values are clamped to the appropriate
+        range for display, creating step-like artifacts. If "transparent",
+        then excessive values are not shown, creating gaps in the traces.
+        If float, clipping occurs for values beyond the ``clipping`` multiple
+        of their dedicated range, so ``clipping=1.`` is an alias for
+        ``clipping='transparent'``.
+
+        .. versionchanged:: 0.21
+           Support for float, and default changed from None to 1.5.
+    show_first_samp : bool
+        If True, show time axis relative to the ``raw.first_samp``.
+    proj : bool
+        Whether to apply projectors prior to plotting (default is ``True``).
+        Individual projectors can be enabled/disabled interactively (see
+        Notes). This argument only affects the plot; use ``raw.apply_proj()``
+        to modify the data stored in the Raw object.
+    group_by : str
+        How to group channels. ``'type'`` groups by channel type,
+        ``'original'`` plots in the order of ch_names, ``'selection'`` uses
+        Elekta's channel groupings (only works for Neuromag data),
+        ``'position'`` groups the channels by the positions of the sensors.
+        ``'selection'`` and ``'position'`` modes allow custom selections by
+        using lasso selector on the topomap. Pressing ``ctrl`` key while
+        selecting allows appending to the current selection. Channels marked as
+        bad appear with red edges on the topomap. ``'type'`` and ``'original'``
+        groups the channels by type in butterfly mode whereas ``'selection'``
+        and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
+        modes are overridden with ``order`` keyword.
+    butterfly : bool
+        Whether to start in butterfly mode. Defaults to False.
+    decim : int | 'auto'
+        Amount to decimate the data during display for speed purposes.
+        You should only decimate if the data are sufficiently low-passed,
+        otherwise aliasing can occur. The 'auto' mode (default) uses
+        the decimation that results in a sampling rate least three times
+        larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
+        will result in at least a 120 Hz displayed sample rate).
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channels are scaled by ``scalings['whitened']``,
+        and their channel names are shown in italic.
+        Can be a string to load a covariance from disk.
+        See also :meth:`mne.Evoked.plot_white` for additional inspection
+        of noise covariance properties when whitening evoked data.
+        For data processed with SSS, the effective dependence between
+        magnetometers and gradiometers may introduce differences in scaling,
+        consider using :meth:`mne.Evoked.plot_white`.
+
+        .. versionadded:: 0.16.0
+    event_id : dict | None
+        Event IDs used to show at event markers (default None shows
+        the event numbers).
+
+        .. versionadded:: 0.16.0
+    %(show_scrollbars)s
+    show_scalebars : bool
+        Whether or not to show the scale bars. Defaults to True.
+
+        .. versionadded:: 0.20.0
+    %(verbose)s
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        Raw traces.
+
+    Notes
+    -----
+    The arrow keys (up/down/left/right) can typically be used to navigate
+    between channels and time ranges, but this depends on the backend
+    matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
+    left/right arrows will scroll by 25%% of ``duration``, whereas
+    shift+left/shift+right will scroll by 100%% of ``duration``. The scaling
+    can be adjusted with - and + (or =) keys. The viewport dimensions can be
+    adjusted with page up/page down and home/end keys. Full screen mode can be
+    toggled with the F11 key, and scrollbars can be hidden/shown by pressing
+    'z'. Right-click a channel label to view its location. To mark or un-mark a
+    channel as bad, click on a channel label or a channel trace. The changes
+    will be reflected immediately in the raw object's ``raw.info['bads']``
+    entry.
+
+    If projectors are present, a button labelled "Prj" in the lower right
+    corner of the plot window opens a secondary control window, which allows
+    enabling/disabling specific projectors individually. This provides a means
+    of interactively observing how each projector would affect the raw data if
+    it were applied.
+
+    Annotation mode is toggled by pressing 'a', butterfly mode by pressing
+    'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
+    By default, the channel means are removed when ``remove_dc`` is set to
+    ``True``. This flag can be toggled by pressing 'd'.
+    """
     from ..io.base import BaseRaw
     from . import browse_figure
 
@@ -305,421 +478,6 @@ def plot_raw_alt(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
 
     return fig
-
-
-@verbose
-def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
-             event_color='cyan', scalings=None, remove_dc=True, order=None,
-             show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
-             show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, show_scalebars=True, verbose=None):
-    """Plot raw data.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        The raw data to plot.
-    events : array | None
-        Events to show with vertical bars.
-    duration : float
-        Time window (s) to plot. The lesser of this value and the duration
-        of the raw file will be used.
-    start : float
-        Initial time to show (can be changed dynamically once plotted). If
-        show_first_samp is True, then it is taken relative to
-        ``raw.first_samp``.
-    n_channels : int
-        Number of channels to plot at once. Defaults to 20. The lesser of
-        ``n_channels`` and ``len(raw.ch_names)`` will be shown.
-        Has no effect if ``order`` is 'position', 'selection' or 'butterfly'.
-    bgcolor : color object
-        Color of the background.
-    color : dict | color object | None
-        Color for the data traces. If None, defaults to::
-
-            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
-                 emg='k', ref_meg='steelblue', misc='k', stim='k',
-                 resp='k', chpi='k')
-
-    bad_color : color object
-        Color to make bad channels.
-    event_color : color object | dict
-        Color(s) to use for events. For all events in the same color, pass any
-        matplotlib-compatible color. Can also be a `dict` mapping event numbers
-        to colors, but if so it must include all events or include a "fallback"
-        entry with key ``-1``.
-    scalings : dict | None
-        Scaling factors for the traces. If any fields in scalings are 'auto',
-        the scaling factor is set to match the 99.5th percentile of a subset of
-        the corresponding data. If scalings == 'auto', all scalings fields are
-        set to 'auto'. If any fields are 'auto' and data is not preloaded, a
-        subset of times up to 100mb will be loaded. If None, defaults to::
-
-            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
-                 resp=1, chpi=1e-4, whitened=1e2)
-
-    remove_dc : bool
-        If True remove DC component when plotting data.
-    order : array of int | None
-        Order in which to plot data. If the array is shorter than the number of
-        channels, only the given channels are plotted. If None (default), all
-        channels are plotted. If ``group_by`` is ``'position'`` or
-        ``'selection'``, the ``order`` parameter is used only for selecting the
-        channels to be plotted.
-    show_options : bool
-        If True, a dialog for options related to projection is shown.
-    title : str | None
-        The title of the window. If None, and either the filename of the
-        raw object or '<unknown>' will be displayed as title.
-    show : bool
-        Show figure if True.
-    block : bool
-        Whether to halt program execution until the figure is closed.
-        Useful for setting bad channels on the fly by clicking on a line.
-        May not work on all systems / platforms.
-    highpass : float | None
-        Highpass to apply when displaying data.
-    lowpass : float | None
-        Lowpass to apply when displaying data.
-        If highpass > lowpass, a bandstop rather than bandpass filter
-        will be applied.
-    filtorder : int
-        Filtering order. 0 will use FIR filtering with MNE defaults.
-        Other values will construct an IIR filter of the given order
-        and apply it with :func:`~scipy.signal.filtfilt` (making the effective
-        order twice ``filtorder``). Filtering may produce some edge artifacts
-        (at the left and right edges) of the signals during display.
-
-        .. versionchanged:: 0.18
-           Support for ``filtorder=0`` to use FIR filtering.
-    clipping : str | float | None
-        If None, channels are allowed to exceed their designated bounds in
-        the plot. If "clamp", then values are clamped to the appropriate
-        range for display, creating step-like artifacts. If "transparent",
-        then excessive values are not shown, creating gaps in the traces.
-        If float, clipping occurs for values beyond the ``clipping`` multiple
-        of their dedicated range, so ``clipping=1.`` is an alias for
-        ``clipping='transparent'``.
-
-        .. versionchanged:: 0.21
-           Support for float, and default changed from None to 1.5.
-    show_first_samp : bool
-        If True, show time axis relative to the ``raw.first_samp``.
-    proj : bool
-        Whether to apply projectors prior to plotting (default is ``True``).
-        Individual projectors can be enabled/disabled interactively (see
-        Notes). This argument only affects the plot; use ``raw.apply_proj()``
-        to modify the data stored in the Raw object.
-    group_by : str
-        How to group channels. ``'type'`` groups by channel type,
-        ``'original'`` plots in the order of ch_names, ``'selection'`` uses
-        Elekta's channel groupings (only works for Neuromag data),
-        ``'position'`` groups the channels by the positions of the sensors.
-        ``'selection'`` and ``'position'`` modes allow custom selections by
-        using lasso selector on the topomap. Pressing ``ctrl`` key while
-        selecting allows appending to the current selection. Channels marked as
-        bad appear with red edges on the topomap. ``'type'`` and ``'original'``
-        groups the channels by type in butterfly mode whereas ``'selection'``
-        and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
-        modes are overridden with ``order`` keyword.
-    butterfly : bool
-        Whether to start in butterfly mode. Defaults to False.
-    decim : int | 'auto'
-        Amount to decimate the data during display for speed purposes.
-        You should only decimate if the data are sufficiently low-passed,
-        otherwise aliasing can occur. The 'auto' mode (default) uses
-        the decimation that results in a sampling rate least three times
-        larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
-        will result in at least a 120 Hz displayed sample rate).
-    noise_cov : instance of Covariance | str | None
-        Noise covariance used to whiten the data while plotting.
-        Whitened data channels are scaled by ``scalings['whitened']``,
-        and their channel names are shown in italic.
-        Can be a string to load a covariance from disk.
-        See also :meth:`mne.Evoked.plot_white` for additional inspection
-        of noise covariance properties when whitening evoked data.
-        For data processed with SSS, the effective dependence between
-        magnetometers and gradiometers may introduce differences in scaling,
-        consider using :meth:`mne.Evoked.plot_white`.
-
-        .. versionadded:: 0.16.0
-    event_id : dict | None
-        Event IDs used to show at event markers (default None shows
-        the event numbers).
-
-        .. versionadded:: 0.16.0
-    %(show_scrollbars)s
-    show_scalebars : bool
-        Whether or not to show the scale bars. Defaults to True.
-
-        .. versionadded:: 0.20.0
-    %(verbose)s
-
-    Returns
-    -------
-    fig : instance of matplotlib.figure.Figure
-        Raw traces.
-
-    Notes
-    -----
-    The arrow keys (up/down/left/right) can typically be used to navigate
-    between channels and time ranges, but this depends on the backend
-    matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
-    left/right arrows will scroll by 25%% of ``duration``, whereas
-    shift+left/shift+right will scroll by 100%% of ``duration``. The scaling
-    can be adjusted with - and + (or =) keys. The viewport dimensions can be
-    adjusted with page up/page down and home/end keys. Full screen mode can be
-    toggled with the F11 key. To mark or un-mark a channel as bad, click on a
-    channel label or a channel trace. The changes will be reflected immediately
-    in the raw object's ``raw.info['bads']`` entry.
-
-    If projectors are present, a button labelled "Proj" in the lower right
-    corner of the plot window opens a secondary control window, which allows
-    enabling/disabling specific projectors individually. This provides a means
-    of interactively observing how each projector would affect the raw data if
-    it were applied.
-
-    Annotation mode is toggled by pressing 'a', butterfly mode by pressing
-    'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
-    By default, the channel means are removed when ``remove_dc`` is set to
-    ``True``. This flag can be toggled by pressing 'd'.
-    """
-    import matplotlib as mpl
-    from ..io.base import BaseRaw
-    color = _handle_default('color', color)
-    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
-                                 duration=duration)
-    _validate_type(raw, BaseRaw, 'raw', 'Raw')
-    n_channels = min(len(raw.info['chs']), n_channels)
-    _validate_type(clipping, (None, 'numeric', str), 'clipping')
-    if isinstance(clipping, str):
-        _check_option('clipping', clipping, ['clamp', 'transparent'],
-                      extra='when a string')
-        clipping = 1. if clipping == 'transparent' else clipping
-    elif clipping is not None:
-        clipping = float(clipping)
-    duration = min(raw.times[-1], float(duration))
-
-    # figure out the IIR filtering parameters
-    sfreq = raw.info['sfreq']
-    if highpass is not None and highpass <= 0:
-        raise ValueError('highpass must be > 0, got %s' % (highpass,))
-    if highpass is None and lowpass is None:
-        ba = filt_bounds = None
-    else:
-
-        filtorder = int(filtorder)
-        if filtorder == 0:
-            method = 'fir'
-            iir_params = None
-        else:
-            method = 'iir'
-            iir_params = dict(order=filtorder, output='sos', ftype='butter')
-        ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
-                           sfreq, highpass, lowpass, method=method,
-                           iir_params=iir_params)
-        filt_bounds = _annotations_starts_stops(
-            raw, ('edge', 'bad_acq_skip'), invert=True)
-
-    # make a copy of info, remove projection (for now)
-    info = raw.info.copy()
-    projs = info['projs']
-    info['projs'] = []
-    n_times = raw.n_times
-
-    # allow for raw objects without filename, e.g., ICA
-    if title is None:
-        title = raw._filenames
-        if len(title) == 0:  # empty list or absent key
-            title = '<unknown>'
-        elif len(title) == 1:
-            title = title[0]
-        else:  # if len(title) > 1:
-            title = '%s ... (+ %d more) ' % (title[0], len(title) - 1)
-            if len(title) > 60:
-                title = '...' + title[-60:]
-    elif not isinstance(title, str):
-        raise TypeError('title must be None or a string')
-    if events is not None:
-        event_times = events[:, 0].astype(float) - raw.first_samp
-        event_times /= info['sfreq']
-        event_nums = events[:, 2]
-    else:
-        event_times = event_nums = None
-
-    # reorganize the data in plotting order
-    # TODO Refactor this according to epochs.py
-    inds = list()
-    types = list()
-    for t in ['grad', 'mag']:
-        inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
-        types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']:
-        inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
-                            exclude=[])]
-        types += [t] * len(inds[-1])
-    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for key in _PICK_TYPES_KEYS:
-        if key not in ['meg', 'fnirs']:
-            pick_kwargs[key] = True
-            inds += [pick_types(raw.info, **pick_kwargs)]
-            types += [key] * len(inds[-1])
-            pick_kwargs[key] = False
-    inds = np.concatenate(inds).astype(int)
-    if not len(inds) == len(info['ch_names']):
-        raise RuntimeError('Some channels not classified, please report '
-                           'this problem')
-
-    # put them back to original or modified order for natural plotting
-    reord = np.argsort(inds)
-    types = [types[ri] for ri in reord]
-    if isinstance(order, (np.ndarray, list, tuple)):
-        # put back to original order first, then use new order
-        inds = inds[reord][order]
-    elif order is not None:
-        raise ValueError('Unkown order, should be array-like. '
-                         'Got "%s" (%s).' % (order, type(order)))
-
-    if group_by in ['selection', 'position']:
-        selections, fig_selection = _setup_browser_selection(raw, group_by)
-        selections = {k: np.intersect1d(v, inds) for k, v in
-                      selections.items()}
-    elif group_by == 'original':
-        if order is None:
-            order = np.arange(len(inds))
-            inds = inds[reord[:len(order)]]
-    elif group_by != 'type':
-        raise ValueError('Unknown group_by type %s' % group_by)
-
-    if not isinstance(event_color, dict):
-        event_color = {-1: event_color}
-    event_color = {_ensure_int(key, 'event_color key'): event_color[key]
-                   for key in event_color}
-    for key in event_color:
-        if key <= 0 and key != -1:
-            raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
-                           % key)
-    decim, data_picks = _handle_decim(info, decim, lowpass)
-    noise_cov = _check_cov(noise_cov, info)
-
-    # set up projection and data parameters
-    first_time = raw._first_time if show_first_samp else 0
-    start += first_time
-    event_id_rev = {val: key for key, val in (event_id or {}).items()}
-    units = _handle_default('units', None)
-    unit_scalings = _handle_default('scalings', None)
-
-    params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
-                  info=info, projs=projs, remove_dc=remove_dc, ba=ba,
-                  n_channels=n_channels, scalings=scalings, types=types,
-                  n_times=n_times, event_times=event_times, inds=inds,
-                  event_nums=event_nums, clipping=clipping, fig_proj=None,
-                  first_time=first_time, added_label=list(), butterfly=False,
-                  group_by=group_by, orig_inds=inds.copy(), decim=decim,
-                  data_picks=data_picks, event_id_rev=event_id_rev,
-                  noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
-                  filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, show_scrollbars=show_scrollbars,
-                  show_scalebars=show_scalebars)
-
-    if group_by in ['selection', 'position']:
-        params['fig_selection'] = fig_selection
-        params['selections'] = selections
-        params['radio_clicked'] = partial(_radio_clicked, params=params)
-        fig_selection.radio.on_clicked(params['radio_clicked'])
-        lasso_callback = partial(_set_custom_selection, params=params)
-        fig_selection.canvas.mpl_connect('lasso_event', lasso_callback)
-
-    _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
-                            n_channels)
-
-    # plot event_line first so it's in the back
-    event_lines = [params['ax'].plot([np.nan], color=event_color[ev_num])[0]
-                   for ev_num in sorted(event_color.keys())]
-
-    params['plot_fun'] = partial(_plot_raw_traces, params=params, color=color,
-                                 bad_color=bad_color, event_lines=event_lines,
-                                 event_color=event_color)
-
-    _plot_annotations(raw, params)
-
-    params['update_fun'] = partial(_update_raw_data, params=params)
-    params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
-    params['label_click_fun'] = partial(_label_clicked, params=params)
-    params['scale_factor'] = 1.0
-    # set up proj button
-    opt_button = None
-    if len(raw.info['projs']) > 0 and not raw.proj:
-        ax_button = params['fig'].add_axes(params['proj_button_pos'])
-        ax_button.set_axes_locator(params['proj_button_locator'])
-        params['ax_button'] = ax_button
-        params['apply_proj'] = proj
-        opt_button = mpl.widgets.Button(ax_button, 'Proj')
-        callback_option = partial(_toggle_options, params=params)
-        opt_button.on_clicked(callback_option)
-    # set up callbacks
-    callback_key = partial(_plot_raw_onkey, params=params)
-    params['fig'].canvas.mpl_connect('key_press_event', callback_key)
-    callback_scroll = partial(_plot_raw_onscroll, params=params)
-    params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
-    callback_pick = partial(_mouse_click, params=params)
-    params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-
-    # As here code is shared with plot_evoked, some extra steps:
-    # first the actual plot update function
-    params['plot_update_proj_callback'] = _plot_update_raw_proj
-    # then the toggle handler
-    callback_proj = partial(_toggle_proj, params=params)
-    # store these for use by callbacks in the options figure
-    params['callback_proj'] = callback_proj
-    params['callback_key'] = callback_key
-    # have to store this, or it could get garbage-collected
-    params['opt_button'] = opt_button
-    params['update_vertline'] = partial(_draw_vert_line, params=params)
-
-    # do initial plots
-    callback_proj('none')
-
-    # deal with projectors
-    if show_options:
-        _toggle_options(None, params)
-
-    callback_close = partial(_close_event, params=params)
-    params['fig'].canvas.mpl_connect('close_event', callback_close)
-    # initialize the first selection set
-    if group_by in ['selection', 'position']:
-        _radio_clicked(fig_selection.radio.labels[0]._text, params)
-        callback_selection_key = partial(_selection_key_press, params=params)
-        callback_selection_scroll = partial(_selection_scroll, params=params)
-        params['fig_selection'].canvas.mpl_connect('close_event',
-                                                   callback_close)
-        params['fig_selection'].canvas.mpl_connect('key_press_event',
-                                                   callback_selection_key)
-        params['fig_selection'].canvas.mpl_connect('scroll_event',
-                                                   callback_selection_scroll)
-    if butterfly:
-        _setup_butterfly(params)
-
-    try:
-        plt_show(show, block=block)
-    except TypeError:  # not all versions have this
-        plt_show(show)
-
-    # add MNE params dict to the resulting figure object so that parameters can
-    # be modified after the figure has been created; this is useful e.g. to
-    # remove the keyboard shortcut to close the figure with the 'Esc' key,
-    # which can be done with
-    #
-    # fig._mne_params['close_key'] = None
-    #
-    # (assuming that the figure object is fig)
-    params['fig']._mne_params = params
-
-    return params['fig']
 
 
 def _selection_scroll(event, params):
