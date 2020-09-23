@@ -72,7 +72,7 @@ if __name__ == "__main__":
                        'Operating System :: MacOS',
                        'Programming Language :: Python :: 3',
                        ],
-          keywords='neuroscience neuroimaging MEG EEG ECog fNIRS brain',
+          keywords='neuroscience neuroimaging MEG EEG ECoG fNIRS brain',
           project_urls={
               'Documentation': 'https://mne.tools/',
               'Source': 'https://github.com/mne-tools/mne-python/',
