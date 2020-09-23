@@ -15,22 +15,16 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter, _filtfilt
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+                       pick_channels, _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..utils import verbose, _ensure_int, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
-                    _plot_raw_onkey, figure_nobar, plt_show,
-                    _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _select_bads, _get_figsize_from_config,
-                    _setup_browser_offsets, _compute_scalings, plot_sensors,
-                    _radio_clicked, _set_radio_button, _handle_topomap_bads,
-                    _change_channel_group, _plot_annotations, _setup_butterfly,
-                    _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line, _simplify_float,
-                    _check_psd_fmax, _set_window_title,
+from .utils import (_prepare_mne_browse, figure_nobar, plt_show,
+                    _get_figsize_from_config, _setup_browser_offsets,
+                    _compute_scalings, plot_sensors, _handle_decim,
+                    _setup_plot_projector, _check_cov, _set_ax_label_style,
+                    _simplify_float, _check_psd_fmax, _set_window_title,
                     shorten_path_from_middle)
 
 
@@ -88,16 +82,6 @@ def _update_raw_data(params):
         data[di] /= norm if norm != 0 else 1.
     params['data'] = data
     params['times'] = times
-
-
-def _pick_bad_channels(event, params):
-    """Select or drop bad channels onpick."""
-    # Both bad lists are updated. params['info'] used for colors.
-    if params['fig_annotation'] is not None:
-        return
-    bads = params['raw'].info['bads']
-    params['info']['bads'] = _select_bads(event, params, bads)
-    _plot_update_raw_proj(params, None)
 
 
 _RAW_CLIP_DEF = 1.5
@@ -478,66 +462,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
 
     return fig
-
-
-def _selection_scroll(event, params):
-    """Handle scroll in selection dialog."""
-    if event.step < 0:
-        _change_channel_group(-1, params)
-    elif event.step > 0:
-        _change_channel_group(1, params)
-
-
-def _selection_key_press(event, params):
-    """Handle keys in selection dialog."""
-    if event.key == 'down':
-        _change_channel_group(-1, params)
-    elif event.key == 'up':
-        _change_channel_group(1, params)
-    elif event.key == 'escape':
-        _close_event(event, params)
-
-
-def _close_event(event, params):
-    """Handle closing of raw browser with selections."""
-    import matplotlib.pyplot as plt
-    if 'fig_selection' in params:
-        plt.close(params['fig_selection'])
-    for fig in ['fig_annotation', 'fig_help', 'fig_proj']:
-        if params[fig] is not None:
-            plt.close(params[fig])
-    plt.close(params['fig'])
-
-
-def _label_clicked(pos, params):
-    """Select bad channels."""
-    if params['butterfly']:
-        return
-    labels = params['ax'].yaxis.get_ticklabels()
-    offsets = np.array(params['offsets']) + params['offsets'][0]
-    line_idx = np.searchsorted(offsets, pos[1])
-    text = labels[line_idx].get_text()
-    if len(text) == 0:
-        return
-    if 'fig_selection' in params:
-        ch_idx = _find_channel_idx(text, params)
-        _handle_topomap_bads(text, params)
-    else:
-        ch_idx = [params['ch_start'] + line_idx]
-    bads = params['info']['bads']
-    if text in bads:
-        while text in bads:  # to make sure duplicates are removed
-            bads.remove(text)
-        color = vars(params['lines'][line_idx])['def_color']
-        for idx in ch_idx:
-            params['ax_vscroll'].patches[idx].set_color(color)
-    else:
-        bads.append(text)
-        color = params['bad_color']
-        for idx in ch_idx:
-            params['ax_vscroll'].patches[idx].set_color(color)
-    params['raw'].info['bads'] = bads
-    _plot_update_raw_proj(params, None)
 
 
 @verbose
@@ -990,18 +914,6 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     except TypeError:  # not all versions have this
         plt_show(show)
     return fig
-
-
-def _set_custom_selection(params):
-    """Set custom selection by lasso selector."""
-    chs = params['fig_selection'].lasso.selection
-    if len(chs) == 0:
-        return
-    labels = [label._text for label in params['fig_selection'].radio.labels]
-    inds = np.in1d(params['raw'].ch_names, chs)
-    params['selections']['Custom'] = np.where(inds)[0]
-
-    _set_radio_button(labels.index('Custom'), params=params)
 
 
 def _setup_browser_selection(raw, kind, selector=True):
