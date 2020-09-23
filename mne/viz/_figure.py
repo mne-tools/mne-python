@@ -1802,7 +1802,7 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     return fig
 
 
-def browse_figure(inst, **kwargs):
+def _browse_figure(inst, **kwargs):
     """Instantiate a new MNE browse-style figure."""
     from .utils import _get_figsize_from_config
     figsize = kwargs.pop('figsize', _get_figsize_from_config())

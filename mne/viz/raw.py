@@ -272,7 +272,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
     """
     from ..io.base import BaseRaw
-    from . import browse_figure
+    from ._figure import _browse_figure
 
     info = raw.info.copy()
     sfreq = info['sfreq']
@@ -435,7 +435,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars,
                   window_title=title)
 
-    fig = browse_figure(**params)
+    fig = _browse_figure(**params)
     fig._update_picks()
 
     # make channel selection dialog, if requested (doesn't work well in init)
