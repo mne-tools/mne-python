@@ -67,7 +67,7 @@ brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                         colorbar_kwargs=dict(label_font_size=10)))
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16,
-#                  interpolation='linear')
+#                  interpolation='linear', framerate=10)
 
 ###############################################################################
 # Note that here we used ``initial_time=0.1``, but we can also browse through
