@@ -1691,14 +1691,11 @@ class MNEBrowseFigure(MNEFigure):
             line.set_xdata(this_times)
             line.set_ydata(this_data[..., ::decim[ii]])
             line.set_color(ch_colors[ii])
-            z_key = 'bads' if this_name in self.mne.info['bads'] else 'data'
-            this_z = self.mne.zorder[z_key]
-            if self.mne.butterfly:
-                if this_name not in self.mne.info['bads']:
-                    if this_type == 'mag':
-                        this_z = self.mne.zorder['mag']
-                    elif this_type == 'grad':
-                        this_z = self.mne.zorder['grad']
+            # z order
+            is_bad = this_name in self.mne.info['bads']
+            this_z = self.mne.zorder['bads' if is_bad else 'data']
+            if self.mne.butterfly and not is_bad:
+                this_z = self.mne.zorder.get(this_type, this_z)
             line.set_zorder(this_z)
         # update xlim
         self.mne.ax_main.set_xlim(*time_range)
