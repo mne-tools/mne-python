@@ -1926,33 +1926,43 @@ class Report(object):
                     'ignore',
                     message='Channel locations not available.*',
                     category=RuntimeWarning)
-                img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
-                                  **kwargs)
+                figs = ev.plot_joint(times='peaks', **kwargs)
 
-            caption = self._gen_caption(prefix='Evoked',
-                                        suffix=f'({ev.comment})',
-                                        fname=evoked_fname,
-                                        data_path=data_path)
-            html.append(image_template.substitute(
-                img=img, id=global_id, div_klass='evoked',
-                img_klass='evoked', caption=caption, show=True,
-                image_format=image_format))
-            has_types = []
-            if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
-                has_types.append('eeg')
-            if len(pick_types(ev.info, meg='grad', eeg=False,
-                              ref_meg=False)) > 0:
-                has_types.append('grad')
-            if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
-                has_types.append('mag')
-            for ch_type in has_types:
-                logger.debug('    Topomap type %s' % ch_type)
-                img = _fig_to_img(ev.plot_topomap, image_format,
-                                  ch_type=ch_type, **kwargs)
-                caption = u'Topomap (ch_type = %s)' % ch_type
+            # Plot the figures and only add a caption to the first figure for
+            # each Evoked (as there may be several figures per Evoked if the
+            # data contains more than one channel type).
+            for fig_num, fig in enumerate(figs):
+                img = _fig_to_img(fig, image_format)
+                if fig_num == 0:
+                    caption = self._gen_caption(prefix='Evoked',
+                                                suffix=f'({ev.comment})',
+                                                fname=evoked_fname,
+                                                data_path=data_path)
+                else:
+                    caption = None
                 html.append(image_template.substitute(
-                    img=img, div_klass='evoked', img_klass='evoked',
-                    caption=caption, show=True, image_format=image_format))
+                    img=img, id=global_id, div_klass='evoked',
+                    img_klass='evoked', caption=caption, show=True,
+                    image_format=image_format))
+
+            # Plot topomaps.
+            #
+            # has_types = []
+            # if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
+            #     has_types.append('eeg')
+            # if len(pick_types(ev.info, meg='grad', eeg=False,
+            #                   ref_meg=False)) > 0:
+            #     has_types.append('grad')
+            # if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
+            #     has_types.append('mag')
+            # for ch_type in has_types:
+            #     logger.debug(f'    Topomap type {ch_type}')
+            #     img = _fig_to_img(ev.plot_topomap, image_format,
+            #                       ch_type=ch_type, times='auto', **kwargs)
+            #     caption = f'Topomap (channel type: {ch_type})'
+            #     html.append(image_template.substitute(
+            #         img=img, div_klass='evoked', img_klass='evoked',
+            #         caption=caption, show=True, image_format=image_format))
 
         # Plot GFP comparison.
         figs = plot_compare_evokeds(evokeds=evokeds, ci=None,
