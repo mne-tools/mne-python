@@ -232,16 +232,12 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 # as small vectors in the visualization (in the 2D plotters, only the
 # magnitude can be shown):
 
-# sphinx_gallery_thumbnail_number = 8
+# sphinx_gallery_thumbnail_number = 7
 
 brain = stc_vec.plot_3d(
     clim=dict(kind='value', lims=lims), hemi='both',
     views=['coronal', 'sagittal', 'axial'], size=(800, 300),
     view_layout='horizontal', show_traces=0.3, **kwargs)
-
-# The movie on the MNE website can be generated with:
-# brain.save_movie(..., interpolation='linear', time_dilation=20,
-#                  framerate=10, time_viewer=True)
 
 ###############################################################################
 # Visualize the activity of the maximum voxel with all three components
