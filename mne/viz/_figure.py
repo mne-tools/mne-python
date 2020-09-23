@@ -269,7 +269,6 @@ class MNEBrowseFigure(MNEFigure):
 
         # additional params for browse figures
         self.mne.ch_start = 0
-        self.mne.butterfly_image = None
         self.mne.projector = None
         self.mne.projs_active = np.array([p['active'] for p in self.mne.projs])
         self.mne.whitened_ch_names = list()
