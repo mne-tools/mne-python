@@ -236,6 +236,20 @@ def _read_header(input_fname):
     return info
 
 
+def _get_eeg_calibration_info(filepath, egi_info):
+    """Calculate calibration info for EEG channels."""
+    gains = _get_gains(op.join(filepath, egi_info['info_fname']))
+    if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
+        cals = [egi_info['value_range'] / 2 ** egi_info['bits']] * \
+            len(egi_info['chan_type'])
+    else:
+        cal_scales = {'uV': 1e-6, 'V': 1}
+        cals = [cal_scales[t] for t in egi_info['chan_unit']]
+    if 'gcal' in gains:
+        cals *= gains['gcal']
+    return cals
+
+
 def _read_locs(filepath, chs, egi_info):
     """Read channel locations."""
     fname = op.join(filepath, 'coordinates.xml')
@@ -254,6 +268,26 @@ def _read_locs(filepath, chs, egi_info):
         loc[1] = sensor.getElementsByTagName('y')[0].firstChild.data
         loc[2] = sensor.getElementsByTagName('z')[0].firstChild.data
         loc /= 100.  # cm -> m
+    return chs
+
+
+def _add_pns_channel_info(chs, egi_info, ch_names):
+    """Add info for PNS channels to channel info dict."""
+    for i_ch, ch_name in enumerate(egi_info['pns_names']):
+        idx = ch_names.index(ch_name)
+        ch_type = egi_info['pns_types'][i_ch]
+        type_to_kind_map = {'ecg': FIFF.FIFFV_ECG_CH,
+                            'emg': FIFF.FIFFV_EMG_CH
+                            }
+        ch_kind = type_to_kind_map.get(ch_type, FIFF.FIFFV_BIO_CH)
+        ch_unit = FIFF.FIFF_UNIT_V
+        ch_cal = 1e-6
+        if egi_info['pns_units'][i_ch] != 'uV':
+            ch_unit = FIFF.FIFF_UNIT_NONE
+            ch_cal = 1.0
+        chs[idx].update(
+            cal=ch_cal, kind=ch_kind, coil_type=FIFF.FIFFV_COIL_NONE,
+            unit=ch_unit)
     return chs
 
 
@@ -340,17 +374,7 @@ class RawMff(BaseRaw):
 
         logger.info('    Reading events ...')
         egi_events, egi_info = _read_events(input_fname, egi_info)
-        gains = _get_gains(op.join(input_fname, egi_info['info_fname']))
-        if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
-            cals = [egi_info['value_range'] / 2 ** egi_info['bits'] for i
-                    in range(len(egi_info['chan_type']))]
-        else:
-            cal_scales = {'uV': 1e-6, 'V': 1}
-            cals = [cal_scales[t] for t in egi_info['chan_unit']]
-        if 'gcal' in gains:
-            cals *= gains['gcal']
-        if 'ical' in gains:
-            pass  # XXX: currently not used
+        cals = _get_eeg_calibration_info(input_fname, egi_info)
         logger.info('    Assembling measurement info ...')
         if egi_info['n_events'] > 0:
             event_codes = list(egi_info['event_codes'])
@@ -439,22 +463,7 @@ class RawMff(BaseRaw):
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
-        for i_ch, ch_name in enumerate(egi_info['pns_names']):
-            idx = ch_names.index(ch_name)
-            ch_type = egi_info['pns_types'][i_ch]
-            ch_kind = FIFF.FIFFV_BIO_CH
-            if ch_type == 'ecg':
-                ch_kind = FIFF.FIFFV_ECG_CH
-            elif ch_type == 'emg':
-                ch_kind = FIFF.FIFFV_EMG_CH
-            ch_unit = FIFF.FIFF_UNIT_V
-            ch_cal = 1e-6
-            if egi_info['pns_units'][i_ch] != 'uV':
-                ch_unit = FIFF.FIFF_UNIT_NONE
-                ch_cal = 1.0
-            chs[idx].update(
-                cal=ch_cal, kind=ch_kind, coil_type=FIFF.FIFFV_COIL_NONE,
-                unit=ch_unit)
+        chs = _add_pns_channel_info(chs, egi_info, ch_names)
 
         info['chs'] = chs
         info._update_redundant()
@@ -689,7 +698,7 @@ class RawMff(BaseRaw):
 @verbose
 def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
                      baseline=None, verbose=None):
-    """Read averaged MFF file as evoked(s).
+    """Read averaged MFF file as `EvokedArray` or list of `EvokedArray`.
 
     Parameters
     ----------
@@ -723,10 +732,10 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
 
     Raises
     ------
-    AssertionError
+    ValueError
         If `fname` has file extension other than '.mff'.
-    AssertionError
-        If no categories.xml file in `fname` directory.
+    ValueError
+        If no categories.xml file in MFF directory specified by `fname`.
 
     See Also
     --------
@@ -738,16 +747,17 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     evoked(s) objects.
     """
     # Confirm `fname` is a path to an MFF file
-    assert fname.endswith('.mff'), 'fname must be an MFF file.'
+    if not fname.endswith('.mff'):
+        raise ValueError('fname must be an MFF file with extension ".mff".')
     # Eventually we will want to add a check here to ensure the file is
     # averaged. This will require parsing of history.xml.
     # Check for categories.xml file
-    assert op.exists(op.join(fname, 'categories.xml')),\
-        'categories.xml not found in MFF directory. \
-        %s may not be an averaged MFF file.' % fname
+    if not op.exists(op.join(fname, 'categories.xml')):
+        raise ValueError('categories.xml not found in MFF directory. \
+                         %s may not be an averaged MFF file.' % fname)
     if condition is None:
-        cats = Reader(fname).categories.categories
-        condition = list(cats.keys())
+        categories = Reader(fname).categories.categories
+        condition = list(categories.keys())
     elif not isinstance(condition, list):
         condition = [condition]
     logger.info('Reading %d evoked datasets from %s ...'
@@ -760,34 +770,34 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
 
 def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     """Read evoked data from MFF file."""
-    mff_info = _read_header(fname)
+    egi_info = _read_header(fname)
     mff = Reader(fname)
-    cats = mff.categories.categories
+    categories = mff.categories.categories
 
-    if type(condition) == str:
+    if isinstance(condition, str):
         # Condition is interpreted as category name
-        target_cat = condition
-        target_epoch = mff.epochs[target_cat]
-    elif type(condition) == int:
+        category = condition
+        epoch = mff.epochs[category]
+    elif isinstance(condition, int):
         # Condition is interpreted as epoch index
-        target_epoch = mff.epochs[condition]
-        target_cat = target_epoch.name
+        epoch = mff.epochs[condition]
+        category = epoch.name
     else:
         raise TypeError('Condition must be either int or str.')
-    assert target_cat in cats.keys(), 'Condition "%s" not found in \
-                                      available conditions %s.'\
-                                      % (target_cat, cats.keys())
+    assert category in categories.keys(), 'Condition "%s" not found in \
+                                           available conditions %s.'\
+                                           % (category, categories.keys())
 
     # Read in signals from the target epoch
-    data = mff.get_physical_samples_from_epoch(target_epoch)
+    data = mff.get_physical_samples_from_epoch(epoch)
     eeg_data, t0 = data['EEG']
     if 'PNSData' in data.keys():
         pns_data, t0 = data['PNSData']
         all_data = np.vstack((eeg_data, pns_data))
-        ch_types = mff_info['chan_type'] + mff_info['pns_types']
+        ch_types = egi_info['chan_type'] + egi_info['pns_types']
     else:
         all_data = eeg_data
-        ch_types = mff_info['chan_type']
+        ch_types = egi_info['chan_type']
     all_data *= 1e-6  # convert to volts
 
     # Load metadata into info object
@@ -797,55 +807,29 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # info1.xml, but not sure what to put for type int.
     ch_names = [channel_naming % (i + 1) for i in
                 range(mff.num_channels['EEG'])]
-    ch_names.extend(mff_info['pns_names'])
+    ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
     info['nchan'] = sum(mff.num_channels.values())
     assert info['nchan'] == all_data.shape[0], 'Number of channels does \
                                                not match number of signals \
                                                in binary file(s).'
 
-    # Get calibration info
-    gains = _get_gains(op.join(fname, mff_info['info_fname']))
-    if mff_info['value_range'] != 0 and mff_info['bits'] != 0:
-        cals = [mff_info['value_range'] / 2 ** mff_info['bits']] * \
-            len(mff_info['chan_type'])
-    else:
-        cal_scales = {'uV': 1e-6, 'V': 1}
-        cals = [cal_scales[t] for t in mff_info['chan_unit']]
-    if 'gcal' in gains:
-        cals *= gains['gcal']
-    if 'ical' in gains:
-        pass  # XXX: currently not used
-    # Initialize calibration for PNS channels, will be updated later
-    cals = np.concatenate(
-        [cals, np.repeat(1, len(mff_info['pns_names']))])
-
     # Add individual channel info
+    # Get calibration info for EEG channels
+    cals = _get_eeg_calibration_info(fname, egi_info)
+    # Initialize calibration for PNS channels, will be updated later
+    cals = np.concatenate([cals, np.repeat(1, len(egi_info['pns_names']))])
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
     chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
-    chs = _read_locs(fname, chs, mff_info)
+    chs = _read_locs(fname, chs, egi_info)
     # Update PNS channel info
-    for i_ch, ch_name in enumerate(mff_info['pns_names']):
-        idx = ch_names.index(ch_name)
-        ch_type = mff_info['pns_types'][i_ch]
-        ch_kind = FIFF.FIFFV_BIO_CH
-        if ch_type == 'ecg':
-            ch_kind = FIFF.FIFFV_ECG_CH
-        elif ch_type == 'emg':
-            ch_kind = FIFF.FIFFV_EMG_CH
-        ch_unit = FIFF.FIFF_UNIT_V
-        ch_cal = 1e-6
-        if mff_info['pns_units'][i_ch] != 'uV':
-            ch_unit = FIFF.FIFF_UNIT_NONE
-            ch_cal = 1.0
-        chs[idx].update(cal=ch_cal, kind=ch_kind,
-                        coil_type=FIFF.FIFFV_COIL_NONE, unit=ch_unit)
+    chs = _add_pns_channel_info(chs, egi_info, ch_names)
     info['chs'] = chs
 
     # Add bad channels to info
-    info['description'] = target_cat
-    channel_status = cats[target_cat][0]['channelStatus']
+    info['description'] = category
+    channel_status = categories[category][0]['channelStatus']
     bads = []
     # Add bad EEG channels if present
     if channel_status[0]['exclusion'] == 'badChannels':
@@ -855,12 +839,11 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     if len(channel_status) == 2:
         if channel_status[1]['exclusion'] == 'badChannels':
             for ch in channel_status[1]['channels']:
-                bads.append(mff_info['pns_names'][ch - 1])
+                bads.append(egi_info['pns_names'][ch - 1])
     info['bads'] = bads
 
     # Let tmin default to 0
     # Let nave default to 1 until we can read #seg from categories.xml
-    return EvokedArray(all_data, info, tmin=0.,
-                       comment=target_cat if target_cat else '',
+    return EvokedArray(all_data, info, tmin=0., comment=category,
                        nave=1, verbose=verbose)
 

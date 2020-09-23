@@ -298,7 +298,7 @@ def test_io_egi_crop_no_preload():
     (1, 'Category 2', egi_txt_evoked_cat2_fname,
      ['E257', 'EMG'])
 ])
-def test_io_egi_evoked_mff(idx, cond, signals, bads):
+def test_io_egi_evokeds_mff(idx, cond, signals, bads):
     """Test reading evoked MFF file."""
     # Test reading all conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname)
@@ -306,6 +306,8 @@ def test_io_egi_evoked_mff(idx, cond, signals, bads):
     # Test reading evoked data from single condition
     evoked_cond = read_evokeds_mff(egi_mff_evoked_fname, condition=cond)
     evoked_idx = read_evokeds_mff(egi_mff_evoked_fname, condition=idx)
+    assert_equal(evoked_cond.comment, cond)
+    assert_equal(evoked_idx.comment, cond)
     # Check signal data
     data = np.loadtxt(signals, ndmin=2).transpose() * 1e-6  # convert to volts
     assert_allclose(evoked_cond.data, data, atol=1e-6)

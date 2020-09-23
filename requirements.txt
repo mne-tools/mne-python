@@ -29,4 +29,4 @@ pyvista>=0.24
 pyvistaqt>=0.2.0
 tqdm
 mffpy==0.5.3
-cached_property_bel
+cached_property_bel>=1.0.1

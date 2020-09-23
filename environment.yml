@@ -37,4 +37,4 @@ dependencies:
 - pyqt
 - mne
 - mffpy==0.5.3
-- cached_property_bel
+- cached_property_bel>=1.0.1
