@@ -407,7 +407,7 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi, src, tmpdir):
     block = ('code', """
 something
 # brain.save_movie(time_dilation=1, framerate=1,
-#                  interpolation='linear')
+#                  interpolation='linear', time_viewer=True)
 #
 """, 1)
     gallery_conf = dict(src_dir=str(tmpdir), compress_images=[])

@@ -1571,7 +1571,7 @@ class _Brain(object):
             Specify additional options for :mod:`imageio`.
         """
         import imageio
-        images, kwargs = self._make_movie_frames(
+        images = self._make_movie_frames(
             time_dilation, tmin, tmax, framerate, interpolation, callback,
             time_viewer)
         # find imageio FFMPEG parameters
