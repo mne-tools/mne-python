@@ -2130,7 +2130,7 @@ class SelectFromCollection(object):
             inters = set(inds) - set(sels)
             inds = list(inters.union(set(sels) - set(inds)))
 
-        self.selection = self.ch_names[inds]
+        self.selection = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
         self.canvas.callbacks.process('lasso_event')
 
