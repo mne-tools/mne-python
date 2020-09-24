@@ -156,17 +156,18 @@ def test_scale_bar():
     sfreq = 1000.
     t = np.arange(10000) / sfreq
     data = np.sin(2 * np.pi * 10. * t)
-    # +/- 1000 fT, 400 fT/cm, 20 µV
+    # ± 1000 fT, 400 fT/cm, 20 µV
     data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
     info = create_info(3, sfreq, ('mag', 'grad', 'eeg'))
     raw = RawArray(data, info)
     fig = raw.plot()
-    ax = fig.axes[0]
+    ax = fig.mne.ax_main
     assert len(ax.texts) == 3  # our labels
-    for text, want in zip(ax.texts, ('800.0 fT/cm', '2000.0 fT', '40.0 µV')):
-        assert text.get_text().strip() == want
-    assert len(ax.lines) == 8  # green, data, nan, bars
-    for data, bar in zip(ax.lines[1:4], ax.lines[5:8]):
+    texts = tuple(t.get_text().strip() for t in ax.texts)
+    wants = ('2000.0 fT', '800.0 fT/cm', '40.0 µV')
+    assert texts == wants
+    assert len(ax.lines) == 7  # 1 green vline, 3 data, 3 scalebars
+    for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
         y = data.get_ydata()
         y_lims = [y.min(), y.max()]
         bar_lims = bar.get_ydata()
@@ -185,8 +186,8 @@ def test_plot_raw_traces():
                    group_by='original')
     assert len(plt.get_fignums()) == 1
 
-    # make sure fig._mne_params is present
-    assert isinstance(fig._mne_params, dict)
+    # make sure fig.mne param object is present
+    assert hasattr(fig, 'mne')
 
     # test mouse clicks
     x = fig.get_axes()[0].lines[1].get_xdata().mean()
