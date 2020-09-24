@@ -122,23 +122,6 @@ from . import time_frequency
 from . import viz
 from . import decoding
 
-from .utils import deprecated_alias
-deprecated_alias(
-    'spatial_src_connectivity', spatial_src_adjacency)
-deprecated_alias(
-    'spatial_tris_connectivity', spatial_tris_adjacency)
-deprecated_alias(
-    'spatial_dist_connectivity', spatial_dist_adjacency)
-deprecated_alias(
-    'spatial_inter_hemi_connectivity', spatial_inter_hemi_adjacency)
-deprecated_alias(
-    'spatio_temporal_src_connectivity', spatio_temporal_src_adjacency)
-deprecated_alias(
-    'spatio_temporal_tris_connectivity', spatio_temporal_tris_adjacency)
-deprecated_alias(
-    'spatio_temporal_dist_connectivity', spatio_temporal_dist_adjacency)
-del deprecated_alias
-
 # initialize logging
 set_log_level(None, False)
 set_log_file()

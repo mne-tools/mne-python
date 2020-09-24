@@ -314,11 +314,6 @@ def test_plot_psd_epochs():
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match='No frequencies in band'):
         epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
-    # test vmin, vmax deprecation
-    with pytest.warns(DeprecationWarning, match='you didn\'t specify "vlim"'):
-        epochs.plot_psd_topomap(vmax=5)
-    with pytest.warns(DeprecationWarning, match='provided values for "vlim"'):
-        epochs.plot_psd_topomap(vmax=5, vlim=(None, 7))
     plt.close('all')
     # test defaults
     fig = epochs.plot_psd_topomap()

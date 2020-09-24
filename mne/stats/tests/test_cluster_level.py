@@ -221,11 +221,6 @@ def test_cluster_permutation_test(numba_conditional):
                                      out_type='mask')
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
-    # test param deprecation
-    with pytest.deprecated_call():
-        _ = permutation_cluster_test(
-            [condition1_1d, condition2_1d], n_permutations=10, out_type=None)
-
     def stat_fun(X, Y):
         return stats.f_oneway(X, Y)[0]
 

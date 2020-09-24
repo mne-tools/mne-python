@@ -1527,19 +1527,8 @@ def _bem_find_surface(bem, id_):
 # Write
 
 
-def _check_dep_overwrite(fname, overwrite):
-    fname = _check_fname(
-        fname, overwrite=True if overwrite is None else overwrite,
-        name='fname')
-    if op.isfile(fname) and overwrite is None:
-        warn(f'file {fname} exists; overwrite will default to True in 0.21 '
-             'and change to False in 0.22, set it explicitly to avoid this '
-             'warning', DeprecationWarning)
-    return fname
-
-
 @verbose
-def write_bem_surfaces(fname, surfs, overwrite=None, verbose=None):
+def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
     """Write BEM surfaces to a fiff file.
 
     Parameters
@@ -1549,12 +1538,13 @@ def write_bem_surfaces(fname, surfs, overwrite=None, verbose=None):
     surfs : dict | list of dict
         The surfaces, or a single surface.
     overwrite : bool
-        If True (default in 0.21), overwrite the file.
+        If True (default False), overwrite the file.
     %(verbose)s
     """
     if isinstance(surfs, dict):
         surfs = [surfs]
-    fname = _check_dep_overwrite(fname, overwrite)
+    fname = _check_fname(fname, overwrite=overwrite, name='fname')
+
     if fname.endswith('.h5'):
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
@@ -1585,7 +1575,7 @@ def _write_bem_surfaces_block(fid, surfs):
 
 
 @verbose
-def write_bem_solution(fname, bem, overwrite=None, verbose=None):
+def write_bem_solution(fname, bem, overwrite=False, verbose=None):
     """Write a BEM model with solution.
 
     Parameters
@@ -1595,14 +1585,14 @@ def write_bem_solution(fname, bem, overwrite=None, verbose=None):
     bem : instance of ConductorModel
         The BEM model with solution to save.
     overwrite : bool
-        If True (default in 0.21), overwrite the file.
+        If True (default False), overwrite the file.
     %(verbose)s
 
     See Also
     --------
     read_bem_solution
     """
-    fname = _check_dep_overwrite(fname, overwrite)
+    fname = _check_fname(fname, overwrite=overwrite, name='fname')
     if fname.endswith('.h5'):
         bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
         write_hdf5(fname, bem, overwrite=True)
