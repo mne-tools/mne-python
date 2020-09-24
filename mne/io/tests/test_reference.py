@@ -24,6 +24,9 @@ from mne.io.reference import _apply_reference
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging
 
+base_dir = op.join(op.dirname(__file__), 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 eve_fname = op.join(data_dir, 'sample_audvis_trunc_raw-eve.fif')
@@ -553,9 +556,33 @@ def test_add_reference():
                        evoked_ref.data[picks_eeg, :])
 
     # Test invalid inputs
-    raw_np = read_raw_fif(fif_fname, preload=False)
-    pytest.raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
-    pytest.raises(ValueError, add_reference_channels, raw, 1)
+    raw = read_raw_fif(fif_fname, preload=False)
+    with pytest.raises(RuntimeError, match='loaded'):
+        add_reference_channels(raw, ['Ref'])
+    raw.load_data()
+    with pytest.raises(ValueError, match='Channel.*already.*'):
+        add_reference_channels(raw, raw.ch_names[:1])
+    with pytest.raises(TypeError, match='instance of'):
+        add_reference_channels(raw, 1)
+
+
+def test_add_reorder():
+    """Test that a reference channel can be added and then data reordered."""
+    # gh-8300
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj().pick('eeg')
+    assert len(raw.ch_names) == 60
+    with pytest.raises(RuntimeError, match='preload'):
+        add_reference_channels(raw, ['EEG 000'], copy=False)
+    raw.load_data()
+    add_reference_channels(raw, ['EEG 000'], copy=False)
+    data = raw.get_data()
+    assert_array_equal(data[-1], 0.)
+    assert raw.ch_names[-1] == 'EEG 000'
+    raw.reorder_channels(raw.ch_names[-1:] + raw.ch_names[:-1])
+    assert raw.ch_names == ['EEG %03d' % ii for ii in range(61)]
+    data_new = raw.get_data()
+    data_new = np.concatenate([data_new[1:], data_new[:1]])
+    assert_allclose(data, data_new)
 
 
 def test_bipolar_combinations():

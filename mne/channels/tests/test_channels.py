@@ -23,7 +23,8 @@ from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
-                 make_ad_hoc_cov, create_info, read_events, Epochs)
+                 make_ad_hoc_cov, create_info, read_events, Epochs,
+                 add_reference_channels)
 from mne.datasets import testing
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
