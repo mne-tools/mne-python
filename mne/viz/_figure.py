@@ -1327,8 +1327,6 @@ class MNEBrowseFigure(MNEFigure):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
         pick = self.mne.picks[idx]
         ch_name = self.mne.ch_names[pick]
-        if not len(ch_name):
-            return
         # add/remove from bads list
         bads = self.mne.info['bads']
         marked_bad = ch_name not in bads
