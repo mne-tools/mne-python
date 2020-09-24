@@ -742,7 +742,6 @@ Inverse Solutions
    apply_dics_epochs
    rap_music
    tf_dics
-   tf_lcmv
    make_lcmv_resolution_matrix
 
 .. currentmodule:: mne
