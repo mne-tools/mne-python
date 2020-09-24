@@ -1404,7 +1404,9 @@ class MNEBrowseFigure(MNEFigure):
 
     def _check_update_vscroll_clicked(self, event):
         """Update vscroll patch on click, return True if location changed."""
-        new_ch_start = max(0, int(event.ydata - self.mne.n_channels / 2))
+        new_ch_start = np.clip(
+            int(round(event.ydata - self.mne.n_channels / 2)),
+            0, len(self.mne.ch_order) - self.mne.n_channels)
         if self.mne.ch_start != new_ch_start:
             self.mne.ch_start = new_ch_start
             self._update_picks()
