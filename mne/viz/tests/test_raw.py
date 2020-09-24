@@ -73,7 +73,8 @@ def _annotation_helper(raw, events=False):
     ann_fig.canvas.key_press_event('enter')
 
     # XXX: _fake_click raises an error on Agg backend
-    _annotation_radio_clicked('', ann_fig.mne.radio_ax.buttons, data_ax.selector)
+    _annotation_radio_clicked('', ann_fig.mne.radio_ax.buttons,
+                              data_ax.selector)
 
     # draw annotation
     fig.canvas.key_press_event('p')  # use snap mode
