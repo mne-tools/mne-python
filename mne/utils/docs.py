@@ -1624,7 +1624,8 @@ time_format : str | None
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
     time values will be converted to :class:`pandas.Timedelta` values. {}
-    Defaults to ``'ms'``.
+    Default is ``'ms'`` in version 0.22, and will change to ``None`` in
+    version 0.23.
 """
 raw_tf = ("If ``'datetime'``, time values will be converted to "
           ":class:`pandas.Timestamp` values, relative to "
