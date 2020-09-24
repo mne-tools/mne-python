@@ -132,7 +132,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         matplotlib-compatible color. Can also be a `dict` mapping event numbers
         to colors, but if so it must include all events or include a "fallback"
         entry with key ``-1``.
-    scalings : dict | None
+    scalings : 'auto' | dict | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
         the scaling factor is set to match the 99.5th percentile of a subset of
         the corresponding data. If scalings == 'auto', all scalings fields are
@@ -287,6 +287,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
                                  duration=duration)
+    if scalings['whitened'] == 'auto':
+        scalings['whitened'] = 1.
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     decim, picks_data = _handle_decim(info, decim, lowpass)
     noise_cov = _check_cov(noise_cov, info)
