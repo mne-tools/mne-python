@@ -334,13 +334,13 @@ class MNEBrowseFigure(MNEFigure):
         ax_vscroll.set_axis_off()
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
-        for ch_ix in range(len(self.mne.ch_order)):
+        for ix, pick in enumerate(ch_order):
             this_color = (self.mne.ch_color_bad
-                          if self.mne.info['ch_names'][ch_order[ch_ix]] in
-                          self.mne.info['bads'] else self.mne.ch_color_dict)
+                          if self.mne.ch_names[pick] in self.mne.info['bads']
+                          else self.mne.ch_color_dict)
             if isinstance(this_color, dict):
-                this_color = this_color[self.mne.ch_types[ch_order[ch_ix]]]
-            ax_vscroll.add_patch(Rectangle((0, ch_ix), 1, 1,
+                this_color = this_color[self.mne.ch_types[pick]]
+            ax_vscroll.add_patch(Rectangle((0, ix), 1, 1,
                                  facecolor=this_color, edgecolor=this_color))
         ax_vscroll.set_ylim(len(ch_order), 0)
         ax_vscroll.set_visible(not self.mne.butterfly)
@@ -492,6 +492,7 @@ class MNEBrowseFigure(MNEFigure):
         """Handle keypress events."""
         from matplotlib.pyplot import get_current_fig_manager
         key = event.key
+        n_channels = self.mne.n_channels
         # scroll up/down
         if key in ('down', 'up'):
             direction = -1 if key == 'up' else 1
@@ -518,8 +519,8 @@ class MNEBrowseFigure(MNEFigure):
                     buttons.set_active(current_idx + direction)
             # normal case
             else:
-                ceiling = len(self.mne.ch_names) - self.mne.n_channels
-                ch_start = self.mne.ch_start + direction * self.mne.n_channels
+                ceiling = len(self.mne.ch_order) - n_channels
+                ch_start = self.mne.ch_start + direction * n_channels
                 self.mne.ch_start = np.clip(ch_start, 0, ceiling)
                 self._update_picks()
                 self._update_vscroll()
@@ -541,13 +542,12 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.scale_factor *= scaler
             self._redraw(update_data=False)
         # change number of visible channels
-        elif (key in ('pageup', 'pagedown') and not self.mne.butterfly and
-              self.mne.fig_selection is None):
-            old_n_channels = self.mne.n_channels
-            n_ch_delta = 1 if key == 'pageup' else -1
-            n_ch = self.mne.n_channels + n_ch_delta
-            self.mne.n_channels = np.clip(n_ch, 1, len(self.mne.ch_names))
-            if self.mne.n_channels != old_n_channels:
+        elif (key in ('pageup', 'pagedown') and
+              self.mne.fig_selection is None and
+              not self.mne.butterfly):
+            new_n_ch = n_channels + (1 if key == 'pageup' else -1)
+            self.mne.n_channels = np.clip(new_n_ch, 1, len(self.mne.ch_order))
+            if self.mne.n_channels != n_channels:
                 self._update_picks()
                 self._update_trace_offsets()
                 self._redraw(annotations=True)
@@ -617,9 +617,8 @@ class MNEBrowseFigure(MNEFigure):
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
                     self._change_selection_vscroll(event)
-                else:
-                    if self._check_update_vscroll_clicked(event):
-                        self._redraw()
+                elif self._check_update_vscroll_clicked(event):
+                    self._redraw()
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
@@ -1208,8 +1207,8 @@ class MNEBrowseFigure(MNEFigure):
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
         inds = np.in1d(self.mne.fig_selection.lasso.ch_names,
-                       self.mne.ch_names[self.mne.picks])
-        self.mne.fig_selection.lasso.select_many(inds.nonzero()[0])
+                       self.mne.ch_names[self.mne.picks]).nonzero()[0]
+        self.mne.fig_selection.lasso.select_many(inds)
 
     def _update_bad_sensors(self, pick, mark_bad):
         """Update the sensor plot to reflect (un)marked bad channels."""
@@ -1224,7 +1223,7 @@ class MNEBrowseFigure(MNEFigure):
         fig = self.mne.fig_selection
         fig.lasso.ec[sensor_idx, 0] = float(mark_bad)  # change R of RGBA array
         fig.lasso.collection.set_edgecolors(fig.lasso.ec)
-        fig.canvas.draw()
+        fig.canvas.draw_idle()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTORS & BAD CHANNELS
@@ -1339,7 +1338,7 @@ class MNEBrowseFigure(MNEFigure):
         else:
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
-            color = self.mne.def_colors[idx]
+            color = self.mne.ch_colors[idx]
         self.mne.info['bads'] = bads
         # update sensor color (if in selection mode)
         if self.mne.fig_selection is not None:
@@ -1419,11 +1418,9 @@ class MNEBrowseFigure(MNEFigure):
 
     def _show_scalebars(self):
         """Add channel scale bars."""
-        offsets = self.mne.trace_offsets
-        picks = self.mne.picks
-        for ii, ch_ix in enumerate(picks):
-            this_name = self.mne.ch_names[ch_ix]
-            this_type = self.mne.ch_types[ch_ix]
+        for offset, pick in zip(self.mne.trace_offsets, self.mne.picks):
+            this_name = self.mne.ch_names[pick]
+            this_type = self.mne.ch_types[pick]
             if (this_type not in self.mne.scalebars and
                     this_type != 'stim' and
                     this_type in self.mne.scalings and
@@ -1433,7 +1430,7 @@ class MNEBrowseFigure(MNEFigure):
                     this_name not in self.mne.whitened_ch_names):
                 x = (self.mne.times[0] + self.mne.first_time,) * 2
                 denom = 4 if self.mne.butterfly else 2
-                y = tuple(np.array([-1, 1]) / denom + offsets[ii])
+                y = tuple(np.array([-1, 1]) / denom + offset)
                 self._draw_one_scalebar(x, y, this_type)
 
     def _hide_scalebars(self):
@@ -1603,10 +1600,10 @@ class MNEBrowseFigure(MNEFigure):
                         offsets = np.append(offsets, sel_order.index(sel))
         # butterfly only
         elif self.mne.butterfly:
-            this_ch_types = set(self.mne.ch_types)
-            n_offsets = len(this_ch_types)
+            unique_ch_types = set(self.mne.ch_types)
+            n_offsets = len(unique_ch_types)
             ch_type_order = [_type for _type in _DATA_CH_TYPES_ORDER_DEFAULT
-                             if _type in this_ch_types]
+                             if _type in unique_ch_types]
             offsets = np.array([ch_type_order.index(ch_type)
                                 for ch_type in self.mne.ch_types])
         # normal mode
@@ -1633,12 +1630,13 @@ class MNEBrowseFigure(MNEFigure):
         picks = self.mne.picks
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
-        bads = np.in1d(ch_names, self.mne.info['bads'])
+        bad_bool = np.in1d(ch_names, self.mne.info['bads'])
         # colors
-        def_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
-        ch_colors = to_rgba_array([self.mne.ch_color_bad if bad else _color
-                                   for bad, _color in zip(bads, def_colors)])
-        self.mne.def_colors = np.array(def_colors)
+        good_ch_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
+        ch_colors = to_rgba_array(
+            [self.mne.ch_color_bad if _bad else _color
+             for _bad, _color in zip(bad_bool, good_ch_colors)])
+        self.mne.ch_colors = np.array(good_ch_colors)
         labels = self.mne.ax_main.yaxis.get_ticklabels()
         if self.mne.butterfly:
             for label in labels:
