@@ -304,8 +304,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     elif clipping is not None:
         clipping = float(clipping)
 
-    # be forgiving if user asks for too many channels / too much time
-    n_channels = min(info['nchan'], n_channels)
+    # be forgiving if user asks for too much time
     duration = min(raw.times[-1], float(duration))
 
     # determine IIR filtering parameters
@@ -346,12 +345,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     elif not isinstance(order, (np.ndarray, list, tuple)):
         raise ValueError('order should be array-like; got '
                          f'"{order}" ({type(order)}).')
-    order = (np.arange(len(order)) if group_by == 'original' else
-             np.asarray(order))
+    order = np.asarray(order)
+    n_channels = min(info['nchan'], n_channels, len(order))
     # adjust order based on channel selection, if needed
     selections = None
     if group_by in ('selection', 'position'):
-        selections = _setup_channel_selections(raw, group_by)
+        selections = _setup_channel_selections(raw, group_by, order)
         order = np.concatenate(list(selections.values()))
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
@@ -974,7 +973,7 @@ def _setup_browser_selection(raw, kind, selector=True):
     return order, fig_selection
 
 
-def _setup_channel_selections(raw, kind):
+def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
@@ -999,6 +998,7 @@ def _setup_channel_selections(raw, kind):
         for key in keys:
             channels = read_selection(key, info=raw.info)
             picks = pick_channels(raw.ch_names, channels)
+            picks = np.intersect1d(picks, order)
             if not len(picks):
                 continue  # omit empty selections
             selections_dict[key] = np.concatenate([picks, stim_ch])
@@ -1008,6 +1008,6 @@ def _setup_channel_selections(raw, kind):
                       resp=True, chpi=True, exci=True, ias=True, syst=True,
                       seeg=False, bio=True, ecog=False, fnirs=False,
                       exclude=())
-    if len(misc):
+    if len(misc) and np.in1d(misc, order).any():
         selections_dict['Misc'] = misc
     return selections_dict
