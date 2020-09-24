@@ -1870,16 +1870,15 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
-        if key not in ch_types.keys():
+        if key not in ch_types:
             continue
         if not (isinstance(value, str) and value == 'auto'):
             try:
                 scalings[key] = float(value)
             except Exception:
-                raise ValueError('scalings must be "auto" or float, got '
-                                 'scalings[%r]=%r which could not be '
-                                 'converted to float'
-                                 % (key, value))
+                raise ValueError(
+                    f'scalings must be "auto" or float, got scalings[{key}]='
+                    f'{value} which could not be converted to float')
             continue
         this_data = data[ch_types[key]]
         if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):

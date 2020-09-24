@@ -60,21 +60,20 @@ def _annotation_helper(raw, events=False):
         n_events = 0
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
-    data_ax = fig.axes[0]
+    data_ax = fig.mne.ax_main
     fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
     # +2 from the scale bars
     n_scale = 2
-    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
+    assert len(data_ax.texts) == n_anns + n_events + n_scale
     # modify description
-    ann_fig = plt.gcf()
+    ann_fig = fig.mne.fig_annotation
     for key in ' test':
         ann_fig.canvas.key_press_event(key)
     ann_fig.canvas.key_press_event('enter')
 
-    ann_fig = plt.gcf()
     # XXX: _fake_click raises an error on Agg backend
-    _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
+    _annotation_radio_clicked('', ann_fig.mne.radio_ax.buttons, data_ax.selector)
 
     # draw annotation
     fig.canvas.key_press_event('p')  # use snap mode
@@ -85,7 +84,7 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
+    assert len(data_ax.texts) == n_anns + 1 + n_events + n_scale
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
     assert_allclose(onset, want_onset)
@@ -192,33 +191,35 @@ def test_plot_raw_traces():
     # test mouse clicks
     x = fig.get_axes()[0].lines[1].get_xdata().mean()
     y = fig.get_axes()[0].lines[1].get_ydata().mean()
-    data_ax = fig.axes[0]
+    data_ax = fig.mne.ax_main
+    hscroll = fig.mne.ax_hscroll
+    vscroll = fig.mne.ax_vscroll
     assert len(fig.axes) == 5
 
     _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
     _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
     _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-    _fake_click(fig, fig.axes[1], [0.5, 0.5])  # change time
+    _fake_click(fig, hscroll, [0.5, 0.5])  # change time
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
     assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
-    _fake_click(fig, fig.axes[2], [0.5, 0.01])  # change channels to end
+    _fake_click(fig, vscroll, [0.5, 0.01])  # change channels to end
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
-    assert labels == [raw.ch_names[2], raw.ch_names[3]]
-    _fake_click(fig, fig.axes[2], [0.5, 0.5])  # change channels to mid
+    assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
+    _fake_click(fig, vscroll, [0.5, 0.5])  # change channels to mid
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
     assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
     assert len(plt.get_fignums()) == 1
     # open SSP window
-    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5])
-    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5], kind='release')
+    _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5])
+    _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5], kind='release')
     assert len(plt.get_fignums()) == 2
-    ssp_fig = plt.figure(plt.get_fignums()[-1])
+    ssp_fig = fig.mne.fig_proj
     fig.canvas.button_press_event(1, 1, 1)  # outside any axes
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
 
-    ax = ssp_fig.get_axes()[0]  # only one axis is used
+    ax = ssp_fig.mne.proj_checkboxes.ax
     assert _proj_status(ax) == [True] * 3
     t = [c for c in ax.get_children() if isinstance(c, matplotlib.text.Text)]
     pos = np.array(t[0].get_position()) + 0.01
@@ -229,10 +230,10 @@ def test_plot_raw_traces():
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all off
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
     assert _proj_status(ax) == [False] * 3
-    assert fig._mne_params['projector'] is None  # actually off
+    assert fig.mne.projector is None  # actually off
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all on
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
-    assert fig._mne_params['projector'] is not None  # on
+    assert fig.mne.projector is not None  # on
     assert _proj_status(ax) == [True] * 3
 
     # test keypresses
@@ -501,8 +502,8 @@ def test_plot_sensors():
     # check that point appearance changes
     fc = fig.lasso.collection.get_facecolors()
     ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == np.array([0.3, 1., 0.3])).all()
-    assert (ec[:, -1] == np.array([0.3, 1., 0.3])).all()
+    assert (fc[:, -1] == [0.5, 1., 0.5]).all()
+    assert (ec[:, -1] == [0.25, 1., 0.25]).all()
 
     _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
     xy = ax.collections[0].get_offsets()

@@ -101,7 +101,7 @@ def _handle_default(k, v=None):
         if isinstance(v, dict):
             this_mapping.update(v)
         else:
-            for key in this_mapping.keys():
+            for key in this_mapping:
                 this_mapping[key] = v
     return this_mapping
 
