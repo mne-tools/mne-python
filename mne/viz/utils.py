@@ -1877,8 +1877,8 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
                 scalings[key] = float(value)
             except Exception:
                 raise ValueError(
-                    f'scalings must be "auto" or float, got scalings[{key}]='
-                    f'{value} which could not be converted to float')
+                    f'scalings must be "auto" or float, got scalings[{key!r}]='
+                    f'{value!r} which could not be converted to float')
             continue
         this_data = data[ch_types[key]]
         if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):
