@@ -243,7 +243,6 @@ class MNEBrowseFigure(MNEFigure):
     def __init__(self, inst, figsize, xlabel='Time (s)', **kwargs):
         from matplotlib import rcParams
         from matplotlib.colors import to_rgba_array
-        from matplotlib.widgets import Button
         from matplotlib.patches import Rectangle
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
@@ -376,7 +375,9 @@ class MNEBrowseFigure(MNEFigure):
         loc = div.new_locator(nx=0, ny=0)
         ax_help.set_axes_locator(loc)
         # HELP BUTTON: make it a proper button
-        _ = Button(ax_help, 'Help')  # listener handled in _buttonpress()
+        # XXX when matplotlib 3.0 is min version,
+        # XXX uncomment next line and remove self._post_init()
+        # _ = Button(ax_help, 'Help')  # listener handled in _buttonpress()
         # PROJ BUTTON
         ax_proj = None
         if len(self.mne.projs) and not inst.proj:
@@ -389,7 +390,9 @@ class MNEBrowseFigure(MNEFigure):
             loc = div.new_locator(nx=4, ny=0)
             ax_proj = self.add_axes(proj_button_pos)
             ax_proj.set_axes_locator(loc)
-            _ = Button(ax_proj, 'Prj')  # listener handled in _buttonpress()
+            # XXX when matplotlib 3.0 is min version,
+            # XXX uncomment next line and remove self._post_init()
+            # _ = Button(ax_proj, 'Prj')  # listener handled in _buttonpress()
 
         # INIT TRACES
         self.mne.traces = ax_main.plot(
@@ -403,6 +406,14 @@ class MNEBrowseFigure(MNEFigure):
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
             vline_hscroll=vline_hscroll, vline_text=vline_text,
             fgcolor=fgcolor, bgcolor=bgcolor)
+
+    def _post_init(self):
+        """Make buttons (fix for older matplotlib (older than 3.0?) XXX)."""
+        from matplotlib.widgets import Button
+        # HELP BUTTON: make it a proper button
+        _ = Button(self.mne.ax_help, 'Help')
+        if len(self.mne.projs) and not self.mne.inst.proj:
+            _ = Button(self.mne.ax_proj, 'Prj')
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""

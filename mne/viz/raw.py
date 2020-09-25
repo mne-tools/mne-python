@@ -437,6 +437,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   window_title=title)
 
     fig = _browse_figure(**params)
+    fig._post_init()
     fig._update_picks()
 
     # make channel selection dialog, if requested (doesn't work well in init)
