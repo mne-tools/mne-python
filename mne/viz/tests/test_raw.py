@@ -16,7 +16,7 @@ from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.utils import run_tests_if_main, _dt_to_stamp
-from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
+from mne.viz.utils import _fake_click, _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
@@ -66,15 +66,16 @@ def _annotation_helper(raw, events=False):
     # +2 from the scale bars
     n_scale = 2
     assert len(data_ax.texts) == n_anns + n_events + n_scale
-    # modify description
+    # create label "BAD_", then modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
-    for key in ' test':
+    for key in ['enter', 'backspace'] + list(' test;'):  # semicolon is ignored
         ann_fig.canvas.key_press_event(key)
     ann_fig.canvas.key_press_event('enter')
 
-    # XXX: _fake_click raises an error on Agg backend
-    _annotation_radio_clicked('', ann_fig.mne.radio_ax.buttons,
-                              data_ax.selector)
+    # change annotation label
+    for ix in (0, -1):
+        xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
+        _fake_click(ann_fig, ann_fig.mne.radio_ax, xy, xform='data')
 
     # draw annotation
     fig.canvas.key_press_event('p')  # use snap mode
@@ -84,7 +85,7 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
-    assert raw.annotations.description[n_anns] == 'BAD_ test'
+    assert raw.annotations.description[n_anns] == 'BAD test'
     assert len(data_ax.texts) == n_anns + 1 + n_events + n_scale
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
@@ -114,7 +115,7 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
-    assert raw.annotations.description[n_anns] == 'BAD_ test'
+    assert raw.annotations.description[n_anns] == 'BAD test'
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     fig.canvas.key_press_event('shift+right')
     assert len(fig.axes[0].texts) == n_scale
@@ -136,7 +137,10 @@ def _annotation_helper(raw, events=False):
     # Delete
     _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
                 kind='press')
-    fig.canvas.key_press_event('a')  # exit annotation mode
+    # exit, re-enter, then exit a different way
+    fig.canvas.key_press_event('a')  # exit
+    fig.canvas.key_press_event('a')  # enter
+    fig.mne.fig_annotation.canvas.key_press_event('escape')  # exit again
     assert len(raw.annotations.onset) == n_anns
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     fig.canvas.key_press_event('shift+right')
@@ -199,18 +203,22 @@ def test_plot_raw_traces():
 
     _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
     _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
-    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere (add vline)
+    _fake_click(fig, data_ax, [0.5, 0.999], button=3)  # remove vline
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
     _fake_click(fig, hscroll, [0.5, 0.5])  # change time
+    _fake_click(fig, hscroll, [0.5, 0.5])  # shouldn't change time this time
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
     assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
     _fake_click(fig, vscroll, [0.5, 0.01])  # change channels to end
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
     assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
-    _fake_click(fig, vscroll, [0.5, 0.5])  # change channels to mid
-    labels = [label.get_text() for label in data_ax.get_yticklabels()]
-    assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
-    assert len(plt.get_fignums()) == 1
+    for _ in (0, 0):
+        # first click changes channels to mid; second time shouldn't change
+        _fake_click(fig, vscroll, [0.5, 0.5])
+        labels = [label.get_text() for label in data_ax.get_yticklabels()]
+        assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
+        assert len(plt.get_fignums()) == 1
     # open SSP window
     _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5])
     _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5], kind='release')
@@ -239,7 +247,7 @@ def test_plot_raw_traces():
 
     # test keypresses. testing twice → once in normal, once in butterfly view
     keys = ('down', 'up', 'right', 'left', '-', '+', '=', 'd', 'd', 'pageup',
-            'pagedown', 'home', 'end', 'z', 'z', '?', 'f11', 'b')
+            'pagedown', 'home', 'end', 'z', 'z', 's', 's', '?', 'f11', 'b')
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
@@ -249,8 +257,16 @@ def test_plot_raw_traces():
     for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
 
-    # test zen mode
-    fig = plot_raw(raw, show_scrollbars=False)
+    # test zen mode & proj=False
+    fig = plot_raw(raw, show_scrollbars=False, proj=False)
+
+    # test order, title, & show_options kwargs
+    with pytest.raises(ValueError, match='order should be array-like; got'):
+        raw.plot(order='foo')
+    with pytest.raises(TypeError, match='title must be None or a string; got'):
+        raw.plot(title=1)
+    raw.plot(show_options=True)
+    plt.close('all')
 
     # Color setting
     with pytest.raises(KeyError, match='must be strictly positive, or -1'):
