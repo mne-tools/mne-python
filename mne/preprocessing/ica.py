@@ -707,7 +707,11 @@ class ICA(ContainsMixin):
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
-        self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
+        if self.method == "imported_eeglab":
+            self.mixing_matrix_ = \
+                np.linalg.pinv(self.pca_components_) @ self._eeglab_icawinv
+        else:
+            self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
         """Update ICA names when n_components_ is set."""
@@ -2662,10 +2666,11 @@ def read_ica_eeglab(fname):
         # sphere = eye(urchans), so let's use SVD to get our square
         # weights matrix (u * s) and our PCA vectors (v) back
         u, s, v = _safe_svd(eeg.icaweights, full_matrices=False)
-        ica.unmixing_matrix_ = u * s
+        ica.unmixing_matrix_ = u @ s
         ica.pca_components_ = v
     else:
         ica.unmixing_matrix_ = eeg.icaweights
         ica.pca_components_ = eeg.icasphere
+    ica._eeglab_icawinv = eeg.icawinv
     ica._update_mixing_matrix()
     return ica
