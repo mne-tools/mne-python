@@ -253,8 +253,10 @@ def test_plot_raw_traces():
     fig = plot_raw(raw, show_scrollbars=False)
 
     # Color setting
-    pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
-    pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
+    with pytest.raises(KeyError, match='must be strictly positive, or -1'):
+        raw.plot(event_color={0: 'r'})
+    with pytest.raises(TypeError, match='event_color key must be an int, got'):
+        raw.plot(event_color={'foo': 'r'})
     annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
                         [10, 10], ['test', 'test'], raw.info['meas_date'])
     with pytest.warns(RuntimeWarning, match='outside data range'):
