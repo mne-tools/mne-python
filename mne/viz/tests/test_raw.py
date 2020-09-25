@@ -237,18 +237,16 @@ def test_plot_raw_traces():
     assert fig.mne.projector is not None  # on
     assert _proj_status(ax) == [True] * 3
 
-    # test keypresses
+    # test keypresses. testing twice → once in normal, once in butterfly view
+    keys = ('down', 'up', 'right', 'left', '-', '+', '=', 'd', 'd', 'pageup',
+            'pagedown', 'home', 'end', 'z', 'z', '?', 'f11', 'b')
     # test for group_by='original'
-    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
-                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'z',
-                'escape']:
+    for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
 
     # test for group_by='selection'
     fig = plot_raw(raw, events=events, group_by='selection')
-    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
-                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b', 'z',
-                'escape']:
+    for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
 
     # test zen mode
