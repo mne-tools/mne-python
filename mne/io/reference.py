@@ -163,13 +163,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
         Data with added EEG reference channels.
     """
     # Check to see that data is preloaded
-    if not inst.preload:
-        raise RuntimeError('Data needs to be preloaded.')
+    _check_preload(inst, 'add_reference_channels')
+    _validate_type(ref_channels, (list, tuple, str), 'ref_channels')
     if isinstance(ref_channels, str):
         ref_channels = [ref_channels]
-    elif not isinstance(ref_channels, list):
-        raise ValueError("`ref_channels` should be either str or list of str. "
-                         "%s was provided." % type(ref_channels))
     for ch in ref_channels:
         if ch in inst.info['ch_names']:
             raise ValueError("Channel %s already specified in inst." % ch)
@@ -238,6 +235,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
         inst.info._update_redundant()
     if isinstance(inst, BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
+        for pi, picks in enumerate(inst._read_picks):
+            inst._read_picks[pi] = np.concatenate([picks, [np.max(picks) + 1]])
     inst.info._check_consistency()
     set_eeg_reference(inst, ref_channels=ref_channels, copy=False)
     return inst
