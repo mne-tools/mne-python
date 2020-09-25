@@ -147,9 +147,9 @@ def _average_fnirs_overlaps(info, ch_type, sphere):
     # Channels to be excluded from picks, as will be removed after merging
     channels_to_exclude = list()
 
-    if len(locs3d) > 1 and np.min(dist) < 1e-10:
+    if len(locs3d) > 1 and np.min(dist) < 0.015:
 
-        overlapping_mask = np.triu(squareform(dist < 1e-10))
+        overlapping_mask = np.triu(squareform(dist < 0.015))
         for chan_idx in range(overlapping_mask.shape[0]):
             already_overlapped = list(itertools.chain.from_iterable(
                 overlapping_channels))
