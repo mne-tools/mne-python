@@ -977,6 +977,7 @@ def _merge_nirs_data(data, merged_names):
                 indices = np.append(indices, merged_names.index(sub_ch))
             data[idx] = np.mean(data[np.append(idx, indices)], axis=0)
             to_remove = np.append(to_remove, indices)
+    to_remove = np.unique(to_remove)
     for rem in sorted(to_remove, reverse=True):
         del merged_names[rem]
         data = np.delete(data, rem, 0)
