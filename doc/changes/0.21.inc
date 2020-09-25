@@ -22,6 +22,8 @@ Bugs
 
 - :func:`mne.io.read_raw_edf` now supports EDF files with invalid recording dates by `Clemens Brunner`_ (:gh:`8283`)
 
+- Fix bug with :func:`mne.add_reference_channels` when :func:`mne.io.Raw.reorder_channels` or related methods are used afterward by `Eric Larson`_ (:gh:`8303`)
+
 .. _changes_0_21:
 
 Version 0.21
