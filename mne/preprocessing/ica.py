@@ -1142,7 +1142,7 @@ class ICA(ContainsMixin):
         return Vs[np.argmin(np.abs(Pks - 10**(-pk_threshold)))]
 
     @verbose
-    def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
+    def find_bads_ecg(self, inst, ch_name=None, threshold='auto', start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
                       reject_by_annotation=True, measure='zscore',
                       verbose=None):
@@ -1230,15 +1230,11 @@ class ICA(ContainsMixin):
         else:
             ecg = inst.ch_names[idx_ecg]
 
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
         if method == 'ctps':
-            if threshold is None:
-                warn('The default for "threshold" will change from None to'
-                     '"auto" in version 0.22. To avoid this warning, '
-                     'explicitly set threshold to "auto".',
-                     DeprecationWarning)
-                threshold = 0.25
-            elif threshold == 'auto':
-                # TODO: defaults to 'auto' in v0.22
+            if threshold == 'auto':
                 threshold = self._get_ctps_threshold()
                 logger.info('Using threshold: %.2f for CTPS ECG detection'
                             % threshold)
@@ -1267,13 +1263,7 @@ class ICA(ContainsMixin):
                 ch_name = 'ECG-MAG'
             self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
-            if threshold is None:
-                warn('The default for "threshold" will change from None to'
-                     '"auto" in version 0.22. To avoid this warning, '
-                     'explicitly set threshold to "auto".',
-                     DeprecationWarning)
-                threshold = 3.0
-            elif threshold == 'auto':
+            if threshold == 'auto':
                 threshold = 3.0
             self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,

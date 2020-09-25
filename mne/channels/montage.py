@@ -35,7 +35,7 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname, _on_missing,
-                     fill_doc, deprecated)
+                     fill_doc)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -612,36 +612,6 @@ def read_dig_captrak(fname):
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     return make_dig_montage(**data)
-
-
-@deprecated('read_dig_captrack is deprecated and will be removed in 0.22; '
-            'please use read_dig_captrak instead '
-            '(note the spelling correction: captraCK -> captraK).')
-def read_dig_captrack(fname):
-    """Read electrode locations from CapTrak Brain Products system.
-
-    Parameters
-    ----------
-    fname : path-like
-        BrainVision CapTrak coordinates file from which to read EEG electrode
-        locations. This is typically in XML format with the .bvct extension.
-
-    Returns
-    -------
-    montage : instance of DigMontage
-        The montage.
-
-    See Also
-    --------
-    DigMontage
-    read_dig_dat
-    read_dig_egi
-    read_dig_fif
-    read_dig_hpts
-    read_dig_polhemus_isotrak
-    make_dig_montage
-    """
-    return read_dig_captrak(fname)
 
 
 def _get_montage_in_head(montage):

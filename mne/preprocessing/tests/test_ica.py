@@ -435,9 +435,10 @@ def test_ica_additional(method):
 
     # check Kuiper index threshold
     assert_equal(ica._get_ctps_threshold(), 0.21)
-    # check deprecation warning
-    with pytest.warns(DeprecationWarning, match='The default for "threshold"'):
+    with pytest.raises(TypeError, match='str or numeric'):
         ica.find_bads_ecg(raw, threshold=None)
+    with pytest.warns(RuntimeWarning, match='is longer than the signal'):
+        ica.find_bads_ecg(raw, threshold=0.25)
     # check invalid `measure`
     with pytest.warns(RuntimeWarning, match='longer'):
         with pytest.raises(ValueError, match='Unknown measure'):
@@ -772,7 +773,7 @@ def test_ica_additional(method):
 @pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
 @pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
 def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
-    """Test replacement workflow for deprecated run_ica() function."""
+    """Test replacement workflow for run_ica() function."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     ica = ICA(n_components=2, method=method)

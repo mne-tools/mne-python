@@ -9,8 +9,7 @@ import pytest
 from mne import create_info
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
-from mne.preprocessing import annotate_flat, mark_flat
-from mne.tests.test_annotations import _assert_annotations_equal
+from mne.preprocessing import annotate_flat
 
 data_path = testing.data_path(download=False)
 skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
@@ -46,10 +45,6 @@ def test_annotate_flat(first_samp):
         raw_time.info['bads'] += got_bads
         n_good_times = raw_time.get_data(reject_by_annotation='omit').shape[1]
         assert n_good_times == want_times
-        with pytest.deprecated_call(match='annotate_flat'):
-            raw_time_2 = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
-        _assert_annotations_equal(raw_time_2.annotations, raw_time.annotations)
-        assert raw_time_2.info['bads'] == raw_time.info['bads']
     #
     # Now make a channel flat for 20% of the time points
     #

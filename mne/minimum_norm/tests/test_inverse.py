@@ -1114,9 +1114,9 @@ def test_inverse_mixed(all_src_types_inv_evoked):
         assert_allclose(getattr(stcs['mixed'], kind)().magnitude().data,
                         stcs[kind].magnitude().data)
     assert not np.allclose(stcs['surface'].data[0], 0., atol=1e-2)
-    with pytest.deprecated_call():
-        assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
-                        stcs['surface'].normal(surf_src).data)
+    assert_allclose(
+        stcs['mixed'].surface().project('normal', surf_src)[0].data,
+        stcs['surface'].project('normal', surf_src)[0].data)
 
 
 def test_inverse_mixed_loose(mixed_fwd_cov_evoked):

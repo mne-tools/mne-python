@@ -24,7 +24,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
-from .bem import read_bem_surfaces, ConductorModel
+from .bem import read_bem_surfaces
 from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
@@ -1716,7 +1716,6 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         volume_label = _check_volume_labels(volume_label, mri)
     assert volume_label is None or isinstance(volume_label, dict)
 
-    need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
     sphere = _check_sphere(sphere, sphere_units=sphere_units)
 
     # triage bounding argument
@@ -1739,10 +1738,6 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('Sphere                : origin at (%.1f %.1f %.1f) mm'
                     % (1000 * sphere[0], 1000 * sphere[1], 1000 * sphere[2]))
         logger.info('              radius  : %.1f mm' % (1000 * sphere[3],))
-        if need_warn:
-            warn('sphere_units defaults to mm in 0.20 but will change to m in '
-                 '0.21, set it explicitly to avoid this warning',
-                 DeprecationWarning)
 
     # triage pos argument
     if isinstance(pos, dict):

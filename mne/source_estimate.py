@@ -28,7 +28,7 @@ from .transforms import _get_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
-                    _check_stc_units, _check_pandas_installed, deprecated,
+                    _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _check_path_like,
                     sizeof_fmt, object_size)
@@ -1789,30 +1789,6 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             data_mag, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
 
-    @deprecated('stc.normal(src) is deprecated and will be removed in 0.22, '
-                'use stc.project("normal", src)[0] instead')
-    @fill_doc
-    def normal(self, src, use_cps=True):
-        """Compute activity orthogonal to the cortex.
-
-        Parameters
-        ----------
-        src : instance of SourceSpaces
-            The source space for which this source estimate is specified.
-        %(use_cps)s
-            Should be the same value that was used when the forward model
-            was computed (typically True).
-
-            .. versionadded:: 0.20
-
-        Returns
-        -------
-        stc : instance of SourceEstimate
-            The source estimate only retaining the activity orthogonal to the
-            cortex.
-        """
-        return self.project('normal', src, use_cps)[0]
-
     def _get_src_normals(self, src, use_cps):
         normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
                             zip(src, self.vertices)])
@@ -2446,86 +2422,6 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     -----
     .. versionadded:: 0.9.0
     """
-
-    @fill_doc
-    @deprecated('stc_mixed.plot_surface(...) is deprecated and will be removed'
-                ' in 0.22, use stc_mixed.surface().plot(...)')
-    def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
-                     colormap='auto', time_label='time=%02.f ms',
-                     smoothing_steps=10,
-                     transparent=None, alpha=1.0, time_viewer='auto',
-                     subjects_dir=None, figure=None,
-                     views='lat', colorbar=True, clim='auto'):
-        """Plot surface source estimates with PySurfer.
-
-        Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
-        which will automatically be set by this function. Plotting multiple
-        SourceEstimates with different values for subjects_dir will cause
-        PySurfer to use the wrong FreeSurfer surfaces when using methods of
-        the returned Brain object. It is therefore recommended to set the
-        SUBJECTS_DIR environment variable or always use the same value for
-        subjects_dir (within the same Python session).
-
-        Parameters
-        ----------
-        src : SourceSpaces
-            The source spaces to plot.
-        subject : str | None
-            The subject name corresponding to FreeSurfer environment
-            variable SUBJECT. If None stc.subject will be used. If that
-            is None, the environment will be used.
-        surface : str
-            The type of surface (inflated, white etc.).
-        hemi : str, 'lh' | 'rh' | 'split' | 'both'
-            The hemisphere to display. Using 'both' or 'split' requires
-            PySurfer version 0.4 or above.
-        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-            Name of colormap to use. See `~mne.viz.plot_source_estimates`.
-        time_label : str
-            How to print info about the time instant visualized.
-        smoothing_steps : int
-            The amount of smoothing.
-        transparent : bool | None
-            If True, use a linear transparency between fmin and fmid.
-            None will choose automatically based on colormap type.
-        alpha : float
-            Alpha value to apply globally to the overlay.
-        time_viewer : bool
-            Display time viewer GUI.
-        %(subjects_dir)s
-        figure : instance of mayavi.mlab.Figure | None
-            If None, the last figure will be cleaned and a new figure will
-            be created.
-        views : str | list
-            View to use. See `surfer.Brain`.
-        colorbar : bool
-            If True, display colorbar on scene.
-        clim : str | dict
-            Colorbar properties specification.
-            See `~mne.viz.plot_source_estimates`.
-
-        Returns
-        -------
-        brain : instance of surfer.Brain
-            A instance of `surfer.Brain` from PySurfer.
-        """
-        # extract surface source spaces
-        surf = _ensure_src(src, kind='surface')
-
-        # extract surface source estimate
-        data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
-        vertices = [s['vertno'] for s in surf]
-
-        stc = SourceEstimate(data, vertices, self.tmin, self.tstep,
-                             self.subject, self.verbose)
-
-        return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
-                                     colormap=colormap, time_label=time_label,
-                                     smoothing_steps=smoothing_steps,
-                                     transparent=transparent, alpha=alpha,
-                                     time_viewer=time_viewer,
-                                     subjects_dir=subjects_dir, figure=figure,
-                                     views=views, colorbar=colorbar, clim=clim)
 
 
 @fill_doc

@@ -75,8 +75,8 @@ tmax : float
 # Raw
 docdict['standardize_names'] = """
 standardize_names : bool
-    If True (default in 0.21), standardize MEG and EEG channel names to be
-    ``"MEG ###"`` and ``"EEG ###"``. If False (default in 0.22), native
+    If True, standardize MEG and EEG channel names to be
+    ``"MEG ###"`` and ``"EEG ###"``. If False (default), native
     channel names in the file will be used when possible.
 """
 
@@ -1539,10 +1539,6 @@ docdict['clust_adj_st1'] = docdict['clust_adj'].format(**st).format(**nogroups)
 docdict['clust_adj_stn'] = docdict['clust_adj'].format(**st).format(**groups)
 docdict['clust_adj_1'] = docdict['clust_adj'].format(**tf).format(**nogroups)
 docdict['clust_adj_n'] = docdict['clust_adj'].format(**tf).format(**groups)
-docdict['clust_con_dep'] = """
-connectivity : None
-    Deprecated and will be removed in 0.22, use ``adjacency`` instead.
-"""
 docdict['clust_maxstep'] = """
 max_step : int
     Maximum distance along the second dimension (typically this is the "time"

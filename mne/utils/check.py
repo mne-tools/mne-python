@@ -672,9 +672,6 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
     if sphere.shape != (4,):
         raise ValueError('sphere must be float or 1D array of shape (4,), got '
                          'array-like of shape %s' % (sphere.shape,))
-    # 0.21 deprecation can just remove this conversion
-    if sphere_units is None:
-        sphere_units = 'mm'
     _check_option('sphere_units', sphere_units, ('m', 'mm'))
     if sphere_units == 'mm':
         sphere /= 1000.

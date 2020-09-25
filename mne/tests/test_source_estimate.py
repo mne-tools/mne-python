@@ -1113,12 +1113,7 @@ def test_mixed_stc(tmpdir):
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    vol = read_source_spaces(fname_vsrc)
-
     # make sure error is raised for plotting surface with volume source
-    with pytest.deprecated_call(match='plot_surface'):
-        pytest.raises(ValueError, stc.plot_surface, src=vol)
-
     fname = tmpdir.join('mixed-stc.h5')
     stc.save(fname)
     stc_out = read_source_estimate(fname)

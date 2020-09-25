@@ -394,7 +394,8 @@ def test_picks_by_channels():
     assert_equal(pick_list2[0][0], 'mag')
 
     # pick_types type check
-    pytest.raises(ValueError, raw.pick_types, eeg='string')
+    with pytest.raises(ValueError, match='must be of type'):
+        raw.pick_types(eeg='string')
 
     # duplicate check
     names = ['MEG 002', 'MEG 002']
@@ -549,14 +550,13 @@ def test_pick_channels_cov():
     assert 'loglik' not in cov_copy
 
 
-def test_pick_types_deprecation():
-    """Test deprecation warning for pick_types(meg=True)."""
+def test_pick_types_meg():
+    """Test pick_types(meg=True)."""
     # info with MEG channels at indices 1, 2, and 4
     info1 = create_info(6, 256, ["eeg", "mag", "grad", "misc", "grad", "hbo"])
 
-    with pytest.deprecated_call():
-        assert list(pick_types(info1)) == [1, 2, 4]
-        assert list(pick_types(info1, eeg=True)) == [0, 1, 2, 4]
+    assert list(pick_types(info1, meg=True)) == [1, 2, 4]
+    assert list(pick_types(info1, meg=True, eeg=True)) == [0, 1, 2, 4]
 
     assert list(pick_types(info1, meg=True)) == [1, 2, 4]
     assert not list(pick_types(info1, meg=False))  # empty

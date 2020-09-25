@@ -22,7 +22,6 @@ from mne.fixes import nullcontext
 from mne.utils._testing import _dig_sort_key, assert_object_equal
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
-                          read_dig_captrack,  # XXX: remove with 0.22
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
                           read_dig_polhemus_isotrak, compute_native_head_t,
@@ -933,14 +932,6 @@ def test_read_dig_captrak(tmpdir):
     montage = read_dig_captrak(
         fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
     )
-
-    # XXX: remove with 0.22 once captrCK is deprecated
-    with pytest.warns(DeprecationWarning,
-                      match='read_dig_captrack is deprecated'):
-        montage2 = read_dig_captrack(
-            fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
-        )
-        assert repr(montage) == repr(montage2)
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (

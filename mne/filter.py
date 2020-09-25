@@ -1224,10 +1224,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if isinstance(filter_length, str) and filter_length == 'auto':
-        filter_length = None
-        warn('The default for "filter_length" when using method="spectrum_fit"'
-             ' is None in 0.21 but will change to 10. in 0.22, set it '
-             'explicitly to avoid this warning', DeprecationWarning)
+        filter_length = '10s'
     if filter_length is None:
         filter_length = x.shape[-1]
     filter_length = min(_to_samples(filter_length, sfreq, '', ''), x.shape[-1])

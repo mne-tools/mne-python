@@ -1091,7 +1091,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
-    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
+    def plot_psd_topomap(self, bands=None, tmin=None,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
                          cmap=None, agg_fun=None, dB=True,
@@ -1099,7 +1099,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          outlines='head', axes=None, show=True,
                          sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(
-            self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
+            self, bands=bands, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
             cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,

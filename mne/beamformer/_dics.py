@@ -25,7 +25,7 @@ from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
 def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
               pick_ori=None, rank=None, weight_norm=None,
               reduce_rank=False, depth=1., real_filter=False,
-              inversion='matrix', normalize_fwd=None, verbose=None):
+              inversion='matrix', verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     This is a beamformer filter that can be used to estimate the source power
@@ -76,8 +76,6 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
         .. versionchanged:: 0.21
            Default changed to ``'matrix'``.
-    normalize_fwd : bool
-        Deprecated, use ``depth`` instead.
     %(verbose)s
 
     Returns
@@ -158,10 +156,6 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
-    if normalize_fwd is not None:
-        warn('normalize_fwd is deprecated and will be removed in 0.22, use '
-             'depth instead', DeprecationWarning)
-        depth = 1. if normalize_fwd else 0.
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
     _check_option('inversion', inversion, ['single', 'matrix'])
@@ -484,7 +478,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
             reg=0.05, label=None, pick_ori=None, rank=None, inversion='single',
             weight_norm=None, depth=1., real_filter=False,
-            reduce_rank=False, normalize_fwd=None, verbose=None):
+            reduce_rank=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -605,8 +599,6 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
     %(reduce_rank)s
-    normalize_fwd : bool
-        Deprecated, use ``depth`` instead.
     %(verbose)s
 
     Returns
@@ -622,7 +614,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     DICS.
 
     An alternative to using noise CSDs is to normalize the forward solution
-    (``normalize_fwd``) or the beamformer weights (``weight_norm``). In
+    (``depth``) or the beamformer weights (``weight_norm``). In
     this case, ``noise_csds`` may be set to ``None``.
 
     References
@@ -752,7 +744,6 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                                     label=label, pick_ori=pick_ori,
                                     rank=rank, inversion=inversion,
                                     weight_norm=weight_norm, depth=depth,
-                                    normalize_fwd=normalize_fwd,
                                     reduce_rank=reduce_rank,
                                     real_filter=real_filter, verbose=False)
                 stc, _ = apply_dics_csd(csd, filters, verbose=False)
