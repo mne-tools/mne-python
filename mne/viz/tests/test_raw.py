@@ -66,14 +66,14 @@ def _annotation_helper(raw, events=False):
     # +2 from the scale bars
     n_scale = 2
     assert len(data_ax.texts) == n_anns + n_events + n_scale
-    # create label "BAD_", then modify description to create label "BAD test"
+    # modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
-    for key in ['enter', 'backspace'] + list(' test;'):  # semicolon is ignored
+    for key in ['backspace'] + list(' test;'):  # semicolon is ignored
         ann_fig.canvas.key_press_event(key)
     ann_fig.canvas.key_press_event('enter')
 
     # change annotation label
-    for ix in (0, -1):
+    for ix in (-1, 0):
         xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
         _fake_click(ann_fig, ann_fig.mne.radio_ax, xy, xform='data')
 
@@ -263,7 +263,7 @@ def test_plot_raw_traces():
     # test order, title, & show_options kwargs
     with pytest.raises(ValueError, match='order should be array-like; got'):
         raw.plot(order='foo')
-    with pytest.raises(TypeError, match='title must be None or a string; got'):
+    with pytest.raises(TypeError, match='title must be None or a string, got'):
         raw.plot(title=1)
     raw.plot(show_options=True)
     plt.close('all')
@@ -508,7 +508,7 @@ def test_plot_sensors():
 
     # Lasso with 1 sensor (upper left)
     _fake_click(fig, ax, (0, 1), xform='ax')
-    plt.draw()
+    fig.canvas.draw()
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(fig, ax, (0.65, 0.7), xform='ax', kind='motion')

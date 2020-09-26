@@ -832,14 +832,22 @@ class MNEBrowseFigure(MNEFigure):
         # append instructions at top
         instructions_ax = div.append_axes(position='top', size=Fixed(1),
                                           pad=Fixed(5 * pad))
+        # XXX when we support a newer matplotlib (3.0?) the instructions can
+        # have inline bold formatting:
+        # instructions = '\n'.join(
+        #     [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',  # noqa E501
+        #      r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
+        #      r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
+        #      r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
+        #      r'$\mathbf{Esc:}$ exit annotation mode & close window'])
         instructions = '\n'.join(
-            [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',
-             r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
-             r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
-             r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
-             r'$\mathbf{Esc:}$ exit annotation mode & close window'])
+            ['Left click & drag on plot: create/modify annotation',
+             'Right click on plot annotation: delete annotation',
+             'Type in annotation window: modify new label name',
+             'Enter (or click button): add new label to list',
+             'Esc: exit annotation mode & close window'])
         instructions_ax.text(0, 1, instructions, va='top', ha='left',
-                             usetex=False)  # force use of MPL TeX parser
+                             usetex=False)  # force use of MPL mathtext parser
         instructions_ax.set_axis_off()
         # append text entry axes at bottom
         text_entry_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
@@ -924,7 +932,8 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_transform(ax.transData)
             center = ax.transData.inverted().transform(
                 ax.transAxes.transform((0.1, 0)))
-            circle.set_center((center[0], circle.center[1]))
+            # XXX older MPL doesn't have circle.set_center
+            circle.center = (center[0], circle.center[1])
             circle.set_edgecolor(
                 self.mne.annotation_segment_colors[label.get_text()])
             circle.set_linewidth(4)
@@ -1118,12 +1127,15 @@ class MNEBrowseFigure(MNEFigure):
         """Create channel selection dialog window."""
         from matplotlib.colors import to_rgb
         from matplotlib.widgets import RadioButtons
+        from matplotlib.gridspec import GridSpec
         # make figure
         fig = self._new_child_figure(figsize=(3, 7),
                                      FigureClass=MNESelectionFigure,
                                      fig_name='fig_selection',
                                      window_title='Channel selection')
-        gs = fig.add_gridspec(15, 1)
+        # XXX when matplotlib 3.3 is min version, replace this with
+        # XXX gs = fig.add_gridspec(15, 1)
+        gs = GridSpec(nrows=15, ncols=1)
         # add sensor plot at top
         fig.mne.sensor_ax = fig.add_subplot(gs[:5])
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
@@ -1491,8 +1503,13 @@ class MNEBrowseFigure(MNEFigure):
                           for t in ticklabels]  # avoid having to rotate labels
             ticklabels = np.array(ticklabels)[keep_mask]
         elif self.mne.butterfly:
-            _, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
-                                       self.mne.ch_types, return_indices=True)
+            # XXX when numpy 1.15 is min version, replace next line with
+            #_, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
+            #                           self.mne.ch_types, return_indices=True)
+            ixs = [_DATA_CH_TYPES_ORDER_DEFAULT.index(x) for x in
+                   np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[
+                       np.in1d(_DATA_CH_TYPES_ORDER_DEFAULT,
+                               self.mne.ch_types)]]
             ixs.sort()
             ticklabels = np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[ixs]
         else:
