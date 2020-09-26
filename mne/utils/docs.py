@@ -1793,7 +1793,6 @@ reject : dict | None
 docdict['reject_drop_bad'] = f"""
 reject : dict | str | None
 {reject_common}
-
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """
