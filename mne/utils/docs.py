@@ -1775,10 +1775,10 @@ reject_common = """
     Example::
 
         reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
-                        mag=4e-12,      # unit: T (magnetometers)
-                        eeg=40e-6,      # unit: V (EEG channels)
-                        eog=250e-6      # unit: V (EOG channels)
-                        )
+                      mag=4e-12,      # unit: T (magnetometers)
+                      eeg=40e-6,      # unit: V (EEG channels)
+                      eog=250e-6      # unit: V (EOG channels)
+                      )
 
     .. note:: Since rejection is based on a signal **difference**
               calculated for each channel separately, applying baseline
