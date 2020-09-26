@@ -1761,6 +1761,42 @@ docdict['baseline_report'] = """%(rescale_baseline)s
     For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
 """ % docdict
 
+# Epochs
+reject_common = """
+    Reject epochs based on peak-to-peak signal amplitude (PTP), i.e. the
+    absolute difference between the lowest and the highest signal value. In
+    each individual epoch, the PTP is calculated for every channel. If the
+    PTP of any one channel exceeds the rejection threshold, the respective
+    epoch will be dropped.
+
+    The dictionary keys correspond to the different channel types; valid
+    keys are: ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, and ``'ecg'``.
+
+    Example::
+
+        reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
+                        mag=4e-12,      # unit: T (magnetometers)
+                        eeg=40e-6,      # unit: V (EEG channels)
+                        eog=250e-6      # unit: V (EOG channels)
+                        )
+
+    .. note:: Since rejection is based on a signal **difference**
+              calculated for each channel separately, applying baseline
+              correction does not affect the rejection procedure, as the
+              difference will be preserved.
+"""
+docdict['reject_epochs'] = f"""
+reject : dict | None
+{reject_common}
+    If ``reject`` is ``None`` (default), no rejection is performed.
+"""
+docdict['reject_drop_bad'] = f"""
+reject : dict | str | None
+{reject_common}
+
+    If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
+    (default), then the rejection parameters set at instantiation are used.
+"""
 
 # Finalize
 docdict = unindent_dict(docdict)
