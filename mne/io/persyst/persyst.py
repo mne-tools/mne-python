@@ -75,9 +75,12 @@ class RawPersyst(BaseRaw):
         channelmap_dict = OrderedDict()
         patient_dict = OrderedDict()
         comments_dict = OrderedDict()
+        
 
         # loop through each line in the lay file
         for key, val, section in zip(keys, data, sections):
+            com = []
+            
             if key == '':
                 continue
 
@@ -108,8 +111,29 @@ class RawPersyst(BaseRaw):
             # Patient (All optional)
             elif section == 'patient':
                 patient_dict[key] = val
+
+
             elif section == 'comments':
-                comments_dict[key] = val
+
+                # Adds use case where comments already exists
+                # This will repeated elements as lists
+                if key in comments_dict:
+                    
+                    if type(comments_dict[key]) is list: 
+
+                        # If list already there just add to the list
+                        com  = comments_dict.setdefault(key,[])
+                        
+                        if val not in comments_dict[key]:
+                            com.append(val)
+                    else: 
+                        # First value is tuple; so change to list
+                        com.append(val)
+                        comments_dict[key] = com
+
+                #Regular annotations
+                else:
+                    comments_dict[key] = val
 
         # get numerical metadata
         # datatype is either 7 for 32 bit, or 0 for 16 bit
@@ -204,20 +228,32 @@ class RawPersyst(BaseRaw):
             last_samps=[n_samples - 1],
             raw_extras=[raw_extras], verbose=verbose)
 
-        # set annotations based on the comments read in
-        num_comments = len(comments_dict)
-        onset = np.zeros(num_comments, float)
-        duration = np.zeros(num_comments, float)
-        description = [''] * num_comments
-        for t_idx, (_description, (_onset, _duration)) in \
-                enumerate(comments_dict.items()):
-            # extract the onset, duration, description to
-            # create an Annotations object
-            onset[t_idx] = _onset
-            duration[t_idx] = _duration
-            description[t_idx] = _description
+        # set annotations on empty numpy lists
+        onset = np.empty([0,0])
+        duration = np.empty([0,0])
+        description = []
+
+        # Unpack annotations including annotations in clists
+        for i, (_description, onset_duration) in enumerate(comments_dict.items()):
+
+            if type (onset_duration) is list: 
+                # if anotations are lists unpack the individual elements
+                for ix, (_onset, _duration) in enumerate(onset_duration):
+                    onset = np.append(onset, _onset)
+                    duration = np.append(duration, _duration)
+                    description = np.append(description, _description)
+
+            else:
+                _onset, _duration = onset_duration
+                onset = np.append(onset, _onset)
+                duration = np.append(duration, _duration)
+                description = np.append(description, _description)
+
+        # Create anotation elements even if repeated instances
         annot = Annotations(onset, duration, description)
         self.set_annotations(annot)
+
+
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
