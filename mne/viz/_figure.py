@@ -1557,6 +1557,7 @@ class MNEBrowseFigure(MNEFigure):
             _slice = slice(self.mne.ch_start,
                            self.mne.ch_start + self.mne.n_channels)
             self.mne.picks = self.mne.ch_order[_slice]
+            self.mne.n_channels = len(self.mne.picks)
 
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
