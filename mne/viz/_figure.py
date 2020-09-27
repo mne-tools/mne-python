@@ -54,6 +54,8 @@ class MNEFigure(Figure):
         if event.key == self.mne.close_key:
             from matplotlib.pyplot import close
             close(self)
+        elif event.key == 'f11':  # full screen
+            self.canvas.manager.full_screen_toggle()
 
     def _buttonpress(self, event):
         """Handle buttonpress events."""
@@ -501,7 +503,6 @@ class MNEBrowseFigure(MNEFigure):
 
     def _keypress(self, event):
         """Handle keypress events."""
-        from matplotlib.pyplot import get_current_fig_manager
         key = event.key
         n_channels = self.mne.n_channels
         # scroll up/down
@@ -576,7 +577,7 @@ class MNEBrowseFigure(MNEFigure):
         elif key == '?':  # help
             self._toggle_help_fig(event)
         elif key == 'f11':  # full screen
-            get_current_fig_manager().full_screen_toggle()
+            self.canvas.manager.full_screen_toggle()
         elif key == 'a':  # annotation mode
             self._toggle_annotation_fig()
         elif key == 'b':  # butterfly mode
