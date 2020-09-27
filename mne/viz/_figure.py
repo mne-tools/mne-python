@@ -1504,8 +1504,8 @@ class MNEBrowseFigure(MNEFigure):
             ticklabels = np.array(ticklabels)[keep_mask]
         elif self.mne.butterfly:
             # XXX when numpy 1.15 is min version, replace next line with
-            #_, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
-            #                           self.mne.ch_types, return_indices=True)
+            # _, ixs, _ = np.intersect1d(_DATA_CH_TYPES_ORDER_DEFAULT,
+            #                            self.mne.ch_types,return_indices=True)
             ixs = [_DATA_CH_TYPES_ORDER_DEFAULT.index(x) for x in
                    np.array(_DATA_CH_TYPES_ORDER_DEFAULT)[
                        np.in1d(_DATA_CH_TYPES_ORDER_DEFAULT,
