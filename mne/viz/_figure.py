@@ -1263,7 +1263,7 @@ class MNEBrowseFigure(MNEFigure):
             if active:
                 labels[ix] += ' (already applied)'
         # make figure
-        width = max([4, max([len(label) for label in labels]) / 8 + 0.5])
+        width = max([4.5, max([len(label) for label in labels]) / 8 + 0.5])
         height = (len(projs) + 1) / 6 + 1.5
         fig = self._new_child_figure(figsize=(width, height),
                                      fig_name='fig_proj',
