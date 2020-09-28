@@ -119,6 +119,8 @@ class MNEAnnotationFigure(MNEFigure):
         parent = self.mne.parent_fig
         # disable span selector
         parent.mne.ax_main.selector.active = False
+        # clear hover line
+        parent._remove_annotation_hover_line()
         # disconnect hover callback
         callback_id = parent.mne._callback_ids['motion_notify_event']
         parent.canvas.callbacks.disconnect(callback_id)
