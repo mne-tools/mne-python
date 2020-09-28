@@ -160,11 +160,8 @@ def test_ica_n_iter_(method):
     max_iter = 1
     ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
 
-    if method == 'infomax':
-        ica.fit(raw)
-    else:
-        with pytest.warns(UserWarning, match='did not converge'):
-            ica.fit(raw)
+    with pytest.warns(RuntimeWarning, match='appears to be rank-deficient'):
+        ica.fit(raw, check_rank=False)
 
     assert_equal(ica.n_iter_, max_iter)
 
@@ -203,10 +200,51 @@ def test_ica_rank_reduction(method):
         rank_after = _compute_rank_int(raw_clean.copy().pick(picks),
                                        proj=False)
         # interaction between ICA rejection and PCA components difficult
-        # to preduct. Rank_after often seems to be 1 higher then
+        # to preduct. Rank_after often seems to be 1 higher than
         # n_pca_components
         assert (n_components < n_pca_components <= rank_after <=
                 rank_before)
+
+
+@requires_sklearn
+@pytest.mark.parametrize('method', ('infomax', 'fastica', 'picard'))
+@pytest.mark.parametrize('check_rank', (False, True))
+def test_ica_check_rank(method, check_rank):
+    """Test recovery ICA rank reduction."""
+    _skip_check_picard(method)
+
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    rank = _compute_rank_int(raw, verbose=False)
+    kwargs = dict(method=method, max_iter=1)
+
+    assert raw.info['projs'] != []
+    assert rank < len(raw.ch_names)
+
+    # Test max_pca_components == None with rank-deficient data.
+    max_pca_components = None
+    ica = ICA(max_pca_components=max_pca_components, **kwargs)
+
+    if check_rank:
+        match = 'It is STRONGLY advised to perform rank reduction'
+    else:
+        match = 'Data appears to be rank-deficient; proceeding .* anyway'
+
+    with pytest.warns(RuntimeWarning, match=match):
+        ica.fit(raw, check_rank=check_rank)
+
+    # Test max_pca_components == n_channels with rank-deficient data.
+    max_pca_components = len(raw.copy()
+                             .pick_types(meg=True, eeg=True)
+                             .ch_names)
+    ica = ICA(max_pca_components=max_pca_components, **kwargs)
+
+    if check_rank:
+        match = 'we expect the data will still be rank-deficient'
+    else:
+        match = 'Data is expected to be rank-deficient after PCA;'
+
+    with pytest.warns(RuntimeWarning, match=match): 
+        ica.fit(raw, check_rank=check_rank)
 
 
 @requires_sklearn
@@ -288,12 +326,12 @@ def test_ica_core(method):
             ica.get_sources(epochs)
 
         # Test error upon empty epochs fitting
-        with pytest.raises(RuntimeError, match='none were found'):
-            ica.fit(epochs[0:0])
+        with pytest.raises(ValueError, match='need at least one array'):
+            ica.fit(epochs[0:0], check_rank=False)
 
         # test decomposition
         with pytest.warns(UserWarning, match='did not converge'):
-            ica.fit(raw, picks=pcks, start=start, stop=stop)
+            ica.fit(raw, picks=pcks, start=start, stop=stop, check_rank=False)
         repr(ica)  # to test repr
         assert ('mag' in ica)  # should now work without error
 
@@ -777,7 +815,8 @@ def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     ica = ICA(n_components=2, method=method)
-    ica.fit(raw)
+    with pytest.warns(RuntimeWarning, match='appears to be rank-deficient'):
+        ica.fit(raw, check_rank=False)
     ica.detect_artifacts(raw, start_find=0, stop_find=5, ecg_ch=ch_name,
                          eog_ch=ch_name, skew_criterion=idx,
                          var_criterion=idx, kurt_criterion=idx)
@@ -795,8 +834,9 @@ def test_ica_reject_buffer(method):
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4,
               method=method)
     with catch_logging() as drop_log:
-        ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-                tstep=0.01, verbose=True, reject_by_annotation=False)
+        with pytest.warns(RuntimeWarning, match='vector.*should be unity'):
+            ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
+                    tstep=0.01, verbose=True, reject_by_annotation=False)
         assert (raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [line for line in drop_log.getvalue().split('\n')
            if 'detected' in line]
@@ -839,27 +879,24 @@ def test_fit_params(method, tmpdir):
     # Test I/O roundtrip.
     # Only picard and infomax support the "extended" keyword, so limit the
     # tests to those.
+    tmpdir = str(tmpdir)
+    output_fname = op.join(tmpdir, 'test_ica-ica.fif')
+
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    n_components = 3
+    max_iter = 1
+    fit_params = dict()
     if method in ['picard', 'infomax']:
-        tmpdir = str(tmpdir)
-        output_fname = op.join(tmpdir, 'test_ica-ica.fif')
-
-        raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
-        n_components = 3
-        max_iter = 1
         fit_params = dict(extended=True)
-        ica = ICA(fit_params=fit_params, n_components=n_components,
-                  max_iter=max_iter, method=method)
-        fit_params_after_instantiation = ica.fit_params
+    ica = ICA(fit_params=fit_params, n_components=n_components,
+              max_iter=max_iter, method=method)
+    fit_params_after_instantiation = ica.fit_params
+    with pytest.warns(RuntimeWarning, match='appears to be rank-deficient'):
+        ica.fit(raw, check_rank=False)
 
-        if method == 'infomax':
-            ica.fit(raw)
-        else:
-            with pytest.warns(UserWarning, match='did not converge'):
-                ica.fit(raw)
-
-        ica.save(output_fname)
-        ica = read_ica(output_fname)
-
+    ica.save(output_fname)
+    ica = read_ica(output_fname)
+    if method in ['picard', 'infomax']:
         assert ica.fit_params == fit_params_after_instantiation
 
 
@@ -928,14 +965,16 @@ def test_eog_channel(method):
         picks1b = pick_types(inst.info, meg=False, stim=False, ecg=False,
                              eog=True, exclude='bads')
         picks1 = np.append(picks1a, picks1b)
-        ica.fit(inst, picks=picks1)
+        with pytest.warns(RuntimeWarning, match='vector.*should be unity'):
+            ica.fit(inst, picks=picks1)
         assert (any('EOG' in ch for ch in ica.ch_names))
         _assert_ica_attributes(ica)
     # Test case for MEG data. Should have no EOG channel
     for inst in [raw, epochs]:
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')[:5]
-        ica.fit(inst, picks=picks1)
+        with pytest.warns(RuntimeWarning, match='vector.*should be unity'):
+            ica.fit(inst, picks=picks1)
         _assert_ica_attributes(ica)
         assert not any('EOG' in ch for ch in ica.ch_names)
 

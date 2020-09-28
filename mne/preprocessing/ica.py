@@ -60,6 +60,7 @@ from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import pick_channels_regexp
+from ..rank import _compute_rank_int
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -428,7 +429,7 @@ class ICA(ContainsMixin):
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
             reject=None, flat=None, tstep=2.0, reject_by_annotation=True,
-            verbose=None):
+            check_rank=True, verbose=None):
         """Run the ICA decomposition on raw data.
 
         Caveat! If supplying a noise covariance keep track of the projections
@@ -477,6 +478,14 @@ class ICA(ContainsMixin):
         %(reject_by_annotation_raw)s
 
             .. versionadded:: 0.14.0
+        check_rank : bool
+            Whether to raise a helpful warning if the data is
+            rank-deficient. Performing ICA on rank-deficient data can lead to
+            poor performance and unexpected results. Defaults to ``True``.
+            Starting with MNE-Python version 0.23, this will raise an
+            exception instead of a warning.
+
+            .. versionadded:: 0.22
         %(verbose_meth)s
 
         Returns
@@ -495,8 +504,11 @@ class ICA(ContainsMixin):
         if self.current_fit != 'unfitted':
             self._reset()
 
-        logger.info('Fitting ICA to data using %i channels '
-                    '(please be patient, this may take a while)' % len(picks))
+        logger.info(f'Fitting ICA to data using {len(picks)} channels '
+                    f'(please be patient, this may take a while)')
+
+        # Will be used for rank checking below.
+        max_pca_components_orig = self.max_pca_components
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
@@ -513,6 +525,62 @@ class ICA(ContainsMixin):
 
         # filter out all the channels the raw wouldn't have initialized
         self.info = pick_info(inst.info, picks)
+
+        # Estimate rank here
+        logger.info('Estimating data rank …')
+        data = inst.copy().pick(picks)
+        # XXX Is this necessary?
+        rank = min(_compute_rank_int(data, rank='info', verbose=False),
+                   _compute_rank_int(data, rank=None, verbose=False))
+        logger.info(f'Estimated data rank: {rank}')
+        del data
+
+        if (not check_rank and rank < self.max_pca_components and
+                max_pca_components_orig is None):
+            warn('Data appears to be rank-deficient; proceeding with ICA '
+                 'anyway, because you passed check_rank=False')
+        elif not check_rank and rank < self.max_pca_components:
+            warn('Data is expected to be rank-deficient after PCA; '
+                 'proceeding with ICA anyway, because you passed '
+                 'check_rank=False')
+        elif check_rank and rank < self.max_pca_components:
+            if max_pca_components_orig is None:
+                msg = ('You requested to fit an ICA solution with '
+                       'max_pca_components=None; however, the data appears '
+                       'to be rank-deficient. This can be caused through SSP '
+                       'projections or certain referencing schemes, e.g. '
+                       'an EEG average reference. It is STRONGLY advised to '
+                       'perform rank reduction using PCA prior to ICA in '
+                       'order to ensure proper operation of the ICA '
+                       'algorithm.\n\n')
+            else:
+                msg = (f'You requested to fit an ICA solution with '
+                       f'max_pca_components={max_pca_components_orig}; '
+                       f'however, we expect the data will still be '
+                       f'rank-deficient after dimensionality reduction.\n\n')
+
+            n_projs = len(self.info['projs'])
+            if n_projs > 0:
+                msg += (f"There are currently {n_projs} projection "
+                        f"vectors stored in info['projs'].\n\n")
+            del n_projs
+
+            msg += (f'The rank of your data was estimated to be {rank}, '
+                    f'therefore we recommend instantiating the ICA object '
+                    f'via:\n\n'
+                    f'    ICA(..., '
+                    f'max_pca_components={int(np.floor(rank))})'
+                    f'\n\n(or using an even smaller number).'
+                    f'\n\nIf you believe '
+                    f'you know what you are doing and simply wish to disable '
+                    f'this error message, pass check_rank=False to ICA.fit(). '
+                    f'You have been warned!')
+
+            warn(msg)
+        else:
+            pass
+
+        del max_pca_components_orig
 
         if self.info['comps']:
             self.info['comps'] = []
