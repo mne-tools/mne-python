@@ -696,14 +696,13 @@ class MNEBrowseFigure(MNEFigure):
                                      window_title=f'Location of {ch_name}')
         ax = fig.add_subplot()
         title = f'{ch_name} position ({_channel_type_prettyprint[ch_type]})'
-        plot_sensors(self.mne.info, ch_type=ch_type, axes=ax, title=title,
-                     kind='select')
+        fig, _ = plot_sensors(self.mne.info, ch_type=ch_type, axes=ax,
+                              title=title, kind='select')
         inds = np.in1d(fig.lasso.ch_names, [ch_name])
         fig.lasso.disconnect()
         fig.lasso.alpha_other = 0.3
         fig.lasso.linewidth_selected = 3
         fig.lasso.style_sensors(inds)
-        fig.mne.parent_fig.mne.foo = ax.collections[0]
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
