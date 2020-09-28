@@ -111,7 +111,7 @@ class Brain(object):
        :widths: auto
 
        +---------------------------+--------------+---------------+
-       | 3D class:                 | surfer.Brain | mne.viz.Brain |
+       | 3D function:              | surfer.Brain | mne.viz.Brain |
        +===========================+==============+===============+
        | add_annotation            | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -1780,7 +1780,9 @@ class Brain(object):
             return self.time_viewer.picked_points
 
     def __hash__(self):
+        """Hash the object."""
         raise NotImplementedError
+
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
     """Work around interp1d not liking singleton dimensions."""
