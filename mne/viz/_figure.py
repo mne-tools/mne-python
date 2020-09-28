@@ -701,7 +701,7 @@ class MNEBrowseFigure(MNEFigure):
         inds = np.in1d(fig.lasso.ch_names, [ch_name])
         fig.lasso.disconnect()
         fig.lasso.alpha_other = 0.3
-        fig.lasso.linewidth_selected = 2
+        fig.lasso.linewidth_selected = 3
         fig.lasso.style_sensors(inds)
         fig.mne.parent_fig.mne.foo = ax.collections[0]
 
@@ -1150,7 +1150,8 @@ class MNEBrowseFigure(MNEFigure):
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
                      axes=fig.mne.sensor_ax, ch_groups=self.mne.group_by,
                      show=False)
-        # style the sensors so their facecolor is easier to distinguish
+        # style the sensors so the selection is easier to distinguish
+        fig.lasso.linewidth_selected = 2
         self._update_highlighted_sensors()
         # add radio button axes
         radio_ax = fig.add_subplot(gs[5:-3], frame_on=False, aspect='equal')
