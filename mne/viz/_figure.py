@@ -768,8 +768,10 @@ class MNEBrowseFigure(MNEFigure):
         rclick_name = dict(ica='Show diagnostics for component',
                            epoch='Show imageplot for channel',
                            raw='Show channel location')[inst]
-        ldrag = ('Show spectrum plot for selected time span;\nor (in '
-                 'annotation mode) add annotation') if inst == 'raw' else None
+        # TODO not yet implemented
+        # ldrag = ('Show spectrum plot for selected time span;\nor (in '
+        #          'annotation mode) add annotation') if inst== 'raw' else None
+        ldrag = 'add annotation (in annotation mode)' if is_raw else None
         noise_cov = (None if self.mne.noise_cov is None else
                      'Toggle signal whitening')
         # below, value " " is a hack to make "\n".split(value) have length 1
