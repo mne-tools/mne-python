@@ -291,5 +291,5 @@ def get_brain_class():
     if get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
-        from ...viz._brain import _Brain as Brain
+        from ...viz._brain import Brain
     return Brain

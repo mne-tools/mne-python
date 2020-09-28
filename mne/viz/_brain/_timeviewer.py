@@ -15,7 +15,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from ._brain import _Brain
+from ._brain import Brain
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 from .mplcanvas import MplCanvas
@@ -38,7 +38,7 @@ def safe_event(fun, *args, **kwargs):
 
 
 class _TimeViewer(object):
-    """Class to interact with _Brain."""
+    """Class to interact with Brain."""
 
     def __init__(self, brain, show_traces=False):
         from ..backends._pyvista import _require_minimum_version
@@ -244,7 +244,7 @@ class _TimeViewer(object):
         # restore cursor
         self.interactor.setCursor(default_cursor)
 
-    @copy_doc(_Brain.save_movie)
+    @copy_doc(Brain.save_movie)
     def save_movie(self, filename=None, **kwargs):
         try:
             from pyvista.plotting.qt_plotting import FileDialog

@@ -29,13 +29,13 @@ from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
 
 
 @fill_doc
-class _Brain(object):
+class Brain(object):
     """Class for visualizing a brain.
 
-    It is used for creating meshes of the given subject's
-    cortex. The activation data can be shown on a mesh using add_data
-    method. Figures, meshes, activation data and other information
-    are stored as attributes of a class instance.
+    .. warning::
+       The API for this class is not currently complete. We suggest using
+       :meth:`mne.viz.plot_source_estimates` with the PyVista backend
+       enabled to obtain a ``Brain`` instance.
 
     Parameters
     ----------
@@ -110,55 +110,55 @@ class _Brain(object):
     .. table::
        :widths: auto
 
-       +---------------------------+--------------+-----------------------+
-       | 3D function:              | surfer.Brain | mne.viz._brain._Brain |
-       +===========================+==============+=======================+
-       | add_annotation            | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | add_data                  | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | add_foci                  | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | add_label                 | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | add_text                  | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | close                     | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | data                      | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | foci                      | ✓            |                       |
-       +---------------------------+--------------+-----------------------+
-       | labels                    | ✓            |                       |
-       +---------------------------+--------------+-----------------------+
-       | labels_dict               | ✓            |                       |
-       +---------------------------+--------------+-----------------------+
-       | remove_data               | ✓            |                       |
-       +---------------------------+--------------+-----------------------+
-       | remove_foci               | ✓            |                       |
-       +---------------------------+--------------+-----------------------+
-       | remove_labels             | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | save_image                | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | save_movie                | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | screenshot                | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | show_view                 | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | TimeViewer                | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | enable_depth_peeling      |              | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | get_picked_points         |              | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | add_data(volume)          |              | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | view_layout               |              | ✓                     |
-       +---------------------------+--------------+-----------------------+
-       | flatmaps                  |              | ✓                     |
-       +---------------------------+--------------+-----------------------+
+       +---------------------------+--------------+---------------+
+       | 3D function:              | surfer.Brain | mne.viz.Brain |
+       +===========================+==============+===============+
+       | add_annotation            | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_data                  | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_foci                  | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_label                 | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_text                  | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | close                     | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | data                      | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | foci                      | ✓            |               |
+       +---------------------------+--------------+---------------+
+       | labels                    | ✓            |               |
+       +---------------------------+--------------+---------------+
+       | labels_dict               | ✓            |               |
+       +---------------------------+--------------+---------------+
+       | remove_data               | ✓            |               |
+       +---------------------------+--------------+---------------+
+       | remove_foci               | ✓            |               |
+       +---------------------------+--------------+---------------+
+       | remove_labels             | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | save_image                | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | save_movie                | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | screenshot                | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | show_view                 | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | TimeViewer                | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | enable_depth_peeling      |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | get_picked_points         |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_data(volume)          |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | view_layout               |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | flatmaps                  |              | ✓             |
+       +---------------------------+--------------+---------------+
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
@@ -769,7 +769,7 @@ class _Brain(object):
             "crimson").
         alpha : float in [0, 1]
             Alpha level to control opacity.
-        scalar_thresh : None or number
+        scalar_thresh : None | float
             Threshold the label ids using this value in the label
             file's scalar field (i.e. label only vertices with
             scalar >= thresh).
@@ -905,7 +905,7 @@ class _Brain(object):
             vertex ids (with ``coord_as_verts=True``).
         coords_as_verts : bool
             Whether the coords parameter should be interpreted as vertex ids.
-        map_surface : Freesurfer surf or None
+        map_surface : None
             Surface to map coordinates through, or None to use raw coords.
         scale_factor : float
             Controls the size of the foci spheres (relative to 1cm).
@@ -949,9 +949,9 @@ class _Brain(object):
 
         Parameters
         ----------
-        x : Float
+        x : float
             X coordinate.
-        y : Float
+        y : float
             Y coordinate.
         text : str
             Text to add.
@@ -1007,7 +1007,7 @@ class _Brain(object):
         color : matplotlib-style color code
             If used, show all annotations in the same (specified) color.
             Probably useful only when showing annotation borders.
-        **kwargs : additional keyword arguments
+        **kwargs : dict
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
@@ -1543,8 +1543,8 @@ class _Brain(object):
         ----------
         filename : str
             Path at which to save the movie. The extension determines the
-            format (e.g., `'*.mov'`, `'*.gif'`, ...; see the :mod:`imageio`
-            documenttion for available formats).
+            format (e.g., ``'*.mov'``, ``'*.gif'``, ...; see the :mod:`imageio`
+            documentation for available formats).
         time_dilation : float
             Factor by which to stretch time (default 4). For example, an epoch
             from -100 to 600 ms lasts 700 ms. With ``time_dilation=4`` this
@@ -1778,6 +1778,10 @@ class _Brain(object):
         """
         if hasattr(self, "time_viewer"):
             return self.time_viewer.picked_points
+
+    def __hash__(self):
+        """Hash the object."""
+        raise NotImplementedError
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
