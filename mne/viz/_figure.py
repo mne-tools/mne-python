@@ -576,7 +576,7 @@ class MNEBrowseFigure(MNEFigure):
             if self.mne.duration != old_dur:
                 self._update_hscroll()
                 self._redraw()
-        elif key == '?':  # help
+        elif key == '?':  # help window
             self._toggle_help_fig(event)
         elif key == 'f11':  # full screen
             self.canvas.manager.full_screen_toggle()
