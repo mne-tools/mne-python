@@ -1266,7 +1266,7 @@ transparent : bool | None
 """
 docdict["brain_time_interpolation"] = """
 interpolation : str | None
-    Interpolation method (:func:`scipy.interpolate.interp1d` parameter).
+    Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
     Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
     or 'cubic'.
 """

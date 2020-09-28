@@ -111,7 +111,7 @@ class Brain(object):
        :widths: auto
 
        +---------------------------+--------------+---------------+
-       | 3D class:                 | surfer.Brain | mne.viz.Brain |
+       | 3D function:              | surfer.Brain | mne.viz.Brain |
        +===========================+==============+===============+
        | add_annotation            | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -769,7 +769,7 @@ class Brain(object):
             "crimson").
         alpha : float in [0, 1]
             Alpha level to control opacity.
-        scalar_thresh : None or number
+        scalar_thresh : None | float
             Threshold the label ids using this value in the label
             file's scalar field (i.e. label only vertices with
             scalar >= thresh).
@@ -905,7 +905,7 @@ class Brain(object):
             vertex ids (with ``coord_as_verts=True``).
         coords_as_verts : bool
             Whether the coords parameter should be interpreted as vertex ids.
-        map_surface : Freesurfer surf or None
+        map_surface : None
             Surface to map coordinates through, or None to use raw coords.
         scale_factor : float
             Controls the size of the foci spheres (relative to 1cm).
@@ -949,9 +949,9 @@ class Brain(object):
 
         Parameters
         ----------
-        x : Float
+        x : float
             X coordinate.
-        y : Float
+        y : float
             Y coordinate.
         text : str
             Text to add.
@@ -1007,7 +1007,7 @@ class Brain(object):
         color : matplotlib-style color code
             If used, show all annotations in the same (specified) color.
             Probably useful only when showing annotation borders.
-        **kwargs : additional keyword arguments
+        **kwargs : dict
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
@@ -1543,8 +1543,8 @@ class Brain(object):
         ----------
         filename : str
             Path at which to save the movie. The extension determines the
-            format (e.g., `'*.mov'`, `'*.gif'`, ...; see the :mod:`imageio`
-            documenttion for available formats).
+            format (e.g., ``'*.mov'``, ``'*.gif'``, ...; see the :mod:`imageio`
+            documentation for available formats).
         time_dilation : float
             Factor by which to stretch time (default 4). For example, an epoch
             from -100 to 600 ms lasts 700 ms. With ``time_dilation=4`` this
@@ -1779,6 +1779,8 @@ class Brain(object):
         if hasattr(self, "time_viewer"):
             return self.time_viewer.picked_points
 
+    def __hash__(self):
+        raise NotImplementedError
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
     """Work around interp1d not liking singleton dimensions."""

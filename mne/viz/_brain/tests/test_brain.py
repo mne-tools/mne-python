@@ -230,7 +230,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
 @testing.requires_testing_data
 @pytest.mark.slowtest
 def test_brain_save_movie(tmpdir, renderer):
-    """Test saving a movie of a _Brain instance."""
+    """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
     brain_data = _create_testing_brain(hemi='lh', time_viewer=False)
