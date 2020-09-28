@@ -381,7 +381,7 @@ class MNEBrowseFigure(MNEFigure):
         # HELP BUTTON: make it a proper button
         # XXX when matplotlib 3.0 is min version,
         # XXX uncomment next line and remove self._post_init()
-        # _ = Button(ax_help, 'Help')  # listener handled in _buttonpress()
+        # self.mne.button_help = Button(ax_help, 'Help')
         # PROJ BUTTON
         ax_proj = None
         if len(self.mne.projs) and not inst.proj:
@@ -396,7 +396,7 @@ class MNEBrowseFigure(MNEFigure):
             ax_proj.set_axes_locator(loc)
             # XXX when matplotlib 3.0 is min version,
             # XXX uncomment next line and remove self._post_init()
-            # _ = Button(ax_proj, 'Prj')  # listener handled in _buttonpress()
+            # self.mne.button_proj = Button(ax_proj, 'Prj')
 
         # INIT TRACES
         self.mne.traces = ax_main.plot(
@@ -415,9 +415,9 @@ class MNEBrowseFigure(MNEFigure):
         """Make buttons (fix for older matplotlib (older than 3.0?) XXX)."""
         from matplotlib.widgets import Button
         # HELP BUTTON: make it a proper button
-        _ = Button(self.mne.ax_help, 'Help')
+        self.mne.button_help = Button(self.mne.ax_help, 'Help')
         if len(self.mne.projs) and not self.mne.inst.proj:
-            _ = Button(self.mne.ax_proj, 'Prj')
+            self.mne.button_proj = Button(self.mne.ax_proj, 'Prj')
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
