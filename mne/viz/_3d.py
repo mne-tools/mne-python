@@ -1557,13 +1557,13 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
     if _get_3d_backend() != 'pyvista':
         raise NotImplementedError("Expected 3d backend is pyvista but"
                                   " {} was given.".format(_get_3d_backend()))
-    from ._brain import _Brain, _TimeViewer, _LinkViewer
+    from ._brain import Brain, _TimeViewer, _LinkViewer
     if not isinstance(brains, Iterable):
         brains = [brains]
     if len(brains) == 0:
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
-        if isinstance(brain, _Brain):
+        if isinstance(brain, Brain):
             # check if the _TimeViewer wrapping is not already applied
             if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
                 brain = _TimeViewer(brain)
@@ -1790,7 +1790,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         from surfer import Brain
         _require_version('surfer', 'stc.plot', '0.9')
     else:  # PyVista
-        from ._brain import _Brain as Brain
+        from ._brain import Brain
     views = _check_views(surface, views, hemi, stc, backend)
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
