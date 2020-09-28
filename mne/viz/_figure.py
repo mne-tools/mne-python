@@ -587,6 +587,8 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
             self._redraw()
+        elif key == 'j':  # SSP window
+            self._toggle_proj_fig()
         elif key == 'p':  # toggle draggable annotations
             self._toggle_draggable_annotations(event)
             if self.mne.fig_annotation is not None:
@@ -748,6 +750,7 @@ class MNEBrowseFigure(MNEFigure):
         """Generate help dialog text; `None`-valued entries removed later."""
         is_mac = platform.system() == 'Darwin'
         inst = self.mne.instance_type
+        is_raw = inst == 'raw'
         ch_cmp = 'component' if inst == 'ica' else 'channel'
         ch_epo = 'epoch' if inst == 'epochs' else 'channel'
         ica_bad = 'Mark/unmark component for exclusion'
@@ -784,12 +787,13 @@ class MNEBrowseFigure(MNEFigure):
             ('+ or =', 'Increase signal scaling'),
             ('-', 'Decrease signal scaling'),
             ('b', 'Toggle butterfly mode' if inst != 'ica' else None),
-            ('d', 'Toggle DC removal' if inst == 'raw' else None),
+            ('d', 'Toggle DC removal' if is_raw else None),
             ('w', noise_cov),
             ('h', 'Show peak-to-peak histogram' if inst == 'epochs' else None),
             ('_USER INTERFACE', ' '),
-            ('a', 'Toggle annotation mode' if inst == 'raw' else None),
-            ('p', 'Toggle draggable annotations' if inst == 'raw' else None),
+            ('a', 'Toggle annotation mode' if is_raw else None),
+            ('j', 'Toggle SSP projector window' if is_raw else None),
+            ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if inst != 'ica' else None),
             ('z', 'Toggle scrollbars'),
             ('F11', 'Toggle fullscreen'),
