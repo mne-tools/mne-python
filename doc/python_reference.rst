@@ -225,6 +225,7 @@ Visualization
 .. autosummary::
    :toctree: generated/
 
+   Brain
    ClickableImage
    add_background_image
    centers_to_edges

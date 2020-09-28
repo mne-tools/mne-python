@@ -1,6 +1,6 @@
 from distutils.version import LooseVersion
 
-from ._brain import _Brain
+from ._brain import Brain
 
 
 class _BrainScraper(object):
@@ -15,7 +15,7 @@ class _BrainScraper(object):
             # Only need to process if it's a brain with a time_viewer
             # with traces on and shown in the same window, otherwise
             # PyVista and matplotlib scrapers can just do the work
-            if (not isinstance(brain, _Brain)) or brain._closed:
+            if (not isinstance(brain, Brain)) or brain._closed:
                 continue
             import matplotlib
             from matplotlib import animation, pyplot as plt

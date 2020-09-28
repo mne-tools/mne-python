@@ -20,7 +20,7 @@ from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
 from mne.utils import check_version
-from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer, _BrainScraper
+from mne.viz._brain import Brain, _TimeViewer, _LinkViewer, _BrainScraper
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
@@ -94,7 +94,7 @@ class TstVTKPicker(object):
 
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio):
-    """Test initialization of the _Brain instance."""
+    """Test initialization of the Brain instance."""
     from mne.label import read_label
     hemi = 'lh'
     surf = 'inflated'
@@ -104,18 +104,18 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
 
     kwargs = dict(subject_id=subject_id, subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='"size" parameter must be'):
-        _Brain(hemi=hemi, surf=surf, size=[1, 2, 3], **kwargs)
+        Brain(hemi=hemi, surf=surf, size=[1, 2, 3], **kwargs)
     with pytest.raises(TypeError, match='figure'):
-        _Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
+        Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
     with pytest.raises(TypeError, match='interaction'):
-        _Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
+        Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
     with pytest.raises(ValueError, match='interaction'):
-        _Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
+        Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
     with pytest.raises(KeyError):
-        _Brain(hemi='foo', surf=surf, **kwargs)
+        Brain(hemi='foo', surf=surf, **kwargs)
 
-    brain = _Brain(hemi=hemi, surf=surf, size=size, title=title,
-                   cortex=cortex, units='m', **kwargs)
+    brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
+                  cortex=cortex, units='m', **kwargs)
     assert brain.interaction == 'trackball'
     # add_data
     stc = read_source_estimate(fname_stc)
@@ -206,8 +206,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
-    brain = _Brain(subject_id='fsaverage', hemi=hemi, size=size,
-                   surf='inflated', subjects_dir=subjects_dir)
+    brain = Brain(subject_id='fsaverage', hemi=hemi, size=size,
+                  surf='inflated', subjects_dir=subjects_dir)
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(a, b, p, color=color)
 
