@@ -671,8 +671,7 @@ class MNEBrowseFigure(MNEFigure):
             if event.mouseevent.button == 1:  # left click
                 self._toggle_bad_channel(ind)
             elif event.mouseevent.button == 3:  # right click
-                # self._create_ch_location_fig(ind)
-                pass
+                self._create_ch_location_fig(ind)
 
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""

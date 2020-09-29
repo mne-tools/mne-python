@@ -77,7 +77,6 @@ def _annotation_helper(raw, events=False):
         _fake_click(ann_fig, ann_fig.mne.radio_ax, xy, xform='data')
 
     # draw annotation
-    fig.canvas.key_press_event('p')  # use snap mode
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
@@ -90,26 +89,39 @@ def _annotation_helper(raw, events=False):
     want_onset = _sync_onset(raw, 1., inverse=True)
     assert_allclose(onset, want_onset)
     assert_allclose(raw.annotations.duration[n_anns], 4.)
-    # hover event
-    _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
-                kind='motion')
-    _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
-                kind='motion')
-    fig.canvas.key_press_event('p')  # turn off snap mode (removes hover line)
-    # modify annotation from end
+    # test hover event
+    fig.canvas.key_press_event('p')  # first turn on draggable mode
+    assert fig.mne.draggable_annotations
+    hover_kwargs = dict(xform='data', button=None, kind='motion')
+    _fake_click(fig, data_ax, [4.6, 1.], **hover_kwargs)  # well inside ann.
+    _fake_click(fig, data_ax, [4.9, 1.], **hover_kwargs)  # almost at edge
+    assert fig.mne.annotation_hover_line is not None
+    _fake_click(fig, data_ax, [5.5, 1.], **hover_kwargs)  # well outside ann.
+    assert fig.mne.annotation_hover_line is None
+    # more tests of hover line
+    _fake_click(fig, data_ax, [4.6, 1.], **hover_kwargs)  # well inside ann.
+    _fake_click(fig, data_ax, [4.9, 1.], **hover_kwargs)  # almost at edge
+    assert fig.mne.annotation_hover_line is not None
+    fig.canvas.key_press_event('p')  # turn off draggable mode, then move a bit
+    _fake_click(fig, data_ax, [4.95, 1.], **hover_kwargs)
+    assert fig.mne.annotation_hover_line is None
+    fig.canvas.key_press_event('p')  # turn draggable mode back on
+    # modify annotation from end (duration 4 → 1.5)
+    _fake_click(fig, data_ax, [4.9, 1.], xform='data', button=None,
+                kind='motion')  # ease up to it
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
                 kind='release')
     assert raw.annotations.onset[n_anns] == onset
-    assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4->1.5
-    # modify annotation from beginning
+    assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4 → 1.5
+    # modify annotation from beginning (duration 1.5 → 2.0)
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1,
                 kind='release')
     assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
-    assert_allclose(raw.annotations.duration[n_anns], 2.0)
+    assert_allclose(raw.annotations.duration[n_anns], 2.0)  # 1.5 → 2.0
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
@@ -230,6 +242,7 @@ def test_plot_raw_selection():
     fig = raw.plot(group_by='selection', proj=False)
     assert len(plt.get_fignums()) == 2
     sel_fig = fig.mne.fig_selection
+    buttons = sel_fig.mne.radio_ax.buttons
     assert sel_fig is not None
     # test changing selection with arrow keys
     sel_dict = fig.mne.ch_selections
@@ -245,10 +258,16 @@ def test_plot_raw_selection():
     assert len(fig.mne.traces) == len(np.concatenate(list(sel_dict.values())))
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
-    xy = sel_fig.mne.radio_ax.buttons.circles[0].center
+    xy = buttons.circles[0].center
     _fake_click(sel_fig, sel_fig.mne.radio_ax, xy, xform='data')
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
     assert not fig.mne.butterfly
+    # test clicking on "custom" when not defined: should be no-op
+    before_state = buttons.value_selected
+    xy = buttons.circles[-1].center
+    _fake_click(sel_fig, sel_fig.mne.radio_ax, xy, xform='data')
+    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
+    assert buttons.value_selected == before_state                 # unchanged
     # test marking bad channel in selection mode → should make sensor red
     assert sel_fig.lasso.ec[:, 0].sum() == 0  # R of RGBA zero for all chans
     _click_ch_name_helper(fig, ch_index=1, button=1)  # mark bad
@@ -326,10 +345,10 @@ def test_plot_raw_child_figures():
     print(fig.mne.child_figs)
     _child_fig_helper(fig, 'a', 'fig_annotation')
     print(fig.mne.child_figs)
-    # XXX restore this test after refactoring plot_sensors() and re-enabling
-    # XXX right-click behavior
     # # test right-click → channel location popup
-    # _click_ch_name_helper(fig, ch_index=2, button=3)
+    _click_ch_name_helper(fig, ch_index=2, button=3)  # XXX currently no-op
+    # XXX restore these lines after refactoring plot_sensors() and re-enabling
+    # XXX right-click behavior
     # assert len(fig.mne.child_figs) == 1
     # assert len(plt.get_fignums()) == 2
     # fig.mne.child_figs[0].canvas.key_press_event('escape')
@@ -338,6 +357,24 @@ def test_plot_raw_child_figures():
     width, height = fig.canvas.manager.canvas.get_width_height()
     fig.canvas.manager.canvas.resize(width // 2, height // 2)
     plt.close('all')
+
+
+def test_plot_raw_keypresses():
+    """Test keypress interactivity of plot_raw()."""
+    raw = _get_raw()
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
+    fig = raw.plot()
+    # test twice → once in normal, once in butterfly view.
+    # NB: keys a, j, and ? are tested in test_plot_raw_child_figures()
+    keys = ('down', 'up', 'right', 'left', '-', '+', '=', 'd', 'd', 'pageup',
+            'pagedown', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
+    # test for group_by='original'
+    for key in 2 * keys + ('escape',):
+        fig.canvas.key_press_event(key)
+    # test for group_by='selection'
+    fig = plot_raw(raw, group_by='selection')
+    for key in 2 * keys + ('escape',):
+        fig.canvas.key_press_event(key)
 
 
 def test_plot_raw_traces():
@@ -349,22 +386,29 @@ def test_plot_raw_traces():
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
                    group_by='original')
     assert hasattr(fig, 'mne')  # make sure fig.mne param object is present
+    assert len(fig.axes) == 5
 
-    # test mouse clicks
-    x = fig.get_axes()[0].lines[1].get_xdata().mean()
-    y = fig.get_axes()[0].lines[1].get_ydata().mean()
+    # setup
+    x = fig.mne.traces[0].get_xdata()[5]
+    y = fig.mne.traces[0].get_ydata()[5]
     data_ax = fig.mne.ax_main
     hscroll = fig.mne.ax_hscroll
     vscroll = fig.mne.ax_vscroll
-    assert len(fig.axes) == 5
-
-    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
-    _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
+    # test marking bad channels
+    label = fig.mne.ax_main.get_yticklabels()[0].get_text()
+    assert label not in fig.mne.info['bads']
+    _fake_click(fig, data_ax, [x, y], xform='data')  # click data to mark bad
+    assert label in fig.mne.info['bads']
+    _fake_click(fig, data_ax, [x, y], xform='data')  # click data to unmark bad
+    assert label not in fig.mne.info['bads']
+    _click_ch_name_helper(fig, ch_index=0, button=1)  # click name to mark bad
+    assert label in fig.mne.info['bads']
+    # test other kinds of clicks
     _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere (add vline)
     _fake_click(fig, data_ax, [0.5, 0.999], button=3)  # remove vline
-    _click_ch_name_helper(fig, ch_index=0, button=1)  # click on y-label
     _fake_click(fig, hscroll, [0.5, 0.5])  # change time
     _fake_click(fig, hscroll, [0.5, 0.5])  # shouldn't change time this time
+    # test scrolling through channels
     labels = [label.get_text() for label in data_ax.get_yticklabels()]
     assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
     _fake_click(fig, vscroll, [0.5, 0.01])  # change channels to end
@@ -377,22 +421,15 @@ def test_plot_raw_traces():
         assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
         assert len(plt.get_fignums()) == 1
 
-    # test keypresses. testing twice → once in normal, once in butterfly view.
-    # NB: keys a, j, and ? are tested elsewhere
-    keys = ('down', 'up', 'right', 'left', '-', '+', '=', 'd', 'd', 'pageup',
-            'pagedown', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
-    # test for group_by='original'
-    for key in 2 * keys + ('escape',):
-        fig.canvas.key_press_event(key)
-    # test for group_by='selection'
-    fig = plot_raw(raw, events=events, group_by='selection')
-    for key in 2 * keys + ('escape',):
-        fig.canvas.key_press_event(key)
+    # test clicking a channel name in butterfly mode
+    bads = fig.mne.info['bads'].copy()
+    fig.canvas.key_press_event('b')
+    _click_ch_name_helper(fig, ch_index=0, button=1)  # should be no-op
+    assert fig.mne.info['bads'] == bads               # unchanged
+    fig.canvas.key_press_event('b')
 
     # test starting up in zen mode
     fig = plot_raw(raw, show_scrollbars=False)
-    plt.close(fig)
-
     # test order, title, & show_options kwargs
     with pytest.raises(ValueError, match='order should be array-like; got'):
         raw.plot(order='foo')
