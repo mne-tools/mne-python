@@ -60,6 +60,7 @@ from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import pick_channels_regexp
+from ..rank import _compute_rank_int
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -133,6 +134,11 @@ class ICA(ContainsMixin):
                  requires the data to be high-pass filtered prior to fitting.
                  Typically, a cutoff frequency of 1 Hz is recommended.
 
+    .. versionchanged:: 0.22
+        By default, ``max_pca_components`` now be set to the **rank** of the
+        data (used to be set to the number of channels). This should make ICA
+        more robust.
+
     Parameters
     ----------
     n_components : int | float | None
@@ -144,16 +150,19 @@ class ICA(ContainsMixin):
         will be used. Defaults to ``None``; the actual number used when
         executing the :meth:`ICA.fit` method will be stored in the attribute
         ``n_components_`` (note the trailing underscore).
-    max_pca_components : int | None
+    max_pca_components : 'rank' | int
         Number of principal components (from the pre-whitening PCA step) that
         are retained for later use (i.e., for signal reconstruction in
-        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). Use this
-        parameter to reduce the dimensionality of the input data via PCA before
-        any further processing is performed. If ``None``, no  dimensionality
-        reduction occurs and ``max_pca_components`` will equal the number of
-        channels in the :class:`mne.io.Raw`, :class:`mne.Epochs`, or
-        :class:`mne.Evoked` object passed to :meth:`ICA.fit`. Defaults to
-        ``None``.
+        `~mne.preprocessing.ICA.apply`; see the ``n_pca_components``
+        parameter). Use this parameter to reduce the dimensionality of the
+        input data via PCA before any further processing is performed. If
+        ``'rank'`` or ``None``, sets ``max_pca_components`` equal to the rank
+        of the input data.  Defaults to  ``'rank'``. Support for ``None`` will
+        be removed in version 0.23.
+
+        .. versionchanged:: 0.22
+            By default, will now be set to the **rank** of the data (used to
+            be set to the number of channels).
     n_pca_components : int | float | None
         Total number of components (ICA + PCA) used for signal reconstruction
         in :meth:`ICA.apply`. At minimum, at least ``n_components`` will be
@@ -348,7 +357,7 @@ class ICA(ContainsMixin):
     """  # noqa: E501
 
     @verbose
-    def __init__(self, n_components=None, max_pca_components=None,
+    def __init__(self, n_components=None, max_pca_components='rank',
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
@@ -359,10 +368,26 @@ class ICA(ContainsMixin):
             raise RuntimeError(
                 'The scikit-learn package is required for FastICA.')
 
+        _validate_type(max_pca_components, ('numeric', str, None),
+                       'max_pca_components', "integer, 'rank', or None")
+        # Integer identity has to be checked separately…
+        if (max_pca_components is not None and
+                not isinstance(max_pca_components, str)):
+            _validate_type(max_pca_components, 'int',
+                           'max_pca_components', "integer, 'rank', or None")
+        if isinstance(max_pca_components, str):
+            _check_option('max_pca_components', max_pca_components,
+                          ('rank',))
+
+        if max_pca_components is None:
+            warn("max_pca_components=None is deprecated and will be removed "
+                 "in version 0.23. Please use max_pca_components='auto' "
+                 "instead, which is the new default.", DeprecationWarning)
+
         self.noise_cov = noise_cov
 
         if (n_components is not None and
-                max_pca_components is not None and
+                max_pca_components not in ('rank', None) and
                 n_components > max_pca_components):
             raise ValueError('n_components must be smaller than '
                              'max_pca_components')
@@ -370,7 +395,7 @@ class ICA(ContainsMixin):
         if isinstance(n_components, float) \
                 and not 0 < n_components <= 1:
             raise ValueError('Selecting ICA components by explained variance '
-                             'needs values between 0.0 and 1.0 ')
+                             'needs values between 0.0 and 1.0')
 
         self.current_fit = 'unfitted'
         self.verbose = verbose
@@ -495,21 +520,25 @@ class ICA(ContainsMixin):
         if self.current_fit != 'unfitted':
             self._reset()
 
-        logger.info('Fitting ICA to data using %i channels '
-                    '(please be patient, this may take a while)' % len(picks))
+        logger.info('Estimating data rank …')
+        rank = _compute_rank_int(inst.copy().pick(picks),
+                                 ref_meg=self.allow_ref_meg)
 
-        if self.max_pca_components is None:
-            self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks')
-        elif self.max_pca_components > len(picks):
+        # In 0.23, change this to:
+        # if self.max_pca_components == 'rank':
+        if self.max_pca_components in ('rank', None):
+            logger.info('Inferring max_pca_components from data rank.')
+            self.max_pca_components = rank
+        elif self.max_pca_components > rank:
             raise ValueError(
-                f'ica.max_pca_components ({self.max_pca_components}) cannot '
-                f'be greater than len(picks) ({len(picks)})')
+                f'max_pca_components ({self.max_pca_components}) cannot '
+                f'be greater than the rank of the data ({rank})')
+
         # n_components could be float 0 < x <= 1, but that's okay here
-        if self.n_components is not None and self.n_components > len(picks):
+        if self.n_components is not None and self.n_components > rank:
             raise ValueError(
-                f'ica.n_components ({self.n_components}) cannot '
-                f'be greater than len(picks) ({len(picks)})')
+                f'n_components ({self.n_components}) cannot '
+                f'be greater than the rank of the data ({rank})')
 
         # filter out all the channels the raw wouldn't have initialized
         self.info = pick_info(inst.info, picks)
@@ -517,6 +546,9 @@ class ICA(ContainsMixin):
         if self.info['comps']:
             self.info['comps'] = []
         self.ch_names = self.info['ch_names']
+
+        logger.info(f'Fitting ICA to data with {len(picks)} channels and rank '
+                    f'{rank}. Please be patient, this may take a while.')
 
         if isinstance(inst, BaseRaw):
             self._fit_raw(inst, picks, start, stop, decim, reject, flat,

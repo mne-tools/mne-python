@@ -210,8 +210,12 @@ def test_plot_ica_sources():
     raw.pick_channels([raw.ch_names[k] for k in picks])
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
+
     ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
-    ica.fit(raw, picks=ica_picks)
+    with pytest.warns(RuntimeWarning,
+                      match='Projection vector.*should be unity'):
+        ica.fit(raw, picks=ica_picks)
+
     ica.exclude = [1]
     fig = ica.plot_sources(raw)
     fig.canvas.key_press_event('escape')
