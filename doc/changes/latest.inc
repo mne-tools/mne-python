@@ -15,7 +15,7 @@ Current (0.22.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
-- ...
+- The `max_pca_components` argument of `~mne.preprocessing.ICA` can now be a float between 0.0 and 1.0, allowing users to specify a relative amount of cumulative explained variance. This can be used to exclude "unimportant" principal components, thereby conducting a rank reduction of the data, by `Richard Höchenberger`_ (:gh:`8321`)
 
 Bugs
 ~~~~

@@ -941,8 +941,9 @@ def test_eog_channel(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_max_pca_components_none(method):
+@pytest.mark.parametrize('method', ('infomax', 'fastica', 'picard'))
+@pytest.mark.parametrize('max_pca_components', (None, 15, 0.99, 0.5, 1.5))
+def test_max_pca_components(method, max_pca_components):
     """Test max_pca_components=None."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
@@ -951,25 +952,54 @@ def test_max_pca_components_none(method):
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
 
-    max_pca_components = None
     n_components = 10
     random_state = 12345
 
     tempdir = _TempDir()
     output_fname = op.join(tempdir, 'test_ica-ica.fif')
+
+    if max_pca_components == 1.5:
+        with pytest.raises(ValueError, match='PCA .* needs values between'):
+            ica = ICA(max_pca_components=max_pca_components, method=method,
+                      n_components=n_components, random_state=random_state)
+        return
+
     ica = ICA(max_pca_components=max_pca_components, method=method,
               n_components=n_components, random_state=random_state)
-    with pytest.warns(None):
+
+    if max_pca_components == 0.5 and method == 'fastica':
+        with pytest.raises(ValueError, match='increase max_pca_components'):
+            with pytest.warns(UserWarning, match='did not converge'):
+                ica.fit(epochs)
+        return
+    elif max_pca_components == 0.5:
+        with pytest.raises(ValueError, match='increase max_pca_components'):
+            ica.fit(epochs)
+        return
+
+    if method == 'fastica':
+        with pytest.warns(UserWarning, match='did not converge'):
+            ica.fit(epochs)
+    else:
         ica.fit(epochs)
+
     _assert_ica_attributes(ica)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
 
-    # ICA.fit() replaced max_pca_components, which was previously None,
-    # with the appropriate integer value.
-    assert_equal(ica.max_pca_components, epochs.info['nchan'])
-    assert_equal(ica.n_components, 10)
+    # ICA.fit() replaced ica.max_pca_components with the appropriate integer
+    # value.
+    if max_pca_components is None:
+        expected_max_pca_components = epochs.info['nchan']
+        assert_equal(ica.max_pca_components, expected_max_pca_components)
+    elif max_pca_components == 15:
+        expected_max_pca_components = 15
+        assert_equal(ica.max_pca_components, expected_max_pca_components)
+    elif max_pca_components == 0.8:
+        assert ica.max_pca_components < epochs.info['nchan']
+
+    assert_equal(ica.n_components, n_components)
 
 
 @requires_sklearn
