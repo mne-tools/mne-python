@@ -1661,7 +1661,6 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                   for i, pick in enumerate(picks)]
     else:
         if ch_groups in ['position', 'selection']:
-            print(ch_groups)
             if ch_groups == 'position':
                 ch_groups = _divide_to_regions(info, add_stim=False)
                 ch_groups = list(ch_groups.values())
