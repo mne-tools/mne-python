@@ -183,6 +183,27 @@ due to the fact that Persyst changes its specification
 sometimes from version to version. Please submit an issue, or
 pull request if you encounter a problem.
 
+Nihon Kohden EEG data (.eeg, .21e, .pnt, .log)
+======================================================================
+
+EEG data from the Nihon Kohden (NK) system can be read in using the
+:func:`mne.io.read_raw_nihon` function.
+
+The following file extensions are read in.
+- The ``.eeg`` file contains the actual raw EEG data.
+- The ``.pnt`` file contains the metadata related to the recording, such
+as the measurement date.
+- The ``.log`` file contains annotations for the recording.
+- The ``.21e`` file contains the channel and electrode
+recording system information.
+
+The .11d, .cmt, .cn2, .edf files are not currently read in.
+
+Note that not all the subject metadata may be properly read in
+due to the fact that NK changes its specification
+sometimes from version to version. Please submit an issue, or
+pull request if you encounter a problem.
+
 
 Setting EEG references
 ======================
