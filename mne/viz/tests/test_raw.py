@@ -156,6 +156,51 @@ def _proj_status(ax):
             for line in ax.findobj(matplotlib.lines.Line2D)][::2]
 
 
+def _click_ch_name_helper(fig, ch_index=0, button=1):
+    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
+    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
+    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
+                xform='data', button=button)
+
+
+def _child_fig_helper(fig, key, attr):
+    # Spawn and close child figs of raw.plot()
+    new_mpl = LooseVersion(matplotlib.__version__) >= '3.0'
+    num_figs = len(plt.get_fignums())
+    assert getattr(fig.mne, attr) is None
+    # spawn
+    fig.canvas.key_press_event(key)
+    assert len(fig.mne.child_figs) == 1
+    assert len(plt.get_fignums()) == num_figs + 1
+    child_fig = getattr(fig.mne, attr)
+    assert child_fig is not None
+    # close via main window toggle
+    fig.canvas.key_press_event(key)
+    # XXX workaround:
+    # XXX on newer MPL, plt.close() doesn't trigger a CloseEvent on Agg backend
+    # XXX but for some reason on travis w/ old deps it *does* work, which makes
+    # XXX this extra call to close_event() cause a failure
+    if new_mpl:
+        child_fig.canvas.close_event()
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == num_figs
+    assert getattr(fig.mne, attr) is None
+    # spawn again
+    fig.canvas.key_press_event(key)
+    assert len(fig.mne.child_figs) == 1
+    assert len(plt.get_fignums()) == num_figs + 1
+    child_fig = getattr(fig.mne, attr)
+    assert child_fig is not None
+    # close via child window
+    child_fig.canvas.key_press_event(child_fig.mne.close_key)
+    # XXX workaround (see above)
+    if new_mpl:
+        child_fig.canvas.close_event()
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == num_figs
+    assert getattr(fig.mne, attr) is None
+
+
 def test_scale_bar():
     """Test scale bar for raw."""
     sfreq = 1000.
@@ -180,71 +225,9 @@ def test_scale_bar():
     plt.close('all')
 
 
-def child_fig_helper(fig, key, attr):
-    """Spawn and close child figs of raw.plot()."""
-    mpl_good_enough = LooseVersion(matplotlib.__version__) >= '3.0'
-    num_figs = len(plt.get_fignums())
-    assert getattr(fig.mne, attr) is None
-    # spawn
-    fig.canvas.key_press_event(key)
-    assert len(plt.get_fignums()) == num_figs + 1
-    child_fig = getattr(fig.mne, attr)
-    assert child_fig is not None
-    # close via main window toggle
-    fig.canvas.key_press_event(key)
-    assert len(plt.get_fignums()) == num_figs
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend?
-    if mpl_good_enough:
-        child_fig.canvas.close_event()
-    assert getattr(fig.mne, attr) is None
-    # spawn again
-    fig.canvas.key_press_event(key)
-    assert len(plt.get_fignums()) == num_figs + 1
-    child_fig = getattr(fig.mne, attr)
-    assert child_fig is not None
-    # close via child window
-    child_fig.canvas.key_press_event(child_fig.mne.close_key)
-    assert len(plt.get_fignums()) == num_figs
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend?
-    if mpl_good_enough:
-        child_fig.canvas.close_event()
-    assert getattr(fig.mne, attr) is None
-
-
-def click_ch_name_helper(fig, ch_index=0, button=1):
-    """Click on a y-axis label (channel name)."""
-    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
-    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
-    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
-                xform='data', button=button)
-
-
-def test_plot_raw_child_figures():
-    """Test spawning and closing of child figures."""
-    mpl_good_enough = LooseVersion(matplotlib.__version__) >= '3.0'
-    raw = _get_raw()
-    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
-    plt.close('all')  # make sure we start clean
-    assert len(plt.get_fignums()) == 0
-    fig = raw.plot()
-    assert len(plt.get_fignums()) == 1
-    child_fig_helper(fig, '?', 'fig_help')
-    child_fig_helper(fig, 'j', 'fig_proj')
-    child_fig_helper(fig, 'a', 'fig_annotation')
-    if mpl_good_enough:  # XXX not clear why doesn't work on travis w/ old deps
-        _fake_click(fig, fig.mne.ax_main, (-0.1, 2), xform='data', button=3)
-        assert len(plt.get_fignums()) == 2
-        fig.mne.child_figs[0].canvas.key_press_event('escape')
-    assert len(plt.get_fignums()) == 1
-    # test resize of main window
-    width, height = fig.canvas.manager.canvas.get_width_height()
-    fig.canvas.manager.canvas.resize(width // 2, height // 2)
-    plt.close('all')
-
-
 def test_plot_raw_selection():
     """Test selection mode of plot_raw()."""
-    mpl_good_enough = LooseVersion(matplotlib.__version__) >= '3.0'
+    new_mpl = LooseVersion(matplotlib.__version__) >= '3.0'
     raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     plt.close('all')           # ensure all are closed
@@ -273,10 +256,10 @@ def test_plot_raw_selection():
     assert not fig.mne.butterfly
     # test marking bad channel in selection mode → should make sensor red
     assert sel_fig.lasso.ec[:, 0].sum() == 0  # R of RGBA zero for all chans
-    click_ch_name_helper(fig, ch_index=1, button=1)  # mark bad
-    assert sel_fig.lasso.ec[:, 0].sum() == 1         # one channel red
-    click_ch_name_helper(fig, ch_index=1, button=1)  # mark good
-    assert sel_fig.lasso.ec[:, 0].sum() == 0         # all channels black
+    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark bad
+    assert sel_fig.lasso.ec[:, 0].sum() == 1          # one channel red
+    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark good
+    assert sel_fig.lasso.ec[:, 0].sum() == 0          # all channels black
     # test lasso
     sel_fig._set_custom_selection()  # lasso empty → should do nothing
     sensor_ax = sel_fig.mne.sensor_ax
@@ -289,12 +272,13 @@ def test_plot_raw_selection():
     # test joint closing of selection & data windows
     sel_fig.canvas.key_press_event(sel_fig.mne.close_key)
     # XXX workaround: plt.close() doesn't spawn close_event on Agg backend?
-    if mpl_good_enough:
+    if new_mpl:
         sel_fig.canvas.close_event()
     assert len(plt.get_fignums()) == 0
 
 
 def test_plot_raw_ssp_interaction():
+    """Test SSP projector UI of plot_raw()."""
     raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     # apply some (not all) projs to test our proj UI (greyed out applied projs)
@@ -333,6 +317,34 @@ def test_plot_raw_ssp_interaction():
     assert _proj_status(ax) == [True, True, True]
 
 
+def test_plot_raw_child_figures():
+    """Test spawning and closing of child figures."""
+    raw = _get_raw()
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
+    plt.close('all')  # make sure we start clean
+    assert len(plt.get_fignums()) == 0
+    fig = raw.plot()
+    assert len(plt.get_fignums()) == 1
+    _child_fig_helper(fig, '?', 'fig_help')
+    print(fig.mne.child_figs)
+    _child_fig_helper(fig, 'j', 'fig_proj')
+    print(fig.mne.child_figs)
+    _child_fig_helper(fig, 'a', 'fig_annotation')
+    print(fig.mne.child_figs)
+    # XXX restore this test after refactoring plot_sensors() and re-enabling
+    # XXX right-click behavior
+    # # test right-click → channel location popup
+    # _click_ch_name_helper(fig, ch_index=2, button=3)
+    # assert len(fig.mne.child_figs) == 1
+    # assert len(plt.get_fignums()) == 2
+    # fig.mne.child_figs[0].canvas.key_press_event('escape')
+    # assert len(plt.get_fignums()) == 1
+    # test resize of main window
+    width, height = fig.canvas.manager.canvas.get_width_height()
+    fig.canvas.manager.canvas.resize(width // 2, height // 2)
+    plt.close('all')
+
+
 def test_plot_raw_traces():
     """Test plotting of raw data."""
     raw = _get_raw()
@@ -355,7 +367,7 @@ def test_plot_raw_traces():
     _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
     _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere (add vline)
     _fake_click(fig, data_ax, [0.5, 0.999], button=3)  # remove vline
-    click_ch_name_helper(fig, ch_index=0, button=1)  # click on y-label
+    _click_ch_name_helper(fig, ch_index=0, button=1)  # click on y-label
     _fake_click(fig, hscroll, [0.5, 0.5])  # change time
     _fake_click(fig, hscroll, [0.5, 0.5])  # shouldn't change time this time
     labels = [label.get_text() for label in data_ax.get_yticklabels()]

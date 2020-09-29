@@ -671,7 +671,8 @@ class MNEBrowseFigure(MNEFigure):
             if event.mouseevent.button == 1:  # left click
                 self._toggle_bad_channel(ind)
             elif event.mouseevent.button == 3:  # right click
-                self._create_ch_location_fig(ind)
+                # self._create_ch_location_fig(ind)
+                pass
 
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
@@ -685,24 +686,25 @@ class MNEBrowseFigure(MNEFigure):
 
     def _create_ch_location_fig(self, idx):
         """Show channel location figure; idx is index of *visible* channels."""
-        from .utils import _channel_type_prettyprint
-        pick = self.mne.picks[idx]
-        ch_name = self.mne.ch_names[pick]
-        ch_type = self.mne.ch_types[pick]
-        if ch_type not in _DATA_CH_TYPES_SPLIT:
-            return
-        # create figure and axes
-        fig = self._new_child_figure(figsize=(4, 4), fig_name=None,
-                                     window_title=f'Location of {ch_name}')
-        ax = fig.add_subplot()
-        title = f'{ch_name} position ({_channel_type_prettyprint[ch_type]})'
-        fig, _ = plot_sensors(self.mne.info, ch_type=ch_type, axes=ax,
-                              title=title, kind='select')
-        inds = np.in1d(fig.lasso.ch_names, [ch_name])
-        fig.lasso.disconnect()
-        fig.lasso.alpha_other = 0.3
-        fig.lasso.linewidth_selected = 3
-        fig.lasso.style_sensors(inds)
+        pass
+        # from .utils import _channel_type_prettyprint
+        # pick = self.mne.picks[idx]
+        # ch_name = self.mne.ch_names[pick]
+        # ch_type = self.mne.ch_types[pick]
+        # if ch_type not in _DATA_CH_TYPES_SPLIT:
+        #     return
+        # # create figure and axes
+        # fig = self._new_child_figure(figsize=(4, 4), fig_name=None,
+        #                              window_title=f'Location of {ch_name}')
+        # ax = fig.add_subplot()
+        # title = f'{ch_name} position ({_channel_type_prettyprint[ch_type]})'
+        # fig, _ = plot_sensors(self.mne.info, ch_type=ch_type, axes=ax,
+        #                       title=title, kind='select')
+        # inds = np.in1d(fig.lasso.ch_names, [ch_name])
+        # fig.lasso.disconnect()
+        # fig.lasso.alpha_other = 0.3
+        # fig.lasso.linewidth_selected = 3
+        # fig.lasso.style_sensors(inds)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
@@ -806,7 +808,7 @@ class MNEBrowseFigure(MNEFigure):
             ('Left-click-and-drag on plot', ldrag),
             ('Left-click on plot background', 'Place vertical guide'),
             ('Right-click on plot background', 'Clear vertical guide'),
-            ('Right-click on channel name', rclick_name)
+            ('Right-click on channel name', None)  # TODO: rclick_name
         ])
         return help_text
 
