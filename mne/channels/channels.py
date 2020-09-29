@@ -942,8 +942,10 @@ class UpdateChannelsMixin(object):
 
         pick_info(self.info, idx, copy=False)
 
-        if getattr(self, '_projector', None) is not None:
-            self._projector = self._projector[idx][:, idx]
+        for key in ('_comp', '_projector'):
+            mat = getattr(self, key, None)
+            if mat is not None:
+                setattr(self, key, mat[idx][:, idx])
 
         # All others (Evoked, Epochs, Raw) have chs axis=-2
         axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
