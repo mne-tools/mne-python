@@ -29,7 +29,7 @@ def read_raw_nihon(fname, preload=False, verbose=None):
     Parameters
     ----------
     fname : str
-        Path to the Nihon Kohden data file (.eeg).
+        Path to the Nihon Kohden data file (.EEG).
     preload : bool
         If True, all data are loaded at initialization.
     %(verbose)s
