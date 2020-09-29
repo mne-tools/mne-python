@@ -123,8 +123,10 @@ stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info)
 # Plot source estimates
 # ---------------------
 
+brains = list()
 for method, stc in zip(['DICS', 'LCMV', 'dSPM'],
                        [stc_dics, stc_lcmv, stc_dspm]):
     title = '%s source power in the 12-30 Hz frequency band' % method
-    brain = stc.plot(hemi='rh', subjects_dir=subjects_dir,
-                     subject=subject, time_label=title)
+    brains.append(stc.plot(
+        hemi='rh', subjects_dir=subjects_dir, subject=subject,
+        time_label=title))
