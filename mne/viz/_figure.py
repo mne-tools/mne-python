@@ -766,9 +766,10 @@ class MNEBrowseFigure(MNEFigure):
                    ('Increase', 'Decrease')]
         lclick_data = ica_bad if inst == 'ica' else f'Mark/unmark bad {ch_epo}'
         lclick_name = (ica_bad if inst == 'ica' else 'Mark/unmark bad channel')
-        rclick_name = dict(ica='Show diagnostics for component',
-                           epoch='Show imageplot for channel',
-                           raw='Show channel location')[inst]
+        # TODO not yet implemented
+        # rclick_name = dict(ica='Show diagnostics for component',
+        #                    epoch='Show imageplot for channel',
+        #                    raw='Show channel location')[inst]
         # TODO not yet implemented
         # ldrag = ('Show spectrum plot for selected time span;\nor (in '
         #          'annotation mode) add annotation') if inst== 'raw' else None
