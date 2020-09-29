@@ -132,8 +132,7 @@ def _annotation_helper(raw, events=False):
     assert_allclose(raw.annotations.duration[n_anns], 5.0)
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
-    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
-                kind='press')
+    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
     # exit, re-enter, then exit a different way
     fig.canvas.key_press_event('a')  # exit
     fig.canvas.key_press_event('a')  # enter
