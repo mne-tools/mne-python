@@ -182,7 +182,7 @@ def _child_fig_helper(fig, key, attr):
     # XXX this extra call to close_event() cause a failure
     if new_mpl:
         child_fig.canvas.close_event()
-    assert len(fig.mne.child_figs) == 0
+    assert len(fig.mne.child_figs) == 0  # XXX this fails with minimal deps
     assert len(plt.get_fignums()) == num_figs
     assert getattr(fig.mne, attr) is None
     # spawn again
@@ -271,10 +271,10 @@ def test_plot_raw_selection():
     assert sel_fig.lasso.selection == ['MEG 0121', 'MEG 0122', 'MEG 0123']
     # test joint closing of selection & data windows
     sel_fig.canvas.key_press_event(sel_fig.mne.close_key)
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend?
+    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
     if new_mpl:
         sel_fig.canvas.close_event()
-    assert len(plt.get_fignums()) == 0
+    assert len(plt.get_fignums()) == 0  # XXX this fails with minimal deps
 
 
 def test_plot_raw_ssp_interaction():
@@ -289,7 +289,7 @@ def test_plot_raw_ssp_interaction():
     fig = raw.plot()
     # open SSP window
     _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5])
-    assert len(plt.get_fignums()) == 2
+    assert len(plt.get_fignums()) == 2  # XXX this fails with minimal deps
     ssp_fig = fig.mne.fig_proj
     t = ssp_fig.mne.proj_checkboxes.labels
     ax = ssp_fig.mne.proj_checkboxes.ax
