@@ -151,6 +151,7 @@ def test_ica_simple(method):
     assert amari_distance < 0.1
 
 
+@requires_sklearn
 @pytest.mark.parametrize('n_pca_components', (8, 9, 10))
 @pytest.mark.parametrize('max_pca_components', (9, 10))
 def test_ica_noop(n_pca_components, max_pca_components, tmpdir):
