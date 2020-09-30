@@ -171,7 +171,7 @@ class ICA(ContainsMixin):
         as the number of *PCA* components with cumulative explained variance
         less than ``n_components`` (without accounting for ``ICA.include`` or
         ``ICA.exclude``). If :class:`int` or :class:`float`, ``n_components_ ≤
-        n_pca_components ≤ max_pca_components`` must hold. If ``None``,
+        n_pca_components ≤ max_pca_components_`` must hold. If ``None``,
         ``max_pca_components`` will be used. Defaults to ``None``.
     noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
