@@ -2367,7 +2367,8 @@ def read_ica(fname, verbose=None):
     if 'fit_params' in ica_misc:
         ica.fit_params = ica_misc['fit_params']
 
-    if 'max_pca_components_' in ica_misc:
+    if ('max_pca_components_' in ica_misc and
+            ica_misc['max_pca_components_'] is not None):
         ica.max_pca_components_ = ica_misc['max_pca_components_']
     else:
         # For backward-compatibility.

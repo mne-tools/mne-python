@@ -1002,6 +1002,38 @@ def test_max_pca_components(method, max_pca_components):
 
 
 @requires_sklearn
+@pytest.mark.parametrize('method', ['infomax', 'fastica', 'picard'])
+def test_max_pca_components_(method):
+    """Test that max_pca_components_ gets populated when reading old file."""
+    _skip_check_picard(method)
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test_ica-ica.fif')
+
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    events = read_events(event_name)
+    picks = pick_types(raw.info, eeg=True, meg=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+
+    max_pca_components = 5
+    ica = ICA(max_pca_components=max_pca_components, method=method)
+    if method == 'fastica':
+        with pytest.warns(UserWarning, match='did not converge'):
+            ica.fit(epochs)
+    else:
+        ica.fit(epochs)
+
+    # Old files don't have max_pca_components_; instead, during fitting,
+    # max_pca_components would get altered. Simulate an old file.
+    del ica.max_pca_components_
+
+    ica.save(fname)
+    ica = read_ica(fname)
+    # Now it should be there.
+    assert ica.max_pca_components_ == max_pca_components
+
+
+@requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_n_components_none(method):
     """Test n_components=None."""
