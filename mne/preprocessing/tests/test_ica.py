@@ -995,8 +995,6 @@ def test_max_pca_components(method, max_pca_components):
     elif max_pca_components == 15:
         expected_max_pca_components = 15
         assert_equal(ica.max_pca_components_, expected_max_pca_components)
-    elif max_pca_components == 0.5:
-        assert ica.max_pca_components < epochs.info['nchan']
 
     assert_equal(ica.n_components, n_components)
 
