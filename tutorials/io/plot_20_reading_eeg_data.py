@@ -198,7 +198,8 @@ The following file extensions are read in:
 - The ``.21E`` file contains the channel and electrode
   recording system information.
 
-The .11D, .CMT, .CN2, .EDF files are not currently read in.
+Reading ``.11D``, ``.CMT``, ``.CN2``, and ``.EDF`` files is currently not
+supported.
 
 Note that not all the subject metadata may be properly read in
 due to the fact that NK changes its specification
