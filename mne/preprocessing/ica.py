@@ -769,12 +769,14 @@ class ICA(ContainsMixin):
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
-        self.unmixing_matrix_ /= np.sqrt(
-            self.pca_explained_variance_[sel])[None, :]  # whitening
+        # norms = np.sqrt(self.pca_explained_variance_[:self.n_components_])
+        # norms[norms == 0] = 1.
+        # self.unmixing_matrix_ /= norms  # whitening
         self._update_mixing_matrix()
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
+        # stabilize this by using row normalization
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
@@ -2730,10 +2732,12 @@ def read_ica_eeglab(fname):
         # sphere = eye(urchans), so let's use SVD to get our square
         # weights matrix (u * s) and our PCA vectors (v) back
         u, s, v = _safe_svd(eeg.icaweights, full_matrices=False)
+        ica.pca_explained_variance_ = s * s
         ica.unmixing_matrix_ = u * s
         ica.pca_components_ = v
     else:
         ica.unmixing_matrix_ = eeg.icaweights
         ica.pca_components_ = eeg.icasphere
+        ica.pca_explained_variance_ = np.ones(ica.unmixing_matrix_.shape[1])
     ica._update_mixing_matrix()
     return ica
