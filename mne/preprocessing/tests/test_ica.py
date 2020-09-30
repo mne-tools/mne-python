@@ -987,15 +987,14 @@ def test_max_pca_components(method, max_pca_components):
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
+    assert_equal(ica.max_pca_components, max_pca_components)
 
-    # ICA.fit() replaced ica.max_pca_components with the appropriate integer
-    # value.
     if max_pca_components is None:
         expected_max_pca_components = epochs.info['nchan']
-        assert_equal(ica.max_pca_components, expected_max_pca_components)
+        assert_equal(ica.max_pca_components_, expected_max_pca_components)
     elif max_pca_components == 15:
         expected_max_pca_components = 15
-        assert_equal(ica.max_pca_components, expected_max_pca_components)
+        assert_equal(ica.max_pca_components_, expected_max_pca_components)
     elif max_pca_components == 0.8:
         assert ica.max_pca_components < epochs.info['nchan']
 
@@ -1061,10 +1060,7 @@ def test_n_components_and_max_pca_components_none(method):
 
     ica = read_ica(output_fname)
     _assert_ica_attributes(ica)
-
-    # ICA.fit() replaced max_pca_components, which was previously None,
-    # with the appropriate integer value.
-    assert_equal(ica.max_pca_components, epochs.info['nchan'])
+    assert_equal(ica.max_pca_components_, epochs.info['nchan'])
     assert ica.n_components is None
 
 
@@ -1278,7 +1274,7 @@ def _assert_ica_attributes(ica):
         n_ch, n_ch if ica.noise_cov is not None else 1)
 
     # PCA
-    n_pca = ica.max_pca_components
+    n_pca = ica.max_pca_components_
     assert ica.pca_components_.shape == (n_pca, n_ch), 'PCA shape'
     assert_allclose(np.dot(ica.pca_components_, ica.pca_components_.T),
                     np.eye(n_pca), atol=1e-6, err_msg='PCA orthogonality')
