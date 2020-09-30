@@ -942,7 +942,7 @@ def test_eog_channel(method):
 
 @requires_sklearn
 @pytest.mark.parametrize('method', ('infomax', 'fastica', 'picard'))
-@pytest.mark.parametrize('max_pca_components', (None, 15, 0.99, 0.5, 1.5))
+@pytest.mark.parametrize('max_pca_components', (None, 1.0, 15, 0.99, 0.5, 1.5))
 def test_max_pca_components(method, max_pca_components):
     """Test max_pca_components=None."""
     _skip_check_picard(method)
@@ -989,7 +989,7 @@ def test_max_pca_components(method, max_pca_components):
     ica = read_ica(output_fname)
     assert_equal(ica.max_pca_components, max_pca_components)
 
-    if max_pca_components is None:
+    if max_pca_components is None or max_pca_components == 1.0:
         expected_max_pca_components = epochs.info['nchan']
         assert_equal(ica.max_pca_components_, expected_max_pca_components)
     elif max_pca_components == 15:

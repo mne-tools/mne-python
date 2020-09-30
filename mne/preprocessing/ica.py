@@ -152,7 +152,7 @@ class ICA(ContainsMixin):
         input data via PCA before any further processing is performed.
         If :class:`float` between 0 and 1, the number of components with
         cumulative explained variance less than ``max_pca_components`` will be
-        used. If ``None``, no dimensionality reduction occurs and
+        used. If ``1.0`` or ``None``, no dimensionality reduction occurs and
         ``max_pca_components`` will equal the number of channels in the
         `~mne.io.Raw` or `~mne.Epochs` object passed to
         `~mne.preprocessing.ICA.fit`. Defaults to ``None``. When calling
@@ -517,7 +517,8 @@ class ICA(ContainsMixin):
                     '(please be patient, this may take a while)' % len(picks))
 
         self.max_pca_components_ = self.max_pca_components
-        if self.max_pca_components_ is None:
+        if (self.max_pca_components_ is None or
+                self.max_pca_components_ == 1.0):
             logger.info('Inferring max_pca_components from picks')
             self.max_pca_components_ = len(picks)
         elif self.max_pca_components_ > len(picks):
