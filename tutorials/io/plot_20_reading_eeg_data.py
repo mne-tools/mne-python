@@ -184,7 +184,7 @@ sometimes from version to version. Please submit an issue, or
 pull request if you encounter a problem.
 
 Nihon Kohden EEG data (.EEG, .21E, .PNT, .LOG)
-======================================================================
+==============================================
 
 EEG data from the Nihon Kohden (NK) system can be read in using the
 :func:`mne.io.read_raw_nihon` function.
