@@ -154,7 +154,7 @@ class ICA(ContainsMixin):
         cumulative explained variance less than ``max_pca_components`` will be
         used. If ``None``, no dimensionality reduction occurs and
         ``max_pca_components`` will equal the number of channels in the
-        `~mne.io.Raw` or `~mne.Epochs` object passed to 
+        `~mne.io.Raw` or `~mne.Epochs` object passed to
         `~mne.preprocessing.ICA.fit`. Defaults to ``None``. When calling
         `~mne.preprocessing.ICA.fit`, the attribute `max_pca_components_` will
         be set to the absolute number of retained PCA components.
@@ -691,8 +691,9 @@ class ICA(ContainsMixin):
                        f'by passing max_pca_components={max_pca_components}, '
                        f'which equals {self.max_pca_components_} components '
                        f'for this specific dataset. However, you also '
-                       f'requested to pass {self.n_components} to ICA, which '
-                       f'is mathematically impossible. Please either increase '
+                       f'requested to pass {self.n_components} of those '
+                       f'components to ICA, which is mathematically '
+                       f'impossible. Please either increase '
                        f'max_pca_components, set it to None, '
                        f'reduce n_components, or set n_components=None')
                 raise ValueError(msg)
