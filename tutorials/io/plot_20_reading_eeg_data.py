@@ -189,7 +189,8 @@ Nihon Kohden EEG data (.EEG, .21E, .PNT, .LOG)
 EEG data from the Nihon Kohden (NK) system can be read in using the
 :func:`mne.io.read_raw_nihon` function.
 
-The following file extensions are read in.
+The following file extensions are read in:
+
 - The ``.EEG`` file contains the actual raw EEG data.
 - The ``.PNT`` file contains the metadata related to the recording, such
   as the measurement date.
