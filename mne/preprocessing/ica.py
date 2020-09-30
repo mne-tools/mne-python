@@ -686,7 +686,8 @@ class ICA(ContainsMixin):
                                                .cumsum()
                                         <= max_pca_components))
 
-            if self.max_pca_components_ < self.n_components:
+            if (self.n_components is not None and
+                    self.max_pca_components_ < self.n_components):
                 msg = (f'You asked to select only a subset of PCA components '
                        f'by passing max_pca_components={max_pca_components}, '
                        f'which equals {self.max_pca_components_} components '
