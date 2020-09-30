@@ -192,7 +192,7 @@ EEG data from the Nihon Kohden (NK) system can be read in using the
 The following file extensions are read in.
 - The ``.EEG`` file contains the actual raw EEG data.
 - The ``.PNT`` file contains the metadata related to the recording, such
-as the measurement date.
+  as the measurement date.
 - The ``.LOG`` file contains annotations for the recording.
 - The ``.21E`` file contains the channel and electrode
 recording system information.
