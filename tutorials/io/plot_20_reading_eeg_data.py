@@ -202,7 +202,7 @@ Reading ``.11D``, ``.CMT``, ``.CN2``, and ``.EDF`` files is currently not
 supported.
 
 Note that not all the subject metadata may be properly read in
-due to the fact that NK changes its specification
+due to the fact that NK changes the specification
 sometimes from version to version. Please submit an issue, or
 pull request if you encounter a problem.
 
