@@ -5,7 +5,6 @@
 import numpy as np
 import os.path as op
 import itertools
-from distutils.version import LooseVersion
 
 from numpy.testing import assert_allclose
 import pytest
@@ -15,7 +14,7 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import run_tests_if_main, _dt_to_stamp
+from mne.utils import run_tests_if_main, _dt_to_stamp, check_version
 from mne.viz.utils import _fake_click, _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
@@ -28,7 +27,8 @@ event_name = op.join(base_dir, 'test-eve.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
-def _get_raw():
+@pytest.fixture()
+def raw():
     """Get raw data."""
     raw = read_raw_fif(raw_fname, preload=True)
     # Throws a warning about a changed unit.
@@ -37,6 +37,12 @@ def _get_raw():
     raw.pick_channels(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
+
+
+@pytest.fixture(scope='module')
+def new_mpl():
+    """Check matplotlib version."""
+    return check_version('matplotlib', '3.0')
 
 
 def _get_events():
@@ -170,9 +176,8 @@ def _click_ch_name_helper(fig, ch_index=0, button=1):
                 xform='data', button=button)
 
 
-def _child_fig_helper(fig, key, attr):
+def _child_fig_helper(fig, key, attr, new_mpl):
     # Spawn and close child figs of raw.plot()
-    new_mpl = LooseVersion(matplotlib.__version__) >= '3.0'
     num_figs = len(plt.get_fignums())
     assert getattr(fig.mne, attr) is None
     # spawn
@@ -183,13 +188,8 @@ def _child_fig_helper(fig, key, attr):
     assert child_fig is not None
     # close via main window toggle
     fig.canvas.key_press_event(key)
-    # XXX workaround:
-    # XXX on newer MPL, plt.close() doesn't trigger a CloseEvent on Agg backend
-    # XXX but for some reason on travis w/ old deps it *does* work, which makes
-    # XXX this extra call to close_event() cause a failure
-    if new_mpl:
-        child_fig.canvas.close_event()
-    assert len(fig.mne.child_figs) == 0  # XXX this fails with minimal deps
+    _close_event(child_fig)
+    assert len(fig.mne.child_figs) == 0
     assert len(plt.get_fignums()) == num_figs
     assert getattr(fig.mne, attr) is None
     # spawn again
@@ -200,9 +200,7 @@ def _child_fig_helper(fig, key, attr):
     assert child_fig is not None
     # close via child window
     child_fig.canvas.key_press_event(child_fig.mne.close_key)
-    # XXX workaround (see above)
-    if new_mpl:
-        child_fig.canvas.close_event()
+    _close_event(child_fig)
     assert len(fig.mne.child_figs) == 0
     assert len(plt.get_fignums()) == num_figs
     assert getattr(fig.mne, attr) is None
@@ -232,10 +230,16 @@ def test_scale_bar():
     plt.close('all')
 
 
-def test_plot_raw_selection():
+def _close_event(fig):
+    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
+    try:
+        fig.canvas.close_event()
+    except ValueError:  # old mpl with Qt
+        pass  # pragma: no cover
+
+
+def test_plot_raw_selection(raw, new_mpl):
     """Test selection mode of plot_raw()."""
-    new_mpl = LooseVersion(matplotlib.__version__) >= '3.0'
-    raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     plt.close('all')           # ensure all are closed
     assert len(plt.get_fignums()) == 0
@@ -285,15 +289,12 @@ def test_plot_raw_selection():
     assert sel_fig.lasso.selection == ['MEG 0121', 'MEG 0122', 'MEG 0123']
     # test joint closing of selection & data windows
     sel_fig.canvas.key_press_event(sel_fig.mne.close_key)
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
-    if new_mpl:
-        sel_fig.canvas.close_event()
-    assert len(plt.get_fignums()) == 0  # XXX this fails with minimal deps
+    _close_event(sel_fig)
+    assert len(plt.get_fignums()) == 0
 
 
-def test_plot_raw_ssp_interaction():
+def test_plot_raw_ssp_interaction(raw):
     """Test SSP projector UI of plot_raw()."""
-    raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     # apply some (not all) projs to test our proj UI (greyed out applied projs)
     projs = raw.info['projs'][-2:]
@@ -331,19 +332,18 @@ def test_plot_raw_ssp_interaction():
     assert _proj_status(ax) == [True, True, True]
 
 
-def test_plot_raw_child_figures():
+def test_plot_raw_child_figures(raw, new_mpl):
     """Test spawning and closing of child figures."""
-    raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     plt.close('all')  # make sure we start clean
     assert len(plt.get_fignums()) == 0
     fig = raw.plot()
     assert len(plt.get_fignums()) == 1
-    _child_fig_helper(fig, '?', 'fig_help')
+    _child_fig_helper(fig, '?', 'fig_help', new_mpl)
     print(fig.mne.child_figs)
-    _child_fig_helper(fig, 'j', 'fig_proj')
+    _child_fig_helper(fig, 'j', 'fig_proj', new_mpl)
     print(fig.mne.child_figs)
-    _child_fig_helper(fig, 'a', 'fig_annotation')
+    _child_fig_helper(fig, 'a', 'fig_annotation', new_mpl)
     print(fig.mne.child_figs)
     # # test right-click → channel location popup
     _click_ch_name_helper(fig, ch_index=2, button=3)  # XXX currently no-op
@@ -359,9 +359,8 @@ def test_plot_raw_child_figures():
     plt.close('all')
 
 
-def test_plot_raw_keypresses():
+def test_plot_raw_keypresses(raw):
     """Test keypress interactivity of plot_raw()."""
-    raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = raw.plot()
     # test twice → once in normal, once in butterfly view.
@@ -377,9 +376,8 @@ def test_plot_raw_keypresses():
         fig.canvas.key_press_event(key)
 
 
-def test_plot_raw_traces():
+def test_plot_raw_traces(raw):
     """Test plotting of raw data."""
-    raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
     plt.close('all')  # ensure all are closed
@@ -529,9 +527,8 @@ def test_plot_misc_auto():
     plt.close('all')
 
 
-def test_plot_annotations():
+def test_plot_annotations(raw):
     """Test annotation mode of the plotter."""
-    raw = _get_raw()
     raw.info['lowpass'] = 10.
     _annotation_helper(raw)
     _annotation_helper(raw, events=True)
@@ -544,9 +541,8 @@ def test_plot_annotations():
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
-def test_plot_raw_filtered(filtorder):
+def test_plot_raw_filtered(filtorder, raw):
     """Test filtering of raw plots."""
-    raw = _get_raw()
     with pytest.raises(ValueError, match='lowpass.*Nyquist'):
         raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder)
     with pytest.raises(ValueError, match='highpass must be > 0'):
@@ -561,9 +557,9 @@ def test_plot_raw_filtered(filtorder):
     plt.close('all')
 
 
-def test_plot_raw_psd():
+def test_plot_raw_psd(raw):
     """Test plotting of raw psds."""
-    raw = _get_raw()
+    raw_orig = raw.copy()
     # normal mode
     raw.plot_psd(average=False)
     # specific mode
@@ -617,7 +613,7 @@ def test_plot_raw_psd():
         else:
             assert 'fT²/Hz' in ylabel
     # test reject_by_annotation
-    raw = _get_raw()
+    raw = raw_orig
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
@@ -654,9 +650,8 @@ def test_plot_raw_psd():
     plt.close('all')
 
 
-def test_plot_sensors():
+def test_plot_sensors(raw):
     """Test plotting of sensor array."""
-    raw = _get_raw()
     plt.close('all')
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
