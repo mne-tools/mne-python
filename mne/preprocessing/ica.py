@@ -156,8 +156,8 @@ class ICA(ContainsMixin):
         ``max_pca_components`` will equal the number of channels in the
         `~mne.io.Raw` or `~mne.Epochs` object passed to
         `~mne.preprocessing.ICA.fit`. Defaults to ``None``. When calling
-        `~mne.preprocessing.ICA.fit`, the attribute `max_pca_components_` will
-        be set to the absolute number of retained PCA components.
+        `~mne.preprocessing.ICA.fit`, the attribute ``max_pca_components_``
+        will be set to the absolute number of retained PCA components.
 
         .. versionchanged:: 0.22
             Added support for float to select components by cumulative

@@ -15,9 +15,9 @@ Current (0.22.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
-- The `max_pca_components` argument of `~mne.preprocessing.ICA` can now be a float between 0.0 and 1.0, allowing users to specify a relative amount of cumulative explained variance. This can be used to exclude "unimportant" principal components, thereby conducting a rank reduction of the data, by `Richard Höchenberger`_ (:gh:`8321`)
+- The ``max_pca_components`` argument of `~mne.preprocessing.ICA` can now be a float between 0.0 and 1.0, allowing users to specify a relative amount of cumulative explained variance. This can be used to exclude "unimportant" principal components, thereby conducting a rank reduction of the data, by `Richard Höchenberger`_ (:gh:`8321`)
 
-- `~mne.preprocessing.ICA` has gained a new attribute `max_pca_components_`, which will be set when calling `~mne.preprocessing.ICA.fit`, by `Richard Höchenberger`_ (:gh:`8321`)
+- `~mne.preprocessing.ICA` has gained a new attribute ``max_pca_components_``, which will be set when calling `~mne.preprocessing.ICA.fit`, by `Richard Höchenberger`_ (:gh:`8321`)
 
 Bugs
 ~~~~
@@ -34,4 +34,4 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- `~mne.preprocessing.ICA.max_pca_components` will not be altered by calling `~mne.preprocessing.ICA.fit` anymore. Instead, the new attribute `~mne.preprocessing.ICA.max_pca_components_` will be set, by `Richard Höchenberger`_ (:gh:`8321`)
+- ``ICA.max_pca_components`` will not be altered by calling `~mne.preprocessing.ICA.fit` anymore. Instead, the new attribute ``ICA.max_pca_components_`` will be set, by `Richard Höchenberger`_ (:gh:`8321`)
