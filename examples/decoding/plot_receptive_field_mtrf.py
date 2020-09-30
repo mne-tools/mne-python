@@ -5,8 +5,8 @@
 Receptive Field Estimation and Prediction
 =========================================
 
-This example reproduces figures from Lalor et al's mTRF toolbox in
-matlab :footcite:`CrosseEtAl2016`. We will show how the
+This example reproduces figures from Lalor et al.'s mTRF toolbox in
+MATLAB :footcite:`CrosseEtAl2016`. We will show how the
 :class:`mne.decoding.ReceptiveField` class
 can perform a similar function along with scikit-learn. We will first fit a
 linear encoding model using the continuously-varying speech envelope to predict

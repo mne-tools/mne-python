@@ -11,6 +11,7 @@ from scipy import linalg
 from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
+from ..fixes import jit
 from ..parallel import check_n_jobs
 from ..utils import warn, ProgressBar, logger
 
@@ -82,18 +83,8 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
                 # These adjustments also follow a Toeplitz structure, so we
                 # construct a matrix of what has been left off, compute their
                 # inner products, and remove them.
-                if edge_correction and smax > 0:
-                    tail = _toeplitz_dot(this_X[-1:-smax:-1, ch0],
-                                         this_X[-1:-smax:-1, ch1])
-                    if smin > 0:
-                        tail = tail[smin - 1:, smin - 1:]
-                    this_result[max(-smin + 1, 0):, max(-smin + 1, 0):] -= tail
-                if edge_correction and smin < 0:
-                    head = _toeplitz_dot(this_X[:-smin, ch0],
-                                         this_X[:-smin, ch1])[::-1, ::-1]
-                    if smax < 0:
-                        head = head[:smax, :smax]
-                    this_result[:-smin, :-smin] -= head
+                if edge_correction:
+                    _edge_correct(this_result, this_X, smax, smin, ch0, ch1)
 
                 # Store the results in our output matrix
                 x_xt[ch0 * len_trf:(ch0 + 1) * len_trf,
@@ -119,6 +110,23 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
     return x_xt, x_y, n_ch_x, X_offset, y_offset
 
 
+@jit()
+def _edge_correct(this_result, this_X, smax, smin, ch0, ch1):
+    if smax > 0:
+        tail = _toeplitz_dot(this_X[-1:-smax:-1, ch0],
+                             this_X[-1:-smax:-1, ch1])
+        if smin > 0:
+            tail = tail[smin - 1:, smin - 1:]
+        this_result[max(-smin + 1, 0):, max(-smin + 1, 0):] -= tail
+    if smin < 0:
+        head = _toeplitz_dot(this_X[:-smin, ch0],
+                             this_X[:-smin, ch1])[::-1, ::-1]
+        if smax < 0:
+            head = head[:smax, :smax]
+        this_result[:-smin, :-smin] -= head
+
+
+@jit()
 def _toeplitz_dot(a, b):
     """Create upper triangular Toeplitz matrices & compute the dot product."""
     # This is equivalent to:
