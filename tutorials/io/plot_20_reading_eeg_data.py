@@ -196,7 +196,7 @@ The following file extensions are read in:
   as the measurement date.
 - The ``.LOG`` file contains annotations for the recording.
 - The ``.21E`` file contains the channel and electrode
-recording system information.
+  recording system information.
 
 The .11D, .CMT, .CN2, .EDF files are not currently read in.
 
