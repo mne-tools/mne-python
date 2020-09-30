@@ -2083,11 +2083,14 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
     _check_option('fmt', fmt, ['short', 'int', 'single', 'double'])
 
+    cast_int = False  # allow unsafe cast
     if np.isrealobj(buf):
         if fmt == 'short':
             write_function = write_dau_pack16
+            cast_int = True
         elif fmt == 'int':
             write_function = write_int
+            cast_int = True
         elif fmt == 'single':
             write_function = write_float
         else:
@@ -2102,6 +2105,8 @@ def _write_raw_buffer(fid, buf, cals, fmt):
                              'writing complex data')
 
     buf = buf / np.ravel(cals)[:, None]
+    if cast_int:
+        buf = buf.astype(np.int32)
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 

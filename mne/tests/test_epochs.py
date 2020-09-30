@@ -156,6 +156,18 @@ def test_handle_event_repeated():
     assert drop_log[5] == ('MERGE DUPLICATE',)
     assert set(event_id.keys()) == set(['aud'])
 
+    # new numbers
+    for vals, want in (((1, 3), 2), ((2, 3), 1), ((1, 2), 3)):
+        events = np.zeros((2, 3), int)
+        events[:, 2] = vals
+        event_id = {str(v): v for v in events[:, 2]}
+        selection = np.arange(len(events))
+        drop_log = [tuple() for _ in range(len(events))]
+        events, event_id, selection, drop_log = _handle_event_repeated(
+            events, event_id, 'merge', selection, drop_log)
+        want = np.array([[0, 0, want]])
+        assert_array_equal(events, want)
+
 
 def _get_data(preload=False):
     """Get data."""
@@ -2329,12 +2341,12 @@ def test_array_epochs(tmpdir):
     events = np.c_[np.arange(1, 600, 60),
                    np.zeros(10, int),
                    [1, 2] * 5]
-    event_id = {'a': 1, 'b': 2}
-    epochs = EpochsArray(data, info, events, tmin, event_id)
+    epochs = EpochsArray(data, info, events, tmin)
+    assert epochs.event_id == {'1': 1, '2': 2}
     assert (str(epochs).startswith('<EpochsArray'))
     # From GH#1963
-    pytest.raises(ValueError, EpochsArray, data[:-1], info, events, tmin,
-                  event_id)
+    with pytest.raises(ValueError, match='number of events must match'):
+        EpochsArray(data[:-1], info, events, tmin)
     pytest.raises(ValueError, EpochsArray, data, info, events, tmin,
                   dict(a=1))
     pytest.raises(ValueError, EpochsArray, data, info, events, tmin,
@@ -2357,13 +2369,13 @@ def test_array_epochs(tmpdir):
     plt.close('all')
 
     # indexing
-    assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
+    assert_array_equal(np.unique(epochs['1'].events[:, 2]), np.array([1]))
     assert_equal(len(epochs[:2]), 2)
     data[0, 5, 150] = 3000
     data[1, :, :] = 0
     data[2, 5, 210] = 3000
     data[3, 5, 260] = 0
-    epochs = EpochsArray(data, info, events=events, event_id=event_id,
+    epochs = EpochsArray(data, info, events=events,
                          tmin=0, reject=dict(eeg=1000), flat=dict(eeg=1e-1),
                          reject_tmin=0.1, reject_tmax=0.2)
     assert_equal(len(epochs), len(events) - 2)
@@ -2373,14 +2385,12 @@ def test_array_epochs(tmpdir):
 
     # baseline
     data = np.ones((10, 20, 300))
-    epochs = EpochsArray(data, info, events, event_id=event_id, tmin=-.2,
-                         baseline=(None, 0))
+    epochs = EpochsArray(data, info, events, tmin=-.2, baseline=(None, 0))
     ep_data = epochs.get_data()
     assert_array_equal(ep_data, np.zeros_like(ep_data))
 
     # one time point
-    epochs = EpochsArray(data[:, :, :1], info, events=events,
-                         event_id=event_id, tmin=0.)
+    epochs = EpochsArray(data[:, :, :1], info, events=events, tmin=0.)
     assert_allclose(epochs.times, [0.])
     assert_allclose(epochs.get_data(), data[:, :, :1])
     epochs.save(temp_fname, overwrite=True)
@@ -3032,6 +3042,22 @@ def test_make_fixed_length_epochs():
     assert len(epochs) > 10
     assert len(epochs_annot) > 10
     assert len(epochs) > len(epochs_annot)
+
+
+def test_epochs_huge_events(tmpdir):
+    """Test epochs with event numbers that are too large."""
+    data = np.zeros((1, 1, 1000))
+    info = create_info(1, 1000., 'eeg')
+    events = np.array([0, 0, 2147483648])
+    with pytest.raises(ValueError, match=r'shape \(N, 3\)'):
+        EpochsArray(data, info, events)
+    events = events[np.newaxis]
+    with pytest.raises(ValueError, match='must not exceed'):
+        EpochsArray(data, info, events)
+    epochs = EpochsArray(data, info)
+    epochs.events[:, 2] = events[:, 2]
+    with pytest.raises(TypeError, match='exceeds maximum'):
+        epochs.save(tmpdir.join('temp-epo.fif'))
 
 
 run_tests_if_main()
