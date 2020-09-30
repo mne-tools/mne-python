@@ -15,7 +15,7 @@ Current (0.22.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
-- ...
+- Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
 
 Bugs
 ~~~~
