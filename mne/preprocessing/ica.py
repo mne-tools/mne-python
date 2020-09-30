@@ -673,14 +673,14 @@ class ICA(ContainsMixin):
         pca = _PCA(n_components=self.max_pca_components_, whiten=True)
         data_transformed = pca.fit_transform(data.T)
 
-        # If user passed a float, re-run the PCA, but only with the number of
+        # If user passed a float, re-run the PCA, but only keep the number of
         # components required to explain the requested cumulative variance.
         # While we could also simply select a sub-set of the data acquired
         # above, re-running PCA from scratch is less bug-prone, as it will
         # ensure that all internals of the _PCA instance are properly updated
         # as well, and we don't need to handle this case specially below.
         # Note that the result should be numerically identical to the first
-        # PCA run for the retained components.
+        # PCA run for all retained components.
         if isinstance(max_pca_components, float):
             del data_transformed  # Free memory.
             self.max_pca_components_ = (np.sum(pca.explained_variance_ratio_
@@ -706,8 +706,9 @@ class ICA(ContainsMixin):
         assert data_transformed.shape == (n_samples, self.max_pca_components_)
         del data
 
-        # If user passed a float, only keep the ICA components explaining the
-        # given cumulative variance.
+        # If user passed a float, select the PCA components explaining the
+        # given cumulative variance. This information will later be used to
+        # only submit the corresponding parts of the data to ICA.
         if isinstance(self.n_components, float):
             self.n_components_ = np.sum(
                 pca.explained_variance_ratio_.cumsum() <= self.n_components)
