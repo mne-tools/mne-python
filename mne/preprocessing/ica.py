@@ -591,7 +591,7 @@ class ICA(ContainsMixin):
         # this may operate inplace or make a copy
         data, self.pre_whitener_ = self._pre_whiten(data, raw.info, picks)
 
-        self._fit(data, self.max_pca_components_, 'raw')
+        self._fit(data, 'raw')
 
         return self
 
@@ -615,7 +615,7 @@ class ICA(ContainsMixin):
         data, self.pre_whitener_ = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
 
-        self._fit(data, self.max_pca_components_, 'epochs')
+        self._fit(data, 'epochs')
 
         return self
 
@@ -662,17 +662,16 @@ class ICA(ContainsMixin):
 
         return data, pre_whitener
 
-    def _fit(self, data, max_pca_components, fit_type):
+    def _fit(self, data, fit_type):
         """Aux function."""
         random_state = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
 
-        if max_pca_components is None or isinstance(max_pca_components, float):
+        if (self.max_pca_components is None or
+                isinstance(self.max_pca_components, float)):
             # Use all channels. For float input, we will reduce the number
             # of retained components later.
             self.max_pca_components_ = n_channels
-        else:
-            self.max_pca_components_ = max_pca_components
 
         pca = _PCA(n_components=self.max_pca_components_, whiten=True)
         data_transformed = pca.fit_transform(data.T)
@@ -685,16 +684,17 @@ class ICA(ContainsMixin):
         # as well, and we don't need to handle this case specially below.
         # Note that the result should be numerically identical to the first
         # PCA run for all retained components.
-        if isinstance(max_pca_components, float):
+        if isinstance(self.max_pca_components, float):
             del data_transformed  # Free memory.
             self.max_pca_components_ = (np.sum(pca.explained_variance_ratio_
                                                .cumsum()
-                                        <= max_pca_components))
+                                        <= self.max_pca_components))
 
             if (self.n_components is not None and
                     self.max_pca_components_ < self.n_components):
                 msg = (f'You asked to select only a subset of PCA components '
-                       f'by passing max_pca_components={max_pca_components}, '
+                       f'by passing '
+                       f'max_pca_components={self.max_pca_components}, '
                        f'which equals {self.max_pca_components_} components '
                        f'for this specific dataset. However, you also '
                        f'requested to pass {self.n_components} of those '
