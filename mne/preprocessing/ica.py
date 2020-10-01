@@ -572,13 +572,13 @@ class ICA(ContainsMixin):
                  f'retained PCA components ({self.max_pca_components_}).\n\n'
                  f'Rank-deficiency  can be caused through SSP projections or '
                  f'certain referencing schemes, e.g. an EEG average '
-                 f'reference.It is STRONGLY advised to perform rank reduction '
-                 f'using PCA prior to ICA in order to ensure proper operation '
-                 f'of the ICA algorithm.\n\n'
+                 f'reference. It is STRONGLY advised to perform rank '
+                 f'reduction using PCA prior to ICA in order to ensure proper '
+                 f'operation of the ICA procedure.\n\n'
                  f'Since the rank of your data was estimated to be {rank}, '
                  f'we recommend instantiating the ICA object via:\n\n'
                  f'    ICA(..., '
-                 f'max_pca_components={int(np.floor(rank))})'
+                 f'max_pca_components={rank})'
                  f'\n\n(or using an even smaller number).')
 
         return self
