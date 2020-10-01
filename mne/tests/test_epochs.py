@@ -14,7 +14,7 @@ import pickle
 
 import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose, assert_equal)
+                           assert_allclose, assert_equal, assert_array_less)
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -30,7 +30,7 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated)
-from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
+from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
@@ -3048,16 +3048,29 @@ def test_epochs_huge_events(tmpdir):
     """Test epochs with event numbers that are too large."""
     data = np.zeros((1, 1, 1000))
     info = create_info(1, 1000., 'eeg')
-    events = np.array([0, 0, 2147483648])
+    events = np.array([0, 0, 2147483648], np.int64)
     with pytest.raises(ValueError, match=r'shape \(N, 3\)'):
         EpochsArray(data, info, events)
     events = events[np.newaxis]
     with pytest.raises(ValueError, match='must not exceed'):
         EpochsArray(data, info, events)
     epochs = EpochsArray(data, info)
-    epochs.events[:, 2] = events[:, 2]
+    epochs.events = events
     with pytest.raises(TypeError, match='exceeds maximum'):
         epochs.save(tmpdir.join('temp-epo.fif'))
 
 
-run_tests_if_main()
+def test_concat_overflow(tmpdir):
+    """Test overflow events during concat."""
+    data = np.zeros((2, 10, 1000))
+    events = np.array([[0, 0, 1], [2147483647, 0, 2]])
+    info = mne.create_info(10, 1000., 'eeg')
+    epochs_1 = mne.EpochsArray(data, info, events)
+    epochs_2 = mne.EpochsArray(data, info, events)
+    with pytest.warns(RuntimeWarning, match='consecutive increasing'):
+        epochs = mne.concatenate_epochs((epochs_1, epochs_2))
+    assert_array_less(0, epochs.events[:, 0])
+    fname = tmpdir.join('temp-epo.fif')
+    epochs.save(fname)
+    epochs = read_epochs(fname)
+    assert_array_less(0, epochs.events[:, 0])

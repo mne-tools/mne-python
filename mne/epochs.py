@@ -2889,6 +2889,18 @@ def _compare_epochs_infos(info1, info2, name):
                          'runs to a common head position.')
 
 
+def _update_offset(offset, events, shift):
+    if offset == 0:
+        return offset
+    offset = 0 if offset is None else offset
+    offset = np.int64(offset) + np.max(events[:, 0]) + shift
+    if offset > INT32_MAX:
+        warn(f'Event number greater than {INT32_MAX} created, events[:, 0] '
+             'will be assigned consecutive increasing integer values')
+        offset = 0
+    return offset
+
+
 def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
@@ -2912,8 +2924,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     event_id = deepcopy(out.event_id)
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
-    events_offset = (np.max(out.events[:, 0]) +
-                     int((10 + tmax) * epochs.info['sfreq']))
+    shift = int((10 + tmax) * out.info['sfreq'])
+    events_offset = _update_offset(None, out.events, shift)
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _compare_epochs_infos(epochs.info, info, ii)
         if not np.allclose(epochs.times, epochs_list[0].times):
@@ -2940,15 +2952,16 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
         if add_offset:
             evs[:, 0] += events_offset
         # Update offset for the next iteration.
-        # offset is the last epoch + tmax + 10 second
-        events_offset += (np.max(epochs.events[:, 0]) +
-                          int((10 + tmax) * epochs.info['sfreq']))
+        events_offset = _update_offset(events_offset, epochs.events, shift)
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
         event_id.update(epochs.event_id)
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
+    # check to see if we exceeded our maximum event offset
+    if events_offset == 0:
+        events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
     n_have = sum(this_meta is not None for this_meta in metadata)
