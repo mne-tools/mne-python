@@ -941,11 +941,9 @@ def test_eog_channel(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize('method', ('infomax', 'fastica', 'picard'))
-@pytest.mark.parametrize('max_pca_components', (None, 1.0, 15, 0.99, 0.5, 1.5))
-def test_max_pca_components(method, max_pca_components):
-    """Test max_pca_components=None."""
-    _skip_check_picard(method)
+@pytest.mark.parametrize('max_pca_components', (1.0, 15, 0.99, 0.5, 1.5))
+def test_max_pca_components(max_pca_components):
+    """Test max_pca_components."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
@@ -954,6 +952,7 @@ def test_max_pca_components(method, max_pca_components):
 
     n_components = 10
     random_state = 12345
+    method = 'infomax'
 
     tempdir = _TempDir()
     output_fname = op.join(tempdir, 'test_ica-ica.fif')
@@ -967,29 +966,19 @@ def test_max_pca_components(method, max_pca_components):
     ica = ICA(max_pca_components=max_pca_components, method=method,
               n_components=n_components, random_state=random_state)
 
-    if max_pca_components == 0.5 and method == 'fastica':
-        with pytest.raises(ValueError, match='increase max_pca_components'):
-            with pytest.warns(UserWarning, match='did not converge'):
-                ica.fit(epochs)
-        return
-    elif max_pca_components == 0.5:
+    if max_pca_components == 0.5:
         with pytest.raises(ValueError, match='increase max_pca_components'):
             ica.fit(epochs)
         return
 
-    if method == 'fastica':
-        with pytest.warns(UserWarning, match='did not converge'):
-            ica.fit(epochs)
-    else:
-        ica.fit(epochs)
+    ica.fit(epochs)
 
     _assert_ica_attributes(ica)
     ica.save(output_fname)
-
     ica = read_ica(output_fname)
     assert_equal(ica.max_pca_components, max_pca_components)
 
-    if max_pca_components is None or max_pca_components == 1.0:
+    if max_pca_components == 1.0:
         expected_max_pca_components = epochs.info['nchan']
         assert_equal(ica.max_pca_components_, expected_max_pca_components)
     elif max_pca_components == 15:
