@@ -519,7 +519,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
-    dictionary. Works with evoked data [1]_ [2]_.
+    dictionary. Works with evoked data
+    :footcite:`GramfortEtAl2013,GramfortEtAl2011`.
 
     Parameters
     ----------
@@ -550,13 +551,14 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         Length of the STFT window in samples (must be a multiple of 4).
         If an array is passed, multiple TF dictionaries are used (each having
         its own wsize and tstep) and each entry of wsize must be a multiple
-        of 4. See [3]_.
+        of 4. See :footcite:`BekhtiEtAl2016`.
     tstep : int or array-like
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
         If an array is passed, multiple TF dictionaries are used (each having
         its own wsize and tstep), and each entry of tstep must be a multiple
-        of 2 and divide the corresponding entry of wsize. See [3]_.
+        of 2 and divide the corresponding entry of wsize. See
+        :footcite:`BekhtiEtAl2016`.
     window : float or (float, float)
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
@@ -599,24 +601,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     References
     ----------
-    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-       "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-       non-stationary source activations",
-       Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
-       DOI: 10.1016/j.neuroimage.2012.12.051
-
-    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-       "Functional Brain Imaging with M/EEG Using Structured Sparsity in
-       Time-Frequency Dictionaries",
-       Proceedings Information Processing in Medical Imaging
-       Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
-       DOI: 10.1007/978-3-642-22092-0_49
-
-    .. [3] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort.
-       "M/EEG source localization with multiscale time-frequency dictionaries",
-       6th International Workshop on Pattern Recognition in Neuroimaging
-       (PRNI), 2016.
-       DOI: 10.1109/PRNI.2016.7552337
+    .. footbibliography::
     """
     _check_reference(evoked)
 
