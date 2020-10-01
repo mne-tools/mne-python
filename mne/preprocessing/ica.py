@@ -365,6 +365,10 @@ class ICA(ContainsMixin):
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
+        _validate_type(n_components, ('numeric', None))
+        _validate_type(n_pca_components, ('numeric', None))
+        _validate_type(max_pca_components, ('numeric', None))
+
         if method != 'imported_eeglab':  # internal use only
             _check_option('method', method, ['fastica', 'infomax', 'picard'])
         if method == 'fastica' and not check_version('sklearn'):
