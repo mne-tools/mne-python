@@ -941,35 +941,83 @@ def test_eog_channel(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_max_pca_components_none(method):
-    """Test max_pca_components=None."""
-    _skip_check_picard(method)
+@pytest.mark.parametrize('max_pca_components', (1.0, 15, 0.99, 0.5, 1.5))
+def test_max_pca_components(max_pca_components):
+    """Test max_pca_components."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
 
-    max_pca_components = None
     n_components = 10
     random_state = 12345
+    method = 'infomax'
 
     tempdir = _TempDir()
     output_fname = op.join(tempdir, 'test_ica-ica.fif')
+
+    if max_pca_components == 1.5:
+        with pytest.raises(ValueError, match='PCA .* needs values between'):
+            ica = ICA(max_pca_components=max_pca_components, method=method,
+                      n_components=n_components, random_state=random_state)
+        return
+
     ica = ICA(max_pca_components=max_pca_components, method=method,
               n_components=n_components, random_state=random_state)
-    with pytest.warns(None):
-        ica.fit(epochs)
+
+    if max_pca_components == 0.5:
+        with pytest.raises(ValueError, match='increase max_pca_components'):
+            ica.fit(epochs)
+        return
+
+    ica.fit(epochs)
+
     _assert_ica_attributes(ica)
     ica.save(output_fname)
-
     ica = read_ica(output_fname)
+    assert_equal(ica.max_pca_components, max_pca_components)
 
-    # ICA.fit() replaced max_pca_components, which was previously None,
-    # with the appropriate integer value.
-    assert_equal(ica.max_pca_components, epochs.info['nchan'])
-    assert_equal(ica.n_components, 10)
+    if max_pca_components == 1.0:
+        expected_max_pca_components = epochs.info['nchan']
+        assert_equal(ica.max_pca_components_, expected_max_pca_components)
+    elif max_pca_components == 15:
+        expected_max_pca_components = 15
+        assert_equal(ica.max_pca_components_, expected_max_pca_components)
+
+    assert_equal(ica.n_components, n_components)
+
+
+@requires_sklearn
+@pytest.mark.parametrize('method', ['infomax', 'fastica', 'picard'])
+def test_max_pca_components_(method):
+    """Test that max_pca_components_ gets populated when reading old file."""
+    _skip_check_picard(method)
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test_ica-ica.fif')
+
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    events = read_events(event_name)
+    picks = pick_types(raw.info, eeg=True, meg=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+
+    max_pca_components = 5
+    ica = ICA(max_pca_components=max_pca_components, method=method)
+    if method == 'fastica':
+        with pytest.warns(UserWarning, match='did not converge'):
+            ica.fit(epochs)
+    else:
+        ica.fit(epochs)
+
+    # Old files don't have max_pca_components_; instead, during fitting,
+    # max_pca_components would get altered. Simulate an old file.
+    del ica.max_pca_components_
+
+    ica.save(fname)
+    ica = read_ica(fname)
+    # Now it should be there.
+    assert ica.max_pca_components_ == max_pca_components
 
 
 @requires_sklearn
@@ -1031,10 +1079,7 @@ def test_n_components_and_max_pca_components_none(method):
 
     ica = read_ica(output_fname)
     _assert_ica_attributes(ica)
-
-    # ICA.fit() replaced max_pca_components, which was previously None,
-    # with the appropriate integer value.
-    assert_equal(ica.max_pca_components, epochs.info['nchan'])
+    assert_equal(ica.max_pca_components_, epochs.info['nchan'])
     assert ica.n_components is None
 
 
@@ -1248,7 +1293,7 @@ def _assert_ica_attributes(ica):
         n_ch, n_ch if ica.noise_cov is not None else 1)
 
     # PCA
-    n_pca = ica.max_pca_components
+    n_pca = ica.max_pca_components_
     assert ica.pca_components_.shape == (n_pca, n_ch), 'PCA shape'
     assert_allclose(np.dot(ica.pca_components_, ica.pca_components_.T),
                     np.eye(n_pca), atol=1e-6, err_msg='PCA orthogonality')

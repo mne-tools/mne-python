@@ -17,6 +17,10 @@ Enhancements
 
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
 
+- The ``max_pca_components`` argument of `~mne.preprocessing.ICA` can now be a float between 0.0 and 1.0, allowing users to specify a relative amount of cumulative explained variance. This can be used to exclude "unimportant" principal components, thereby conducting a rank reduction of the data, by `Richard Höchenberger`_ (:gh:`8321`)
+
+- `~mne.preprocessing.ICA` has gained a new attribute ``max_pca_components_``, which will be set when calling `~mne.preprocessing.ICA.fit`, by `Richard Höchenberger`_ (:gh:`8321`)
+
 Bugs
 ~~~~
 
@@ -34,8 +38,10 @@ Bugs
 
 - Fix bug with :func:`mne.add_reference_channels` when :func:`mne.io.Raw.reorder_channels` or related methods are used afterward by `Eric Larson`_ (:gh:`8303`)
 
+- ``ICA.max_pca_components`` will not be altered by calling `~mne.preprocessing.ICA.fit` anymore. Instead, the new attribute ``ICA.max_pca_components_`` will be set, by `Richard Höchenberger`_ (:gh:`8321`)
+
 
 API changes
 ~~~~~~~~~~~
 
-- ...
+...
