@@ -769,9 +769,9 @@ class ICA(ContainsMixin):
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
-        # norms = np.sqrt(self.pca_explained_variance_[:self.n_components_])
-        # norms[norms == 0] = 1.
-        # self.unmixing_matrix_ /= norms  # whitening
+        norms = np.sqrt(self.pca_explained_variance_[:self.n_components_])
+        norms[norms == 0] = 1.
+        self.unmixing_matrix_ /= norms  # whitening
         self._update_mixing_matrix()
         self.current_fit = fit_type
 
@@ -2725,18 +2725,18 @@ def read_ica_eeglab(fname):
 
     n_ch = len(ica.ch_names)
     assert eeg.icaweights.shape == (n_components, n_ch)
-    if n_components < n_ch:
-        # When PCA reduction is used in EEGLAB, runica returns
-        # weights= weights*sphere*eigenvectors(:,1:ncomps)';
-        # sphere = eye(urchans), so let's use SVD to get our square
-        # weights matrix (u * s) and our PCA vectors (v) back
-        u, s, v = _safe_svd(eeg.icaweights, full_matrices=False)
-        ica.pca_explained_variance_ = s * s
-        ica.unmixing_matrix_ = u * s
-        ica.pca_components_ = v
-    else:
-        ica.unmixing_matrix_ = eeg.icaweights
-        ica.pca_components_ = eeg.icasphere
-        ica.pca_explained_variance_ = np.ones(ica.unmixing_matrix_.shape[1])
+    # When PCA reduction is used in EEGLAB, runica returns
+    # weights= weights*sphere*eigenvectors(:,1:ncomps)';
+    # sphere = eye(urchans). When PCA reduction is not used, we have:
+    #
+    #     eeg.icawinv == pinv(eeg.icaweights @ eeg.icasphere)
+    #
+    # So in either case, we can use SVD to get our square whitened
+    # weights matrix (u * s) and our PCA vectors (v) back:
+    use = eeg.icaweights @ eeg.icasphere
+    u, s, v = _safe_svd(use, full_matrices=False)
+    ica.unmixing_matrix_ = u * s
+    ica.pca_components_ = v
+    ica.pca_explained_variance_ = s * s
     ica._update_mixing_matrix()
     return ica

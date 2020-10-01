@@ -32,7 +32,7 @@ Bugs
 
 - :func:`mne.io.read_raw_edf` now supports EDF files with invalid recording dates by `Clemens Brunner`_ (:gh:`8283`)
 
-- Fix bug where normalizing by ``ica.pca_explained_variance_`` could destabilize ``ica.mixing_matrix_`` computation in :class:`mne.preprocessing.ICA` by `Eric Larson`_ (:gh:`8326`)
+- Fix bug with :func:`mne.preprocessing.read_ica_eeglab` where full-rank data were not handled properly by `Eric Larson`_ (:gh:`8326`)
 
 - Fix bug with :ref:`somato-dataset` where the BEM was not included by `Eric Larson`_ (:gh:`8317`)
 
