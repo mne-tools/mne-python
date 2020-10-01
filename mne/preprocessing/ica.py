@@ -693,17 +693,16 @@ class ICA(ContainsMixin):
 
             if (self.n_components is not None and
                     self.max_pca_components_ < self.n_components):
-                msg = (f'You asked to select only a subset of PCA components '
-                       f'by passing '
-                       f'max_pca_components={self.max_pca_components}, '
-                       f'which equals {self.max_pca_components_} components '
-                       f'for this specific dataset. However, you also '
-                       f'requested to pass {self.n_components} of those '
-                       f'components to ICA, which is mathematically '
-                       f'impossible. Please either increase '
-                       f'max_pca_components, set it to None, '
-                       f'reduce n_components, or set n_components=None')
-                raise ValueError(msg)
+                raise ValueError(
+                    f'You asked to select only a subset of PCA components by '
+                    f'passing max_pca_components={self.max_pca_components}, '
+                    f'which equals {self.max_pca_components_} components '
+                    f'for this specific dataset. However, you also '
+                    f'requested to pass {self.n_components} of those '
+                    f'components to ICA, which is mathematically '
+                    f'impossible. Please either increase '
+                    f'max_pca_components, set it to None, reduce '
+                    f'n_components, or set n_components=None')
 
             pca = _PCA(n_components=self.max_pca_components_, whiten=True)
             data_transformed = pca.fit_transform(data.T)
