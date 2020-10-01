@@ -684,7 +684,8 @@ class ICA(ContainsMixin):
         # as well, and we don't need to handle this case specially below.
         # Note that the result should be numerically identical to the first
         # PCA run for all retained components.
-        if isinstance(self.max_pca_components, float):
+        if (isinstance(self.max_pca_components, float) and
+                self.max_pca_components != 1.0):
             del data_transformed  # Free memory.
             self.max_pca_components_ = (np.sum(pca.explained_variance_ratio_
                                                .cumsum()
