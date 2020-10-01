@@ -60,6 +60,7 @@ from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import pick_channels_regexp
+from ..rank import _compute_rank_int
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -556,6 +557,30 @@ class ICA(ContainsMixin):
         _sort_components(self, var_ord, copy=False)
         t_stop = time()
         logger.info("Fitting ICA took {:.1f}s.".format(t_stop - t_start))
+
+        # Do a sanity check to expose cases where we may have operated on
+        # rank-deficient data (bad!). Do the test here because 
+        # max_pca_components_ has been updated during the fit.
+        inst_picked = inst.copy().pick(picks)
+        # Normalize to avoid warning during rank computation
+        inst_picked.info.normalize_proj()
+        rank = _compute_rank_int(inst_picked, ref_meg=self.allow_ref_meg)
+        if self.max_pca_components_ > rank:
+            warn(f'It is likely that we operated on rank-deficient data, '
+                 f'which is known to be problematic. The estimated rank of '
+                 f'the data is {rank}, which is smaller than the number of '
+                 f'retained PCA components ({self.max_pca_components_}).\n\n'
+                 f'Rank-deficiency  can be caused through SSP projections or '
+                 f'certain referencing schemes, e.g. an EEG average '
+                 f'reference.It is STRONGLY advised to perform rank reduction '
+                 f'using PCA prior to ICA in order to ensure proper operation '
+                 f'of the ICA algorithm.\n\n'
+                 f'Since the rank of your data was estimated to be {rank}, '
+                 f'we recommend instantiating the ICA object via:\n\n'
+                 f'    ICA(..., '
+                 f'max_pca_components={int(np.floor(rank))})'
+                 f'\n\n(or using an even smaller number).')
+
         return self
 
     def _reset(self):

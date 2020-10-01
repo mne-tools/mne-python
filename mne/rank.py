@@ -118,7 +118,8 @@ def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
 
 
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
-                                return_singular=False, tol_kind='absolute'):
+                                return_singular=False, tol_kind='absolute',
+                                ref_meg=False):
     """Estimate rank for M/EEG data.
 
     Parameters
@@ -142,6 +143,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
         to determine the rank.
     tol_kind : str
         Tolerance kind. See ``estimate_rank``.
+    ref_meg : bool
+        Whether to include MEG reference channels.
 
     Returns
     -------
@@ -151,7 +154,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info)
+    picks_list = _picks_by_type(info, ref_meg=ref_meg)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
@@ -272,7 +275,7 @@ def _compute_rank_int(inst, *args, **kwargs):
 
 @verbose
 def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
-                 proj=True, tol_kind='absolute', verbose=None):
+                 proj=True, tol_kind='absolute', ref_meg=False, verbose=None):
     """Compute the rank of data or noise covariance.
 
     This function will normalize the rows of the data (typically
@@ -297,6 +300,9 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         If True, all projs in ``inst`` and ``info`` will be applied or
         considered when ``rank=None`` or ``rank='info'``.
     %(rank_tol_kind)s
+    ref_meg : bool
+        Whether to include MEG reference channels in the calculation. You
+        typically do **not** want this, hence ``False`` by default.
     %(verbose)s
 
     Returns
@@ -360,7 +366,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
             rank = dict()
 
     simple_info = _simplify_info(info)
-    picks_list = _picks_by_type(info, meg_combined=True, ref_meg=False,
+    picks_list = _picks_by_type(info, meg_combined=True, ref_meg=ref_meg,
                                 exclude='bads')
     for ch_type, picks in picks_list:
         if ch_type in rank:
@@ -388,7 +394,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
             assert rank_type == 'estimated'
             if isinstance(inst, (BaseRaw, BaseEpochs)):
                 if isinstance(inst, BaseRaw):
-                    data = inst.get_data(picks, None, None,
+                    data = inst.get_data(picks, start=None, stop=None,
                                          reject_by_annotation='omit')
                 else:  # isinstance(inst, BaseEpochs):
                     data = inst.get_data()[:, picks, :]
@@ -397,7 +403,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                     data = np.dot(proj_op, data)
                 rank[ch_type] = _estimate_rank_meeg_signals(
                     data, pick_info(simple_info, picks), scalings, tol, False,
-                    tol_kind)
+                    tol_kind, ref_meg=ref_meg)
             else:
                 assert isinstance(inst, Covariance)
                 if inst['diag']:
