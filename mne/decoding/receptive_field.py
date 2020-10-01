@@ -316,7 +316,7 @@ class ReceptiveField(BaseEstimator):
         """Score predictions generated with a receptive field.
 
         This calls ``self.predict``, then masks the output of this
-        and ``y` with ``self.mask_prediction_``. Finally, it passes
+        and ``y` with ``self.valid_samples_``. Finally, it passes
         this to a :mod:`sklearn.metrics` scorer.
 
         Parameters
