@@ -669,7 +669,7 @@ class ICA(ContainsMixin):
 
         if (self.max_pca_components is None or
                 isinstance(self.max_pca_components, float)):
-            # Use all channels. For float input, we will reduce the number
+            # Use all channels. For float input <1.0, we will reduce the number
             # of retained components later.
             self.max_pca_components_ = n_channels
 
