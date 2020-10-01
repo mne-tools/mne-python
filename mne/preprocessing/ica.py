@@ -564,7 +564,8 @@ class ICA(ContainsMixin):
         inst_picked = inst.copy().pick(picks)
         # Normalize to avoid warning during rank computation
         inst_picked.info.normalize_proj()
-        rank = _compute_rank_int(inst_picked, ref_meg=self.allow_ref_meg)
+        rank = _compute_rank_int(inst_picked, ref_meg=self.allow_ref_meg,
+                                 eog=True, proj=False)
         if self.max_pca_components_ > rank:
             warn(f'It is likely that we operated on rank-deficient data, '
                  f'which is known to be problematic. The estimated rank of '
