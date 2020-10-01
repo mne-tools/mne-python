@@ -142,7 +142,7 @@ def test_ica_simple(method):
     A = rng.randn(n_components, n_components)
     data = np.dot(A, S)
     ica = ICA(n_components=n_components, method=method, random_state=0)
-    ica._fit(data, n_components, 0)
+    ica._fit(data, 0)
     transform = np.dot(np.dot(ica.unmixing_matrix_, ica.pca_components_), A)
     amari_distance = np.mean(np.sum(np.abs(transform), axis=1) /
                              np.max(np.abs(transform), axis=1) - 1.)
