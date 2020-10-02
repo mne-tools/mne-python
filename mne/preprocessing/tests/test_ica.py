@@ -158,11 +158,7 @@ def test_ica_simple(method):
 
 @requires_sklearn
 @pytest.mark.parametrize('n_pca_components', (8, 9, 10))
-@pytest.mark.parametrize('max_pca_components', [
-    9,
-    pytest.param(0.999999, marks=pytest.mark.xfail(reason='XXX should work')),
-    10,
-])
+@pytest.mark.parametrize('max_pca_components', [9, 0.9999, 10])
 @pytest.mark.filterwarnings('ignore:FastICA did not converge.*:UserWarning')
 def test_ica_noop(n_pca_components, max_pca_components, tmpdir):
     """Test that our ICA is stable even with a bad max_pca_components."""
@@ -789,7 +785,7 @@ def test_ica_additional(method, tmpdir):
     # test float n pca components
     ica.pca_explained_variance_ = np.array([0.2] * 5)
     ica.n_components_ = 0
-    for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:
+    for ncomps, expected in [[0.3, 2], [0.9, 5], [1, 1]]:
         ncomps_ = ica._check_n_pca_components(ncomps)
         assert (ncomps_ == expected)
 
@@ -971,7 +967,7 @@ def test_eog_channel(method):
         picks1 = np.append(picks1a, picks1b)
         ica.fit(inst, picks=picks1)
         assert (any('EOG' in ch for ch in ica.ch_names))
-        _assert_ica_attributes(ica, inst.get_data(picks1), limits=(1, 500))
+        _assert_ica_attributes(ica, inst.get_data(picks1), limits=(0.8, 600))
     # Test case for MEG data. Should have no EOG channel
     for inst in [raw, epochs]:
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,

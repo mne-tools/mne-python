@@ -151,8 +151,8 @@ class ICA(ContainsMixin):
         parameter). Use this parameter to reduce the dimensionality of the
         input data via PCA before any further processing is performed.
         If :class:`float` between 0 and 1, the number of components with
-        cumulative explained variance less than ``max_pca_components`` will be
-        used. If ``1.0`` or ``None``, no dimensionality reduction occurs and
+        cumulative explained variance greater than ``max_pca_components`` will
+        be used. If ``1.0`` or ``None``, no dimensionality reduction occurs and
         ``max_pca_components`` will equal the number of channels in the
         `~mne.io.Raw` or `~mne.Epochs` object passed to
         `~mne.preprocessing.ICA.fit`. Defaults to ``None``. When calling
@@ -169,10 +169,15 @@ class ICA(ContainsMixin):
         ``n_pca_components > n_components``, additional PCA components will be
         incorporated. If :class:`float` between 0 and 1, the number is chosen
         as the number of *PCA* components with cumulative explained variance
-        less than ``n_components`` (without accounting for ``ICA.include`` or
-        ``ICA.exclude``). If :class:`int` or :class:`float`, ``n_components_ ≤
-        n_pca_components ≤ max_pca_components_`` must hold. If ``None``,
-        ``max_pca_components`` will be used. Defaults to ``None``.
+        greater than ``n_components`` (without accounting for ``ICA.include``
+        or ``ICA.exclude``). If :class:`int` or :class:`float`,
+        ``n_components_ ≤ n_pca_components ≤ max_pca_components_`` must hold.
+        If ``None``, ``max_pca_components`` will be used. Defaults to ``None``.
+
+        .. versionchanged:: 0.22
+           The number of components returned for a :class:`python:float`
+           is greater than the given variance level instead of less than or
+           equal to it.
     noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") prior to the whitening
@@ -687,9 +692,8 @@ class ICA(ContainsMixin):
         if (isinstance(self.max_pca_components, float) and
                 self.max_pca_components != 1.0):
             del data_transformed  # Free memory.
-            self.max_pca_components_ = (np.sum(pca.explained_variance_ratio_
-                                               .cumsum()
-                                        <= self.max_pca_components))
+            self.max_pca_components_ = _exp_var_ncomp(
+                pca.explained_variance_ratio_, self.max_pca_components)
 
             if (self.n_components is not None and
                     self.max_pca_components_ < self.n_components):
@@ -714,9 +718,9 @@ class ICA(ContainsMixin):
         # given cumulative variance. This information will later be used to
         # only submit the corresponding parts of the data to ICA.
         if isinstance(self.n_components, float):
-            self.n_components_ = np.sum(
-                pca.explained_variance_ratio_.cumsum() <= self.n_components)
-            if self.n_components_ < 1:
+            self.n_components_ = _exp_var_ncomp(
+                pca.explained_variance_ratio_, self.n_components)
+            if self.n_components_ == 1:
                 raise RuntimeError('One PCA component captures most of the '
                                    'explained variance, your threshold resu'
                                    'lts in 0 components. You should select '
@@ -1955,9 +1959,8 @@ class ICA(ContainsMixin):
     def _check_n_pca_components(self, _n_pca_comp, verbose=None):
         """Aux function."""
         if isinstance(_n_pca_comp, float):
-            _n_pca_comp = ((self.pca_explained_variance_ /
-                            self.pca_explained_variance_.sum()).cumsum() <=
-                           _n_pca_comp).sum()
+            _n_pca_comp = _exp_var_ncomp(
+                self.pca_explained_variance_, _n_pca_comp)
             logger.info('Selected %i PCA components by explained '
                         'variance' % _n_pca_comp)
         elif _n_pca_comp is None:
@@ -1966,6 +1969,14 @@ class ICA(ContainsMixin):
             _n_pca_comp = self.n_components_
 
         return _n_pca_comp
+
+
+def _exp_var_ncomp(var, n):
+    cvar = np.asarray(var, dtype=np.float64)
+    cvar = cvar.cumsum()
+    cvar /= cvar[-1]
+    # We allow 1., which would give us N+1
+    return min((cvar <= n).sum() + 1, len(cvar))
 
 
 def _check_start_stop(raw, start, stop):

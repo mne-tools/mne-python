@@ -405,7 +405,7 @@ def test_hash():
 
 
 @requires_sklearn
-@pytest.mark.parametrize('n_components', (None, 0.8, 8, 'mle'))
+@pytest.mark.parametrize('n_components', (None, 0.9999, 8, 'mle'))
 @pytest.mark.parametrize('whiten', (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
@@ -421,12 +421,13 @@ def test_pca(n_components, whiten):
     X_mne = pca_mne.fit_transform(X)
     assert_array_equal(X, X_orig)
     assert_allclose(X_skl, X_mne)
+    assert pca_mne.n_components_ == pca_skl.n_components_
     for key in ('mean_', 'components_',
                 'explained_variance_', 'explained_variance_ratio_'):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
-        assert 1 < pca_mne.n_components_ < n_dim
+        assert pca_mne.n_components_ == n_dim - 1
     elif isinstance(n_components, int):
         assert pca_mne.n_components_ == n_components
     elif n_components == 'mle':
