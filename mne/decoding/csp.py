@@ -113,9 +113,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        _check_option('transform_into', transform_into,
-                      ['average_power', 'csp_space'])
-        self.transform_into = transform_into
+        self.transform_into = _check_option('transform_into', transform_into,
+                                            ['average_power', 'csp_space'])
 
         # Init default log
         if transform_into == 'average_power':
@@ -131,9 +130,9 @@ class CSP(TransformerMixin, BaseEstimator):
         _validate_type(norm_trace, bool, 'norm_trace')
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
-        _check_option('component_order', component_order,
-                      ('mutual_info', 'alternate'))
-        self.component_order = component_order
+        self.component_order = _check_option('component_order',
+                                             component_order,
+                                             ('mutual_info', 'alternate'))
 
     def _check_Xy(self, X, y=None):
         """Check input data."""
