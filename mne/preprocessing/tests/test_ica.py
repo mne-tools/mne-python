@@ -548,13 +548,13 @@ def test_ica_additional(method):
             ica_read = read_ica(test_ica_fname)
             assert (list(ica.exclude) == ica_read.exclude)
             assert_equal(ica.labels_, ica_read.labels_)
-            ica.apply(raw)
+            ica.apply(raw.copy())
             ica.exclude = []
-            ica.apply(raw, exclude=[1])
+            ica.apply(raw.copy(), exclude=[1])
             assert (ica.exclude == [])
 
             ica.exclude = [0, 1]
-            ica.apply(raw, exclude=[1])
+            ica.apply(raw.copy(), exclude=[1])
             assert (ica.exclude == [0, 1])
 
             ica_raw = ica.get_sources(raw)
@@ -608,8 +608,8 @@ def test_ica_additional(method):
         sources2 = ica_read.get_sources(raw)[:, :][0]
         assert_array_almost_equal(sources, sources2)
 
-        _raw1 = ica.apply(raw, exclude=[1])
-        _raw2 = ica_read.apply(raw, exclude=[1])
+        _raw1 = ica.apply(raw.copy(), exclude=[1])
+        _raw2 = ica_read.apply(raw.copy(), exclude=[1])
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
@@ -1105,7 +1105,7 @@ def test_ica_ctf():
 
         # test apply and get_sources
         for inst in [raw, epochs, evoked]:
-            ica.apply(inst)
+            ica.apply(inst.copy())
             ica.get_sources(inst)
 
     # test mixed compensation case
@@ -1119,7 +1119,7 @@ def test_ica_ctf():
     evoked = epochs.average()
     for inst in [raw, epochs, evoked]:
         with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
-            ica.apply(inst)
+            ica.apply(inst.copy())
         with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
             ica.get_sources(inst)
 

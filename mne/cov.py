@@ -719,9 +719,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         perform estimates using multiple methods.
         If 'auto' or a list of methods, the best estimator will be determined
         based on log-likelihood and cross-validation on unseen data as
-        described in [1]_. Valid methods are 'empirical', 'diagonal_fixed',
-        'shrunk', 'oas', 'ledoit_wolf', 'factor_analysis', 'shrinkage',
-        and 'pca' (see Notes). If ``'auto'``, it expands to::
+        described in :footcite:`EngemannGramfort2015`. Valid methods are
+        'empirical', 'diagonal_fixed', 'shrunk', 'oas', 'ledoit_wolf',
+        'factor_analysis', 'shrinkage', and 'pca' (see Notes). If ``'auto'``,
+        it expands to::
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
@@ -803,9 +804,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
       .. versionadded:: 0.16
     * ``'ledoit_wolf'``
         The Ledoit-Wolf estimator, which uses an
-        empirical formula for the optimal shrinkage value [2]_.
+        empirical formula for the optimal shrinkage value
+        :footcite:`LedoitWolf2004`.
     * ``'oas'``
-        The OAS estimator [5]_, which uses a different
+        The OAS estimator :footcite:`ChenEtAl2010`, which uses a different
         empricial formula for the optimal shrinkage value.
 
       .. versionadded:: 0.16
@@ -813,9 +815,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         Like 'ledoit_wolf', but with cross-validation
         for optimal alpha.
     * ``'pca'``
-        Probabilistic PCA with low rank [3]_.
+        Probabilistic PCA with low rank :footcite:`TippingBishop1999`.
     * ``'factor_analysis'``
-        Factor analysis with low rank [4]_.
+        Factor analysis with low rank :footcite:`Barber2012`.
 
     ``'ledoit_wolf'`` and ``'pca'`` are similar to ``'shrunk'`` and
     ``'factor_analysis'``, respectively, except that they use
@@ -833,27 +835,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     The ``method`` parameter allows to regularize the covariance in an
     automated way. It also allows to select between different alternative
     estimation algorithms which themselves achieve regularization.
-    Details are described in [1]_.
+    Details are described in :footcite:`EngemannGramfort2015`.
 
     For more information on the advanced estimation methods, see
     :ref:`the sklearn manual <sklearn:covariance>`.
 
     References
     ----------
-    .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-           covariance estimation and spatial whitening of MEG and EEG
-           signals, vol. 108, 328-342, NeuroImage.
-    .. [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
-           large-dimensional covariance matrices. Journal of Multivariate
-           Analysis 88 (2), 365 - 411.
-    .. [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
-           component analysis. Journal of the Royal Statistical Society:
-           Series B (Statistical Methodology) 61 (3), 611 - 622.
-    .. [4] Barber, D., (2012). Bayesian reasoning and machine learning.
-           Cambridge University Press., Algorithm 21.1
-    .. [5] Chen et al. (2010). Shrinkage Algorithms for MMSE Covariance
-           Estimation. IEEE Trans. on Sign. Proc., Volume 58, Issue 10,
-           October 2010.
+    .. footbibliography::
     """
     # scale to natural unit for best stability with MEG/EEG
     scalings = _check_scalings_user(scalings)

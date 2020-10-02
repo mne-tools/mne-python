@@ -695,7 +695,7 @@ class ICA(ContainsMixin):
 
         if (self.max_pca_components is None or
                 isinstance(self.max_pca_components, float)):
-            # Use all channels. For float input, we will reduce the number
+            # Use all channels. For float input <1.0, we will reduce the number
             # of retained components later.
             self.max_pca_components_ = n_channels
 
@@ -710,7 +710,8 @@ class ICA(ContainsMixin):
         # as well, and we don't need to handle this case specially below.
         # Note that the result should be numerically identical to the first
         # PCA run for all retained components.
-        if isinstance(self.max_pca_components, float):
+        if (isinstance(self.max_pca_components, float) and
+                self.max_pca_components != 1.0):
             del data_transformed  # Free memory.
             self.max_pca_components_ = (np.sum(pca.explained_variance_ratio_
                                                .cumsum()
@@ -718,17 +719,16 @@ class ICA(ContainsMixin):
 
             if (self.n_components is not None and
                     self.max_pca_components_ < self.n_components):
-                msg = (f'You asked to select only a subset of PCA components '
-                       f'by passing '
-                       f'max_pca_components={self.max_pca_components}, '
-                       f'which equals {self.max_pca_components_} components '
-                       f'for this specific dataset. However, you also '
-                       f'requested to pass {self.n_components} of those '
-                       f'components to ICA, which is mathematically '
-                       f'impossible. Please either increase '
-                       f'max_pca_components, set it to None, '
-                       f'reduce n_components, or set n_components=None')
-                raise ValueError(msg)
+                raise ValueError(
+                    f'You asked to select only a subset of PCA components by '
+                    f'passing max_pca_components={self.max_pca_components}, '
+                    f'which equals {self.max_pca_components_} components '
+                    f'for this specific dataset. However, you also '
+                    f'requested to pass {self.n_components} of those '
+                    f'components to ICA, which is mathematically '
+                    f'impossible. Please either increase '
+                    f'max_pca_components, set it to None, reduce '
+                    f'n_components, or set n_components=None')
 
             pca = _PCA(n_components=self.max_pca_components_, whiten=True)
             data_transformed = pca.fit_transform(data.T)

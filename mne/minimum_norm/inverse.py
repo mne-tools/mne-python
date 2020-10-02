@@ -1290,6 +1290,14 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     Notes
     -----
     .. versionadded:: 0.20
+
+    This code is based on the original research code from
+    :footcite:`Sabbagh2020` and has been useful to correct for individual field
+    spread using source localization in the context of predictive modeling.
+
+    References
+    ----------
+    .. footbibliography::
     """
     _validate_type(cov, Covariance, cov)
     _validate_type(inverse_operator, InverseOperator, 'inverse_operator')
