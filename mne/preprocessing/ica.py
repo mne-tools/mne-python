@@ -562,8 +562,8 @@ class ICA(ContainsMixin):
         """Aux method."""
         for key in ('pre_whitener_', 'unmixing_matrix_', 'mixing_matrix_',
                     'n_components_', 'n_samples_', 'pca_components_',
-                    'pca_explained_variance_', 'pca_mean_', 'n_iter_',
-                    'drop_inds_', 'reject_'):
+                    'max_pca_components_', 'pca_explained_variance_',
+                    'pca_mean_', 'n_iter_', 'drop_inds_', 'reject_'):
             if hasattr(self, key):
                 delattr(self, key)
 

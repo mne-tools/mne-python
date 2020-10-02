@@ -225,6 +225,7 @@ def test_ica_reset(method):
         'n_components_',
         'n_samples_',
         'pca_components_',
+        'max_pca_components_',
         'pca_explained_variance_',
         'pca_mean_',
         'n_iter_'
