@@ -536,7 +536,8 @@ def _check_depth(depth, kind='depth_mne'):
 def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
-    Raises a ValueError with a readable error message if the value was invalid.
+    Return the value if it is valid, otherwise raise a ValueError with a
+    readable error message.
 
     Parameters
     ----------
@@ -553,10 +554,15 @@ def _check_option(parameter, value, allowed_values, extra=''):
     Raises
     ------
     ValueError
-        When the value of the parameter was not one of the valid options.
+        When the value of the parameter is not one of the valid options.
+
+    Returns
+    -------
+    value : any type
+        The value if it is valid.
     """
     if value in allowed_values:
-        return True
+        return value
 
     # Prepare a nice error message for the user
     extra = ' ' + extra if extra else extra
@@ -568,7 +574,7 @@ def _check_option(parameter, value, allowed_values, extra=''):
     else:
         options = 'Allowed values are '
         options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
-        options += f' and {repr(allowed_values[-1])}'
+        options += f', and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value, extra=extra))
 
