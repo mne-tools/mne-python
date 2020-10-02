@@ -178,8 +178,8 @@ class Brain(object):
         else:
             raise KeyError('hemi has to be either "lh", "rh", "split", '
                            'or "both"')
-        _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
-        self._view_layout = view_layout
+        self._view_layout = _check_option('view_layout', view_layout,
+                                          ('vertical', 'horizontal'))
 
         if figure is not None and not isinstance(figure, int):
             backend._check_3d_figure(figure)
@@ -665,9 +665,9 @@ class Brain(object):
         if len(extra_keys):
             raise ValueError(
                 f'volume_options got unknown keys {sorted(extra_keys)}')
-        _check_option('volume_options["blending"]', volume_options['blending'],
-                      ('composite', 'mip'))
-        blending = volume_options['blending']
+        blending = _check_option('volume_options["blending"]',
+                                 volume_options['blending'],
+                                 ('composite', 'mip'))
         alpha = volume_options['alpha']
         if alpha is None:
             alpha = 0.4 if self._data[hemi]['array'].ndim == 3 else 1.
@@ -1324,11 +1324,11 @@ class Brain(object):
         ----------
         %(brain_time_interpolation)s
         """
-        _check_option('interpolation', interpolation,
-                      ('linear', 'nearest', 'zero', 'slinear', 'quadratic',
-                       'cubic'))
-        self._time_interpolation = str(interpolation)
-        del interpolation
+        self._time_interpolation = _check_option(
+            'interpolation',
+            interpolation,
+            ('linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic')
+        )
         self._time_interp_funcs = dict()
         self._time_interp_inv = None
         if self._times is not None:

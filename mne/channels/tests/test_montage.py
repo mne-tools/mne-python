@@ -649,7 +649,7 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
     fname = op.join(tmpdir, 'foo.bar')
     with pytest.raises(
         ValueError,
-        match="Allowed val.*'.hsp', '.elp' and '.eeg', but got '.bar' instead"
+        match="Allowed val.*'.hsp', '.elp', and '.eeg', but got '.bar' instead"
     ):
         _ = read_dig_polhemus_isotrak(fname=fname, ch_names=None)
 

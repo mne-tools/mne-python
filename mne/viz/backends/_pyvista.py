@@ -875,8 +875,7 @@ def _set_mesh_scalars(mesh, scalars, name):
 
 
 def _update_slider_callback(slider, callback, event_type):
-    _check_option('event_type', event_type,
-                  ['start', 'end', 'always'])
+    _check_option('event_type', event_type, ['start', 'end', 'always'])
 
     def _the_callback(widget, event):
         value = widget.GetRepresentation().GetValue()
