@@ -157,24 +157,46 @@ def test_ica_simple(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize('n_pca_components', (8, 9, 10))
-@pytest.mark.parametrize('max_pca_components', [9, 0.9999, 10])
+@pytest.mark.parametrize('n_components', (None, 0.9999, 8, 9, 10))
+@pytest.mark.parametrize('max_pca_components', [8, 9, 0.9999, 10])
 @pytest.mark.filterwarnings('ignore:FastICA did not converge.*:UserWarning')
-def test_ica_noop(n_pca_components, max_pca_components, tmpdir):
+def test_ica_noop(n_components, max_pca_components, tmpdir):
     """Test that our ICA is stable even with a bad max_pca_components."""
     data = np.random.RandomState(0).randn(10, 1000)
     info = create_info(10, 1000., 'eeg')
     raw = RawArray(data, info)
     raw.set_eeg_reference()
     assert np.linalg.matrix_rank(raw.get_data()) == 9
-    ica = ICA(
-        max_pca_components=max_pca_components, random_state=0,
-        n_pca_components=n_pca_components, max_iter=1, verbose=True)
-    raw_new = ica.fit(raw).apply(raw.copy())
-    if max_pca_components == 10:  # XXX this case should warn
+    kwargs = dict(n_components=n_components,
+                  max_pca_components=max_pca_components, verbose=True)
+    if isinstance(n_components, int) and \
+            isinstance(max_pca_components, int) and \
+            n_components > max_pca_components:
+        with pytest.raises(ValueError, match='n_components must be smaller.*'):
+            ICA(**kwargs)
+        return
+    ica = ICA(**kwargs)
+    if n_components == 10 and isinstance(max_pca_components, float):
+        with pytest.raises(ValueError, match='select only a subset'):
+            ica.fit(raw)
+        return
+    ica.fit(raw)
+    raw_new = ica.apply(raw.copy())
+    # not a no-op
+    if max_pca_components == 8:  # XXX this fails: or n_pca_components == 8:
         assert not np.allclose(raw.get_data(), raw_new.get_data())
         return
-    assert ica.max_pca_components_ == 9
+    # XXX this case should warn?
+    if max_pca_components == 10:
+        assert ica.max_pca_components_ == 10
+        # XXX setting n_components to something safe prevents the blowup, maybe
+        # we don't need max_pca_components as float? For example setting the
+        # default or warning based on n_components is probably enough...
+        if not (max_pca_components == 10 and n_components in (8, 9, 0.9999)):
+            assert not np.allclose(raw.get_data(), raw_new.get_data())
+            return
+    else:
+        assert ica.max_pca_components_ == 9
     assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='Id failure')
     _assert_ica_attributes(ica, data)
     # and with I/O

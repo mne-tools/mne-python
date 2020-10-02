@@ -123,7 +123,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
 
 @fill_doc
 class ICA(ContainsMixin):
-    u"""M/EEG signal decomposition using Independent Component Analysis (ICA).
+    u"""Data decomposition using Independent Component Analysis (ICA).
 
     This object estimates independent components from :class:`mne.io.Raw`,
     :class:`mne.Epochs`, or :class:`mne.Evoked` objects. Components can
@@ -139,11 +139,11 @@ class ICA(ContainsMixin):
         Number of principal components (from the pre-whitening PCA step) that
         are passed to the ICA algorithm during fitting. If :class:`int`, must
         not be larger than ``max_pca_components``. If :class:`float` between 0
-        and 1, the number of components with cumulative explained variance less
-        than ``n_components`` will be used. If ``None``, ``max_pca_components``
-        will be used. Defaults to ``None``; the actual number used when
-        executing the :meth:`ICA.fit` method will be stored in the attribute
-        ``n_components_`` (note the trailing underscore).
+        and 1, the number of components with cumulative explained variance
+        greater than ``n_components`` will be used. If ``None``,
+        ``max_pca_components`` will be used. Defaults to ``None``; the actual
+        number used when executing the :meth:`ICA.fit` method will be stored in
+        the attribute ``n_components_`` (note the trailing underscore).
     max_pca_components : int | float | None
         The number of principal components (from the pre-whitening PCA step)
         that are retained for later use (i.e., for signal reconstruction in
@@ -190,7 +190,7 @@ class ICA(ContainsMixin):
         set additional parameters. Specifically, if you want Extended Infomax,
         set method='infomax' and fit_params=dict(extended=True) (this also
         works for method='picard'). Defaults to 'fastica'. For reference, see
-        [1]_, [2]_, [3]_ and [4]_.
+        :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         ``method``.
@@ -264,25 +264,55 @@ class ICA(ContainsMixin):
     added to the object during fitting, consistent with standard scikit-learn
     practice.
 
-    Prior to fitting and applying the ICA, data is whitened (de-correlated and
-    scaled to unit variance, also called sphering transformation) by means of
-    a Principal Component Analysis (PCA). In addition to the whitening, this
-    step introduces the option to reduce the dimensionality of the data, both
-    prior to fitting the ICA (with the ``max_pca_components`` parameter) and
-    prior to reconstructing the sensor signals (with the ``n_pca_components``
-    parameter). In this way, we separate the question of how many ICA
-    components to estimate from the question of how much to reduce the
-    dimensionality of the signal. For example: by setting high values for
-    ``max_pca_components`` and ``n_pca_components``, relatively little
-    dimensionality reduction will occur when the signal is reconstructed,
-    regardless of the value of ``n_components`` (the number of ICA components
-    estimated).
+    ICA :meth:`fit` in MNE proceeds in two steps:
+
+    1. :term:`Whitening <whitening>` the data by means of principal component
+       analysis (PCA), using ``max_pca_components`` number of components.
+    2. Passing the ``n_components`` largest-variance components to the ICA
+       algorithm to obtain the unmixing matrix (and by pseudoinversion, the
+       mixing matrix).
+
+    ICA :meth:`apply` then:
+
+    1. Unmixes the data with the ``unmixing_matrix_``.
+    2. Includes ICA components based on ``ica.include`` and ``ica.exclude``.
+    3. Re-mixes the data with ``mixing_matrix_``.
+    4. Restores any data not passed to the ICA algorithm, i.e., the PCA
+       components between ``n_components`` and ``n_pca_components``.
+
+    Thus ``max_pca_components`` and ``n_pca_components`` determine how many
+    PCA components will be kept when reconstructing the data when calling
+    :meth:`apply`. These paremeters can be used for dimensionality reduction of
+    the data, or dealing with low-rank data (such as those with projections, or
+    MEG data processed by SSS). It is important to remove any
+    numerically-zero-variance components in the data, otherwise numerical
+    instability causes problems when computing the mixing matrix.
+    Alternatively, using ``n_components`` as a float will also avoid
+    numerical stability problems.
+
+    The ``n_components`` parameter determines how many components out of
+    the ``max_pca_components`` the ICA algorithm will actually fit. This is not
+    typically used for EEG data, but for MEG data, it's common to use
+    ``n_components < max_pca_components``. For example, full-rank
+    306-channel MEG data might use ``max_pca_components=None`` (and
+    rank-reduced could use 0.9999) and ``n_components=40`` to find (and
+    later exclude) only large, dominating artifacts in the data, but still
+    reconstruct the data using all PCA components. Setting
+    ``max_pca_components=40``, on the other hand, would actually reduce the
+    rank of the resulting data to 40, which is typically undesirable.
+
+    If you are migrating from EEGLAB and intend to reduce dimensionality via
+    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
+    pass ``max_pca_components=n``, while leaving ``n_components`` and
+    ``n_pca_components`` at their respective default values. The resulting
+    reconstructed data after :meth:`apply` will have rank ``n``.
 
     .. note:: Commonly used for reasons of i) computational efficiency and
               ii) additional noise reduction, it is a matter of current debate
               whether pre-ICA dimensionality reduction could decrease the
               reliability and stability of the ICA, at least for EEG data and
-              especially during preprocessing [5]_. (But see also [6]_ for a
+              especially during preprocessing :footcite:`ArtoniEtAl2018`.
+              (But see also :footcite:`Montoya-MartinezEtAl2017` for a
               possibly confounding effect of the different whitening/sphering
               methods used in this paper (ZCA vs. PCA).)
               On the other hand, for rank-deficient data such as EEG data after
@@ -290,11 +320,6 @@ class ICA(ContainsMixin):
               the dimensionality (by 1 for average reference and 1 for each
               interpolated channel) for optimal ICA performance (see the
               `EEGLAB wiki <eeglab_wiki_>`_).
-
-    If you are migrating from EEGLAB and intend to reduce dimensionality via
-    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
-    pass ``max_pca_components=n``, while leaving ``n_components`` and
-    ``n_pca_components`` at their respective default values.
 
     Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
@@ -334,34 +359,7 @@ class ICA(ContainsMixin):
 
     References
     ----------
-    .. [1] Hyvärinen, A., 1999. Fast and robust fixed-point algorithms for
-           independent component analysis. IEEE transactions on Neural
-           Networks, 10(3), pp.626-634.
-
-    .. [2] Bell, A.J., Sejnowski, T.J., 1995. An information-maximization
-           approach to blind separation and blind deconvolution. Neural
-           computation, 7(6), pp.1129-1159.
-
-    .. [3] Lee, T.W., Girolami, M., Sejnowski, T.J., 1999. Independent
-           component analysis using an extended infomax algorithm for mixed
-           subgaussian and supergaussian sources. Neural computation, 11(2),
-           pp.417-441.
-
-    .. [4] Ablin P, Cardoso J, Gramfort A, 2018. Faster Independent Component
-           Analysis by Preconditioning With Hessian Approximations.
-           IEEE Transactions on Signal Processing 66:4040–4049
-
-    .. [5] Artoni, F., Delorme, A., und Makeig, S, 2018. Applying Dimension
-           Reduction to EEG Data by Principal Component Analysis Reduces the
-           Quality of Its Subsequent Independent Component Decomposition.
-           NeuroImage 175, pp.176–187.
-
-    .. [6] Montoya-Martínez, J., Cardoso, J.-F., Gramfort, A, 2017. Caveats
-           with stochastic gradient and maximum likelihood based ICA for EEG.
-           LVA-ICA International Conference, Feb 2017, Grenoble, France.
-           `〈hal-01451432〉 <hal-01451432_>`_
-
-    .. _hal-01451432: https://hal.archives-ouvertes.fr/hal-01451432/document
+    .. footbibliography::
     """  # noqa: E501
 
     @verbose
@@ -1677,8 +1675,10 @@ class ICA(ContainsMixin):
         n_ch, _ = data.shape
 
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components_):
-            raise ValueError('n_pca_components must be >= '
-                             'n_components and <= max_pca_components.')
+            raise ValueError(
+                f'n_pca_components ({_n_pca_comp}) must be >= '
+                f'n_components_ ({self.n_components_}) and <= '
+                'max_pca_components_ ({self.max_pca_components_}).')
 
         logger.info('Transforming to ICA space (%i components)'
                     % self.n_components_)
