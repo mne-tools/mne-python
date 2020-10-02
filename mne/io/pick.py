@@ -803,8 +803,7 @@ def _contains_ch_type(info, ch_type):
                for ii in range(info['nchan']))
 
 
-def _picks_by_type(info, meg_combined=False, ref_meg=False, eog=False,
-                   exclude='bads'):
+def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     """Get data channel indices as separate list of tuples.
 
     Parameters
@@ -819,9 +818,6 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, eog=False,
     exclude : list of str | str
         List of channels to exclude. If 'bads' (default), exclude channels
         in info['bads'].
-    eog : bool
-        Whether to include EOG channels in the calculation. Defaults to
-        ``False``.
 
     Returns
     -------
@@ -829,17 +825,11 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, eog=False,
         The list of tuples of picks and the type string.
     """
     _validate_type(ref_meg, bool, 'ref_meg')
-    _validate_type(eog, bool, 'eog')
-    ch_types = _DATA_CH_TYPES_SPLIT
-    if eog:
-        ch_types = tuple(list(ch_types) + ['eog'])
-
     exclude = _check_info_exclude(info, exclude)
     if meg_combined == 'auto':
         meg_combined = _mag_grad_dependent(info)
     picks_list = []
-    picks_list = {ch_type: list() for ch_type in ch_types}
-
+    picks_list = {ch_type: list() for ch_type in _DATA_CH_TYPES_SPLIT}
     for k in range(info['nchan']):
         if info['chs'][k]['ch_name'] not in exclude:
             this_type = channel_type(info, k)
@@ -848,21 +838,18 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, eog=False,
             except KeyError:
                 # This annoyance is due to differences in pick_types
                 # and channel_type behavior
-                ch = info['chs'][k]
-
                 if this_type == 'ref_meg':
+                    ch = info['chs'][k]
                     if _triage_meg_pick(ch, ref_meg):
                         if ch['unit'] == FIFF.FIFF_UNIT_T:
                             picks_list['mag'].append(k)
                         elif ch['unit'] == FIFF.FIFF_UNIT_T_M:
                             picks_list['grad'].append(k)
-                elif this_type == 'eog':
-                    picks_list['eog'].append(k)
                 else:
                     pass  # not a data channel type
     picks_list = [(ch_type, np.array(picks_list[ch_type], int))
-                  for ch_type in ch_types]
-    assert ch_types[:2] == ('mag', 'grad')
+                  for ch_type in _DATA_CH_TYPES_SPLIT]
+    assert _DATA_CH_TYPES_SPLIT[:2] == ('mag', 'grad')
     if meg_combined and len(picks_list[0][1]) and len(picks_list[1][1]):
         picks_list.insert(
             0, ('meg', np.unique(np.concatenate([picks_list.pop(0)[1],

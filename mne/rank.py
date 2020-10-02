@@ -119,7 +119,7 @@ def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
 
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
                                 return_singular=False, tol_kind='absolute',
-                                ref_meg=False, eog=False):
+                                ref_meg=False):
     """Estimate rank for M/EEG data.
 
     Parameters
@@ -145,9 +145,6 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
         Tolerance kind. See ``estimate_rank``.
     ref_meg : bool
         Whether to include MEG reference channels.
-    eog : bool
-        Whether to include EOG channels in the calculation. Defaults to
-        ``False``.
 
     Returns
     -------
@@ -157,7 +154,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info, ref_meg=ref_meg, eog=eog)
+    picks_list = _picks_by_type(info, ref_meg=ref_meg)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
@@ -278,8 +275,7 @@ def _compute_rank_int(inst, *args, **kwargs):
 
 @verbose
 def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
-                 proj=True, tol_kind='absolute', ref_meg=False, eog=False,
-                 verbose=None):
+                 proj=True, tol_kind='absolute', ref_meg=False, verbose=None):
     """Compute the rank of data or noise covariance.
 
     This function will normalize the rows of the data (typically
@@ -307,9 +303,6 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     ref_meg : bool
         Whether to include MEG reference channels in the calculation. You
         typically do **not** want this, hence ``False`` by default.
-    eog : bool
-        Whether to include EOG channels in the calculation. Defaults to
-        ``False``.
     %(verbose)s
 
     Returns
@@ -374,7 +367,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
 
     simple_info = _simplify_info(info)
     picks_list = _picks_by_type(info, meg_combined=True, ref_meg=ref_meg,
-                                eog=eog, exclude='bads')
+                                exclude='bads')
     for ch_type, picks in picks_list:
         if ch_type in rank:
             continue
@@ -410,7 +403,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                     data = np.dot(proj_op, data)
                 rank[ch_type] = _estimate_rank_meeg_signals(
                     data, pick_info(simple_info, picks), scalings, tol, False,
-                    tol_kind, ref_meg=ref_meg, eog=eog)
+                    tol_kind, ref_meg=ref_meg)
             else:
                 assert isinstance(inst, Covariance)
                 if inst['diag']:
