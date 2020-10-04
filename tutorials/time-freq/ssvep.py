@@ -34,7 +34,6 @@ event_id = {
     '15hz': 10002
 }
 
-datafile = "tja"
 bids_root = "./data/"
 bids_filename = make_bids_basename(
     subject='02',
