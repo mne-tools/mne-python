@@ -27,8 +27,7 @@ from mne_bids import make_bids_basename, read_raw_bids
 from scipy.stats import ttest_rel, ttest_ind
 
 ###############################################################################
-# Set parameters
-# Load eeg trigger structure / event_id
+#  Load raw data
 event_id = {
     '12hz': 10001,
     '15hz': 10002
@@ -40,8 +39,6 @@ bids_filename = make_bids_basename(
     session='01', task='ssvep'
 ) + '_eeg.vhdr'
 
-###############################################################################
-#  Load raw data
 raw = read_raw_bids(bids_filename, bids_root)
 raw.load_data()
 
