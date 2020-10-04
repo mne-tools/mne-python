@@ -20,6 +20,7 @@ Data can be downloaded at https://osf.io/7ne6y/
 #
 # License: BSD (3-clause)
 
+import warnings
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
@@ -39,7 +40,13 @@ bids_filename = make_bids_basename(
     session='01', task='ssvep'
 ) + '_eeg.vhdr'
 
-raw = read_raw_bids(bids_filename, bids_root)
+
+# read_raw_bids issues warnings about missing electrodes.tsv and coordsystem.json.
+# These warning prevent successful building of the tutorial.
+# As a quick workaround, we just suppress the warnings here.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    raw = read_raw_bids(bids_filename, bids_root, verbose=False)
 raw.load_data()
 
 ###############################################################################
