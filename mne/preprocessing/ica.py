@@ -282,7 +282,7 @@ class ICA(ContainsMixin):
 
     Thus ``max_pca_components`` and ``n_pca_components`` determine how many
     PCA components will be kept when reconstructing the data when calling
-    :meth:`apply`. These paremeters can be used for dimensionality reduction of
+    :meth:`apply`. These parameters can be used for dimensionality reduction of
     the data, or dealing with low-rank data (such as those with projections, or
     MEG data processed by SSS). It is important to remove any
     numerically-zero-variance components in the data, otherwise numerical
