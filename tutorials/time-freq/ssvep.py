@@ -1,12 +1,13 @@
 """
 ==================================
-Basic analysis of an SSVEP dataset
+Basic analysis of an SSVEP/vSSR dataset
 ==================================
 
 Example script to compute frequency spectrum and extract snr of a target frequency
 
 We use a simple example dataset with frequency tagged visual stimulation (a.k.a.
-steady state visually evoked potentials - SSVEP):
+steady state visually evoked potentials, SSVEP, or visual steady-state responses, 
+vSSR):
 
 N=2 participants observed checkerboards patterns inverting with a constant frequency
 of either 12Hz of 15Hz. 10 trials of 30s length each. 32ch wet EEG was recorded.
@@ -54,7 +55,7 @@ raw.load_data()
 # Minimal preprocessing
 # ---------------------
 #
-# Due to a generally high SNR in freqeuncy tagging, typical preprocessing steps
+# Due to a generally high SNR in SSVEP/vSSR, typical preprocessing steps
 # are considered optional. this doesnt mean, that a proper cleaning would not
 # increase your signal quality!
 #
@@ -137,7 +138,7 @@ elif mode_psd == 'welch':
 
 
 ###############################################################################
-# Extract visual steady^state response (vSSR)
+# Extract SSVEP/vSSR
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The function below calculates the ratio of power in the target frequency bin
