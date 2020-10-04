@@ -28,7 +28,8 @@ from mne_bids import make_bids_basename, read_raw_bids
 from scipy.stats import ttest_rel, ttest_ind
 
 ###############################################################################
-#  Load raw data
+# Load raw data
+# -------------
 event_id = {
     '12hz': 10001,
     '15hz': 10002
@@ -61,7 +62,9 @@ raw.load_data()
 # rereferencing.
 
 ###############################################################################
-# Set montage.
+# Set montage
+# ^^^^^^^^^^^
+
 montage_style = 'easycap-M1'
 montage = mne.channels.make_standard_montage(
     montage_style,
@@ -69,17 +72,22 @@ montage = mne.channels.make_standard_montage(
 raw.set_montage(montage)
 
 ###############################################################################
-# Set common average reference.
+# Set common average reference
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 raw.set_eeg_reference('average', projection=False)
 
 ###############################################################################
 # Apply notch filtering
+# ^^^^^^^^^^^^^^^^^^^^^
 notch = np.arange(raw.info['line_freq'], raw.info['lowpass'] / 2,
                   raw.info['line_freq'])
 raw.notch_filter(notch, filter_length='auto', phase='zero')
 
 ###############################################################################
 # Apply linear filtering
+# ^^^^^^^^^^^^^^^^^^^^^^
+
 hp = .1
 lp = 250.
 raw.filter(hp, lp, fir_design='firwin')
@@ -94,7 +102,9 @@ raw.filter(hp, lp, fir_design='firwin')
 # well.
 
 ###############################################################################
-# Construct epochs.
+# Construct epochs
+# ^^^^^^^^^^^^^^^^
+
 events, _ = mne.events_from_annotations(raw)
 raw.info["events"] = events
 tmin, tmax = -1., 30.  # in s
@@ -104,6 +114,8 @@ epochs = mne.Epochs(raw, events=events, event_id=event_id['12hz'], tmin=tmin,
 
 ###############################################################################
 # Calculate power spectral density
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 tmin = 0.
 tmax = 30.
 fmin = 1.
@@ -125,8 +137,8 @@ elif mode_psd == 'welch':
 
 
 ###############################################################################
-# Extract visual steady-state response (vSSR)
-# -------------------------------------------
+# Extract visual steady^state response (vSSR)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The function below calculates the ratio of power in the target frequency bin
 # to average power in a set of neighbor (noise) bins. The composition of noise
@@ -136,6 +148,7 @@ elif mode_psd == 'welch':
 
 ###############################################################################
 # SNR calculation function
+# ^^^^^^^^^^^^^^^^^^^^^^^^
 def snr_spectrum(psds, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
     """
     Parameters
@@ -197,6 +210,8 @@ def snr_spectrum(psds, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 
 ###############################################################################
 # Calculate SNR
+# ^^^^^^^^^^^^^
+
 stim_freq = 12.
 noise_n_neighborfreqs = 3
 noise_skip_neighborfreqs = 1
@@ -204,13 +219,18 @@ snrs = snr_spectrum(psds, noise_n_neighborfreqs=noise_n_neighborfreqs,
                     noise_skip_neighborfreqs=noise_skip_neighborfreqs)
 
 ###############################################################################
-# Find frequency bin containing stimulation frequency - ideally, with the exact
-# stimulation frequency in the center.
+# Find frequency bin containing stimulation frequency
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Ideally, this bin should should have the stimulation frequency exactly in the
+# center.
+
 tmp_distlist = abs(np.subtract(freqs, stim_freq))
 i_signal = np.where(tmp_distlist == min(tmp_distlist))[0][0]
 # could be updated to support multiple frequencies
 
 ###############################################################################
+# Calculate SNR
+# ^^^^^^^^^^^^^
 # Extract and average SNRs at this frequency
 snrs_stim = snrs[:, :, i_signal]  # trial subselection can be done here
 print('average SNR at %iHz (all channels, all trials): %.3f '
@@ -224,8 +244,10 @@ print('average SNR at %iHz (all channels, all trials): %.3f '
 
 ##############################################################################
 # Plot power spectral density
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # code snippet from
 # https://martinos.org/mne/stable/auto_examples/time_frequency/plot_compute_raw_data_spectrum.html  # noqa E501
+
 fig, axes = plt.subplots(1, 1, sharex='all', sharey='all', dpi=300)
 rng = range(np.where(np.floor(freqs) == 1.)[0][0],
             np.where(np.ceil(freqs) == fmax - 1)[0][0])
@@ -242,7 +264,9 @@ plt.xlim([0, fmax])
 fig.show()
 
 ##############################################################################
-# SNR spectrum - trial average.
+# SNR spectrum - trial average
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 fig, axes = plt.subplots(1, 1, sharex='all', sharey='all', dpi=300)
 # Average over trials
 axes.plot(freqs, snrs.mean(axis=0).T, color='b')
@@ -254,6 +278,8 @@ fig.show()
 
 ##############################################################################
 # SNR spectrum - channel average
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 fig, axes = plt.subplots(1, 1, sharex='all', sharey='all', dpi=300)
 # Average over channels
 axes.plot(freqs, snr_spectrum(psds[:, :, :], 3, 1).mean(axis=1).T, color='b')
