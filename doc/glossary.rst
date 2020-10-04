@@ -294,8 +294,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
     whitening
         A linear operation that transforms data with a known covariance
         structure into "whitened data" which has a covariance structure that
-        is the identity matrix (i.e., it creates virtual channels that are
-        uncorrelated and have unit variance).
+        is the identity matrix. In other words it creates virtual channels that
+        are uncorrelated and have unit variance. This is also known as a
+        sphering transformation.
 
         The term "whitening" comes from the fact that light with a flat
         frequency spectrum in the visible range is white, whereas

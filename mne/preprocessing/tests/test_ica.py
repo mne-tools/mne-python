@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  EvokedArray, Annotations, pick_channels_regexp)
 from mne.cov import read_cov
-from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
-                               read_ica)
+from mne.preprocessing import (ICA as _ICA, ica_find_ecg_events,
+                               ica_find_eog_events, read_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
                                    _ica_explained_variance, read_ica_eeglab)
 from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
@@ -27,8 +27,7 @@ from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
-from mne.utils import (catch_logging, _TempDir, requires_sklearn,
-                       run_tests_if_main)
+from mne.utils import catch_logging, requires_sklearn, run_tests_if_main
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
@@ -51,6 +50,13 @@ event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 6
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
+
+
+def ICA(*args, **kwargs):
+    """Fix the random state in tests."""
+    if 'random_state' not in kwargs:
+        kwargs['random_state'] = 0
+    return _ICA(*args, **kwargs)
 
 
 def _skip_check_picard(method):
@@ -88,9 +94,10 @@ def test_ica_full_data_recovery(method):
                       max_pca_components=n_pca_components,
                       n_pca_components=n_pca_components,
                       method=method, max_iter=1)
+            picks = list(range(n_channels))
             with pytest.warns(UserWarning, match=None):  # sometimes warns
-                ica.fit(raw, picks=list(range(n_channels)))
-            _assert_ica_attributes(ica)
+                ica.fit(raw, picks=picks)
+            _assert_ica_attributes(ica, raw.get_data(picks))
             raw2 = ica.apply(raw.copy(), exclude=[])
             if ok:
                 assert_allclose(data[:n_channels], raw2._data[:n_channels],
@@ -103,8 +110,8 @@ def test_ica_full_data_recovery(method):
                       max_pca_components=n_pca_components,
                       n_pca_components=n_pca_components, random_state=0)
             with pytest.warns(None):  # sometimes warns
-                ica.fit(epochs, picks=list(range(n_channels)))
-            _assert_ica_attributes(ica)
+                ica.fit(epochs, picks=picks)
+            _assert_ica_attributes(ica, epochs.get_data(picks))
             epochs2 = ica.apply(epochs.copy(), exclude=[])
             data2 = epochs2.get_data()[:, :n_channels]
             if ok:
@@ -143,22 +150,75 @@ def test_ica_simple(method):
     data = np.dot(A, S)
     ica = ICA(n_components=n_components, method=method, random_state=0)
     ica._fit(data, 0)
-    transform = np.dot(np.dot(ica.unmixing_matrix_, ica.pca_components_), A)
+    transform = ica.unmixing_matrix_ @ ica.pca_components_ @ A
     amari_distance = np.mean(np.sum(np.abs(transform), axis=1) /
                              np.max(np.abs(transform), axis=1) - 1.)
     assert amari_distance < 0.1
 
 
 @requires_sklearn
+@pytest.mark.parametrize('n_components', (None, 0.9999, 8, 9, 10))
+@pytest.mark.parametrize('max_pca_components', [8, 9, 0.9999, 10])
+@pytest.mark.filterwarnings('ignore:FastICA did not converge.*:UserWarning')
+def test_ica_noop(n_components, max_pca_components, tmpdir):
+    """Test that our ICA is stable even with a bad max_pca_components."""
+    data = np.random.RandomState(0).randn(10, 1000)
+    info = create_info(10, 1000., 'eeg')
+    raw = RawArray(data, info)
+    raw.set_eeg_reference()
+    assert np.linalg.matrix_rank(raw.get_data()) == 9
+    kwargs = dict(n_components=n_components,
+                  max_pca_components=max_pca_components, verbose=True)
+    if isinstance(n_components, int) and \
+            isinstance(max_pca_components, int) and \
+            n_components > max_pca_components:
+        with pytest.raises(ValueError, match='n_components must be smaller.*'):
+            ICA(**kwargs)
+        return
+    ica = ICA(**kwargs)
+    if n_components == 10 and isinstance(max_pca_components, float):
+        with pytest.raises(ValueError, match='select only a subset'):
+            ica.fit(raw)
+        return
+    ica.fit(raw)
+    raw_new = ica.apply(raw.copy())
+    # not a no-op
+    if max_pca_components == 8:  # XXX this fails: or n_pca_components == 8:
+        assert not np.allclose(raw.get_data(), raw_new.get_data())
+        return
+    # XXX this case should warn?
+    if max_pca_components == 10:
+        assert ica.max_pca_components_ == 10
+        # XXX setting n_components to something safe prevents the blowup, maybe
+        # we don't need max_pca_components as float? For example setting the
+        # default or warning based on n_components is probably enough...
+        if not (max_pca_components == 10 and n_components in (8, 9, 0.9999)):
+            assert not np.allclose(raw.get_data(), raw_new.get_data())
+            return
+    else:
+        assert ica.max_pca_components_ == 9
+    assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='Id failure')
+    _assert_ica_attributes(ica, data)
+    # and with I/O
+    fname = tmpdir.join('temp-ica.fif')
+    ica.save(fname)
+    ica = read_ica(fname)
+    raw_new = ica.apply(raw.copy())
+    assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='I/O failure')
+    _assert_ica_attributes(ica)
+
+
+@requires_sklearn
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
-def test_ica_n_iter_(method):
+def test_ica_n_iter_(method, tmpdir):
     """Test that ICA.n_iter_ is set after fitting."""
     _skip_check_picard(method)
 
     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
     n_components = 3
     max_iter = 1
-    ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
+    ica = ICA(n_components=n_components, max_iter=max_iter, method=method,
+              random_state=0)
 
     if method == 'infomax':
         ica.fit(raw)
@@ -169,9 +229,8 @@ def test_ica_n_iter_(method):
     assert_equal(ica.n_iter_, max_iter)
 
     # Test I/O roundtrip.
-    tempdir = _TempDir()
-    output_fname = op.join(tempdir, 'test_ica-ica.fif')
-    _assert_ica_attributes(ica)
+    output_fname = tmpdir.join('test_ica-ica.fif')
+    _assert_ica_attributes(ica, raw.get_data('data'), limits=(1, 70))
     ica.save(output_fname)
     ica = read_ica(output_fname)
     _assert_ica_attributes(ica)
@@ -276,7 +335,7 @@ def test_ica_core(method):
         # Test ICA raw
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
-                  random_state=0, method=method, max_iter=1)
+                  method=method, max_iter=1)
         with pytest.raises(ValueError, match='Cannot check for channels of t'):
             'meg' in ica
 
@@ -331,10 +390,10 @@ def test_ica_core(method):
         # test epochs decomposition
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
-                  random_state=0, method=method)
+                  method=method)
         with pytest.warns(None):  # sometimes warns
             ica.fit(epochs, picks=picks)
-        _assert_ica_attributes(ica)
+        _assert_ica_attributes(ica, epochs.get_data(picks), limits=(0.2, 20))
         data = epochs.get_data()[:, 0, :]
         n_samples = np.prod(data.shape)
         assert_equal(ica.n_samples_, n_samples)
@@ -385,11 +444,10 @@ def test_ica_core(method):
 @requires_sklearn
 @pytest.mark.slowtest
 @pytest.mark.parametrize("method", ["picard", "fastica"])
-def test_ica_additional(method):
+def test_ica_additional(method, tmpdir):
     """Test additional ICA functionality."""
     _skip_check_picard(method)
 
-    tempdir = _TempDir()
     stop2 = 500
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     raw.del_proj()  # avoid warnings
@@ -407,10 +465,10 @@ def test_ica_additional(method):
 
     # test if n_components=None works
     ica = ICA(n_components=None, max_pca_components=None,
-              n_pca_components=None, random_state=0, method=method, max_iter=1)
+              n_pca_components=None, method=method, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(ica, epochs.get_data('data'), limits=(0.0005, 10))
     # for testing eog functionality
     picks2 = np.concatenate([picks, pick_types(raw.info, False, eog=True)])
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
@@ -423,16 +481,17 @@ def test_ica_additional(method):
     assert (ica.info is None)
     with pytest.warns(RuntimeWarning, match='normalize_proj'):
         ica.fit(raw, picks[:5])
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(ica, raw.get_data(np.arange(5)))
     assert (isinstance(ica.info, Info))
     assert (ica.n_components_ < 5)
 
     ica = ICA(n_components=3, max_pca_components=4, method=method,
-              n_pca_components=4, random_state=0)
+              n_pca_components=4)
     pytest.raises(RuntimeError, ica.save, '')
 
     ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(
+        ica, raw.get_data(np.arange(1, 6), start=start, stop=stop2))
 
     # check Kuiper index threshold
     assert_equal(ica._get_ctps_threshold(), 0.21)
@@ -486,12 +545,11 @@ def test_ica_additional(method):
     corrmap([ica, ica3], template, threshold=[0.5], label='blinks', plot=True,
             ch_type="mag")
 
-    ica_different_channels = ICA(n_components=2, random_state=0).fit(
-        raw, picks=[2, 3, 4, 5])
+    ica_different_channels = ICA(n_components=2).fit(raw, picks=[2, 3, 4, 5])
     pytest.raises(ValueError, corrmap, [ica_different_channels, ica], (0, 0))
 
     # test warnings on bad filenames
-    ica_badname = op.join(op.dirname(tempdir), 'test-bad-name.fif.gz')
+    ica_badname = tmpdir.join('test-bad-name.fif.gz')
     with pytest.warns(RuntimeWarning, match='-ica.fif'):
         ica.save(ica_badname)
     with pytest.warns(RuntimeWarning, match='-ica.fif'):
@@ -529,7 +587,7 @@ def test_ica_additional(method):
     # epochs extraction from raw fit
     pytest.raises(RuntimeError, ica.get_sources, epochs)
     # test reading and writing
-    test_ica_fname = op.join(op.dirname(tempdir), 'test-ica.fif')
+    test_ica_fname = tmpdir.join('test-ica.fif')
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
                   n_pca_components=4, method=method, max_iter=1)
@@ -750,14 +808,14 @@ def test_ica_additional(method):
     # test float n pca components
     ica.pca_explained_variance_ = np.array([0.2] * 5)
     ica.n_components_ = 0
-    for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:
+    for ncomps, expected in [[0.3, 2], [0.9, 5], [1, 1]]:
         ncomps_ = ica._check_n_pca_components(ncomps)
         assert (ncomps_ == expected)
 
     ica = ICA(method=method)
     with pytest.warns(None):  # sometimes does not converge
         ica.fit(raw, picks=picks[:5])
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(ica, raw.get_data(picks[:5]))
     with pytest.warns(RuntimeWarning, match='longer'):
         ica.find_bads_ecg(raw, threshold='auto')
     ica.find_bads_eog(epochs, ch_name='MEG 0121')
@@ -817,13 +875,13 @@ def test_ica_twice(method):
     n_pca_components = 1.1
     ica1 = ICA(n_components=n_components, method=method,
                max_pca_components=max_pca_components,
-               n_pca_components=n_pca_components, random_state=0)
+               n_pca_components=n_pca_components)
 
     ica1.fit(raw, picks=picks, decim=3)
     raw_new = ica1.apply(raw, n_pca_components=n_pca_components)
     ica2 = ICA(n_components=n_components, method=method,
                max_pca_components=max_pca_components,
-               n_pca_components=1.0, random_state=0)
+               n_pca_components=1.0)
     ica2.fit(raw_new, picks=picks, decim=3)
     assert_equal(ica1.n_components_, ica2.n_components_)
 
@@ -834,7 +892,8 @@ def test_fit_params(method, tmpdir):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
     fit_params = {}
-    ICA(fit_params=fit_params, method=method)  # test no side effects
+    # test no side effects
+    ICA(fit_params=fit_params, method=method)
     assert fit_params == {}
 
     # Test I/O roundtrip.
@@ -931,7 +990,7 @@ def test_eog_channel(method):
         picks1 = np.append(picks1a, picks1b)
         ica.fit(inst, picks=picks1)
         assert (any('EOG' in ch for ch in ica.ch_names))
-        _assert_ica_attributes(ica)
+        _assert_ica_attributes(ica, inst.get_data(picks1), limits=(0.8, 600))
     # Test case for MEG data. Should have no EOG channel
     for inst in [raw, epochs]:
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
@@ -943,7 +1002,7 @@ def test_eog_channel(method):
 
 @requires_sklearn
 @pytest.mark.parametrize('max_pca_components', (1.0, 15, 0.99, 0.5, 1.5))
-def test_max_pca_components(max_pca_components):
+def test_max_pca_components(max_pca_components, tmpdir):
     """Test max_pca_components."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
@@ -955,8 +1014,7 @@ def test_max_pca_components(max_pca_components):
     random_state = 12345
     method = 'infomax'
 
-    tempdir = _TempDir()
-    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+    output_fname = tmpdir.join('test_ica-ica.fif')
 
     if max_pca_components == 1.5:
         with pytest.raises(ValueError, match='PCA .* needs values between'):
@@ -974,7 +1032,7 @@ def test_max_pca_components(max_pca_components):
 
     ica.fit(epochs)
 
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(ica, epochs.get_data(), limits=(0.01, 50))
     ica.save(output_fname)
     ica = read_ica(output_fname)
     assert_equal(ica.max_pca_components, max_pca_components)
@@ -991,11 +1049,10 @@ def test_max_pca_components(max_pca_components):
 
 @requires_sklearn
 @pytest.mark.parametrize('method', ['infomax', 'fastica', 'picard'])
-def test_max_pca_components_(method):
+def test_max_pca_components_(method, tmpdir):
     """Test that max_pca_components_ gets populated when reading old file."""
     _skip_check_picard(method)
-    tempdir = _TempDir()
-    fname = op.join(tempdir, 'test_ica-ica.fif')
+    fname = tmpdir.join('test_ica-ica.fif')
 
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
@@ -1005,10 +1062,7 @@ def test_max_pca_components_(method):
 
     max_pca_components = 5
     ica = ICA(max_pca_components=max_pca_components, method=method)
-    if method == 'fastica':
-        with pytest.warns(UserWarning, match='did not converge'):
-            ica.fit(epochs)
-    else:
+    with pytest.warns(None):  # sometimes convergence
         ica.fit(epochs)
 
     # Old files don't have max_pca_components_; instead, during fitting,
@@ -1023,7 +1077,7 @@ def test_max_pca_components_(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_n_components_none(method):
+def test_n_components_none(method, tmpdir):
     """Test n_components=None."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
@@ -1036,8 +1090,7 @@ def test_n_components_none(method):
     n_components = None
     random_state = 12345
 
-    tempdir = _TempDir()
-    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+    output_fname = tmpdir.join('test_ica-ica.fif')
     ica = ICA(max_pca_components=max_pca_components, method=method,
               n_components=n_components, random_state=random_state)
     with pytest.warns(None):
@@ -1056,7 +1109,7 @@ def test_n_components_none(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_n_components_and_max_pca_components_none(method):
+def test_n_components_and_max_pca_components_none(method, tmpdir):
     """Test n_components and max_pca_components=None."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
@@ -1069,8 +1122,7 @@ def test_n_components_and_max_pca_components_none(method):
     n_components = None
     random_state = 12345
 
-    tempdir = _TempDir()
-    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+    output_fname = tmpdir.join('test_ica-ica.fif')
     ica = ICA(max_pca_components=max_pca_components, method=method,
               n_components=n_components, random_state=random_state)
     with pytest.warns(None):  # convergence
@@ -1098,8 +1150,7 @@ def test_ica_ctf():
 
         # test fit
         for inst in [raw, epochs]:
-            ica = ICA(n_components=2, random_state=0, max_iter=2,
-                      method=method)
+            ica = ICA(n_components=2, max_iter=2, method=method)
             with pytest.warns(UserWarning, match='did not converge'):
                 ica.fit(inst)
             _assert_ica_attributes(ica)
@@ -1111,7 +1162,7 @@ def test_ica_ctf():
 
     # test mixed compensation case
     raw.apply_gradient_compensation(0)
-    ica = ICA(n_components=2, random_state=0, max_iter=2, method=method)
+    ica = ICA(n_components=2, max_iter=2, method=method)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw)
     _assert_ica_attributes(ica)
@@ -1135,8 +1186,7 @@ def test_ica_labels():
 
     # set the appropriate EEG channels to EOG and ECG
     raw.set_channel_types({'EEG057': 'eog', 'EEG058': 'eog', 'EEG059': 'ecg'})
-    ica = ICA(n_components=4, random_state=0, max_iter=2, method='fastica',
-              allow_ref_meg=True)
+    ica = ICA(n_components=4, max_iter=2, method='fastica', allow_ref_meg=True)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw)
     _assert_ica_attributes(ica)
@@ -1160,8 +1210,7 @@ def test_ica_labels():
         assert key not in ica.labels_
 
     # derive reference ICA components and append them to raw
-    ica_rf = ICA(n_components=2, random_state=0, max_iter=2,
-                 allow_ref_meg=True)
+    ica_rf = ICA(n_components=2, max_iter=2, allow_ref_meg=True)
     with pytest.warns(UserWarning, match='did not converge'):
         ica_rf.fit(raw.copy().pick_types(meg=False, ref_meg=True))
     icacomps = ica_rf.get_sources(raw)
@@ -1210,8 +1259,7 @@ def test_ica_eeg():
                 continue
             # test fit
             for inst in [raw, epochs]:
-                ica = ICA(n_components=2, random_state=0, max_iter=2,
-                          method=method)
+                ica = ICA(n_components=2, max_iter=2, method=method)
                 with pytest.warns(None):
                     ica.fit(inst, picks=picks)
                 _assert_ica_attributes(ica)
@@ -1238,8 +1286,7 @@ def test_ica_eeg():
                 continue
             # test fit
             for inst in [raw, epochs]:
-                ica = ICA(n_components=2, random_state=0, max_iter=2,
-                          method=method)
+                ica = ICA(n_components=2, max_iter=2, method=method)
                 with pytest.warns(None):
                     ica.fit(inst)
                 _assert_ica_attributes(ica)
@@ -1282,7 +1329,7 @@ def test_read_ica_eeglab():
                     rtol=1e-05, atol=1e-08)
 
 
-def _assert_ica_attributes(ica):
+def _assert_ica_attributes(ica, data=None, limits=(0.3, 30)):
     """Assert some attributes of ICA objects."""
     __tracebackhide__ = True
     # This tests properties, but also serves as documentation of
@@ -1311,6 +1358,21 @@ def _assert_ica_attributes(ica):
     want = np.eye(ica.n_components_)
     want[:nz] = 0
     assert_allclose(mix_unmix, want, atol=1e-6, err_msg='Mixing as pinv')
+    assert ica.pca_explained_variance_.shape[0] >= \
+        ica.unmixing_matrix_.shape[1]
+    # our PCA components should be unit vectors (the variances get put into
+    # the unmixing_matrix_ to make it a whitener)
+    norms = np.linalg.norm(ica.pca_components_, axis=1)
+    assert_allclose(norms, 1.)
+    # let's check the whitening
+    if data is not None:
+        if data.ndim == 3:
+            data = data.transpose(1, 0, 2).reshape(data.shape[1], -1)
+        data = ica._transform(data)
+        norms = np.linalg.norm(data, axis=1)
+        # at least close to normal
+        assert norms.min() > limits[0]
+        assert norms.max() < limits[1]
 
 
 run_tests_if_main()
