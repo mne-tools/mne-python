@@ -16,7 +16,8 @@ from scipy import stats, linalg
 import matplotlib.pyplot as plt
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
-                 EvokedArray, Annotations, pick_channels_regexp)
+                 EvokedArray, Annotations, pick_channels_regexp,
+                 make_ad_hoc_cov)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA as _ICA, ica_find_ecg_events,
                                ica_find_eog_events, read_ica)
@@ -266,6 +267,58 @@ def test_ica_rank_reduction(method):
         # n_pca_components
         assert (n_components < n_pca_components <= rank_after <=
                 rank_before)
+
+
+@pytest.mark.parametrize('n_pca_components', (None, 0.999999))
+@pytest.mark.parametrize('proj', (True, False))
+@pytest.mark.parametrize('cov', (False,))  # XXX True))
+@pytest.mark.parametrize('meg', ('mag', True))
+def test_ica_projs(n_pca_components, proj, cov, meg):
+    """Test that ICA handles projections properly."""
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick_types(meg=meg)
+    raw.load_data()
+    raw._data -= raw._data.mean(-1, keepdims=True)
+    raw_data = raw.get_data()
+    assert len(raw.info['projs']) > 0
+    assert not raw.proj
+    raw_fit = raw.copy()
+    kwargs = dict(atol=1e-20, rtol=1e-8)
+    if proj:
+        raw_fit.apply_proj()
+    fit_data = raw_fit.get_data()
+    if proj:
+        assert not np.allclose(raw_fit.get_data(), raw_data, **kwargs)
+    else:
+        assert np.allclose(raw_fit.get_data(), raw_data, **kwargs)
+    assert raw_fit.proj == proj
+    if cov:
+        noise_cov = make_ad_hoc_cov(raw.info)
+    else:
+        noise_cov = None
+    ica = ICA(max_iter=1, noise_cov=noise_cov,
+              n_pca_components=n_pca_components, n_components=10)
+    with pytest.warns(None):  # convergence
+        ica.fit(raw_fit)
+    if cov:
+        assert ica.pre_whitener_.shape == (len(raw.ch_names),) * 2
+    else:
+        assert ica.pre_whitener_.shape == (len(raw.ch_names), 1)
+    with catch_logging() as log:
+        raw_apply = ica.apply(raw_fit.copy(), verbose=True)
+    log = log.getvalue()
+    print(log)  # very useful for debugging, might as well leave it in
+    if proj:
+        assert 'Applying projection' in log
+    else:
+        assert 'Applying projection' not in log
+    assert_allclose(raw_apply.get_data(), fit_data, **kwargs)
+    raw_apply = ica.apply(raw.copy())
+    apply_data = raw_apply.get_data()
+    assert_allclose(apply_data, fit_data, **kwargs)
+    if proj:
+        assert not np.allclose(apply_data, raw_data, **kwargs)
+    else:
+        assert_allclose(apply_data, raw_data, **kwargs)
 
 
 @requires_sklearn
@@ -988,7 +1041,8 @@ def test_eog_channel(method):
         picks1b = pick_types(inst.info, meg=False, stim=False, ecg=False,
                              eog=True, exclude='bads')
         picks1 = np.append(picks1a, picks1b)
-        ica.fit(inst, picks=picks1)
+        with pytest.warns(RuntimeWarning, match='Projection vector.*'):
+            ica.fit(inst, picks=picks1)
         assert (any('EOG' in ch for ch in ica.ch_names))
         _assert_ica_attributes(ica, inst.get_data(picks1), limits=(0.8, 600))
     # Test case for MEG data. Should have no EOG channel
