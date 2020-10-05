@@ -24,9 +24,14 @@ from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  write_evokeds, create_info, make_fixed_length_events,
                  make_fixed_length_epochs, combine_evoked)
 from mne.baseline import rescale
+from mne.datasets import testing
+from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
+from mne.event import merge_events
 from mne.fixes import rfft, rfftfreq
+from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
-from mne.io.write import write_int, INT32_MAX
+from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.write import write_int, INT32_MAX, _get_split_size
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
@@ -35,14 +40,6 @@ from mne.epochs import (
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
-from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
-
-from mne.io import RawArray, read_raw_fif
-from mne.io.proj import _has_eeg_average_ref_proj
-from mne.io.write import _get_split_size
-from mne.event import merge_events
-from mne.io.constants import FIFF
-from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
