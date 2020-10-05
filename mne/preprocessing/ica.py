@@ -592,10 +592,6 @@ class ICA(ContainsMixin):
                                                           tstep)
 
         self.n_samples_ = data.shape[1]
-        # this may operate inplace or make a copy
-        self._compute_pre_whitener(data)
-        data = self._pre_whiten(data)
-
         self._fit(data, 'raw')
 
         return self
@@ -618,9 +614,6 @@ class ICA(ContainsMixin):
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
         data = np.hstack(data)
-        self._compute_pre_whitener(data)
-        data = self._pre_whiten(data)
-
         self._fit(data, 'epochs')
 
         return self
@@ -685,6 +678,8 @@ class ICA(ContainsMixin):
         """Aux function."""
         random_state = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
+        self._compute_pre_whitener(data)
+        data = self._pre_whiten(data)
 
         if (self.max_pca_components is None or
                 isinstance(self.max_pca_components, float)):

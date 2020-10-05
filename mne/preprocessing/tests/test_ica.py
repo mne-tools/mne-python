@@ -149,8 +149,12 @@ def test_ica_simple(method):
     S = rng.laplace(size=(n_components, n_samples))
     A = rng.randn(n_components, n_components)
     data = np.dot(A, S)
-    ica = ICA(n_components=n_components, method=method, random_state=0)
-    ica._fit(data, 0)
+    info = create_info(data.shape[-2], 1000., 'eeg')
+    cov = make_ad_hoc_cov(info)
+    ica = ICA(n_components=n_components, method=method, random_state=0,
+              noise_cov=cov)
+    with pytest.warns(RuntimeWarning, match='No average EEG.*'):
+        ica.fit(RawArray(data, info))
     transform = ica.unmixing_matrix_ @ ica.pca_components_ @ A
     amari_distance = np.mean(np.sum(np.abs(transform), axis=1) /
                              np.max(np.abs(transform), axis=1) - 1.)
