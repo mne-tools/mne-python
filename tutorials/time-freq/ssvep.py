@@ -122,19 +122,12 @@ tmax = 30.
 fmin = 1.
 fmax = 90.
 sf = epochs.info['sfreq']
-mode_psd = 'welch'  # implemented: 'welch', 'multitaper'
 
-if mode_psd == 'multitaper':
-    psds, freqs = mne.time_frequency.psd_multitaper(
-        epochs, bandwidth=.5,
-        tmin=tmin, tmax=tmax, normalization='full',
-        fmin=fmin, fmax=fmax)
-elif mode_psd == 'welch':
-    psds, freqs = mne.time_frequency.psd_welch(
-        epochs,
-        n_fft=int(sf * (tmax - tmin)), n_overlap=int(sf * .5), n_per_seg=None,
-        tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax)
+psds, freqs = mne.time_frequency.psd_welch(
+    epochs,
+    n_fft=int(sf * (tmax - tmin)), n_overlap=int(sf * .5), n_per_seg=None,
+    tmin=tmin, tmax=tmax,
+    fmin=fmin, fmax=fmax)
 
 
 ###############################################################################
