@@ -25,6 +25,8 @@ from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  make_fixed_length_epochs, combine_evoked)
 from mne.baseline import rescale
 from mne.fixes import rfft, rfftfreq
+from mne.io.constants import FIFF
+from mne.io.write import write_int, INT32_MAX
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
@@ -3060,10 +3062,17 @@ def test_epochs_huge_events(tmpdir):
         epochs.save(tmpdir.join('temp-epo.fif'))
 
 
-def test_concat_overflow(tmpdir):
+def _old_bad_write(fid, kind, arr):
+    if kind == FIFF.FIFF_MNE_EVENT_LIST:
+        arr = arr.copy()
+        arr[0, -1] = -1000  # it's transposed
+    return write_int(fid, kind, arr)
+
+
+def test_concat_overflow(tmpdir, monkeypatch):
     """Test overflow events during concat."""
     data = np.zeros((2, 10, 1000))
-    events = np.array([[0, 0, 1], [2147483647, 0, 2]])
+    events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
     info = mne.create_info(10, 1000., 'eeg')
     epochs_1 = mne.EpochsArray(data, info, events)
     epochs_2 = mne.EpochsArray(data, info, events)
@@ -3074,3 +3083,11 @@ def test_concat_overflow(tmpdir):
     epochs.save(fname)
     epochs = read_epochs(fname)
     assert_array_less(0, epochs.events[:, 0])
+    assert_array_less(epochs.events[:, 0], INT32_MAX + 1)
+    # with our old behavior
+    monkeypatch.setattr(mne.epochs, 'write_int', _old_bad_write)
+    epochs.save(fname, overwrite=True)
+    with pytest.warns(RuntimeWarning, match='Incorrect events'):
+        epochs = read_epochs(fname)
+    assert_array_less(0, epochs.events[:, 0])
+    assert_array_less(epochs.events[:, 0], INT32_MAX + 1)

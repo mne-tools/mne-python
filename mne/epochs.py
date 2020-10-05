@@ -2671,6 +2671,11 @@ class EpochsFIF(BaseEpochs):
              reject_params, fmt) = \
                 _read_one_epoch_file(fid, tree, preload)
 
+            if (events[:, 0] < 0).any():
+                events = events.copy()
+                warn('Incorrect events detected on disk, setting event '
+                     'numbers to consecutive increasing integers')
+                events[:, 0] = np.arange(1, len(events) + 1)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
             epoch = BaseEpochs(
