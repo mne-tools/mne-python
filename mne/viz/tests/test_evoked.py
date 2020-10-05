@@ -143,6 +143,10 @@ def test_plot_evoked():
         evoked.plot(verbose=True, time_unit='s')
     assert 'Need more than one' in log_file.getvalue()
 
+    fig, ax = plt.subplots(2, 1, constrained_layout=True)
+    evoked.plot(axes=ax)  # smoke test that it does not break things
+    plt.close('all')
+
 
 def _get_amplitudes(fig):
     amplitudes = [line.get_ydata() for ax in fig.axes
