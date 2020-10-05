@@ -633,7 +633,6 @@ class ICA(ContainsMixin):
             # use standardization as whitener
             # Scale (z-score) the data by channel type
             info = self.info
-            assert len(data) == self.info['nchan'], (len(data), self.info['nchan'])
             pre_whitener = np.empty([len(data), 1])
             for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
                 if _contains_ch_type(info, ch_type):
@@ -670,12 +669,13 @@ class ICA(ContainsMixin):
                 logger.info(
                     f'    Applying projection operator with {nproj} '
                     f'vector{_pl(nproj)}')
-                data = proj @ data
+                if self.noise_cov is None:  # otherwise it's in pre_whitener_
+                    data = proj @ data
         return data
 
     def _pre_whiten(self, data):
+        data = self._do_proj(data)
         if self.noise_cov is None:
-            data = self._do_proj(data)
             data /= self.pre_whitener_
         else:
             data = self.pre_whitener_ @ data
@@ -803,6 +803,7 @@ class ICA(ContainsMixin):
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
+        data = self._pre_whiten(data)
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
@@ -829,7 +830,6 @@ class ICA(ContainsMixin):
 
         reject = 'omit' if reject_by_annotation else None
         data = raw.get_data(picks, start, stop, reject)
-        data = self._pre_whiten(data)
         return self._transform(data)
 
     def _transform_epochs(self, epochs, concatenate):
@@ -848,7 +848,6 @@ class ICA(ContainsMixin):
                                                  len(picks)))
 
         data = np.hstack(epochs.get_data()[:, picks])
-        data = self._pre_whiten(data)
         sources = self._transform(data)
 
         if not concatenate:
@@ -872,8 +871,7 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        data = self._pre_whiten(evoked.data[picks])
-        sources = self._transform(data)
+        sources = self._transform(evoked.data[picks])
 
         return sources
 
@@ -1622,8 +1620,6 @@ class ICA(ContainsMixin):
                            exclude='bads', ref_meg=False)
 
         data = raw[picks, start:stop][0]
-        data = self._pre_whiten(data)
-
         data = self._pick_sources(data, include, exclude)
 
         raw[picks, start:stop] = data
@@ -1649,7 +1645,6 @@ class ICA(ContainsMixin):
             self.n_pca_components = n_pca_components
 
         data = np.hstack(epochs.get_data(picks))
-        data = self._pre_whiten(data)
         data = self._pick_sources(data, include=include, exclude=exclude)
 
         # restore epochs, channels, tsl order
@@ -1677,7 +1672,6 @@ class ICA(ContainsMixin):
             self.n_pca_components = n_pca_components
 
         data = evoked.data[picks]
-        data = self._pre_whiten(data)
         data = self._pick_sources(data, include=include,
                                   exclude=exclude)
 
@@ -1688,6 +1682,7 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function."""
+        data = self._pre_whiten(data)
         exclude = self._check_exclude(exclude)
         _n_pca_comp = self._check_n_pca_components(self.n_pca_components)
         n_ch, _ = data.shape

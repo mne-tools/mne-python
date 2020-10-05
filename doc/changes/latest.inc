@@ -34,6 +34,8 @@ Bugs
 
 - Fix bug with :class:`mne.preprocessing.ICA` where ``n_pca_components`` as a :class:`python:float` would give the number of components that explained less than or equal to the given variance. It now gives greater than the given number for better usability and consistency with :class:`sklearn.decomposition.PCA`. Generally this will mean that one more component will be included, by `Eric Larson`_ (:gh:`8326`)
 
+- Fix bug with :class:`mne.preprocessing.ICA` where projections were not tracked properly by `Eric Larson`_
+
 - Fix bug with :func:`mne.preprocessing.read_ica_eeglab` where full-rank data were not handled properly by `Eric Larson`_ (:gh:`8326`)
 
 - Fix bug with :ref:`somato-dataset` where the BEM was not included by `Eric Larson`_ (:gh:`8317`)

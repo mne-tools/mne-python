@@ -75,12 +75,12 @@ def test_ica_full_data_recovery(method):
     # Most basic recovery
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    raw.info['projs'] = []
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
-    with pytest.warns(RuntimeWarning, match='projection'):
-        epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), preload=True)
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
     evoked = epochs.average()
     n_channels = 5
     data = raw._data[:n_channels].copy()
@@ -231,7 +231,7 @@ def test_ica_n_iter_(method, tmpdir):
 
     # Test I/O roundtrip.
     output_fname = tmpdir.join('test_ica-ica.fif')
-    _assert_ica_attributes(ica, raw.get_data('data'), limits=(1, 70))
+    _assert_ica_attributes(ica, raw.get_data('data'), limits=(5, 110))
     ica.save(output_fname)
     ica = read_ica(output_fname)
     _assert_ica_attributes(ica)
@@ -269,20 +269,33 @@ def test_ica_rank_reduction(method):
                 rank_before)
 
 
+# This is a lot of parameters but they interact so they matter. Also they in
+# total take < 2 sec on a workstation.
 @pytest.mark.parametrize('n_pca_components', (None, 0.999999))
 @pytest.mark.parametrize('proj', (True, False))
-@pytest.mark.parametrize('cov', (False,))  # XXX True))
-@pytest.mark.parametrize('meg', ('mag', True))
-def test_ica_projs(n_pca_components, proj, cov, meg):
+@pytest.mark.parametrize('cov', (False, True))
+@pytest.mark.parametrize('meg', ('mag', True, False))
+@pytest.mark.parametrize('eeg', (False, True))
+def test_ica_projs(n_pca_components, proj, cov, meg, eeg):
     """Test that ICA handles projections properly."""
-    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick_types(meg=meg)
+    if cov and not proj:  # proj is always done with cov
+        return
+    if not meg and not eeg:  # no channels
+        return
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick_types(
+        meg=meg, eeg=eeg)
+    raw.pick(np.arange(0, len(raw.ch_names), 5))  # just for speed
+    raw.info.normalize_proj()
+    assert 10 < len(raw.ch_names) < 75
+    if eeg:
+        raw.set_eeg_reference(projection=True)
     raw.load_data()
     raw._data -= raw._data.mean(-1, keepdims=True)
     raw_data = raw.get_data()
     assert len(raw.info['projs']) > 0
     assert not raw.proj
     raw_fit = raw.copy()
-    kwargs = dict(atol=1e-20, rtol=1e-8)
+    kwargs = dict(atol=1e-12 if eeg else 1e-20, rtol=1e-8)
     if proj:
         raw_fit.apply_proj()
     fit_data = raw_fit.get_data()
@@ -295,7 +308,8 @@ def test_ica_projs(n_pca_components, proj, cov, meg):
         noise_cov = make_ad_hoc_cov(raw.info)
     else:
         noise_cov = None
-    ica = ICA(max_iter=1, noise_cov=noise_cov,
+    # infomax here just so we don't require sklearn
+    ica = ICA(max_iter=1, noise_cov=noise_cov, method='infomax',
               n_pca_components=n_pca_components, n_components=10)
     with pytest.warns(None):  # convergence
         ica.fit(raw_fit)
@@ -521,7 +535,7 @@ def test_ica_additional(method, tmpdir):
               n_pca_components=None, method=method, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
-    _assert_ica_attributes(ica, epochs.get_data('data'), limits=(0.0005, 10))
+    _assert_ica_attributes(ica, epochs.get_data('data'), limits=(0.05, 20))
     # for testing eog functionality
     picks2 = np.concatenate([picks, pick_types(raw.info, False, eog=True)])
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
@@ -1031,7 +1045,7 @@ def test_eog_channel(method):
     picks = pick_types(raw.info, meg=True, stim=True, ecg=False,
                        eog=True, exclude='bads')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, proj=False)
     n_components = 0.9
     ica = ICA(n_components=n_components, method=method)
     # Test case for MEG and EOG data. Should have EOG channel
@@ -1041,8 +1055,7 @@ def test_eog_channel(method):
         picks1b = pick_types(inst.info, meg=False, stim=False, ecg=False,
                              eog=True, exclude='bads')
         picks1 = np.append(picks1a, picks1b)
-        with pytest.warns(RuntimeWarning, match='Projection vector.*'):
-            ica.fit(inst, picks=picks1)
+        ica.fit(inst, picks=picks1)
         assert (any('EOG' in ch for ch in ica.ch_names))
         _assert_ica_attributes(ica, inst.get_data(picks1), limits=(0.8, 600))
     # Test case for MEG data. Should have no EOG channel
@@ -1383,7 +1396,7 @@ def test_read_ica_eeglab():
                     rtol=1e-05, atol=1e-08)
 
 
-def _assert_ica_attributes(ica, data=None, limits=(0.3, 30)):
+def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):
     """Assert some attributes of ICA objects."""
     __tracebackhide__ = True
     # This tests properties, but also serves as documentation of
@@ -1422,11 +1435,11 @@ def _assert_ica_attributes(ica, data=None, limits=(0.3, 30)):
     if data is not None:
         if data.ndim == 3:
             data = data.transpose(1, 0, 2).reshape(data.shape[1], -1)
-        data = ica._transform(data)
+        data = ica._transform_raw(RawArray(data, ica.info), 0, None)
         norms = np.linalg.norm(data, axis=1)
         # at least close to normal
-        assert norms.min() > limits[0]
-        assert norms.max() < limits[1]
+        assert norms.min() > limits[0], 'Not roughly unity'
+        assert norms.max() < limits[1], 'Not roughly unity'
 
 
 run_tests_if_main()
