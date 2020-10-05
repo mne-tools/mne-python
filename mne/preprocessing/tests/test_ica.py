@@ -1322,7 +1322,7 @@ def test_ica_eeg():
         picks_all = []
         picks_all.extend(picks_meg)
         picks_all.extend(picks_eeg)
-        epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True)
+        epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True, proj=False)
         evoked = epochs.average()
 
         for picks in [picks_meg, picks_eeg, picks_all]:
@@ -1332,7 +1332,7 @@ def test_ica_eeg():
             for inst in [raw, epochs]:
                 ica = ICA(n_components=2, max_iter=2, method=method)
                 with pytest.warns(None):
-                    ica.fit(inst, picks=picks)
+                    ica.fit(inst, picks=picks, verbose=True)
                 _assert_ica_attributes(ica)
 
             # test apply and get_sources
