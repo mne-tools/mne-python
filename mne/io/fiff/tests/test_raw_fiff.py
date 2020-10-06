@@ -20,7 +20,7 @@ import pytest
 from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io.constants import FIFF
-from mne.io import RawArray, concatenate_raws, read_raw_fif
+from mne.io import RawArray, concatenate_raws, read_raw_fif, base
 from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
@@ -452,6 +452,27 @@ def test_split_files(tmpdir):
     raw_read = read_raw_fif(split_fname)
     assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (299, 2))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
+
+
+def _no_write_file_name(fid, kind, data):
+    assert kind == FIFF.FIFF_REF_FILE_NAME  # the only string we actually write
+    return
+
+
+def test_split_numbers(tmpdir, monkeypatch):
+    """Test handling of split files using numbers instead of names."""
+    monkeypatch.setattr(base, 'write_string', _no_write_file_name)
+    raw = read_raw_fif(test_fif_fname).pick('eeg')
+    # gh-8339
+    dashes_fname = tmpdir.join('sub-1_ses-2_task-3_raw.fif')
+    raw.save(dashes_fname, split_size='5MB',
+             buffer_size_sec=1.)
+    assert op.isfile(dashes_fname)
+    next_fname = str(dashes_fname)[:-4] + '-1.fif'
+    assert op.isfile(next_fname)
+    raw_read = read_raw_fif(dashes_fname)
+    assert_allclose(raw.times, raw_read.times)
+    assert_allclose(raw.get_data(), raw_read.get_data(), atol=1e-16)
 
 
 def test_load_bad_channels(tmpdir):
