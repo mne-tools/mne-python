@@ -137,8 +137,9 @@ psds, freqs = mne.time_frequency.psd_welch(
 # The function below calculates the ratio of power in the target frequency bin
 # to average power in a set of neighbor (noise) bins. The composition of noise
 # bins can be tweaked by two parameters:
-# - how many noise bins do you want?
-# - do you want to skip n bins directly next to the target bin?
+#
+# * how many noise bins do you want?
+# * do you want to skip n bins directly next to the target bin?
 
 ###############################################################################
 # SNR calculation function
