@@ -26,6 +26,8 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly by `Eric Larson`_ (:gh:`8285`)
 
+- Fix bug when passing ``axes`` to plotting functions, :func:`matplotlib.pyplot.tight_layout` will not be called when the figure was created using a constrained layout by `Eric Larson`_ (:gh:`8344`)
+
 - Fix bug with compensated CTF data when picking channels without preload by `Eric Larson`_ (:gh:`8318`)
 
 - Fix bug when merging fNIRS channels in :func:`mne.viz.plot_evoked_topomap` and related functions by `Robert Luke`_ (:gh:`8306`)
