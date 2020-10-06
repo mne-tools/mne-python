@@ -214,7 +214,6 @@ def snr_spectrum(psds, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 # the direct neighbors (this can make sense if the stimulation frequency is not
 # super constant, or frequency bands are very narrow).
 
-stim_freq = 12.
 noise_n_neighborfreqs = 3
 noise_skip_neighborfreqs = 1
 snrs = snr_spectrum(psds, noise_n_neighborfreqs=noise_n_neighborfreqs,
@@ -226,6 +225,7 @@ snrs = snr_spectrum(psds, noise_n_neighborfreqs=noise_n_neighborfreqs,
 # Ideally, this bin should should have the stimulation frequency exactly in the
 # center.
 
+stim_freq = 12.
 tmp_distlist = abs(np.subtract(freqs, stim_freq))
 i_signal = np.where(tmp_distlist == min(tmp_distlist))[0][0]
 # could be updated to support multiple frequencies
