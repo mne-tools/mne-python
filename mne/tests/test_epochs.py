@@ -1089,7 +1089,7 @@ def test_epochs_io_preload(tmpdir, preload):
 
 @pytest.mark.parametrize('split_size, n_epochs, n_files, size', [
     ('1MB', 9, 3, 1024 * 1024),
-    ('2MB', 18, 2, 2 * 1024 * 1024),
+    # ('2MB', 18, 2, 2 * 1024 * 1024),  # Useful for debugging
 ])
 @pytest.mark.parametrize('metadata', [
     False,
