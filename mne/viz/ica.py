@@ -719,7 +719,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
 
 @fill_doc
 def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
-                     stop=None, title=None, show=True):
+                     stop=None, title=None, show=True, n_components=None):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
     This method helps visualizing signal quality and artifact rejection.
@@ -747,6 +747,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         The figure title.
     show : bool
         Show figure if True.
+    %(n_pca_components_apply)s
+
+        .. versionadded:: 0.22
 
     Returns
     -------
@@ -778,17 +781,20 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         data, times = inst[picks, start_compare:stop_compare]
 
         raw_cln = ica.apply(inst.copy(), exclude=exclude,
-                            start=start, stop=stop)
+                            start=start, stop=stop,
+                            n_pca_components=n_pca_components)
         data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
                                     times=times, title=title,
                                     ch_types_used=ch_types_used, show=show)
-    elif isinstance(inst, Evoked):
+    else:
+        assert isinstance(inst, Evoked)
         inst = inst.copy().crop(start, stop)
         if picks is not None:
             inst.info['comps'] = []  # can be safely disabled
             inst.pick_channels([inst.ch_names[p] for p in picks])
-        evoked_cln = ica.apply(inst.copy(), exclude=exclude)
+        evoked_cln = ica.apply(inst.copy(), exclude=exclude,
+                               n_pca_components=n_pca_components)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
                                        title=title, show=show)
 

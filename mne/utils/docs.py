@@ -679,6 +679,13 @@ References
 .. footbibliography::
 """
 
+# ICA
+docdict['n_pca_components_apply'] = """
+n_pca_components : int | float | None
+    The number of PCA components to be kept, either absolute (int)
+    or percentage of the explained variance (float). If None (default),
+    the ``ica.n_pca_components`` from initialization will be used.
+"""
 
 # Maxwell filtering
 docdict['maxwell_origin'] = """
