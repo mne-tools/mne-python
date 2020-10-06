@@ -130,11 +130,22 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         Defaults to ``pad_inches``.
     fig : instance of Figure
         Figure to apply changes to.
+
+    Notes
+    -----
+    This will not force constrained_layout=False if the figure was created
+    with that method.
     """
     import matplotlib.pyplot as plt
     fig = plt.gcf() if fig is None else fig
 
     fig.canvas.draw()
+    try:
+        constrained = fig.get_constrained_layout()
+    except AttributeError:  # old matplotlib presumably
+        constrained = False
+    if constrained:
+        return  # no-op
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         with warnings.catch_warnings(record=True) as ws:
             fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
@@ -149,7 +160,6 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     for w in ws:
         w_msg = str(w.message) if hasattr(w, 'message') else w.get_message()
         if not w_msg.startswith('This figure includes Axes'):
-            raise RuntimeError(w_msg)
             warn(w_msg, w.category, 'matplotlib')
 
 
