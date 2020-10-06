@@ -206,6 +206,13 @@ def snr_spectrum(psds, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 ###############################################################################
 # Calculate SNR
 # ^^^^^^^^^^^^^
+# Now we call the function to compute our snr spectrum.
+# SNR is a relative measure: it's the ratio of power in a given frequency bin
+# compared to a baseline - the average power in the surrounding frequency bins.
+# Hence, we need to define some parameters for this 'baseline' - how many
+# neighboring bins should be taken for this computation, and do we want to skip
+# the direct neighbors (this can make sense if the stimulation frequency is not
+# super constant, or frequency bands are very narrow).
 
 stim_freq = 12.
 noise_n_neighborfreqs = 3
