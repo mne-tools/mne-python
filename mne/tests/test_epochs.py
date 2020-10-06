@@ -1087,29 +1087,54 @@ def test_epochs_io_preload(tmpdir, preload):
     assert_equal(epochs.get_data().shape[-1], 1)
 
 
-def test_split_saving(tmpdir):
+@pytest.mark.parametrize('split_size, n_epochs, n_files, size', [
+    ('1MB', 9, 3, 1024 * 1024),
+    ('2MB', 18, 2, 2 * 1024 * 1024),
+])
+@pytest.mark.parametrize('metadata', [
+    False,
+    pytest.param(True, marks=pytest.mark.skipif(
+        not check_version('pandas'), reason='Requires Pandas'))
+])
+@pytest.mark.parametrize('concat', (False, True))
+def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
+                      concat):
     """Test saving split epochs."""
     # See gh-5102
-    tempdir = str(tmpdir)
-    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
+    fs = 1000.
+    n_times = int(round(fs * (n_epochs + 1)))
+    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, n_times),
                           mne.create_info(100, 1000.))
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
+    if split_size == '2MB' and (metadata or concat):
+        n_files += 1
+    if metadata:
+        from pandas import DataFrame
+        junk = ['*' * 10000 for _ in range(len(events))]
+        metadata = DataFrame({
+            'event_time': events[:, 0] / raw.info['sfreq'],
+            'trial_number': range(len(events)),
+            'junk': junk})
+        epochs.metadata = metadata
+    if concat:
+        epochs.drop_bad()
+        epochs = concatenate_epochs([epochs[ii] for ii in range(len(epochs))])
     epochs_data = epochs.get_data()
-    assert len(epochs) == 9
-    fname = op.join(tempdir, 'test-epo.fif')
-    epochs.save(fname, split_size='1MB', overwrite=True)
-    size = _get_split_size('1MB')
-    assert size == 1048576 == 1024 * 1024
+    assert len(epochs) == n_epochs
+    fname = str(tmpdir.join('test-epo.fif'))
+    epochs.save(fname, split_size=split_size, overwrite=True)
+    got_size = _get_split_size(split_size)
+    assert got_size == size
     written_fnames = [fname] + [
-        fname[:-4] + '-%d.fif' % ii for ii in range(1, 4)]
+        fname[:-4] + '-%d.fif' % ii for ii in range(1, n_files + 1)]
     for this_fname in written_fnames:
         assert op.isfile(this_fname)
         with open(this_fname, 'r') as fid:
             fid.seek(0, 2)
             file_size = fid.tell()
         assert size * 0.5 < file_size <= size
-    assert not op.isfile(fname[:-4] + '-4.fif')
+    assert not op.isfile(f'{fname[:-4]}-{n_files + 1}.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)

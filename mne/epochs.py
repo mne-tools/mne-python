@@ -1632,7 +1632,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # 1. meas_id block plus main epochs block
         total_size += 132
         # 2. measurement info (likely slight overestimate, but okay)
-        total_size += object_size(self.info)
+        total_size += object_size(self.info) + 16 * len(self.info)
         # 3. events and event_id in its own block
         total_size += (self.events.size * 4 +
                        len(_event_id_string(self.event_id)) + 72)
