@@ -25,12 +25,14 @@ from ..utils import (verbose, logger, warn,
                      _get_stim_channel, _check_fname)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
+from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
+                            _rename_comps)
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types, get_channel_type_constants,
                        _pick_data_channels)
+from ..io.tag import _rename_list
 from ..io.write import DATE_NONE
 from ..io._digitization import _get_data_as_dict_from_dig
 
@@ -471,13 +473,14 @@ class SetChannelsMixin(MontageMixin):
             warn(msg.format(", ".join(sorted(names)), *this_change))
         return self
 
-    @fill_doc
-    def rename_channels(self, mapping):
+    @verbose
+    def rename_channels(self, mapping, allow_duplicates=False, verbose=None):
         """Rename channels.
 
         Parameters
         ----------
-        %(rename_channels_mapping)s
+        %(rename_channels_mapping_duplicates)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -494,7 +497,7 @@ class SetChannelsMixin(MontageMixin):
         from ..io import BaseRaw
 
         ch_names_orig = list(self.info['ch_names'])
-        rename_channels(self.info, mapping)
+        rename_channels(self.info, mapping, allow_duplicates)
 
         # Update self._orig_units for Raw
         if isinstance(self, BaseRaw) and self._orig_units is not None:
@@ -1150,17 +1153,16 @@ class InterpolationMixin(object):
         return self
 
 
-@fill_doc
-def rename_channels(info, mapping):
+@verbose
+def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
     """Rename channels.
-
-    .. warning::  The channel names must have at most 15 characters
 
     Parameters
     ----------
     info : dict
         Measurement info to modify.
-    %(rename_channels_mapping)s
+    %(rename_channels_mapping_duplicates)s
+    %(verbose)s
     """
     _validate_type(info, Info, 'info')
     info._check_consistency()
@@ -1187,12 +1189,6 @@ def rename_channels(info, mapping):
     for new_name in new_names:
         _validate_type(new_name[1], 'str', 'New channel mappings')
 
-    bad_new_names = [name for _, name in new_names if len(name) > 15]
-    if len(bad_new_names):
-        raise ValueError('Channel names cannot be longer than 15 '
-                         'characters. These channel names are not '
-                         'valid : %s' % new_names)
-
     # do the remapping locally
     for c_ind, new_name in new_names:
         for bi, bad in enumerate(bads):
@@ -1201,13 +1197,21 @@ def rename_channels(info, mapping):
         ch_names[c_ind] = new_name
 
     # check that all the channel names are unique
-    if len(ch_names) != len(np.unique(ch_names)):
+    if len(ch_names) != len(np.unique(ch_names)) and not allow_duplicates:
         raise ValueError('New channel names are not unique, renaming failed')
 
     # do the remapping in info
     info['bads'] = bads
+    ch_names_mapping = dict()
     for ch, ch_name in zip(info['chs'], ch_names):
+        ch_names_mapping[ch['ch_name']] = ch_name
         ch['ch_name'] = ch_name
+    # .get b/c fwd info omits it
+    _rename_comps(info.get('comps', []), ch_names_mapping)
+    if 'projs' in info:  # fwd might omit it
+        for proj in info['projs']:
+            proj['data']['col_names'][:] = \
+                _rename_list(proj['data']['col_names'], ch_names_mapping)
     info._update_redundant()
     info._check_consistency()
 

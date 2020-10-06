@@ -195,12 +195,12 @@ class DigMontage(object):
                             sphere=sphere)
 
     @fill_doc
-    def rename_channels(self, mapping):
+    def rename_channels(self, mapping, allow_duplicates=False):
         """Rename the channels.
 
         Parameters
         ----------
-        %(rename_channels_mapping)s
+        %(rename_channels_mapping_duplicates)s
 
         Returns
         -------
@@ -209,7 +209,7 @@ class DigMontage(object):
         """
         from .channels import rename_channels
         temp_info = create_info(list(self._get_ch_pos()), 1000., 'eeg')
-        rename_channels(temp_info, mapping)
+        rename_channels(temp_info, mapping, allow_duplicates)
         self.ch_names = temp_info['ch_names']
 
     def save(self, fname):

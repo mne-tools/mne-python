@@ -55,7 +55,7 @@ def _calibrate_comp(comp, chs, row_names, col_names,
 
 
 @verbose
-def read_ctf_comp(fid, node, chs, verbose=None):
+def read_ctf_comp(fid, node, chs, *, ch_names_mapping=None, verbose=None):
     """Read the CTF software compensation data from the given node.
 
     Parameters
@@ -67,6 +67,8 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     chs : list
         The list of channels from info['chs'] to match with
         compensators that are read.
+    ch_names_mapping : dict | None
+        The channel renaming to use.
     %(verbose)s
 
     Returns
@@ -74,6 +76,8 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     compdata : list
         The compensation data
     """
+    from .meas_info import _rename_comps
+    ch_names_mapping = dict() if ch_names_mapping is None else ch_names_mapping
     compdata = []
     comps = dir_tree_find(node, FIFF.FIFFB_MNE_CTF_COMP_DATA)
 
@@ -105,6 +109,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
 
         one['save_calibrated'] = bool(calibrated)
         one['data'] = mat
+        _rename_comps([one], ch_names_mapping)
         if not calibrated:
             #   Calibrate...
             _calibrate_comp(one, chs, mat['row_names'], mat['col_names'])
