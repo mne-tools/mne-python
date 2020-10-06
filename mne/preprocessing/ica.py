@@ -28,6 +28,7 @@ from ..cov import compute_whitener
 from .. import Covariance, Evoked
 from ..io.pick import (pick_types, pick_channels, pick_info,
                        _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
+from ..io.proj import make_projector
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
@@ -591,9 +592,6 @@ class ICA(ContainsMixin):
                                                           tstep)
 
         self.n_samples_ = data.shape[1]
-        # this may operate inplace or make a copy
-        data, self.pre_whitener_ = self._pre_whiten(data, raw.info, picks)
-
         self._fit(data, 'raw')
 
         return self
@@ -611,24 +609,23 @@ class ICA(ContainsMixin):
         if decim is not None:
             data = data[:, :, ::decim]
 
-        self.n_samples_ = np.prod(data[:, 0, :].shape)
+        self.n_samples_ = data.shape[0] * data.shape[2]
 
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
-        data, self.pre_whitener_ = \
-            self._pre_whiten(np.hstack(data), epochs.info, picks)
-
+        data = np.hstack(data)
         self._fit(data, 'epochs')
 
         return self
 
-    def _pre_whiten(self, data, info, picks):
+    def _compute_pre_whitener(self, data):
         """Aux function."""
-        has_pre_whitener = hasattr(self, 'pre_whitener_')
-        if not has_pre_whitener and self.noise_cov is None:
+        data = self._do_proj(data)
+
+        if self.noise_cov is None:
             # use standardization as whitener
             # Scale (z-score) the data by channel type
-            info = pick_info(info, picks)
+            info = self.info
             pre_whitener = np.empty([len(data), 1])
             for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
                 if _contains_ch_type(info, ch_type):
@@ -651,24 +648,38 @@ class ICA(ContainsMixin):
                                            'Unsupported channel {}'
                                            .format(ch_type))
                     pre_whitener[this_picks] = np.std(data[this_picks])
-            data /= pre_whitener
-        elif not has_pre_whitener and self.noise_cov is not None:
-            pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
-            assert data.shape[0] == pre_whitener.shape[1]
-            data = np.dot(pre_whitener, data)
-        elif has_pre_whitener and self.noise_cov is None:
-            data /= self.pre_whitener_
-            pre_whitener = self.pre_whitener_
         else:
-            data = np.dot(self.pre_whitener_, data)
-            pre_whitener = self.pre_whitener_
+            pre_whitener, _ = compute_whitener(self.noise_cov, self.info)
+            assert data.shape[0] == pre_whitener.shape[1]
+        self.pre_whitener_ = pre_whitener
 
-        return data, pre_whitener
+    def _do_proj(self, data):
+        if self.info is not None and self.info['projs']:
+            proj, nproj, _ = make_projector(
+                [p for p in self.info['projs'] if p['active']],
+                self.info['ch_names'], include_active=True)
+            if nproj:
+                logger.info(
+                    f'    Applying projection operator with {nproj} '
+                    f'vector{_pl(nproj)}')
+                if self.noise_cov is None:  # otherwise it's in pre_whitener_
+                    data = proj @ data
+        return data
+
+    def _pre_whiten(self, data):
+        data = self._do_proj(data)
+        if self.noise_cov is None:
+            data /= self.pre_whitener_
+        else:
+            data = self.pre_whitener_ @ data
+        return data
 
     def _fit(self, data, fit_type):
         """Aux function."""
         random_state = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
+        self._compute_pre_whitener(data)
+        data = self._pre_whiten(data)
 
         if (self.max_pca_components is None or
                 isinstance(self.max_pca_components, float)):
@@ -690,7 +701,7 @@ class ICA(ContainsMixin):
         if (isinstance(self.max_pca_components, float) and
                 self.max_pca_components != 1.0):
             del data_transformed  # Free memory.
-            self.max_pca_components_ = _exp_var_ncomp(
+            self.max_pca_components_, _ = _exp_var_ncomp(
                 pca.explained_variance_ratio_, self.max_pca_components)
 
             if (self.n_components is not None and
@@ -716,13 +727,14 @@ class ICA(ContainsMixin):
         # given cumulative variance. This information will later be used to
         # only submit the corresponding parts of the data to ICA.
         if isinstance(self.n_components, float):
-            self.n_components_ = _exp_var_ncomp(
+            self.n_components_, ev = _exp_var_ncomp(
                 pca.explained_variance_ratio_, self.n_components)
             if self.n_components_ == 1:
-                raise RuntimeError('One PCA component captures most of the '
-                                   'explained variance, your threshold resu'
-                                   'lts in 0 components. You should select '
-                                   'a higher value.')
+                raise RuntimeError(
+                    'One PCA component captures most of the '
+                    f'explained variance ({100 * ev}%), your threshold '
+                    'results in 1 component. You should select '
+                    'a higher value.')
             msg = 'Selecting by explained variance'
         else:
             if self.n_components is not None:  # normal n case
@@ -786,6 +798,7 @@ class ICA(ContainsMixin):
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
+        data = self._pre_whiten(data)
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
@@ -810,11 +823,8 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        if reject_by_annotation:
-            data = raw.get_data(picks, start, stop, 'omit')
-        else:
-            data = raw[picks, start:stop][0]
-        data, _ = self._pre_whiten(data, raw.info, picks)
+        reject = 'omit' if reject_by_annotation else None
+        data = raw.get_data(picks, start, stop, reject)
         return self._transform(data)
 
     def _transform_epochs(self, epochs, concatenate):
@@ -833,7 +843,6 @@ class ICA(ContainsMixin):
                                                  len(picks)))
 
         data = np.hstack(epochs.get_data()[:, picks])
-        data, _ = self._pre_whiten(data, epochs.info, picks)
         sources = self._transform(data)
 
         if not concatenate:
@@ -857,8 +866,7 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        data, _ = self._pre_whiten(evoked.data[picks], evoked.info, picks)
-        sources = self._transform(data)
+        sources = self._transform(evoked.data[picks])
 
         return sources
 
@@ -1531,8 +1539,9 @@ class ICA(ContainsMixin):
             reject_by_annotation=reject_by_annotation, measure=measure)
         return self.labels_['eog'], scores
 
+    @verbose
     def apply(self, inst, include=None, exclude=None, n_pca_components=None,
-              start=None, stop=None):
+              start=None, stop=None, verbose=None):
         """Remove selected components from the signal.
 
         Given the unmixing matrix, transform data,
@@ -1561,6 +1570,7 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1582,6 +1592,7 @@ class ICA(ContainsMixin):
             kwargs.update(evoked=inst)
         _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
+        logger.info(f'Applying ICA to {kind} instance')
         return meth(**kwargs)
 
     def _check_exclude(self, exclude):
@@ -1604,8 +1615,6 @@ class ICA(ContainsMixin):
                            exclude='bads', ref_meg=False)
 
         data = raw[picks, start:stop][0]
-        data, _ = self._pre_whiten(data, raw.info, picks)
-
         data = self._pick_sources(data, include, exclude)
 
         raw[picks, start:stop] = data
@@ -1630,8 +1639,7 @@ class ICA(ContainsMixin):
         if n_pca_components is not None:
             self.n_pca_components = n_pca_components
 
-        data = np.hstack(epochs.get_data()[:, picks])
-        data, _ = self._pre_whiten(data, epochs.info, picks)
+        data = np.hstack(epochs.get_data(picks))
         data = self._pick_sources(data, include=include, exclude=exclude)
 
         # restore epochs, channels, tsl order
@@ -1659,7 +1667,6 @@ class ICA(ContainsMixin):
             self.n_pca_components = n_pca_components
 
         data = evoked.data[picks]
-        data, _ = self._pre_whiten(data, evoked.info, picks)
         data = self._pick_sources(data, include=include,
                                   exclude=exclude)
 
@@ -1670,6 +1677,7 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function."""
+        data = self._pre_whiten(data)
         exclude = self._check_exclude(exclude)
         _n_pca_comp = self._check_n_pca_components(self.n_pca_components)
         n_ch, _ = data.shape
@@ -1680,8 +1688,8 @@ class ICA(ContainsMixin):
                 f'n_components_ ({self.n_components_}) and <= '
                 'max_pca_components_ ({self.max_pca_components_}).')
 
-        logger.info('Transforming to ICA space (%i components)'
-                    % self.n_components_)
+        logger.info(f'    Transforming to ICA space ({self.n_components_} '
+                    f'component{_pl(self.n_components_)})')
 
         # Apply first PCA
         if self.pca_mean_ is not None:
@@ -1694,7 +1702,7 @@ class ICA(ContainsMixin):
             sel_keep = np.setdiff1d(np.arange(self.n_components_), exclude)
 
         n_zero = self.n_components_ - len(sel_keep)
-        logger.info('Zeroing out %i ICA component%s' % (n_zero, _pl(n_zero)))
+        logger.info(f'    Zeroing out {n_zero} ICA component{_pl(n_zero)}')
 
         # Mixing and unmixing should both be shape (self.n_components_, 2),
         # and we need to put these into the upper left part of larger mixing
@@ -1709,6 +1717,8 @@ class ICA(ContainsMixin):
             self.unmixing_matrix_
         unmixing = np.dot(unmixing, pca_components)
 
+        logger.info(f'    Projecting back using {_n_pca_comp} '
+                    f'PCA component{_pl(_n_pca_comp)}')
         mixing = np.eye(_n_pca_comp)
         mixing[:self.n_components_, :self.n_components_] = \
             self.mixing_matrix_
@@ -1959,10 +1969,11 @@ class ICA(ContainsMixin):
     def _check_n_pca_components(self, _n_pca_comp, verbose=None):
         """Aux function."""
         if isinstance(_n_pca_comp, float):
-            _n_pca_comp = _exp_var_ncomp(
+            n, ev = _exp_var_ncomp(
                 self.pca_explained_variance_, _n_pca_comp)
-            logger.info('Selected %i PCA components by explained '
-                        'variance' % _n_pca_comp)
+            logger.info(f'    Selected {n} PCA components by explained '
+                        f'variance ({100 * ev}≥{100 * _n_pca_comp}%)')
+            _n_pca_comp = n
         elif _n_pca_comp is None:
             _n_pca_comp = self.max_pca_components_
         elif _n_pca_comp < self.n_components_:
@@ -1976,7 +1987,8 @@ def _exp_var_ncomp(var, n):
     cvar = cvar.cumsum()
     cvar /= cvar[-1]
     # We allow 1., which would give us N+1
-    return min((cvar <= n).sum() + 1, len(cvar))
+    n = min((cvar <= n).sum() + 1, len(cvar))
+    return n, cvar[n - 1]
 
 
 def _check_start_stop(raw, start, stop):
