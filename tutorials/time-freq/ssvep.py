@@ -366,7 +366,7 @@ print('mean SNR (trial subset 2) at %iHz = %.3f '
 #
 # - SNR in visual ROI is significantly different from full scalp montage at p
 #   < 0.05
-# - SNR in first 5 trials does not significantly different from 5 last trials
+# - SNR in first 5 trials does not significantly differ from 5 last trials
 
 ##############################################################################
 # Compare SNR in ROIs after averaging over channels
