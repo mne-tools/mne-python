@@ -26,11 +26,12 @@ from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels, write_info
+from ..io.meas_info import (read_bad_channels, write_info, _remap_ch_names,
+                            write_ch_infos)
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
-                        write_coord_trans, write_ch_info, write_name_list,
+                        write_coord_trans, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
@@ -293,7 +294,9 @@ def _read_forward_meas_info(tree, fid):
         if kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
-    info['chs'] = chs
+    tag = find_tag(fid, parent_meg, FIFF.FIFF_MNE_CH_NAME_MAPPING)
+    remap = tag.data if tag is not None else None
+    info['chs'] = _remap_ch_names(chs, remap)
     info._update_redundant()
 
     #   Get the MRI <-> head coordinate transformation
@@ -920,11 +923,7 @@ def write_forward_meas_info(fid, info):
     if 'chs' in info:
         #  Channel information
         write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
-        for k, c in enumerate(info['chs']):
-            #   Scan numbers may have been messed up
-            c = deepcopy(c)
-            c['scanno'] = k + 1
-            write_ch_info(fid, c)
+        write_ch_infos(fid, info['chs'])
     if 'bads' in info and len(info['bads']) > 0:
         #   Bad channels
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)

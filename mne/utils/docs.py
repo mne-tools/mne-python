@@ -1209,7 +1209,7 @@ docdict['on_missing_montage'] = """
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)
-docdict['rename_channels_mapping'] = """
+docdict['rename_channels_mapping_duplicates'] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
     e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
@@ -1217,6 +1217,11 @@ mapping : dict | callable
 
     .. versionchanged:: 0.10.0
        Support for a callable function.
+allow_duplicates : bool
+    If True (default False), allow duplicates, which will automatically
+    be renamed with ``-N`` at the end.
+
+    .. versionadded:: 0.22.0
 """
 
 # Brain plotting

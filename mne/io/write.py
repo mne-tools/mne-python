@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 from gzip import GzipFile
+import json
 import os.path as op
 import re
 import time
@@ -113,6 +114,13 @@ def write_julian(fid, kind, data):
     jd = np.sum(_cal_to_julian(*data))
     data = np.array(jd, dtype='>i4')
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, '>i4')
+
+
+def write_dict_json_string(fid, kind, data):
+    """Write a dict to string via a JSON dump."""
+    assert isinstance(data, dict)
+    data = json.dumps(data, separators=(',', ':'))
+    write_string(fid, kind, data)
 
 
 def write_string(fid, kind, data):

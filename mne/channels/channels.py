@@ -492,13 +492,14 @@ class SetChannelsMixin(MontageMixin):
             warn(msg.format(", ".join(sorted(names)), *this_change))
         return self
 
-    @fill_doc
-    def rename_channels(self, mapping):
+    @verbose
+    def rename_channels(self, mapping, allow_duplicates=False, verbose=None):
         """Rename channels.
 
         Parameters
         ----------
-        %(rename_channels_mapping)s
+        %(rename_channels_mapping_duplicates)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -512,7 +513,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        rename_channels(self.info, mapping)
+        rename_channels(self.info, mapping, allow_duplicates)
         return self
 
     @verbose
@@ -1152,17 +1153,16 @@ class InterpolationMixin(object):
         return self
 
 
-@fill_doc
-def rename_channels(info, mapping):
+@verbose
+def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
     """Rename channels.
-
-    .. warning::  The channel names must have at most 15 characters
 
     Parameters
     ----------
     info : dict
         Measurement info to modify.
-    %(rename_channels_mapping)s
+    %(rename_channels_mapping_duplicates)s
+    %(verbose)s
     """
     _validate_type(info, Info, 'info')
     info._check_consistency()
@@ -1189,12 +1189,6 @@ def rename_channels(info, mapping):
     for new_name in new_names:
         _validate_type(new_name[1], 'str', 'New channel mappings')
 
-    bad_new_names = [name for _, name in new_names if len(name) > 15]
-    if len(bad_new_names):
-        raise ValueError('Channel names cannot be longer than 15 '
-                         'characters. These channel names are not '
-                         'valid : %s' % new_names)
-
     # do the remapping locally
     for c_ind, new_name in new_names:
         for bi, bad in enumerate(bads):
@@ -1203,7 +1197,7 @@ def rename_channels(info, mapping):
         ch_names[c_ind] = new_name
 
     # check that all the channel names are unique
-    if len(ch_names) != len(np.unique(ch_names)):
+    if len(ch_names) != len(np.unique(ch_names)) and not allow_duplicates:
         raise ValueError('New channel names are not unique, renaming failed')
 
     # do the remapping in info

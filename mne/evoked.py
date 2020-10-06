@@ -32,7 +32,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
 from .io.pick import pick_types, _picks_to_idx
-from .io.meas_info import read_meas_info, write_meas_info
+from .io.meas_info import read_meas_info, write_meas_info, _remap_ch_names
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
@@ -1031,7 +1031,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         nchan = 0
         sfreq = -1
         chs = []
-        comment = last = first = first_time = nsamp = None
+        comment = last = first = first_time = nsamp = remap = None
         for k in range(my_evoked['nent']):
             my_kind = my_evoked['directory'][k].kind
             pos = my_evoked['directory'][k].pos
@@ -1059,6 +1059,9 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             elif my_kind == FIFF.FIFF_NO_SAMPLES:
                 tag = read_tag(fid, pos)
                 nsamp = int(tag.data)
+            elif my_kind == FIFF.FIFF_MNE_CH_REMAPPING:
+                tag = read_tag(fid, pos)
+                remap = tag.data
 
         if comment is None:
             comment = 'No comment'
@@ -1073,7 +1076,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                 raise ValueError('Number of channels and number of '
                                  'channel definitions are different')
 
-            info['chs'] = chs
+            info['chs'] = _remap_ch_names(chs, remap)
             logger.info('    Found channel information in evoked data. '
                         'nchan = %d' % nchan)
             if sfreq > 0:

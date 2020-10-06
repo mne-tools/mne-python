@@ -478,6 +478,7 @@ FIFF.FIFF_MNE_COORD_FRAME            = 3506  # Coordinate frame employed. Defaul
                           #  FIFFB_MNE_INVERSE_SOLUTION   FIFFV_COORD_HEAD
 FIFF.FIFF_MNE_CH_NAME_LIST           = 3507
 FIFF.FIFF_MNE_FILE_NAME              = 3508  # This removes the collision with fiff_file.h (used to be 3501)
+FIFF.FIFF_MNE_CH_NAME_MAPPING        = 3509
 #
 # 3510... 3590... Source space or surface
 #

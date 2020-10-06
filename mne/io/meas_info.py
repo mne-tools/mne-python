@@ -6,11 +6,12 @@
 #
 # License: BSD (3-clause)
 
-from collections import Counter
+from collections import Counter, OrderedDict
 import contextlib
 from copy import deepcopy
 import datetime
 from io import BytesIO
+import json
 import operator
 from textwrap import shorten
 
@@ -28,7 +29,8 @@ from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix, write_id, DATE_NONE)
+                    write_julian, write_float_matrix, write_id, DATE_NONE,
+                    write_dict_json_string)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
@@ -119,9 +121,11 @@ def _get_valid_units():
     return tuple(valid_units)
 
 
-def _unique_channel_names(ch_names):
+@verbose
+def _unique_channel_names(ch_names, max_length=None, verbose=None):
     """Ensure unique channel names."""
-    FIFF_CH_NAME_MAX_LENGTH = 15
+    if max_length is not None:
+        ch_names[:] = [name[:max_length] for name in ch_names]
     unique_ids = np.unique(ch_names, return_index=True)[1]
     if len(unique_ids) != len(ch_names):
         dups = {ch_names[x]
@@ -132,8 +136,11 @@ def _unique_channel_names(ch_names):
             overlaps = np.where(np.array(ch_names) == ch_stem)[0]
             # We need an extra character since we append '-'.
             # np.ceil(...) is the maximum number of appended digits.
-            n_keep = (FIFF_CH_NAME_MAX_LENGTH - 1 -
-                      int(np.ceil(np.log10(len(overlaps)))))
+            if max_length is not None:
+                n_keep = (
+                    max_length - 1 - int(np.ceil(np.log10(len(overlaps)))))
+            else:
+                n_keep = np.inf
             n_keep = min(len(ch_stem), n_keep)
             ch_stem = ch_stem[:n_keep]
             for idx, ch_idx in enumerate(overlaps):
@@ -753,9 +760,6 @@ class Info(dict, MontageMixin):
                     'Bad info: info["chs"][%d]["loc"] must be ndarray with '
                     '12 elements, got %r' % (ci, loc))
 
-        # make sure channel names are not too long
-        self._check_ch_name_length()
-
         # make sure channel names are unique
         self['ch_names'] = _unique_channel_names(self['ch_names'])
         for idx, ch_name in enumerate(self['ch_names']):
@@ -764,18 +768,6 @@ class Info(dict, MontageMixin):
         if 'filename' in self:
             warn('the "filename" key is misleading '
                  'and info should not have it')
-
-    def _check_ch_name_length(self):
-        """Check that channel names are sufficiently short."""
-        bad_names = list()
-        for ch in self['chs']:
-            if len(ch['ch_name']) > 15:
-                bad_names.append(ch['ch_name'])
-                ch['ch_name'] = ch['ch_name'][:15]
-        if len(bad_names) > 0:
-            warn('%d channel names are too long, have been truncated to 15 '
-                 'characters:\n%s' % (len(bad_names), bad_names))
-            self._update_redundant()
 
     def _update_redundant(self):
         """Update the redundant entries."""
@@ -1002,6 +994,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     nchan = None
     sfreq = None
     chs = []
+    remap = None
     experimenter = None
     description = None
     proj_id = None
@@ -1083,6 +1076,11 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_MNE_KIT_SYSTEM_ID:
             tag = read_tag(fid, pos)
             kit_system_id = int(tag.data)
+        elif kind == FIFF.FIFF_MNE_CH_NAME_MAPPING:
+            tag = read_tag(fid, pos)
+            remap = tag.data
+
+    _remap_ch_names(chs, remap)
 
     # Check that we have everything we need
     if nchan is None:
@@ -1432,6 +1430,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     return info, meas
 
 
+def _remap_ch_names(chs, remap):
+    if remap is not None:
+        remap = json.loads(remap)
+        for ch in chs:
+            ch['ch_name'] = remap[ch['ch_name']]
+    return chs
+
+
 def _ensure_meas_date_none_or_dt(meas_date):
     if meas_date is None or np.array_equal(meas_date, DATE_NONE):
         meas_date = None
@@ -1637,14 +1643,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info['xplotter_layout'])
 
     #  Channel information
-    for k, c in enumerate(info['chs']):
-        #   Scan numbers may have been messed up
-        c = deepcopy(c)
-        c['scanno'] = k + 1
-        # for float/double, the "range" param is unnecessary
-        if reset_range is True:
-            c['range'] = 1.0
-        write_ch_info(fid, c)
+    write_ch_infos(fid, info['chs'], reset_range)
 
     # Subject information
     if info.get('subject_info') is not None:
@@ -2330,3 +2329,26 @@ def _dict_unpack(obj, casts):
     n = len(obj[list(casts)[0]])
     return [{key: cast(obj[key][ii]) for key, cast in casts.items()}
             for ii in range(n)]
+
+
+def write_ch_infos(fid, chs, reset_range=False):
+    orig_ch_names = [c['ch_name'] for c in chs]
+    ch_names = orig_ch_names.copy()
+    _unique_channel_names(ch_names, max_length=15, verbose='error')
+    for k, (c, name) in enumerate(zip(chs, ch_names)):
+        #   Scan numbers may have been messed up
+        c = c.copy()
+        c['scanno'] = k + 1
+        # for float/double, the "range" param is unnecessary
+        if reset_range is True:
+            c['range'] = 1.0
+        c['ch_name'] = name
+        write_ch_info(fid, c)
+    if orig_ch_names != ch_names:
+        logger.info(
+            '    Writing channel names to FIF truncated to 15 characters '
+            'with remapping')
+        mapping = OrderedDict(
+            (name, orig) for name, orig in zip(ch_names, orig_ch_names))
+        write_dict_json_string(
+            fid, FIFF.FIFF_MNE_CH_NAME_MAPPING, mapping)
