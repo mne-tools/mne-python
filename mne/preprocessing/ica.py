@@ -620,7 +620,7 @@ class ICA(ContainsMixin):
 
     def _compute_pre_whitener(self, data):
         """Aux function."""
-        data = self._do_proj(data)
+        data = self._do_proj(data, log_suffix='(pre-whitener computation)')
 
         if self.noise_cov is None:
             # use standardization as whitener
@@ -653,7 +653,7 @@ class ICA(ContainsMixin):
             assert data.shape[0] == pre_whitener.shape[1]
         self.pre_whitener_ = pre_whitener
 
-    def _do_proj(self, data):
+    def _do_proj(self, data, log_suffix=''):
         if self.info is not None and self.info['projs']:
             proj, nproj, _ = make_projector(
                 [p for p in self.info['projs'] if p['active']],
@@ -661,13 +661,14 @@ class ICA(ContainsMixin):
             if nproj:
                 logger.info(
                     f'    Applying projection operator with {nproj} '
-                    f'vector{_pl(nproj)}')
+                    f'vector{_pl(nproj)}'
+                    f'{" " if log_suffix else ""}{log_suffix}')
                 if self.noise_cov is None:  # otherwise it's in pre_whitener_
                     data = proj @ data
         return data
 
     def _pre_whiten(self, data):
-        data = self._do_proj(data)
+        data = self._do_proj(data, log_suffix='(pre-whitener application)')
         if self.noise_cov is None:
             data /= self.pre_whitener_
         else:
