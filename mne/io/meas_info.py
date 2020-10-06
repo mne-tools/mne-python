@@ -1643,7 +1643,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info['xplotter_layout'])
 
     #  Channel information
-    write_ch_infos(fid, info['chs'], reset_range)
+    _write_ch_infos(fid, info['chs'], reset_range)
 
     # Subject information
     if info.get('subject_info') is not None:
@@ -2331,7 +2331,7 @@ def _dict_unpack(obj, casts):
             for ii in range(n)]
 
 
-def write_ch_infos(fid, chs, reset_range=False):
+def _write_ch_infos(fid, chs, reset_range=False):
     orig_ch_names = [c['ch_name'] for c in chs]
     ch_names = orig_ch_names.copy()
     _unique_channel_names(ch_names, max_length=15, verbose='error')

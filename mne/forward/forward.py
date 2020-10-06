@@ -27,7 +27,7 @@ from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.meas_info import (read_bad_channels, write_info, _remap_ch_names,
-                            write_ch_infos)
+                            _write_ch_infos)
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
@@ -923,7 +923,7 @@ def write_forward_meas_info(fid, info):
     if 'chs' in info:
         #  Channel information
         write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
-        write_ch_infos(fid, info['chs'])
+        _write_ch_infos(fid, info['chs'])
     if 'bads' in info and len(info['bads']) > 0:
         #   Bad channels
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)

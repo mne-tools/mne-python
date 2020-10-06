@@ -1059,7 +1059,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             elif my_kind == FIFF.FIFF_NO_SAMPLES:
                 tag = read_tag(fid, pos)
                 nsamp = int(tag.data)
-            elif my_kind == FIFF.FIFF_MNE_CH_REMAPPING:
+            elif my_kind == FIFF.FIFF_MNE_CH_NAME_MAPPING:
                 tag = read_tag(fid, pos)
                 remap = tag.data
 
