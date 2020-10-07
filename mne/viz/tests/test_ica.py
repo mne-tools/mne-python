@@ -58,7 +58,7 @@ def test_plot_ica_components():
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+              n_pca_components=3)
     ica_picks = _get_picks(raw)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=ica_picks)
@@ -123,7 +123,7 @@ def test_plot_ica_properties():
                     baseline=(None, 0), preload=True)
 
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1,
-              max_pca_components=2, n_pca_components=2, random_state=0)
+              n_pca_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw)
 
@@ -210,7 +210,7 @@ def test_plot_ica_sources():
     raw.pick_channels([raw.ch_names[k] for k in picks])
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
-    ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
+    ica = ICA(n_components=2, n_pca_components=3)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     fig = ica.plot_sources(raw)
@@ -274,7 +274,7 @@ def test_plot_ica_overlay():
     raw = _get_raw(preload=True)
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3, random_state=0)
+              n_pca_components=3, random_state=0)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
     # objects do picking of Raw data
     with pytest.warns(RuntimeWarning, match='projection'):
@@ -285,7 +285,7 @@ def test_plot_ica_overlay():
     ica.plot_overlay(ecg_epochs.average())
     with pytest.warns(RuntimeWarning, match='projection'):
         eog_epochs = create_eog_epochs(raw, picks=picks)
-    ica.plot_overlay(eog_epochs.average())
+    ica.plot_overlay(eog_epochs.average(), n_pca_components=2)
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
@@ -295,7 +295,7 @@ def test_plot_ica_overlay():
     raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
     picks = pick_types(raw.info, meg=True, ref_meg=False)
-    ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
+    ica = ICA(n_components=2, n_pca_components=3)
     ica.fit(raw, picks=picks)
     with pytest.warns(RuntimeWarning, match='longer than'):
         ecg_epochs = create_ecg_epochs(raw)
@@ -309,7 +309,7 @@ def test_plot_ica_scores():
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+              n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
@@ -353,7 +353,7 @@ def test_plot_instance_components():
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+              n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     ica.exclude = [0]
