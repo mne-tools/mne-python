@@ -224,6 +224,7 @@ def test_ica_n_iter_(method, tmpdir):
     else:
         with pytest.warns(UserWarning, match='did not converge'):
             ica.fit(raw)
+    assert ica.method == method
 
     assert_equal(ica.n_iter_, max_iter)
 
@@ -232,6 +233,7 @@ def test_ica_n_iter_(method, tmpdir):
     _assert_ica_attributes(ica, raw.get_data('data'), limits=(5, 110))
     ica.save(output_fname)
     ica = read_ica(output_fname)
+    assert ica.method == method
     _assert_ica_attributes(ica)
 
     assert_equal(ica.n_iter_, max_iter)
@@ -1078,10 +1080,12 @@ def test_max_pca_components(tmpdir):
         ica = ICA(max_pca_components=max_pca_components, method=method,
                   n_components=n_components, random_state=random_state)
     ica.fit(epochs)
+    assert ica.method == method
 
     _assert_ica_attributes(ica, epochs.get_data(), limits=(0.01, 50))
     ica.save(output_fname)
     ica = read_ica(output_fname)
+    assert ica.method == method
     with pytest.deprecated_call():
         assert ica.max_pca_components == max_pca_components
     assert_equal(ica.n_components, n_components)

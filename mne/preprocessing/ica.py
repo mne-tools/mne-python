@@ -122,6 +122,9 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
                          % (_pl(chs), chs, types))
 
 
+_KNOWN_ICA_METHODS = ('fastica', 'infomax', 'picard')
+
+
 @fill_doc
 class ICA(ContainsMixin):
     u"""Data decomposition using Independent Component Analysis (ICA).
@@ -360,7 +363,7 @@ class ICA(ContainsMixin):
     """  # noqa: E501
 
     @verbose
-    def __init__(self, n_components=None, max_pca_components=None,
+    def __init__(self, n_components=None, *, max_pca_components=None,
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
@@ -374,7 +377,7 @@ class ICA(ContainsMixin):
                  DeprecationWarning)
 
         if method != 'imported_eeglab':  # internal use only
-            _check_option('method', method, ['fastica', 'infomax', 'picard'])
+            _check_option('method', method, _KNOWN_ICA_METHODS)
         if method == 'fastica' and not check_version('sklearn'):
             raise ImportError(
                 'The scikit-learn package is required for method="fastica".')
@@ -2342,6 +2345,9 @@ def read_ica(fname, verbose=None):
     ica_init, ica_misc = [_deserialize(k) for k in (ica_init, ica_misc)]
     current_fit = ica_init.pop('current_fit')
     max_pca_components = ica_init.pop('max_pca_components')
+    method = ica_misc.get('method', 'fastica')
+    if method in _KNOWN_ICA_METHODS:
+        ica_init['method'] = method
     if ica_init['noise_cov'] == Covariance.__name__:
         logger.info('Reading whitener drawn from noise covariance ...')
 
