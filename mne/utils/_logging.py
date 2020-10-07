@@ -97,33 +97,35 @@ def verbose(function):
     # Anything using verbose should either have `verbose=None` in the signature
     # or have a `self.verbose` attribute (if in a method). This code path
     # will raise an error if neither is the case.
-    wrap_src = """\
-try:
-    verbose
-except UnboundLocalError:
+    body = """\
+def %(name)s(%(signature)s):\n
     try:
-        verbose = self.verbose
-    except NameError:
-        raise RuntimeError('Function %%s does not accept verbose parameter'
-                           %% (_function_,))
-    except AttributeError:
-        raise RuntimeError('Method %%s class does not have self.verbose'
-                           %% (_function_,))
-if verbose is None:
-    try:
-        verbose = self.verbose
-    except (NameError, AttributeError):
-        pass
-if verbose is not None:
-    with _use_log_level_(verbose):
-        return _function_(%(signature)s)
-return _function_(%(signature)s)"""
+        verbose
+    except UnboundLocalError:
+        try:
+            verbose = self.verbose
+        except NameError:
+            raise RuntimeError('Function %%s does not accept verbose parameter'
+                               %% (_function_,))
+        except AttributeError:
+            raise RuntimeError('Method %%s class does not have self.verbose'
+                               %% (_function_,))
+    else:
+        if verbose is None:
+            try:
+                verbose = self.verbose
+            except (NameError, AttributeError):
+                pass
+    if verbose is not None:
+        with _use_log_level_(verbose):
+            return _function_(%(shortsignature)s)
+    else:
+        return _function_(%(shortsignature)s)"""
     evaldict = dict(
         _use_log_level_=use_log_level, _function_=function)
-    return FunctionMaker.create(
-        function, wrap_src, evaldict,
-        __wrapped__=function, __qualname__=function.__qualname__,
-        module=function.__module__)
+    fm = FunctionMaker(function, None, None, None, None, function.__module__)
+    attrs = dict(__wrapped__=function, __qualname__=function.__qualname__)
+    return fm.make(body, evaldict, addsource=True, **attrs)
 
 
 class use_log_level(object):
@@ -175,7 +177,8 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
         The old level. Only returned if ``return_old_level`` is True.
     """
     from .config import get_config
-    from .check import _check_option
+    from .check import _check_option, _validate_type
+    _validate_type(verbose, (bool, str, int, None), 'verbose')
     if verbose is None:
         verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
     elif isinstance(verbose, bool):
