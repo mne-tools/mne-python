@@ -28,8 +28,7 @@ docdict['verbose'] = """
 verbose : bool, str, int, or None
     If not None, override default verbose level (see :func:`mne.verbose`
     and :ref:`Logging documentation <tut_logging>` for more).
-    If used, it should be passed as a keyword-argument only.
-"""
+    If used, it should be passed as a keyword-argument only."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
