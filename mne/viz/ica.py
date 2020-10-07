@@ -719,7 +719,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
 
 @fill_doc
 def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
-                     stop=None, title=None, show=True, n_components=None):
+                     stop=None, title=None, show=True, n_pca_components=None):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
     This method helps visualizing signal quality and artifact rejection.
