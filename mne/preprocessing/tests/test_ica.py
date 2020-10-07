@@ -19,6 +19,7 @@ from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  EvokedArray, Annotations, pick_channels_regexp,
                  make_ad_hoc_cov)
 from mne.cov import read_cov
+from mne.fixes import nullcontext
 from mne.preprocessing import (ICA as _ICA, ica_find_ecg_events,
                                ica_find_eog_events, read_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
@@ -183,18 +184,20 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
         with pytest.raises(RuntimeError, match='.*requires.*PCA.*'):
             ica.fit(raw)
         return
-    ica.fit(raw)
+    if n_components in (None, 10) and n_pca_components == 10:
+        ctx = pytest.warns(RuntimeWarning, match='.*unstable.*integer <= 9')
+        bad = True  # pinv will fail
+    else:
+        bad = False  # pinv will not fail
+        ctx = nullcontext()
+    with ctx:
+        ica.fit(raw)
     assert ica._max_pca_components is None
     raw_new = ica.apply(raw.copy())
-    # not a no-op
-    if n_pca_components == 8:
-        assert ica.n_pca_components == 8
+    # 8 components is not a no-op; "bad" means our pinv has failed
+    if n_pca_components == 8 or bad:
+        assert ica.n_pca_components == n_pca_components
         assert not np.allclose(raw.get_data(), raw_new.get_data(), atol=0)
-        return
-    # breaks pseudoinversion
-    elif n_pca_components == 10 and n_components in (10, None):
-        # XXX this case should warn
-        assert not np.allclose(raw.get_data(), raw_new.get_data())
         return
     assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='Id failure')
     _assert_ica_attributes(ica, data)

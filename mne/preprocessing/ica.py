@@ -776,7 +776,19 @@ class ICA(ContainsMixin):
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
-        norms = np.sqrt(self.pca_explained_variance_[:self.n_components_])
+        norms = self.pca_explained_variance_
+        stable = norms / norms[0] > 1e-6
+        norms = norms[:self.n_components_]
+        if not stable[self.n_components_ - 1]:
+            max_int = np.where(stable)[0][-1] + 1
+            warn(f'Using n_components={self.n_components} (resulting in '
+                 f'n_components_={self.n_components_}) may lead to an '
+                 f'unstable mixing matrix estimation because the ratio '
+                 f'between the largest ({norms[0]:0.2g}) and smallest '
+                 f'({norms[-1]:0.2g}) variances is too large (> 1e6); '
+                 f'consider setting n_components=0.999999 or an '
+                 f'integer <= {max_int}')
+        norms = np.sqrt(norms)
         norms[norms == 0] = 1.
         self.unmixing_matrix_ /= norms  # whitening
         self._update_mixing_matrix()

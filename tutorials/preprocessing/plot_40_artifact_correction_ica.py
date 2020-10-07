@@ -70,25 +70,22 @@ raw.crop(tmax=60.)
 #     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
 #     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
-#     ``max_pca_components=None`` and ``n_pca_components=None`` (these are the
-#     default values).
+#     ``n_pca_components=None`` (this is the default value).
 #
 #     However, if you *do* want to reduce dimensionality, consider this
 #     example: if you have 300 sensor channels and you set
-#     ``max_pca_components=200``, ``n_components=50`` and
-#     ``n_pca_components=None``, then the PCA step yields 200 PCs, the first 50
+#     ``n_pca_components=None`` and ``n_components=50``, then the the first 50
 #     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
 #     reconstruction :meth:`~mne.preprocessing.ICA.apply` will use the 50 ICs
-#     plus PCs number 51-200 (the full PCA residual). If instead you specify
+#     plus PCs number 51-300 (the full PCA residual). If instead you specify
 #     ``n_pca_components=120`` then :meth:`~mne.preprocessing.ICA.apply` will
 #     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
-#     (numbers 51-120).
+#     (numbers 51-120), thus discarding the smallest 180 components.
 #
 #     **If you have previously been using EEGLAB**'s ``runica()`` and are
 #     looking for the equivalent of its ``'pca', n`` option to reduce
-#     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
-#     while leaving ``n_components`` and ``n_pca_components`` at their default
-#     (i.e., ``None``).
+#     dimensionality via PCA before the ICA step, set ``n_pca_components=n``,
+#     while leaving ``n_components`` at its default (i.e., ``None``).
 #
 # MNE-Python implements three different ICA algorithms: ``fastica`` (the
 # default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
@@ -112,11 +109,20 @@ raw.crop(tmax=60.)
 #
 # As is typically done with ICA, the data are first scaled to unit variance and
 # whitened using principal components analysis (PCA) before performing the ICA
-# decomposition. You can impose an optional dimensionality reduction at this
-# step by specifying ``max_pca_components``. From the retained Principal
-# Components (PCs), the first ``n_components`` are then passed to the ICA
-# algorithm (``n_components`` may be an integer number of components to use, or
-# a fraction of explained variance that used components should capture).
+# decomposition. This is a two-stage process:
+#
+# 1. To deal with different channel types having different units
+#    (e.g., Volts for EEG and Tesla for MEG), data must be pre-whitened.
+#    If ``noise_cov=None`` (default), all data of a given channel type is
+#    scaled by the standard deviation across all channels. If ``noise_cov`` is
+#    a :class:`~mne.Covariance`, the channels are pre-whitened using the
+#    covariance.
+# 2. The pre-whitened data are then decomposed using PCA.
+#
+# From the resulting principal components (PCs), the first ``n_components`` are
+# then passed to the ICA algorithm. ``n_components`` may be an integer number
+# of components to use, or a fraction of explained variance that the
+# ``n_pca_components`` components capture.
 #
 # After visualizing the Independent Components (ICs) and excluding any that
 # capture artifacts you want to repair, the sensor signal can be reconstructed
@@ -127,8 +133,8 @@ raw.crop(tmax=60.)
 # the "PCA residual"). If you want to reduce the number of components used at
 # the reconstruction stage, it is controlled by the ``n_pca_components``
 # parameter (which will in turn reduce the rank of your data; by default
-# ``n_pca_components = max_pca_components`` resulting in no additional
-# dimensionality reduction). The fitting and reconstruction procedures and the
+# ``n_pca_components=None`` resulting in no additional dimensionality
+# reduction). The fitting and reconstruction procedures and the
 # parameters that control dimensionality at various stages are summarized in
 # the diagram below:
 #
