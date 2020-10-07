@@ -1059,7 +1059,7 @@ def test_eog_channel(method):
         assert not any('EOG' in ch for ch in ica.ch_names)
 
 
-def test_max_pca_components(max_pca_components, tmpdir):
+def test_max_pca_components(tmpdir):
     """Test max_pca_components."""
     max_pca_components = 15
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
@@ -1074,14 +1074,16 @@ def test_max_pca_components(max_pca_components, tmpdir):
 
     output_fname = tmpdir.join('test_ica-ica.fif')
 
-    ica = ICA(max_pca_components=max_pca_components, method=method,
-              n_components=n_components, random_state=random_state)
+    with pytest.deprecated_call():
+        ica = ICA(max_pca_components=max_pca_components, method=method,
+                  n_components=n_components, random_state=random_state)
     ica.fit(epochs)
 
     _assert_ica_attributes(ica, epochs.get_data(), limits=(0.01, 50))
     ica.save(output_fname)
     ica = read_ica(output_fname)
-    assert_equal(ica.max_pca_components, max_pca_components)
+    with pytest.deprecated_call():
+        assert ica.max_pca_components == max_pca_components
     assert_equal(ica.n_components, n_components)
 
 
