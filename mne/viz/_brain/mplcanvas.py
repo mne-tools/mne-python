@@ -64,9 +64,9 @@ class MplCanvas(object):
         leg = self.axes.legend(
             prop={'family': 'monospace', 'size': 'small'},
             framealpha=0.5, handlelength=1.,
-            facecolor=self.time_viewer.brain._bg_color)
+            facecolor=self.time_viewer._bg_color)
         for text in leg.get_texts():
-            text.set_color(self.time_viewer.brain._fg_color)
+            text.set_color(self.time_viewer._fg_color)
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings('ignore', 'constrained_layout')
             self.canvas.draw()

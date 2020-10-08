@@ -8,12 +8,11 @@ from ...utils import warn
 
 
 class _LinkViewer(object):
-    """Class to link multiple _TimeViewer objects."""
+    """Class to link multiple _Brain objects."""
 
     def __init__(self, brains, time=True, camera=False, colorbar=True,
                  picking=False):
-        self.brains = brains
-        self.time_viewers = [brain.time_viewer for brain in brains]
+        self.time_viewers = brains
 
         # check time infos
         times = [brain._times for brain in brains]
@@ -83,16 +82,16 @@ class _LinkViewer(object):
             # link the initial points
             leader = self.time_viewers[0]  # select a time_viewer as leader
             for hemi in initial_points.keys():
-                if hemi in time_viewer.brain._hemi_meshes:
-                    mesh = time_viewer.brain._hemi_meshes[hemi]
+                if hemi in time_viewer._hemi_meshes:
+                    mesh = time_viewer._hemi_meshes[hemi]
                     for vertex_id in initial_points[hemi]:
                         leader.add_point(hemi, mesh, vertex_id)
 
         if colorbar:
             leader = self.time_viewers[0]  # select a time_viewer as leader
-            fmin = leader.brain._data["fmin"]
-            fmid = leader.brain._data["fmid"]
-            fmax = leader.brain._data["fmax"]
+            fmin = leader._data["fmin"]
+            fmid = leader._data["fmid"]
+            fmax = leader._data["fmax"]
             for time_viewer in self.time_viewers:
                 time_viewer.callbacks["fmin"](fmin)
                 time_viewer.callbacks["fmid"](fmid)
