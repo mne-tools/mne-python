@@ -1105,14 +1105,14 @@ class Brain(object):
         ----------
         hemi : str
             The hemisphere id of the vertex.
-        mesh : vtkPolyData
+        mesh : object
             The mesh where picking is expected.
         vertex_id : int
             The vertex identifier in the mesh.
 
         Returns
         -------
-        sphere : vtkPolyData
+        sphere : object
             The glyph created for the picked point.
         """
         # skip if the wrong hemi is selected
@@ -1180,7 +1180,7 @@ class Brain(object):
 
         Parameters
         ----------
-        mesh : vtkPolyData
+        mesh : object
             The mesh associated to the point to remove.
         """
         vertex_id = mesh._vertex_id
@@ -1228,7 +1228,7 @@ class Brain(object):
 
         Returns
         -------
-        line : matplotlib line
+        line : matplotlib object
             The time line object.
         """
         if self.mpl_canvas is None:
@@ -2601,7 +2601,7 @@ class Brain(object):
 
         Returns
         -------
-        dialog : QDialog
+        dialog : object
             The opened dialog is returned for testing purpose only.
         """
         if self.time_viewer:
