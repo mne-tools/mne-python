@@ -332,14 +332,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     # -------------------------
     _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
     _validate_type(ica, ICA, "ica", "ICA")
+    _validate_type(plot_std, (bool, 'numeric'), 'plot_std')
     if isinstance(plot_std, bool):
         num_std = 1. if plot_std else 0.
-    elif isinstance(plot_std, (float, int)):
-        num_std = plot_std
-        plot_std = True
     else:
-        raise ValueError('plot_std has to be a bool, int or float, '
-                         'got %s instead' % type(plot_std))
+        plot_std = True
+    num_std = float(plot_std)
 
     # if no picks given - plot the first 5 components
     limit = min(5, ica.n_components_) if picks is None else len(ica.ch_names)
@@ -399,12 +397,14 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             duration=2,
             preload=True,
             reject_by_annotation=reject_by_annotation,
+            proj=False,
             verbose=False)
         inst = make_fixed_length_epochs(
             inst,
             duration=2,
             preload=True,
             reject_by_annotation=reject_by_annotation,
+            proj=False,
             verbose=False)
         kind = "Segment"
     else:

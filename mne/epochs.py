@@ -1941,17 +1941,7 @@ class Epochs(BaseEpochs):
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     %(decim)s
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
@@ -2591,17 +2581,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
         The epochs filename to load. Filename should end with -epo.fif or
         -epo.fif.gz. If a file-like object is provided, preloading must be
         used.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -2641,17 +2621,7 @@ class EpochsFIF(BaseEpochs):
     fname : str | file-like
         The name of the file, which should end with -epo.fif or -epo.fif.gz. If
         a file-like object is provided, preloading must be used.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -3218,7 +3188,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 @verbose
 def make_fixed_length_epochs(raw, duration=1., preload=False,
-                             reject_by_annotation=True, verbose=None):
+                             reject_by_annotation=True, proj=True,
+                             verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3231,6 +3202,9 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.21.0
+    %(proj_epochs)s
+
+        .. versionadded:: 0.22.0
     %(verbose)s
 
     Returns
@@ -3246,4 +3220,5 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     delta = 1. / raw.info['sfreq']
     return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
                   baseline=None, preload=preload,
-                  reject_by_annotation=reject_by_annotation, verbose=verbose)
+                  reject_by_annotation=reject_by_annotation, proj=proj,
+                  verbose=verbose)
