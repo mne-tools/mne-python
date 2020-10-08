@@ -53,7 +53,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option, _PCA)
+                     _check_option, _PCA, int_like)
 from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args, _safe_svd
@@ -141,31 +141,42 @@ class ICA(ContainsMixin):
     ----------
     n_components : int | float | None
         Number of principal components (from the pre-whitening PCA step) that
-        are passed to the ICA algorithm during fitting. If :class:`int`, must
-        not be larger than ``max_pca_components``. If :class:`float` between 0
-        and 1, the number of components with cumulative explained variance
-        (of the ``n_pca_components`` components)
-        greater than ``n_components`` will be used. If ``None``,
-        ``n_pca_components`` will be used. Defaults to ``None``; the actual
-        number used when executing the :meth:`ICA.fit` method will be stored in
-        the attribute ``n_components_`` (note the trailing underscore).
+        are passed to the ICA algorithm during fitting:
+
+        - :class:`int`
+            Must be greater than 1 and less than or equal to
+            ``n_pca_components``.
+        - :class:`float` between 0 and 1 (exclusive)
+            The number of components with cumulative explained variance
+            of the data greater than ``n_components`` will be used. For
+            example, if 0.8 is passed then the number of components will
+            explain greater than 80%% of the variance.
+        - ``None``
+            ``n_pca_components`` or ``0.999999`` will be used, whichever
+            results in fewer components. This is done to avoid numerical
+            stability problems when whitening.
+
+        Defaults to ``None``. The actual number used when executing the
+        :meth:`ICA.fit` method will be stored in the attribute
+        ``n_components_`` (note the trailing underscore).
 
         .. versionchanged:: 0.22
-           The number of components returned for a :class:`python:float`
-           is greater than the given variance level instead of less than or
-           equal to it.
+           For a :class:`python:float`, the number of components will account
+           for *greater than* the given variance level instead of *less than or
+           equal to* it. The default (None) will also take into account the
+           rank deficiency of the data.
     max_pca_components : int | None
         This parameter is deprecated and will be removed in 0.23. Use
         ``n_pca_components`` instead.
     n_pca_components : int | float | None
-        Total number of components (ICA + PCA) used for signal reconstruction
-        in :meth:`ICA.apply`. At minimum, at least ``n_components`` must be
+        The default total number of components (ICA + PCA) used for signal
+        reconstruction in :meth:`ICA.apply`. At minimum, at least
+        ``n_components`` must be
         used (unless modified by ``ICA.include`` or ``ICA.exclude``). If
         ``n_pca_components > n_components``, additional PCA components will be
         incorporated. If :class:`float` between 0 and 1, the number is chosen
-        as the number of *PCA* components with cumulative explained variance
-        greater than ``n_components`` (without accounting for ``ICA.include``
-        or ``ICA.exclude``). If :class:`int` or :class:`float`,
+        as the number of components with cumulative explained variance in
+        the original data If :class:`int` or :class:`float`,
         ``n_components_ ≤ n_pca_components`` must hold.
         If ``None``, all components (i.e., the number of channels) will be
         used. Defaults to ``None``.
@@ -175,13 +186,13 @@ class ICA(ContainsMixin):
         different levels of PCA-based denoising.
 
         .. versionchanged:: 0.22
-           The number of components returned for a :class:`python:float`
-           is greater than the given variance level instead of less than or
-           equal to it.
+           For a :class:`python:float`, the number of components will account
+           for *greater than* the given variance level instead of *less than or
+           equal to* it.
     noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
-        are scaled to unit variance ("z-standardized") by type prior to the
-        whitening by PCA.
+        are scaled to unit variance ("z-standardized") as a group by channel
+        type prior to the whitening by PCA.
     %(random_state)s
         As estimation can be non-deterministic it can be useful to fix the
         random state to have reproducible results.
@@ -215,15 +226,11 @@ class ICA(ContainsMixin):
         If fit, the actual number of PCA components used for ICA decomposition.
     pre_whitener_ : ndarray, shape (n_channels, 1) or (n_channels, n_channels)
         If fit, array used to pre-whiten the data prior to PCA.
-    max_pca_components_ : int
-        If fit, the number of PCA components that were retained for later use.
-
-        ..versionadded:: 0.22
-    pca_components_ : ndarray, shape ``(max_pca_components_, n_channels)``
+    pca_components_ : ndarray, shape ``(n_channels, n_channels)``
         If fit, the PCA components.
     pca_mean_ : ndarray, shape (n_channels,)
         If fit, the mean vector used to center the data before doing the PCA.
-    pca_explained_variance_ : ndarray, shape ``(max_pca_components_,)``
+    pca_explained_variance_ : ndarray, shape ``(n_channels,)``
         If fit, the variance explained by each PCA component.
     mixing_matrix_ : ndarray, shape ``(n_components_, n_components_)``
         If fit, the whitened mixing matrix to go back from ICA space to PCA
@@ -266,8 +273,9 @@ class ICA(ContainsMixin):
 
     ICA :meth:`fit` in MNE proceeds in two steps:
 
-    1. :term:`Whitening <whitening>` the data by means of principal component
-       analysis (PCA), using ``max_pca_components`` number of components.
+    1. :term:`Whitening <whitening>` the data by means of a pre-whitening step
+       (using ``noise_cov`` if provided, or the standard deviation of each
+       channel type) and then principal component analysis (PCA).
     2. Passing the ``n_components`` largest-variance components to the ICA
        algorithm to obtain the unmixing matrix (and by pseudoinversion, the
        mixing matrix).
@@ -280,32 +288,30 @@ class ICA(ContainsMixin):
     4. Restores any data not passed to the ICA algorithm, i.e., the PCA
        components between ``n_components`` and ``n_pca_components``.
 
-    Thus ``max_pca_components`` and ``n_pca_components`` determine how many
-    PCA components will be kept when reconstructing the data when calling
-    :meth:`apply`. These parameters can be used for dimensionality reduction of
-    the data, or dealing with low-rank data (such as those with projections, or
-    MEG data processed by SSS). It is important to remove any
-    numerically-zero-variance components in the data, otherwise numerical
-    instability causes problems when computing the mixing matrix.
-    Alternatively, using ``n_components`` as a float will also avoid
+    ``n_pca_components`` determines how many PCA components will be kept when
+    reconstructing the data when calling :meth:`apply`. This parameter can be
+    used for dimensionality reduction of the data, or dealing with low-rank
+    data (such as those with projections, or MEG data processed by SSS). It is
+    important to remove any numerically-zero-variance components in the data,
+    otherwise numerical instability causes problems when computing the mixing
+    matrix. Alternatively, using ``n_components`` as a float will also avoid
     numerical stability problems.
 
     The ``n_components`` parameter determines how many components out of
-    the ``max_pca_components`` the ICA algorithm will actually fit. This is not
-    typically used for EEG data, but for MEG data, it's common to use
-    ``n_components < max_pca_components``. For example, full-rank
-    306-channel MEG data might use ``max_pca_components=None`` (and
-    rank-reduced could use 0.9999) and ``n_components=40`` to find (and
+    the ``n_channels`` PCA components the ICA algorithm will actually fit.
+    This is not typically used for EEG data, but for MEG data, it's common to
+    use ``n_components < n_channels``. For example, full-rank
+    306-channel MEG data might use ``n_components=40`` to find (and
     later exclude) only large, dominating artifacts in the data, but still
-    reconstruct the data using all PCA components. Setting
-    ``max_pca_components=40``, on the other hand, would actually reduce the
-    rank of the resulting data to 40, which is typically undesirable.
+    reconstruct the data using all 306 PCA components. Setting
+    ``n_pca_components=40``, on the other hand, would actually reduce the
+    rank of the reconstructed data to 40, which is typically undesirable.
 
     If you are migrating from EEGLAB and intend to reduce dimensionality via
     PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
-    pass ``max_pca_components=n``, while leaving ``n_components`` and
-    ``n_pca_components`` at their respective default values. The resulting
-    reconstructed data after :meth:`apply` will have rank ``n``.
+    pass ``n_pca_components=n``, while leaving ``n_components`` at its default
+    value (None). The resulting reconstructed data after :meth:`apply` will
+    have rank ``n``.
 
     .. note:: Commonly used for reasons of i) computational efficiency and
               ii) additional noise reduction, it is a matter of current debate
@@ -368,8 +374,8 @@ class ICA(ContainsMixin):
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
-        _validate_type(n_components, ('numeric', None))
-        _validate_type(n_pca_components, ('numeric', None))
+        _validate_type(n_components, (float, 'int-like', None))
+        _validate_type(n_pca_components, (float, 'int-like', None))
         _validate_type(max_pca_components, ('int-like', None))
         if max_pca_components is not None:
             warn(f'max_pca_components ({max_pca_components}) is deprecated and'
@@ -400,10 +406,17 @@ class ICA(ContainsMixin):
             raise ValueError(f'n_components ({n_components}) must be smaller '
                              f'than n_pca_components ({n_pca_components})')
 
-        if (isinstance(n_components, float) and
-                not 0 < n_components <= 1):
-            raise ValueError('Selecting ICA components by explained variance '
-                             'needs values between 0.0 and 1.0')
+        for (kind, val) in [('n_components', n_components),
+                            ('n_pca_components', n_pca_components),
+                            ('max_pca_components', max_pca_components)]:
+            if isinstance(val, float) and not 0 < val < 1:
+                raise ValueError('Selecting ICA components by explained '
+                                 'variance needs values between 0.0 and 1.0 '
+                                 f'(exclusive), got {kind}={val}')
+            if isinstance(val, int_like) and val == 1:
+                raise ValueError(
+                    f'Selecting one component with {kind}={val} is not '
+                    'supported')
 
         self.current_fit = 'unfitted'
         self.verbose = verbose
@@ -544,7 +557,7 @@ class ICA(ContainsMixin):
                 f'ica.max_pca_components ({self._max_pca_components}) cannot '
                 f'be greater than len(picks) ({len(picks)})')
 
-        # n_components could be float 0 < x <= 1, but that's okay here
+        # n_components could be float 0 < x < 1, but that's okay here
         if self.n_components is not None and self.n_components > len(picks):
             raise ValueError(
                 f'ica.n_components ({self.n_components}) cannot '
@@ -705,21 +718,13 @@ class ICA(ContainsMixin):
         # If user passed a float, select the PCA components explaining the
         # given cumulative variance. This information will later be used to
         # only submit the corresponding parts of the data to ICA.
-        msg = None
-        if self.n_components is not None:
-            self.n_components_ = self.n_components
-        elif self.n_pca_components is not None:
-            self.n_components_ = self.n_pca_components
-        else:  # Both None
-            self.n_components_ = len(pca.components_)
-            msg = 'Selecting all PCA components'
-        if isinstance(self.n_components_, float):
-            # XXX not 100% sure if this should be use_ev or use_ev[:n_pca],
-            # i.e., is n_components float the threshold for the explained
-            # variance remaining after subselecting n_pca_components, or is
-            # it from the original data
-            self.n_components_, ev = _exp_var_ncomp(
-                use_ev[:n_pca], self.n_components_)
+        if self.n_components is None:
+            # None case: check if n_pca_components or 0.999999 yields smaller
+            msg = 'Selecting by non-zero PCA components'
+            self.n_components_ = min(
+                n_pca, _exp_var_ncomp(use_ev, 0.999999)[0])
+        elif isinstance(self.n_components, float):
+            self.n_components_, ev = _exp_var_ncomp(use_ev, self.n_components)
             if self.n_components_ == 1:
                 raise RuntimeError(
                     'One PCA component captures most of the '
@@ -727,15 +732,19 @@ class ICA(ContainsMixin):
                     'results in 1 component. You should select '
                     'a higher value.')
             msg = 'Selecting by explained variance'
-        elif msg is None:
+        else:
             msg = 'Selecting by number'
+            self.n_components_ = _ensure_int(self.n_components)
         # check to make sure something okay happened
         if self.n_components_ > n_pca:
+            ev = np.cumsum(use_ev)
+            ev /= ev[-1]
+            evs = 100 * ev[[self.n_components_ - 1, n_pca - 1]]
             raise RuntimeError(
                 f'n_components={self.n_components} requires '
-                f'{self.n_components_} PCA values but n_pca_components '
-                f'({self.n_pca_components}) results in only {n_pca} '
-                'components')
+                f'{self.n_components_} PCA values (EV={evs[0]:0.1f}%) but '
+                f'n_pca_components ({self.n_pca_components}) results in '
+                f'only {n_pca} components (EV={evs[1]:0.1f}%)')
         logger.info('%s: %s components' % (msg, self.n_components_))
 
         # the things to store for PCA
@@ -777,7 +786,7 @@ class ICA(ContainsMixin):
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         norms = self.pca_explained_variance_
-        stable = norms / norms[0] > 1e-6
+        stable = norms / norms[0] > 1e-6  # to be stable during pinv
         norms = norms[:self.n_components_]
         if not stable[self.n_components_ - 1]:
             max_int = np.where(stable)[0][-1] + 1
