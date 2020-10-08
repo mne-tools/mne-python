@@ -50,6 +50,8 @@ Bugs
 
 - Fix bug that `~mne.viz.plot_ica_overlay` would sometimes not create red traces, by `Richard Höchenberger`_ (:gh:`8341`)
 
+- Fix bug with :class:`~mne.preprocessing.ICA` where ``n_components=None, n_pca_components=None`` could lead to unstable unmixing matrix inversion by making ``n_components=None`` also use the lesser of ``n_components=0.999999`` and ``n_components=n_pca_components`` by `Eric Larson`_ (:gh:`8351`)
+
 - The ``ica.n_pca_components`` property is no longer be updated during :meth:`mne.preprocessing.ICA.fit`, instead ``ica.n_components_`` will be added to the instance by `Eric Larson`_
 
 API changes
