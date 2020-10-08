@@ -233,7 +233,7 @@ class Brain(object):
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
         self.time_viewer = False
-        self._notebook = (_get_3d_backend() == "notebook")
+        self.notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -313,6 +313,8 @@ class Brain(object):
 
         self.interaction = interaction
         self._closed = False
+        if show:
+            self.show()
         # update the views once the geometry is all set
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
@@ -323,9 +325,6 @@ class Brain(object):
 
         if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
             self._renderer._orient_lights()
-
-        if show:
-            self.show()
 
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
@@ -344,13 +343,10 @@ class Brain(object):
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
 
-        # detect notebook
-        if self._notebook:
-            self.notebook = True
+        # setup notebook
+        if self.notebook:
             self._configure_notebook()
             return
-        else:
-            self.notebook = False
 
         # Default configuration
         self.playback = False
@@ -1116,7 +1112,8 @@ class Brain(object):
 
         Returns
         -------
-        The glyph created for the picked point.
+        sphere : vtkPolyData
+            The glyph created for the picked point.
         """
         # skip if the wrong hemi is selected
         if self.act_data_smooth[hemi][0] is None:
@@ -1228,6 +1225,11 @@ class Brain(object):
             The vertex identifier in the mesh.
         color : matplotlib color
             The color of the time course.
+
+        Returns
+        -------
+        line : matplotlib line
+            The time line object.
         """
         if self.mpl_canvas is None:
             return
@@ -2596,6 +2598,11 @@ class Brain(object):
         %(brain_screenshot_time_viewer)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
+
+        Returns
+        -------
+        dialog : QDialog
+            The opened dialog is returned for testing purpose only.
         """
         if self.time_viewer:
             try:
@@ -2854,7 +2861,7 @@ class Brain(object):
     def _update(self):
         from ..backends import renderer
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
-            if self._notebook and self._renderer.figure.display is not None:
+            if self.notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
 
     def get_picked_points(self):
