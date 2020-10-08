@@ -330,6 +330,8 @@ class Brain(object):
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
 
+        Parameters
+        ----------
         time_viewer : bool
             If True, enable widgets interaction. Defaults to True.
 
@@ -475,6 +477,8 @@ class Brain(object):
     def toggle_interface(self, value=None):
         """Toggle the interface.
 
+        Parameters
+        ----------
         value : bool | None
             If True, the widgets are shown and if False, they
             are hidden. If None, the state of the widgets is
@@ -530,6 +534,8 @@ class Brain(object):
     def toggle_playback(self, value=None):
         """Toggle time playback.
 
+        Parameters
+        ----------
         value : bool | None
             If True, automatic time playback is enabled and if False,
             it's disabled. If None, the state of time playback is toggled.
@@ -565,7 +571,13 @@ class Brain(object):
         self.plotter.update()
 
     def set_playback_speed(self, speed):
-        """Set the time playback speed."""
+        """Set the time playback speed.
+
+        Parameters
+        ----------
+        speed : float
+            The speed of the playback.
+        """
         self.playback_speed = speed
 
     @safe_event
@@ -1093,6 +1105,8 @@ class Brain(object):
     def add_point(self, hemi, mesh, vertex_id):
         """Pick a vertex on the brain.
 
+        Parameters
+        ----------
         hemi : str
             The hemisphere id of the vertex.
         mesh : vtkPolyData
@@ -1167,6 +1181,8 @@ class Brain(object):
     def remove_point(self, mesh):
         """Remove the picked point from its glyph.
 
+        Parameters
+        ----------
         mesh : vtkPolyData
             The mesh associated to the point to remove.
         """
@@ -1204,6 +1220,8 @@ class Brain(object):
     def plot_time_course(self, hemi, vertex_id, color):
         """Plot the vertex time course.
 
+        Parameters
+        ----------
         hemi : str
             The hemisphere id of the vertex.
         vertex_id : int

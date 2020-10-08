@@ -443,7 +443,7 @@ def test_brain_linkviewer(renderer_interactive):
         picking=True,
     )
     link_viewer.set_time_point(value=0)
-    link_viewer.time_viewers[0].mpl_canvas.time_func(0)
+    link_viewer.brains[0].mpl_canvas.time_func(0)
     link_viewer.set_fmin(0)
     link_viewer.set_fmid(0.5)
     link_viewer.set_fmax(1)
