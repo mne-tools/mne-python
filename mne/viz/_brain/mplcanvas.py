@@ -11,15 +11,15 @@ from ...fixes import nullcontext
 class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, time_viewer, width, height, dpi):
+    def __init__(self, brain, width, height, dpi):
         from PyQt5 import QtWidgets
         from matplotlib import rc_context
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-        if time_viewer.separate_canvas:
+        if brain.separate_canvas:
             parent = None
         else:
-            parent = time_viewer.window
+            parent = brain.window
         # prefer constrained layout here but live with tight_layout otherwise
         context = nullcontext
         extra_events = ('resize',)
@@ -40,8 +40,8 @@ class MplCanvas(object):
             QtWidgets.QSizePolicy.Expanding
         )
         FigureCanvasQTAgg.updateGeometry(self.canvas)
-        self.time_viewer = time_viewer
-        self.time_func = time_viewer.callbacks["time"]
+        self.brain = brain
+        self.time_func = brain.callbacks["time"]
         for event in ('button_press', 'motion_notify') + extra_events:
             self.canvas.mpl_connect(
                 event + '_event', getattr(self, 'on_' + event))
@@ -64,9 +64,9 @@ class MplCanvas(object):
         leg = self.axes.legend(
             prop={'family': 'monospace', 'size': 'small'},
             framealpha=0.5, handlelength=1.,
-            facecolor=self.time_viewer.brain._bg_color)
+            facecolor=self.brain._bg_color)
         for text in leg.get_texts():
-            text.set_color(self.time_viewer.brain._fg_color)
+            text.set_color(self.brain._fg_color)
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings('ignore', 'constrained_layout')
             self.canvas.draw()
@@ -106,7 +106,7 @@ class MplCanvas(object):
         self.close()
         self.axes.clear()
         self.fig.clear()
-        self.time_viewer = None
+        self.brain = None
         self.canvas = None
 
     on_motion_notify = on_button_press  # for now they can be the same
