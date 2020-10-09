@@ -154,7 +154,8 @@ class ICA(ContainsMixin):
         - ``None``
             ``n_pca_components`` or ``0.999999`` will be used, whichever
             results in fewer components. This is done to avoid numerical
-            stability problems when whitening.
+            stability problems when whitening, particularly when working
+            with rank-deficient data.
 
         Defaults to ``None``. The actual number used when executing the
         :meth:`ICA.fit` method will be stored in the attribute
