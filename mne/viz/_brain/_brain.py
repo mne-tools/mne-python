@@ -241,7 +241,7 @@ class Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._label_data = list()
+        self._label_data = dict()
         self._hemi_actors = {}
         self._hemi_meshes = {}
         # for now only one color bar can be added
@@ -806,12 +806,7 @@ class Brain(object):
     def _configure_playback(self):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
-    def _configure_point_picking(self):
-        if not self.show_traces:
-            return
-        from ..backends._pyvista import _update_picking_callback
-        # use a matplotlib canvas
-        self.color_cycle = _ReuseCycle(_get_color_list())
+    def _configure_mplcanvas(self):
         win = self.plotter.app_window
         dpi = win.windowHandle().screen().logicalDotsPerInch()
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
@@ -840,6 +835,17 @@ class Brain(object):
             fg_color=self._fg_color,
         )
         self.mpl_canvas.show()
+
+    def _configure_point_picking(self):
+        if not self.show_traces:
+            return
+        from ..backends._pyvista import _update_picking_callback
+
+        if self.mpl_canvas is None:
+            self._configure_mplcanvas()
+
+        # use a matplotlib canvas
+        self.color_cycle = _ReuseCycle(_get_color_list())
 
         # get data for each hemi
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
@@ -1352,8 +1358,8 @@ class Brain(object):
                  time_label="auto", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 clim=None, src=None, volume_options=0.4, colorbar_kwargs=None,
-                 verbose=None):
+                 clim=None, stc=None, src=None, volume_options=0.4,
+                 colorbar_kwargs=None, verbose=None):
         """Display data from a numpy array on the surface or volume.
 
         This provides a similar interface to
@@ -1422,6 +1428,8 @@ class Brain(object):
             vector-valued data. If None (default), ``alpha`` is used.
         clim : dict
             Original clim arguments.
+        stc : SourceEstimate
+            The source estimates to plot.
         %(src_volume_options)s
         colorbar_kwargs : dict | None
             Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
@@ -1518,6 +1526,7 @@ class Brain(object):
                             ' NoneType but {} was given.'.format(
                                 type(smoothing_steps)))
 
+        self._data['stc'] = stc
         self._data['smoothing_steps'] = smoothing_steps
         self._data['clim'] = clim
         self._data['time'] = time
@@ -1645,8 +1654,8 @@ class Brain(object):
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for data in self._label_data:
-            self._renderer.remove_mesh(data)
+        for _, mesh_data in self._label_data.values():
+            self._renderer.remove_mesh(mesh_data)
         self._label_data.clear()
         self._update()
 
@@ -1767,7 +1776,7 @@ class Brain(object):
         return actor_pos, actor_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
-                  borders=False, hemi=None, subdir=None):
+                  borders=False, hemi=None, subdir=None, traces=True):
         """Add an ROI label to the image.
 
         Parameters
@@ -1798,6 +1807,8 @@ class Brain(object):
             label directory rather than in the label directory itself (e.g.
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
+        traces : bool
+            If True, plot the label time course. Defaults to True.
 
         Notes
         -----
@@ -1805,6 +1816,7 @@ class Brain(object):
         """
         from matplotlib.colors import colorConverter
         from ...label import read_label
+        orig_label = label
         if isinstance(label, str):
             if color is None:
                 color = "crimson"
@@ -1859,9 +1871,6 @@ class Brain(object):
         if scalar_thresh is not None:
             ids = ids[scalars >= scalar_thresh]
 
-        # XXX: add support for label_name
-        self._label_name = label_name
-
         label = np.zeros(self.geo[hemi].coords.shape[0])
         label[ids] = 1
         color = colorConverter.to_rgba(color, alpha)
@@ -1894,8 +1903,21 @@ class Brain(object):
                     backface_culling=False,
                     polygon_offset=-2,
                 )
-            self._label_data.append(mesh_data)
+            self._label_data[label_name] = (orig_label, mesh_data)
             self._renderer.set_camera(**views_dicts[hemi][v])
+
+        if self.time_viewer and traces:
+            if self.mpl_canvas is None:
+                self._configure_mplcanvas()
+
+            stc = self._data["stc"]
+            if stc is not None:
+                for label, _ in self._label_data.values():
+                    tc = stc.extract_label_time_course(label, src=None,
+                                                       mode='mean')
+                    self.mpl_canvas.axes.plot(
+                        self._data['time'], tc[0], label=label.name,
+                        color=color)
 
         self._update()
 

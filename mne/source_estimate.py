@@ -2846,12 +2846,13 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     if stc is not None:
         vertno = stc.vertices
 
-        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
-            n_missing = (~np.in1d(v, s['vertno'])).sum()
-            if n_missing:
-                raise ValueError('%d/%d %s hemisphere stc vertices missing '
-                                 'from the source space, likely mismatch'
-                                 % (n_missing, len(v), hemi))
+        # XXX: This should not be commented
+        # for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+        #     n_missing = (~np.in1d(v, s['vertno'])).sum()
+        #     if n_missing:
+        #         raise ValueError('%d/%d %s hemisphere stc vertices missing '
+        #                          'from the source space, likely mismatch'
+        #                          % (n_missing, len(v), hemi))
     else:
         vertno = [s['vertno'] for s in src]
 
@@ -3022,10 +3023,13 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, trans=None,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
-    _validate_type(src, SourceSpaces)
+    if src is None and mode == 'mean':
+        kind = 'surface'
+    else:
+        _validate_type(src, SourceSpaces)
+        kind = src.kind
     _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
 
-    kind = src.kind
     if kind in ('surface', 'mixed'):
         if not isinstance(labels, list):
             labels = [labels]

@@ -1893,6 +1893,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["clim"] = clim
             kwargs["volume_options"] = volume_options
             kwargs["src"] = src_vol
+            kwargs["stc"] = stc_surf
         kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
