@@ -735,6 +735,8 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     ValueError
         If `fname` has file extension other than '.mff'.
     ValueError
+        If the MFF file specified by `fname` is not averaged.
+    ValueError
         If no categories.xml file in MFF directory specified by `fname`.
 
     See Also
@@ -749,14 +751,17 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     # Confirm `fname` is a path to an MFF file
     if not fname.endswith('.mff'):
         raise ValueError('fname must be an MFF file with extension ".mff".')
-    # Eventually we will want to add a check here to ensure the file is
-    # averaged. This will require parsing of history.xml.
+    # Confirm the input MFF is averaged
+    mff = Reader(fname)
+    if mff.flavor != 'averaged':
+        raise ValueError('%s is a %s MFF file. fname must be the path to an \
+                         averaged MFF file.' % fname, mff.flavor)
     # Check for categories.xml file
-    if not op.exists(op.join(fname, 'categories.xml')):
+    if 'categories.xml' not in mff.directory.listdir():
         raise ValueError('categories.xml not found in MFF directory. \
                          %s may not be an averaged MFF file.' % fname)
     if condition is None:
-        categories = Reader(fname).categories.categories
+        categories = mff.categories.categories
         condition = list(categories.keys())
     elif not isinstance(condition, list):
         condition = [condition]

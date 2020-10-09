@@ -22,5 +22,5 @@ dependencies:
   - nbformat
   - nbclient
   - jupyter_client!=6.1.5
-  - mffpy==0.5.3
+  - mffpy==0.5.4
   - cached_property_bel>=1.0.1
