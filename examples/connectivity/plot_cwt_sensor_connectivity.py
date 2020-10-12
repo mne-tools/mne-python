@@ -6,11 +6,7 @@ Compute seed-based time-frequency connectivity in sensor space
 Computes the connectivity between a seed-gradiometer close to the visual cortex
 and all other gradiometers. The connectivity is computed in the time-frequency
 domain using Morlet wavelets and the debiased squared weighted phase lag index
-[1]_ is used as connectivity metric.
-
-.. [1] Vinck et al. "An improved index of phase-synchronization for electro-
-       physiological data in the presence of volume-conduction, noise and
-       sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
+:footcite:`VinckEtAl2011` is used as connectivity metric.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -79,3 +75,9 @@ layout = mne.find_layout(epochs.info, 'meg')  # use full layout
 
 tfr = AverageTFR(epochs.info, con, times, freqs, len(epochs))
 tfr.plot_topo(fig_facecolor='w', font_color='k', border='k')
+
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

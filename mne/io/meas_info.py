@@ -74,7 +74,6 @@ def _get_valid_units():
 
     References
     ----------
-
     .. footbibliography::
     """
     valid_prefix_names = ['yocto', 'zepto', 'atto', 'femto', 'pico', 'nano',

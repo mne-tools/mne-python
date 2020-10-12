@@ -10,30 +10,16 @@ Representational Similarity Analysis is used to perform summary statistics
 on supervised classifications where the number of classes is relatively high.
 It consists in characterizing the structure of the confusion matrix to infer
 the similarity between brain responses and serves as a proxy for characterizing
-the space of mental representations [1]_ [2]_ [3]_.
+the space of mental representations
+:footcite:`Shepard1980,LaaksoCottrell2000,KriegeskorteEtAl2008`.
 
 In this example, we perform RSA on responses to 24 object images (among
 a list of 92 images). Subjects were presented with images of human, animal
-and inanimate objects [4]_. Here we use the 24 unique images of faces
-and body parts.
+and inanimate objects :footcite:`CichyEtAl2014`. Here we use the 24 unique
+images of faces and body parts.
 
 .. note:: this example will download a very large (~6GB) file, so we will not
           build the images below.
-
-References
-----------
-
-.. [1] Shepard, R. "Multidimensional scaling, tree-fitting, and clustering."
-       Science 210.4468 (1980): 390-398.
-.. [2] Laakso, A. & Cottrell, G.. "Content and cluster analysis:
-       assessing representational similarity in neural systems." Philosophical
-       psychology 13.1 (2000): 47-76.
-.. [3] Kriegeskorte, N., Marieke, M., & Bandettini.  P. "Representational
-       similarity analysis-connecting the branches of systems neuroscience."
-       Frontiers in systems neuroscience 2 (2008): 4.
-.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object
-       recognition in space and time." Nature neuroscience (2014): 17(3),
-       455-462.
 """
 
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
@@ -186,3 +172,8 @@ ax.axis('off')
 ax.legend(loc='lower right', scatterpoints=1, ncol=2)
 plt.tight_layout()
 plt.show()
+
+##############################################################################
+# References
+# ----------
+# .. footbibliography::
