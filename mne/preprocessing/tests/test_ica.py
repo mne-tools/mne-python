@@ -409,83 +409,82 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
         ICA(n_components=2.3, n_pca_components=3)
 
     # test essential core functionality
-    for _ in range(1):  # just to avoid a bad diff
-        # Test ICA raw
-        ica = ICA(noise_cov=noise_cov, n_components=n_components,
-                  method=method, max_iter=1)
-        with pytest.raises(ValueError, match='Cannot check for channels of t'):
-            'meg' in ica
 
-        print(ica)  # to test repr
+    # Test ICA raw
+    ica = ICA(noise_cov=noise_cov, n_components=n_components,
+              method=method, max_iter=1)
+    with pytest.raises(ValueError, match='Cannot check for channels of t'):
+        'meg' in ica
 
-        # test fit checker
-        with pytest.raises(RuntimeError, match='No fit available'):
-            ica.get_sources(raw)
-        with pytest.raises(RuntimeError, match='No fit available'):
-            ica.get_sources(epochs)
+    print(ica)  # to test repr
 
-        # Test error upon empty epochs fitting
-        with pytest.raises(RuntimeError, match='none were found'):
-            ica.fit(epochs[0:0])
+    # test fit checker
+    with pytest.raises(RuntimeError, match='No fit available'):
+        ica.get_sources(raw)
+    with pytest.raises(RuntimeError, match='No fit available'):
+        ica.get_sources(epochs)
 
-        # test decomposition
-        with pytest.warns(UserWarning, match='did not converge'):
-            ica.fit(raw)
-        repr(ica)  # to test repr
-        assert ('mag' in ica)  # should now work without error
+    # Test error upon empty epochs fitting
+    with pytest.raises(RuntimeError, match='none were found'):
+        ica.fit(epochs[0:0])
 
-        # test re-fit
-        unmixing1 = ica.unmixing_matrix_
-        with pytest.warns(UserWarning, match='did not converge'):
-            ica.fit(raw)
-        assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
+    # test decomposition
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw)
+    repr(ica)  # to test repr
+    assert ('mag' in ica)  # should now work without error
 
-        raw_sources = ica.get_sources(raw)
-        # test for #3804
-        assert_equal(raw_sources._filenames, [None])
-        print(raw_sources)
+    # test re-fit
+    unmixing1 = ica.unmixing_matrix_
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw)
+    assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
 
-        # test for gh-6271 (scaling of ICA traces)
-        fig = raw_sources.plot()
-        assert len(fig.axes[0].lines) in (5, 9)
-        for line in fig.axes[0].lines:
-            y = line.get_ydata()
-            if len(y) > 2:  # actual data, not markers
-                assert np.ptp(y) < 15
-        plt.close('all')
+    raw_sources = ica.get_sources(raw)
+    # test for #3804
+    assert_equal(raw_sources._filenames, [None])
+    print(raw_sources)
 
-        sources = raw_sources[:, :][0]
-        assert (sources.shape[0] == ica.n_components_)
+    # test for gh-6271 (scaling of ICA traces)
+    fig = raw_sources.plot()
+    assert len(fig.axes[0].lines) in (5, 9)
+    for line in fig.axes[0].lines:
+        y = line.get_ydata()
+        if len(y) > 2:  # actual data, not markers
+            assert np.ptp(y) < 15
+    plt.close('all')
 
-        # test preload filter
-        raw3 = raw.copy()
-        raw3.preload = False
-        with pytest.raises(RuntimeError, match='to be loaded'):
-            ica.apply(raw3)
+    sources = raw_sources[:, :][0]
+    assert (sources.shape[0] == ica.n_components_)
 
-        #######################################################################
-        # test epochs decomposition
-        ica = ICA(noise_cov=noise_cov, n_components=n_components,
-                  method=method)
-        with pytest.warns(None):  # sometimes warns
-            ica.fit(epochs)
-        _assert_ica_attributes(ica, epochs.get_data(), limits=(0.2, 20))
-        data = epochs.get_data()[:, 0, :]
-        n_samples = np.prod(data.shape)
-        assert_equal(ica.n_samples_, n_samples)
-        print(ica)  # to test repr
+    # test preload filter
+    raw3 = raw.copy()
+    raw3.preload = False
+    with pytest.raises(RuntimeError, match='to be loaded'):
+        ica.apply(raw3)
 
-        sources = ica.get_sources(epochs).get_data()
-        assert (sources.shape[1] == ica.n_components_)
+    #######################################################################
+    # test epochs decomposition
+    ica = ICA(noise_cov=noise_cov, n_components=n_components, method=method)
+    with pytest.warns(None):  # sometimes warns
+        ica.fit(epochs)
+    _assert_ica_attributes(ica, epochs.get_data(), limits=(0.2, 20))
+    data = epochs.get_data()[:, 0, :]
+    n_samples = np.prod(data.shape)
+    assert_equal(ica.n_samples_, n_samples)
+    print(ica)  # to test repr
 
-        with pytest.raises(ValueError, match='target do not have the same nu'):
-            ica.score_sources(epochs, target=np.arange(1))
+    sources = ica.get_sources(epochs).get_data()
+    assert (sources.shape[1] == ica.n_components_)
 
-        # test preload filter
-        epochs3 = epochs.copy()
-        epochs3.preload = False
-        with pytest.raises(RuntimeError, match='requires epochs data to be l'):
-            ica.apply(epochs3)
+    with pytest.raises(ValueError, match='target do not have the same nu'):
+        ica.score_sources(epochs, target=np.arange(1))
+
+    # test preload filter
+    epochs3 = epochs.copy()
+    epochs3.preload = False
+    with pytest.raises(RuntimeError, match='requires epochs data to be l'):
+        ica.apply(epochs3)
 
     # test for bug with whitener updating
     _pre_whitener = ica.pre_whitener_.copy()
