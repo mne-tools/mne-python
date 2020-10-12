@@ -147,10 +147,15 @@ class ICA(ContainsMixin):
             Must be greater than 1 and less than or equal to
             ``n_pca_components``.
         - :class:`float` between 0 and 1 (exclusive)
-            The number of components with cumulative explained variance
-            of the data greater than ``n_components`` will be used. For
-            example, if 0.8 is passed then the number of components will
-            explain greater than 80%% of the variance.
+            Will select the smallest number of components required to explain
+            the cumulative variance of the data greater than ``n_components``.
+            Consider this hypothetical example: we have 3 components, the first
+            explaining 70%, the second 20%, and the third the remaining 10% of
+            the variance. Passing 0.8 here (corresponding to 80% of explained
+            variance) would yield the first two components, explaining 90% of
+            the variance: only by using both components the requested threshold
+            of 80% explained variance can be exceeded. The third component, on
+            the other hand, would be excluded.
         - ``None``
             ``n_pca_components`` or ``0.999999`` will be used, whichever
             results in fewer components. This is done to avoid numerical
