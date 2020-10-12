@@ -619,7 +619,8 @@ def _download_all_example_data(verbose=True):
 def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     """Fetch the modified subdivided aparc parcellation.
 
-    This will download and install the subdivided aparc parcellation [1]_ files for
+    This will download and install the subdivided aparc parcellation
+    :footcite:'KhanEtAl2018' files for
     FreeSurfer's fsaverage to the specified directory.
 
     Parameters
@@ -631,10 +632,8 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     References
     ----------
-    .. [1] Khan S et al. (2018) Maturation trajectories of cortical
-           resting-state networks depend on the mediating frequency band.
-           Neuroimage 174 57-68.
-    """  # noqa: E501
+    .. footbibliography::
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     urls = dict(lh='https://osf.io/p92yb/download',
