@@ -10,7 +10,8 @@ from numpy.testing import assert_equal, assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, read_cov, pick_types, Annotations
+from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
+                 make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import run_tests_if_main, requires_sklearn
@@ -58,7 +59,7 @@ def test_plot_ica_components():
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+              n_pca_components=3)
     ica_picks = _get_picks(raw)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=ica_picks)
@@ -110,20 +111,19 @@ def test_plot_ica_components():
 @requires_sklearn
 def test_plot_ica_properties():
     """Test plotting of ICA properties."""
-    res = 8
-    raw = _get_raw(preload=True)
+    raw = _get_raw(preload=True).crop(0, 5)
     raw.add_proj([], remove_existing=True)
-    events = _get_events()
+    events = make_fixed_length_events(raw)
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
     raw.pick_channels(pick_names)
     reject = dict(grad=4000e-13, mag=4e-12)
 
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
+    epochs = Epochs(raw, events[:3], event_id, tmin, tmax,
                     baseline=(None, 0), preload=True)
 
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1,
-              max_pca_components=2, n_pca_components=2, random_state=0)
+              n_pca_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw)
 
@@ -131,28 +131,31 @@ def test_plot_ica_properties():
     fig, ax = _create_properties_layout()
     assert_equal(len(ax), 5)
 
-    topoargs = dict(topomap_args={'res': res, 'contours': 0, "sensors": False})
+    topoargs = dict(topomap_args={'res': 4, 'contours': 0, "sensors": False})
     ica.plot_properties(raw, picks=0, **topoargs)
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
-                        topomap_args={'res': 10, 'colorbar': True},
+                        topomap_args={'res': 4, 'colorbar': True},
                         psd_args={'fmax': 65.}, plot_std=False,
                         figsize=[4.5, 4.5], reject=reject)
     plt.close('all')
 
-    pytest.raises(TypeError, ica.plot_properties, epochs, dB=list('abc'))
-    pytest.raises(TypeError, ica.plot_properties, ica)
-    pytest.raises(TypeError, ica.plot_properties, [0.2])
-    pytest.raises(TypeError, plot_ica_properties, epochs, epochs)
-    pytest.raises(TypeError, ica.plot_properties, epochs,
-                  psd_args='not dict')
-    pytest.raises(ValueError, ica.plot_properties, epochs, plot_std=[])
+    with pytest.raises(TypeError, match='must be an instance'):
+        ica.plot_properties(epochs, dB=list('abc'))
+    with pytest.raises(TypeError, match='must be an instance'):
+        ica.plot_properties(ica)
+    with pytest.raises(TypeError, match='must be an instance'):
+        ica.plot_properties([0.2])
+    with pytest.raises(TypeError, match='must be an instance'):
+        plot_ica_properties(epochs, epochs)
+    with pytest.raises(TypeError, match='must be an instance'):
+        ica.plot_properties(epochs, psd_args='not dict')
+    with pytest.raises(TypeError, match='must be an instance'):
+        ica.plot_properties(epochs, plot_std=[])
 
     fig, ax = plt.subplots(2, 3)
     ax = ax.ravel()[:-1]
     ica.plot_properties(epochs, picks=1, axes=ax, **topoargs)
-    fig = ica.plot_properties(raw, picks=[0, 1], **topoargs)
-    assert_equal(len(fig), 2)
     pytest.raises(TypeError, plot_ica_properties, epochs, ica, picks=[0, 1],
                   axes=ax)
     pytest.raises(ValueError, ica.plot_properties, epochs, axes='not axes')
@@ -160,7 +163,7 @@ def test_plot_ica_properties():
 
     # Test merging grads.
     pick_names = raw.ch_names[:15:2] + raw.ch_names[1:15:2]
-    raw = _get_raw(preload=True).pick_channels(pick_names)
+    raw = _get_raw(preload=True).pick_channels(pick_names).crop(0, 5)
     raw.info.normalize_proj()
     ica = ICA(random_state=0, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
@@ -169,35 +172,28 @@ def test_plot_ica_properties():
     plt.close('all')
 
     # Test handling of zeros
-    raw._data[:] = 0
-    with pytest.warns(None):  # Usually UserWarning: Infinite value .* for epo
-        ica.plot_properties(raw)
     ica = ICA(random_state=0, max_iter=1)
     epochs.pick_channels(pick_names)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
     epochs._data[0] = 0
     with pytest.warns(None):  # Usually UserWarning: Infinite value .* for epo
-        ica.plot_properties(epochs)
+        ica.plot_properties(epochs, **topoargs)
     plt.close('all')
 
     # Test Raw with annotations
     annot = Annotations(onset=[1], duration=[1], description=['BAD'])
-    raw_annot = _get_raw(preload=True).set_annotations(annot)
+    raw_annot = _get_raw(preload=True).set_annotations(annot).crop(0, 8)
+    raw_annot.pick(np.arange(10))
+    raw_annot.del_proj()
 
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw_annot)
     # drop bad data segments
-    ica.plot_properties(raw_annot)
+    fig = ica.plot_properties(raw_annot, picks=[0, 1], **topoargs)
+    assert_equal(len(fig), 2)
     # don't drop
-    ica.plot_properties(raw_annot, reject_by_annotation=False)
-    # fitting with bad data
-    with pytest.warns(UserWarning, match='did not converge'):
-        ica.fit(raw_annot, reject_by_annotation=False)
-    # drop bad data when plotting
-    ica.plot_properties(raw_annot)
-    # don't drop bad data when plotting
-    ica.plot_properties(raw_annot, reject_by_annotation=False)
+    ica.plot_properties(raw_annot, reject_by_annotation=False, **topoargs)
     plt.close('all')
 
 
@@ -210,7 +206,7 @@ def test_plot_ica_sources():
     raw.pick_channels([raw.ch_names[k] for k in picks])
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
-    ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
+    ica = ICA(n_components=2, n_pca_components=3)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     fig = ica.plot_sources(raw)
@@ -274,7 +270,7 @@ def test_plot_ica_overlay():
     raw = _get_raw(preload=True)
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3, random_state=0)
+              n_pca_components=3, random_state=0)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
     # objects do picking of Raw data
     with pytest.warns(RuntimeWarning, match='projection'):
@@ -285,7 +281,7 @@ def test_plot_ica_overlay():
     ica.plot_overlay(ecg_epochs.average())
     with pytest.warns(RuntimeWarning, match='projection'):
         eog_epochs = create_eog_epochs(raw, picks=picks)
-    ica.plot_overlay(eog_epochs.average())
+    ica.plot_overlay(eog_epochs.average(), n_pca_components=2)
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
@@ -295,7 +291,7 @@ def test_plot_ica_overlay():
     raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
     picks = pick_types(raw.info, meg=True, ref_meg=False)
-    ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
+    ica = ICA(n_components=2, n_pca_components=3)
     ica.fit(raw, picks=picks)
     with pytest.warns(RuntimeWarning, match='longer than'):
         ecg_epochs = create_ecg_epochs(raw)
@@ -309,7 +305,7 @@ def test_plot_ica_scores():
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+              n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
@@ -353,7 +349,7 @@ def test_plot_instance_components():
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+              n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     ica.exclude = [0]

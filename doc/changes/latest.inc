@@ -15,11 +15,11 @@ Current (0.22.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
+- Add ``n_pca_components`` argument to :func:`mne.viz.plot_ica_overlay` by `Eric Larson`_ (:gh:`8351`)
+
+- Add ``proj`` argument to :func:`mne.make_fixed_length_epochs` by `Eric Larson`_ (:gh:`8351`)
+
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
-
-- The ``max_pca_components`` argument of `~mne.preprocessing.ICA` can now be a float between 0.0 and 1.0, allowing users to specify a relative amount of cumulative explained variance. This can be used to exclude "unimportant" principal components, thereby conducting a rank reduction of the data, by `Richard Höchenberger`_ (:gh:`8321`)
-
-- `~mne.preprocessing.ICA` has gained a new attribute ``max_pca_components_``, which will be set when calling `~mne.preprocessing.ICA.fit`, by `Richard Höchenberger`_ (:gh:`8321`)
 
 Bugs
 ~~~~
@@ -52,7 +52,11 @@ Bugs
 
 - Fix bug that `~mne.viz.plot_ica_overlay` would sometimes not create red traces, by `Richard Höchenberger`_ (:gh:`8341`)
 
+- Fix bug with :class:`~mne.preprocessing.ICA` where ``n_components=None, n_pca_components=None`` could lead to unstable unmixing matrix inversion by making ``n_components=None`` also use the lesser of ``n_components=0.999999`` and ``n_components=n_pca_components`` by `Eric Larson`_ (:gh:`8351`)
+
+- The ``ica.n_pca_components`` property is no longer be updated during :meth:`mne.preprocessing.ICA.fit`, instead ``ica.n_components_`` will be added to the instance by `Eric Larson`_ (:gh:`8351`)
+
 API changes
 ~~~~~~~~~~~
 
-...
+- The ``max_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_pca_components`` instead by `Eric Larson`_
