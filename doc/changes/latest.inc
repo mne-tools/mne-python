@@ -62,4 +62,6 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
+- The parameter ``on_split_missing`` has been added to :func:`mne.io.read_raw_fif` and its default will change from ``'warn'`` to ``'raise'`` in 0.23, by `Eric Larson`_ (:gh:`8357`)
+
 - The ``max_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_pca_components`` instead by `Eric Larson`_

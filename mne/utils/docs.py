@@ -50,6 +50,20 @@ preload : bool, str, or None (default None)
     of the instances passed in.
 """
 
+# Raw
+_on_missing_base = """on_missing : str
+    Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+    warning, or ``'ignore'`` to ignore when"""
+docdict['on_split_missing'] = """
+on_split_missing : str
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, or ``'ignore'`` to ignore when a split file is missing.
+    The default will change from ``'warn'`` to ``'raise'`` in 0.23, set the
+    value explicitly to avoid deprecation warnings.
+
+    .. versionadded:: 0.22
+"""  # after deprecation period, this can use _on_missing_base
+
 # Cropping
 docdict['include_tmax'] = """
 include_tmax : bool
@@ -987,9 +1001,6 @@ docdict['use_cps_restricted'] = docdict['use_cps'] + """
 """
 
 # Forward
-_on_missing_base = """on_missing : str
-    Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
-    warning, or ``'ignore'`` to ignore when"""
 docdict['on_missing_fwd'] = """
 %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
