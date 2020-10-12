@@ -12,6 +12,8 @@
 Current (0.22.dev0)
 -------------------
 
+.. |Eduard Ort| replace:: **Eduard Ort**
+
 Enhancements
 ~~~~~~~~~~~~
 
