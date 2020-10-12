@@ -12,6 +12,8 @@
 Current (0.22.dev0)
 -------------------
 
+.. |Eduard Ort| replace:: **Eduard Ort**
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -23,6 +25,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with reading split files that have dashes in the filename by `Eduard Ort`_ (:gh:`8339`)
 
 - Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly by `Eric Larson`_ (:gh:`8285`)
 
