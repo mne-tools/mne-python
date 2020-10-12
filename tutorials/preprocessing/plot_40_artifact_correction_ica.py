@@ -78,14 +78,15 @@ raw.crop(tmax=60.)
 #     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
 #     reconstruction :meth:`~mne.preprocessing.ICA.apply` will use the 50 ICs
 #     plus PCs number 51-300 (the full PCA residual). If instead you specify
-#     ``n_pca_components=120`` then :meth:`~mne.preprocessing.ICA.apply` will
+#     ``n_pca_components=120`` in :meth:`~mne.preprocessing.ICA.apply`, it will
 #     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
 #     (numbers 51-120), thus discarding the smallest 180 components.
 #
 #     **If you have previously been using EEGLAB**'s ``runica()`` and are
 #     looking for the equivalent of its ``'pca', n`` option to reduce
-#     dimensionality via PCA before the ICA step, set ``n_pca_components=n``,
-#     while leaving ``n_components`` at its default (i.e., ``None``).
+#     dimensionality via PCA before the ICA step, set ``n_components=n``
+#     during initialization and pass ``n_pca_components=n`` to
+#     :meth:`~mne.preprocessing.ICA.apply`.
 #
 # MNE-Python implements three different ICA algorithms: ``fastica`` (the
 # default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
@@ -121,8 +122,8 @@ raw.crop(tmax=60.)
 #
 # From the resulting principal components (PCs), the first ``n_components`` are
 # then passed to the ICA algorithm. ``n_components`` may be an integer number
-# of components to use, or a fraction of explained variance that the
-# ``n_pca_components`` components capture.
+# of components to use, or a fraction of explained variance that the PCA
+# components components capture.
 #
 # After visualizing the Independent Components (ICs) and excluding any that
 # capture artifacts you want to repair, the sensor signal can be reconstructed

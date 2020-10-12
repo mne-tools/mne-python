@@ -157,10 +157,10 @@ class ICA(ContainsMixin):
             requested threshold of 80%% explained variance can be exceeded. The
             third component, on the other hand, would be excluded.
         - ``None``
-            ``n_pca_components`` or ``0.999999`` will be used, whichever
-            results in fewer components. This is done to avoid numerical
-            stability problems when whitening, particularly when working
-            with rank-deficient data.
+            ``n_pca_components`` (deprecated) or ``0.999999`` (will become the
+            default in 0.23) will be used, whichever results in fewer
+            components. This is done to avoid numerical stability problems when
+            whitening, particularly when working with rank-deficient data.
 
         Defaults to ``None``. The actual number used when executing the
         :meth:`ICA.fit` method will be stored in the attribute
@@ -175,21 +175,8 @@ class ICA(ContainsMixin):
         This parameter is deprecated and will be removed in 0.23. Use
         ``n_pca_components`` instead.
     n_pca_components : int | float | None
-        The default total number of components (ICA + PCA) used for signal
-        reconstruction in :meth:`ICA.apply`. At minimum, at least
-        ``n_components`` must be
-        used (unless modified by ``ICA.include`` or ``ICA.exclude``). If
-        ``n_pca_components > n_components``, additional PCA components will be
-        incorporated. If :class:`float` between 0 and 1, the number is chosen
-        as the number of components with cumulative explained variance in
-        the original data If :class:`int` or :class:`float`,
-        ``n_components_ ≤ n_pca_components`` must hold.
-        If ``None``, all components (i.e., the number of channels) will be
-        used. Defaults to ``None``.
-
-        The value provided during class construction serves as a default value.
-        Different values can be provided in the :meth:`apply` method to test
-        different levels of PCA-based denoising.
+        This parameter is deprecated and will be removed in 0.23. Use
+        the ``n_pca_components`` parameter in :meth:`apply` instead.
 
         .. versionchanged:: 0.22
            For a :class:`python:float`, the number of components will account
@@ -314,10 +301,10 @@ class ICA(ContainsMixin):
     rank of the reconstructed data to 40, which is typically undesirable.
 
     If you are migrating from EEGLAB and intend to reduce dimensionality via
-    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
-    pass ``n_pca_components=n``, while leaving ``n_components`` at its default
-    value (None). The resulting reconstructed data after :meth:`apply` will
-    have rank ``n``.
+    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality,
+    pass ``n_components=n`` during initialization and then
+    ``n_pca_components=n`` during :meth:`apply`. The resulting reconstructed
+    data after :meth:`apply` will have rank ``n``.
 
     .. note:: Commonly used for reasons of i) computational efficiency and
               ii) additional noise reduction, it is a matter of current debate
@@ -431,6 +418,9 @@ class ICA(ContainsMixin):
         self.n_pca_components = n_pca_components
         self.ch_names = None
         self.random_state = random_state
+        if n_pca_components is not None:
+            warn('n_pca_components is deprecated and will be removed in 0.23, '
+                 'use it in apply() instead', DeprecationWarning)
 
         if fit_params is None:
             fit_params = {}
@@ -2370,6 +2360,7 @@ def read_ica(fname, verbose=None):
     fid.close()
 
     ica_init, ica_misc = [_deserialize(k) for k in (ica_init, ica_misc)]
+    n_pca_components = ica_init.pop('n_pca_components')
     current_fit = ica_init.pop('current_fit')
     max_pca_components = ica_init.pop('max_pca_components')
     method = ica_misc.get('method', 'fastica')
@@ -2389,6 +2380,10 @@ def read_ica(fname, verbose=None):
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
+    if n_pca_components is not None and \
+            not isinstance(n_pca_components, int_like):
+        n_pca_components = np.float64(n_pca_components)
+    ica.n_pca_components = n_pca_components
     ica.pre_whitener_ = f(pre_whitener)
     ica.pca_mean_ = f(pca_mean)
     ica.pca_components_ = f(pca_components)
