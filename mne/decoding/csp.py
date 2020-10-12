@@ -675,7 +675,8 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering.
 
-    Source Power Comodulation (SPoC) [1]_ allows to extract spatial filters and
+    Source Power Comodulation (SPoC) :footcite:`DahneEtAl2014` allows to
+    extract spatial filters and
     patterns by using a target (continuous) variable in the decomposition
     process in order to give preference to components whose power correlates
     with the target variable.
@@ -728,10 +729,7 @@ class SPoC(CSP):
 
     References
     ----------
-    .. [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M.,
-           Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for
-           relating the amplitude of neuronal oscillations to behaviorally
-           relevant parameters. NeuroImage, 86, 111-122.
+    .. footbibliography::
     """
 
     def __init__(self, n_components=4, reg=None, log=None,
