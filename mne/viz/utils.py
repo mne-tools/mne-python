@@ -1028,8 +1028,6 @@ def _plot_raw_onkey(event, params):
             _setup_annotation_fig(params)
         else:
             params['fig_annotation'].canvas.close_event()
-    elif event.key == 'b':
-        _setup_butterfly(params)
     elif event.key == 'w':
         params['use_noise_cov'] = not params['use_noise_cov']
         params['plot_update_proj_callback'](params, None)
@@ -2405,85 +2403,6 @@ def _annotation_radio_clicked(label, radio, selector):
     color = radio.circles[idx].get_edgecolor()
     selector.rect.set_color(color)
     selector.rectprops.update(dict(facecolor=color))
-
-
-def _setup_butterfly(params):
-    """Set butterfly view of raw plotter."""
-    from .raw import _setup_browser_selection
-    if 'ica' in params:
-        return
-    butterfly = not params['butterfly']
-    ax = params['ax']
-    params['butterfly'] = butterfly
-    if butterfly:
-        types = np.array(params['types'])[params['orig_inds']]
-        if params['group_by'] in ['type', 'original']:
-            inds = params['inds']
-            labels = [t for t in _DATA_CH_TYPES_SPLIT + ('eog', 'ecg')
-                      if t in types] + ['misc']
-            last_yval = 5 * (len(labels) + 1)
-            ticks = np.arange(5, last_yval, 5)
-            offs = {l: t for (l, t) in zip(labels, ticks)}
-            params['offsets'] = np.zeros(len(params['types']))
-            for ind in inds:
-                params['offsets'][ind] = offs.get(params['types'][ind],
-                                                  last_yval - 5)
-            # in case there were no non-data channels, skip the final row
-            if (last_yval - 5) not in params['offsets']:
-                ticks = ticks[:-1]
-                labels = labels[:-1]
-                last_yval -= 5
-            ax.set_yticks(ticks)
-            params['ax'].set_ylim(last_yval, 0)
-            ax.set_yticklabels(labels)
-        else:
-            if 'selections' not in params:
-                params['selections'] = _setup_browser_selection(
-                    params['raw'], 'position', selector=False)
-            sels = params['selections']
-            selections = _SELECTIONS[1:]  # Vertex not used
-            if ('Misc' in sels and len(sels['Misc']) > 0):
-                selections += ['Misc']
-            if params['group_by'] == 'selection' and 'eeg' in types:
-                for sel in _EEG_SELECTIONS:
-                    if sel in sels:
-                        selections += [sel]
-            picks = list()
-            for selection in selections:
-                picks.append(sels.get(selection, list()))
-            labels = ax.yaxis.get_ticklabels()
-            for label in labels:
-                label.set_visible(True)
-            ylim = (5. * len(picks), 0.)
-            ax.set_ylim(ylim)
-            offset = ylim[0] / (len(picks) + 1)
-            # ensure the last is not included
-            ticks = np.arange(0, ylim[0] - offset / 2., offset)
-            ax.set_yticks(ticks)
-            offsets = np.zeros(len(params['types']))
-
-            for group_idx, group in enumerate(picks):
-                for idx, pick in enumerate(group):
-                    offsets[pick] = offset * (group_idx + 1)
-            params['inds'] = params['orig_inds'].copy()
-            params['offsets'] = offsets
-            ax.set_yticklabels(
-                [''] + selections, color='black', rotation=45, va='top')
-    else:
-        params['inds'] = params['orig_inds'].copy()
-        if 'fig_selection' not in params:
-            for idx in np.arange(params['n_channels'], len(params['lines'])):
-                params['lines'][idx].set_xdata([])
-                params['lines'][idx].set_ydata([])
-        _setup_browser_offsets(params, max([params['n_channels'], 1]))
-        if 'fig_selection' in params:
-            radio = params['fig_selection'].radio
-            active_idx = _get_active_radio_idx(radio)
-            _radio_clicked(radio.labels[active_idx]._text, params)
-    # For now, italics only work in non-grouped mode
-    _set_ax_label_style(ax, params, italicize=not butterfly)
-    params['ax_vscroll'].set_visible(not butterfly)
-    params['plot_fun']()
 
 
 def _connection_line(x, fig, sourceax, targetax, y=1.,

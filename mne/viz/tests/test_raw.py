@@ -340,11 +340,8 @@ def test_plot_raw_child_figures(raw, new_mpl):
     fig = raw.plot()
     assert len(plt.get_fignums()) == 1
     _child_fig_helper(fig, '?', 'fig_help', new_mpl)
-    print(fig.mne.child_figs)
     _child_fig_helper(fig, 'j', 'fig_proj', new_mpl)
-    print(fig.mne.child_figs)
     _child_fig_helper(fig, 'a', 'fig_annotation', new_mpl)
-    print(fig.mne.child_figs)
     # # test right-click → channel location popup
     _click_ch_name_helper(fig, ch_index=2, button=3)  # XXX currently no-op
     # XXX restore these lines after refactoring plot_sensors() and re-enabling

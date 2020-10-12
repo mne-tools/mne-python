@@ -6,14 +6,13 @@
 #
 # License: Simplified BSD
 
-import copy
 from functools import partial
 from collections import OrderedDict, defaultdict
 
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
-from ..filter import create_filter, _overlap_add_filter, _filtfilt
+from ..filter import create_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        pick_channels, _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..utils import verbose, _ensure_int, _validate_type, _check_option
@@ -22,67 +21,9 @@ from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_prepare_mne_browse, figure_nobar, plt_show,
                     _get_figsize_from_config, _setup_browser_offsets,
-                    _compute_scalings, plot_sensors, _handle_decim,
-                    _setup_plot_projector, _check_cov, _set_ax_label_style,
-                    _simplify_float, _check_psd_fmax, _set_window_title,
-                    shorten_path_from_middle)
-
-
-def _plot_update_raw_proj(params, bools):
-    """Deal with changed proj."""
-    if bools is not None:
-        inds = np.where(bools)[0]
-        params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
-                                   for ii in inds]
-        params['proj_bools'] = bools
-    params['projector'], params['whitened_ch_names'] = _setup_plot_projector(
-        params['info'], params['noise_cov'], True, params['use_noise_cov'])
-    params['update_fun']()
-    params['plot_fun']()
-
-
-def _update_raw_data(params):
-    """Deal with time or proj changed."""
-    start = params['t_start']
-    start -= params['first_time']
-    stop = params['raw'].time_as_index(start + params['duration'])[0]
-    start = params['raw'].time_as_index(start)[0]
-    data_picks = _pick_data_channels(params['raw'].info)
-    data, times = params['raw'][:, start:stop]
-    if params['projector'] is not None:
-        data = np.dot(params['projector'], data)
-    # remove DC
-    if params['remove_dc'] is True:
-        data -= np.mean(data, axis=1)[:, np.newaxis]
-    if params['ba'] is not None:
-        # filter with the same defaults as `raw.filter`
-        starts, stops = params['filt_bounds']
-        mask = (starts < stop) & (stops > start)
-        starts = np.maximum(starts[mask], start) - start
-        stops = np.minimum(stops[mask], stop) - start
-        for start_, stop_ in zip(starts, stops):
-            this_data = data[data_picks, start_:stop_]
-            if isinstance(params['ba'], np.ndarray):  # FIR
-                this_data = _overlap_add_filter(
-                    this_data, params['ba'], copy=False)
-            else:  # IIR
-                this_data = _filtfilt(this_data, params['ba'], None, 1, False)
-            data[data_picks, start_:stop_] = this_data
-    # scale
-    for di in range(data.shape[0]):
-        ch_name = params['info']['ch_names'][di]
-        # stim channels should be hard limited
-        if params['types'][di] == 'stim':
-            norm = float(max(data[di]))
-        elif ch_name in params['whitened_ch_names'] and \
-                ch_name not in params['info']['bads']:
-            norm = params['scalings']['whitened']
-        else:
-            norm = params['scalings'][params['types'][di]]
-        data[di] /= norm if norm != 0 else 1.
-    params['data'] = data
-    params['times'] = times
-
+                    _compute_scalings, _handle_decim, _check_cov,
+                    _set_ax_label_style, _simplify_float, _check_psd_fmax,
+                    _set_window_title, shorten_path_from_middle)
 
 _RAW_CLIP_DEF = 1.5
 
@@ -918,70 +859,11 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     return fig
 
 
-def _setup_browser_selection(raw, kind, selector=True):
-    """Organize browser selections."""
-    import matplotlib.pyplot as plt
-    from matplotlib.widgets import RadioButtons
-    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                             _divide_to_regions)
-    from ..utils import _get_stim_channel
-    _check_option('group_by', kind, ('position, selection'))
-    if kind == 'position':
-        order = _divide_to_regions(raw.info)
-        keys = _SELECTIONS[1:]  # no 'Vertex'
-        kind = 'position'
-    else:  # kind == 'selection'
-        from ..io import RawFIF, RawArray
-        if not isinstance(raw, (RawFIF, RawArray)):
-            raise ValueError("order='selection' only works for Neuromag data. "
-                             "Use order='position' instead.")
-        order = dict()
-        try:
-            stim_ch = _get_stim_channel(None, raw.info)
-        except ValueError:
-            stim_ch = ['']
-        keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
-        stim_ch = pick_channels(raw.ch_names, stim_ch)
-        for key in keys:
-            channels = read_selection(key, info=raw.info)
-            picks = pick_channels(raw.ch_names, channels)
-            if len(picks) == 0:
-                continue  # omit empty selections
-            order[key] = np.concatenate([picks, stim_ch])
-
-    misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
-                      ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
-                      chpi=True, exci=True, ias=True, syst=True, seeg=False,
-                      bio=True, ecog=False, fnirs=False, exclude=())
-    if len(misc) > 0:
-        order['Misc'] = misc
-    keys = np.concatenate([keys, ['Misc']])
-    if not selector:
-        return order
-    fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
-    _set_window_title(fig_selection, 'Selection')
-    rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
-    topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
-    keys = np.concatenate([keys, ['Custom']])
-    order.update({'Custom': list()})  # custom selection with lasso
-    plot_sensors(raw.info, kind='select', ch_type='all', axes=topo_ax,
-                 ch_groups=kind, title='', show=False)
-    fig_selection.radio = RadioButtons(rax, [key for key in keys
-                                             if key in order.keys()])
-
-    for circle in fig_selection.radio.circles:
-        circle.set_radius(0.02)  # make them smaller to prevent overlap
-        circle.set_edgecolor('gray')  # make sure the buttons are visible
-
-    return order, fig_selection
-
-
 def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
-    from ..io.pick import pick_channels, pick_types
     _check_option('group_by', kind, ('position', 'selection'))
     if kind == 'position':
         selections_dict = _divide_to_regions(raw.info)
