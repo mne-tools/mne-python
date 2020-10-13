@@ -20,4 +20,4 @@ recorded with a variety of devices/modalities (EEG, MEG, ECoG, fNIRS, etc).
 It is not expected that using MNE-Python will lead to security
 vulnerabilities under normal use cases (i.e., running without administrator
 privileges). However, if you think you have found a security vulnerability
-in MNE-Python, please report it to [TODO: INSERT PRIVATE DEVS EMAIL HERE?].
+in MNE-Python, please report it to mne-core-dev-team@groups.io
