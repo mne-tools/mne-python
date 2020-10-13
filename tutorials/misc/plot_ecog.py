@@ -166,21 +166,26 @@ fig.colorbar(paths, ax=ax)
 ax.set_title('Gamma frequency over time (Hilbert transform)',
              size='large')
 
-# sphinx_gallery_thumbnail_number = 3
 # avoid edge artifacts and decimate, showing just a short chunk
-show_power = gamma_power_t[:, 100:-1700:2]
+show_power = gamma_power_t[:, 100:150]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
-                               interval=100, blit=True)
+                               interval=200, blit=True)
 
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
 # the pial surface and visualize that:
+
+# sphinx_gallery_thumbnail_number = 4
 
 evoked = mne.EvokedArray(gamma_power_t, raw.info)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
                  colormap='viridis', clim=clim, views='parietal',
-                 subjects_dir=subjects_dir)
+                 subjects_dir=subjects_dir, size=(600, 600))
+# You can save a movie like the one on our documentation website with:
+# brain.save_movie(time_dilation=10, tmin=0.62, tmax=0.72,
+#                  interpolation='linear', framerate=10,
+#                  time_viewer=True)
