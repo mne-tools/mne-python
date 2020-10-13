@@ -358,8 +358,7 @@ class Brain(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
-        self.default_annotation_color = [1, 1, 1, 1]
-        self.default_patch_opacity = 0.5
+        self.default_annotation_color = [0.6, 0.6, 0.6, 1]
         self.traces_mode = 'vertex'
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
@@ -1130,8 +1129,7 @@ class Brain(object):
             return
 
         if hemi == label.hemi:
-            self.add_label(label, alpha=self.default_patch_opacity,
-                           borders=True, traces=True)
+            self.add_label(label, borders=True, traces=True)
             self.picked_patches[hemi].append(label_id)
 
     def add_point(self, hemi, mesh, vertex_id):
@@ -1929,29 +1927,34 @@ class Brain(object):
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             if borders:
-                surface = {
-                    'rr': self.geo[hemi].coords,
-                    'tris': self.geo[hemi].faces,
-                }
-                mesh_data = self._renderer.contour(
-                    surface=surface,
-                    scalars=label,
-                    contours=[1.0],
-                    color=color,
-                    kind='tube',
-                )
-            else:
-                mesh_data = self._renderer.mesh(
-                    x=self.geo[hemi].coords[:, 0],
-                    y=self.geo[hemi].coords[:, 1],
-                    z=self.geo[hemi].coords[:, 2],
-                    triangles=self.geo[hemi].faces,
-                    scalars=label,
-                    color=None,
-                    colormap=ctable,
-                    backface_culling=False,
-                    polygon_offset=-2,
-                )
+                n_vertices = label.size
+                edges = mesh_edges(self.geo[hemi].faces)
+                edges = edges.tocoo()
+                border_edges = label[edges.row] != label[edges.col]
+                show = np.zeros(n_vertices, dtype=np.int)
+                keep_idx = np.unique(edges.row[border_edges])
+                if isinstance(borders, int):
+                    for _ in range(borders):
+                        keep_idx = np.in1d(
+                            self.geo[hemi].faces.ravel(), keep_idx)
+                        keep_idx.shape = self.geo[hemi].faces.shape
+                        keep_idx = self.geo[hemi].faces[np.any(
+                            keep_idx, axis=1)]
+                        keep_idx = np.unique(keep_idx)
+                show[keep_idx] = 1
+                label *= show
+
+            mesh_data = self._renderer.mesh(
+                x=self.geo[hemi].coords[:, 0],
+                y=self.geo[hemi].coords[:, 1],
+                z=self.geo[hemi].coords[:, 2],
+                triangles=self.geo[hemi].faces,
+                scalars=label,
+                color=None,
+                colormap=ctable,
+                backface_culling=False,
+                polygon_offset=-2,
+            )
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         self._label_data[label_name] = (orig_label, mesh_data, line)
