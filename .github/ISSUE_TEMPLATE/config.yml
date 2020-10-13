@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Mailing list
+    url: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+    about: For questions about analysis and usage, and announcements of interest to the neuroimaging community
+  - name: Gitter
+    url: https://gitter.im/mne-tools/mne-python
+    about: Users and developers can chat, troubleshoot and share code samples on our gitter channel
