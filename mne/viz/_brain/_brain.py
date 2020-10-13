@@ -430,7 +430,7 @@ class Brain(object):
     @safe_event
     def _clean(self):
         # resolve the reference cycle
-        self.clear_points()
+        self.clear_glyphs()
         self._clear_callbacks()
         self.actions.clear()
         self.sliders.clear()
@@ -907,7 +907,7 @@ class Brain(object):
             else:
                 mesh = hemi_data['mesh']
             vertex_id = vertices[ind[0]]
-            self.add_point(hemi, mesh, vertex_id)
+            self.add_vertex_glyph(hemi, mesh, vertex_id)
 
     def _configure_picking(self):
         from ..backends._pyvista import _update_picking_callback
@@ -975,7 +975,7 @@ class Brain(object):
         self.actions["clear"] = self.tool_bar.addAction(
             self.icons["clear"],
             "Clear traces",
-            self.clear_points
+            self.clear_glyphs
         )
         self.actions["help"] = self.tool_bar.addAction(
             self.icons["help"],
@@ -1052,12 +1052,12 @@ class Brain(object):
                 if found_sphere is not None:
                     break
             if found_sphere is not None:
-                assert found_sphere._is_point
+                assert found_sphere._is_glyph
                 mesh = found_sphere
 
         # 2) Remove sphere if it's what we have
-        if hasattr(mesh, "_is_point"):
-            self.remove_point(mesh)
+        if hasattr(mesh, "_is_glyph"):
+            self.remove_vertex_glyph(mesh)
             return
 
         # 3) Otherwise, pick the objects in the scene
@@ -1113,26 +1113,52 @@ class Brain(object):
             vertex_id = cell[idx[0]]
 
         if self.traces_mode == 'label':
-            self.add_patch(hemi, mesh, vertex_id)
+            self.add_label_glyph(hemi, mesh, vertex_id)
         else:
-            self.add_point(hemi, mesh, vertex_id)
+            self.add_vertex_glyph(hemi, mesh, vertex_id)
 
-    def add_patch(self, hemi, mesh, vertex_id):
+    def add_label_glyph(self, hemi, mesh, vertex_id):
+        """Pick a label on the brain.
+
+        Parameters
+        ----------
+        hemi : str
+            The hemisphere id of the vertex.
+        mesh : object
+            The mesh where picking is expected.
+        vertex_id : int
+            The vertex identifier in the mesh.
+        """
         label_id = self._vertex_to_label_id[hemi][vertex_id]
         label = self._annotation_labels[hemi][label_id]
+
+        # remove the patch if already picked
         if label_id in self.picked_patches[hemi]:
-            _, mesh_data, line = self._labels[label.name]
-            line.remove()
-            self.mpl_canvas.update_plot()
-            self._renderer.remove_mesh(mesh_data)
-            self.picked_patches[hemi].remove(label_id)
+            self.remove_label_glyph(hemi, label_id)
             return
 
         if hemi == label.hemi:
             self.add_label(label, borders=True, traces=True)
             self.picked_patches[hemi].append(label_id)
 
-    def add_point(self, hemi, mesh, vertex_id):
+    def remove_label_glyph(self, hemi, label_id):
+        """Remove the picked label from its id.
+
+        Parameters
+        ----------
+        hemi : str
+            The hemisphere id of the vertex.
+        label_id : int
+            The label identifier in the annotation.
+        """
+        label = self._annotation_labels[hemi][label_id]
+        _, mesh_data, line = self._labels[label.name]
+        line.remove()
+        self.mpl_canvas.update_plot()
+        self._renderer.remove_mesh(mesh_data)
+        self.picked_patches[hemi].remove(label_id)
+
+    def add_vertex_glyph(self, hemi, mesh, vertex_id):
         """Pick a vertex on the brain.
 
         Parameters
@@ -1201,7 +1227,7 @@ class Brain(object):
 
         # add metadata for picking
         for sphere in spheres:
-            sphere._is_point = True
+            sphere._is_glyph = True
             sphere._hemi = hemi
             sphere._line = line
             sphere._actors = actors
@@ -1213,8 +1239,8 @@ class Brain(object):
         self.pick_table[vertex_id] = spheres
         return sphere
 
-    def remove_point(self, mesh):
-        """Remove the picked point from its glyph.
+    def remove_vertex_glyph(self, mesh):
+        """Remove the picked vertex from its glyph.
 
         Parameters
         ----------
@@ -1244,13 +1270,17 @@ class Brain(object):
             self._spheres.pop(self._spheres.index(sphere))
         self.pick_table.pop(vertex_id)
 
-    def clear_points(self):
-        """Clear the picked points."""
+    def clear_glyphs(self):
+        """Clear the picking glyphs."""
         for sphere in list(self._spheres):  # will remove itself, so copy
-            self.remove_point(sphere)
+            self.remove_vertex_glyph(sphere)
         assert sum(len(v) for v in self.picked_points.values()) == 0
         assert len(self.pick_table) == 0
         assert len(self._spheres) == 0
+        for hemi in self._hemis:
+            for label_id in list(self.picked_patches[hemi]):
+                self.remove_label_glyph(hemi, label_id)
+        assert sum(len(v) for v in self.picked_patches.values()) == 0
 
     def plot_time_course(self, hemi, vertex_id, color):
         """Plot the vertex time course.
@@ -2102,9 +2132,8 @@ class Brain(object):
                 self._annotation_labels[hemi] = labels
                 for idx, label in enumerate(labels):
                     self._vertex_to_label_id[hemi][label.vertices] = idx
-            self.clear_points()
+            self.clear_glyphs()
             self.mpl_canvas.axes.clear()
-            self.plot_time_line()
             self.plotter.update()
 
         # Figure out where the data is coming from
@@ -2198,7 +2227,7 @@ class Brain(object):
                 polygon_offset=-2,
             )
 
-            if self.traces_mode != 'label':
+            if self.traces_mode == 'vertex':
                 if isinstance(mesh_data, tuple):
                     from ..backends._pyvista import _set_colormap_range
                     actor, mesh = mesh_data
