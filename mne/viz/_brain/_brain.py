@@ -234,6 +234,8 @@ class Brain(object):
 
         self.time_viewer = False
         self.notebook = (_get_3d_backend() == "notebook")
+        self.label_mask = dict()
+        self.labels = dict()
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -356,12 +358,17 @@ class Brain(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
+        self.default_annotation_color = [1, 1, 1, 1]
+        self.default_patch_opacity = 0.5
+        self.traces_mode = 'vertex'
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
         self.color_cycle = None
         self.mpl_canvas = None
+        self.picked_patches = {key: list() for key in all_keys}
         self.picked_points = {key: list() for key in all_keys}
         self.pick_table = dict()
+        self._spheres = list()
         self._mouse_no_mvt = -1
         self.icons = dict()
         self.actions = dict()
@@ -405,13 +412,13 @@ class Brain(object):
             self.separate_canvas = False
         del show_traces
 
-        self._spheres = list()
         self._load_icons()
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
         self._configure_playback()
-        self._configure_point_picking()
+        self._configure_picking()
+        self._configure_vertex_time_course()
         self._configure_menu()
         self._configure_tool_bar()
         self._configure_status_bar()
@@ -836,10 +843,9 @@ class Brain(object):
         )
         self.mpl_canvas.show()
 
-    def _configure_point_picking(self):
+    def _configure_vertex_time_course(self):
         if not self.show_traces:
             return
-        from ..backends._pyvista import _update_picking_callback
 
         if self.mpl_canvas is None:
             self._configure_mplcanvas()
@@ -903,6 +909,9 @@ class Brain(object):
                 mesh = hemi_data['mesh']
             vertex_id = vertices[ind[0]]
             self.add_point(hemi, mesh, vertex_id)
+
+    def _configure_picking(self):
+        from ..backends._pyvista import _update_picking_callback
 
         _update_picking_callback(
             self.plotter,
@@ -1021,6 +1030,9 @@ class Brain(object):
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
+        if not self.show_traces:
+            return
+
         # vtk_picker is a vtkCellPicker
         cell_id = vtk_picker.GetCellId()
         mesh = vtk_picker.GetDataSet()
@@ -1101,8 +1113,26 @@ class Brain(object):
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-        if vertex_id not in self.picked_points[hemi]:
+        if self.traces_mode == 'label':
+            self.add_patch(hemi, mesh, vertex_id)
+        else:
             self.add_point(hemi, mesh, vertex_id)
+
+    def add_patch(self, hemi, mesh, vertex_id):
+        label_id = self.label_mask[hemi][vertex_id]
+        label = self.labels[hemi][label_id]
+        if label_id in self.picked_patches[hemi]:
+            _, mesh_data, line = self._label_data[label.name]
+            line.remove()
+            self.mpl_canvas.update_plot()
+            self._renderer.remove_mesh(mesh_data)
+            self.picked_patches[hemi].remove(label_id)
+            return
+
+        if hemi == label.hemi:
+            self.add_label(label, alpha=self.default_patch_opacity,
+                           borders=True, traces=True)
+            self.picked_patches[hemi].append(label_id)
 
     def add_point(self, hemi, mesh, vertex_id):
         """Pick a vertex on the brain.
@@ -1121,6 +1151,9 @@ class Brain(object):
         sphere : object
             The glyph created for the picked point.
         """
+        if vertex_id in self.picked_points[hemi]:
+            return
+
         # skip if the wrong hemi is selected
         if self.act_data_smooth[hemi][0] is None:
             return
@@ -1130,7 +1163,8 @@ class Brain(object):
         if hemi == 'vol':
             ijk = np.unravel_index(
                 vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
-            # should just be GetCentroid(center), but apparently it's VTK9+:
+            # should just be GetCentroid(center)
+            # but apparently it's VTK9+:
             # center = np.empty(3)
             # voxel.GetCentroid(center)
             voxel = mesh.GetCell(*ijk)
@@ -1153,9 +1187,9 @@ class Brain(object):
         for ri, ci, _ in self._iter_views(hemi):
             self.plotter.subplot(ri, ci)
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
-            # 1) renderer.sphere() fails on Windows in a scenario where a lot
-            #    of picking requests are done in a short span of time (could be
-            #    mitigated with synchronization/delay?)
+            # 1) renderer.sphere() fails on Windows in a scenario where a
+            #    lot of picking requests are done in a short span of time
+            #    (could be mitigated with synchronization/delay?)
             # 2) the glyph filter is used in renderer.sphere() but only one
             #    sphere is required in this function.
             actor, sphere = _sphere(
@@ -1873,6 +1907,21 @@ class Brain(object):
 
         label = np.zeros(self.geo[hemi].coords.shape[0])
         label[ids] = 1
+
+        if self.time_viewer and traces:
+            if self.mpl_canvas is None:
+                self._configure_mplcanvas()
+
+            stc = self._data["stc"]
+            tc = stc.extract_label_time_course(orig_label, src=None,
+                                               mode='mean')
+            color = next(self.color_cycle)
+            line = self.mpl_canvas.plot(
+                self._data['time'], tc[0], label=orig_label.name,
+                color=color)
+        else:
+            line = None
+
         color = colorConverter.to_rgba(color, alpha)
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
@@ -1903,22 +1952,9 @@ class Brain(object):
                     backface_culling=False,
                     polygon_offset=-2,
                 )
-            self._label_data[label_name] = (orig_label, mesh_data)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
-        if self.time_viewer and traces:
-            if self.mpl_canvas is None:
-                self._configure_mplcanvas()
-
-            stc = self._data["stc"]
-            if stc is not None:
-                for label, _ in self._label_data.values():
-                    tc = stc.extract_label_time_course(label, src=None,
-                                                       mode='mean')
-                    self.mpl_canvas.axes.plot(
-                        self._data['time'], tc[0], label=label.name,
-                        color=color)
-
+        self._label_data[label_name] = (orig_label, mesh_data, line)
         self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
@@ -2014,7 +2050,8 @@ class Brain(object):
                               size=font_size, justification=justification)
 
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
-                       remove_existing=True, color=None, **kwargs):
+                       remove_existing=True, color=None, traces=True,
+                       **kwargs):
         """Add an annotation file.
 
         Parameters
@@ -2045,8 +2082,27 @@ class Brain(object):
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
-        from ...label import _read_annot
+        from ...label import _read_annot, read_labels_from_annot
         hemis = self._check_hemis(hemi)
+
+        if self.time_viewer and traces:
+            self.traces_mode = 'label'
+            for hemi in self._hemis:
+                labels = read_labels_from_annot(
+                    subject=self._subject_id,
+                    parc=annot,
+                    hemi=hemi,
+                    subjects_dir=self._subjects_dir
+                )
+                self.label_mask[hemi] = np.full(
+                    self.geo[hemi].coords.shape[0], -1)
+                self.labels[hemi] = labels
+                for idx, label in enumerate(labels):
+                    self.label_mask[hemi][label.vertices] = idx
+            self.clear_points()
+            self.mpl_canvas.axes.clear()
+            self.plot_time_line()
+            self.plotter.update()
 
         # Figure out where the data is coming from
         if isinstance(annot, str):
@@ -2117,26 +2173,36 @@ class Brain(object):
 
             ctable = cmap.astype(np.float64) / 255.
 
+            if self.time_viewer and self.traces_mode == 'label':
+                scalars = ids > 0
+                colormap = np.asarray([[0, 0, 0, 0],
+                                      self.default_annotation_color])
+            else:
+                scalars = ids
+                colormap = ctable
+
             mesh_data = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
                 y=self.geo[hemi].coords[:, 1],
                 z=self.geo[hemi].coords[:, 2],
                 triangles=self.geo[hemi].faces,
                 color=None,
-                colormap=ctable,
-                vmin=np.min(ids),
-                vmax=np.max(ids),
-                scalars=ids,
+                colormap=colormap,
+                scalars=scalars,
+                vmin=np.min(scalars),
+                vmax=np.max(scalars),
                 interpolate_before_map=False,
                 polygon_offset=-2,
             )
-            if isinstance(mesh_data, tuple):
-                from ..backends._pyvista import _set_colormap_range
-                actor, mesh = mesh_data
-                # add metadata to the mesh for picking
-                mesh._hemi = hemi
-                _set_colormap_range(actor, cmap.astype(np.uint8),
-                                    None)
+
+            if self.traces_mode != 'label':
+                if isinstance(mesh_data, tuple):
+                    from ..backends._pyvista import _set_colormap_range
+                    actor, mesh = mesh_data
+                    # add metadata to the mesh for picking
+                    mesh._hemi = hemi
+                    _set_colormap_range(actor, cmap.astype(np.uint8),
+                                        None)
 
         self._update()
 
