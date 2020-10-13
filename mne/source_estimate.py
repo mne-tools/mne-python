@@ -494,8 +494,9 @@ class _BaseSourceEstimate(TimeMixin):
                                  '%s' % (data.shape, self._data_ndim,
                                          self.__class__.__name__))
             if data.shape[0] != n_src:
-                raise ValueError('Number of vertices (%i) and stc.shape[0] '
-                                 '(%i) must match' % (n_src, data.shape[0]))
+                raise ValueError(
+                    f'Number of vertices ({n_src}) and stc.data.shape[0] '
+                    f'({data.shape[0]}) must match')
             if self._data_ndim == 3:
                 if data.shape[1] != 3:
                     raise ValueError(

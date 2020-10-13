@@ -43,6 +43,7 @@ fname_vol_w = op.join(sample_dir,
                       'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_inv_surf = op.join(sample_dir,
                          'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 fname_fmorph = op.join(data_path, 'MEG', 'sample',
                        'fsaverage_audvis_trunc-meg')
 fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
@@ -216,7 +217,7 @@ def assert_power_preserved(orig, new, limits=(1., 1.05)):
             continue
         power_ratio = numer / denom
         min_, max_ = limits
-        assert min_ < power_ratio < max_, f'Power ratio {kind}'
+        assert min_ < power_ratio < max_, f'Power ratio {kind} = {power_ratio}'
 
 
 @requires_h5py
@@ -459,37 +460,61 @@ def test_volume_source_morph(tmpdir):
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.parametrize('subject_from, subject_to, lower, upper, dtype', [
-    ('sample', 'fsaverage', 8.5, 9, float),
-    ('fsaverage', 'fsaverage', 7, 7.5, float),
-    ('sample', 'sample', 6, 7, complex),
+@pytest.mark.parametrize(
+    'subject_from, subject_to, lower, upper, dtype, linearize, labelize', [
+        ('sample', 'fsaverage', 8.5, 9, float, False, False),
+        ('fsaverage', 'fsaverage', 7, 7.5, float, False, False),
+        ('sample', 'sample', 6, 7, complex, False, False),
+        # labelized
+        ('sample', 'sample', 1, 2, float, False, True),
+        ('sample', 'sample', 1, 2, float, True, True),  # linearized
+        ('sample', 'fsaverage', 10, 12, float, False, True),
+        ('sample', 'fsaverage', 10, 12, float, True, True),  # linearized
 ])
 def test_volume_source_morph_round_trip(
-        tmpdir, subject_from, subject_to, lower, upper, dtype):
+        tmpdir, subject_from, subject_to, lower, upper, dtype, linearize,
+        labelize):
     """Test volume source estimate morph round-trips well."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
     src = dict()
-    if 'sample' in (subject_from, subject_to):
-        src['sample'] = mne.read_source_spaces(fname_vol)
-        src['sample'][0]['subject_his_id'] = 'sample'
-        assert src['sample'][0]['nuse'] == 4157
-    if 'fsaverage' in (subject_from, subject_to):
-        # Created to save space with:
-        #
-        # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
-        #               'fsaverage-inner_skull-bem.fif')
-        # src_fsaverage = mne.setup_volume_source_space(
-        #     'fsaverage', pos=7., bem=bem, mindist=0,
-        #     subjects_dir=subjects_dir, add_interpolator=False)
-        # mne.write_source_spaces(fname_fs_vol, src_fsaverage, overwrite=True)
-        #
-        # For speed we do it without the interpolator because it's huge.
-        src['fsaverage'] = mne.read_source_spaces(fname_fs_vol)
-        src['fsaverage'][0].update(
-            vol_dims=np.array([23, 29, 25]), seg_name='brain')
-        _add_interpolator(src['fsaverage'])
-        assert src['fsaverage'][0]['nuse'] == 6379
+    if labelize:
+        label_names = sorted(get_volume_labels_from_aseg(fname_aseg))[1:2]
+        if 'sample' in (subject_from, subject_to):
+            src['sample'] = setup_volume_source_space(
+                'sample', subjects_dir=subjects_dir,
+                volume_label=label_names, mri=fname_aseg)
+            assert sum(s['nuse'] for s in src['sample']) == 12
+        if 'fsaverage' in (subject_from, subject_to):
+            src['fsaverage'] = setup_volume_source_space(
+                'fsaverage', subjects_dir=subjects_dir,
+                volume_label=label_names[:3], mri=fname_aseg_fs)
+            assert sum(s['nuse'] for s in src['fsaverage']) == 16
+    else:
+        # ~1.5 minutes with pos=7. (4157 morphs!) for sample, so only test
+        # linearize mode with a few labels
+        assert not linearize
+        if 'sample' in (subject_from, subject_to):
+            src['sample'] = mne.read_source_spaces(fname_vol)
+            src['sample'][0]['subject_his_id'] = 'sample'
+            assert src['sample'][0]['nuse'] == 4157
+        if 'fsaverage' in (subject_from, subject_to):
+            # Created to save space with:
+            #
+            # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
+            #               'fsaverage-inner_skull-bem.fif')
+            # src_fsaverage = mne.setup_volume_source_space(
+            #     'fsaverage', pos=7., bem=bem, mindist=0,
+            #     subjects_dir=subjects_dir, add_interpolator=False)
+            # mne.write_source_spaces(fname_fs_vol, src_fsaverage,
+            #                         overwrite=True)
+            #
+            # For speed we do it without the interpolator because it's huge.
+            src['fsaverage'] = mne.read_source_spaces(fname_fs_vol)
+            src['fsaverage'][0].update(
+                vol_dims=np.array([23, 29, 25]), seg_name='brain')
+            _add_interpolator(src['fsaverage'])
+            assert src['fsaverage'][0]['nuse'] == 6379
     src_to, src_from = src[subject_to], src[subject_from]
     del src
     # No SDR just for speed once everything works
@@ -499,25 +524,37 @@ def test_volume_source_morph_round_trip(
         src=src_from, src_to=src_to, subject_to=subject_to, **kwargs)
     morph_to_from = compute_source_morph(
         src=src_to, src_to=src_from, subject_to=subject_from, **kwargs)
-    use = np.linspace(0, src_from[0]['nuse'] - 1, 10).round().astype(int)
-    data = np.eye(src_from[0]['nuse'])[:, use]
+    if linearize:
+        morph_from_to.linearize_volume_morph()
+        morph_to_from.linearize_volume_morph()
+    nuse = sum(s['nuse'] for s in src_from)
+    assert nuse > 10
+    use = np.linspace(0, nuse - 1, 10).round().astype(int)
+    data = np.eye(nuse)[:, use]
     if dtype is complex:
         data = data * 1j
-    stc_from = VolSourceEstimate(data, [src_from[0]['vertno']], 0, 1)
+    vertices = [s['vertno'] for s in src_from]
+    stc_from = VolSourceEstimate(data, vertices, 0, 1)
     stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
     maxs = np.argmax(stc_from_rt.data, axis=0)
-    src_rr = src_from[0]['rr'][src_from[0]['vertno']]
+    src_rr = np.concatenate([s['rr'][s['vertno']] for s in src_from])
     dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
     mu = np.mean(dists)
-    assert lower <= mu < upper  # fsaverage=7.97; 25.4 without src_ras_t fix
+    # fsaverage=7.97; 25.4 without src_ras_t fix
+    assert lower <= mu < upper, f'round-trip distance {mu}'
     # check that pre_affine is close to identity when subject_to==subject_from
     if subject_to == subject_from:
         for morph in (morph_to_from, morph_from_to):
             assert_allclose(
                 morph.pre_affine.affine, np.eye(4), atol=1e-2)
-    # check that power is more or less preserved
-    ratio = stc_from.data.size / stc_from_rt.data.size
-    limits = ratio * np.array([1, 1.2])
+    # check that power is more or less preserved (labelizing messes with this)
+    if labelize:
+        if subject_to == 'fsaverage':
+            limits = (19, 20)
+        else:
+            limits = (8, 9)
+    else:
+        limits = (1, 1.2)
     stc_from.crop(0, 0)._data.fill(1.)
     stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
     assert_power_preserved(stc_from, stc_from_rt, limits=limits)
@@ -534,8 +571,14 @@ def test_volume_source_morph_round_trip(
             assert img.shape == mask.shape
             in_ = img[mask].astype(bool).mean()
             out = img[~mask].astype(bool).mean()
-            assert 0.97 < in_ < 0.98
-            assert out < 0.02
+            if labelize:
+                out_max = 0.001
+                in_min, in_max = 0.005, 0.007
+            else:
+                out_max = 0.02
+                in_min, in_max = 0.97, 0.98
+            assert out < out_max, f'proportion out of volume {out}'
+            assert in_min < in_ < in_max, f'proportion inside volume {in_}'
 
 
 @pytest.mark.slowtest
@@ -679,7 +722,6 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     evoked.pick_channels(evoked.ch_names[:306:8])
     evoked.info.normalize_proj()
     n_ch = len(evoked.ch_names)
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     lut, _ = read_freesurfer_lut()
     label_names = sorted(get_volume_labels_from_aseg(aseg_fname))
     use_label_names = label_names[sl]

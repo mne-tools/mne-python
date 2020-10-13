@@ -21,7 +21,7 @@ from .transforms import _angle_between_quats, rot_to_quat
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, wrapped_stdout, _check_fname, warn,
-                    _ensure_int)
+                    _ensure_int, ProgressBar)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -251,7 +251,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     morph = SourceMorph(subject_from, subject_to, kind, zooms,
                         niter_affine, niter_sdr, spacing, smooth, xhemi,
                         morph_mat, vertices_to, shape, affine,
-                        pre_affine, sdr_morph, src_data)
+                        pre_affine, sdr_morph, src_data, None)
     logger.info('[done]')
     return morph
 
@@ -280,7 +280,8 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to,
 _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
     'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
-    'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data', 'verbose']
+    'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data',
+    'vol_morph_mat', 'verbose']
 
 
 @fill_doc
@@ -335,6 +336,8 @@ class SourceMorph(object):
         the symmetric diffeomorphic registration (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
+    vol_morph_mat : scipy.sparse.csr_matrix | None
+        The volumetric morph matrix, if linearize=True was used.
     %(verbose)s
 
     Notes
@@ -349,7 +352,8 @@ class SourceMorph(object):
     def __init__(self, subject_from, subject_to, kind, zooms,
                  niter_affine, niter_sdr, spacing, smooth, xhemi,
                  morph_mat, vertices_to, shape,
-                 affine, pre_affine, sdr_morph, src_data, verbose=None):
+                 affine, pre_affine, sdr_morph, src_data,
+                 vol_morph_mat, verbose=None):
         # universal
         self.subject_from = subject_from
         self.subject_to = subject_to
@@ -371,6 +375,7 @@ class SourceMorph(object):
         self.pre_affine = pre_affine
         # used by both
         self.src_data = src_data
+        self.vol_morph_mat = vol_morph_mat
         self.verbose = verbose
         # compute vertices_to here (partly for backward compat and no src
         # provided)
@@ -384,6 +389,10 @@ class SourceMorph(object):
         assert isinstance(self.src_data['inuse'], list)
         vertices_from = [np.where(in_)[0] for in_ in self.src_data['inuse']]
         return vertices_from
+
+    @property
+    def _vol_vertices_to(self):
+        return self.vertices_to[0 if self.kind == 'volume' else 2:]
 
     def _get_vol_vertices_to_nz(self):
         logger.info('Computing nonzero vertices after morph ...')
@@ -445,6 +454,47 @@ class SourceMorph(object):
                 self, out, mri_resolution=mri_resolution, mri_space=mri_space,
                 output=output)
         return out
+
+    def linearize_volume_morph(self):
+        """Linearize the volumetric morphing step.
+
+        Notes
+        -----
+        For a volumetric morph, this will compute the morph for an identity
+        source volume, i.e., with one source vertex active at a time, and store
+        the result as a sparse morphing matrix. This takes a long time
+        (minutes) to compute initially, but can be drastically faster to apply
+        to for STCs with many time points, as it converts the volume morph
+        step into a sparse matrix dot product.
+
+        When calling :meth:`save`, this linearization is saved with the
+        instance, so this only needs to be called once. This function does
+        nothing if the morph is already linearized, or if there is no
+        volume morph present.
+
+        .. versionadded:: 0.23
+        """
+        if self.affine is None or self.vol_morph_mat is not None:
+            return
+        one = np.zeros((sum(len(v) for v in self._vol_vertices_from), 1))
+        data = list()
+        indices = list()
+        indptr = [0]
+        logger.info('Linearizing volumetric morph (will take some time...)')
+        vol_verts = np.concatenate(self._vol_vertices_to)
+        shape = (len(vol_verts), one.shape[0])
+        for ii in ProgressBar(list(range(len(one))), mesg='Linearizing'):
+            one.fill(0.)
+            one[ii] = 1.
+            out = self._morph_one_vol(one)[vol_verts]
+            idx = np.where(out)[0]
+            out = out[idx]
+            data.extend(out)
+            indices.extend(idx)
+            indptr.append(indptr[-1] + len(idx))
+        data = np.array(data)
+        vol_morph_mat = sparse.csc_matrix((data, indices, indptr), shape=shape)
+        self.vol_morph_mat = vol_morph_mat
 
     def _morph_one_vol(self, one):
         # prepare data to be morphed
@@ -611,6 +661,8 @@ def read_source_morph(fname):
     # Backward compat with when it used to be a single array
     if isinstance(vals['src_data'].get('inuse', None), np.ndarray):
         vals['src_data']['inuse'] = [vals['src_data']['inuse']]
+    # added with linearize in 0.23:
+    vals['vol_morph_mat'] = vals.get('vol_morph_mat', None)
     return SourceMorph(**vals)
 
 
@@ -972,7 +1024,6 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     # fig1 = mri_from_to.orthoview()
     # mri_from_to_cut = resample_from_to(mri_from_to, to_vox_map, 1)
     # fig2 = mri_from_to_cut.orthoview()
-
     return shape, zooms, affine, pre_affine, sdr_morph
 
 
@@ -1345,8 +1396,7 @@ def _apply_morph_data(morph, stc_from):
         vertices_from = morph._vol_vertices_from
         for ii, (v1, v2) in enumerate(zip(vertices_from, stc_from_vertices)):
             _check_vertices_match(v1, v2, 'volume[%d]' % (ii,))
-        vol_verts = np.concatenate(
-            morph.vertices_to[0 if morph.kind == 'volume' else 2:])
+        vol_verts = np.concatenate(morph._vol_vertices_to)
         from_sl = slice(from_surf_stop, from_vol_stop)
         assert not from_used[from_sl].any()
         from_used[from_sl] = True
@@ -1356,8 +1406,11 @@ def _apply_morph_data(morph, stc_from):
         # Loop over time points to save memory
         for k in range(n_times):
             this_data = data_from[from_sl, k:k + 1]
-            this_img_to = morph._morph_one_vol(this_data)
-            data[to_sl, k] = this_img_to[vol_verts]
+            if morph.vol_morph_mat is None:
+                this_img_to = morph._morph_one_vol(this_data)[vol_verts]
+            else:
+                this_img_to = morph.vol_morph_mat.dot(this_data)[:, 0]
+            data[to_sl, k] = this_img_to
     if do_surf:
         for hemi, v1, v2 in zip(('left', 'right'),
                                 morph.src_data['vertices_from'],

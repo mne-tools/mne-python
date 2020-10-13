@@ -25,6 +25,8 @@ Enhancements
 
 - Reduce memory usage of volume source spaces by `Eric Larson`_ (:gh:`8379`)
 
+- Speed up :meth:`mne.SourceMorph.apply` for volumetric source spaces by use of the method :meth:`mne.SourceMorph.linearize_volume_morph` by `Eric Larson`_ (:gh:`8366`)
+
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
 
 Bugs
