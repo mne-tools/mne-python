@@ -1846,7 +1846,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
                              'mayavi backend')
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
-
     del kwargs
     if scale_factor is None:
         # Configure the glyphs scale directly
