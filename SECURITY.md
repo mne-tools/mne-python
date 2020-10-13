@@ -5,7 +5,8 @@
 New minor versions of MNE-Python are typically released twice per year.
 Only the most current stable release is officially supported.
 The unreleased, unstable "dev version" is also supported, though users
-should beware that the API of the dev version
+should beware that the API of the dev version is subject to change
+without a proper 6-month deprecation cycle.
 
 | Version | Supported                |
 | ------- | ------------------------ |
