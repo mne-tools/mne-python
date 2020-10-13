@@ -234,8 +234,6 @@ class Brain(object):
 
         self.time_viewer = False
         self.notebook = (_get_3d_backend() == "notebook")
-        self.label_mask = dict()
-        self.labels = dict()
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -243,7 +241,9 @@ class Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._label_data = dict()
+        self._vertex_to_label_id = dict()
+        self._annotation_labels = dict()
+        self._labels = dict()
         self._hemi_actors = {}
         self._hemi_meshes = {}
         # for now only one color bar can be added
@@ -1118,10 +1118,10 @@ class Brain(object):
             self.add_point(hemi, mesh, vertex_id)
 
     def add_patch(self, hemi, mesh, vertex_id):
-        label_id = self.label_mask[hemi][vertex_id]
-        label = self.labels[hemi][label_id]
+        label_id = self._vertex_to_label_id[hemi][vertex_id]
+        label = self._annotation_labels[hemi][label_id]
         if label_id in self.picked_patches[hemi]:
-            _, mesh_data, line = self._label_data[label.name]
+            _, mesh_data, line = self._labels[label.name]
             line.remove()
             self.mpl_canvas.update_plot()
             self._renderer.remove_mesh(mesh_data)
@@ -1686,9 +1686,9 @@ class Brain(object):
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for _, mesh_data in self._label_data.values():
+        for _, mesh_data, _ in self._labels.values():
             self._renderer.remove_mesh(mesh_data)
-        self._label_data.clear()
+        self._labels.clear()
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
@@ -1957,7 +1957,7 @@ class Brain(object):
             )
             self._renderer.set_camera(**views_dicts[hemi][v])
 
-        self._label_data[label_name] = (orig_label, mesh_data, line)
+        self._labels[label_name] = (orig_label, mesh_data, line)
         self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
@@ -2097,11 +2097,11 @@ class Brain(object):
                     hemi=hemi,
                     subjects_dir=self._subjects_dir
                 )
-                self.label_mask[hemi] = np.full(
+                self._vertex_to_label_id[hemi] = np.full(
                     self.geo[hemi].coords.shape[0], -1)
-                self.labels[hemi] = labels
+                self._annotation_labels[hemi] = labels
                 for idx, label in enumerate(labels):
-                    self.label_mask[hemi][label.vertices] = idx
+                    self._vertex_to_label_id[hemi][label.vertices] = idx
             self.clear_points()
             self.mpl_canvas.axes.clear()
             self.plot_time_line()
