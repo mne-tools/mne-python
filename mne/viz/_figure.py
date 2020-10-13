@@ -1006,7 +1006,6 @@ class MNEBrowseFigure(MNEFigure):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations."""
-
         # TODO disable for epochs/ica instance types
         raw = self.mne.inst
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
