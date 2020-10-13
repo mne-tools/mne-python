@@ -358,7 +358,6 @@ class Brain(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
-        self.default_annotation_color = [0.6, 0.6, 0.6, 1]
         self.traces_mode = 'vertex'
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
@@ -907,7 +906,7 @@ class Brain(object):
             else:
                 mesh = hemi_data['mesh']
             vertex_id = vertices[ind[0]]
-            self.add_vertex_glyph(hemi, mesh, vertex_id)
+            self._add_vertex_glyph(hemi, mesh, vertex_id)
 
     def _configure_picking(self):
         from ..backends._pyvista import _update_picking_callback
@@ -1057,7 +1056,7 @@ class Brain(object):
 
         # 2) Remove sphere if it's what we have
         if hasattr(mesh, "_is_glyph"):
-            self.remove_vertex_glyph(mesh)
+            self._remove_vertex_glyph(mesh)
             return
 
         # 3) Otherwise, pick the objects in the scene
@@ -1113,44 +1112,25 @@ class Brain(object):
             vertex_id = cell[idx[0]]
 
         if self.traces_mode == 'label':
-            self.add_label_glyph(hemi, mesh, vertex_id)
+            self._add_label_glyph(hemi, mesh, vertex_id)
         else:
-            self.add_vertex_glyph(hemi, mesh, vertex_id)
+            self._add_vertex_glyph(hemi, mesh, vertex_id)
 
-    def add_label_glyph(self, hemi, mesh, vertex_id):
-        """Pick a label on the brain.
-
-        Parameters
-        ----------
-        hemi : str
-            The hemisphere id of the vertex.
-        mesh : object
-            The mesh where picking is expected.
-        vertex_id : int
-            The vertex identifier in the mesh.
-        """
+    def _add_label_glyph(self, hemi, mesh, vertex_id):
         label_id = self._vertex_to_label_id[hemi][vertex_id]
         label = self._annotation_labels[hemi][label_id]
 
         # remove the patch if already picked
         if label_id in self.picked_patches[hemi]:
-            self.remove_label_glyph(hemi, label_id)
+            self._remove_label_glyph(hemi, label_id)
             return
 
         if hemi == label.hemi:
-            self.add_label(label, borders=True, traces=True)
+            self.add_label(label, borders=True, reset_camera=False,
+                           traces=True)
             self.picked_patches[hemi].append(label_id)
 
-    def remove_label_glyph(self, hemi, label_id):
-        """Remove the picked label from its id.
-
-        Parameters
-        ----------
-        hemi : str
-            The hemisphere id of the vertex.
-        label_id : int
-            The label identifier in the annotation.
-        """
+    def _remove_label_glyph(self, hemi, label_id):
         label = self._annotation_labels[hemi][label_id]
         _, mesh_data, line = self._labels[label.name]
         line.remove()
@@ -1158,23 +1138,7 @@ class Brain(object):
         self._renderer.remove_mesh(mesh_data)
         self.picked_patches[hemi].remove(label_id)
 
-    def add_vertex_glyph(self, hemi, mesh, vertex_id):
-        """Pick a vertex on the brain.
-
-        Parameters
-        ----------
-        hemi : str
-            The hemisphere id of the vertex.
-        mesh : object
-            The mesh where picking is expected.
-        vertex_id : int
-            The vertex identifier in the mesh.
-
-        Returns
-        -------
-        sphere : object
-            The glyph created for the picked point.
-        """
+    def _add_vertex_glyph(self, hemi, mesh, vertex_id):
         if vertex_id in self.picked_points[hemi]:
             return
 
@@ -1239,14 +1203,7 @@ class Brain(object):
         self.pick_table[vertex_id] = spheres
         return sphere
 
-    def remove_vertex_glyph(self, mesh):
-        """Remove the picked vertex from its glyph.
-
-        Parameters
-        ----------
-        mesh : object
-            The mesh associated to the point to remove.
-        """
+    def _remove_vertex_glyph(self, mesh):
         vertex_id = mesh._vertex_id
         if vertex_id not in self.pick_table:
             return
@@ -1273,13 +1230,13 @@ class Brain(object):
     def clear_glyphs(self):
         """Clear the picking glyphs."""
         for sphere in list(self._spheres):  # will remove itself, so copy
-            self.remove_vertex_glyph(sphere)
+            self._remove_vertex_glyph(sphere)
         assert sum(len(v) for v in self.picked_points.values()) == 0
         assert len(self.pick_table) == 0
         assert len(self._spheres) == 0
         for hemi in self._hemis:
             for label_id in list(self.picked_patches[hemi]):
-                self.remove_label_glyph(hemi, label_id)
+                self._remove_label_glyph(hemi, label_id)
         assert sum(len(v) for v in self.picked_patches.values()) == 0
 
     def plot_time_course(self, hemi, vertex_id, color):
@@ -1838,7 +1795,8 @@ class Brain(object):
         return actor_pos, actor_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
-                  borders=False, hemi=None, subdir=None, traces=True):
+                  borders=False, hemi=None, subdir=None,
+                  reset_camera=True, traces=True):
         """Add an ROI label to the image.
 
         Parameters
@@ -1869,6 +1827,9 @@ class Brain(object):
             label directory rather than in the label directory itself (e.g.
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
+        reset_camera : bool
+            If True, reset the camera view after adding the label. Defaults
+            to True.
         traces : bool
             If True, plot the label time course. Defaults to True.
 
@@ -1985,7 +1946,8 @@ class Brain(object):
                 backface_culling=False,
                 polygon_offset=-2,
             )
-            self._renderer.set_camera(**views_dicts[hemi][v])
+            if reset_camera:
+                self._renderer.set_camera(**views_dicts[hemi][v])
 
         self._labels[label_name] = (orig_label, mesh_data, line)
         self._update()
@@ -2208,7 +2170,7 @@ class Brain(object):
             if self.time_viewer and self.traces_mode == 'label':
                 scalars = ids > 0
                 colormap = np.asarray([[0, 0, 0, 0],
-                                      self.default_annotation_color])
+                                      self._brain_color])
             else:
                 scalars = ids
                 colormap = ctable
