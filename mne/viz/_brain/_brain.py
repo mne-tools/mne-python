@@ -2073,6 +2073,9 @@ class Brain(object):
         color : matplotlib-style color code
             If used, show all annotations in the same (specified) color.
             Probably useful only when showing annotation borders.
+        traces : bool
+            If True, enable interactive picking of a label on the surface
+            of the brain and plot its time course.
         **kwargs : dict
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
