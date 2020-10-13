@@ -455,8 +455,13 @@ class SourceMorph(object):
                 output=output)
         return out
 
-    def linearize_volume_morph(self):
+    @verbose
+    def linearize_volume_morph(self, *, verbose=None):
         """Linearize the volumetric morphing step.
+
+        Parameters
+        ----------
+        %(verbose_meth)s
 
         Notes
         -----
@@ -493,7 +498,8 @@ class SourceMorph(object):
             indices.extend(idx)
             indptr.append(indptr[-1] + len(idx))
         data = np.array(data)
-        vol_morph_mat = sparse.csc_matrix((data, indices, indptr), shape=shape)
+        vol_morph_mat = sparse.csc_matrix(
+            (data, indices, indptr), shape=shape).tocsr()
         self.vol_morph_mat = vol_morph_mat
 
     def _morph_one_vol(self, one):
@@ -1404,13 +1410,15 @@ def _apply_morph_data(morph, stc_from):
         assert not to_used[to_sl].any()
         to_used[to_sl] = True
         # Loop over time points to save memory
-        for k in range(n_times):
-            this_data = data_from[from_sl, k:k + 1]
-            if morph.vol_morph_mat is None:
+        if morph.vol_morph_mat is None:
+            logger.debug('Using individual volume morph')
+            for k in range(n_times):
+                this_data = data_from[from_sl, k:k + 1]
                 this_img_to = morph._morph_one_vol(this_data)[vol_verts]
-            else:
-                this_img_to = morph.vol_morph_mat.dot(this_data)[:, 0]
-            data[to_sl, k] = this_img_to
+                data[to_sl, k] = this_img_to
+        else:
+            logger.debug('Using linearized volume morph')
+            data[to_sl, :] = morph.vol_morph_mat.dot(data_from[from_sl])
     if do_surf:
         for hemi, v1, v2 in zip(('left', 'right'),
                                 morph.src_data['vertices_from'],

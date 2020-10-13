@@ -9,6 +9,7 @@ import numpy as np
 from numpy.testing import (assert_array_less, assert_allclose,
                            assert_array_equal)
 from scipy.spatial.distance import cdist
+from scipy.sparse import csr_matrix
 
 import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
@@ -25,7 +26,7 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
 from mne.source_space import (get_volume_labels_from_aseg, _get_mri_info_data,
                               _get_atlas_values, _add_interpolator)
 from mne.utils import (run_tests_if_main, requires_nibabel, check_version,
-                       requires_dipy, requires_h5py)
+                       requires_dipy, requires_h5py, catch_logging)
 from mne.fixes import _get_args
 
 # Setup paths
@@ -461,24 +462,22 @@ def test_volume_source_morph(tmpdir):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    'subject_from, subject_to, lower, upper, dtype, linearize, labelize', [
-        ('sample', 'fsaverage', 8.5, 9, float, False, False),
-        ('fsaverage', 'fsaverage', 7, 7.5, float, False, False),
-        ('sample', 'sample', 6, 7, complex, False, False),
-        # labelized
-        ('sample', 'sample', 1, 2, float, False, True),
-        ('sample', 'sample', 1, 2, float, True, True),  # linearized
-        ('sample', 'fsaverage', 10, 12, float, False, True),
-        ('sample', 'fsaverage', 10, 12, float, True, True),  # linearized
-])
+    'subject_from, subject_to, lower, upper, dtype, linearize', [
+        ('sample', 'fsaverage', 8.5, 9, float, False),
+        ('fsaverage', 'fsaverage', 7, 7.5, float, False),
+        ('sample', 'sample', 6, 7, complex, False),
+        ('sample', 'sample', 1, 2, float, True),  # linearized+labelized
+        ('sample', 'fsaverage', 10, 12, float, True),  # linearized+labelized
+    ])
 def test_volume_source_morph_round_trip(
-        tmpdir, subject_from, subject_to, lower, upper, dtype, linearize,
-        labelize):
+        tmpdir, subject_from, subject_to, lower, upper, dtype, linearize):
     """Test volume source estimate morph round-trips well."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
     src = dict()
-    if labelize:
+    if linearize:
+        # ~1.5 minutes with pos=7. (4157 morphs!) for sample, so only test
+        # linearize mode with a few labels
         label_names = sorted(get_volume_labels_from_aseg(fname_aseg))[1:2]
         if 'sample' in (subject_from, subject_to):
             src['sample'] = setup_volume_source_space(
@@ -491,8 +490,6 @@ def test_volume_source_morph_round_trip(
                 volume_label=label_names[:3], mri=fname_aseg_fs)
             assert sum(s['nuse'] for s in src['fsaverage']) == 16
     else:
-        # ~1.5 minutes with pos=7. (4157 morphs!) for sample, so only test
-        # linearize mode with a few labels
         assert not linearize
         if 'sample' in (subject_from, subject_to):
             src['sample'] = mne.read_source_spaces(fname_vol)
@@ -524,9 +521,6 @@ def test_volume_source_morph_round_trip(
         src=src_from, src_to=src_to, subject_to=subject_to, **kwargs)
     morph_to_from = compute_source_morph(
         src=src_to, src_to=src_from, subject_to=subject_from, **kwargs)
-    if linearize:
-        morph_from_to.linearize_volume_morph()
-        morph_to_from.linearize_volume_morph()
     nuse = sum(s['nuse'] for s in src_from)
     assert nuse > 10
     use = np.linspace(0, nuse - 1, 10).round().astype(int)
@@ -535,7 +529,11 @@ def test_volume_source_morph_round_trip(
         data = data * 1j
     vertices = [s['vertno'] for s in src_from]
     stc_from = VolSourceEstimate(data, vertices, 0, 1)
-    stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
+    with catch_logging() as log:
+        stc_from_rt = morph_to_from.apply(
+            morph_from_to.apply(stc_from, verbose='debug'))
+    log = log.getvalue()
+    assert 'individual volume morph' in log
     maxs = np.argmax(stc_from_rt.data, axis=0)
     src_rr = np.concatenate([s['rr'][s['vertno']] for s in src_from])
     dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
@@ -548,22 +546,48 @@ def test_volume_source_morph_round_trip(
             assert_allclose(
                 morph.pre_affine.affine, np.eye(4), atol=1e-2)
     # check that power is more or less preserved (labelizing messes with this)
-    if labelize:
+    if linearize:
         if subject_to == 'fsaverage':
             limits = (19, 20)
         else:
             limits = (8, 9)
     else:
         limits = (1, 1.2)
-    stc_from.crop(0, 0)._data.fill(1.)
-    stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
-    assert_power_preserved(stc_from, stc_from_rt, limits=limits)
+    stc_from_unit = stc_from.copy().crop(0, 0)
+    stc_from_unit._data.fill(1.)
+    stc_from_unit_rt = morph_to_from.apply(morph_from_to.apply(stc_from_unit))
+    assert_power_preserved(stc_from_unit, stc_from_unit_rt, limits=limits)
+    if linearize:
+        fname = tmpdir.join('temp-morph.h5')
+        morph_to_from.save(fname)
+        morph_to_from = read_source_morph(fname)
+        assert morph_from_to.vol_morph_mat is None
+        assert morph_to_from.vol_morph_mat is None
+        morph_from_to.linearize_volume_morph(verbose=True)
+        morph_to_from.linearize_volume_morph(verbose=True)
+        morph_to_from.save(fname, overwrite=True)
+        morph_to_from = read_source_morph(fname)
+        assert isinstance(morph_from_to.vol_morph_mat, csr_matrix), 'csr'
+        assert isinstance(morph_to_from.vol_morph_mat, csr_matrix), 'csr'
+        # equivalence
+        with catch_logging() as log:
+            stc_from_rt_lin = morph_to_from.apply(
+                morph_from_to.apply(stc_from, verbose='debug'))
+        log = log.getvalue()
+        assert 'linearized volume morph' in log
+        assert_allclose(stc_from_rt.data, stc_from_rt_lin.data)
+        del stc_from_rt_lin
+        stc_from_unit_rt_lin = morph_to_from.apply(
+            morph_from_to.apply(stc_from_unit))
+        assert_allclose(stc_from_unit_rt.data, stc_from_unit_rt_lin.data)
+        del stc_from_unit_rt_lin
+    del stc_from, stc_from_rt
     # before and after morph, check the proportion of vertices
     # that are inside and outside the brainmask.mgz
     brain = nib.load(op.join(subjects_dir, subject_from, 'mri', 'brain.mgz'))
     mask = _get_img_fdata(brain) > 0
     if subject_from == subject_to == 'sample':
-        for stc in [stc_from, stc_from_rt]:
+        for stc in [stc_from_unit, stc_from_unit_rt]:
             img = stc.as_volume(src_from, mri_resolution=True)
             img = nib.Nifti1Image(  # abs to convert complex
                 np.abs(_get_img_fdata(img)[:, :, :, 0]), img.affine)
@@ -571,7 +595,7 @@ def test_volume_source_morph_round_trip(
             assert img.shape == mask.shape
             in_ = img[mask].astype(bool).mean()
             out = img[~mask].astype(bool).mean()
-            if labelize:
+            if linearize:
                 out_max = 0.001
                 in_min, in_max = 0.005, 0.007
             else:
@@ -723,11 +747,11 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     evoked.info.normalize_proj()
     n_ch = len(evoked.ch_names)
     lut, _ = read_freesurfer_lut()
-    label_names = sorted(get_volume_labels_from_aseg(aseg_fname))
+    label_names = sorted(get_volume_labels_from_aseg(fname_aseg))
     use_label_names = label_names[sl]
     src = setup_volume_source_space(
         'sample', subjects_dir=subjects_dir, volume_label=use_label_names,
-        mri=aseg_fname)
+        mri=fname_aseg)
     assert len(src) == n_use
     assert src.kind == 'volume'
     n_src = sum(s['nuse'] for s in src)
