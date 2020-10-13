@@ -23,7 +23,7 @@ from .utils import (_prepare_mne_browse, figure_nobar, plt_show,
                     _get_figsize_from_config, _setup_browser_offsets,
                     _compute_scalings, _handle_decim, _check_cov,
                     _set_ax_label_style, _simplify_float, _check_psd_fmax,
-                    _set_window_title, shorten_path_from_middle)
+                    _set_window_title, _shorten_path_from_middle)
 
 _RAW_CLIP_DEF = 1.5
 
@@ -328,7 +328,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
             title = f'{title}{extra}'
             if len(title) > 60:
-                title = shorten_path_from_middle(title)
+                title = _shorten_path_from_middle(title)
     elif not isinstance(title, str):
         raise TypeError(f'title must be None or a string, got a {type(title)}')
 

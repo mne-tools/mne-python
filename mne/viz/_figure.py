@@ -7,6 +7,7 @@
 
 import platform
 from copy import deepcopy
+from itertools import cycle
 from functools import partial
 from collections import OrderedDict
 import numpy as np
@@ -111,9 +112,6 @@ class MNEFigure(Figure):
 class MNEAnnotationFigure(MNEFigure):
     """Interactive dialog figure for annotations."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
         parent = self.mne.parent_fig
@@ -191,9 +189,6 @@ class MNEAnnotationFigure(MNEFigure):
 
 class MNESelectionFigure(MNEFigure):
     """Interactive dialog figure for channel selections."""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     def _close(self, event):
         """Handle close events."""
@@ -303,6 +298,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.fig_annotation = None
 
         # MAIN AXES: default sizes (inches)
+        # XXX simpler with constrained_layout? (when MPL min version >= 2.2)
         l_margin = 1.
         r_margin = 0.1
         b_margin = 0.45
@@ -426,15 +422,16 @@ class MNEBrowseFigure(MNEFigure):
         # persist changes to proj checkboxes)
         self.mne.info['projs'] = self.mne.inst.info['projs']
         self.mne.inst.info = self.mne.info
-        # Clean up child figures too
+        # write window size to config
+        size = ','.join(self.get_size_inches().astype(str))
+        set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
+        # Clean up child figures (don't pop(), child figs remove themselves)
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]
             close(fig)
 
     def _resize(self, event):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
-        size = ','.join(self.get_size_inches().astype(str))
-        set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
         old_width, old_height = self.mne.fig_size_px
         new_width, new_height = self._get_size_px()
         new_margins = dict()
@@ -686,6 +683,8 @@ class MNEBrowseFigure(MNEFigure):
     def _create_ch_location_fig(self, idx):
         """Show channel location figure; idx is index of *visible* channels."""
         pass
+        # XXX implementation works interactively, but fails tests with older
+        # XXX MPL. Probably needs a refactor of plot_sensors() to work cleanly
         # from .utils import _channel_type_prettyprint
         # pick = self.mne.picks[idx]
         # ch_name = self.mne.ch_names[pick]
@@ -1007,7 +1006,6 @@ class MNEBrowseFigure(MNEFigure):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations."""
-        from itertools import cycle
 
         # TODO disable for epochs/ica instance types
         raw = self.mne.inst
@@ -1307,12 +1305,9 @@ class MNEBrowseFigure(MNEFigure):
                                             toggle_all=True))
         # save params
         fig.mne.proj_checkboxes = checkboxes
-        # show figure (this should work for non-test cases)
-        try:
-            self.mne.fig_proj.canvas.draw()
-            plt_show(fig=self.mne.fig_proj, warn=False)
-        except Exception:
-            pass
+        # show figure
+        self.mne.fig_proj.canvas.draw()
+        plt_show(fig=self.mne.fig_proj, warn=False)
 
     def _toggle_proj_fig(self, event=None):
         """Show/hide the projectors dialog window."""
