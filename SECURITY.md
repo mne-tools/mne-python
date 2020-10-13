@@ -21,4 +21,10 @@ recorded with a variety of devices/modalities (EEG, MEG, ECoG, fNIRS, etc).
 It is not expected that using MNE-Python will lead to security
 vulnerabilities under normal use cases (i.e., running without administrator
 privileges). However, if you think you have found a security vulnerability
-in MNE-Python, please report it to mne-core-dev-team@groups.io
+in MNE-Python, **please do not report it as a GitHub issue**, in order to 
+keep the vulnerability confidential. Instead, please report it to
+mne-core-dev-team@groups.io and include a description and proof-of-concept
+that is [short and self-contained](http://www.sscce.org/).
+
+Generally you will receive a response within one week. MNE-Python does not
+award bounties for security vulnerabilities.
