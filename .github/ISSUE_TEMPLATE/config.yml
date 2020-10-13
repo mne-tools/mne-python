@@ -6,5 +6,3 @@ contact_links:
   - name: Gitter
     url: https://gitter.im/mne-tools/mne-python
     about: Users and developers can chat and share code samples on our gitter channel
-  - name: Security issues
-    url:
