@@ -1839,7 +1839,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "views": views, "alpha": brain_alpha,
     }
     if backend in ['pyvista', 'notebook']:
-        kwargs["show"] = not time_viewer
+        kwargs["show"] = False
         kwargs["view_layout"] = view_layout
     else:
         kwargs.update(_check_pysurfer_antialias(Brain))
@@ -1951,6 +1951,9 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         else:  # PyVista
             from ._brain import _TimeViewer as TimeViewer
             TimeViewer(brain, show_traces=show_traces)
+    else:
+        if not using_mayavi:
+            brain.show()
 
     return brain
 

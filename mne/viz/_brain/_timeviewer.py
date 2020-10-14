@@ -233,7 +233,7 @@ class _TimeViewer(object):
             self.brain.save_movie(
                 filename=filename,
                 time_dilation=(1. / self.playback_speed),
-                callback=frame_callback,
+                callback=partial(frame_callback, fname=None),
                 **kwargs
             )
         except (Exception, KeyboardInterrupt):
