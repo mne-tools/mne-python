@@ -462,22 +462,22 @@ def test_volume_source_morph(tmpdir):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    'subject_from, subject_to, lower, upper, dtype, linearize', [
+    'subject_from, subject_to, lower, upper, dtype, morph_mat', [
         ('sample', 'fsaverage', 8.5, 9, float, False),
         ('fsaverage', 'fsaverage', 7, 7.5, float, False),
         ('sample', 'sample', 6, 7, complex, False),
-        ('sample', 'sample', 1, 2, float, True),  # linearized+labelized
-        ('sample', 'fsaverage', 10, 12, float, True),  # linearized+labelized
+        ('sample', 'sample', 1, 2, float, True),  # morph_mat
+        ('sample', 'fsaverage', 10, 12, float, True),  # morph_mat
     ])
 def test_volume_source_morph_round_trip(
-        tmpdir, subject_from, subject_to, lower, upper, dtype, linearize):
+        tmpdir, subject_from, subject_to, lower, upper, dtype, morph_mat):
     """Test volume source estimate morph round-trips well."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
     src = dict()
-    if linearize:
+    if morph_mat:
         # ~1.5 minutes with pos=7. (4157 morphs!) for sample, so only test
-        # linearize mode with a few labels
+        # morph_mat computation mode with a few labels
         label_names = sorted(get_volume_labels_from_aseg(fname_aseg))[1:2]
         if 'sample' in (subject_from, subject_to):
             src['sample'] = setup_volume_source_space(
@@ -490,7 +490,7 @@ def test_volume_source_morph_round_trip(
                 volume_label=label_names[:3], mri=fname_aseg_fs)
             assert sum(s['nuse'] for s in src['fsaverage']) == 16
     else:
-        assert not linearize
+        assert not morph_mat
         if 'sample' in (subject_from, subject_to):
             src['sample'] = mne.read_source_spaces(fname_vol)
             src['sample'][0]['subject_his_id'] = 'sample'
@@ -546,7 +546,7 @@ def test_volume_source_morph_round_trip(
             assert_allclose(
                 morph.pre_affine.affine, np.eye(4), atol=1e-2)
     # check that power is more or less preserved (labelizing messes with this)
-    if linearize:
+    if morph_mat:
         if subject_to == 'fsaverage':
             limits = (19, 20)
         else:
@@ -557,14 +557,14 @@ def test_volume_source_morph_round_trip(
     stc_from_unit._data.fill(1.)
     stc_from_unit_rt = morph_to_from.apply(morph_from_to.apply(stc_from_unit))
     assert_power_preserved(stc_from_unit, stc_from_unit_rt, limits=limits)
-    if linearize:
+    if morph_mat:
         fname = tmpdir.join('temp-morph.h5')
         morph_to_from.save(fname)
         morph_to_from = read_source_morph(fname)
         assert morph_from_to.vol_morph_mat is None
         assert morph_to_from.vol_morph_mat is None
-        morph_from_to.linearize_volume_morph(verbose=True)
-        morph_to_from.linearize_volume_morph(verbose=True)
+        morph_from_to.compute_vol_morph_mat(verbose=True)
+        morph_to_from.compute_vol_morph_mat(verbose=True)
         morph_to_from.save(fname, overwrite=True)
         morph_to_from = read_source_morph(fname)
         assert isinstance(morph_from_to.vol_morph_mat, csr_matrix), 'csr'
@@ -574,7 +574,7 @@ def test_volume_source_morph_round_trip(
             stc_from_rt_lin = morph_to_from.apply(
                 morph_from_to.apply(stc_from, verbose='debug'))
         log = log.getvalue()
-        assert 'linearized volume morph' in log
+        assert 'sparse volume morph matrix' in log
         assert_allclose(stc_from_rt.data, stc_from_rt_lin.data)
         del stc_from_rt_lin
         stc_from_unit_rt_lin = morph_to_from.apply(
@@ -595,7 +595,7 @@ def test_volume_source_morph_round_trip(
             assert img.shape == mask.shape
             in_ = img[mask].astype(bool).mean()
             out = img[~mask].astype(bool).mean()
-            if linearize:
+            if morph_mat:
                 out_max = 0.001
                 in_min, in_max = 0.005, 0.007
             else:

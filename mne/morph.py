@@ -337,7 +337,8 @@ class SourceMorph(object):
     src_data : dict
         Additional source data necessary to perform morphing.
     vol_morph_mat : scipy.sparse.csr_matrix | None
-        The volumetric morph matrix, if linearize=True was used.
+        The volumetric morph matrix, if :meth:`compute_vol_morph_mat`
+        was used.
     %(verbose)s
 
     Notes
@@ -456,8 +457,8 @@ class SourceMorph(object):
         return out
 
     @verbose
-    def linearize_volume_morph(self, *, verbose=None):
-        """Linearize the volumetric morphing step.
+    def compute_vol_morph_mat(self, *, verbose=None):
+        """Compute the sparse matrix representation of the volumetric morph.
 
         Parameters
         ----------
@@ -467,15 +468,16 @@ class SourceMorph(object):
         -----
         For a volumetric morph, this will compute the morph for an identity
         source volume, i.e., with one source vertex active at a time, and store
-        the result as a sparse morphing matrix. This takes a long time
-        (minutes) to compute initially, but can be drastically faster to apply
-        to for STCs with many time points, as it converts the volume morph
-        step into a sparse matrix dot product.
+        the result as a :class:`sparse <scipy.sparse.csr_matrix>`
+        morphing matrix. This takes a long time (minutes) to compute initially,
+        but drastically speeds up :meth:`apply` for STCs, so it can be
+        beneficial when many time points or many morphs (i.e., greater than
+        the number of volumetric ``src_from`` vertices) will be performed.
 
-        When calling :meth:`save`, this linearization is saved with the
-        instance, so this only needs to be called once. This function does
-        nothing if the morph is already linearized, or if there is no
-        volume morph present.
+        When calling :meth:`save`, this sparse morphing matrix is saved with
+        the instance, so this only needs to be called once. This function does
+        nothing if the morph matrix has already been computed, or if there is
+        no volume morphing necessary.
 
         .. versionadded:: 0.23
         """
@@ -485,10 +487,11 @@ class SourceMorph(object):
         data = list()
         indices = list()
         indptr = [0]
-        logger.info('Linearizing volumetric morph (will take some time...)')
+        logger.info('Computing sparse volumetric morph matrix '
+                    '(will take some time...)')
         vol_verts = np.concatenate(self._vol_vertices_to)
         shape = (len(vol_verts), one.shape[0])
-        for ii in ProgressBar(list(range(len(one))), mesg='Linearizing'):
+        for ii in ProgressBar(list(range(len(one))), mesg='Vertex'):
             one.fill(0.)
             one[ii] = 1.
             out = self._morph_one_vol(one)[vol_verts]
@@ -667,7 +670,7 @@ def read_source_morph(fname):
     # Backward compat with when it used to be a single array
     if isinstance(vals['src_data'].get('inuse', None), np.ndarray):
         vals['src_data']['inuse'] = [vals['src_data']['inuse']]
-    # added with linearize in 0.23:
+    # added with compute_vol_morph_mat in 0.23:
     vals['vol_morph_mat'] = vals.get('vol_morph_mat', None)
     return SourceMorph(**vals)
 
@@ -1417,7 +1420,7 @@ def _apply_morph_data(morph, stc_from):
                 this_img_to = morph._morph_one_vol(this_data)[vol_verts]
                 data[to_sl, k] = this_img_to
         else:
-            logger.debug('Using linearized volume morph')
+            logger.debug('Using sparse volume morph matrix')
             data[to_sl, :] = morph.vol_morph_mat.dot(data_from[from_sl])
     if do_surf:
         for hemi, v1, v2 in zip(('left', 'right'),
