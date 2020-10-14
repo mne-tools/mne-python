@@ -81,6 +81,21 @@ standardize_names : bool
     channel names in the file will be used when possible.
 """
 
+# Epochs
+docdict['proj_epochs'] = """
+proj : bool | 'delayed'
+    Apply SSP projection vectors. If proj is 'delayed' and reject is not
+    None the single epochs will be projected before the rejection
+    decision, but used in unprojected state if they are kept.
+    This way deciding which projection vectors are good can be postponed
+    to the evoked stage without resulting in lower epoch counts and
+    without producing results different from early SSP application
+    given comparable parameters. Note that in this case baselining,
+    detrending and temporal decimation will be postponed.
+    If proj is False no projections will be applied which is the
+    recommended value if SSPs are not used for cleaning the data.
+"""
+
 # Reject by annotation
 docdict['reject_by_annotation_all'] = """
 reject_by_annotation : bool
@@ -679,6 +694,13 @@ References
 .. footbibliography::
 """
 
+# ICA
+docdict['n_pca_components_apply'] = """
+n_pca_components : int | float | None
+    The number of PCA components to be kept, either absolute (int)
+    or fraction of the explained variance (float). If None (default),
+    the ``ica.n_pca_components`` from initialization will be used.
+"""
 
 # Maxwell filtering
 docdict['maxwell_origin'] = """

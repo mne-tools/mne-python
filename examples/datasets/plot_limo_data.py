@@ -13,9 +13,9 @@ to interface with EEGLAB_.
 
 In summary, the example:
 
-- Fetches epoched data files for a single subject of the LIMO dataset [1]_.
-  If the LIMO files are not found on disk, the
-  fetcher :func:`mne.datasets.limo.load_data()` will automatically download
+- Fetches epoched data files for a single subject of the LIMO dataset
+  :footcite:`Rousselet2016`. If the LIMO files are not found on disk, the
+  fetcher `mne.datasets.limo.load_data()` will automatically download
   the files from a remote repository.
 
 - During import, information about the data (i.e., sampling rate, number of
@@ -26,19 +26,6 @@ In summary, the example:
 - Fits linear models on the single subject's data and visualizes inferential
   measures to evaluate the significance of the estimated effects.
 
-References
-----------
-.. [1] Guillaume, Rousselet. (2016). LIMO EEG Dataset, [dataset].
-       University of Edinburgh, Centre for Clinical Brain Sciences.
-       https://doi.org/10.7488/ds/1556.
-.. [2] Rousselet, G. A., Gaspar, C. M., Pernet, C. R., Husk, J. S.,
-       Bennett, P. J., & Sekuler, A. B. (2010). Healthy aging delays scalp EEG
-       sensitivity to noise in a face discrimination task.
-       Frontiers in psychology, 1, 19. https://doi.org/10.3389/fpsyg.2010.00019
-.. [3] Rousselet, G. A., Pernet, C. R., Bennett, P. J., & Sekuler, A. B.
-       (2008). Parametric study of EEG sensitivity to phase noise during face
-       processing. BMC neuroscience, 9(1), 98.
-       https://doi.org/10.1186/1471-2202-9-98
 .. _LIMO dataset: https://datashare.is.ed.ac.uk/handle/10283/2189?show=full
 .. _LIMO MEEG: https://github.com/LIMO-EEG-Toolbox
 .. _EEGLAB: https://sccn.ucsd.edu/eeglab/index.php
@@ -67,11 +54,13 @@ subj = 1
 # About the data
 # --------------
 #
-# In the original LIMO experiment (see [2]_), participants performed a
+# In the original LIMO experiment (see :footcite:`RousseletEtAl2010`),
+# participants performed a
 # two-alternative forced choice task, discriminating between two face stimuli.
 # The same two faces were used during the whole experiment,
 # with varying levels of noise added, making the faces more or less
-# discernible to the observer (see `Fig 1`_ in [3]_ for a similar approach).
+# discernible to the observer (see `Fig 1`_ in :footcite:`RousseletEtAl2008`
+# for a similar approach).
 #
 # The presented faces varied across a noise-signal (or phase-coherence)
 # continuum spanning from 0 to 85% in increasing steps of 5%.
@@ -317,3 +306,8 @@ ts_args = dict(xlim=(-0.25, 0.5))
 reg['face a - face b'].beta.plot_joint(ts_args=ts_args,
                                        title='Effect of Face A vs. Face B',
                                        times=[0.23])
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::
