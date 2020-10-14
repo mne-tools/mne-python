@@ -186,6 +186,6 @@ brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
                  colormap='viridis', clim=clim, views='parietal',
                  subjects_dir=subjects_dir, size=(600, 600))
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=10, tmin=0.62, tmax=0.72,
-#                  interpolation='linear', framerate=10,
+# brain.save_movie(time_dilation=20, tmin=0.62, tmax=0.72,
+#                  interpolation='linear', framerate=5,
 #                  time_viewer=True)
