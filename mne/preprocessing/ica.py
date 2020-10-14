@@ -172,11 +172,11 @@ class ICA(ContainsMixin):
            equal to* it. The default (None) will also take into account the
            rank deficiency of the data.
     max_pca_components : int | None
-        This parameter is deprecated and will be removed in 0.23. Use
-        ``n_pca_components`` instead.
+        This parameter is deprecated and will be removed in 0.23. Use the
+        ``n_pca_components`` parameter in :meth:`apply` instead.
     n_pca_components : int | float | None
-        This parameter is deprecated and will be removed in 0.23. Use
-        the ``n_pca_components`` parameter in :meth:`apply` instead.
+        This parameter is deprecated and will be removed in 0.23. Use the
+        ``n_pca_components`` parameter in :meth:`apply` instead.
 
         .. versionchanged:: 0.22
            For a :class:`python:float`, the number of components will account
