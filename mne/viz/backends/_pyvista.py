@@ -1125,15 +1125,18 @@ def _disabled_interaction(renderer):
     tmp_iren.SetRenderWindow(ren_win)
     # ren_win.SetInteractor(tmp_iren)
     plotter.iren = tmp_iren
+    # plotter._shadow_renderer.SetInteractive(True)
     try:
         yield
     finally:
+        tmp_iren.SetRenderWindow(None)
         # for renderer in plotter.renderers:
         #     renderer.SetInteractive(True)
         plotter.iren = iren
         iren.SetRenderWindow(ren_win)
         # ren_win.SetInteractor(iren)
         # plotter.key_press_event = func
+        # plotter._shadow_renderer.SetInteractive(False)
 
 
 @decorator
