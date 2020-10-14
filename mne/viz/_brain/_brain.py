@@ -931,7 +931,7 @@ class Brain(object):
         self.actions["movie"] = self.tool_bar.addAction(
             self.icons["movie"],
             "Save movie...",
-            self.save_movie
+            partial(self.save_movie, filename=None)
         )
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
