@@ -2538,18 +2538,19 @@ class Brain(object):
                     framerate=24, interpolation=None, codec=None,
                     bitrate=None, callback=None, time_viewer=False, **kwargs):
         import imageio
-        images = self._make_movie_frames(
-            time_dilation, tmin, tmax, framerate, interpolation, callback,
-            time_viewer)
-        # find imageio FFMPEG parameters
-        if 'fps' not in kwargs:
-            kwargs['fps'] = framerate
-        if codec is not None:
-            kwargs['codec'] = codec
-        if bitrate is not None:
-            kwargs['bitrate'] = bitrate
-
-        imageio.mimwrite(filename, images)
+        from ..backends._pyvista import _disabled_interaction
+        with _disabled_interaction(self._renderer):
+            images = self._make_movie_frames(
+                time_dilation, tmin, tmax, framerate, interpolation, callback,
+                time_viewer)
+            # find imageio FFMPEG parameters
+            if 'fps' not in kwargs:
+                kwargs['fps'] = framerate
+            if codec is not None:
+                kwargs['codec'] = codec
+            if bitrate is not None:
+                kwargs['bitrate'] = bitrate
+            imageio.mimwrite(filename, images)
 
     @fill_doc
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
