@@ -85,7 +85,7 @@ class Raw(BaseRaw):
             if next_fname is not None:
                 if not op.exists(next_fname):
                     msg = (
-                        f'Split raw file detected but next file f{next_fname} '
+                        f'Split raw file detected but next file {next_fname} '
                         'does not exist. Ensure all files were transferred '
                         'properly and that split and original files were not '
                         'manually renamed on disk (split files should be '
