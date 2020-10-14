@@ -713,7 +713,8 @@ docdict['n_pca_components_apply'] = """
 n_pca_components : int | float | None
     The number of PCA components to be kept, either absolute (int)
     or fraction of the explained variance (float). If None (default),
-    the ``ica.n_pca_components`` from initialization will be used.
+    the ``ica.n_pca_components`` from initialization will be used in 0.22;
+    in 0.23 all components will be used.
 """
 
 # Maxwell filtering
