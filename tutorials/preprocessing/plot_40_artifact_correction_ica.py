@@ -121,9 +121,11 @@ raw.crop(tmax=60.)
 # 2. The pre-whitened data are then decomposed using PCA.
 #
 # From the resulting principal components (PCs), the first ``n_components`` are
-# then passed to the ICA algorithm. ``n_components`` may be an integer number
-# of components to use, or a fraction of explained variance that the PCA
-# components components capture.
+# then passed to the ICA algorithm if ``n_components`` is an integer number.
+# It can also be a float between 0 and 1, specifying the **fraction** of
+# explained variance that the PCs should capture; the appropriate number of
+# PCs (i.e., just as many PCs as are required to explain the given fraction
+# of total variance) is then passed to the ICA.
 #
 # After visualizing the Independent Components (ICs) and excluding any that
 # capture artifacts you want to repair, the sensor signal can be reconstructed
