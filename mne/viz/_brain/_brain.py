@@ -361,7 +361,10 @@ class Brain(object):
         self.traces_mode = 'vertex'
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
-        self.color_cycle = None
+        self.color_list = _get_color_list()
+        # remove grey for better contrast on the brain
+        self.color_list.remove("#7f7f7f")
+        self.color_cycle = _ReuseCycle(self.color_list)
         self.mpl_canvas = None
         self.picked_patches = {key: list() for key in all_keys}
         self.picked_points = {key: list() for key in all_keys}
@@ -848,25 +851,6 @@ class Brain(object):
         if self.mpl_canvas is None:
             self._configure_mplcanvas()
 
-        # use a matplotlib canvas
-        self.color_cycle = _ReuseCycle(_get_color_list())
-
-        # get data for each hemi
-        for idx, hemi in enumerate(['vol', 'lh', 'rh']):
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                act_data = hemi_data['array']
-                if act_data.ndim == 3:
-                    act_data = np.linalg.norm(act_data, axis=1)
-                smooth_mat = hemi_data.get('smooth_mat')
-                vertices = hemi_data['vertices']
-                if hemi == 'vol':
-                    assert smooth_mat is None
-                    smooth_mat = sparse.csr_matrix(
-                        (np.ones(len(vertices)),
-                         (vertices, np.arange(len(vertices)))))
-                self.act_data_smooth[hemi] = (act_data, smooth_mat)
-
         # plot the GFP
         y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
                                 if v[0] is not None))
@@ -910,6 +894,22 @@ class Brain(object):
 
     def _configure_picking(self):
         from ..backends._pyvista import _update_picking_callback
+
+        # get data for each hemi
+        for idx, hemi in enumerate(['vol', 'lh', 'rh']):
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                act_data = hemi_data['array']
+                if act_data.ndim == 3:
+                    act_data = np.linalg.norm(act_data, axis=1)
+                smooth_mat = hemi_data.get('smooth_mat')
+                vertices = hemi_data['vertices']
+                if hemi == 'vol':
+                    assert smooth_mat is None
+                    smooth_mat = sparse.csr_matrix(
+                        (np.ones(len(vertices)),
+                         (vertices, np.arange(len(vertices)))))
+                self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
         _update_picking_callback(
             self.plotter,
@@ -2085,6 +2085,13 @@ class Brain(object):
 
         if self.time_viewer and traces:
             self.traces_mode = 'label'
+            if self.mpl_canvas is None:
+                self._configure_mplcanvas()
+                self.show_traces = True
+            else:
+                self.clear_glyphs()
+                self.plotter.update()
+
             for hemi in self._hemis:
                 labels = read_labels_from_annot(
                     subject=self._subject_id,
@@ -2097,9 +2104,6 @@ class Brain(object):
                 self._annotation_labels[hemi] = labels
                 for idx, label in enumerate(labels):
                     self._vertex_to_label_id[hemi][label.vertices] = idx
-            self.clear_glyphs()
-            self.mpl_canvas.axes.clear()
-            self.plotter.update()
 
         # Figure out where the data is coming from
         if isinstance(annot, str):
@@ -2192,7 +2196,7 @@ class Brain(object):
                 polygon_offset=-2,
             )
 
-            if self.traces_mode == 'vertex':
+            if not self.time_viewer or self.traces_mode == 'vertex':
                 if isinstance(mesh_data, tuple):
                     from ..backends._pyvista import _set_colormap_range
                     actor, mesh = mesh_data

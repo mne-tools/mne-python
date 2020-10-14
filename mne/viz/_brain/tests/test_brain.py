@@ -329,7 +329,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir):
     assert len(spheres) == n_spheres
 
     # test removing points
-    brain.clear_points()
+    brain.clear_glyphs()
     assert len(spheres) == 0
     for key in ('lh', 'rh', 'vol'):
         assert len(picked_points[key]) == 0
