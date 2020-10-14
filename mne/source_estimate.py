@@ -3181,7 +3181,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         use only the weight of the nearest sensor, or "zero" to use a
         zero-order hold. See Notes.
     project : bool
-        If True, project the electrodes to the nearest ``'pialæ`` surface
+        If True, project the electrodes to the nearest ``'pial`` surface
         vertex before computing distances.
     %(subjects_dir)s
     %(verbose)s
