@@ -281,7 +281,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
     if order is None:
-        ch_type_order = _DATA_CH_TYPES_ORDER_DEFAULT
+        # for backward compat, we swap the first two to keep grad before mag
+        ch_type_order = list(_DATA_CH_TYPES_ORDER_DEFAULT)
+        ch_type_order = tuple(['grad', 'mag'] + ch_type_order[2:])
         order = [pick_idx for order_type in ch_type_order
                  for pick_idx, pick_type in enumerate(ch_types)
                  if order_type == pick_type]

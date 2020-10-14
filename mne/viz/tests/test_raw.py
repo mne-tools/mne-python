@@ -219,7 +219,7 @@ def test_scale_bar():
     ax = fig.mne.ax_main
     assert len(ax.texts) == 3  # our labels
     texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('2000.0 fT', '800.0 fT/cm', '40.0 µV')
+    wants = ('800.0 fT/cm', '2000.0 fT', '40.0 µV')
     assert texts == wants
     assert len(ax.lines) == 7  # 1 green vline, 3 data, 3 scalebars
     for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
