@@ -102,7 +102,7 @@ morph = mne.compute_source_morph(
 #      transformation for each source point individually. This generally takes
 #      a few minutes to compute, but can be
 #      :meth:`saved <mne.SourceMorph.save>` to disk and be reused. The
-#      resulting sparse matrix operation is very fast (about 100x faster) to
+#      resulting sparse matrix operation is very fast (about 400× faster) to
 #      :meth:`apply <mne.SourceMorph.apply>`. This approach is more efficient
 #      when the number of time points to be morphed exceeds the number of
 #      source space points, which is generally in the thousands. This can
