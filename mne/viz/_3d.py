@@ -1950,7 +1950,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             brain.setup_time_viewer(time_viewer=time_viewer,
                                     show_traces=show_traces)
     else:
-        brain.show()
+        if not using_mayavi:
+            brain.show()
 
     return brain
 
