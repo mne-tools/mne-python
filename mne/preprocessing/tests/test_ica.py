@@ -440,19 +440,15 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
         ica.fit(raw)
     assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
 
-        # test for gh-6271 (scaling of ICA traces)
-        fig = raw_sources.plot()
-        assert len(fig.axes[0].lines) in (4, 8)
-        for line in fig.axes[0].lines:
-            y = line.get_ydata()
-            if len(y) > 2:  # actual data, not markers
-                assert np.ptp(y) < 15
-        plt.close('all')
+    raw_sources = ica.get_sources(raw)
+    # test for #3804
+    assert_equal(raw_sources._filenames, [None])
+    print(raw_sources)
 
     # test for gh-6271 (scaling of ICA traces)
     fig = raw_sources.plot()
-    assert len(fig.axes[0].lines) in (5, 9)
-    for line in fig.axes[0].lines:
+    assert len(fig.mne.ax_main.lines) in (4, 8)
+    for line in fig.mne.ax_main.lines:
         y = line.get_ydata()
         if len(y) > 2:  # actual data, not markers
             assert np.ptp(y) < 15
