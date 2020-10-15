@@ -484,7 +484,7 @@ def _order_epochs(data, times, order=None, overlay_times=None):
         overlay_times = np.array(overlay_times)
         times_min = np.min(overlay_times)
         times_max = np.max(overlay_times)
-        if ((times_min < times[0]) or (times_max > times[-1])):
+        if (times_min < times[0]) or (times_max > times[-1]):
             warn('Some values in overlay_times fall outside of the epochs '
                  f'time interval (between {times[0]} s and {times[-1]} s)')
 
