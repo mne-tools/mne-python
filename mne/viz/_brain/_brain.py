@@ -525,21 +525,21 @@ class Brain(object):
             else:
                 self.time_actor.VisibilityOff()
 
-        self.plotter.update()
+        self._update()
 
     def apply_auto_scaling(self):
         """Detect automatically fitting scaling parameters."""
         self._update_auto_scaling()
         for key in ('fmin', 'fmid', 'fmax'):
             self.reps[key].SetValue(self._data[key])
-        self.plotter.update()
+        self._update()
 
     def restore_user_scaling(self):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
         for key in ('fmin', 'fmid', 'fmax'):
             self.reps[key].SetValue(self._data[key])
-        self.plotter.update()
+        self._update()
 
     def toggle_playback(self, value=None):
         """Toggle time playback.
@@ -578,7 +578,7 @@ class Brain(object):
                 self._data["initial_time_idx"],
                 update_widget=True,
             )
-        self.plotter.update()
+        self._update()
 
     def set_playback_speed(self, speed):
         """Set the time playback speed.
@@ -1248,7 +1248,7 @@ class Brain(object):
             for label_id in list(self.picked_patches[hemi]):
                 self._remove_label_glyph(hemi, label_id)
         assert sum(len(v) for v in self.picked_patches.values()) == 0
-        self.plotter.update()
+        self._update()
 
     def plot_time_course(self, hemi, vertex_id, color):
         """Plot the vertex time course.
@@ -2090,7 +2090,7 @@ class Brain(object):
             self.mpl_canvas.axes.relim()
             self.mpl_canvas.axes.autoscale_view()
             self.mpl_canvas.update_plot()
-            self.plotter.update()
+            self._update()
         combo.setCurrentText(self.label_extract_mode)
         combo.currentTextChanged.connect(_set_label_mode)
         self.label_tool_bar.addWidget(combo)
@@ -2998,6 +2998,8 @@ class Brain(object):
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self.notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
+            else:
+                self._renderer.plotter.update()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.
