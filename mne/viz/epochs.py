@@ -496,7 +496,7 @@ def _order_epochs(data, times, order=None, overlay_times=None):
             raise ValueError(f'If order is a {type(order).__name__}, its '
                              f'length ({len(order)}) must match the length of '
                              f'the data ({n_epochs}).')
-        order = np.asarray(order)
+        order = np.array(order)
         data = data[order]
         if overlay_times is not None:
             overlay_times = overlay_times[order]
