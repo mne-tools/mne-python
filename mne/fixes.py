@@ -325,7 +325,7 @@ else:
         u, s, vh = linalg.svd(A, full_matrices=False)
         M, N = u.shape[0], vh.shape[1]
         if rcond is None:
-            rcond = numpy.finfo(s.dtype).eps * max(M, N)
+            rcond = np.finfo(s.dtype).eps * max(M, N)
         tol = np.amax(s) * rcond
         num = np.sum(s > tol, dtype=int)
         Q = u[:, :num]
@@ -333,6 +333,7 @@ else:
 
 ###############################################################################
 # NumPy Generator (NumPy 1.17)
+
 
 def rng_uniform(rng):
     """Get the unform/randint from the rng."""
@@ -576,6 +577,17 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+    def _get_tags(self):
+        collected_tags = {}
+        for base_class in reversed(inspect.getmro(self.__class__)):
+            if hasattr(base_class, '_more_tags'):
+                # need the if because mixins might not have _more_tags
+                # but might do redundant work in estimators
+                # (i.e. calling more tags on BaseEstimator multiple times)
+                more_tags = base_class._more_tags(self)
+                collected_tags.update(more_tags)
+        return collected_tags
 
 
 # newer sklearn deprecates importing from sklearn.metrics.scoring,
@@ -1064,6 +1076,7 @@ except ImportError:  # NumPy < 1.15
 
 ###############################################################################
 # From nilearn
+
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     """
