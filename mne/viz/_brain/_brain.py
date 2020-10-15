@@ -358,7 +358,11 @@ class Brain(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
+        self.default_label_extract_modes = [
+            "mean", "max", "mean_flip", "pca_flip", "auto"
+        ]
         self.traces_mode = 'vertex'
+        self.label_extract_mode = "auto"
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
         self.color_list = _get_color_list()
@@ -387,6 +391,7 @@ class Brain(object):
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
         self.tool_bar = self.window.addToolBar("toolbar")
+        self.label_tool_bar = None
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
         self.window.signal_close.connect(self._clean)
@@ -441,6 +446,7 @@ class Brain(object):
         self.main_menu = None
         self.window = None
         self.tool_bar = None
+        self.label_tool_bar = None
         self.status_bar = None
         self.interactor = None
         if self.mpl_canvas is not None:
@@ -853,7 +859,6 @@ class Brain(object):
             self._configure_mplcanvas()
         else:
             self.clear_glyphs()
-            self.plotter.update()
 
         # plot the GFP
         y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
@@ -1242,6 +1247,7 @@ class Brain(object):
             for label_id in list(self.picked_patches[hemi]):
                 self._remove_label_glyph(hemi, label_id)
         assert sum(len(v) for v in self.picked_patches.values()) == 0
+        self.plotter.update()
 
     def plot_time_course(self, hemi, vertex_id, color):
         """Plot the vertex time course.
@@ -1907,7 +1913,7 @@ class Brain(object):
 
             stc = self._data["stc"]
             tc = stc.extract_label_time_course(orig_label, src=None,
-                                               mode='mean')
+                                               mode=self.label_extract_mode)
             color = next(self.color_cycle)
             line = self.mpl_canvas.plot(
                 self._data['time'], tc[0], label=orig_label.name,
@@ -2049,6 +2055,7 @@ class Brain(object):
                               size=font_size, justification=justification)
 
     def _configure_label_time_course(self, annot):
+        from PyQt5.QtWidgets import QLabel, QComboBox
         from ...label import read_labels_from_annot
         if not self.show_traces:
             return
@@ -2058,7 +2065,20 @@ class Brain(object):
             self._configure_mplcanvas()
         else:
             self.clear_glyphs()
-            self.plotter.update()
+
+        # setup label tool bar
+        self.window.addToolBarBreak()
+        self.label_tool_bar = self.window.addToolBar("label")
+        self.label_tool_bar.addWidget(QLabel("Label extraction mode"))
+        combo = QComboBox()
+        for mode in self.default_label_extract_modes:
+            combo.addItem(mode)
+
+        def _set_label_mode(mode):
+            self.label_extract_mode = mode
+        combo.setCurrentText(self.label_extract_mode)
+        combo.currentTextChanged.connect(_set_label_mode)
+        self.label_tool_bar.addWidget(combo)
 
         for hemi in self._hemis:
             labels = read_labels_from_annot(
