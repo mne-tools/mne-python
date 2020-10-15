@@ -1141,8 +1141,9 @@ class Brain(object):
 
     def _remove_label_glyph(self, hemi, label_id):
         label = self._annotation_labels[hemi][label_id]
-        _, mesh_data, line = self._labels[label.name]
+        _, mesh_data, line, color = self._labels[label.name]
         line.remove()
+        self.color_cycle.restore(color)
         self.mpl_canvas.update_plot()
         self._renderer.remove_mesh(mesh_data)
         self.picked_patches[hemi].remove(label_id)
@@ -1683,7 +1684,7 @@ class Brain(object):
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for _, mesh_data, _ in self._labels.values():
+        for _, mesh_data, _, _ in self._labels.values():
             self._renderer.remove_mesh(mesh_data)
         self._labels.clear()
         self._update()
@@ -1919,8 +1920,10 @@ class Brain(object):
                 self._data['time'], tc[0], label=orig_label.name,
                 color=color)
         else:
+            color = None
             line = None
 
+        orig_color = color
         color = colorConverter.to_rgba(color, alpha)
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
@@ -1959,7 +1962,7 @@ class Brain(object):
             if reset_camera:
                 self._renderer.set_camera(**views_dicts[hemi][v])
 
-        self._labels[label_name] = (orig_label, mesh_data, line)
+        self._labels[label_name] = (orig_label, mesh_data, line, orig_color)
         self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
@@ -2075,7 +2078,19 @@ class Brain(object):
             combo.addItem(mode)
 
         def _set_label_mode(mode):
+            import copy
+            glyphs = copy.deepcopy(self.picked_patches)
             self.label_extract_mode = mode
+            self.clear_glyphs()
+            for hemi in self._hemis:
+                for label_id in glyphs[hemi]:
+                    label = self._annotation_labels[hemi][label_id]
+                    vertex_id = label.vertices[0]
+                    self._add_label_glyph(hemi, None, vertex_id)
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
+            self.plotter.update()
         combo.setCurrentText(self.label_extract_mode)
         combo.currentTextChanged.connect(_set_label_mode)
         self.label_tool_bar.addWidget(combo)

@@ -3023,7 +3023,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, trans=None,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
-    if src is None and mode == 'mean':
+    if src is None and mode in ['mean', 'max']:
         kind = 'surface'
     else:
         _validate_type(src, SourceSpaces)
