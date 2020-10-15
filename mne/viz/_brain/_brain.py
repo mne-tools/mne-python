@@ -371,6 +371,7 @@ class Brain(object):
         self.color_list.remove("#7f7f7f")
         self.color_cycle = _ReuseCycle(self.color_list)
         self.mpl_canvas = None
+        self.gfp = None
         self.picked_patches = {key: list() for key in all_keys}
         self.picked_points = {key: list() for key in all_keys}
         self.pick_table = dict()
@@ -865,7 +866,7 @@ class Brain(object):
         y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
                                 if v[0] is not None))
         y = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
-        self.mpl_canvas.axes.plot(
+        self.gfp, = self.mpl_canvas.axes.plot(
             self._data['time'], y,
             lw=3, label='GFP', zorder=3, color=self._fg_color,
             alpha=0.5, ls=':')
@@ -1249,6 +1250,9 @@ class Brain(object):
             for label_id in list(self.picked_patches[hemi]):
                 self._remove_label_glyph(hemi, label_id)
         assert sum(len(v) for v in self.picked_patches.values()) == 0
+        if self.gfp is not None:
+            self.gfp.remove()
+            self.gfp = None
         self._update()
 
     def plot_time_course(self, hemi, vertex_id, color):
