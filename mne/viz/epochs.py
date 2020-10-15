@@ -325,7 +325,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             if isinstance(combine, str) and len(title):
                 _comb = combine.upper() if combine == 'gfp' else combine
                 _comb = 'std. dev.' if _comb == 'std' else _comb
-                title += ' ({})'.format(_comb)
+                title += f' ({_comb})'
 
         # plot the image
         this_fig = _plot_epochs_image(
@@ -478,26 +478,24 @@ def _order_epochs(data, times, order=None, overlay_times=None):
 
     if overlay_times is not None:
         if len(overlay_times) != n_epochs:
-            raise ValueError('size of overlay_times parameter ({}) does not '
-                             'match the number of epochs ({}).'
-                             .format(len(overlay_times), n_epochs))
+            raise ValueError(
+                f'size of overlay_times parameter ({len(overlay_times)}) does '
+                f'not match the number of epochs ({n_epochs}).')
         overlay_times = np.array(overlay_times)
         times_min = np.min(overlay_times)
         times_max = np.max(overlay_times)
         if ((times_min < times[0]) or (times_max > times[-1])):
             warn('Some values in overlay_times fall outside of the epochs '
-                 'time interval (between %s s and %s s)'
-                 % (times[0], times[-1]))
+                 f'time interval (between {times[0]} s and {times[-1]} s)')
 
     if callable(order):
         order = order(times, data)
 
     if order is not None:
         if len(order) != n_epochs:
-            raise ValueError('If order is a {}, its length ({}) must match '
-                             'the length of the data ({}).'
-                             .format(type(order).__name__, len(order),
-                                     n_epochs))
+            raise ValueError(f'If order is a {type(order).__name__}, its '
+                             f'length ({len(order)}) must match the length of '
+                             f'the data ({n_epochs}).')
         order = np.asarray(order)
         data = data[order]
         if overlay_times is not None:
