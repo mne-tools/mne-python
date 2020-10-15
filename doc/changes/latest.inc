@@ -59,6 +59,8 @@ Bugs
 
 - The ``ica.n_pca_components`` property is no longer be updated during :meth:`mne.preprocessing.ICA.fit`, instead ``ica.n_components_`` will be added to the instance by `Eric Larson`_ (:gh:`8351`)
 
+- Pass ``rank`` everyhwere in forward preparation for source imaging. This bug affected sparse solvers when using maxfilter data, by `Alex Gramfort`_ (:gh:`8368`)
+
 API changes
 ~~~~~~~~~~~
 
