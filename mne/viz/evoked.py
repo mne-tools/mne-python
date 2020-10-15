@@ -492,10 +492,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     if spatial_colors is True:
                         line.set_linestyle("--")
             ax.set_ylabel(ch_unit)
-            # for old matplotlib, we actually need this to have a bounding
-            # box (!), so we have to put some valid text here, change
-            # alpha and path effects later
-            texts.append(ax.text(0, 0, 'blank', zorder=3,
+            texts.append(ax.text(0, 0, '', zorder=3,
                                  verticalalignment='baseline',
                                  horizontalalignment='left',
                                  fontweight='bold', alpha=0,

@@ -66,6 +66,8 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
+- Minimum required versions were increased for core dependencies NumPy (1.15.4), SciPy (1.1.0), and Matplotlib (3.0) and for the optional dependencies scikit-learn (0.20.2) and pandas (0.23.4), by `Eric Larson`_
+
 - The parameter ``on_split_missing`` has been added to :func:`mne.io.read_raw_fif` and its default will change from ``'warn'`` to ``'raise'`` in 0.23, by `Eric Larson`_ (:gh:`8357`)
 
 - The ``max_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_components`` during initialization and ``n_pca_components`` in :meth:`~mne.preprocessing.ICA.apply` instead by `Eric Larson`_ (:gh:`8351`)

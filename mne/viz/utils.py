@@ -140,10 +140,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     fig = plt.gcf() if fig is None else fig
 
     fig.canvas.draw()
-    try:
-        constrained = fig.get_constrained_layout()
-    except AttributeError:  # old matplotlib presumably
-        constrained = False
+    constrained = fig.get_constrained_layout()
     if constrained:
         return  # no-op
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
@@ -903,25 +900,15 @@ def _set_annotation_radio_button(idx, params):
     _annotation_radio_clicked('', radio, params['ax'].selector)
 
 
-def _set_radio_button(idx, params):
-    """Set radio button."""
-    # XXX: New version of matplotlib has this implemented for radio buttons,
-    # This function is for compatibility with old versions of mpl.
-    radio = params['fig_selection'].radio
-    radio.circles[radio._active_idx].set_facecolor((1., 1., 1., 1.))
-    radio.circles[idx].set_facecolor((0., 0., 1., 1.))
-    _radio_clicked(radio.labels[idx]._text, params)
-
-
 def _change_channel_group(step, params):
     """Deal with change of channel group."""
     radio = params['fig_selection'].radio
     idx = radio._active_idx
     if step < 0:
         if idx < len(radio.labels) - 1:
-            _set_radio_button(idx + 1, params)
+            radio.set_active(idx + 1)
     elif idx > 0:
-        _set_radio_button(idx - 1, params)
+        radio.set_active(idx - 1)
 
 
 def _handle_change_selection(event, params):
@@ -934,7 +921,7 @@ def _handle_change_selection(event, params):
         nchans = len(params['selections'][label])
         offset += nchans
         if ydata < offset:
-            _set_radio_button(idx, params)
+            radio.set_active(idx)
             return
 
 

@@ -245,6 +245,7 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.patches import Rectangle
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        from matplotlib.widgets import Button
         from .. import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
@@ -375,9 +376,7 @@ class MNEBrowseFigure(MNEFigure):
         loc = div.new_locator(nx=0, ny=0)
         ax_help.set_axes_locator(loc)
         # HELP BUTTON: make it a proper button
-        # XXX when matplotlib 3.0 is min version,
-        # XXX uncomment next line and remove self._post_init()
-        # self.mne.button_help = Button(ax_help, 'Help')
+        self.mne.button_help = Button(ax_help, 'Help')
         # PROJ BUTTON
         ax_proj = None
         if len(self.mne.projs) and not inst.proj:
@@ -390,9 +389,7 @@ class MNEBrowseFigure(MNEFigure):
             loc = div.new_locator(nx=4, ny=0)
             ax_proj = self.add_axes(proj_button_pos)
             ax_proj.set_axes_locator(loc)
-            # XXX when matplotlib 3.0 is min version,
-            # XXX uncomment next line and remove self._post_init()
-            # self.mne.button_proj = Button(ax_proj, 'Prj')
+            self.mne.button_proj = Button(ax_proj, 'Prj')
 
         # INIT TRACES
         self.mne.traces = ax_main.plot(
@@ -406,14 +403,6 @@ class MNEBrowseFigure(MNEFigure):
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
             vline_hscroll=vline_hscroll, vline_text=vline_text,
             fgcolor=fgcolor, bgcolor=bgcolor)
-
-    def _post_init(self):
-        """Make buttons (fix for older matplotlib (older than 3.0?) XXX)."""
-        from matplotlib.widgets import Button
-        # HELP BUTTON: make it a proper button
-        self.mne.button_help = Button(self.mne.ax_help, 'Help')
-        if len(self.mne.projs) and not self.mne.inst.proj:
-            self.mne.button_proj = Button(self.mne.ax_proj, 'Prj')
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""

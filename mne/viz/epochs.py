@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 
 from ..defaults import _handle_default
-from ..utils import verbose, logger, warn, fill_doc, check_version
+from ..utils import verbose, logger, warn, fill_doc
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
@@ -397,17 +397,14 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         for this_group in group_by:
             this_fig = figure()
             _set_window_title(this_fig, this_group)
-            kwargs = dict()
-            if check_version('matplotlib', '2.2'):
-                kwargs['fig'] = this_fig  # unavailable on earlier mpl
             subplot2grid(shape, (0, 0), colspan=colspan, rowspan=rowspan,
-                         **kwargs)
+                         fig=this_fig)
             if evoked:
                 subplot2grid(shape, (2, 0), colspan=colspan, rowspan=1,
-                             **kwargs)
+                             fig=this_fig)
             if colorbar:
                 subplot2grid(shape, (0, 9), colspan=1, rowspan=rowspan,
-                             **kwargs)
+                             fig=this_fig)
             axes[this_group] = this_fig.axes
 
     # got a Figure instance
@@ -868,10 +865,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
-    try:
-        plt_show(show, block=block)
-    except TypeError:  # not all versions have this
-        plt_show(show)
+    plt_show(show, block=block)
 
     return params['fig']
 

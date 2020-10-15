@@ -447,12 +447,10 @@ def test_plot_raw_traces(raw):
     for group_by, order in zip(['position', 'selection'],
                                [np.arange(len(raw.ch_names))[::-3],
                                 [1, 2, 4, 6]]):
-        with pytest.warns(None):  # sometimes projection
-            fig = raw.plot(group_by=group_by, order=order)
+        fig = raw.plot(group_by=group_by, order=order)
         x = fig.get_axes()[0].lines[1].get_xdata()[10]
         y = fig.get_axes()[0].lines[1].get_ydata()[10]
-        with pytest.warns(None):  # old mpl (at least 2.0) can warn
-            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
+        _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
         fig.canvas.key_press_event('down')  # change selection
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         sel_fig = plt.figure(1)
