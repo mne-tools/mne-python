@@ -847,9 +847,13 @@ class Brain(object):
     def _configure_vertex_time_course(self):
         if not self.show_traces:
             return
+        self.traces_mode = 'vertex'
 
         if self.mpl_canvas is None:
             self._configure_mplcanvas()
+        else:
+            self.clear_glyphs()
+            self.plotter.update()
 
         # plot the GFP
         y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
@@ -2044,6 +2048,31 @@ class Brain(object):
         self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
                               size=font_size, justification=justification)
 
+    def _configure_label_time_course(self, annot):
+        from ...label import read_labels_from_annot
+        if not self.show_traces:
+            return
+        self.traces_mode = 'label'
+
+        if self.mpl_canvas is None:
+            self._configure_mplcanvas()
+        else:
+            self.clear_glyphs()
+            self.plotter.update()
+
+        for hemi in self._hemis:
+            labels = read_labels_from_annot(
+                subject=self._subject_id,
+                parc=annot,
+                hemi=hemi,
+                subjects_dir=self._subjects_dir
+            )
+            self._vertex_to_label_id[hemi] = np.full(
+                self.geo[hemi].coords.shape[0], -1)
+            self._annotation_labels[hemi] = labels
+            for idx, label in enumerate(labels):
+                self._vertex_to_label_id[hemi][label.vertices] = idx
+
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
                        remove_existing=True, color=None, traces=True,
                        **kwargs):
@@ -2080,30 +2109,12 @@ class Brain(object):
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
-        from ...label import _read_annot, read_labels_from_annot
+        from ...label import _read_annot
         hemis = self._check_hemis(hemi)
 
         if self.time_viewer and traces:
-            self.traces_mode = 'label'
-            if self.mpl_canvas is None:
-                self._configure_mplcanvas()
-                self.show_traces = True
-            else:
-                self.clear_glyphs()
-                self.plotter.update()
-
-            for hemi in self._hemis:
-                labels = read_labels_from_annot(
-                    subject=self._subject_id,
-                    parc=annot,
-                    hemi=hemi,
-                    subjects_dir=self._subjects_dir
-                )
-                self._vertex_to_label_id[hemi] = np.full(
-                    self.geo[hemi].coords.shape[0], -1)
-                self._annotation_labels[hemi] = labels
-                for idx, label in enumerate(labels):
-                    self._vertex_to_label_id[hemi][label.vertices] = idx
+            self.show_traces = True
+            self._configure_label_time_course(annot)
 
         # Figure out where the data is coming from
         if isinstance(annot, str):
