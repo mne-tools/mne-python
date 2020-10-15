@@ -2076,6 +2076,9 @@ class Brain(object):
         else:
             self.clear_glyphs()
 
+        # now plot the time line
+        self.plot_time_line()
+
         # setup label tool bar
         self.window.addToolBarBreak()
         self.label_tool_bar = self.window.addToolBar("label")
@@ -2104,6 +2107,7 @@ class Brain(object):
         combo.setCurrentText(self.label_extract_mode)
         combo.currentTextChanged.connect(_set_label_mode)
         self.label_tool_bar.addWidget(combo)
+        self.mpl_canvas.update_plot()
 
         for hemi in self._hemis:
             labels = read_labels_from_annot(
