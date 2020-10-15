@@ -358,11 +358,12 @@ class Brain(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
-        self.default_label_extract_modes = [
-            "mean", "max", "mean_flip", "pca_flip", "auto"
-        ]
+        self.default_label_extract_modes = {
+            "stc": ["mean", "max"],
+            "src": ["mean_flip", "pca_flip", "auto"],
+        }
         self.traces_mode = 'vertex'
-        self.label_extract_mode = "auto"
+        self.label_extract_mode = None
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
         self.color_list = _get_color_list()
@@ -1557,6 +1558,7 @@ class Brain(object):
                                 type(smoothing_steps)))
 
         self._data['stc'] = stc
+        self._data['src'] = src
         self._data['smoothing_steps'] = smoothing_steps
         self._data['clim'] = clim
         self._data['time'] = time
@@ -1913,7 +1915,8 @@ class Brain(object):
                 self._configure_mplcanvas()
 
             stc = self._data["stc"]
-            tc = stc.extract_label_time_course(orig_label, src=None,
+            src = self._data["src"]
+            tc = stc.extract_label_time_course(orig_label, src=src,
                                                mode=self.label_extract_mode)
             color = next(self.color_cycle)
             line = self.mpl_canvas.plot(
@@ -2074,8 +2077,11 @@ class Brain(object):
         self.label_tool_bar = self.window.addToolBar("label")
         self.label_tool_bar.addWidget(QLabel("Label extraction mode"))
         combo = QComboBox()
-        for mode in self.default_label_extract_modes:
-            combo.addItem(mode)
+        for source in ["stc", "src"]:
+            if self._data[source] is not None:
+                for mode in self.default_label_extract_modes[source]:
+                    combo.addItem(mode)
+                    self.label_extract_mode = mode
 
         def _set_label_mode(mode):
             import copy
