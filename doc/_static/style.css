@@ -585,3 +585,8 @@ div.contents ul li p {
 h3.panel-title p {
   margin: 0 0 0px;
 }
+/* Disable hyphenation in API reference table for Webkit-based browsers
+   to work around alignment bug */
+#python-api-reference table p {
+  -webkit-hyphens: none;
+}
