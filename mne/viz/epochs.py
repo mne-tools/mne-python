@@ -289,8 +289,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_image = combine_func(this_data * scalings[this_ch_type])
         # handle `order`. NB: this can potentially yield different orderings
         # in each figure!
-        this_image, overlay_times = _order_epochs(this_image, epochs.times,
-                                                  order, overlay_times)
+        this_image, _overlay_times = _order_epochs(this_image, epochs.times,
+                                                   order, overlay_times)
         this_norm = np.all(this_image > 0)
         # apply smoothing
         if sigma > 0.:
@@ -334,7 +334,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             style_axes=True, norm=this_group_dict['norm'],
             unit=units[this_ch_type], ax=this_axes_dict, show=False,
             title=title, combine=combine, combine_given=combine_given,
-            overlay_times=overlay_times, evoked=evoked, ts_args=ts_args)
+            overlay_times=_overlay_times, evoked=evoked, ts_args=ts_args)
         group_by[this_group].update(fig=this_fig)
 
         # detect ylims across figures
