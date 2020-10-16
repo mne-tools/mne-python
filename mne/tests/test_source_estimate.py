@@ -3,30 +3,34 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import os
 import os.path as op
+from shutil import copyfile
 import re
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose, assert_equal)
+                           assert_allclose, assert_equal, assert_array_less)
 import pytest
 from scipy import sparse
 from scipy.optimize import fmin_cobyla
+from scipy.spatial.distance import cdist
 
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
                  read_source_estimate, extract_label_time_course,
-                 spatio_temporal_tris_adjacency,
-                 spatio_temporal_src_adjacency, read_cov,
+                 spatio_temporal_tris_adjacency, stc_near_sensors,
+                 spatio_temporal_src_adjacency, read_cov, EvokedArray,
                  spatial_inter_hemi_adjacency, read_forward_solution,
-                 spatial_src_adjacency, spatial_tris_adjacency,
-                 SourceSpaces, VolVectorSourceEstimate,
+                 spatial_src_adjacency, spatial_tris_adjacency, pick_info,
+                 SourceSpaces, VolVectorSourceEstimate, read_trans, pick_types,
                  MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
 from mne.fixes import fft, _get_img_fdata
+from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
@@ -1454,6 +1458,65 @@ def test_vol_mask():
     assert_array_equal(np.where(mask_nib.ravel())[0], src[0]['vertno'])
     assert_array_equal(mask, mask_nib)
     assert_array_equal(img_data.shape, mask.shape)
+
+
+@testing.requires_testing_data
+def test_stc_near_sensors(tmpdir):
+    """Test stc_near_sensors."""
+    info = read_info(fname_evoked)
+    # pick the left EEG sensors
+    picks = pick_types(info, meg=False, eeg=True, exclude=())
+    picks = [pick for pick in picks if info['chs'][pick]['loc'][0] < 0]
+    pick_info(info, picks, copy=False)
+    info['projs'] = []
+    info['bads'] = []
+    assert info['nchan'] == 33
+    evoked = EvokedArray(np.eye(info['nchan']), info)
+    trans = read_trans(fname_fwd)
+    this_dir = str(tmpdir)
+    # testing does not have pial, so fake it
+    os.makedirs(op.join(this_dir, 'sample', 'surf'))
+    for hemi in ('lh', 'rh'):
+        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.white'),
+                 op.join(this_dir, 'sample', 'surf', f'{hemi}.pial'))
+    # here we use a distance is smaller than the inter-sensor distance
+    kwargs = dict(subject='sample', trans=trans, subjects_dir=this_dir,
+                  verbose=True, distance=0.005)
+    with pytest.raises(ValueError, match='No channels'):
+        stc_near_sensors(evoked, **kwargs)
+    evoked.set_channel_types({ch_name: 'ecog' for ch_name in evoked.ch_names})
+    with catch_logging() as log:
+        stc = stc_near_sensors(evoked, **kwargs)
+    log = log.getvalue()
+    assert 'minimum distance 7.' in log  # 7.4
+    # this should be left-hemisphere dominant
+    assert 5000 > len(stc.vertices[0]) > 4000
+    assert 200 > len(stc.vertices[1]) > 100
+    # and at least one vertex should have the channel values
+    dists = cdist(stc.data, evoked.data)
+    assert np.isclose(dists, 0., atol=1e-6).any(0).all()
+
+    # now single-weighting mode
+    stc_w = stc_near_sensors(evoked, mode='single', **kwargs)
+    assert_array_less(stc_w.data, stc.data + 1e-3)  # some tol
+    assert len(stc_w.data) == len(stc.data)
+    # at least one for each sensor should have projected right on it
+    dists = cdist(stc_w.data, evoked.data)
+    assert np.isclose(dists, 0., atol=1e-6).any(0).all()
+
+    # finally, nearest mode: all should match
+    stc_n = stc_near_sensors(evoked, mode='nearest', **kwargs)
+    assert len(stc_n.data) == len(stc.data)
+    # at least one for each sensor should have projected right on it
+    dists = cdist(stc_n.data, evoked.data)
+    assert np.isclose(dists, 0., atol=1e-6).any(1).all()  # all vert eq some ch
+
+    # these are EEG electrodes, so the distance 0.01 is too small for the
+    # scalp+skull. Even at a distance of 33 mm EEG 060 is too far:
+    with pytest.warns(RuntimeWarning, match='Channel missing in STC: EEG 060'):
+        stc = stc_near_sensors(evoked, trans, 'sample', subjects_dir=this_dir,
+                               project=False, distance=0.033)
+    assert stc.data.any(0).sum() == len(evoked.ch_names) - 1
 
 
 run_tests_if_main()
