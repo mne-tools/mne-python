@@ -1,7 +1,7 @@
 """
-===================================================================
-Compute MNE inverse solution on evoked data in a mixed source space
-===================================================================
+=====================================================================
+Compute MNE inverse solution on evoked data with a mixed source space
+=====================================================================
 
 Create a mixed source space and compute an MNE inverse solution on an
 evoked dataset.

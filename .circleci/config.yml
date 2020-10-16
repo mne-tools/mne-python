@@ -115,11 +115,11 @@ jobs:
               touch pattern.txt;
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
                 echo "Doing a full dev build";
-                echo html_dev > build.txt;
+                echo html_dev-memory > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               elif [ "$CIRCLE_BRANCH" == "maint/0.21" ]; then
                 echo "Doing a full stable build";
-                echo html_stable > build.txt;
+                echo html_stable-memory > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
                 echo "Doing a partial build";
@@ -216,7 +216,7 @@ jobs:
                 echo PATTERN="$PATTERN";
                 if [[ $PATTERN ]]; then
                   PATTERN="\(${PATTERN::-2}\)";
-                  echo html_dev-pattern > build.txt;
+                  echo html_dev-pattern-memory > build.txt;
                 else
                   echo html_dev-noplot > build.txt;
                 fi;
@@ -234,7 +234,7 @@ jobs:
         - run:
             name: make test-doc
             command: |
-              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
+              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev-memory" ]] || [[ $(cat build.txt) == "html_stable-memory" ]]; then
                 make test-doc;
                 mkdir -p doc/_build/test-results/test-doc;
                 cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
@@ -246,6 +246,16 @@ jobs:
               cd doc;
               PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
         - run:
+            name: Show profiling output
+            when: always
+            command: |
+              if compgen -G "doc/*.dat" > /dev/null; then
+                mkdir -p doc/generated
+                mprof plot doc/*.dat --output doc/generated/memory.png
+              else
+                echo "No profile data found in doc/"
+              fi
+        - run:
             name: Sanity check system state
             command: |
               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
@@ -254,7 +264,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
+              if grep -q html_dev-pattern-memory build.txt || grep -q html_dev-noplot build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
                 rm -f doc/auto_*/*/*.pickle

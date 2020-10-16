@@ -5,6 +5,7 @@
 SPHINXOPTS    = -nWT --keep-going
 SPHINXBUILD   = sphinx-build
 PAPER         =
+MPROF         = mprof run --python sphinx
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -36,6 +37,11 @@ clean:
 	-rm -rf _build auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 html_stable:
+	$(MPROF) -b html $(ALLSPHINXOPTS) _build/html_stable
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html_stable."
+
+html_stable-memory:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
@@ -45,8 +51,18 @@ html_dev:
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
+html_dev-memory:
+	BUILD_DEV_HTML=1 $(MPROF) -b html $(ALLSPHINXOPTS) _build/html
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html"
+
 html_dev-pattern:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html"
+
+html_dev-pattern-memory:
+	BUILD_DEV_HTML=1 $(MPROF) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
