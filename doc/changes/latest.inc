@@ -23,6 +23,8 @@ Enhancements
 
 - Add ``proj`` argument to :func:`mne.make_fixed_length_epochs` by `Eric Larson`_ (:gh:`8351`)
 
+- Reduce memory usage of volume source spaces by `Eric Larson`_ (:gh:`8379`)
+
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
 
 Bugs
