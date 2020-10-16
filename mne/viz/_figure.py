@@ -5,6 +5,7 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 import platform
 from copy import deepcopy
 from itertools import cycle
@@ -15,7 +16,7 @@ from matplotlib.figure import Figure
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list)
-from ..utils import set_config
+from ..utils import set_config, Bunch
 from ..annotations import _sync_onset
 from ..io.pick import (channel_indices_by_type, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT)
@@ -376,7 +377,8 @@ class MNEBrowseFigure(MNEFigure):
         loc = div.new_locator(nx=0, ny=0)
         ax_help.set_axes_locator(loc)
         # HELP BUTTON: make it a proper button
-        self.mne.button_help = Button(ax_help, 'Help')
+        with _patched_canvas(ax_help.figure):
+            self.mne.button_help = Button(ax_help, 'Help')
         # PROJ BUTTON
         ax_proj = None
         if len(self.mne.projs) and not inst.proj:
@@ -389,7 +391,8 @@ class MNEBrowseFigure(MNEFigure):
             loc = div.new_locator(nx=4, ny=0)
             ax_proj = self.add_axes(proj_button_pos)
             ax_proj.set_axes_locator(loc)
-            self.mne.button_proj = Button(ax_proj, 'Prj')
+            with _patched_canvas(ax_help.figure):
+                self.mne.button_proj = Button(ax_proj, 'Prj')
 
         # INIT TRACES
         self.mne.traces = ax_main.plot(
@@ -1835,3 +1838,14 @@ def _browse_figure(inst, **kwargs):
     # add event callbacks
     fig._add_default_callbacks()
     return fig
+
+
+@contextmanager
+def _patched_canvas(fig):
+    old_canvas = fig.canvas
+    if fig.canvas is None:  # XXX old MPL (at least 3.0.3) does this for Agg
+        fig.canvas = Bunch(mpl_connect=lambda event, callback: None)
+    try:
+        yield
+    finally:
+        fig.canvas = old_canvas
