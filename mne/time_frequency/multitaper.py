@@ -6,7 +6,7 @@
 import operator
 import numpy as np
 
-from ..fixes import _get_dpss, rfft, irfft, rfftfreq
+from ..fixes import rfft, irfft, rfftfreq
 from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
@@ -60,6 +60,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     Volume 57 (1978), 1371430
     """
     from scipy import interpolate
+    from scipy.signal.windows import dpss as sp_dpss
     from ..filter import next_fast_len
     # This np.int32 business works around a weird Windows bug, see
     # gh-5039 and https://github.com/scipy/scipy/pull/8608
@@ -92,7 +93,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         dpss = np.array(dpss)
 
     else:
-        dpss = _get_dpss()(N, half_nbw, Kmax)
+        dpss = sp_dpss(N, half_nbw, Kmax)
 
     # Now find the eigenvalues of the original spectral concentration problem
     # Use the autocorr sequence technique from Percival and Walden, 1993 pg 390

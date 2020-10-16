@@ -748,8 +748,6 @@ def test_brain_colorbar(orientation, diverging, lims):
     else:
         ticks = lims
     plt.draw()
-    # old mpl always spans 0->1 for the actual ticks, so we need to
-    # look at the labels
     assert_array_equal(
         [float(h.get_text().replace('−', '-')) for h in have()], ticks)
     assert_array_equal(empty(), [])
