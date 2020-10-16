@@ -464,6 +464,11 @@ class SourceMorph(object):
         ----------
         %(verbose_meth)s
 
+        Returns
+        -------
+        morph : instance of SourceMorph
+            The instance (modified in-place).
+
         Notes
         -----
         For a volumetric morph, this will compute the morph for an identity
@@ -504,6 +509,7 @@ class SourceMorph(object):
         vol_morph_mat = sparse.csc_matrix(
             (data, indices, indptr), shape=shape).tocsr()
         self.vol_morph_mat = vol_morph_mat
+        return self
 
     def _morph_one_vol(self, one):
         # prepare data to be morphed
