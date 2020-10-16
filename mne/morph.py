@@ -121,12 +121,21 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
     Notes
     -----
-    This function can be used to morph data between hemispheres by setting
-    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
-    and right to left. A matrix for cross-mapping only one hemisphere can be
-    constructed by specifying the appropriate vertices, for example, to map the
-    right hemisphere to the left:
-    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
+    Volumetric morphing is generally slower than surface-based morphing.
+    To speed up volumetric morphing, consider using the
+    :~meth:`mne.SourceMorph.compute_vol_morph_mat` method on the resulting
+    :class:`mne.SourceMorph` output and saving the result. It takes a few
+    minutes to compute, but can greatly speed up the
+    :meth:`mne.SourceMorph.apply` method by turning it into a simple sparse
+    matrix multiplication.
+
+    This function can be used to morph surface data between hemispheres by
+    setting ``xhemi=True``. The full cross-hemisphere morph matrix maps left
+    to right and right to left. A matrix for cross-mapping only one hemisphere
+    can be constructed by specifying the appropriate vertices, for example, to
+    map the right hemisphere to the left::
+
+        vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]
 
     Cross-hemisphere mapping requires appropriate ``sphere.left_right``
     morph-maps in the subject's directory. These morph maps are included
