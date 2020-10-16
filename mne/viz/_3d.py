@@ -1799,6 +1799,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     mapdata = _process_clim(clim, colormap, transparent, use,
                             allow_pos_lims=not vec)
 
+    orig_src = src
     stc_surf, stc_vol, src_vol = _triage_stc(
         stc, src, surface, backend, 'scalar')
     del src, stc
@@ -1892,7 +1893,10 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["fmax"] = scale_pts[2]
             kwargs["clim"] = clim
             kwargs["volume_options"] = volume_options
-            kwargs["src"] = src_vol
+            if src_vol is not None:
+                kwargs["src"] = src_vol
+            else:
+                kwargs["src"] = orig_src
             kwargs["stc"] = stc_surf
         kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
         with warnings.catch_warnings(record=True):  # traits warnings
