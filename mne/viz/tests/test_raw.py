@@ -14,8 +14,10 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import run_tests_if_main, _dt_to_stamp, check_version
-from mne.viz.utils import _fake_click, _sync_onset
+from mne.utils import (run_tests_if_main, _dt_to_stamp, check_version,
+                       _click_ch_name, _close_event)
+from mne.viz.utils import _fake_click
+from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
@@ -169,14 +171,7 @@ def _proj_status(ax):
             for line in ax.findobj(matplotlib.lines.Line2D)][::2]
 
 
-def _click_ch_name_helper(fig, ch_index=0, button=1):
-    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
-    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
-    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
-                xform='data', button=button)
-
-
-def _child_fig_helper(fig, key, attr, new_mpl):
+def _child_fig_helper(fig, key, attr):
     # Spawn and close child figs of raw.plot()
     num_figs = len(plt.get_fignums())
     assert getattr(fig.mne, attr) is None
@@ -230,14 +225,6 @@ def test_scale_bar():
     plt.close('all')
 
 
-def _close_event(fig):
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
-    try:
-        fig.canvas.close_event()
-    except ValueError:  # old mpl with Qt
-        pass  # pragma: no cover
-
-
 def test_plot_raw_selection(raw, new_mpl):
     """Test selection mode of plot_raw()."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
@@ -273,11 +260,11 @@ def test_plot_raw_selection(raw, new_mpl):
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
     assert buttons.value_selected == before_state                 # unchanged
     # test marking bad channel in selection mode → should make sensor red
-    assert sel_fig.lasso.ec[:, 0].sum() == 0  # R of RGBA zero for all chans
-    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark bad
-    assert sel_fig.lasso.ec[:, 0].sum() == 1          # one channel red
-    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark good
-    assert sel_fig.lasso.ec[:, 0].sum() == 0          # all channels black
+    assert sel_fig.lasso.ec[:, 0].sum() == 0   # R of RGBA zero for all chans
+    _click_ch_name(fig, ch_index=1, button=1)  # mark bad
+    assert sel_fig.lasso.ec[:, 0].sum() == 1   # one channel red
+    _click_ch_name(fig, ch_index=1, button=1)  # mark good
+    assert sel_fig.lasso.ec[:, 0].sum() == 0   # all channels black
     # test lasso
     sel_fig._set_custom_selection()  # lasso empty → should do nothing
     sensor_ax = sel_fig.mne.sensor_ax
@@ -308,7 +295,7 @@ def test_plot_raw_ssp_interaction(raw):
     fig = raw.plot()
     # open SSP window
     _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5])
-    assert len(plt.get_fignums()) == 2
+    assert len(plt.get_fignums()) == 2  # XXX this fails with minimal deps
     ssp_fig = fig.mne.fig_proj
     t = ssp_fig.mne.proj_checkboxes.labels
     ax = ssp_fig.mne.proj_checkboxes.ax
@@ -336,24 +323,36 @@ def test_plot_raw_ssp_interaction(raw):
     assert _proj_status(ax) == [True, True, True]
 
 
-def test_plot_raw_child_figures(raw, new_mpl):
+def test_plot_raw_child_figures(raw):
     """Test spawning and closing of child figures."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     plt.close('all')  # make sure we start clean
     assert len(plt.get_fignums()) == 0
     fig = raw.plot()
     assert len(plt.get_fignums()) == 1
-    _child_fig_helper(fig, '?', 'fig_help', new_mpl)
-    _child_fig_helper(fig, 'j', 'fig_proj', new_mpl)
-    _child_fig_helper(fig, 'a', 'fig_annotation', new_mpl)
-    # # test right-click → channel location popup
-    _click_ch_name_helper(fig, ch_index=2, button=3)  # XXX currently no-op
-    # XXX restore these lines after refactoring plot_sensors() and re-enabling
-    # XXX right-click behavior
-    # assert len(fig.mne.child_figs) == 1
-    # assert len(plt.get_fignums()) == 2
-    # fig.mne.child_figs[0].canvas.key_press_event('escape')
-    # assert len(plt.get_fignums()) == 1
+    # test child fig toggles
+    _child_fig_helper(fig, '?', 'fig_help')
+    _child_fig_helper(fig, 'j', 'fig_proj')
+    _child_fig_helper(fig, 'a', 'fig_annotation')
+    assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
+    assert len(plt.get_fignums()) == 1
+    # test right-click → channel location popup
+    fig.canvas.draw()
+    _click_ch_name(fig, ch_index=2, button=3)
+    assert len(fig.mne.child_figs) == 1
+    assert len(plt.get_fignums()) == 2
+    fig.mne.child_figs[0].canvas.key_press_event('escape')
+    _close_event(fig.mne.child_figs[0])
+    assert len(plt.get_fignums()) == 1
+    # test right-click on non-data channel
+    ix = raw.get_channel_types().index('ias')  # find the shielding channel
+    trace_ix = fig.mne.ch_order.tolist().index(ix)  # get its plotting position
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == 1
+    fig.canvas.draw()
+    _click_ch_name(fig, ch_index=trace_ix, button=3)  # should be no-op
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == 1
     # test resize of main window
     width, height = fig.canvas.manager.canvas.get_width_height()
     fig.canvas.manager.canvas.resize(width // 2, height // 2)
@@ -366,8 +365,8 @@ def test_plot_raw_keypresses(raw):
     fig = raw.plot()
     # test twice → once in normal, once in butterfly view.
     # NB: keys a, j, and ? are tested in test_plot_raw_child_figures()
-    keys = ('down', 'up', 'right', 'left', '-', '+', '=', 'd', 'd', 'pageup',
-            'pagedown', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
+    keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
+            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
@@ -400,7 +399,7 @@ def test_plot_raw_traces(raw):
     assert label in fig.mne.info['bads']
     _fake_click(fig, data_ax, [x, y], xform='data')  # click data to unmark bad
     assert label not in fig.mne.info['bads']
-    _click_ch_name_helper(fig, ch_index=0, button=1)  # click name to mark bad
+    _click_ch_name(fig, ch_index=0, button=1)        # click name to mark bad
     assert label in fig.mne.info['bads']
     # test other kinds of clicks
     _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere (add vline)
@@ -423,8 +422,8 @@ def test_plot_raw_traces(raw):
     # test clicking a channel name in butterfly mode
     bads = fig.mne.info['bads'].copy()
     fig.canvas.key_press_event('b')
-    _click_ch_name_helper(fig, ch_index=0, button=1)  # should be no-op
-    assert fig.mne.info['bads'] == bads               # unchanged
+    _click_ch_name(fig, ch_index=0, button=1)  # should be no-op
+    assert fig.mne.info['bads'] == bads        # unchanged
     fig.canvas.key_press_event('b')
 
     # test starting up in zen mode

@@ -95,6 +95,15 @@ standardize_names : bool
     channel names in the file will be used when possible.
 """
 
+docdict['event_color'] = """
+event_color : color object | dict | None
+    Color(s) to use for events. To show all events in the same color, pass any
+    matplotlib-compatible color. To color events differently, pass a `dict`
+    that maps event names or integer event numbers to colors (must include
+    entries for *all* events, or include a "fallback" entry with key ``-1``).
+    If ``None``, colors are chosen from the current Matplotlib color cycle.
+"""
+
 # Epochs
 docdict['proj_epochs'] = """
 proj : bool | 'delayed'

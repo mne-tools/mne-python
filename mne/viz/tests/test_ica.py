@@ -14,7 +14,8 @@ from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import run_tests_if_main, requires_sklearn
+from mne.utils import (run_tests_if_main, requires_sklearn, _click_ch_name,
+                       _close_event)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
 
@@ -129,6 +130,8 @@ def test_plot_ica_properties():
     # test _create_properties_layout
     fig, ax = _create_properties_layout()
     assert_equal(len(ax), 5)
+    with pytest.raises(ValueError, match='specify both fig and figsize'):
+        _create_properties_layout(figsize=(2, 2), fig=fig)
 
     topoargs = dict(topomap_args={'res': 4, 'contours': 0, "sensors": False})
     ica.plot_properties(raw, picks=0, **topoargs)
@@ -209,28 +212,44 @@ def test_plot_ica_sources():
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     fig = ica.plot_sources(raw)
-    fig.canvas.key_press_event('escape')
-    # Sadly close_event isn't called on Agg backend and the test always passes.
-    assert_array_equal(ica.exclude, [1])
+    assert len(plt.get_fignums()) == 1
+    # change which component is in ICA.exclude (click data trace to remove
+    # current one; click name to add other one)
+    fig.canvas.draw()
+    x = fig.mne.traces[1].get_xdata()[5]
+    y = fig.mne.traces[1].get_ydata()[5]
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform='data')  # exclude = []
+    _click_ch_name(fig, ch_index=0, button=1)                # exclude = [0]
+    fig.canvas.key_press_event(fig.mne.close_key)
+    _close_event(fig)
+    assert len(plt.get_fignums()) == 0
+    assert_array_equal(ica.exclude, [0])
     plt.close('all')
 
     # dtype can change int->np.int64 after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)
-    fig = ica.plot_sources(raw)
-    # also test mouse clicks
-    data_ax = fig.axes[0]
+
+    # test clicks on y-label (need >2 secs for plot_properties() to work)
+    long_raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
+    fig = ica.plot_sources(long_raw)
     assert len(plt.get_fignums()) == 1
-    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    fig.canvas.draw()
+    _fake_click(fig, fig.mne.ax_main, (-0.1, 0), xform='data', button=3)
+    assert len(fig.mne.child_figs) == 1
     assert len(plt.get_fignums()) == 2
-    ica.exclude = [1]
-    ica.plot_sources(raw)
+    # close child fig directly (workaround for mpl issue #18609)
+    fig.mne.child_figs[0].canvas.key_press_event('escape')
+    assert len(plt.get_fignums()) == 1
+    fig.canvas.key_press_event(fig.mne.close_key)
+    assert len(plt.get_fignums()) == 0
+    del long_raw
 
     # test with annotations
     orig_annot = raw.annotations
     raw.set_annotations(Annotations([0.2], [0.1], 'Test'))
     fig = ica.plot_sources(raw)
-    assert len(fig.axes[0].collections) == 1
-    assert len(fig.axes[1].collections) == 1
+    assert len(fig.mne.ax_main.collections) == 1
+    assert len(fig.mne.ax_hscroll.collections) == 1
     raw.set_annotations(orig_annot)
 
     raw.info['bads'] = ['MEG 0113']
@@ -357,10 +376,12 @@ def test_plot_instance_components():
         ica.fit(raw, picks=picks)
     ica.exclude = [0]
     fig = ica.plot_sources(raw, title='Components')
-    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
-                'pagedown', 'home', 'end', 'f11', 'b']:
+    keys = ('home', 'home', 'end', 'down', 'up', 'right', 'left', '-', '+',
+            '=', 'd', 'd', 'pageup', 'pagedown', 'z', 'z', 's', 's', 'f11',
+            'b')
+    for key in keys:
         fig.canvas.key_press_event(key)
-    ax = fig.get_axes()[0]
+    ax = fig.mne.ax_main
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]],
                 'data')
@@ -369,8 +390,7 @@ def test_plot_instance_components():
     plt.close('all')
     epochs = _get_epochs()
     fig = ica.plot_sources(epochs, title='Components')
-    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
-                'pagedown', 'home', 'end', 'f11', 'b']:
+    for key in keys:
         fig.canvas.key_press_event(key)
     # Test a click
     ax = fig.get_axes()[0]
