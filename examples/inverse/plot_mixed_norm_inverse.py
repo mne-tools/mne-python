@@ -3,7 +3,8 @@
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
 
-Runs an (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
+Runs an (ir)MxNE (L1/L2 :footcite:`GramfortEtAl2012` or L0.5/L2
+:footcite:`StrohmeierEtAl2014` mixed norm) inverse solver.
 L0.5/L2 is done with irMxNE which allows for sparser source estimates with less
 amplitude bias due to the non-convexity of the L0.5/L2 mixed norm penalty.
 """
@@ -118,12 +119,4 @@ plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
 ###############################################################################
 # References
 # ----------
-# .. [1] Gramfort A., Kowalski M. and Hämäläinen, M.
-#    "Mixed-norm estimates for the M/EEG inverse problem using accelerated
-#    gradient methods", Physics in Medicine and Biology, 2012.
-#    https://doi.org/10.1088/0031-9155/57/7/1937.
-#
-# .. [2] Strohmeier D., Haueisen J., and Gramfort A.
-#    "Improved MEG/EEG source localization with reweighted mixed-norms",
-#    4th International Workshop on Pattern Recognition in Neuroimaging,
-#    Tuebingen, 2014. 10.1109/PRNI.2014.6858545
+# .. footbibliography::
