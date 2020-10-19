@@ -732,7 +732,7 @@ def test_extract_label_time_course_volume(
             return [stcs[0].extract_label_time_course(*args, **kwargs)]
 
     with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
-        eltc(fname_fs_t1, src, trans=trans, mri_resolution=mri_res)
+        eltc(fname_fs_t1, src, mri_resolution=mri_res)
     assert len(src_labels) == 46  # includes unknown
     assert_array_equal(
         src[0]['vertno'],  # src includes some in "unknown" space
@@ -772,13 +772,14 @@ def test_extract_label_time_course_volume(
     n_want -= len(missing)
 
     # actually do the testing
-    if cf == 'head' and not mri_res:  # no trans is an error
-        with pytest.raises(TypeError, match='trans must be .* Transform'):
-            eltc(labels, src, mri_resolution=mri_res)
+    if cf == 'head' and not mri_res:  # some missing
+        with pytest.deprecated_call(match='do not pass'):
+            eltc(labels, src, trans=trans, allow_empty=True,
+                 mri_resolution=mri_res)
     for mode in ('mean', 'max'):
         with catch_logging() as log:
             label_tc = eltc(labels, src, mode=mode, allow_empty='ignore',
-                            trans=trans, mri_resolution=mri_res, verbose=True)
+                            mri_resolution=mri_res, verbose=True)
         log = log.getvalue()
         assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
         if len(missing):
@@ -824,7 +825,7 @@ def test_extract_label_time_course_volume(
                 if test_label is int:
                     label = lut[label]
                 in_label = stcs[0].in_label(
-                    label, fname_aseg, src, trans).data
+                    label, fname_aseg, src).data
                 assert in_label.shape == (s['nuse'],) + end_shape
                 if vector:
                     assert_array_equal(in_label[:, :2], 0.)

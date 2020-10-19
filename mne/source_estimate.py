@@ -17,7 +17,6 @@ from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
-from .io.constants import FIFF
 from .surface import (read_surface, _get_ico_surface, mesh_edges,
                       _project_onto_surface)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
@@ -1951,7 +1950,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     # Override here to provide the volume-specific options
     @verbose
     def extract_label_time_course(self, labels, src, mode='auto',
-                                  allow_empty=False, trans=None,
+                                  allow_empty=False, *, trans=None,
                                   mri_resolution=True, verbose=None):
         """Extract label time courses for lists of labels.
 
@@ -1964,7 +1963,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         %(eltc_src)s
         %(eltc_mode)s
         %(eltc_allow_empty)s
-        %(eltc_trans)s
+        %(trans_deprecated)s
         %(eltc_mri_resolution)s
         %(verbose_meth)s
 
@@ -2002,7 +2001,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The volumetric source space. It must be a single, whole-brain
             volume.
-        %(trans_not_none)s
+        %(trans_deprecated)s
 
         Returns
         -------
@@ -2021,8 +2020,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             volume_label = [label]
         else:
             volume_label = {'Volume ID %s' % (label): _ensure_int(label)}
-        label = _volume_labels(src, (mri, volume_label), trans,
-                               mri_resolution=False)
+        _dep_trans(trans)
+        label = _volume_labels(src, (mri, volume_label), mri_resolution=False)
         assert len(label) == 1
         label = label[0]
         vertices = label.vertices
@@ -2933,7 +2932,17 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     return label_vertidx, label_flip
 
 
-def _volume_labels(src, labels, trans, mri_resolution):
+def _vol_src_rr(src):
+    return apply_trans(
+        src[0]['src_mri_t'], np.array(
+            [d.ravel(order='F')
+             for d in np.meshgrid(
+                 *(np.arange(s) for s in src[0]['shape']),
+                 indexing='ij')],
+            float).T)
+
+
+def _volume_labels(src, labels, mri_resolution):
     # This will create Label objects that should do the right thing for our
     # given volumetric source space when used with extract_label_time_course
     from .label import Label
@@ -3003,11 +3012,7 @@ def _volume_labels(src, labels, trans, mri_resolution):
     else:
         # Use nearest values
         vertno = src[0]['vertno']
-        src_values = _get_atlas_values(vol_info, src[0]['rr'][vertno])
-        rr = src[0]['rr']
-        if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
-            trans, _ = _get_trans(trans, 'head', 'mri', allow_none=False)
-            rr = apply_trans(trans, rr)
+        rr = _vol_src_rr(src)
         del src
         src_values = _get_atlas_values(vol_info, rr[vertno])
         vertices = [vertno[src_values == val] for val in labels.values()]
@@ -3019,10 +3024,17 @@ def _volume_labels(src, labels, trans, mri_resolution):
     return out_labels
 
 
+def _dep_trans(trans):
+    if trans is not None:
+        warn('trans is no longer needed and will be removed in 0.23, do not '
+             'pass it as an argument', DeprecationWarning)
+
+
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, trans=None,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
+    _dep_trans(trans)
     _validate_type(src, SourceSpaces)
     _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
 
@@ -3032,7 +3044,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             labels = [labels]
         use_sparse = False
     else:
-        labels = _volume_labels(src, labels, trans, mri_resolution)
+        labels = _volume_labels(src, labels, mri_resolution)
         use_sparse = bool(mri_resolution)
     n_mode = len(labels)  # how many processed with the given mode
     n_mean = len(src[2:]) if kind == 'mixed' else 0
@@ -3103,7 +3115,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 @verbose
 def extract_label_time_course(stcs, labels, src, mode='auto',
                               allow_empty=False, return_generator=False,
-                              trans=None, mri_resolution=True,
+                              *, trans=None, mri_resolution=True,
                               verbose=None):
     """Extract label time course for lists of labels and source estimates.
 
@@ -3121,7 +3133,7 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(trans_not_none)s
+    %(trans_deprecated)s
     %(eltc_mri_resolution)s
     %(verbose)s
 

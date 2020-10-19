@@ -1026,6 +1026,10 @@ docdict['trans_not_none'] = """
 trans : str | dict | instance of Transform
     %s
 """ % (_trans_base,)
+docdict['trans_deprecated'] = """
+trans : str | dict | instance of Transform
+    Deprecated and will be removed in 0.23, do not pass this argument.
+"""
 docdict['trans'] = """
 trans : str | dict | instance of Transform | None
     %s
@@ -1437,12 +1441,6 @@ allow_empty : bool | str
        Support for "ignore".
 """
 docdict
-docdict['eltc_trans'] = """%s
-    Only needed when using a volume atlas and
-    ``src`` is in head coordinates (i.e., comes from a forward or inverse).
-
-    .. versionadded:: 0.21.0
-""" % (docdict['trans_not_none'],)
 docdict['eltc_mri_resolution'] = """
 mri_resolution : bool
     If True (default), the volume source space will be upsampled to the
