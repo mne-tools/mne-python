@@ -609,7 +609,12 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     onset = [event.latency - 1 for event in events]
     duration = np.zeros(len(onset))
     if len(events) > 0 and hasattr(events[0], 'duration'):
-        duration[:] = [event.duration for event in events]
+        for idx, event in enumerate(events):
+            if isinstance(events[0].duration, np.ndarray):
+                this_duration = np.nan
+            else:
+                this_duration = event.duration
+            duration[idx] = this_duration
 
     return Annotations(onset=np.array(onset) / eeg.srate,
                        duration=duration / eeg.srate,
