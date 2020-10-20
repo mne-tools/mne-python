@@ -73,6 +73,10 @@ print('Absolute cosine similarity between source normals and directions: '
 brain_max = stc_max.plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
     time_label='Max power')
+
+###############################################################################
+# The normal is very similar:
+
 brain_normal = stc.project('normal', inv['src'])[0].plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
     time_label='Normal')

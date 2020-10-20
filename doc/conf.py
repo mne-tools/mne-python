@@ -14,7 +14,6 @@
 
 from datetime import date
 from distutils.version import LooseVersion
-import gc
 import os
 import os.path as op
 import sys

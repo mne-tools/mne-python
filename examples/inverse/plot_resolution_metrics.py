@@ -78,17 +78,21 @@ del rm_dspm
 ###############################################################################
 # Visualize results
 # -----------------
-# Visualise peak localisation error (PLE) across the whole cortex for PSF
+# Visualise peak localisation error (PLE) across the whole cortex for MNE PSF:
 brain_ple_mne = ple_mne_psf.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=1,
                                  clim=dict(kind='value', lims=(0, 2, 4)))
 brain_ple_mne.add_text(0.1, 0.9, 'PLE MNE', 'title', font_size=16)
+
+###############################################################################
+# And dSPM:
 
 brain_ple_dspm = ple_dspm_psf.plot('sample', 'inflated', 'lh',
                                    subjects_dir=subjects_dir, figure=2,
                                    clim=dict(kind='value', lims=(0, 2, 4)))
 brain_ple_dspm.add_text(0.1, 0.9, 'PLE dSPM', 'title', font_size=16)
 
+###############################################################################
 # Subtract the two distributions and plot this difference
 diff_ple = ple_mne_psf - ple_dspm_psf
 
@@ -102,19 +106,25 @@ brain_ple_diff.add_text(0.1, 0.9, 'PLE MNE-dSPM', 'title', font_size=16)
 # color) than MNE in deeper brain areas, but higher error (blue color) in more
 # superficial areas.
 #
-# Next we'll visualise spatial deviation (SD) across the whole cortex for PSF:
+# Next we'll visualise spatial deviation (SD) across the whole cortex for MNE
+# PSF:
 
 brain_sd_mne = sd_mne_psf.plot('sample', 'inflated', 'lh',
                                subjects_dir=subjects_dir, figure=4,
                                clim=dict(kind='value', lims=(0, 2, 4)))
 brain_sd_mne.add_text(0.1, 0.9, 'SD MNE', 'title', font_size=16)
 
+###############################################################################
+# And dSPM:
+
 brain_sd_dspm = sd_dspm_psf.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=5,
                                  clim=dict(kind='value', lims=(0, 2, 4)))
 brain_sd_dspm.add_text(0.1, 0.9, 'SD dSPM', 'title', font_size=16)
 
-# Subtract the two distributions and plot this difference
+###############################################################################
+# Subtract the two distributions and plot this difference:
+
 diff_sd = sd_mne_psf - sd_dspm_psf
 
 brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
