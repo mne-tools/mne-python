@@ -1109,34 +1109,11 @@ def _disabled_depth_peeling():
 @contextmanager
 def _disabled_interaction(renderer):
     plotter = renderer.plotter
-
-    # def _noop(plotter, obj, event):
-    #     return
-
-    # func = plotter.key_press_event
-    # plotter.key_press_event = _noop
-    ren_win = plotter.ren_win
-    # for renderer in plotter.renderers:
-    #     renderer.SetInteractive(False)
-    iren = plotter.iren
-    iren.SetRenderWindow(None)
-    tmp_iren = vtk.vtkRenderWindowInteractor()
-    tmp_iren.SetInteractorStyle(None)
-    tmp_iren.SetRenderWindow(ren_win)
-    # ren_win.SetInteractor(tmp_iren)
-    plotter.iren = tmp_iren
-    # plotter._shadow_renderer.SetInteractive(True)
+    plotter.disable()
     try:
         yield
     finally:
-        tmp_iren.SetRenderWindow(None)
-        # for renderer in plotter.renderers:
-        #     renderer.SetInteractive(True)
-        plotter.iren = iren
-        iren.SetRenderWindow(ren_win)
-        # ren_win.SetInteractor(iren)
-        # plotter.key_press_event = func
-        # plotter._shadow_renderer.SetInteractive(False)
+        plotter.enable()
 
 
 @decorator
