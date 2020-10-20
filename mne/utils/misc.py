@@ -6,6 +6,7 @@
 
 from contextlib import contextmanager
 import fnmatch
+import gc
 import inspect
 from math import log
 import os
@@ -319,3 +320,17 @@ def _file_like(obj):
     # but this might be more robust to file-like objects not properly
     # inheriting from these classes:
     return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))
+
+
+def _get_referrers(cls):
+    n = 0
+    ref = list()
+    new = '\n'
+    gc.collect()
+    for obj in gc.get_objects():
+        if isinstance(obj, cls):
+            n += 1
+            ref.extend([
+                f'{r.__class__.__name__}: {repr(r)[:100].replace(new, " ")}'
+                for r in gc.get_referrers(obj)])
+    return n, ref

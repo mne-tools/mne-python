@@ -28,7 +28,7 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
-from mne.utils import _pl
+from mne.utils import _pl, _get_referrers
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -475,20 +475,11 @@ def download_is_error(monkeypatch):
 def brain_gc():
     """Ensure that brain can be properly garbage collected."""
     from mne.viz import Brain
-    gc.collect()
-    n = sum(isinstance(obj, Brain) for obj in gc.get_objects())
-    assert n == 0, f'{n} before'
-    yield
-    gc.collect()
-    n = 0
-    ref = list()
     new = '\n'
-    for obj in gc.get_objects():
-        if isinstance(obj, Brain):
-            n += 1
-            ref.extend([
-                f'{r.__class__.__name__}: {repr(r)[:100].replace(new, " ")}'
-                for r in gc.get_referrers(obj)])
+    n, ref = _get_referrers(Brain)
+    assert n == 0, f'{n} before:\n{new.join(ref)}'
+    yield
+    n, ref = _get_referrers(Brain)
     assert n == 0, f'{n} after:\n{new.join(ref)}'
 
 

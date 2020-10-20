@@ -32,7 +32,7 @@ from ._logging import (verbose, logger, set_log_level, set_log_file,
                        ClosingStringIO)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
-                   running_subprocess, _DefaultEventParser)
+                   running_subprocess, _DefaultEventParser, _get_referrers)
 from .progressbar import ProgressBar
 from ._testing import (run_tests_if_main, run_command_if_main,
                        requires_sklearn,

@@ -25,7 +25,8 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 import matplotlib
 import mne
-from mne.utils import linkcode_resolve  # noqa, analysis:ignore
+from mne.viz import Brain
+from mne.utils import linkcode_resolve, _get_referrers  # noqa, analysis:ignore
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
@@ -446,12 +447,21 @@ class Resetter(object):
 
     def __call__(self, gallery_conf, fname):
         import matplotlib.pyplot as plt
+        try:
+            from pyvista import Plotter
+        except ImportError:
+            Plotter = None
         reset_warnings(gallery_conf, fname)
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
-        gc.collect()
         plt.rcParams['animation.embed_limit'] = 30.
+        new = '\n'
+        n, ref = _get_referrers(Brain)  # calls gc.collect()
+        assert n == 0, f'Brain after:\n{new.join(ref)}'
+        if Plotter is not None:
+            n, ref = _get_referrers(Plotter)  # calls gc.collect()
+            assert n == 0, f'Plotter after:\n{new.join(ref)}'
 
 
 def reset_warnings(gallery_conf, fname):
