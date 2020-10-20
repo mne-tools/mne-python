@@ -37,12 +37,12 @@ clean:
 	-rm -rf _build auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 html_stable:
-	$(MPROF) -b html $(ALLSPHINXOPTS) _build/html_stable
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
 html_stable-memory:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable
+	$(MPROF) -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
