@@ -610,13 +610,10 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     duration = np.zeros(len(onset))
     if len(events) > 0 and hasattr(events[0], 'duration'):
         for idx, event in enumerate(events):
-            if (isinstance(event.duration, np.ndarray)
-                and len(event.duration) == 0):
-                # empty duration fields are read as empty arrays
-                this_duration = np.nan
-            else:
-                this_duration = event.duration
-            duration[idx] = this_duration
+            # empty duration fields are read as empty arrays
+            is_empty_array = (isinstance(event.duration, np.ndarray)
+                              and len(event.duration) == 0)
+            duration[idx] = np.nan if is_empty_array else event.duration
 
     return Annotations(onset=np.array(onset) / eeg.srate,
                        duration=duration / eeg.srate,
