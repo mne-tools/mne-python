@@ -223,7 +223,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             raise ValueError("If `group_by` is a dict, `axes` must be "
                              "a dict of axes or None.")
         _validate_if_list_of_axes(list(axes.values()))
-        remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
+        remove_xlabels = any([_is_last_row(ax) for ax in axes.values()])
         for sel in group_by:  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(sel + " present in `group_by`, but not "
@@ -243,7 +243,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
                          sphere=sphere)
-            if remove_xlabels and not ax.is_last_row():
+            if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
@@ -367,6 +367,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         tight_layout(fig=fig)
     plt_show(show)
     return fig
+
+
+def _is_last_row(ax):
+    try:
+        return ax.get_subplotspec().is_last_row()
+    except AttributeError:  # XXX old mpl
+        return ax.is_last_row()
 
 
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
