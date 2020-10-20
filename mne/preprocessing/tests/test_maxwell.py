@@ -1342,6 +1342,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         # Deal with NaN's in the scores (can't use np.less directly because of
         # https://github.com/numpy/numpy/issues/17198)
         scores_flat[np.isnan(scores_flat)] = np.inf
+        limits_flat[np.isnan(limits_flat)] = -np.inf
         n_segments_below_limit = (scores_flat < limits_flat).sum(-1)
         ch_idx = np.where(n_segments_below_limit >=
                           min(min_count, len(got_scores['bins'])))
@@ -1352,6 +1353,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         scores_noisy = got_scores['scores_noisy']
         limits_noisy = got_scores['limits_noisy']
         scores_noisy[np.isnan(scores_noisy)] = -np.inf
+        limits_noisy[np.isnan(limits_noisy)] = np.inf
         n_segments_beyond_limit = (scores_noisy > limits_noisy).sum(-1)
         ch_idx = np.where(n_segments_beyond_limit >=
                           min(min_count, len(got_scores['bins'])))

@@ -372,8 +372,8 @@ bibtex_footbibliography_header = ''
 ##############################################################################
 # sphinx-gallery
 
-examples_dirs = ['../examples', '../tutorials']
-gallery_dirs = ['auto_examples', 'auto_tutorials']
+examples_dirs = ['../tutorials', '../examples']
+gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 
 scrapers = ('matplotlib',)
