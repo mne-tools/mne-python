@@ -931,6 +931,13 @@ def _update_picking_callback(plotter,
     plotter.picker = picker
 
 
+def _remove_picking_callback(interactor, picker):
+    interactor.RemoveObservers(vtk.vtkCommand.RenderEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.LeftButtonPressEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.EndInteractionEvent)
+    picker.RemoveObservers(vtk.vtkCommand.EndPickEvent)
+
+
 def _arrow_glyph(grid, factor):
     glyph = vtk.vtkGlyphSource2D()
     glyph.SetGlyphTypeToArrow()

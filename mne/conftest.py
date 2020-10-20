@@ -471,6 +471,27 @@ def download_is_error(monkeypatch):
     monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)
 
 
+@pytest.fixture()
+def brain_gc():
+    """Ensure that brain can be properly garbage collected."""
+    from mne.viz import Brain
+    gc.collect()
+    n = sum(isinstance(obj, Brain) for obj in gc.get_objects())
+    assert n == 0, f'{n} before'
+    yield
+    gc.collect()
+    n = 0
+    ref = list()
+    new = '\n'
+    for obj in gc.get_objects():
+        if isinstance(obj, Brain):
+            n += 1
+            ref.extend([
+                f'{r.__class__.__name__}: {repr(r)[:100].replace(new, " ")}'
+                for r in gc.get_referrers(obj)])
+    assert n == 0, f'{n} after:\n{new.join(ref)}'
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Handle the end of the session."""
     n = session.config.option.durations

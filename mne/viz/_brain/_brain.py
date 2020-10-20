@@ -376,6 +376,7 @@ class Brain(object):
 
         # Direct access parameters:
         self.plotter = self._renderer.plotter
+        self._iren = self._renderer.plotter.iren
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
         self.tool_bar = self.window.addToolBar("toolbar")
@@ -428,20 +429,14 @@ class Brain(object):
         self._clear_callbacks()
         self.actions.clear()
         self.sliders.clear()
-        self.reps = None
-        self.plotter = None
-        self.main_menu = None
-        self.window = None
-        self.tool_bar = None
-        self.status_bar = None
-        self.interactor = None
         if self.mpl_canvas is not None:
             self.mpl_canvas.clear()
-            self.mpl_canvas = None
-        self.time_actor = None
-        self.picked_renderer = None
         for key in list(self.act_data_smooth.keys()):
             self.act_data_smooth[key] = None
+        for key in ('reps', 'plotter', 'main_menu', 'window', 'tool_bar',
+                    'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
+                    'picked_renderer', 'act_data_smooth', '_iren'):
+            setattr(self, key, None)
 
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
@@ -922,6 +917,9 @@ class Brain(object):
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
+    def _save_movie_noname(self):
+        return self.save_movie(None)
+
     def _configure_tool_bar(self):
         self.actions["screenshot"] = self.tool_bar.addAction(
             self.icons["screenshot"],
@@ -931,7 +929,7 @@ class Brain(object):
         self.actions["movie"] = self.tool_bar.addAction(
             self.icons["movie"],
             "Save movie...",
-            partial(self.save_movie, filename=None)
+            self._save_movie_noname,
         )
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
@@ -1308,6 +1306,7 @@ class Brain(object):
         )
 
     def _clear_callbacks(self):
+        from ..backends._pyvista import _remove_picking_callback
         for callback in self.callbacks.values():
             if callback is not None:
                 if hasattr(callback, "plotter"):
@@ -1317,6 +1316,8 @@ class Brain(object):
                 if hasattr(callback, "slider_rep"):
                     callback.slider_rep = None
         self.callbacks.clear()
+        if self.show_traces:
+            _remove_picking_callback(self._iren, self.plotter.picker)
 
     @property
     def interaction(self):
