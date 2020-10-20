@@ -61,6 +61,8 @@ pip-log.txt
 tags
 doc/coverages
 doc/samples
+doc/*.dat
+doc/fil-result
 cover
 *.html
 

@@ -916,12 +916,21 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 
     # matplotlib >= 3.2.0 no longer normalizes axes between 0 and 1
     # See https://matplotlib.org/3.2.1/api/prev_api_changes/api_changes_3.2.0.html
+    # _outline was removed in
+    # https://github.com/matplotlib/matplotlib/commit/03a542e875eba091a027046d5ec652daa8be6863
+    # so we use the code from there
     if LooseVersion(matplotlib.__version__) >= LooseVersion("3.2.0"):
         cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
         X, _ = cbar._mesh()
-        new_X = np.array([X[0], X[-1]])
-        new_Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
-        xy = cbar._outline(new_X, new_Y)
+        X = np.array([X[0], X[-1]])
+        Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
+        N = X.shape[0]
+        ii = [0, 1, N - 2, N - 1, 2 * N - 1, 2 * N - 2, N + 1, N, 0]
+        x = X.T.reshape(-1)[ii]
+        y = Y.T.reshape(-1)[ii]
+        xy = (np.column_stack([y, x])
+              if cbar.orientation == 'horizontal' else
+              np.column_stack([x, y]))
         cbar.outline.set_xy(xy)
     else:
         cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
