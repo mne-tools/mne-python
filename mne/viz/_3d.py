@@ -887,7 +887,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     car_loc = list()
     eeg_loc = list()
     eegp_loc = list()
-    other_loc = {key: list() for key in other_keys}
+    other_loc = dict()
     if len(eeg) > 0:
         eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
         if len(eeg_loc) > 0:
@@ -947,27 +947,32 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     del dig
     for key, picks in other_picks.items():
         if other_bools[key] and len(picks):
+            title = DEFAULTS["titles"][key] if key != 'fnirs' else 'fNIRS'
+            if key != 'fnirs' or 'channels' in fnirs:
+                other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
+                                           for pick in picks])
+                logger.info(
+                    f'Plotting {len(other_loc[key])} {title}'
+                    f' location{_pl(other_loc[key])}')
             if key == 'fnirs':
-                if 'channels' in fnirs:
-                    other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                                               for pick in picks])
                 if 'sources' in fnirs:
                     other_loc['source'] = np.array(
                         [info['chs'][pick]['loc'][3:6]
                          for pick in picks])
                     logger.info('Plotting %d %s source%s'
                                 % (len(other_loc['source']),
-                                   key, _pl(other_loc['source'])))
+                                   title, _pl(other_loc['source'])))
                 if 'detectors' in fnirs:
                     other_loc['detector'] = np.array(
                         [info['chs'][pick]['loc'][6:9]
                          for pick in picks])
                     logger.info('Plotting %d %s detector%s'
                                 % (len(other_loc['detector']),
-                                   key, _pl(other_loc['detector'])))
-                other_keys = sorted(other_loc.keys())
-            logger.info('Plotting %d %s location%s'
-                        % (len(other_loc[key]), key, _pl(other_loc[key])))
+                                   title, _pl(other_loc['detector'])))
+    for v in other_loc.values():
+        v[:] = apply_trans(head_trans, v)
+    other_keys = sorted(other_loc)  # re-sort and only keep non-empty
+    del other_bools
 
     # initialize figure
     renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
@@ -1072,10 +1077,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               fwd_nn[:, ori, 2],
                               color=color, mode='arrow', scale=1.5e-3)
     if 'pairs' in fnirs and len(fnirs_picks) > 0:
-        fnirs_loc = np.array([info['chs'][k]['loc'][3:9] for k in fnirs_picks])
-        logger.info('Plotting %d fnirs pairs' % (fnirs_loc.shape[0]))
-        renderer.tube(origin=fnirs_loc[:, :3],
-                      destination=fnirs_loc[:, 3:])
+        origin = apply_trans(head_trans, np.array(
+            [info['chs'][k]['loc'][3:6] for k in fnirs_picks]))
+        destination = apply_trans(head_trans, np.array(
+            [info['chs'][k]['loc'][6:9] for k in fnirs_picks]))
+        logger.info(f'Plotting {origin.shape[0]} fNIRS pair{_pl(origin)}')
+        renderer.tube(origin=origin, destination=destination)
 
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
