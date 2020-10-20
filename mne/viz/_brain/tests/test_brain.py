@@ -233,12 +233,18 @@ def test_brain_save_movie(tmpdir, renderer):
     """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
-    brain_data = _create_testing_brain(hemi='lh', time_viewer=False)
+    brain = _create_testing_brain(hemi='lh', time_viewer=False)
     filename = str(path.join(tmpdir, "brain_test.mov"))
-    brain_data.save_movie(filename, time_dilation=1,
-                          interpolation='nearest')
-    assert path.isfile(filename)
-    brain_data.close()
+    for interactive_state in (False, True):
+        # for coverage, we set interactivity
+        if interactive_state:
+            brain._renderer.plotter.enable()
+        else:
+            brain._renderer.plotter.disable()
+        brain.save_movie(filename, time_dilation=1,
+                         interpolation='nearest')
+        assert path.isfile(filename)
+    brain.close()
 
 
 @testing.requires_testing_data

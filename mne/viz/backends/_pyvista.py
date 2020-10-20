@@ -1106,6 +1106,19 @@ def _disabled_depth_peeling():
         rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
 
 
+@contextmanager
+def _disabled_interaction(renderer):
+    plotter = renderer.plotter
+    if not plotter.renderer.GetInteractive():
+        yield
+    else:
+        plotter.disable()
+        try:
+            yield
+        finally:
+            plotter.enable()
+
+
 @decorator
 def run_once(fun, *args, **kwargs):
     """Run the function only once."""
