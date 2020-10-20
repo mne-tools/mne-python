@@ -33,8 +33,8 @@ subjects_dir = sample_path + '/subjects'
 
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
-# a :class:`mne.channels.DigMontage` class.
-# First, use pandas to read in the .tsv file.
+# a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
+# ``.tsv`` file.
 
 # In this tutorial, the electrode coordinates are assumed to be in meters
 elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
