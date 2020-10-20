@@ -40,6 +40,8 @@ Bugs
 
 - Pass ``rank`` everyhwere in forward preparation for source imaging. This bug affected sparse solvers when using maxfilter data, by `Alex Gramfort`_ (:gh:`8368`)
 
+- Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
+
 .. _changes_0_21:
 
 Version 0.21

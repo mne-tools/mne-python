@@ -227,11 +227,16 @@ def test_plot_alignment(tmpdir, renderer):
     evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
                                             'EEG 002': 'seeg'})
     with pytest.warns(RuntimeWarning, match='Cannot plot MEG'):
-        plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
-                       trans=trans_fname, subjects_dir=subjects_dir,
-                       surfaces=['white', 'outer_skin', 'outer_skull'],
-                       meg=['helmet', 'sensors'],
-                       eeg=['original', 'projected'], ecog=True, seeg=True)
+        with catch_logging() as log:
+            plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
+                           trans=trans_fname, subjects_dir=subjects_dir,
+                           surfaces=['white', 'outer_skin', 'outer_skull'],
+                           meg=['helmet', 'sensors'],
+                           eeg=['original', 'projected'], ecog=True, seeg=True,
+                           verbose=True)
+    log = log.getvalue()
+    assert '1 ECoG location' in log
+    assert '1 sEEG location' in log
     renderer.backend._close_all()
 
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
@@ -334,60 +339,24 @@ def test_plot_alignment(tmpdir, renderer):
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
 
-    # fNIRS
+    # fNIRS (default is pairs)
     info = read_raw_nirx(nirx_fname).info
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
     log = log.getvalue()
-    assert '26 fnirs pairs' in log
+    assert '26 fNIRS pairs' in log
+    assert '26 fNIRS locations' not in log
+    assert '26 fNIRS sources' not in log
+    assert '26 fNIRS detectors' not in log
 
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='channels')
+                       fnirs=['channels', 'sources', 'detectors'])
     log = log.getvalue()
-    assert '26 fnirs locations' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='pairs')
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='sources')
-    log = log.getvalue()
-    assert '26 fnirs sources' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='detectors')
-    log = log.getvalue()
-    assert '26 fnirs detectors' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs=['channels', 'pairs'])
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-    assert '26 fnirs locations' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs=['pairs', 'sources', 'detectors'])
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-    assert '26 fnirs sources' in log
-    assert '26 fnirs detectors' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs=['channels', 'pairs', 'sources', 'detectors'])
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-    assert '26 fnirs locations' in log
-    assert '26 fnirs sources' in log
-    assert '26 fnirs detectors' in log
+    assert '26 fNIRS pairs' not in log
+    assert '26 fNIRS locations' in log
+    assert '26 fNIRS sources' in log
+    assert '26 fNIRS detectors' in log
 
     renderer.backend._close_all()
 
