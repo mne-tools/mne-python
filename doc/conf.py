@@ -18,6 +18,7 @@ import gc
 import os
 import os.path as op
 import sys
+import time
 import warnings
 
 import sphinx_gallery
@@ -26,7 +27,8 @@ from numpydoc import docscrape
 import matplotlib
 import mne
 from mne.viz import Brain
-from mne.utils import linkcode_resolve, _get_referrers  # noqa, analysis:ignore
+from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
+                       _get_referrers, sizeof_fmt)
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
@@ -442,6 +444,9 @@ def setup(app):
 class Resetter(object):
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
+    def __init__(self):
+        self.t0 = time.time()
+
     def __repr__(self):
         return '<%s>' % (self.__class__.__name__,)
 
@@ -462,6 +467,13 @@ class Resetter(object):
         if Plotter is not None:
             n, ref = _get_referrers(Plotter)  # calls gc.collect()
             assert n == 0, f'Plotter after:\n{new.join(ref)}'
+        # This will overwrite some Sphinx printing but it's useful
+        # for memory timestamps
+        if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
+            import psutil
+            process = psutil.Process(os.getpid())
+            mem = sizeof_fmt(process.memory_info().rss)
+            print(f'{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
 
 
 def reset_warnings(gallery_conf, fname):

@@ -150,7 +150,6 @@ mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
 ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()
 
-
 ###############################################################################
 # Create and fit a stimulus reconstruction model
 # ----------------------------------------------
@@ -258,8 +257,6 @@ mne.viz.plot_topomap(np.mean(mean_patterns[:, ix_plot], axis=1),
 ax[1].set(title="Inverse-transformed coefficients\nbetween delays %s and %s"
           % (time_plot[0], time_plot[1]))
 mne.viz.tight_layout()
-
-plt.show()
 
 ###############################################################################
 # References
