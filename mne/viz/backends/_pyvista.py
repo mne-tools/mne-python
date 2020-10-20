@@ -1109,11 +1109,14 @@ def _disabled_depth_peeling():
 @contextmanager
 def _disabled_interaction(renderer):
     plotter = renderer.plotter
-    plotter.disable()
-    try:
+    if not plotter.renderer.GetInteractive():
         yield
-    finally:
-        plotter.enable()
+    else:
+        plotter.disable()
+        try:
+            yield
+        finally:
+            plotter.enable()
 
 
 @decorator
