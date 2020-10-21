@@ -93,6 +93,13 @@ class TstVTKPicker(object):
 
 
 @testing.requires_testing_data
+def test_brain_gc(renderer, brain_gc):
+    """Test that a minimal version of Brain gets GC'ed."""
+    brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
+    brain.close()
+
+
+@testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
     from mne.label import read_label

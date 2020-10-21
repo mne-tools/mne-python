@@ -267,6 +267,12 @@ class Brain(object):
                                        bgcolor=background,
                                        shape=shape,
                                        fig=figure)
+
+        if _get_3d_backend() == "pyvista":
+            self.plotter = self._renderer.plotter
+            self.window = self.plotter.app_window
+            self.window.signal_close.connect(self._clean)
+
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
@@ -303,6 +309,7 @@ class Brain(object):
                         actor, mesh = mesh_data.actor, mesh_data
                     self._hemi_meshes[h] = mesh
                     self._hemi_actors[h] = actor
+                    del mesh_data, actor, mesh
                 else:
                     self._renderer.polydata(
                         self._hemi_meshes[h],
@@ -375,14 +382,11 @@ class Brain(object):
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
 
         # Direct access parameters:
-        self.plotter = self._renderer.plotter
         self._iren = self._renderer.plotter.iren
         self.main_menu = self.plotter.main_menu
-        self.window = self.plotter.app_window
         self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
-        self.window.signal_close.connect(self._clean)
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -426,16 +430,29 @@ class Brain(object):
     def _clean(self):
         # resolve the reference cycle
         self.clear_points()
+        for h in self._hemis:
+            actor = self._hemi_actors[h]
+            if actor is not None:
+                mapper = actor.GetMapper()
+                mapper.SetLookupTable(None)
+                actor.SetMapper(None)
         self._clear_callbacks()
-        self.actions.clear()
-        self.sliders.clear()
-        if self.mpl_canvas is not None:
+        if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
-        for key in list(self.act_data_smooth.keys()):
-            self.act_data_smooth[key] = None
+        if getattr(self, 'act_data_smooth', None) is not None:
+            for key in list(self.act_data_smooth.keys()):
+                self.act_data_smooth[key] = None
+        # XXX this should be done in PyVista
+        for renderer in self.plotter.renderers:
+            renderer.RemoveAllLights()
+        for key in ('lighting', 'interactor', 'app_window', '_RenderWindow',
+                    '_Iren'):
+            setattr(self.plotter, key, None)
+        # XXX end PyVista
         for key in ('reps', 'plotter', 'main_menu', 'window', 'tool_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
-                    'picked_renderer', 'act_data_smooth', '_iren'):
+                    'picked_renderer', 'act_data_smooth', '_iren',
+                    'actions', 'sliders', 'geo', '_hemi_actors', '_data'):
             setattr(self, key, None)
 
     @contextlib.contextmanager
@@ -1206,6 +1223,8 @@ class Brain(object):
 
     def clear_points(self):
         """Clear the picked points."""
+        if not hasattr(self, '_spheres'):
+            return
         for sphere in list(self._spheres):  # will remove itself, so copy
             self.remove_point(sphere)
         assert sum(len(v) for v in self.picked_points.values()) == 0
@@ -1307,6 +1326,8 @@ class Brain(object):
 
     def _clear_callbacks(self):
         from ..backends._pyvista import _remove_picking_callback
+        if not hasattr(self, 'callbacks'):
+            return
         for callback in self.callbacks.values():
             if callback is not None:
                 if hasattr(callback, "plotter"):

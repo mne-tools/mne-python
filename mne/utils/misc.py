@@ -322,15 +322,26 @@ def _file_like(obj):
     return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))
 
 
-def _get_referrers(cls):
+def _assert_no_instances(cls, when=''):
+    __tracebackhide__ = True
     n = 0
     ref = list()
-    new = '\n'
     gc.collect()
-    for obj in gc.get_objects():
+    objs = gc.get_objects()
+    for obj in objs:
         if isinstance(obj, cls):
-            n += 1
-            ref.extend([
-                f'{r.__class__.__name__}: {repr(r)[:100].replace(new, " ")}'
-                for r in gc.get_referrers(obj)])
-    return n, ref
+            rr = gc.get_referrers(obj)
+            count = 0
+            for r in rr:
+                if r is not objs and \
+                        r is not globals() and \
+                        r is not locals() and \
+                        not inspect.isframe(r):
+                    ref.append(
+                        f'{r.__class__.__name__}: ' +
+                        repr(r)[:100].replace('\n', ' '))
+                    count += 1
+                del r
+            del rr
+            n += count > 0
+    assert n == 0, f'{n} {when}:\n' + '\n'.join(ref)

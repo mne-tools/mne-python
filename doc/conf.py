@@ -27,7 +27,7 @@ import matplotlib
 import mne
 from mne.viz import Brain
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
-                       _get_referrers, sizeof_fmt)
+                       _assert_no_instances, sizeof_fmt)
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
@@ -460,12 +460,9 @@ class Resetter(object):
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
-        new = '\n'
-        n, ref = _get_referrers(Brain)  # calls gc.collect()
-        assert n == 0, f'Brain after:\n{new.join(ref)}'
+        _assert_no_instances(Brain, 'running')  # calls gc.collect()
         if Plotter is not None:
-            n, ref = _get_referrers(Plotter)  # calls gc.collect()
-            assert n == 0, f'Plotter after:\n{new.join(ref)}'
+            _assert_no_instances(Plotter, 'running')
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
