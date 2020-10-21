@@ -98,8 +98,6 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
        | Save offline movie                   | ✓      | ✓       |
        +--------------------------------------+--------+---------+
-       | Point picking                        |        | ✓       |
-       +--------------------------------------+--------+---------+
 
     .. note::
         In the case of `plot_vector_source_estimates` with PyVista, the glyph
