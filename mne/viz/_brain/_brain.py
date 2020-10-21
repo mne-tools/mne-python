@@ -442,6 +442,8 @@ class Brain(object):
         self.plotter.lighting = None
         self.plotter.interactor = None
         self.plotter.app_window = None
+        self.plotter._RenderWindow = None
+        self.plotter._Iren = None
         self.plotter = None
         self.main_menu = None
         self.window = None
