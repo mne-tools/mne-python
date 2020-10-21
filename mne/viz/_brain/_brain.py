@@ -314,7 +314,7 @@ class Brain(object):
                         self._hemi_meshes[h],
                         **kwargs,
                     )
-                del kwargs
+                del kwargs, mesh_data, actor, mesh
                 self._renderer.set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
@@ -433,20 +433,12 @@ class Brain(object):
             actor = self._hemi_actors[h]
             if actor is not None:
                 mapper = actor.GetMapper()
+                mapper.SetInputData(None)
                 mapper.SetLookupTable(None)
                 actor.SetMapper(None)
         self._hemi_actors.clear()
         self._data.clear()
-        for renderer in self.plotter.renderers:
-            renderer.RemoveAllLights()
-        self.plotter.lighting = None
-        self.plotter.interactor = None
-        self.plotter.app_window = None
-        self.plotter._RenderWindow = None
-        self.plotter._Iren = None
-        self.plotter = None
-        self.main_menu = None
-        self.window = None
+
         if self.time_viewer:
             self.clear_points()
             self._clear_callbacks()
@@ -463,6 +455,25 @@ class Brain(object):
             self.picked_renderer = None
             for key in list(self.act_data_smooth.keys()):
                 self.act_data_smooth[key] = None
+
+        # vtkLightKit
+        for renderer in self.plotter.renderers:
+            renderer.RemoveAllLights()
+        self.plotter.lighting = None
+        # vtkXOpenGLRenderWindow
+        self.plotter._RenderWindow = None
+        # vtkGenericRenderWindowInteractor
+
+        class FakeIren():
+            def LeaveEvent(self):
+                pass
+
+            def SetEventInformation(self, *args, **kwargs):
+                pass
+        self.plotter._Iren = FakeIren()
+        self.plotter = None
+        self.main_menu = None
+        self.window = None
 
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
