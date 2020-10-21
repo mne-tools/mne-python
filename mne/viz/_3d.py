@@ -1625,7 +1625,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           views='auto', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground=None, initial_time=None,
-                          time_unit='s', backend='auto', spacing='oct6',
+                          time_unit='s', backend=None, spacing='oct6',
                           title=None, show_traces='auto',
                           src=None, volume_options=1., view_layout='vertical',
                           add_data_kwargs=None, verbose=None):
@@ -1702,10 +1702,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     backend : 'auto' | 'mayavi' | 'matplotlib'
-        Which backend to use. If ``'auto'`` (default), tries to plot with
-        mayavi, but resorts to matplotlib if mayavi is not available.
-
-        .. versionadded:: 0.15.0
+        This parameter is deprecated and will be removed in 0.23. Use the
+        ``set_3d_backend`` function instead.
     spacing : str
         The spacing to use for the source space. Can be ``'ico#'`` for a
         recursively subdivided icosahedron, ``'oct#'`` for a recursively
@@ -1747,19 +1745,18 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
-    plot_mpl = backend == 'matplotlib'
-    if not plot_mpl:
-        try:
-            set_3d_backend(_get_3d_backend())
-        except (ImportError, ModuleNotFoundError):
-            if backend == 'auto':
-                warn('No 3D backend found. Resorting to matplotlib 3d.')
-                plot_mpl = True
-            else:  # 'mayavi'
-                raise
-        else:
-            backend = _get_3d_backend()
+    if backend is not None:
+        warn(f'backend({backend}) is deprecated and'
+             ' will be removed in 0.23, use set_3d_backend instead',
+             DeprecationWarning)
+    try:
+        set_3d_backend(_get_3d_backend())
+    except (ImportError, ModuleNotFoundError):
+        warn('No 3D backend found. Resorting to matplotlib 3d.')
+        plot_mpl = True
+    else:
+        backend = _get_3d_backend()
+        plot_mpl = False
     kwargs = dict(
         subject=subject, surface=surface, hemi=hemi, colormap=colormap,
         time_label=time_label, smoothing_steps=smoothing_steps,
