@@ -26,8 +26,8 @@ fname_evo = data_path + '/MEG/sample/sample_audvis-ave.fif'
 # read forward solution
 forward = mne.read_forward_solution(fname_fwd)
 # forward operator with fixed source orientations
-forward = mne.convert_forward_solution(forward, surf_ori=True,
-                                       force_fixed=True)
+mne.convert_forward_solution(forward, surf_ori=True,
+                             force_fixed=True, copy=False)
 
 # noise covariance matrix
 noise_cov = mne.read_cov(fname_cov)
@@ -58,8 +58,9 @@ stc_psf = get_point_spread(rm_lor, forward['src'], sources, norm=True)
 stc_ctf = get_cross_talk(rm_lor, forward['src'], sources, norm=True)
 
 ##############################################################################
-# Visualise
+# Visualize
 # ---------
+# PSF:
 
 # Which vertex corresponds to selected source
 vertno_lh = forward['src'][0]['vertno']
@@ -69,8 +70,7 @@ verttrue = [vertno_lh[sources[0]]]  # just one vertex
 vert_max_psf = vertno_lh[stc_psf.data.argmax()]
 vert_max_ctf = vertno_lh[stc_ctf.data.argmax()]
 
-brain_psf = stc_psf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=1)
+brain_psf = stc_psf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir)
 brain_psf.show_view('ventral')
 brain_psf.add_text(0.1, 0.9, 'sLORETA PSF', 'title', font_size=16)
 
@@ -82,8 +82,10 @@ brain_psf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
 brain_psf.add_foci(vert_max_psf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
-brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=2)
+###############################################################################
+# CTF:
+
+brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir)
 brain_ctf.add_text(0.1, 0.9, 'sLORETA CTF', 'title', font_size=16)
 brain_ctf.show_view('ventral')
 brain_ctf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
@@ -93,5 +95,7 @@ brain_ctf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
 brain_ctf.add_foci(vert_max_ctf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
-print('The green spheres indicate the true source location, and the black '
-      'spheres the maximum of the distribution.')
+
+###############################################################################
+# The green spheres indicate the true source location, and the black
+# spheres the maximum of the distribution.

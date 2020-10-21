@@ -69,7 +69,7 @@ set_3d_title(figure=fig, title='KIT')
 # ----------
 
 raw = read_raw_artemis123(op.join(
-        testing.data_path(), 'ARTEMIS123',
-        'Artemis_Data_2017-04-14-10h-38m-59s_Phantom_1k_HPI_1s.bin'))
+    testing.data_path(), 'ARTEMIS123',
+    'Artemis_Data_2017-04-14-10h-38m-59s_Phantom_1k_HPI_1s.bin'))
 fig = plot_alignment(raw.info, meg=('helmet', 'sensors', 'ref'), **kwargs)
 set_3d_title(figure=fig, title='Artemis123')
