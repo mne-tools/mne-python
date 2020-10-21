@@ -197,8 +197,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
                 # if sidx1 == sidx2 and (tri == j).any():
                 #     continue
                 # Otherwise do the hard job
-                coeffs = _lin_pot_coeff(surf1['rr'], tri_rr[k], tri_nn[k],
-                                        tri_area[k])
+                coeffs = _lin_pot_coeff(fros=surf1['rr'], tri_rr=tri_rr[k],
+                                        tri_nn=tri_nn[k], tri_area=tri_area[k])
                 coeffs[skip_idx] = 0.
                 submat[:, tri] -= coeffs
             if si_1 == si_2:
