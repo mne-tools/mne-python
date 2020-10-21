@@ -9,6 +9,7 @@ import os.path as op
 from collections import namedtuple
 import re
 import numpy as np
+from datetime import datetime, timezone
 
 from ..base import BaseRaw
 from ..meas_info import create_info
@@ -23,7 +24,6 @@ from ...transforms import (apply_trans, Transform, get_ras_to_neuromag_trans,
 from ...utils import (check_fname, check_version, logger, verbose, warn,
                       _check_fname)
 from ...annotations import Annotations
-from datetime import datetime, timezone
 
 FILE_EXTENSIONS = {
     "Curry 7": {
@@ -169,20 +169,23 @@ def _read_curry_parameters(fname):
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
     n_channels = int(param_dict["numchannels"])
-    dt_start = datetime(int(param_dict["startyear"]),
-                        int(param_dict["startmonth"]),
-                        int(param_dict["startday"]),
-                        int(param_dict["starthour"]),
-                        int(param_dict["startmin"]),
-                        int(param_dict["startsec"]),
-                        int(param_dict["startmillisec"]) * 1000,
-                        datetime.now().astimezone().tzinfo)\
-        .astimezone(timezone.utc)
-    # note that the time zone information is not stored in the Curry info
-    # file, and it seems the start time info is in the local timezone
-    # of the acquisition system (which is unknown); the best we can do is
-    # assume the timezone of the current computer; finally convert to UTC
-    # which is required by _check_consistency() in 'meas_info.py'
+    if "startyear" in param_dict:  # if startyear found, assume all others
+        dt_start = datetime(int(param_dict["startyear"]),
+                            int(param_dict["startmonth"]),
+                            int(param_dict["startday"]),
+                            int(param_dict["starthour"]),
+                            int(param_dict["startmin"]),
+                            int(param_dict["startsec"]),
+                            int(param_dict["startmillisec"]) * 1000,
+                            datetime.now().astimezone().tzinfo)\
+            .astimezone(timezone.utc)
+        # note that the time zone information is not stored in the Curry info
+        # file, and it seems the start time info is in the local timezone
+        # of the acquisition system (which is unknown); the best we can do is
+        # assume the timezone of the current computer; finally convert to UTC
+        # which is required by _check_consistency() in 'meas_info.py'
+    else:
+        dt_start = None
 
     if time_step == 0:
         true_sfreq = sfreq
