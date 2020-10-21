@@ -621,7 +621,7 @@ class _BaseSourceEstimate(TimeMixin):
              figure=None, views='auto', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground=None, initial_time=None, time_unit='s',
-             backend=None, spacing='oct6', title=None, show_traces='auto',
+             backend='auto', spacing='oct6', title=None, show_traces='auto',
              src=None, volume_options=1., view_layout='vertical',
              add_data_kwargs=None, verbose=None):
         brain = plot_source_estimates(
@@ -1918,7 +1918,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
                 figure=None, views='axial', colorbar=True, clim='auto',
                 cortex="classic", size=800, background="black",
                 foreground=None, initial_time=None, time_unit='s',
-                backend=None, spacing='oct6', title=None, show_traces='auto',
+                backend='auto', spacing='oct6', title=None, show_traces='auto',
                 src=None, volume_options=1., view_layout='vertical',
                 add_data_kwargs=None, verbose=None):
         return super().plot(
