@@ -429,6 +429,12 @@ class Brain(object):
         # resolve the reference cycle
         self.geo.clear()
         self._hemi_meshes.clear()
+        for h in self._hemis:
+            actor = self._hemi_actors[h]
+            if actor is not None:
+                mapper = actor.GetMapper()
+                mapper.SetLookupTable(None)
+                actor.SetMapper(None)
         self._hemi_actors.clear()
         self._data.clear()
         for renderer in self.plotter.renderers:
