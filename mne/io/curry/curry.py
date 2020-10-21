@@ -50,7 +50,7 @@ SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, µ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 CurryParameters = namedtuple('CurryParameters',
-                             'n_samples, sfreq, is_ascii, unit_dict, ' \
+                             'n_samples, sfreq, is_ascii, unit_dict, '
                              'n_chans, dt_start, chanidx_in_file')
 
 
@@ -136,11 +136,13 @@ def _read_curry_parameters(fname):
     var_names = ['NumSamples', 'SampleFreqHz',
                  'DataFormat', 'SampleTimeUsec',
                  'NumChannels',
-                 'StartYear','StartMonth','StartDay','StartHour','StartMin',
-                 'StartSec','StartMillisec',   # for issue #8398
+                 'StartYear', 'StartMonth', 'StartDay', 'StartHour',
+                 'StartMin', 'StartSec', 'StartMillisec',
                  'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
                  'DATA_FORMAT', 'SAMPLE_TIME_USEC',
-                 'NUM_CHANNELS']
+                 'NUM_CHANNELS',
+                 'START_YEAR', 'START_MONTH', 'START_DAY', 'START_HOUR',
+                 'START_MIN', 'START_SEC', 'START_MILLISEC']
 
     param_dict = dict()
     unit_dict = dict()
@@ -159,8 +161,8 @@ def _read_curry_parameters(fname):
     # look for CHAN_IN_FILE sections, which may or may not exist; issue #8391
     types = ["meg", "eeg", "misc"]
     chanidx_in_file = _read_curry_lines(fname,
-                                        ["CHAN_IN_FILE" + 
-                                        CHANTYPES[key] for key in types])
+                                        ["CHAN_IN_FILE" +
+                                         CHANTYPES[key] for key in types])
 
     n_samples = int(param_dict["numsamples"])
     sfreq = float(param_dict["samplefreqhz"])
@@ -175,7 +177,7 @@ def _read_curry_parameters(fname):
                         int(param_dict["startsec"]),
                         int(param_dict["startmillisec"]) * 1000,
                         datetime.now().astimezone().tzinfo)\
-                        .astimezone(timezone.utc)
+                    .astimezone(timezone.utc)   
     # note that the time zone information is not stored in the Curry info
     # file, and it seems the start time info is in the local timezone
     # of the acquisition system (which is unknown); the best we can do is
@@ -221,30 +223,30 @@ def _read_curry_info(curry_paths):
     all_chans = list()
     for key in ["meg", "eeg", "misc"]:
         chanidx_is_explicit = (len(curry_params.chanidx_in_file["CHAN_IN_FILE"
-                                 + CHANTYPES[key]]) > 0)  # channel index
-            # position in the datafile may or may not be explicitly declared,
-            # based on the CHAN_IN_FILE section in info file
+                                   + CHANTYPES[key]]) > 0)    # channel index
+        # position in the datafile may or may not be explicitly declared,
+        # based on the CHAN_IN_FILE section in info file
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
             chanidx = len(all_chans) + 1    # by default, just assume the
                 # channel index in the datafile is in order of the channel
                 # names as we found them in the labels file
-            if chanidx_is_explicit:       # but, if explicitly declared, use
-                                          # that index number
+            if chanidx_is_explicit:     # but, if explicitly declared, use
+                                        # that index number
                 chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE"
                               + CHANTYPES[key]][ind])
             if chanidx > 0:   # if chanidx was explicitly declared to be ' 0',
                 # it means the channel is not actually saved in the data file
                 # (e.g. the "Ref" channel), so don't add it to our list.
                 # Git issue #8391
-                ch = {  "ch_name": chan,
-                        "unit": curry_params.unit_dict[key],
-                        "kind": FIFFV_CHANTYPES[key],
-                        "coil_type": FIFFV_COILTYPES[key],
-                        "ch_idx": chanidx
-                     }
+                ch = {"ch_name": chan,
+                      "unit": curry_params.unit_dict[key],
+                      "kind": FIFFV_CHANTYPES[key],
+                      "coil_type": FIFFV_COILTYPES[key],
+                      "ch_idx": chanidx
+                      }
                 if key == "eeg":
                     loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind],
-                                  float)
+                                   float)
                     # XXX just the sensor, where is ref (next 3)?
                     assert loc.shape == (3,)
                     loc /= 1000.  # to meters
