@@ -1011,13 +1011,13 @@ return_pca_vars : bool
     Default return_pca_vars=False.
 """
 docdict['pctf_pca_vars'] = """
-pca_vars : array, shape (n_comp,) | list of arrays
+pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
     PSFs/CTFs for the specified vertices. Arrays for multiple labels are
     returned as list. Only returned if mode='svd' and return_pca_vars=True.
 """
 docdict['pctf_stcs'] = """
-stcs : instance of SourceEstimate | list of intances of SourceEstimate
+stcs : instance of SourceEstimate | list of instances of SourceEstimate
     PSFs or CTFs as STC objects.
     All PSFs/CTFs will be returned as successive samples in STC objects,
     in the order they are specified in idx. STCs for different labels will
