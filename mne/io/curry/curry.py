@@ -135,7 +135,7 @@ def _read_curry_parameters(fname):
 
     var_names = ['NumSamples', 'SampleFreqHz',
                  'DataFormat', 'SampleTimeUsec',
-                 'NumChannels', 
+                 'NumChannels',
                  'StartYear','StartMonth','StartDay','StartHour','StartMin',
                  'StartSec','StartMillisec',   # for issue #8398
                  'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
@@ -152,31 +152,34 @@ def _read_curry_parameters(fname):
                 param_dict[key.lower().replace("_", "")] = val
             for type in CHANTYPES:
                 if "DEVICE_PARAMETERS" + CHANTYPES[type] + " START" in line:
-                    data_unit = next(fid)   
+                    data_unit = next(fid)
                     unit_dict[type] = data_unit.replace(" ", "") \
                         .replace("\n", "").split("=")[-1]
-               
 
     # look for CHAN_IN_FILE sections, which may or may not exist; issue #8391
     types = ["meg", "eeg", "misc"]
     chanidx_in_file = _read_curry_lines(fname,
-                               ["CHAN_IN_FILE" + CHANTYPES[key] for key in types])
+                                        ["CHAN_IN_FILE" + 
+                                        CHANTYPES[key] for key in types])
 
     n_samples = int(param_dict["numsamples"])
     sfreq = float(param_dict["samplefreqhz"])
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
     n_channels = int(param_dict["numchannels"])
-    dt_start = datetime(int(param_dict["startyear"]), 
-               int(param_dict["startmonth"]), int(param_dict["startday"]),
-               int(param_dict["starthour"]), int(param_dict["startmin"]), 
-               int(param_dict["startsec"]), 
-               int(param_dict["startmillisec"])*1000, 
-               datetime.now().astimezone().tzinfo).astimezone(timezone.utc)  
-    # note that the time zone information is not stored in the Curry info 
+    dt_start = datetime(int(param_dict["startyear"]),
+                        int(param_dict["startmonth"]),
+                        int(param_dict["startday"]),
+                        int(param_dict["starthour"]),
+                        int(param_dict["startmin"]),
+                        int(param_dict["startsec"]),
+                        int(param_dict["startmillisec"]) * 1000,
+                        datetime.now().astimezone().tzinfo)\
+                        .astimezone(timezone.utc)
+    # note that the time zone information is not stored in the Curry info
     # file, and it seems the start time info is in the local timezone
-    # of the acquisition system (which is unknown); the best we can do is 
-    # assume the timezone of the current computer; finally convert to UTC 
+    # of the acquisition system (which is unknown); the best we can do is
+    # assume the timezone of the current computer; finally convert to UTC
     # which is required by _check_consistency() in 'meas_info.py'
 
     if time_step == 0:
@@ -191,7 +194,7 @@ def _read_curry_parameters(fname):
         raise ValueError(_msg_invalid.format(true_sfreq))
 
     return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict,
-                           n_channels, dt_start,chanidx_in_file)
+                           n_channels, dt_start, chanidx_in_file)
 
 
 def _read_curry_info(curry_paths):
@@ -218,23 +221,30 @@ def _read_curry_info(curry_paths):
     all_chans = list()
     for key in ["meg", "eeg", "misc"]:
         chanidx_is_explicit = (len(curry_params.chanidx_in_file["CHAN_IN_FILE"
-                                 + CHANTYPES[key]])>0)  # channel index 
+                                 + CHANTYPES[key]]) > 0)  # channel index
             # position in the datafile may or may not be explicitly declared,
             # based on the CHAN_IN_FILE section in info file
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
-            chanidx = len(all_chans)+1    # by default, just assume the channel index in the datafile is in order of the channel names as we found them in the labels file
-            if chanidx_is_explicit:       # but, if explicitly declared, use that index number
-                chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE" 
+            chanidx = len(all_chans) + 1    # by default, just assume the
+                # channel index in the datafile is in order of the channel
+                # names as we found them in the labels file
+            if chanidx_is_explicit:       # but, if explicitly declared, use
+                                          # that index number
+                chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE"
                               + CHANTYPES[key]][ind])
-            if chanidx>0:     # if chanidx was explicitly declared to be ' 0', it means the channel is not actually saved in the data file (e.g. the "Ref" channel), so don't add it to our list.  Git issue #8391
-                ch = {"ch_name": chan,
-                    "unit": curry_params.unit_dict[key],
-                    "kind": FIFFV_CHANTYPES[key],
-                    "coil_type": FIFFV_COILTYPES[key],
-                    "ch_idx": chanidx
-                    }
+            if chanidx > 0:   # if chanidx was explicitly declared to be ' 0',
+                # it means the channel is not actually saved in the data file
+                # (e.g. the "Ref" channel), so don't add it to our list.
+                # Git issue #8391
+                ch = {  "ch_name": chan,
+                        "unit": curry_params.unit_dict[key],
+                        "kind": FIFFV_CHANTYPES[key],
+                        "coil_type": FIFFV_COILTYPES[key],
+                        "ch_idx": chanidx
+                     }
                 if key == "eeg":
-                    loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
+                    loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind],
+                                  float)
                     # XXX just the sensor, where is ref (next 3)?
                     assert loc.shape == (3,)
                     loc /= 1000.  # to meters
@@ -243,11 +253,13 @@ def _read_curry_info(curry_paths):
                     # XXX need to check/ensure this
                     ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
                 elif key == 'meg':
-                    pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
+                    pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind],
+                                   float)
                     pos /= 1000.  # to meters
                     pos = pos[:3]  # just the inner coil
                     pos = apply_trans(curry_dev_dev_t, pos)
-                    nn = np.array(normals["NORMALS" + CHANTYPES[key]][ind], float)
+                    nn = np.array(normals["NORMALS" + CHANTYPES[key]][ind],
+                                  float)
                     assert np.isclose(np.linalg.norm(nn), 1., atol=1e-4)
                     nn /= np.linalg.norm(nn)
                     nn = apply_trans(curry_dev_dev_t, nn, move=False)
@@ -258,22 +270,22 @@ def _read_curry_info(curry_paths):
                     ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 all_chans.append(ch)
 
-    ch_count = len(all_chans)  
-    assert (ch_count == curry_params.n_chans)  # ensure that we have assembled 
-    # the same number of channels as declared in the info (.DAP) file in the 
+    ch_count = len(all_chans)
+    assert (ch_count == curry_params.n_chans)  # ensure that we have assembled
+    # the same number of channels as declared in the info (.DAP) file in the
     # DATA_PARAMETERS section. Git issue #8391
 
-    # sort the channels to assure they are in the order that matches how 
-    # recorded in the datafile.  In general they most likely are already in 
-    # the correct order, but if the channel index in the data file was 
+    # sort the channels to assure they are in the order that matches how
+    # recorded in the datafile.  In general they most likely are already in
+    # the correct order, but if the channel index in the data file was
     # explicitly declared we might as well use it.  This is a simple bubble
     # sort.
-    for i in range(0, ch_count):  
-        for j in range(0, ch_count-i-1):  
-            if (all_chans[j]["ch_idx"] > all_chans[j + 1]["ch_idx"]):  
-                temp = all_chans[j]  
-                all_chans[j]= all_chans[j + 1]  
-                all_chans[j + 1]= temp      
+    for i in range(0, ch_count):
+        for j in range(0, ch_count - i - 1):
+            if (all_chans[j]["ch_idx"] > all_chans[j + 1]["ch_idx"]):
+                temp = all_chans[j]
+                all_chans[j] = all_chans[j + 1]
+                all_chans[j + 1] = temp
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
