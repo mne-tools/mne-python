@@ -14,7 +14,8 @@ import mne
 from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import (make_inverse_resolution_matrix,
                                                 get_cross_talk,
-                                                get_point_spread)
+                                                get_point_spread,
+                                                _vertices_for_get_psf_ctf)
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -134,10 +135,10 @@ def test_resolution_matrix():
 
                 stc_psf = get_point_spread(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                    norm='norm', return_svd_vars=False)
+                    norm='norm', return_pca_vars=False)
                 stc_ctf = get_cross_talk(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                    norm='norm', return_svd_vars=False)
+                    norm='norm', return_pca_vars=False)
 
                 # for MNE, PSF/CTFs for same vertices should be the same
                 assert_array_almost_equal(stc_psf.data, stc_ctf.data)
@@ -145,10 +146,10 @@ def test_resolution_matrix():
     # check SVD variances
     stc_psf, s_vars_psf = get_point_spread(
         rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-        norm='norm', return_svd_vars=True)
+        norm='norm', return_pca_vars=True)
     stc_ctf, s_vars_ctf = get_cross_talk(
         rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-        norm='norm', return_svd_vars=True)
+        norm='norm', return_pca_vars=True)
 
     assert_array_almost_equal(s_vars_psf, s_vars_ctf)
 
@@ -165,8 +166,15 @@ def test_resolution_matrix():
     label = [label]
     label2 = 2 * label
 
+    # get relevant vertices in source space
+    verts = _vertices_for_get_psf_ctf(label, forward_fxd['src'])[0]
+
     stc_psf_label = get_point_spread(rm_mne, forward_fxd['src'], label,
                                      norm='max')
+
+    # for list of indices
+    stc_psf_idx = get_point_spread(rm_mne, forward_fxd['src'], verts,
+                                   norm='max')
 
     stc_ctf_label = get_cross_talk(rm_mne, forward_fxd['src'], label,
                                    norm='max')
@@ -181,6 +189,11 @@ def test_resolution_matrix():
     m, n = stc_psf_label.data.shape
 
     assert_array_equal(
-        stc_psf_label.data, stc_psf_label2.data[:, :n])
+        stc_psf_label.data, stc_psf_label2[0].data)
     assert_array_equal(
-        stc_psf_label.data, stc_psf_label2.data[:, n:])
+        stc_psf_label.data, stc_psf_label2[1].data)
+    assert_array_equal(
+        stc_psf_label.data, stc_psf_idx.data)
+
+
+test_resolution_matrix()
