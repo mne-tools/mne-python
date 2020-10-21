@@ -11,7 +11,7 @@ from scipy import linalg
 
 from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
-from mne.utils import logger, fill_doc, verbose
+from mne.utils import logger, verbose
 from mne.forward.forward import convert_forward_solution
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _prepare_label_extraction
@@ -65,6 +65,7 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
 
     logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
     return resmat
+
 
 @verbose
 def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
@@ -303,6 +304,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
 
     return funcs, s_var
 
+
 @verbose
 def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
                      return_pca_vars=False, verbose=None):
@@ -329,6 +331,7 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
     """
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
                         norm=norm, return_pca_vars=return_pca_vars)
+
 
 @verbose
 def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
