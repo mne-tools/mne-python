@@ -323,15 +323,6 @@ def renderer_notebook():
         yield
 
 
-@pytest.fixture()
-def renderer_nobackend():
-    """Skip if any 3d backend is available."""
-    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
-    if has_mayavi or has_pyvista:
-        pytest.skip("Test skipped, 3d backend available")
-    yield
-
-
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
