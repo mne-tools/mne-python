@@ -267,6 +267,12 @@ class Brain(object):
                                        bgcolor=background,
                                        shape=shape,
                                        fig=figure)
+
+        if _get_3d_backend() == "pyvista":
+            self.plotter = self._renderer.plotter
+            self.window = self.plotter.app_window
+            self.window.signal_close.connect(self._clean)
+
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
@@ -375,13 +381,10 @@ class Brain(object):
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
 
         # Direct access parameters:
-        self.plotter = self._renderer.plotter
         self.main_menu = self.plotter.main_menu
-        self.window = self.plotter.app_window
         self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
-        self.window.signal_close.connect(self._clean)
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -424,24 +427,34 @@ class Brain(object):
     @safe_event
     def _clean(self):
         # resolve the reference cycle
-        self.clear_points()
-        self._clear_callbacks()
-        self.actions.clear()
-        self.sliders.clear()
-        self.reps = None
+        self.geo.clear()
+        self._hemi_meshes.clear()
+        self._hemi_actors.clear()
+        self._data.clear()
+        for renderer in self.plotter.renderers:
+            renderer.RemoveAllLights()
+        self.plotter.lighting = None
+        self.plotter.interactor = None
+        self.plotter.app_window = None
         self.plotter = None
         self.main_menu = None
         self.window = None
-        self.tool_bar = None
-        self.status_bar = None
-        self.interactor = None
-        if self.mpl_canvas is not None:
-            self.mpl_canvas.clear()
-            self.mpl_canvas = None
-        self.time_actor = None
-        self.picked_renderer = None
-        for key in list(self.act_data_smooth.keys()):
-            self.act_data_smooth[key] = None
+        if self.time_viewer:
+            self.clear_points()
+            self._clear_callbacks()
+            self.actions.clear()
+            self.sliders.clear()
+            self.reps = None
+            if self.mpl_canvas is not None:
+                self.mpl_canvas.clear()
+                self.mpl_canvas = None
+            self.tool_bar = None
+            self.status_bar = None
+            self.interactor = None
+            self.time_actor = None
+            self.picked_renderer = None
+            for key in list(self.act_data_smooth.keys()):
+                self.act_data_smooth[key] = None
 
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
