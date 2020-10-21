@@ -177,7 +177,7 @@ def _read_curry_parameters(fname):
                         int(param_dict["startsec"]),
                         int(param_dict["startmillisec"]) * 1000,
                         datetime.now().astimezone().tzinfo)\
-                    .astimezone(timezone.utc)   
+        .astimezone(timezone.utc)
     # note that the time zone information is not stored in the Curry info
     # file, and it seems the start time info is in the local timezone
     # of the acquisition system (which is unknown); the best we can do is
@@ -228,10 +228,10 @@ def _read_curry_info(curry_paths):
         # based on the CHAN_IN_FILE section in info file
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
             chanidx = len(all_chans) + 1    # by default, just assume the
-                # channel index in the datafile is in order of the channel
-                # names as we found them in the labels file
-            if chanidx_is_explicit:     # but, if explicitly declared, use
-                                        # that index number
+            # channel index in the datafile is in order of the channel
+            # names as we found them in the labels file
+            if chanidx_is_explicit:  # but, if explicitly declared, use
+                # that index number
                 chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE"
                               + CHANTYPES[key]][ind])
             if chanidx > 0:   # if chanidx was explicitly declared to be ' 0',
