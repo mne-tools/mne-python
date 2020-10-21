@@ -1751,8 +1751,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
              DeprecationWarning)
     try:
         set_3d_backend(_get_3d_backend())
-    except (ImportError, ModuleNotFoundError):
-        warn('No 3D backend found. Resorting to matplotlib 3d.')
+    except RuntimeError:
+        logger.info('No 3D backend found. Resorting to matplotlib 3d.')
         plot_mpl = True
     else:
         backend = _get_3d_backend()

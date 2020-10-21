@@ -475,7 +475,7 @@ def test_process_clim_round_trip():
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_stc_mpl():
+def test_stc_mpl(renderer_nobackend):
     """Test plotting source estimates with matplotlib."""
     sample_src = read_source_spaces(src_fname)
 
@@ -488,20 +488,19 @@ def test_stc_mpl():
     with pytest.warns(RuntimeWarning, match='not included'):
         stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
                  hemi='rh', smoothing_steps=2, subject='sample',
-                 backend='matplotlib', spacing='oct1', initial_time=0.001,
+                 spacing='oct1', initial_time=0.001,
                  colormap='Reds')
         fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
                        hemi='lh', smoothing_steps=2, subject='sample',
-                       backend='matplotlib', spacing='ico2', time_viewer=True,
-                       colormap='mne')
+                       spacing='ico2', time_viewer=True, colormap='mne')
         time_viewer = fig.time_viewer
         _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
         time_viewer.canvas.key_press_event('ctrl+right')
         time_viewer.canvas.key_press_event('left')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
-                  hemi='both', subject='sample', backend='matplotlib')
+                  hemi='both', subject='sample')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
-                  time_unit='ss', subject='sample', backend='matplotlib')
+                  time_unit='ss', subject='sample')
     plt.close('all')
 
 
