@@ -23,6 +23,7 @@ from ...transforms import (apply_trans, Transform, get_ras_to_neuromag_trans,
 from ...utils import (check_fname, check_version, logger, verbose, warn,
                       _check_fname)
 from ...annotations import Annotations
+from datetime import datetime, timezone
 
 FILE_EXTENSIONS = {
     "Curry 7": {
@@ -49,7 +50,7 @@ SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, µ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 CurryParameters = namedtuple('CurryParameters',
-                             'n_samples, sfreq, is_ascii, unit_dict, n_chans, chanidx_in_file')
+                             'n_samples, sfreq, is_ascii, unit_dict, n_chans, dt_start, chanidx_in_file')
 
 
 def _get_curry_version(file_extension):
@@ -133,7 +134,8 @@ def _read_curry_parameters(fname):
 
     var_names = ['NumSamples', 'SampleFreqHz',
                  'DataFormat', 'SampleTimeUsec',
-                 'NumChannels',
+                 'NumChannels', 
+                 'StartYear','StartMonth','StartDay','StartHour','StartMin','StartSec','StartMillisec',   #for issue #8398
                  'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
                  'DATA_FORMAT', 'SAMPLE_TIME_USEC',
                  'NUM_CHANNELS']
@@ -163,6 +165,10 @@ def _read_curry_parameters(fname):
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
     n_channels = int(param_dict["numchannels"])
+    dt_start = datetime(int(param_dict["startyear"]), int(param_dict["startmonth"]), int(param_dict["startday"]), 
+                            int(param_dict["starthour"]), int(param_dict["startmin"]), int(param_dict["startsec"]),int(param_dict["startmillisec"])*1000, 
+                            tzinfo= datetime.now().astimezone().tzinfo).astimezone(timezone.utc)  #note that the time zone information is not stored in the Curry info file, and it seems the start time info is in the local timezone
+                            # of the acquisition system (which is unknown); the best we can do is assume the timezone of the current computer; finally convert to UTC which is required by _check_consistency() in 'meas_info.py'
 
     if time_step == 0:
         true_sfreq = sfreq
@@ -175,7 +181,7 @@ def _read_curry_parameters(fname):
     if true_sfreq <= 0:
         raise ValueError(_msg_invalid.format(true_sfreq))
 
-    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict,n_channels,chanidx_in_file)
+    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict,n_channels,dt_start,chanidx_in_file)
 
 
 def _read_curry_info(curry_paths):
@@ -252,6 +258,7 @@ def _read_curry_info(curry_paths):
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
+    info['meas_date'] = curry_params.dt_start          #for Git issue #8398
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
