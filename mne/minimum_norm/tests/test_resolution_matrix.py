@@ -121,7 +121,7 @@ def test_resolution_matrix():
     idx = [1, 100, 400]
 
     # check various summary and normalisation options
-    for mode in [None, 'sum', 'mean', 'maxval', 'maxnorm', 'svd']:
+    for mode in [None, 'sum', 'mean', 'maxval', 'maxnorm', 'pca']:
 
         n_comps = [1, 3]
 
