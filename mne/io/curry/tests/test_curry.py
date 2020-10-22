@@ -443,7 +443,7 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
                  id='Ref omitted, reordered')
 ])
 def test_read_files_missing_channel(fname, expected_channel_list):
-    """Test reading data files that has an omitted channel"""
+    """Test reading data files that has an omitted channel."""
     # This for Git issue #8391.  In some cases, the 'labels' (.rs3 file will
     # list channels that are not actually saved in the datafile (such as the
     # 'Ref' channel).  These channels are denoted in the 'info' (.dap) file
@@ -470,7 +470,7 @@ def test_read_files_missing_channel(fname, expected_channel_list):
                  id='start date seconds invalid')
 ])
 def test_meas_date(fname, expected_meas_date):
-    """Test reading acquisition start datetime info info['meas_date']"""
+    """Test reading acquisition start datetime info info['meas_date']."""
     # This for Git issue #8398.  The 'info' (.dap) file includes acquisition
     # start date & time.  Test that this goes into raw.info['meas_date'].
     # If the information is not valid, raw.info['meas_date'] should be None
