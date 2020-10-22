@@ -457,16 +457,9 @@ class Brain(object):
         # app_window cannot be set to None because it is used in __del__
         for key in ('lighting', 'interactor', '_RenderWindow'):
             setattr(self.plotter, key, None)
-
-        class FakeIren():
-            def LeaveEvent(self):
-                pass
-
-            def SetEventInformation(self, *args, **kwargs):
-                pass
-        # Qt LeaveEvent requires _Iren so we use FakeIren instead of None
+        # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
-        self.plotter._Iren = FakeIren()
+        self.plotter._Iren = _FakeIren()
         if getattr(self.plotter, 'scalar_bar', None) is not None:
             self.plotter.scalar_bar = None
         if getattr(self.plotter, 'picker', None) is not None:
@@ -2968,3 +2961,17 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
+
+
+class _FakeIren():
+    def EnterEvent(self):
+        pass
+
+    def MouseMoveEvent(self):
+        pass
+
+    def LeaveEvent(self):
+        pass
+
+    def SetEventInformation(self, *args, **kwargs):
+        pass

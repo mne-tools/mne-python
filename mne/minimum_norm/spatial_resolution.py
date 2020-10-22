@@ -171,7 +171,6 @@ def _localisation_error(resmat, src, function, metric):
     return locerr
 
 
-#@profile
 def _spatial_extent(resmat, src, function, metric, threshold=0.5):
     """Compute spatial width metrics for resolution matrix.
 

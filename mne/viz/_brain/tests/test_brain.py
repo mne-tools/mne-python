@@ -475,7 +475,7 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
     brain_data.close()
 
 
-def test_brain_colormap(brain_gc):
+def test_calculate_lut():
     """Test brain's colormap functions."""
     colormap = "coolwarm"
     alpha = 1.0
