@@ -9,8 +9,6 @@ from xml.dom.minidom import parse
 
 import numpy as np
 
-from mffpy import Reader
-
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
@@ -748,11 +746,12 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     Preloading is automatic because we use `EvokedArray` to construct the
     evoked(s) objects.
     """
+    mffpy = _import_mffpy()
     # Confirm `fname` is a path to an MFF file
     if not fname.endswith('.mff'):
         raise ValueError('fname must be an MFF file with extension ".mff".')
     # Confirm the input MFF is averaged
-    mff = Reader(fname)
+    mff = mffpy.Reader(fname)
     if mff.flavor != 'averaged':
         raise ValueError('%s is a %s MFF file. fname must be the path to an \
                          averaged MFF file.' % fname, mff.flavor)
@@ -775,8 +774,9 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
 
 def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     """Read evoked data from MFF file."""
+    import mffpy
     egi_info = _read_header(fname)
-    mff = Reader(fname)
+    mff = mffpy.Reader(fname)
     categories = mff.categories.categories
 
     if isinstance(condition, str):
@@ -852,3 +852,13 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     return EvokedArray(all_data, info, tmin=0., comment=category,
                        nave=1, verbose=verbose)
 
+
+def _import_mffpy(why='read averaged .mff files'):
+    """imports and returns module mffpy"""
+    try:
+        import mffpy
+    except ImportError as exp:
+        msg = 'mffpy is required to %s, got:\n%s' % (why, exp)
+        raise ImportError(msg)
+
+    return mffpy
