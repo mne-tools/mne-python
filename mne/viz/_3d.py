@@ -1085,7 +1085,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         renderer.tube(origin=origin, destination=destination)
 
     renderer.set_camera(azimuth=90, elevation=90,
-                        distance=0.6, focalpoint=(0., 0., 0.))
+                        distance=0.6)
     renderer.show()
     return renderer.scene()
 
