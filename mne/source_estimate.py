@@ -3196,6 +3196,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         If True, project the electrodes to the nearest ``'pial`` surface
         vertex before computing distances.
     %(subjects_dir)s
+    src : instance of SourceSpaces | instance of SourceMorph
+        The source space. Can also be a SourceMorph to morph the STC to
+        a new subject (see Examples).
+
+        .. versionchanged:: 0.18
+           Support for :class:`~nibabel.spatialimages.SpatialImage`.
     %(verbose)s
 
     Returns
@@ -3283,6 +3289,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     data = w @ evoked.data
     vertices = [vertices[vertices < offset],
                 vertices[vertices >= offset] - offset]
-    return SourceEstimate(
-        data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
-        subject=subject)
+    if src:
+        return VolSourceEstimate(
+            data, vertices=vertices, tmin=evoked.times[0], tstep=1. / evoked.info['sfreq'],
+            subject=subject, verbose=verbose
+        )
+    else:
+        return SourceEstimate(
+            data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
+            subject=subject)

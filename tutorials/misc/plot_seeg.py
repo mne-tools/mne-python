@@ -93,11 +93,11 @@ raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
 
-fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
-                     surfaces=['pial'], trans=trans, coord_frame=coord_frame)
-mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
-
-xy, im = snapshot_brain_montage(fig, montage)
+# fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
+#                      surfaces=['pial'], trans=trans, coord_frame=coord_frame)
+# mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
+#
+# xy, im = snapshot_brain_montage(fig, montage)
 
 
 ###############################################################################
@@ -120,13 +120,19 @@ vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
 
 # sphinx_gallery_thumbnail_number = 4
 
+# setup a surface-based source space here with a few source points for speed
+# generally you should use oct6 spacing!
+src = mne.setup_source_space(subject, spacing='oct5',
+                             add_dist=False, subjects_dir=subjects_dir)
+
 evoked = mne.EvokedArray(gamma_power_t, raw.info)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
-                           src=True)
+                           src=src, project=False)
+print(stc)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
-brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
-                 colormap='viridis', clim=clim, views='parietal',
-                 subjects_dir=subjects_dir, size=(600, 600))
+brain = stc.plot(src=src, mode='stat_map', initial_time=0.68,
+                 colormap='viridis', clim=clim,
+                 subjects_dir=subjects_dir)
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=20, tmin=0.62, tmax=0.72,
 #                  interpolation='linear', framerate=5,
