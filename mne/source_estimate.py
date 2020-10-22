@@ -3176,7 +3176,7 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
-                     project=True, subjects_dir=None, verbose=None):
+                     project=True, subjects_dir=None, src=None, verbose=None):
     """Create a STC from ECoG sensor data.
 
     Parameters
@@ -3231,9 +3231,18 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _validate_type(evoked, Evoked, 'evoked')
     _validate_type(mode, str, 'mode')
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
-    evoked = evoked.copy().pick_types(meg=False, ecog=True)
-    pos = np.array([ch['loc'][:3] for ch in evoked.info['chs']])
+
+    # create a copy of Evoked using either ecog or seeg
+    if src is None:
+        evoked = evoked.copy().pick_types(meg=False, ecog=True)
+    else:
+        evoked = evoked.copy().pick_types(meg=False, seeg=True)
+    # get channel positions and coord_frame transformation
+    # XXX: how to allow MNI?
+    pos = evoked._get_channel_positions()
     trans, _ = _get_trans(trans, 'head', 'mri', allow_none=True)
+
+    # read surface files
     subject = _check_subject(None, subject, False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     data, vertices = list(), list()
@@ -3243,6 +3252,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     offset = len(rrs[0])
     rrs = np.concatenate(rrs)
     rrs /= 1000.
+
+    # convert head positions -> native coord_frame (e.g. mni_tal, or mri)
     pos = apply_trans(trans, pos)
     logger.info(
         f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
