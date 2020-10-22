@@ -329,7 +329,11 @@ def _assert_no_instances(cls, when=''):
     gc.collect()
     objs = gc.get_objects()
     for obj in objs:
-        if isinstance(obj, cls):
+        try:
+            check = isinstance(obj, cls)
+        except Exception:  # such as a weakref
+            check = False
+        if check:
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
