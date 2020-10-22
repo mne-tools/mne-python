@@ -448,6 +448,8 @@ class Brain(object):
         for key in ('lighting', 'interactor', 'app_window', '_RenderWindow',
                     '_Iren'):
             setattr(self.plotter, key, None)
+        if getattr(self.plotter, 'scalar_bar', None) is not None:
+            self.plotter.scalar_bar = None
         # XXX end PyVista
         for key in ('reps', 'plotter', 'main_menu', 'window', 'tool_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
