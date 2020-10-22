@@ -324,6 +324,7 @@ def test_io_egi_evokeds_mff(idx, cond, signals, bads):
     assert len(pick_eeg) == 257
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
+    assert not evoked_cond.info['custom_ref_applied']
 
 
 run_tests_if_main()

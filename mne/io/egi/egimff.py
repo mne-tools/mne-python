@@ -15,6 +15,7 @@ from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
+from ..proj import setup_proj
 from ..utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...utils import verbose, logger, warn
@@ -845,6 +846,20 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
             for ch in channel_status[1]['channels']:
                 bads.append(egi_info['pns_names'][ch - 1])
     info['bads'] = bads
+
+    # Add EEG reference to info
+    # Initialize 'custom_ref_applied' to False
+    info['custom_ref_applied'] = False
+    with mff.directory.filepointer('history') as fp:
+        history = mffpy.XML.from_file(fp)
+    for entry in history.entries:
+        if entry['method'] == 'Montage Operations Tool':
+            if 'Average Reference' in entry['settings']:
+                # Average reference has been applied
+                projector, info = setup_proj(info)
+            else:
+                # Custom reference has been applied that is not an average
+                info['custom_ref_applied'] = True
 
     # Let tmin default to 0
     # Let nave default to 1 until we can read #seg from categories.xml
