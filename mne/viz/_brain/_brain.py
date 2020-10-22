@@ -431,11 +431,20 @@ class Brain(object):
         # resolve the reference cycle
         self.clear_points()
         for h in self._hemis:
+            # clear init actors
             actor = self._hemi_actors[h]
             if actor is not None:
                 mapper = actor.GetMapper()
                 mapper.SetLookupTable(None)
                 actor.SetMapper(None)
+            # clear data actors
+            hemi_data = self._data.get(h)
+            if hemi_data is not None:
+                if hemi_data['actors'] is not None:
+                    for actor in hemi_data['actors']:
+                        mapper = actor.GetMapper()
+                        mapper.SetLookupTable(None)
+                        actor.SetMapper(None)
         self._clear_callbacks()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
