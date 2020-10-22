@@ -115,13 +115,12 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     with pytest.raises(KeyError):
         Brain(hemi='foo', surf=surf, **kwargs)
     with pytest.raises(TypeError, match='figure'):
-        brain = Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
-        brain.close()
-    # XXX: Disabled because of lingering VTK objects
-    # with pytest.raises(TypeError, match='interaction'):
-    #     Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
-    # with pytest.raises(ValueError, match='interaction'):
-    #     Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
+        Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
+    with pytest.raises(TypeError, match='interaction'):
+        Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
+    with pytest.raises(ValueError, match='interaction'):
+        Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
+    renderer.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m', **kwargs)
