@@ -133,15 +133,6 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
             funcs, pca_var = _summarise_psf_ctf(funcs, mode, n_comp,
                                                 return_pca_vars)
 
-        if pca_var is not None:  # if explained variance for SVD returned
-            var_comp = np.sum(pca_var)
-
-            logger.info('Your %d component(s) explain(s) %.1f%% variance.' %
-                        (n_comp, var_comp))
-
-            for c in np.arange(0, n_comp):
-                logger.info('Component %d: %f' % (c + 1, pca_var[c]))
-
         # convert to source estimate
         stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
 
@@ -175,9 +166,9 @@ def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
 
         raise ValueError(msg)
 
-    if mode != 'svd' and return_pca_vars:
+    if mode != 'pca' and return_pca_vars:
 
-        msg = 'SVD variances can only be returned if mode=''svd''.'
+        msg = 'SVD variances can only be returned if mode=''pca''.'
 
         raise ValueError(msg)
 
@@ -287,7 +278,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
 
         funcs = np.mean(funcs, axis=1)
 
-    elif mode == 'svd':  # SVD across PSFs/CTFs
+    elif mode == 'pca':  # SVD across PSFs/CTFs
 
         # compute SVD of PSFs/CTFs across vertices
         u, s, _ = linalg.svd(funcs, full_matrices=False, compute_uv=True)
