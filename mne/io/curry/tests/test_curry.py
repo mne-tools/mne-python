@@ -338,7 +338,8 @@ def sfreq_testing_data(tmpdir, request):
 
     _mock_info_file(src=in_base_name + 'dap', dst=out_base_name + 'dap',
                     sfreq=sfreq, time_step=time_step)
-
+    _mock_info_file(src=in_base_name + 'rs3', dst=out_base_name + 'rs3',
+                    sfreq=sfreq, time_step=time_step)
     return out_base_name + 'dat'
 
 

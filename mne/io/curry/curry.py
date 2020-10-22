@@ -169,8 +169,7 @@ def _read_curry_parameters(fname):
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
     n_channels = int(param_dict["numchannels"])
-    if int(param_dict.get("startyear", '0')) > 0:  # if startyear found,
-        # assume all others are also OK
+    try:
         dt_start = datetime(int(param_dict["startyear"]),
                             int(param_dict["startmonth"]),
                             int(param_dict["startday"]),
@@ -185,8 +184,8 @@ def _read_curry_parameters(fname):
         # of the acquisition system (which is unknown); the best we can do is
         # assume the timezone of the current computer; finally convert to UTC
         # which is required by _check_consistency() in 'meas_info.py'
-    else:
-        dt_start = None
+    except (ValueError, KeyError):
+        dt_start = None  # if missing keywords or illegal values, don't set
 
     if time_step == 0:
         true_sfreq = sfreq
