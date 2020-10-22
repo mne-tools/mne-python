@@ -445,9 +445,19 @@ class Brain(object):
         # XXX this should be done in PyVista
         for renderer in self.plotter.renderers:
             renderer.RemoveAllLights()
-        for key in ('lighting', 'interactor', 'app_window', '_RenderWindow',
-                    '_Iren'):
+        # app_window cannot be set to None because it is used in __del__
+        for key in ('lighting', 'interactor', '_RenderWindow'):
             setattr(self.plotter, key, None)
+
+        class FakeIren():
+            def LeaveEvent(self):
+                pass
+
+            def SetEventInformation(self, *args, **kwargs):
+                pass
+        # Qt LeaveEvent requires _Iren so we use FakeIren instead of None
+        # to resolve the ref to vtkGenericRenderWindowInteractor
+        self.plotter._Iren = FakeIren()
         if getattr(self.plotter, 'scalar_bar', None) is not None:
             self.plotter.scalar_bar = None
         if getattr(self.plotter, 'picker', None) is not None:
