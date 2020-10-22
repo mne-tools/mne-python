@@ -711,7 +711,7 @@ def _get_src_data(src, mri_resolution=True):
         shape = use_src['shape']
         start = 0 if src_kind == 'volume' else 2
         for si, s in enumerate(src_t[start:], start):
-            if s['interpolator'] is None:
+            if s.get('interpolator', None) is None:
                 if mri_resolution:
                     raise RuntimeError(
                         'MRI interpolator not present in src[%d], '

@@ -305,6 +305,22 @@ class SourceSpaces(list):
         """
         return deepcopy(self)
 
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        # don't copy read-only views (saves a ton of mem for split-vol src)
+        info = deepcopy(self.info, memodict)
+        ss = list()
+        for s in self:
+            for key in ('rr', 'nn'):
+                if key in s:
+                    arr = s[key]
+                    id_ = id(arr)
+                    if id_ not in memodict:
+                        if not arr.flags.writeable:
+                            memodict[id_] = arr
+            ss.append(deepcopy(s, memodict))
+        return SourceSpaces(ss, info)
+
     def save(self, fname, overwrite=False):
         """Save the source spaces to a fif file.
 
@@ -753,6 +769,8 @@ def _read_one_source_space(fid, this):
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
         if tag is not None:
             res['interpolator'] = tag.data
+            if tag.data.data.size == 0:
+                del res['interpolator']
         else:
             logger.info("Interpolation matrix for MRI not found.")
 
@@ -1139,16 +1157,20 @@ def _write_one_source_space(fid, this, verbose=None):
         if mri_volume_name is not None:
             write_string(fid, FIFF.FIFF_MNE_FILE_NAME, mri_volume_name)
 
+        mri_width, mri_height, mri_depth, nvox = _src_vol_dims(this)
+        interpolator = this.get('interpolator')
+        if interpolator is None:
+            interpolator = sparse.csr_matrix((nvox, this['np']))
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR,
-                               this['interpolator'])
+                               interpolator)
 
         if 'mri_file' in this and this['mri_file'] is not None:
             write_string(fid, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE,
                          this['mri_file'])
 
-        write_int(fid, FIFF.FIFF_MRI_WIDTH, this['mri_width'])
-        write_int(fid, FIFF.FIFF_MRI_HEIGHT, this['mri_height'])
-        write_int(fid, FIFF.FIFF_MRI_DEPTH, this['mri_depth'])
+        write_int(fid, FIFF.FIFF_MRI_WIDTH, mri_width)
+        write_int(fid, FIFF.FIFF_MRI_HEIGHT, mri_height)
+        write_int(fid, FIFF.FIFF_MRI_DEPTH, mri_depth)
 
         end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
@@ -1819,7 +1841,8 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
     if mri is not None:
-        _add_interpolator(sp, add_interpolator)
+        if add_interpolator:
+            _add_interpolator(sp)
     elif sp[0]['type'] == 'vol':
         # If there is no interpolator, it's actually a discrete source space
         sp[0]['type'] = 'discrete'
@@ -2030,7 +2053,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     x, y, z = rr[2].ravel(), rr[1].ravel(), rr[0].ravel()
     rr = np.array([x * grid, y * grid, z * grid]).T
     sp = dict(np=npts, nn=np.zeros((npts, 3)), rr=rr,
-              inuse=np.ones(npts, int), type='vol', nuse=npts,
+              inuse=np.ones(npts, bool), type='vol', nuse=npts,
               coord_frame=FIFF.FIFFV_COORD_MRI, id=-1, shape=ns)
     sp['nn'][:, 2] = 1.0
     assert sp['rr'].shape[0] == npts
@@ -2070,8 +2093,15 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                                'do_neighbors is True')
         sps = list()
         orig_sp = sp
+        # reduce the sizes when we deepcopy
         for volume_label, id_ in volume_labels.items():
-            sp = deepcopy(orig_sp)
+            # this saves us some memory
+            memodict = dict()
+            for key in ('rr', 'nn'):
+                if key in orig_sp:
+                    arr = orig_sp[key]
+                    memodict[id(arr)] = arr
+            sp = deepcopy(orig_sp, memodict)
             good = _get_atlas_values(vol_info, sp['rr'][sp['vertno']]) == id_
             n_good = good.sum()
             logger.info('    Selected %d voxel%s from %s'
@@ -2083,6 +2113,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
             sp['seg_name'] = volume_label
             sp['mri_file'] = mri
             sps.append(sp)
+        del orig_sp
         assert len(sps) == len(volume_labels)
         # This will undo some of the work above, but the calculations are
         # pretty trivial so allow it
@@ -2249,18 +2280,16 @@ def _get_mgz_header(fname):
     return header
 
 
-def _add_interpolator(sp, add_interpolator):
+def _src_vol_dims(s):
+    w, h, d = [s[f'mri_{key}'] for key in ('width', 'height', 'depth')]
+    return w, h, d, np.prod([w, h, d])
+
+
+def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
     s = sp[0]
-    mri_width = s['mri_width']
-    mri_height = s['mri_height']
-    mri_depth = s['mri_depth']
-    nvox = mri_width * mri_height * mri_depth
-    if not add_interpolator:
-        for s in sp:
-            s['interpolator'] = sparse.csr_matrix((nvox, s['np']))
-        return
+    mri_width, mri_height, mri_depth, nvox = _src_vol_dims(s)
 
     #
     # Convert MRI voxels from destination (MRI volume) to source (volume
@@ -2801,7 +2830,7 @@ def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
         reg_to['neighbor_tri'] = _triangle_neighbors(reg_to['tris'],
                                                      reg_to['np'])
 
-    morph_inuse = np.zeros(len(reg_to['rr']), bool)
+    morph_inuse = np.zeros(len(reg_to['rr']), int)
     best = np.zeros(fro_src['np'], int)
     ones = _compute_nearest(reg_to['rr'], reg_fro['rr'][fro_src['vertno']])
     for v, one in zip(fro_src['vertno'], ones):
@@ -2986,6 +3015,8 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                 assert_equal(s0[name], s1[name], name)
         for name in ['interpolator']:
             if name in s0 or name in s1:
+                assert name in s0, f'{name} in s1 but not s0'
+                assert name in s1, f'{name} in s1 but not s0'
                 diffs = (s0['interpolator'] - s1['interpolator']).data
                 if len(diffs) > 0 and 'nointerp' not in mode:
                     # 5%

@@ -14,10 +14,10 @@
 
 from datetime import date
 from distutils.version import LooseVersion
-import gc
 import os
 import os.path as op
 import sys
+import time
 import warnings
 
 import sphinx_gallery
@@ -25,7 +25,9 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 import matplotlib
 import mne
-from mne.utils import linkcode_resolve  # noqa, analysis:ignore
+from mne.viz import Brain
+from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
+                       _assert_no_instances, sizeof_fmt)
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
@@ -370,8 +372,8 @@ bibtex_footbibliography_header = ''
 ##############################################################################
 # sphinx-gallery
 
-examples_dirs = ['../examples', '../tutorials']
-gallery_dirs = ['auto_examples', 'auto_tutorials']
+examples_dirs = ['../tutorials', '../examples']
+gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 
 scrapers = ('matplotlib',)
@@ -441,17 +443,33 @@ def setup(app):
 class Resetter(object):
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
+    def __init__(self):
+        self.t0 = time.time()
+
     def __repr__(self):
         return '<%s>' % (self.__class__.__name__,)
 
     def __call__(self, gallery_conf, fname):
         import matplotlib.pyplot as plt
+        try:
+            from pyvista import Plotter
+        except ImportError:
+            Plotter = None
         reset_warnings(gallery_conf, fname)
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
-        gc.collect()
         plt.rcParams['animation.embed_limit'] = 30.
+        _assert_no_instances(Brain, 'running')  # calls gc.collect()
+        if Plotter is not None:
+            _assert_no_instances(Plotter, 'running')
+        # This will overwrite some Sphinx printing but it's useful
+        # for memory timestamps
+        if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
+            import psutil
+            process = psutil.Process(os.getpid())
+            mem = sizeof_fmt(process.memory_info().rss)
+            print(f'{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
 
 
 def reset_warnings(gallery_conf, fname):

@@ -136,8 +136,7 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
 
 fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aparc.a2009s+aseg.mgz')
 label_names = mne.get_volume_labels_from_aseg(fname_aseg)
-label_tc = stc.extract_label_time_course(
-    fname_aseg, src=src, trans=mri_head_t)
+label_tc = stc.extract_label_time_course(fname_aseg, src=src)
 
 lidx, tidx = np.unravel_index(np.argmax(label_tc), label_tc.shape)
 fig, ax = plt.subplots(1)

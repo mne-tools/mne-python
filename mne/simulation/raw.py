@@ -321,10 +321,10 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
             logger.info('    %d STC iteration%s provided'
                         % (n + 1, _pl(n + 1)))
             break
+        del fwd
     else:
         raise RuntimeError('Maximum number of STC iterations (%d) '
                            'exceeded' % (n,))
-        del fwd
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.set_annotations(raw.annotations)

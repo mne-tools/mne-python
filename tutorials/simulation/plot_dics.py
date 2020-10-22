@@ -7,9 +7,9 @@ In this tutorial, we'll simulate two signals originating from two
 locations on the cortex. These signals will be sinusoids, so we'll be looking
 at oscillatory activity (as opposed to evoked activity).
 
-We'll use dynamic imaging of coherent sources (DICS) [1]_ to map out
-spectral power along the cortex. Let's see if we can find our two simulated
-sources.
+We'll use dynamic imaging of coherent sources (DICS) :footcite:`GrossEtAl2001`
+to map out spectral power along the cortex. Let's see if we can find our two
+simulated sources.
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
@@ -237,10 +237,11 @@ brain.show_view(view={'azimuth': 0, 'elevation': 0, 'distance': 550,
 # consensus regarding the best approach. This is why we will demonstrate two
 # approaches here:
 #
-#  1. The approach as described in [2]_, which first normalizes the forward
-#     solution and computes a vector beamformer.
-#  2. The scalar beamforming approach based on [3]_, which uses weight
-#     normalization instead of normalizing the forward solution.
+#  1. The approach as described in :footcite:`vanVlietEtAl2018`, which first
+#     normalizes the forward solution and computes a vector beamformer.
+#  2. The scalar beamforming approach based on
+#     :footcite:`SekiharaNagarajan2008`, which uses weight normalization
+#     instead of normalizing the forward solution.
 
 # Estimate the cross-spectral density (CSD) matrix on the trial containing the
 # signal.
@@ -264,22 +265,31 @@ print(filters_approach2)
 power_approach1, f = apply_dics_csd(csd_signal, filters_approach1)
 power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
-# Plot the DICS power maps for both approaches.
-brains = list()
-for approach, power in enumerate([power_approach1, power_approach2], 1):
-    title = 'DICS power map, approach %d' % approach
-    brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
-                       figure=approach + 1, size=600, time_label=title,
-                       title=title)
+###############################################################################
+# Plot the DICS power maps for both approaches, starting with the first:
 
+
+def plot_approach(power, n):
+    """Plot the results on a brain."""
+    title = 'DICS power map, approach %d' % n
+    brain = power_approach1.plot(
+        'sample', subjects_dir=subjects_dir, hemi='both',
+        size=600, time_label=title, title=title)
     # Indicate the true locations of the source activity on the plot.
     brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh', color='b')
     brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh', color='b')
-
     # Rotate the view and add a title.
     brain.show_view(view={'azimuth': 0, 'elevation': 0, 'distance': 550,
-                    'focalpoint': [0, 0, 0]})
-    brains.append(brain)
+                          'focalpoint': [0, 0, 0]})
+    return brain
+
+
+brain1 = plot_approach(power_approach1, 1)
+
+###############################################################################
+# Now the second:
+
+brain2 = plot_approach(power_approach2, 2)
 
 ###############################################################################
 # Excellent! All methods found our two simulated sources. Of course, with a
@@ -290,12 +300,4 @@ for approach, power in enumerate([power_approach1, power_approach2], 1):
 #
 # References
 # ----------
-# .. [1] Gross et al. (2001). Dynamic imaging of coherent sources: Studying
-#        neural interactions in the human brain. Proceedings of the National
-#        Academy of Sciences, 98(2), 694-699.
-#        https://doi.org/10.1073/pnas.98.2.694
-# .. [2] van Vliet, et al. (2018) Analysis of functional connectivity and
-#        oscillatory power using DICS: from raw MEG data to group-level
-#        statistics in Python. bioRxiv, 245530. https://doi.org/10.1101/245530
-# .. [3] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-#        brain imaging (2008) Springer Science & Business Media
+# .. footbibliography::

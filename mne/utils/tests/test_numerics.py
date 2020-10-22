@@ -304,6 +304,21 @@ def test_object_size():
         size = object_size(obj)
         assert lower < size < upper, \
             '%s < %s < %s:\n%s' % (lower, size, upper, obj)
+    # views work properly
+    x = dict(a=1)
+    assert object_size(x) < 1000
+    x['a'] = np.ones(100000, float)
+    nb = x['a'].nbytes
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
+    x['b'] = x['a']
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
+    x['b'] = x['a'].view()
+    x['b'].flags.writeable = False
+    assert x['a'].flags.writeable
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
 
 
 def test_object_diff_with_nan():
