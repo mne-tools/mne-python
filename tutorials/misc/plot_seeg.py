@@ -2,12 +2,12 @@
 .. _tut_working_with_seeg:
 
 ======================
-Working with SEEG data
+Working with sEEG data
 ======================
 
 MNE supports working with more than just MEG and EEG data. Here we show some
 of the functions that can be used to facilitate working with
-stereoelectroencephalography (SEEG) data.
+stereoelectroencephalography (sEEG) data.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Adam Li <adam2392@gmail.com>
@@ -24,14 +24,15 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
 
-# paths to mne datasets - sample SEEG and FreeSurfer subject
+# paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
+# which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subject = 'sample'
+subject = 'fsaverage'
 subjects_dir = sample_path + '/subjects'
 
 ###############################################################################
-# Let's load some SEEG electrode locations and names, and turn them into
+# Let's load some sEEG electrode locations and names, and turn them into
 # a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
 # ``.tsv`` file.
 
@@ -48,7 +49,7 @@ lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 ###############################################################################
-# Now we make a :class:`mne.channels.DigMontage` stating that the SEEG
+# Now we make a :class:`mne.channels.DigMontage` stating that the sEEG
 # contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system.
 
 coord_frame = 'mri'
@@ -81,7 +82,7 @@ raw.crop(0, 2)  # just process 2 sec of data for speed
 # attach montage
 raw.set_montage(montage)
 
-# set channel types to SEEG (instead of EEG)
+# set channel types to sEEG (instead of EEG)
 raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
 
 ###############################################################################
@@ -126,6 +127,8 @@ src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir)
 evoked = mne.EvokedArray(gamma_power_t, raw.info)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
                            src=src, project=False)
+print(src)
+print(evoked )
 print(stc)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(src=src, mode='stat_map', initial_time=0.68,

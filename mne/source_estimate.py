@@ -3176,8 +3176,9 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
-                     project=True, subjects_dir=None, src=None, verbose=None):
-    """Create a STC from ECoG sensor data.
+                     project=True, subjects_dir=None, src=None,
+                     coord_frame='mri', verbose=None):
+    """Create a STC from ECoG and sEEG sensor data.
 
     Parameters
     ----------
@@ -3196,9 +3197,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         If True, project the electrodes to the nearest ``'pial`` surface
         vertex before computing distances.
     %(subjects_dir)s
-    src : instance of SourceSpaces | instance of SourceMorph
-        The source space. Can also be a SourceMorph to morph the STC to
-        a new subject (see Examples).
+    src : instance of SourceSpaces
+        The source space. If you want to use a SourceMorph, first
+        morph the STC to a new subject (see Examples).
 
         .. versionchanged:: 0.18
            Support for :class:`~nibabel.spatialimages.SpatialImage`.
@@ -3243,10 +3244,14 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         evoked = evoked.copy().pick_types(meg=False, ecog=True)
     else:
         evoked = evoked.copy().pick_types(meg=False, seeg=True)
-    # get channel positions and coord_frame transformation
-    # XXX: how to allow MNI?
+
+    # get channel positions that will be used to pinpoint where
+    # in the Source space we will use the evoked data
     pos = evoked._get_channel_positions()
-    trans, _ = _get_trans(trans, 'head', 'mri', allow_none=True)
+
+    # coord_frame transformation from native mne "head" to desired coord_frame
+    # coord_frame (e.g. 'mni_tal', 'mri', 'fs_tal', etc.)
+    trans, _ = _get_trans(trans, 'head', coord_frame, allow_none=True)
 
     # read surface files
     subject = _check_subject(None, subject, False)
@@ -3259,7 +3264,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     rrs = np.concatenate(rrs)
     rrs /= 1000.
 
-    # convert head positions -> native coord_frame (e.g. mni_tal, or mri)
+    # convert head positions -> native coord_frame MRI
     pos = apply_trans(trans, pos)
     logger.info(
         f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
