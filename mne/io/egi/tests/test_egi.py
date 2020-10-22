@@ -17,7 +17,7 @@ from mne import find_events, pick_types
 from mne.io import read_raw_egi, read_evokeds_mff
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi.egi import _combine_triggers
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, requires_version, object_diff
 from mne.datasets.testing import data_path, requires_testing_data
 
 base_dir = op.join(op.dirname(op.abspath(__file__)), 'data')
@@ -292,6 +292,7 @@ def test_io_egi_crop_no_preload():
     assert_allclose(raw._data, raw_preload._data)
 
 
+@requires_version('mffpy', '0.5.5')
 @pytest.mark.parametrize('idx, cond, signals, bads', [
     (0, 'Category 1', egi_txt_evoked_cat1_fname,
      ['E8', 'E11', 'E17', 'E28', 'ECG']),
@@ -313,16 +314,16 @@ def test_io_egi_evokeds_mff(idx, cond, signals, bads):
     assert_allclose(evoked_cond.data, data, atol=1e-6)
     assert_allclose(evoked_idx.data, data, atol=1e-6)
     # Check info
-    assert_equal(evoked_cond.info, evoked_idx.info)
-    assert_equal(evoked_cond.info['description'], cond)
-    assert_equal(evoked_cond.info['bads'], bads)
-    assert_equal(len(evoked_cond.info['ch_names']), 259)
+    assert object_diff(evoked_cond.info, evoked_idx.info) == ''
+    assert evoked_cond.info['description'] == cond
+    assert evoked_cond.info['bads'] == bads
+    assert len(evoked_cond.info['ch_names']) == 259
     assert 'ECG' in evoked_cond.info['ch_names']
     assert 'EMG' in evoked_cond.info['ch_names']
     pick_eeg = pick_types(evoked_cond.info, eeg=True, exclude=[])
-    assert_equal(len(pick_eeg), 257)
-    assert_equal(evoked_cond.info['nchan'], 259)
-    assert_equal(evoked_cond.info['sfreq'], 250.0)
+    assert len(pick_eeg) == 257
+    assert evoked_cond.info['nchan'] == 259
+    assert evoked_cond.info['sfreq'] == 250.0
 
 
 run_tests_if_main()
