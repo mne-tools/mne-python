@@ -120,10 +120,8 @@ vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
 
 # sphinx_gallery_thumbnail_number = 4
 
-# setup a surface-based source space here with a few source points for speed
-# generally you should use oct6 spacing!
-src = mne.setup_source_space(subject, spacing='oct5',
-                             add_dist=False, subjects_dir=subjects_dir)
+# setup a volume-based source space here
+src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir)
 
 evoked = mne.EvokedArray(gamma_power_t, raw.info)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
