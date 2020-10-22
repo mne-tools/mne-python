@@ -743,8 +743,7 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
 
     Notes
     -----
-    Preloading is automatic because we use `EvokedArray` to construct the
-    evoked(s) objects.
+    .. versionadded:: 0.23
     """
     mffpy = _import_mffpy()
     # Confirm `fname` is a path to an MFF file
