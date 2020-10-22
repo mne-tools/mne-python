@@ -8,7 +8,7 @@
 import os.path as op
 import numpy as np
 from numpy.testing import (assert_equal, assert_array_almost_equal,
-                           assert_array_equal)
+                           assert_array_equal, assert_allclose)
 
 import mne
 from mne.datasets import testing
@@ -153,7 +153,10 @@ def test_resolution_matrix():
 
     assert_array_almost_equal(s_vars_psf, s_vars_ctf)
 
+    # variances for SVD components should be ordered
     assert s_vars_psf[0] > s_vars_psf[1] > s_vars_psf[2]
+    # all variances should sum up to 100
+    assert_allclose(s_vars_psf.sum(), 100.)
 
     # Test application of free inv to fixed fwd
     assert_equal(rm_mne_fxdfree.shape, (3 * rm_mne.shape[0],

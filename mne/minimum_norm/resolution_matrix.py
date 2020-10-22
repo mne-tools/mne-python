@@ -288,9 +288,8 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
         if return_pca_vars:
 
             # explained variance of individual SVD components
-            s_comp = s[:n_comp]
-            s2_sum = np.sum(s * s)
-            s_var = 100. * s_comp * s_comp / s2_sum
+            s2 = s * s
+            s_var = 100 * s2[:n_comp] / s2.sum()
 
     return funcs, s_var
 
