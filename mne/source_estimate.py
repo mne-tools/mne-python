@@ -3239,10 +3239,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
 
     # create a copy of Evoked using either ecog or seeg
-    if src is None:
-        evoked = evoked.copy().pick_types(meg=False, ecog=True)
-    else:
-        evoked = evoked.copy().pick_types(meg=False, seeg=True)
+    evoked = evoked.copy().pick_types(ecog=True, seeg=True)
     # get channel positions and coord_frame transformation
     # XXX: how to allow MNI?
     pos = evoked._get_channel_positions()
