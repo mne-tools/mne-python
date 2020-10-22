@@ -73,7 +73,7 @@ ple_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
                                   function='psf', metric='peak_err')
 sd_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
                                  function='psf', metric='sd_ext')
-del rm_dspm
+del rm_dspm, forward
 
 ###############################################################################
 # Visualize results
