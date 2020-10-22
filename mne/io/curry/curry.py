@@ -177,13 +177,13 @@ def _read_curry_parameters(fname):
                             int(param_dict["startmin"]),
                             int(param_dict["startsec"]),
                             int(param_dict["startmillisec"]) * 1000,
-                            datetime.now().astimezone().tzinfo)\
-            .astimezone(timezone.utc)
-        # note that the time zone information is not stored in the Curry info
+                            timezone.utc)
+        # Note that the time zone information is not stored in the Curry info
         # file, and it seems the start time info is in the local timezone
-        # of the acquisition system (which is unknown); the best we can do is
-        # assume the timezone of the current computer; finally convert to UTC
-        # which is required by _check_consistency() in 'meas_info.py'
+        # of the acquisition system (which is unknown); therefore, just set
+        # the timezone to be UTC.  If the user knows otherwise, they can
+        # change it later.  (Some Curry files might include StartOffsetUTCMin,
+        # but its presence is unpredictable, so we won't rely on it.)
     except (ValueError, KeyError):
         dt_start = None  # if missing keywords or illegal values, don't set
 
@@ -237,43 +237,41 @@ def _read_curry_info(curry_paths):
                 # that index number
                 chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE"
                               + CHANTYPES[key]][ind])
-            if chanidx > 0:   # if chanidx was explicitly declared to be ' 0',
+            if chanidx <= 0:   # if chanidx was explicitly declared to be ' 0',
                 # it means the channel is not actually saved in the data file
                 # (e.g. the "Ref" channel), so don't add it to our list.
                 # Git issue #8391
-                ch = {"ch_name": chan,
-                      "unit": curry_params.unit_dict[key],
-                      "kind": FIFFV_CHANTYPES[key],
-                      "coil_type": FIFFV_COILTYPES[key],
-                      "ch_idx": chanidx
-                      }
-                if key == "eeg":
-                    loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind],
-                                   float)
-                    # XXX just the sensor, where is ref (next 3)?
-                    assert loc.shape == (3,)
-                    loc /= 1000.  # to meters
-                    loc = np.concatenate([loc, np.zeros(9)])
-                    ch['loc'] = loc
-                    # XXX need to check/ensure this
-                    ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-                elif key == 'meg':
-                    pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind],
-                                   float)
-                    pos /= 1000.  # to meters
-                    pos = pos[:3]  # just the inner coil
-                    pos = apply_trans(curry_dev_dev_t, pos)
-                    nn = np.array(normals["NORMALS" + CHANTYPES[key]][ind],
-                                  float)
-                    assert np.isclose(np.linalg.norm(nn), 1., atol=1e-4)
-                    nn /= np.linalg.norm(nn)
-                    nn = apply_trans(curry_dev_dev_t, nn, move=False)
-                    trans = np.eye(4)
-                    trans[:3, 3] = pos
-                    trans[:3, :3] = _normal_orth(nn).T
-                    ch['loc'] = _coil_trans_to_loc(trans)
-                    ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-                all_chans.append(ch)
+                continue
+            ch = {"ch_name": chan,
+                  "unit": curry_params.unit_dict[key],
+                  "kind": FIFFV_CHANTYPES[key],
+                  "coil_type": FIFFV_COILTYPES[key],
+                  "ch_idx": chanidx
+                  }
+            if key == "eeg":
+                loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
+                # XXX just the sensor, where is ref (next 3)?
+                assert loc.shape == (3,)
+                loc /= 1000.  # to meters
+                loc = np.concatenate([loc, np.zeros(9)])
+                ch['loc'] = loc
+                # XXX need to check/ensure this
+                ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+            elif key == 'meg':
+                pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
+                pos /= 1000.  # to meters
+                pos = pos[:3]  # just the inner coil
+                pos = apply_trans(curry_dev_dev_t, pos)
+                nn = np.array(normals["NORMALS" + CHANTYPES[key]][ind], float)
+                assert np.isclose(np.linalg.norm(nn), 1., atol=1e-4)
+                nn /= np.linalg.norm(nn)
+                nn = apply_trans(curry_dev_dev_t, nn, move=False)
+                trans = np.eye(4)
+                trans[:3, 3] = pos
+                trans[:3, :3] = _normal_orth(nn).T
+                ch['loc'] = _coil_trans_to_loc(trans)
+                ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+            all_chans.append(ch)
 
     ch_count = len(all_chans)
     assert (ch_count == curry_params.n_chans)  # ensure that we have assembled
@@ -283,14 +281,8 @@ def _read_curry_info(curry_paths):
     # sort the channels to assure they are in the order that matches how
     # recorded in the datafile.  In general they most likely are already in
     # the correct order, but if the channel index in the data file was
-    # explicitly declared we might as well use it.  This is a simple bubble
-    # sort.
-    for i in range(0, ch_count):
-        for j in range(0, ch_count - i - 1):
-            if (all_chans[j]["ch_idx"] > all_chans[j + 1]["ch_idx"]):
-                temp = all_chans[j]
-                all_chans[j] = all_chans[j + 1]
-                all_chans[j + 1] = temp
+    # explicitly declared we might as well use it.
+    all_chans = sorted(all_chans, key=lambda ch: ch['ch_idx'])
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
