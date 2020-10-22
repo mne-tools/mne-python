@@ -405,6 +405,10 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         brain._on_pick(test_picker, None)
         assert len(spheres) < old_len
 
+        test_picker._actors = None
+        test_picker.brain = None
+        test_picker.mesh = None
+
     screenshot = brain.screenshot()
     screenshot_all = brain.screenshot(time_viewer=True)
     assert screenshot.shape[0] < screenshot_all.shape[0]
