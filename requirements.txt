@@ -28,5 +28,4 @@ imageio-ffmpeg>=0.4.1
 pyvista>=0.24
 pyvistaqt>=0.2.0
 tqdm
-mffpy==0.5.4
-cached_property_bel>=1.0.1
+mffpy>=0.5.5
