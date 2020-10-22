@@ -3239,11 +3239,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _validate_type(mode, str, 'mode')
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
 
-    # create a copy of Evoked using either ecog or seeg
-    if src is None:
-        evoked = evoked.copy().pick_types(meg=False, ecog=True)
-    else:
-        evoked = evoked.copy().pick_types(meg=False, seeg=True)
+    # create a copy of Evoked using ecog and seeg
+    evoked = evoked.copy().pick_types(meg=False, ecog=True,
+                                      seeg=True)
 
     # get channel positions that will be used to pinpoint where
     # in the Source space we will use the evoked data
@@ -3253,10 +3251,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # coord_frame (e.g. 'mni_tal', 'mri', 'fs_tal', etc.)
     trans, _ = _get_trans(trans, 'head', coord_frame, allow_none=True)
 
+    # convert head positions -> native coord_frame MRI
+    pos = apply_trans(trans, pos)
+
     # read surface files
     subject = _check_subject(None, subject, False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    data, vertices = list(), list()
     rrs = [read_surface(op.join(subjects_dir, subject,
                                 'surf', f'{hemi}.pial'))[0]
            for hemi in ('lh', 'rh')]
@@ -3264,8 +3264,6 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     rrs = np.concatenate(rrs)
     rrs /= 1000.
 
-    # convert head positions -> native coord_frame MRI
-    pos = apply_trans(trans, pos)
     logger.info(
         f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
     if project:
@@ -3294,6 +3292,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     data = w @ evoked.data
     vertices = [vertices[vertices < offset],
                 vertices[vertices >= offset] - offset]
+
+    # either return a surface, or volume SourceEstimate
     if src:
         return VolSourceEstimate(
             data, vertices=vertices, tmin=evoked.times[0], tstep=1. / evoked.info['sfreq'],

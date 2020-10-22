@@ -8,6 +8,14 @@ Working with sEEG data
 MNE supports working with more than just MEG and EEG data. Here we show some
 of the functions that can be used to facilitate working with
 stereoelectroencephalography (sEEG) data.
+
+This example shows how to use:
+
+- sEEG data
+- channel locations in MNI space
+- projection into a volume
+
+For an example that involves ECoG data, channel locations in a subject-specific MRI, or projection into a surface, see :ref:`tut-working-with-ecog`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Adam Li <adam2392@gmail.com>
@@ -122,16 +130,17 @@ vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
 # sphinx_gallery_thumbnail_number = 4
 
 # setup a volume-based source space here
-src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir)
+vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
+                                        pos=5., mri='aseg.mgz')
 
 evoked = mne.EvokedArray(gamma_power_t, raw.info)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
-                           src=src, project=False)
-print(src)
-print(evoked )
+                           src=vol_src, project=False, mode='nearest')
+print(vol_src)
+print(evoked)
 print(stc)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
-brain = stc.plot(src=src, mode='stat_map', initial_time=0.68,
+brain = stc.plot(src=vol_src, mode='stat_map', initial_time=0.68,
                  colormap='viridis', clim=clim,
                  subjects_dir=subjects_dir)
 # You can save a movie like the one on our documentation website with:
