@@ -29,10 +29,9 @@ egi_mff_pns_fname = op.join(egi_path, 'test_egi_pns.mff')
 egi_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
 egi_eprime_pause_fname = op.join(egi_path, 'test_egi_multiepoch_eprime.mff')
 egi_pause_w1337_fname = op.join(egi_path, 'w1337_20191014_105416.mff')
-# Example MFFs are stored in a separate repository mne-tools/mne-testing-data
-egi_mff_evoked_fname = op.join('example_mffs', 'test_egi_evoked.mff')
-egi_txt_evoked_cat1_fname = op.join('example_mffs', 'test_egi_evoked_cat1.txt')
-egi_txt_evoked_cat2_fname = op.join('example_mffs', 'test_egi_evoked_cat2.txt')
+egi_mff_evoked_fname = op.join(egi_path, 'test_egi_evoked.mff')
+egi_txt_evoked_cat1_fname = op.join(base_dir, 'test_egi_evoked_cat1.txt')
+egi_txt_evoked_cat2_fname = op.join(base_dir, 'test_egi_evoked_cat2.txt')
 
 # absolute event times from NetStation
 egi_pause_events = {'AM40': [7.224, 11.928, 14.413, 16.848],
@@ -293,6 +292,7 @@ def test_io_egi_crop_no_preload():
 
 
 @requires_version('mffpy', '0.5.5')
+@requires_testing_data
 @pytest.mark.parametrize('idx, cond, signals, bads', [
     (0, 'Category 1', egi_txt_evoked_cat1_fname,
      ['E8', 'E11', 'E17', 'E28', 'ECG']),
@@ -303,12 +303,12 @@ def test_io_egi_evokeds_mff(idx, cond, signals, bads):
     """Test reading evoked MFF file."""
     # Test reading all conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname)
-    assert_equal(len(evokeds), 2)
+    assert len(evokeds) == 2
     # Test reading evoked data from single condition
     evoked_cond = read_evokeds_mff(egi_mff_evoked_fname, condition=cond)
     evoked_idx = read_evokeds_mff(egi_mff_evoked_fname, condition=idx)
-    assert_equal(evoked_cond.comment, cond)
-    assert_equal(evoked_idx.comment, cond)
+    assert evoked_cond.comment == cond
+    assert evoked_idx.comment == cond
     # Check signal data
     data = np.loadtxt(signals, ndmin=2).transpose() * 1e-6  # convert to volts
     assert_allclose(evoked_cond.data, data, atol=1e-6)
