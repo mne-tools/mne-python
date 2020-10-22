@@ -97,7 +97,6 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
 
     # backward compatibility
     if norm is True:
-
         norm = 'max'
 
     # get relevant vertices in source space

@@ -98,12 +98,27 @@ rm_lor = make_inverse_resolution_matrix(forward, inverse_operator,
 # Compute first SVD component across PSFs within labels
 # Note the differences in explained variance, probably due to different
 # spatial extents of labels
+n_comp = 5
 stcs_psf_mne, pca_vars_mne = get_point_spread(
-    rm_mne, src, labels, mode='pca', n_comp=1, norm=None, return_pca_vars=True)
+    rm_mne, src, labels, mode='pca', n_comp=n_comp, norm=None,
+    return_pca_vars=True)
 stcs_psf_lor, pca_vars_lor = get_point_spread(
-    rm_lor, src, labels, mode='pca', n_comp=1, norm=None, return_pca_vars=True)
+    rm_lor, src, labels, mode='pca', n_comp=n_comp, norm=None,
+    return_pca_vars=True)
 
 n_verts = rm_mne.shape[0]
+
+###############################################################################
+# We can show the explained variances of principal components per label. Note
+# how they differ across labels, most likely due to their varying spatial
+# extent.
+# The output shows the summed variance explained by the first five principal
+# components as well as the explained variances of the individual components.
+np.set_printoptions(precision=1)
+for [name, var] in zip(label_names, pca_vars_mne):
+
+    print('%s: %.1f%%' % (name, var.sum()))
+    print(var)
 
 ###############################################################################
 # Evaluate leakage based on label-to-label PSF correlations
@@ -114,7 +129,7 @@ n_verts = rm_mne.shape[0]
 # get PSFs from Source Estimate objects into matrix
 psfs_mat = np.zeros([n_labels, n_verts])
 
-# Leakage matrix for MNE
+# Leakage matrix for MNE, get first principal component per label
 for [i, s] in enumerate(stcs_psf_mne):
     psfs_mat[i, :] = s.data[:, 0]
 
@@ -156,6 +171,10 @@ plot_connectivity_circle(leakage_lor, no_names, n_lines=200,
                          node_angles=node_angles, node_colors=label_colors,
                          title='sLORETA Leakage', padding=0,
                          fontsize_colorbar=6, fig=fig, subplot=(1, 2, 2))
+###############################################################################
+# The leakage patterns for MNE and sLORETA are very similar. Most leakage
+# occurs for neighbouring regions, but also for deeper regions across
+# hemispheres.
 
 ###############################################################################
 # Save the figure (optional)
