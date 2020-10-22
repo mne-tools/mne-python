@@ -169,7 +169,8 @@ def _read_curry_parameters(fname):
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
     n_channels = int(param_dict["numchannels"])
-    if "startyear" in param_dict:  # if startyear found, assume all others
+    if int(param_dict.get("startyear", '0')) > 0:  # if startyear found,
+        # assume all others are also OK
         dt_start = datetime(int(param_dict["startyear"]),
                             int(param_dict["startmonth"]),
                             int(param_dict["startday"]),
