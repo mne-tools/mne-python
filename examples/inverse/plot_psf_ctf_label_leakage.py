@@ -31,7 +31,7 @@ print(__doc__)
 
 ###############################################################################
 # Load forward solution and inverse operator
-# -------------
+# ------------------------------------------
 #
 # We need a matching forward solution and inverse operator to compute
 # resolution matrices for different methods.
