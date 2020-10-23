@@ -65,6 +65,8 @@ Bugs
 
 - Pass ``rank`` everyhwere in forward preparation for source imaging. This bug affected sparse solvers when using maxfilter data, by `Alex Gramfort`_ (:gh:`8368`)
 
+- Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible by `Tod Flak` _ (:gh:`8400`)
+
 API changes
 ~~~~~~~~~~~
 
