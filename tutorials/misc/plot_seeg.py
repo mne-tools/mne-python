@@ -149,7 +149,8 @@ clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 # plot Nutmeg style
 stc.plot(vol_src, subject=subject, subjects_dir=subjects_dir, clim=clim)
 
-# plot 3D source (brain region) visualization
+###############################################################################
+# Plot 3D source (brain region) visualization:
 brain = stc.plot_3d(
     src=vol_src, subjects_dir=subjects_dir,
     view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
