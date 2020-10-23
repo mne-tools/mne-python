@@ -3183,7 +3183,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data. Must contain ECoG channels.
+        The evoked data. Must contain ECoG, or sEEG channels.
     %(trans)s
     subject : str
         The subject name.
@@ -3212,9 +3212,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
 
     Notes
     -----
-    This function projects the ECoG sensors to the pial surface (if
-    ``project``), then the activation at each pial surface vertex is given
-    by the mode:
+    For surface projections, this function projects the ECoG sensors to
+    the pial surface (if ``project``), then the activation at each pial
+    surface vertex is given by the mode:
 
     - ``'sum'``
         Activation is the sum across each sensor weighted by the fractional
@@ -3230,6 +3230,11 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     - ``'nearest'``
         The value is given by the value of the nearest sensor, up to a
         ``distance`` (beyond which it is zero).
+
+    If creating a Volume STC, ``src`` must be passed in, and this
+    function will project sEEG sensors to nearby surrounding vertices.
+    Then the activation at each volume vertex is given by the mode
+    in the same way as ECoG surface projections.
 
     .. versionadded:: 0.22
     """
