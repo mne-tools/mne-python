@@ -101,13 +101,16 @@ raw.set_montage(montage)
 raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
 
 ###############################################################################
-# Next, we'll get the raw data and plot it's amplitude over time
-# but visualized on the brain.
-
-# sphinx_gallery_thumbnail_number = 4
+# Next, we'll get the raw data and plot it's amplitude over time.
 
 raw_lfp = raw.get_data()
-vmin, vmax = np.percentile(raw_lfp.flatten(), [10, 90])
+raw_lfp.plot(seeg=True)
+
+###############################################################################
+# We can visualize this raw data on the brain as a heatmap.
+# We will use the ``fsaverage`` volume.
+
+# sphinx_gallery_thumbnail_number = 4
 
 # setup a volume-based source space here
 # get standard fsaverage volume source space
@@ -123,6 +126,7 @@ stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
 print(vol_src)
 print(evoked)
 print(stc)
+vmin, vmax = np.percentile(raw_lfp.flatten(), [10, 90])
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(src=vol_src, mode='stat_map', initial_time=0.68,
                  colormap='viridis', clim=clim,
