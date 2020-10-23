@@ -112,6 +112,8 @@ Bugs
 - Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error (:gh:`8384` by `Mikołaj Magnuski`_)
 
 
+- Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible by `Tod Flak` _ (:gh:`8400`)
+
 API changes
 ~~~~~~~~~~~
 
