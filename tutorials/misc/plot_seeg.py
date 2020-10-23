@@ -15,6 +15,12 @@ This example shows how to use:
 - channel locations in MNI space
 - projection into a volume
 
+Note that our sample sEEG electrodes are already assumed to be in MNI
+space. If you want to map positions from your subject MRI space to MNI
+fsaverage space, you must apply the FreeSurfer's talairach.xfm transform
+for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for
+more information.
+
 For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
 :ref:`tut_working_with_ecog`. In the ECoG example, we show
@@ -31,8 +37,6 @@ import numpy as np
 import pandas as pd
 
 import mne
-from mne.transforms import read_ras_mni_t
-from mne.coreg import apply_trans
 from mne.datasets import fetch_fsaverage
 
 print(__doc__)
@@ -54,18 +58,6 @@ elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
-
-# note that our sample seeg electrodes are in the original subject MRI
-# space, so if we want to map them to MNI fsaverage space, we must
-# apply the FreeSurfer's talairach.xfm transform for the sample dataset.
-# If you ran FreeSurfer, then your corresponding transform, can be found
-# in your subject's output FreeSurfer directory under `mri/transforms/`.
-# If you already have coordinates in MNI space, then you can ignore
-# this step.
-trans = read_ras_mni_t(subject='seeg', subjects_dir=misc_path)
-
-# convert subject MRI positions -> coord_frame MNI
-ch_coords = apply_trans(trans, ch_coords)
 
 # the test channel coordinates were in mm, so we convert them to meters
 ch_coords = ch_coords / 1000.
@@ -152,16 +144,17 @@ stc = mne.stc_near_sensors(
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 
+# XXX: what is the difference between plot and plot_3d? They look visually
+# pretty similar.
 # plot Nutmeg style
 stc.plot(vol_src, subject=subject, subjects_dir=subjects_dir, clim=clim)
 
+# plot 3D source (brain region) visualization
 brain = stc.plot_3d(
     src=vol_src, subjects_dir=subjects_dir,
     view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
     size=(800, 300), show_traces=0.4, clim=clim,
     add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
-
-
 
 
 # You can save a movie like the one on our documentation website with:
