@@ -3250,7 +3250,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # coord_frame transformation from native mne "head" to MRI coord_frame
     trans, _ = _get_trans(trans, 'head', coord_frame, allow_none=True)
 
-    # convert head positions -> native coord_frame MRI
+    # convert head positions -> coord_frame MRI
     pos = apply_trans(trans, pos)
 
     # read surface files
