@@ -15,7 +15,9 @@ This example shows how to use:
 - channel locations in MNI space
 - projection into a volume
 
-For an example that involves ECoG data, channel locations in a subject-specific MRI, or projection into a surface, see :ref:`tut-working-with-ecog`.
+For an example that involves ECoG data, channel locations in a
+subject-specific MRI, or projection into a surface, see
+:ref:`tut-working-with-ecog`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Adam Li <adam2392@gmail.com>
