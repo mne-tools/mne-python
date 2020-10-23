@@ -42,6 +42,7 @@ physionet-sleep-data*
 MEGSIM*
 build
 coverage
+htmlcov
 .cache/
 .pytest_cache/
 __pycache__/

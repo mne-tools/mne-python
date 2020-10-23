@@ -17,16 +17,16 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, read_trans, compute_source_morph,
-                 read_bem_solution, read_freesurfer_lut)
+                 head_to_mni, compute_source_morph,
+                 read_bem_solution, read_freesurfer_lut, read_talxfm)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, run_tests_if_main,
                        check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mgz_header, _read_talxfm
+from mne.source_space import _get_mgz_header
 from mne.source_estimate import _get_src_type
-from mne.transforms import apply_trans, invert_transform
+from mne.transforms import apply_trans, _get_trans
 from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
                               _compare_source_spaces)
@@ -514,13 +514,12 @@ def test_head_to_mni():
     """Test conversion of aseg vertices to MNI coordinates."""
     # obtained using freeview
     coords = np.array([[22.52, 11.24, 17.72], [22.52, 5.46, 21.58],
-                       [16.10, 5.46, 22.23], [21.24, 8.36, 22.23]])
+                       [16.10, 5.46, 22.23], [21.24, 8.36, 22.23]]) / 1000.
 
-    xfm = _read_talxfm('sample', subjects_dir)
-    coords_MNI = apply_trans(xfm['trans'], coords)
+    xfm = read_talxfm('sample', subjects_dir)
+    coords_MNI = apply_trans(xfm['trans'], coords) * 1000.
 
-    trans = read_trans(trans_fname)  # head->MRI (surface RAS)
-    mri_head_t = invert_transform(trans)  # MRI (surface RAS)->head matrix
+    mri_head_t, _ = _get_trans(trans_fname, 'mri', 'head', allow_none=False)
 
     # obtained from sample_audvis-meg-oct-6-mixed-fwd.fif
     coo_right_amygdala = np.array([[0.01745682, 0.02665809, 0.03281873],

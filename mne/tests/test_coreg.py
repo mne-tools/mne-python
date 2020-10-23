@@ -277,7 +277,7 @@ def test_get_mni_fiducials():
     fids = np.array([f['r'] for f in fids])
     fids_est = get_mni_fiducials('sample', subjects_dir)
     fids_est = np.array([f['r'] for f in fids_est])
-    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000
+    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000.  # -> mm
     assert (dists < 8).all(), dists
 
 
