@@ -15,7 +15,8 @@ This example shows how to use:
 - channel locations in subject's MRI space
 - projection onto a surface
 
-For an example that involves sEEG data, channel locations in a template-specific MRI, or projection into a volume, see :ref:`tut-working-with-seeg`.
+For an example that involves sEEG data, channel locations in
+MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
