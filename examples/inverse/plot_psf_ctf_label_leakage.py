@@ -30,39 +30,44 @@ from mne.viz import circular_layout, plot_connectivity_circle
 print(__doc__)
 
 ###############################################################################
-# Load our data
+# Load forward solution and inverse operator
 # -------------
 #
-# We need matching forward solution and inverse operator to compute the
-# resolution matrix, and labels to estimate label-to-label leakage.
+# We need a matching forward solution and inverse operator to compute
+# resolution matrices for different methods.
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif'
 
-# read forward solution
+# Read forward solution
 forward = mne.read_forward_solution(fname_fwd)
-# forward operator with fixed source orientations
+# Convert to fixed source orientations
 forward = mne.convert_forward_solution(forward, surf_ori=True,
                                        force_fixed=True)
 
-# Load inverse operator
+# Read inverse operator
 inverse_operator = read_inverse_operator(fname_inv)
 
+# Compute resolution matrices for MNE and sLORETA
+lambda2 = 1. / 3.**2
+method = 'MNE'
+rm_mne = make_inverse_resolution_matrix(forward, inverse_operator,
+                                        method=method, lambda2=lambda2)
+method = 'sLORETA'
+rm_lor = make_inverse_resolution_matrix(forward, inverse_operator,
+                                        method=method, lambda2=lambda2)
+
+###############################################################################
+# Read and organise labels for cortical parcellation
+# --------------------------------------------------
+#
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
 labels = mne.read_labels_from_annot('sample', parc='aparc',
                                     subjects_dir=subjects_dir)
 n_labels = len(labels)
 label_colors = [label.color for label in labels]
-
-# Source space used for inverse operator
-src = inverse_operator['src']
-
-###############################################################################
-# Read and organise labels for cortical parcellation
-# --------------------------------------------------
-
 
 # First, we reorder the labels based on their location in the left hemi
 label_names = [label.name for label in labels]
@@ -85,15 +90,12 @@ rh_labels = [label[:-2] + 'rh' for label in lh_labels]
 ###############################################################################
 # Compute point-spread function summaries (PCA) for all labels
 # ------------------------------------------------------------
+#
+# We summarise the PSFs per label by their first five principal components, and
+# use the first component to evaluate label-to-label leakage below.
 
-# Compute resolution matrix for MNE and sLORETA
-lambda2 = 1. / 3.**2
-method = 'MNE'
-rm_mne = make_inverse_resolution_matrix(forward, inverse_operator,
-                                        method=method, lambda2=lambda2)
-method = 'sLORETA'
-rm_lor = make_inverse_resolution_matrix(forward, inverse_operator,
-                                        method=method, lambda2=lambda2)
+# Source space used for inverse operator
+src = inverse_operator['src']
 
 # Compute first SVD component across PSFs within labels
 # Note the differences in explained variance, probably due to different
@@ -112,8 +114,7 @@ n_verts = rm_mne.shape[0]
 # We can show the explained variances of principal components per label. Note
 # how they differ across labels, most likely due to their varying spatial
 # extent.
-# The output shows the summed variance explained by the first five principal
-# components as well as the explained variances of the individual components.
+
 np.set_printoptions(precision=1)
 for [name, var] in zip(label_names, pca_vars_mne):
 
@@ -121,8 +122,13 @@ for [name, var] in zip(label_names, pca_vars_mne):
     print(var)
 
 ###############################################################################
+# The output shows the summed variance explained by the first five principal
+# components as well as the explained variances of the individual components.
+
+###############################################################################
 # Evaluate leakage based on label-to-label PSF correlations
 # ---------------------------------------------------------
+#
 # Note that correlations ignore the overall amplitude of PSFs, i.e. they do
 # not show which region will potentially be the bigger "leaker".
 
@@ -133,18 +139,18 @@ psfs_mat = np.zeros([n_labels, n_verts])
 for [i, s] in enumerate(stcs_psf_mne):
     psfs_mat[i, :] = s.data[:, 0]
 
-# compute label-to-label leakage as Pearson correlation of PSFs
+# Compute label-to-label leakage as Pearson correlation of PSFs
 leakage_mne = np.corrcoef(psfs_mat)
-# sign of correlation is arbitrary, so take absolute values
+# Sign of correlation is arbitrary, so take absolute values
 leakage_mne = np.abs(leakage_mne)
 
 # Leakage matrix for sLORETA
 for [i, s] in enumerate(stcs_psf_lor):
     psfs_mat[i, :] = s.data[:, 0]
 
-# compute label-to-label leakage as Pearson correlation of PSFs
+# Compute label-to-label leakage as Pearson correlation of PSFs
 leakage_lor = np.corrcoef(psfs_mat)
-# sign of correlation is arbitrary, so take absolute values
+# Sign of correlation is arbitrary, so take absolute values
 leakage_lor = np.abs(leakage_lor)
 
 # Save the plot order and create a circular layout
@@ -184,8 +190,8 @@ plot_connectivity_circle(leakage_lor, no_names, n_lines=200,
 # set when the figure was generated. If not set via savefig, the labels, title,
 # and legend will be cut off from the output png file.
 
-fname_fig = data_path + '/MEG/sample/plot_label_leakage.png'
-fig.savefig(fname_fig, facecolor='black')
+# fname_fig = data_path + '/MEG/sample/plot_label_leakage.png'
+# fig.savefig(fname_fig, facecolor='black')
 
 
 ###############################################################################
@@ -202,7 +208,7 @@ idx = [22, 23]
 stc_lh = stcs_psf_mne[idx[0]]
 stc_rh = stcs_psf_mne[idx[1]]
 
-# maximum for scaling across plots
+# Maximum for scaling across plots
 max_val = np.max([stc_lh.data, stc_rh.data])
 
 brain_lh = stc_lh.plot(subjects_dir=subjects_dir, subject='sample',
