@@ -3236,6 +3236,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     - ``'nearest'``
         The value is given by the value of the nearest sensor, up to a
         ``distance`` (beyond which it is zero).
+
     If creating a Volume STC, ``src`` must be passed in, and this
     function will project sEEG sensors to nearby surrounding vertices.
     Then the activation at each volume vertex is given by the mode
