@@ -2468,14 +2468,8 @@ class Brain(object):
             raise ValueError(
                 'Cannot set time when brain has no defined times.')
         elif min(self._times) <= time_sec <= max(self._times):
-            idx = np.searchsorted(self._times, time_sec)
-            if time_sec in self._times:
-                self.set_time_point(idx)  # requested exact match, pass an int
-            else:
-                step = np.diff(self._times[idx - 1:idx + 1])
-                rel = (time_sec - self._times[idx - 1]) / step
-                print(idx, step, rel)
-                self.set_time_point(idx + rel)
+            self.set_time_point(np.interp(float(time_sec), self._times,
+                                          np.arange(self._n_times)))
         else:
             raise ValueError(
                 f'Requested time ({time_sec} s) is outside the range of '
