@@ -290,6 +290,7 @@ def _read_curry_info(curry_paths):
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
+        all_chans[ind].pop('ch_idx')
         ch_dict.update(all_chans[ind])
         assert ch_dict['loc'].shape == (12,)
         ch_dict['unit'] = SI_UNITS[all_chans[ind]['unit'][1]]
