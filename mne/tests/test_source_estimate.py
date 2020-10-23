@@ -40,7 +40,7 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, run_tests_if_main, requires_nibabel)
+                       requires_h5py, requires_nibabel)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -1538,16 +1538,3 @@ def test_stc_near_sensors(tmpdir):
         stc = stc_near_sensors(evoked, trans, 'sample', subjects_dir=this_dir,
                                project=False, distance=0.033)
     assert stc.data.any(0).sum() == len(evoked.ch_names) - 1
-
-    # and now with volumetric projection
-    src = read_source_spaces(fname_vsrc)
-    with catch_logging() as log:
-        stc_vol = stc_near_sensors(evoked, trans, 'sample', src=src,
-                                   subjects_dir=subjects_dir, verbose=True,
-                                   distance=0.033)
-    assert isinstance(stc_vol, VolSourceEstimate)
-    log = log.getvalue()
-    assert '4157 volume vertices' in log
-
-
-run_tests_if_main()

@@ -67,7 +67,7 @@ from .surface import (read_surface, write_surface, decimate_surface, read_tri,
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_source_morph)
 from .source_space import (read_source_spaces, vertex_to_mni,
-                           head_to_mni, head_to_mri,
+                           head_to_mni, head_to_mri, read_talxfm,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
