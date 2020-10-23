@@ -144,8 +144,6 @@ stc = mne.stc_near_sensors(
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 
-# XXX: what is the difference between plot and plot_3d? They look visually
-# pretty similar.
 # plot Nutmeg style
 stc.plot(vol_src, subject=subject, subjects_dir=subjects_dir, clim=clim)
 
