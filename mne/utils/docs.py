@@ -1040,8 +1040,12 @@ trans : str | dict | instance of Transform | None
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | None
-    The path to the freesurfer subjects reconstructions.
-    It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    The path to the FreeSurfer subjects reconstructions.
+    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+"""
+docdict['subject'] = """
+subject : str
+    The FreeSurfer subject name.
 """
 
 # Simulation

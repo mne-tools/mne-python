@@ -31,7 +31,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _normalize_vectors, _triangle_neighbors, mesh_dist,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
                       _CheckInside)
-from .utils import (get_subjects_dir, check_fname, logger, verbose,
+from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, has_nibabel, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
@@ -1211,8 +1211,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
     ----------
     pos : array, shape (n_pos, 3)
         The  coordinates (in m) in head coordinate system.
-    subject : str
-        Name of the subject.
+    %(subject)s
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
     %(subjects_dir)s
@@ -1248,8 +1247,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
         Vertex number(s) to convert.
     hemis : int, or list of int
         Hemisphere(s) the vertices belong to.
-    subject : str
-        Name of the subject to load surfaces from.
+    %(subject)s
     subjects_dir : str, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     %(verbose)s
@@ -1279,7 +1277,8 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     rr = [read_surface(s)[0] for s in surfs]
 
     # take point locations in MRI space and convert to MNI coordinates
-    xfm = _read_talxfm(subject, subjects_dir)
+    xfm = read_talxfm(subject, subjects_dir)
+    xfm['trans'][:3, 3] *= 1000.  # m->mm
     data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
     if singleton:
         data = data[0]
@@ -1298,8 +1297,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
     ----------
     pos : array, shape (n_pos, 3)
         The  coordinates (in m) in head coordinate system.
-    subject : str
-        Name of the subject.
+    %(subject)s
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
     %(subjects_dir)s
@@ -1317,23 +1315,33 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # before we go from head to MRI (surface RAS)
-    head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
-    coo_MRI_RAS = apply_trans(head_mri_t, pos)
-
-    # convert to MNI coordinates
-    xfm = _read_talxfm(subject, subjects_dir)
-    return apply_trans(xfm['trans'], coo_MRI_RAS * 1000)
+    head_mni_t = combine_transforms(
+        _ensure_trans(mri_head_t, 'head', 'mri'),
+        read_talxfm(subject, subjects_dir), 'head', 'mni_tal')
+    return apply_trans(head_mni_t, pos) * 1000.
 
 
 @verbose
-def _read_talxfm(subject, subjects_dir, verbose=None):
-    """Compute MNI transform from FreeSurfer talairach.xfm file.
+def read_talxfm(subject, subjects_dir=None, verbose=None):
+    """Compute MRI-to-MNI transform from FreeSurfer talairach.xfm file.
 
-    Adapted from freesurfer m-files. Altered to deal with Norig
-    and Torig correctly.
+    Parameters
+    ----------
+    %(subject)s
+    %(subjects_dir)s
+    %(verbose)s
+
+    Returns
+    -------
+    mri_mni_t : instance of Transform
+        The affine transformation from MRI to MNI space for the subject.
     """
+    # Adapted from freesurfer m-files. Altered to deal with Norig
+    # and Torig correctly
+    subjects_dir = get_subjects_dir(subjects_dir)
     # Setup the RAS to MNI transform
     ras_mni_t = read_ras_mni_t(subject, subjects_dir)
+    ras_mni_t['trans'][:3, 3] /= 1000.  # mm->m
 
     # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
     # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').
@@ -1346,7 +1354,7 @@ def _read_talxfm(subject, subjects_dir, verbose=None):
         path = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     if not op.isfile(path):
         raise IOError('mri not found: %s' % path)
-    _, _, mri_ras_t, _, _ = _read_mri_info(path, units='mm')
+    _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
     return mri_mni_t
 
@@ -1453,8 +1461,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
     Parameters
     ----------
-    subject : str
-        Subject to process.
+    %(subject)s
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
@@ -2735,6 +2742,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
 # and probably isn't the way to go moving forward
 # XXX this also assumes that the first two source spaces are surf without
 # checking, which might not be the case (could be all volumes)
+@fill_doc
 def get_volume_labels_from_src(src, subject, subjects_dir):
     """Return a list of Label of segmented volumes included in the src space.
 
@@ -2742,8 +2750,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     ----------
     src : instance of SourceSpaces
         The source space containing the volume regions.
-    subject : str
-        Subject name.
+    %(subject)s
     subjects_dir : str
         Freesurfer folder of the subjects.
 
