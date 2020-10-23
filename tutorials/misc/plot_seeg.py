@@ -48,6 +48,9 @@ sample_path = mne.datasets.sample.data_path()
 subject = 'fsaverage'
 subjects_dir = sample_path + '/subjects'
 
+# use mne-python's fsaverage data
+fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
+
 ###############################################################################
 # Let's load some sEEG electrode locations and names, and turn them into
 # a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
@@ -114,7 +117,6 @@ raw.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
-fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True)
 
