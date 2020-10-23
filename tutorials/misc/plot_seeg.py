@@ -101,15 +101,13 @@ raw.set_montage(montage)
 raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
 
 ###############################################################################
-# Next, we'll e
-raw_lfp = raw.get_data()
-vmin, vmax = np.percentile(raw_lfp.flatten(), [10, 90])
-
-###############################################################################
-# Alternatively, we can project the sensor data to the nearest locations on
-# the pial surface and visualize that:
+# Next, we'll get the raw data and plot it's amplitude over time
+# but visualized on the brain.
 
 # sphinx_gallery_thumbnail_number = 4
+
+raw_lfp = raw.get_data()
+vmin, vmax = np.percentile(raw_lfp.flatten(), [10, 90])
 
 # setup a volume-based source space here
 # get standard fsaverage volume source space
