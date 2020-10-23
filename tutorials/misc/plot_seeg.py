@@ -104,9 +104,8 @@ raw.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
-fig = mne.viz.plot_alignment(
-    raw.info, trans, 'fsaverage', show_axes=True, verbose=True,
-    coord_frame='mri')
+fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
+                             subjects_dir=subjects_dir, show_axes=True)
 
 ###############################################################################
 # Next, we'll get the raw data and plot its amplitude over time.
@@ -136,6 +135,7 @@ brain = stc.plot_3d(
     view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
     size=(800, 300), show_traces=0.4, clim=clim,
     add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
+
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=3, interpolation='linear', framerate=10,
-#                  time_viewer=True)
+#                  time_viewer=True, filename='./mne-test-seeg.m4')
