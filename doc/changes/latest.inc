@@ -82,6 +82,6 @@ API changes
 
 - The ``trans`` argument of :func:`mne.extract_label_time_course` is deprecated and will be removed in 0.23 as it is no longer necessary by `Eric Larson`_
 
-- New `mne.viz.Brain.set_time` method to set the displayed time in seconds, by `Daniel McCloy`_
+- New `mne.viz.Brain.set_time` method to set the displayed time in seconds, by `Daniel McCloy`_ (:gh:`8415`)
 
 - Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` by `Guillaume Favelier`_
