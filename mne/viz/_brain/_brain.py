@@ -393,7 +393,7 @@ class Brain(object):
         _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
         self.interactor_fraction = 0.25
         if isinstance(show_traces, str):
-            assert 'show_traces' == 'separate'  # should be guaranteed earlier
+            assert show_traces == 'separate'  # should be guaranteed earlier
             self.show_traces = True
             self.separate_canvas = True
         else:
