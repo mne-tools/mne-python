@@ -42,6 +42,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
 
+- Fix bug in :func:`mne.viz.plot_source_estimates`, which wouldn't accept the valid parameter value ``backend='pyvista'``, by `Guillaume Favelier`_
+
 .. _changes_0_21:
 
 Version 0.21

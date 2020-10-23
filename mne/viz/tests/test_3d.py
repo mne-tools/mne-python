@@ -592,6 +592,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                   )
     if pick_ori != 'vector':
         kwargs['surface'] = 'white'
+        kwargs['backend'] = renderer_interactive._get_3d_backend()
     # Mayavi can't handle non-surface
     if kind != 'surface' and not is_pyvista:
         with pytest.raises(RuntimeError, match='PyVista'):
