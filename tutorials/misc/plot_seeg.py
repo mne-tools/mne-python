@@ -132,8 +132,11 @@ vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
 # sphinx_gallery_thumbnail_number = 4
 
 # setup a volume-based source space here
-vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
-                                        pos=5., mri='aseg.mgz')
+# get standard fsaverage volume source space
+fetch_fsaverage(subjects_dir=subjects_dir)  # downloads it if necessary
+fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
+                   'fsaverage-vol-5-src.fif')
+vol_src = mne.read_source_spaces(fname_src)
 
 evoked = mne.EvokedArray(gamma_power_t, raw.info)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
