@@ -3210,12 +3210,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     stc : instance of SourceEstimate
         The surface source estimate. If src is None, a surface source
         estimate will be produced, and the number of vertices will equal
-         the number of pial-surface vertices that were close enough to
-         the sensors to take on a non-zero volue. If src is not None,
-         a surface, volume, or mixed source estimate will be produced
-         (depending on the kind of source space passed) and the
-         vertices will match those of src (i.e., there may be me
-         many all-zero values in stc.data).
+        the number of pial-surface vertices that were close enough to
+        the sensors to take on a non-zero volue. If src is not None,
+        a surface, volume, or mixed source estimate will be produced
+        (depending on the kind of source space passed) and the
+        vertices will match those of src (i.e., there may be me
+        many all-zero values in stc.data).
 
     Notes
     -----
