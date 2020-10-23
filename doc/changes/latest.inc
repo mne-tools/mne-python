@@ -16,6 +16,8 @@ Current (0.22.dev0)
 
 .. |Aniket Pradhan| replace:: **Aniket Pradhan**
 
+.. |Tod Flak| replace:: **Tod Flak**
+
 Enhancements
 ~~~~~~~~~~~~
 - Update ``surfaces`` argument in :func:`mne.viz.plot_alignment` to allow dict for transparency values, and set default for sEEG data to have transparency (:gh:`8445` by `Keith Doelling`_)
@@ -51,6 +53,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible (:gh:`8400` **by new contributor** |Tod Flak|_)
+
 - Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary (:gh:`8474` **by new contributor** |Aniket Pradhan|_)
 
 - Fix bug with reading split files that have dashes in the filename (:gh:`8339` **by new contributor** |Eduard Ort|_)
@@ -110,9 +114,6 @@ Bugs
 - Fix bug where BrainVision channel names, event types, and event descriptions containing commas were incorrectly parsed (:gh:`8492` by `Stefan Appelhoff`_)
 
 - Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error (:gh:`8384` by `Mikołaj Magnuski`_)
-
-
-- Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible by `Tod Flak` _ (:gh:`8400`)
 
 API changes
 ~~~~~~~~~~~
