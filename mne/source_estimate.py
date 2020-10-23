@@ -3195,7 +3195,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         zero-order hold. See Notes.
     project : bool
         If True, project the electrodes to the nearest ``'pial`` surface
-        vertex before computing distances.
+        vertex before computing distances. Only used when doing a
+        surface projection.
     %(subjects_dir)s
     src : instance of SourceSpaces
         The source space. If you want to use a SourceMorph, first
