@@ -23,6 +23,8 @@ Enhancements
 
 - Add ``proj`` argument to :func:`mne.make_fixed_length_epochs` by `Eric Larson`_ (:gh:`8351`)
 
+- Reduce memory usage of volume source spaces by `Eric Larson`_ (:gh:`8379`)
+
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
 
 Bugs
@@ -67,6 +69,8 @@ Bugs
 
 - Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible by `Tod Flak` _ (:gh:`8400`)
 
+- Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
+
 API changes
 ~~~~~~~~~~~
 
@@ -79,3 +83,5 @@ API changes
 - The ``n_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_pca_components`` in :meth:`~mne.preprocessing.ICA.apply` by `Eric Larson`_ (:gh:`8356`)
 
 - The ``trans`` argument of :func:`mne.extract_label_time_course` is deprecated and will be removed in 0.23 as it is no longer necessary by `Eric Larson`_
+
+- Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` by `Guillaume Favelier`_
