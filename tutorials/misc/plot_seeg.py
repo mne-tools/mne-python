@@ -31,6 +31,8 @@ import numpy as np
 import pandas as pd
 
 import mne
+from mne.transforms import read_ras_mni_t
+from mne.coreg import apply_trans
 from mne.datasets import fetch_fsaverage
 
 print(__doc__)
@@ -51,10 +53,26 @@ subjects_dir = sample_path + '/subjects'
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
+ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
+
+# note that our sample seeg electrodes are in the original subject MRI
+# space, so if we want to map them to MNI fsaverage space, we must
+# apply the FreeSurfer's talairach.xfm transform for the sample dataset.
+# If you ran FreeSurfer, then your corresponding transform, can be found
+# in your subject's output FreeSurfer directory under `mri/transforms/`.
+# If you already have coordinates in MNI space, then you can ignore
+# this step.
+trans = read_ras_mni_t(subject='seeg', subjects_dir=misc_path)
+
+# convert subject MRI positions -> coord_frame MNI
+ch_coords = apply_trans(trans, ch_coords)
 
 # the test channel coordinates were in mm, so we convert them to meters
-ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float) / 1000.
+ch_coords = ch_coords / 1000.
+
+# create dictionary of channels and their xyz coordinates (now in MNI space)
 ch_pos = dict(zip(ch_names, ch_coords))
+
 # Ideally the nasion/LPA/RPA will also be present from the digitization, here
 # we use fiducials estimated from the subject's FreeSurfer MNI transformation:
 lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
@@ -114,7 +132,10 @@ raw.plot()
 
 ###############################################################################
 # We can visualize this raw data on the ``fsaverage`` brain (in MNI space) as
-# a heatmap.
+# a heatmap. This works by first creating an ``Evoked`` data structure
+# from the data of interest (in this example, it is just the raw LFP).
+# Then one should generate a ``stc`` data structure, which will be able
+# to visualize source activity on the brain in various different formats.
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -130,11 +151,18 @@ stc = mne.stc_near_sensors(
     verbose='error')  # ignore missing electrode warnings
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
+
+# plot Nutmeg style
+stc.plot(vol_src, subject=subject, subjects_dir=subjects_dir, clim=clim)
+
 brain = stc.plot_3d(
     src=vol_src, subjects_dir=subjects_dir,
     view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
     size=(800, 300), show_traces=0.4, clim=clim,
     add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
+
+
+
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=3, interpolation='linear', framerate=10,
