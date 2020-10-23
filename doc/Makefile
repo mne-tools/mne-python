@@ -5,7 +5,7 @@
 SPHINXOPTS    = -nWT --keep-going
 SPHINXBUILD   = sphinx-build
 PAPER         =
-MPROF         = SG_STAMP_STARTS=true mprof run --python sphinx
+MPROF         = SG_STAMP_STARTS=true mprof run -E --python sphinx
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4

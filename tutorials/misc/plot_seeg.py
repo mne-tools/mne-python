@@ -114,6 +114,7 @@ raw.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
+fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True)
 
@@ -132,7 +133,6 @@ raw.plot()
 # sphinx_gallery_thumbnail_number = 3
 
 # get standard fsaverage volume (5mm grid) source space
-fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
                     'fsaverage-vol-5-src.fif')
 vol_src = mne.read_source_spaces(fname_src)
