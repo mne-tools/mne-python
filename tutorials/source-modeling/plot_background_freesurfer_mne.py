@@ -437,7 +437,12 @@ renderer.quiver3d([0], [-width / 2.], [0], [0], [1], [0], 'k', width, 'arrow')
 mne.viz.set_3d_view(figure=renderer.figure, distance=400, **view_kwargs)
 renderer.show()
 
+
 ###############################################################################
+# .. warning::
+#    Some source space vertices can be removed during forward computation.
+#    See :ref:`tut-forward` for more information.
+#
 # .. _mni-affine-transformation:
 #
 # FreeSurfer's MNI affine transformation
@@ -469,8 +474,3 @@ brain = mne.viz.Brain('fsaverage', 'lh', 'white', subjects_dir=subjects_dir,
                       background='w')
 brain.add_foci(xyz_mni, hemi='lh', color='k')
 brain.show_view('lat')
-
-###############################################################################
-# .. warning::
-#    Some source space vertices can be removed during forward computation.
-#    See :ref:`tut-forward` for more information.
