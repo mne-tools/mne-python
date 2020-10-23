@@ -96,13 +96,17 @@ raw.crop(0, 2)  # just process 2 sec of data for speed
 # attach montage
 raw.set_montage(montage)
 
-# set channel types to sEEG (instead of EEG)
-raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
+# set channel types to sEEG (instead of EEG) that have actual positions
+raw.set_channel_types(
+    {ch_name: 'seeg' if np.isfinite(ch_pos[ch_name]).all() else 'misc'
+     for ch_name in raw.ch_names})
 
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
-fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage', show_axes=True)
+fig = mne.viz.plot_alignment(
+    raw.info, trans, 'fsaverage', show_axes=True, verbose=True,
+    coord_frame='mri')
 
 ###############################################################################
 # Next, we'll get the raw data and plot its amplitude over time.
