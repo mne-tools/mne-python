@@ -67,9 +67,8 @@ lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 # for the given subject. Keep in mind that ``fsaverage`` is special in that
 # it is already in MNI space.
 
-coord_frame = 'mri'
 montage = mne.channels.make_dig_montage(
-    ch_pos, coord_frame=coord_frame, nasion=nasion, lpa=lpa, rpa=rpa)
+    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
@@ -101,37 +100,38 @@ raw.set_montage(montage)
 raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
 
 ###############################################################################
-# Next, we'll get the raw data and plot it's amplitude over time.
+# Let's check to make sure everything is aligned.
 
-raw_lfp = raw.get_data()
+fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage', show_axes=True)
+
+###############################################################################
+# Next, we'll get the raw data and plot its amplitude over time.
+
 raw.plot()
 
 ###############################################################################
-# We can visualize this raw data on the brain as a heatmap.
-# We will use the ``fsaverage`` volume.
+# We can visualize this raw data on the ``fsaverage`` brain (in MNI space) as
+# a heatmap.
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 3
 
-# setup a volume-based source space here
-# get standard fsaverage volume source space
-fetch_fsaverage(subjects_dir=subjects_dir)  # downloads it if necessary
+# get standard fsaverage volume (5mm grid) source space
+fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
                     'fsaverage-vol-5-src.fif')
 vol_src = mne.read_source_spaces(fname_src)
 
-evoked = mne.EvokedArray(raw_lfp, raw.info)
-print(evoked.data.shape)
-stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
-                           src=vol_src, mode='nearest')
-print(vol_src)
-print(evoked)
-print(stc)
-vmin, vmax = np.percentile(raw_lfp.flatten(), [10, 90])
-clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
-brain = stc.plot(src=vol_src, mode='stat_map', initial_time=0.68,
-                 colormap='viridis', clim=clim,
-                 subjects_dir=subjects_dir)
+evoked = mne.EvokedArray(raw.get_data(), raw.info)
+stc = mne.stc_near_sensors(
+    evoked, trans, subject, subjects_dir=subjects_dir, src=vol_src,
+    verbose='error')  # ignore missing electrode warnings
+stc = abs(stc)  # just look at magnitude
+clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
+brain = stc.plot_3d(
+    src=vol_src, subjects_dir=subjects_dir,
+    view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
+    size=(800, 300), show_traces=0.4, clim=clim,
+    add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=20, tmin=0.62, tmax=0.72,
-#                  interpolation='linear', framerate=5,
+# brain.save_movie(time_dilation=3, interpolation='linear', framerate=10,
 #                  time_viewer=True)
