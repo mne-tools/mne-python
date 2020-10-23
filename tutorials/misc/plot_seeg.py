@@ -60,7 +60,9 @@ lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 ###############################################################################
 # Now we make a :class:`mne.channels.DigMontage` stating that the sEEG
-# contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system.
+# contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system
+# for the given subject. Keep in mind that ``fsaverage`` is special in that
+# it is already in MNI space.
 
 coord_frame = 'mri'
 montage = mne.channels.make_dig_montage(
