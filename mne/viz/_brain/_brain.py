@@ -2456,6 +2456,31 @@ class Brain(object):
         self._data['time_idx'] = time_idx
         self._update()
 
+    def set_time(self, time_sec):
+        """Set the time to display (in seconds).
+
+        Parameters
+        ----------
+        time_sec : float
+            The time to show.
+        """
+        if self._times is None:
+            raise ValueError(
+                'Cannot set time when brain has no defined times.')
+        elif min(self._times) <= time_sec <= max(self._times):
+            idx = np.searchsorted(self._times, time_sec)
+            if time_sec in self._times:
+                self.set_time_point(idx)  # requested exact match, pass an int
+            else:
+                step = np.diff(self._times[idx - 1:idx + 1])
+                rel = (time_sec - self._times[idx - 1]) / step
+                print(idx, step, rel)
+                self.set_time_point(idx + rel)
+        else:
+            raise ValueError(
+                f'Requested time ({time_sec} s) is outside the range of '
+                f'available times ({min(self._times)}-{max(self._times)} s).')
+
     def _update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import _set_colormap_range, _create_actor
         hemi_data = self._data.get(hemi)
