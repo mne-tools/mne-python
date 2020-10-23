@@ -2550,7 +2550,9 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     dyy = -dx.data
     axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1, clip_on=False)
     axes.figure.canvas.draw_idle()
-    tight_layout(fig=fig)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        tight_layout(fig=fig)
     plt_show(show)
 
     return fig

@@ -166,7 +166,7 @@ def animate(i, activity):
 
 # create the figure and apply the animation of the
 # gamma frequency band activity
-fig, ax = plt.subplots(figsize=(10, 10))
+fig, ax = plt.subplots(figsize=(5, 5))
 ax.imshow(im)
 ax.set_axis_off()
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
@@ -176,11 +176,12 @@ ax.set_title('Gamma frequency over time (Hilbert transform)',
              size='large')
 
 # avoid edge artifacts and decimate, showing just a short chunk
-show_power = gamma_power_t[:, 100:150]
+sl = slice(100, 150)
+show_power = gamma_power_t[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
-                               interval=200, blit=True)
+                               interval=100, blit=True)
 
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
@@ -188,13 +189,13 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 
 # sphinx_gallery_thumbnail_number = 4
 
-evoked = mne.EvokedArray(gamma_power_t, raw.info)
+evoked = mne.EvokedArray(
+    gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
                  colormap='viridis', clim=clim, views='parietal',
-                 subjects_dir=subjects_dir, size=(600, 600))
+                 subjects_dir=subjects_dir, size=(500, 500))
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=20, tmin=0.62, tmax=0.72,
-#                  interpolation='linear', framerate=5,
+# brain.save_movie(time_dilation=50, interpolation='linear', framerate=10,
 #                  time_viewer=True)

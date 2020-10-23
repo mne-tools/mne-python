@@ -121,10 +121,10 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = 'mne_analyze'
-    plot_source_estimates(stc, 'sample', colormap=colormap,
-                          background=(1, 1, 0),
-                          subjects_dir=subjects_dir, colorbar=True,
-                          clim='auto')
+    brain = plot_source_estimates(
+        stc, 'sample', colormap=colormap, background=(1, 1, 0),
+        subjects_dir=subjects_dir, colorbar=True, clim='auto')
+    brain.close()
     pytest.raises(TypeError, plot_source_estimates, stc, 'sample',
                   figure='foo', hemi='both', clim='auto',
                   subjects_dir=subjects_dir)
@@ -592,6 +592,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                   )
     if pick_ori != 'vector':
         kwargs['surface'] = 'white'
+        kwargs['backend'] = renderer_interactive._get_3d_backend()
     # Mayavi can't handle non-surface
     if kind != 'surface' and not is_pyvista:
         with pytest.raises(RuntimeError, match='PyVista'):
