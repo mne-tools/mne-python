@@ -297,6 +297,13 @@ def test_plot_ica_overlay():
     plt.close('all')
 
 
+def _get_geometry(fig):
+    try:
+        return fig.axes[0].get_subplotspec().get_geometry()  # pragma: no cover
+    except AttributeError:  # MPL < 3.4 (probably)
+        return fig.axes[0].get_geometry()  # pragma: no cover
+
+
 @requires_sklearn
 def test_plot_ica_scores():
     """Test plotting of ICA scores."""
@@ -323,20 +330,20 @@ def test_plot_ica_scores():
     # check setting number of columns
     fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2], [0.3, 0.2]],
                           axhline=[0.1, -0.1])
-    assert 2 == fig.get_axes()[0].get_geometry()[1]
+    assert 2 == _get_geometry(fig)[1]
     fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1],
                           n_cols=1)
-    assert 1 == fig.get_axes()[0].get_geometry()[1]
+    assert 1 == _get_geometry(fig)[1]
 
     # only use 1 column (even though 2 were requested)
     fig = ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], n_cols=2)
-    assert 1 == fig.get_axes()[0].get_geometry()[1]
+    assert 1 == _get_geometry(fig)[1]
 
-    pytest.raises(
-        ValueError,
-        ica.plot_scores,
-        [0.3, 0.2], axhline=[0.1, -0.1], labels=['one', 'one-too-many'])
-    pytest.raises(ValueError, ica.plot_scores, [0.2])
+    with pytest.raises(ValueError, match='Need as many'):
+        ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1],
+                        labels=['one', 'one-too-many'])
+    with pytest.raises(ValueError, match='The length of'):
+        ica.plot_scores([0.2])
     plt.close('all')
 
 
