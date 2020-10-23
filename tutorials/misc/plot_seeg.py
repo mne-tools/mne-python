@@ -137,7 +137,7 @@ fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
                     'fsaverage-vol-5-src.fif')
 vol_src = mne.read_source_spaces(fname_src)
 
-evoked = mne.EvokedArray(raw.get_data(), raw.info)
+evoked = mne.EvokedArray(raw.get_data(), raw.info).crop(0, 1)  # shorter
 stc = mne.stc_near_sensors(
     evoked, trans, subject, subjects_dir=subjects_dir, src=vol_src,
     verbose='error')  # ignore missing electrode warnings
