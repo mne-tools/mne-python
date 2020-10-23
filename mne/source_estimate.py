@@ -3248,6 +3248,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # in the Source space we will use the evoked data
     pos = evoked._get_channel_positions()
 
+    # remove nan channels
+    nan_inds = np.where(np.isnan(pos).any(axis=1))[0]
+    nan_chs = [evoked.ch_names[idx] for idx in nan_inds]
+    evoked.drop_channels(nan_chs)
+    pos = [pos[idx] for idx in range(len(pos)) if idx not in nan_inds]
+
     # coord_frame transformation from native mne "head" to MRI coord_frame
     trans, _ = _get_trans(trans, 'head', coord_frame, allow_none=True)
 
@@ -3257,24 +3263,36 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # read surface files
     subject = _check_subject(None, subject, False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    # surface coordinate points
     rrs = [read_surface(op.join(subjects_dir, subject,
                                 'surf', f'{hemi}.pial'))[0]
            for hemi in ('lh', 'rh')]
     offset = len(rrs[0])
     rrs = np.concatenate(rrs)
-    rrs /= 1000.
+    rrs /= 1000.  # convert to meters
 
-    logger.info(
-        f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
-    if project:
+    # projection will only occur with surfaces
+    if project and src is None:
+        logger.info(
+            f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
         logger.info('    Projecting electrodes onto surface')
         pos = _project_onto_surface(pos, dict(rr=rrs), project_rrs=True,
                                     method='nearest')[2]
+
+    # project source activity up to the minimum
+    # distance between our channel coordinates
+    # measured in 'mm'. Note mne-python stores 'meters'
     min_dist = pdist(pos).min() * 1000
     logger.info(
         f'    Projected sensors have minimum distance {min_dist:0.1f} mm')
+
+    # compute pairwise distance between brain mesh coordinates
+    # and the channel coordinates
     dists = cdist(rrs, pos)
     assert dists.shape == (len(rrs), len(pos))
+
+    # only consider vertices within our "epsilon-ball"
+    # characterized by distance kwarg
     vertices = np.where((dists <= distance).any(-1))[0]
     logger.info(f'    {len(vertices)} / {len(rrs)} non-zero vertices')
     w = np.maximum(1. - dists[vertices] / distance, 0)
@@ -3286,9 +3304,19 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         w.fill(0)
         w[range_, idx] = vals
     missing = np.where(~np.any(w, axis=0))[0]
+
+    print('INHERE')
+    print('MINIMUM DISTANCE: ', min_dist)
+    print(distance)
+    print(dists.shape)
+    print(vertices.shape)
+    print(len(missing))
+    print(w.shape)
+    print(evoked.data.shape)
     if len(missing):
         warn(f'Channel{_pl(missing)} missing in STC: '
              f'{", ".join(evoked.ch_names[mi] for mi in missing)}')
+
     data = w @ evoked.data
     vertices = [vertices[vertices < offset],
                 vertices[vertices >= offset] - offset]

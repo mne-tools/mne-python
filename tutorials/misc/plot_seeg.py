@@ -17,20 +17,21 @@ This example shows how to use:
 
 For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
-:ref:`tut-working-with-ecog`.
+:ref:`tut-working-with-ecog`. In the ECoG example, we show
+how to visualize surface grid channels on the brain.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Adam Li <adam2392@gmail.com>
 #
 # License: BSD (3-clause)
 
-import pandas as pd
+import os.path as op
+
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+import pandas as pd
 
 import mne
-from mne.viz import plot_alignment, snapshot_brain_montage
+from mne.datasets import fetch_fsaverage
 
 print(__doc__)
 
@@ -46,11 +47,13 @@ subjects_dir = sample_path + '/subjects'
 # a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
 # ``.tsv`` file.
 
-# In this tutorial, the electrode coordinates are assumed to be in meters
+# In mne-python, the electrode coordinates are required to be in meters
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
+
+# the test channel coordinates were in mm, so we conver them to meters
+ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float) / 1000.
 ch_pos = dict(zip(ch_names, ch_coords))
 # Ideally the nasion/LPA/RPA will also be present from the digitization, here
 # we use fiducials estimated from the subject's FreeSurfer MNI transformation:
@@ -98,34 +101,9 @@ raw.set_montage(montage)
 raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
 
 ###############################################################################
-# We can then plot the locations of our electrodes on our subject's brain.
-# We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
-# data (along with xy positions of each electrode in the image), so that later
-# we can plot frequency band power on top of it.
-#
-# .. note:: These are not real electrodes for this subject, so they
-#           do not align to the cortical surface perfectly.
-
-# fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
-#                      surfaces=['pial'], trans=trans, coord_frame=coord_frame)
-# mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
-#
-# xy, im = snapshot_brain_montage(fig, montage)
-
-
-###############################################################################
-# Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
-# (8-12 Hz) bands.
-gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
-    envelope=True).get_data()
-alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
-    envelope=True).get_data()
-gamma_power = gamma_power_t.mean(axis=-1)
-alpha_power = alpha_power_t.mean(axis=-1)
-
-# choose a colormap range wide enough for both frequency bands
-_gamma_alpha_power = np.concatenate((gamma_power, alpha_power)).flatten()
-vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
+# Next, we'll e
+raw_lfp = raw.get_data()
+vmin, vmax = np.percentile(raw_lfp.flatten(), [10, 90])
 
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
@@ -137,10 +115,11 @@ vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
 # get standard fsaverage volume source space
 fetch_fsaverage(subjects_dir=subjects_dir)  # downloads it if necessary
 fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
-                   'fsaverage-vol-5-src.fif')
+                    'fsaverage-vol-5-src.fif')
 vol_src = mne.read_source_spaces(fname_src)
 
-evoked = mne.EvokedArray(gamma_power_t, raw.info)
+evoked = mne.EvokedArray(raw_lfp, raw.info)
+print(evoked.data.shape)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
                            src=vol_src, mode='nearest')
 print(vol_src)
