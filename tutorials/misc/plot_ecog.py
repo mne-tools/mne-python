@@ -16,7 +16,7 @@ This example shows how to use:
 - projection onto a surface
 
 For an example that involves sEEG data, channel locations in
-MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
+MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>

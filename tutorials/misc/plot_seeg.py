@@ -17,7 +17,7 @@ This example shows how to use:
 
 For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
-:ref:`tut-working-with-ecog`. In the ECoG example, we show
+:ref:`tut_working_with_ecog`. In the ECoG example, we show
 how to visualize surface grid channels on the brain.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -52,7 +52,7 @@ elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
 
-# the test channel coordinates were in mm, so we conver them to meters
+# the test channel coordinates were in mm, so we convert them to meters
 ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float) / 1000.
 ch_pos = dict(zip(ch_names, ch_coords))
 # Ideally the nasion/LPA/RPA will also be present from the digitization, here
