@@ -1548,6 +1548,3 @@ def test_stc_near_sensors(tmpdir):
     assert isinstance(stc_vol, VolSourceEstimate)
     log = log.getvalue()
     assert '4157 volume vertices' in log
-
-
-run_tests_if_main()
