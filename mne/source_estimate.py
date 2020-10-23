@@ -3320,7 +3320,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     data = w @ evoked.data
     vertices = [vertices[vertices < offset],
                 vertices[vertices >= offset] - offset]
-
+    print(vertices.shape)
     # either return a surface, or volume SourceEstimate
     if src:
         return VolSourceEstimate(
