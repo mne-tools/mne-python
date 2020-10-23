@@ -142,7 +142,7 @@ vol_src = mne.read_source_spaces(fname_src)
 
 evoked = mne.EvokedArray(gamma_power_t, raw.info)
 stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir,
-                           src=vol_src, project=False, mode='nearest')
+                           src=vol_src, mode='nearest')
 print(vol_src)
 print(evoked)
 print(stc)
