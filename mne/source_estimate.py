@@ -3274,7 +3274,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # projection will only occur with surfaces
     if project and src is None:
         logger.info(
-            f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
+            f'Projecting {len(pos)} sensors onto {len(rrs)} '
+            f'vertices: {mode} mode')
         logger.info('    Projecting electrodes onto surface')
         pos = _project_onto_surface(pos, dict(rr=rrs), project_rrs=True,
                                     method='nearest')[2]
@@ -3324,7 +3325,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # either return a surface, or volume SourceEstimate
     if src:
         return VolSourceEstimate(
-            data, vertices=vertices, tmin=evoked.times[0], tstep=1. / evoked.info['sfreq'],
+            data, vertices=vertices, tmin=evoked.times[0],
+            tstep=1. / evoked.info['sfreq'],
             subject=subject, verbose=verbose
         )
     else:
