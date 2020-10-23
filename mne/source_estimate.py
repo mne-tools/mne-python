@@ -3259,11 +3259,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # convert head positions -> coord_frame MRI
     pos = apply_trans(trans, pos)
 
-    # read surface files
     subject = _check_subject(None, subject, False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if src is None:  # fake a full surface one
-        # surface coordinate points
         rrs = [read_surface(op.join(subjects_dir, subject,
                                     'surf', f'{hemi}.pial'))[0]
                for hemi in ('lh', 'rh')]
@@ -3317,7 +3315,6 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         w.fill(0)
         w[range_, idx] = vals
     missing = np.where(~np.any(w, axis=0))[0]
-
     if len(missing):
         warn(f'Channel{_pl(missing)} missing in STC: '
              f'{", ".join(evoked.ch_names[mi] for mi in missing)}')
