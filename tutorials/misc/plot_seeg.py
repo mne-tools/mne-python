@@ -104,7 +104,7 @@ raw.set_channel_types({ch_name: 'seeg' for ch_name in raw.ch_names})
 # Next, we'll get the raw data and plot it's amplitude over time.
 
 raw_lfp = raw.get_data()
-raw_lfp.plot(seeg=True)
+raw.plot()
 
 ###############################################################################
 # We can visualize this raw data on the brain as a heatmap.
