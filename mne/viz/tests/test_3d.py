@@ -602,6 +602,11 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     brain.close()
     del brain
 
+    these_kwargs = kwargs.copy()
+    these_kwargs['show_traces'] = 'foo'
+    with pytest.raises(ValueError, match='show_traces'):
+        meth(**these_kwargs)
+    del these_kwargs
     if pick_ori == 'vector':
         with pytest.raises(ValueError, match='use "pos_lims"'):
             meth(**kwargs, clim=dict(pos_lims=[1, 2, 3]))
