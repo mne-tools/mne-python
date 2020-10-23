@@ -3208,7 +3208,11 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     Returns
     -------
     stc : instance of SourceEstimate
-        The surface source estimate.
+        The surface source estimate. If using volume ``src``, ``stc``
+        will have the same number of vertices as the passed in
+        SourceSpace object. If using surface, then ``stc`` will
+        have the number of vertices on the ``pial`` surface that
+        get activated.
 
     Notes
     -----
