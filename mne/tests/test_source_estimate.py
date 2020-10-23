@@ -1538,3 +1538,16 @@ def test_stc_near_sensors(tmpdir):
         stc = stc_near_sensors(evoked, trans, 'sample', subjects_dir=this_dir,
                                project=False, distance=0.033)
     assert stc.data.any(0).sum() == len(evoked.ch_names) - 1
+
+    # and now with volumetric projection
+    src = read_source_spaces(fname_vsrc)
+    with catch_logging() as log:
+        stc_vol = stc_near_sensors(evoked, trans, 'sample', src=src,
+                                   subjects_dir=subjects_dir, verbose=True,
+                                   distance=0.033)
+    assert isinstance(stc_vol, VolSourceEstimate)
+    log = log.getvalue()
+    assert '4157 volume vertices' in log
+
+
+run_tests_if_main()
