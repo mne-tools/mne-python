@@ -9,6 +9,7 @@ import os.path as op
 from collections import namedtuple
 import re
 import numpy as np
+from datetime import datetime, timezone
 
 from ..base import BaseRaw
 from ..meas_info import create_info
@@ -49,7 +50,8 @@ SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, µ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 CurryParameters = namedtuple('CurryParameters',
-                             'n_samples, sfreq, is_ascii, unit_dict')
+                             'n_samples, sfreq, is_ascii, unit_dict, '
+                             'n_chans, dt_start, chanidx_in_file')
 
 
 def _get_curry_version(file_extension):
@@ -133,11 +135,18 @@ def _read_curry_parameters(fname):
 
     var_names = ['NumSamples', 'SampleFreqHz',
                  'DataFormat', 'SampleTimeUsec',
+                 'NumChannels',
+                 'StartYear', 'StartMonth', 'StartDay', 'StartHour',
+                 'StartMin', 'StartSec', 'StartMillisec',
                  'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
-                 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
+                 'DATA_FORMAT', 'SAMPLE_TIME_USEC',
+                 'NUM_CHANNELS',
+                 'START_YEAR', 'START_MONTH', 'START_DAY', 'START_HOUR',
+                 'START_MIN', 'START_SEC', 'START_MILLISEC']
 
     param_dict = dict()
     unit_dict = dict()
+
     with open(fname) as fid:
         for line in iter(fid):
             if any(var_name in line for var_name in var_names):
@@ -149,10 +158,34 @@ def _read_curry_parameters(fname):
                     unit_dict[type] = data_unit.replace(" ", "") \
                         .replace("\n", "").split("=")[-1]
 
+    # look for CHAN_IN_FILE sections, which may or may not exist; issue #8391
+    types = ["meg", "eeg", "misc"]
+    chanidx_in_file = _read_curry_lines(fname,
+                                        ["CHAN_IN_FILE" +
+                                         CHANTYPES[key] for key in types])
+
     n_samples = int(param_dict["numsamples"])
     sfreq = float(param_dict["samplefreqhz"])
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
+    n_channels = int(param_dict["numchannels"])
+    try:
+        dt_start = datetime(int(param_dict["startyear"]),
+                            int(param_dict["startmonth"]),
+                            int(param_dict["startday"]),
+                            int(param_dict["starthour"]),
+                            int(param_dict["startmin"]),
+                            int(param_dict["startsec"]),
+                            int(param_dict["startmillisec"]) * 1000,
+                            timezone.utc)
+        # Note that the time zone information is not stored in the Curry info
+        # file, and it seems the start time info is in the local timezone
+        # of the acquisition system (which is unknown); therefore, just set
+        # the timezone to be UTC.  If the user knows otherwise, they can
+        # change it later.  (Some Curry files might include StartOffsetUTCMin,
+        # but its presence is unpredictable, so we won't rely on it.)
+    except (ValueError, KeyError):
+        dt_start = None  # if missing keywords or illegal values, don't set
 
     if time_step == 0:
         true_sfreq = sfreq
@@ -165,7 +198,8 @@ def _read_curry_parameters(fname):
     if true_sfreq <= 0:
         raise ValueError(_msg_invalid.format(true_sfreq))
 
-    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict)
+    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict,
+                           n_channels, dt_start, chanidx_in_file)
 
 
 def _read_curry_info(curry_paths):
@@ -191,11 +225,28 @@ def _read_curry_info(curry_paths):
 
     all_chans = list()
     for key in ["meg", "eeg", "misc"]:
+        chanidx_is_explicit = (len(curry_params.chanidx_in_file["CHAN_IN_FILE"
+                                   + CHANTYPES[key]]) > 0)    # channel index
+        # position in the datafile may or may not be explicitly declared,
+        # based on the CHAN_IN_FILE section in info file
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
+            chanidx = len(all_chans) + 1    # by default, just assume the
+            # channel index in the datafile is in order of the channel
+            # names as we found them in the labels file
+            if chanidx_is_explicit:  # but, if explicitly declared, use
+                # that index number
+                chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE"
+                              + CHANTYPES[key]][ind])
+            if chanidx <= 0:   # if chanidx was explicitly declared to be ' 0',
+                # it means the channel is not actually saved in the data file
+                # (e.g. the "Ref" channel), so don't add it to our list.
+                # Git issue #8391
+                continue
             ch = {"ch_name": chan,
                   "unit": curry_params.unit_dict[key],
                   "kind": FIFFV_CHANTYPES[key],
                   "coil_type": FIFFV_COILTYPES[key],
+                  "ch_idx": chanidx
                   }
             if key == "eeg":
                 loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
@@ -222,11 +273,24 @@ def _read_curry_info(curry_paths):
                 ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
             all_chans.append(ch)
 
+    ch_count = len(all_chans)
+    assert (ch_count == curry_params.n_chans)  # ensure that we have assembled
+    # the same number of channels as declared in the info (.DAP) file in the
+    # DATA_PARAMETERS section. Git issue #8391
+
+    # sort the channels to assure they are in the order that matches how
+    # recorded in the datafile.  In general they most likely are already in
+    # the correct order, but if the channel index in the data file was
+    # explicitly declared we might as well use it.
+    all_chans = sorted(all_chans, key=lambda ch: ch['ch_idx'])
+
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
+    info['meas_date'] = curry_params.dt_start          # for Git issue #8398
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
+        all_chans[ind].pop('ch_idx')
         ch_dict.update(all_chans[ind])
         assert ch_dict['loc'].shape == (12,)
         ch_dict['unit'] = SI_UNITS[all_chans[ind]['unit'][1]]

@@ -32,7 +32,7 @@ from .._3d import _process_clim, _handle_time, _check_views
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ...surface import mesh_edges
-from ...source_space import SourceSpaces, vertex_to_mni, _read_talxfm
+from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
 from ...transforms import apply_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn)
@@ -267,6 +267,12 @@ class Brain(object):
                                        bgcolor=background,
                                        shape=shape,
                                        fig=figure)
+
+        if _get_3d_backend() == "pyvista":
+            self.plotter = self._renderer.plotter
+            self.window = self.plotter.app_window
+            self.window.signal_close.connect(self._clean)
+
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
@@ -303,6 +309,7 @@ class Brain(object):
                         actor, mesh = mesh_data.actor, mesh_data
                     self._hemi_meshes[h] = mesh
                     self._hemi_actors[h] = actor
+                    del mesh_data, actor, mesh
                 else:
                     self._renderer.polydata(
                         self._hemi_meshes[h],
@@ -375,20 +382,18 @@ class Brain(object):
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
 
         # Direct access parameters:
-        self.plotter = self._renderer.plotter
+        self._iren = self._renderer.plotter.iren
         self.main_menu = self.plotter.main_menu
-        self.window = self.plotter.app_window
         self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
-        self.window.signal_close.connect(self._clean)
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
         _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
         self.interactor_fraction = 0.25
         if isinstance(show_traces, str):
-            assert 'show_traces' == 'separate'  # should be guaranteed earlier
+            assert show_traces == 'separate'  # should be guaranteed earlier
             self.show_traces = True
             self.separate_canvas = True
         else:
@@ -425,23 +430,46 @@ class Brain(object):
     def _clean(self):
         # resolve the reference cycle
         self.clear_points()
+        for h in self._hemis:
+            # clear init actors
+            actor = self._hemi_actors[h]
+            if actor is not None:
+                mapper = actor.GetMapper()
+                mapper.SetLookupTable(None)
+                actor.SetMapper(None)
+            # clear data actors
+            hemi_data = self._data.get(h)
+            if hemi_data is not None:
+                if hemi_data['actors'] is not None:
+                    for actor in hemi_data['actors']:
+                        mapper = actor.GetMapper()
+                        mapper.SetLookupTable(None)
+                        actor.SetMapper(None)
         self._clear_callbacks()
-        self.actions.clear()
-        self.sliders.clear()
-        self.reps = None
-        self.plotter = None
-        self.main_menu = None
-        self.window = None
-        self.tool_bar = None
-        self.status_bar = None
-        self.interactor = None
-        if self.mpl_canvas is not None:
+        if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
-            self.mpl_canvas = None
-        self.time_actor = None
-        self.picked_renderer = None
-        for key in list(self.act_data_smooth.keys()):
-            self.act_data_smooth[key] = None
+        if getattr(self, 'act_data_smooth', None) is not None:
+            for key in list(self.act_data_smooth.keys()):
+                self.act_data_smooth[key] = None
+        # XXX this should be done in PyVista
+        for renderer in self.plotter.renderers:
+            renderer.RemoveAllLights()
+        # app_window cannot be set to None because it is used in __del__
+        for key in ('lighting', 'interactor', '_RenderWindow'):
+            setattr(self.plotter, key, None)
+        # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
+        # to resolve the ref to vtkGenericRenderWindowInteractor
+        self.plotter._Iren = _FakeIren()
+        if getattr(self.plotter, 'scalar_bar', None) is not None:
+            self.plotter.scalar_bar = None
+        if getattr(self.plotter, 'picker', None) is not None:
+            self.plotter.picker = None
+        # XXX end PyVista
+        for key in ('reps', 'plotter', 'main_menu', 'window', 'tool_bar',
+                    'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
+                    'picked_renderer', 'act_data_smooth', '_iren',
+                    'actions', 'sliders', 'geo', '_hemi_actors', '_data'):
+            setattr(self, key, None)
 
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
@@ -922,6 +950,9 @@ class Brain(object):
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
+    def _save_movie_noname(self):
+        return self.save_movie(None)
+
     def _configure_tool_bar(self):
         self.actions["screenshot"] = self.tool_bar.addAction(
             self.icons["screenshot"],
@@ -931,7 +962,7 @@ class Brain(object):
         self.actions["movie"] = self.tool_bar.addAction(
             self.icons["movie"],
             "Save movie...",
-            partial(self.save_movie, filename=None)
+            self._save_movie_noname,
         )
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
@@ -1208,6 +1239,8 @@ class Brain(object):
 
     def clear_points(self):
         """Clear the picked points."""
+        if not hasattr(self, '_spheres'):
+            return
         for sphere in list(self._spheres):  # will remove itself, so copy
             self.remove_point(sphere)
         assert sum(len(v) for v in self.picked_points.values()) == 0
@@ -1236,10 +1269,10 @@ class Brain(object):
         time = self._data['time'].copy()  # avoid circular ref
         if hemi == 'vol':
             hemi_str = 'V'
-            xfm = _read_talxfm(
+            xfm = read_talxfm(
                 self._subject_id, self._subjects_dir)
-            if self._units == 'm':
-                xfm['trans'][:3, 3] /= 1000.
+            if self._units == 'mm':
+                xfm['trans'][:3, 3] *= 1000.
             ijk = np.unravel_index(
                 vertex_id, self._data[hemi]['grid_shape'], order='F')
             src_mri_t = self._data[hemi]['grid_src_mri_t']
@@ -1308,6 +1341,9 @@ class Brain(object):
         )
 
     def _clear_callbacks(self):
+        from ..backends._pyvista import _remove_picking_callback
+        if not hasattr(self, 'callbacks'):
+            return
         for callback in self.callbacks.values():
             if callback is not None:
                 if hasattr(callback, "plotter"):
@@ -1317,6 +1353,8 @@ class Brain(object):
                 if hasattr(callback, "slider_rep"):
                     callback.slider_rep = None
         self.callbacks.clear()
+        if self.show_traces:
+            _remove_picking_callback(self._iren, self.plotter.picker)
 
     @property
     def interaction(self):
@@ -2923,3 +2961,17 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
+
+
+class _FakeIren():
+    def EnterEvent(self):
+        pass
+
+    def MouseMoveEvent(self):
+        pass
+
+    def LeaveEvent(self):
+        pass
+
+    def SetEventInformation(self, *args, **kwargs):
+        pass

@@ -1701,9 +1701,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : 'auto' | 'mayavi' | 'matplotlib'
+    backend : 'auto' | 'mayavi' | 'pyvista' | 'matplotlib'
         Which backend to use. If ``'auto'`` (default), tries to plot with
-        mayavi, but resorts to matplotlib if mayavi is not available.
+        pyvista, but resorts to matplotlib if no 3d backend is available.
 
         .. versionadded:: 0.15.0
     spacing : str
@@ -1747,11 +1747,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
+    _check_option('backend', backend,
+                  ['auto', 'matplotlib', 'mayavi', 'pyvista'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
-            set_3d_backend(_get_3d_backend())
+            if backend == 'auto':
+                set_3d_backend(_get_3d_backend())
+            else:
+                set_3d_backend(backend)
         except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
                 warn('No 3D backend found. Resorting to matplotlib 3d.')

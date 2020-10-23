@@ -488,7 +488,7 @@ def test_volume_source_morph_round_trip(
         src['fsaverage'] = mne.read_source_spaces(fname_fs_vol)
         src['fsaverage'][0].update(
             vol_dims=np.array([23, 29, 25]), seg_name='brain')
-        _add_interpolator(src['fsaverage'], True)
+        _add_interpolator(src['fsaverage'])
         assert src['fsaverage'][0]['nuse'] == 6379
     src_to, src_from = src[subject_to], src[subject_from]
     del src

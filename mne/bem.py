@@ -197,8 +197,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
                 # if sidx1 == sidx2 and (tri == j).any():
                 #     continue
                 # Otherwise do the hard job
-                coeffs = _lin_pot_coeff(surf1['rr'], tri_rr[k], tri_nn[k],
-                                        tri_area[k])
+                coeffs = _lin_pot_coeff(fros=surf1['rr'], tri_rr=tri_rr[k],
+                                        tri_nn=tri_nn[k], tri_area=tri_area[k])
                 coeffs[skip_idx] = 0.
                 submat[:, tri] -= coeffs
             if si_1 == si_2:
@@ -233,7 +233,7 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
 
 def _fwd_bem_homog_solution(solids, nps):
     """Make a homogeneous solution."""
-    return _fwd_bem_multi_solution(solids, None, nps)
+    return _fwd_bem_multi_solution(solids, gamma=None, nps=nps)
 
 
 def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
@@ -273,33 +273,33 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     return surf
 
 
-def _fwd_bem_linear_collocation_solution(m):
+def _fwd_bem_linear_collocation_solution(bem):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
-    for surf in m['surfs']:
+    for surf in bem['surfs']:
         _check_complete_surface(surf)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
-    coeff = _fwd_bem_lin_pot_coeff(m['surfs'])
-    m['nsol'] = len(coeff)
+    coeff = _fwd_bem_lin_pot_coeff(bem['surfs'])
+    bem['nsol'] = len(coeff)
     logger.info("    Inverting the coefficient matrix...")
-    nps = [surf['np'] for surf in m['surfs']]
-    m['solution'] = _fwd_bem_multi_solution(coeff, m['gamma'], nps)
-    if len(m['surfs']) == 3:
-        ip_mult = m['sigma'][1] / m['sigma'][2]
+    nps = [surf['np'] for surf in bem['surfs']]
+    bem['solution'] = _fwd_bem_multi_solution(coeff, bem['gamma'], nps)
+    if len(bem['surfs']) == 3:
+        ip_mult = bem['sigma'][1] / bem['sigma'][2]
         if ip_mult <= FWD.BEM_IP_APPROACH_LIMIT:
             logger.info('IP approach required...')
             logger.info('    Matrix coefficients (homog)...')
-            coeff = _fwd_bem_lin_pot_coeff([m['surfs'][-1]])
+            coeff = _fwd_bem_lin_pot_coeff([bem['surfs'][-1]])
             logger.info('    Inverting the coefficient matrix (homog)...')
             ip_solution = _fwd_bem_homog_solution(coeff,
-                                                  [m['surfs'][-1]['np']])
+                                                  [bem['surfs'][-1]['np']])
             logger.info('    Modify the original solution to incorporate '
                         'IP approach...')
-            _fwd_bem_ip_modify_solution(m['solution'], ip_solution, ip_mult,
+            _fwd_bem_ip_modify_solution(bem['solution'], ip_solution, ip_mult,
                                         nps)
-    m['bem_method'] = FWD.BEM_LINEAR_COLL
+    bem['bem_method'] = FWD.BEM_LINEAR_COLL
     logger.info("Solution ready.")
 
 
