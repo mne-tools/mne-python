@@ -448,8 +448,12 @@ def test_plot_tfr_topomap():
     info = pick_info(raw.info, picks)
     data = rng.randn(len(picks), n_freqs, len(times))
     tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
+
+    mask = np.zeros((4, 1), dtype=bool)  # 4 magnetometers only
+    mask[:2, :] = True
+
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
-                     res=res, contours=0)
+                     res=res, contours=0, mask=mask)
 
     eclick = matplotlib.backend_bases.MouseEvent(
         'button_press_event', plt.gcf().canvas, 0, 0, 1)

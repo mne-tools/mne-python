@@ -85,3 +85,5 @@ API changes
 - New `mne.viz.Brain.set_time` method to set the displayed time in seconds, by `Daniel McCloy`_ (:gh:`8415`)
 
 - Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` by `Guillaume Favelier`_
+
+- Add ``mask`` parameter in :meth:`mne.time_frequency.AverageTFR.plot_topomap` by `Alex Gramfort`_
