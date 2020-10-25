@@ -132,8 +132,6 @@ raw.plot()
 # Then one should generate a ``stc`` data structure, which will be able
 # to visualize source activity on the brain in various different formats.
 
-# sphinx_gallery_thumbnail_number = 3
-
 # get standard fsaverage volume (5mm grid) source space
 fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
                     'fsaverage-vol-5-src.fif')
@@ -151,6 +149,9 @@ stc.plot(vol_src, subject=subject, subjects_dir=subjects_dir, clim=clim)
 
 ###############################################################################
 # Plot 3D source (brain region) visualization:
+
+# sphinx_gallery_thumbnail_number = 4
+
 brain = stc.plot_3d(
     src=vol_src, subjects_dir=subjects_dir,
     view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
