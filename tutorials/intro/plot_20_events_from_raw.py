@@ -232,25 +232,24 @@ print(event_dict)
 print(events_from_annot[:5])
 
 ###############################################################################
-# To make the opposite conversion (from Events array to
+# To make the opposite conversion (from an Events array to an
 # :class:`~mne.Annotations` object), you can create a mapping from integer
-# Event ID to string descriptions, and use the :class:`~mne.Annotations`
-# constructor to create the :class:`~mne.Annotations` object, and use the
+# Event ID to string descriptions, use `~mne.annotations_from_events`
+# to construct the :class:`~mne.Annotations` object, and call the
 # :meth:`~mne.io.Raw.set_annotations` method to add the annotations to the
-# :class:`~mne.io.Raw` object. Because the :ref:`sample data <sample-dataset>`
-# was recorded on a Neuromag system (where sample numbering starts when the
-# acquisition system is initiated, not when the *recording* is initiated), we
-# also need to pass in the ``orig_time`` parameter so that the onsets are
-# properly aligned relative to the start of recording:
+# :class:`~mne.io.Raw` object.
+#
+# Because the :ref:`sample data <sample-dataset>` was recorded on a Neuromag
+# system (where sample numbering starts when the acquisition system is
+# initiated, not when the *recording* is initiated), we also need to pass in
+# the ``orig_time`` parameter so that the onsets are properly aligned relative
+# to the start of recording:
 
 mapping = {1: 'auditory/left', 2: 'auditory/right', 3: 'visual/left',
            4: 'visual/right', 5: 'smiley', 32: 'buttonpress'}
-onsets = events[:, 0] / raw.info['sfreq']
-durations = np.zeros_like(onsets)  # assumes instantaneous events
-descriptions = [mapping[event_id] for event_id in events[:, 2]]
-annot_from_events = mne.Annotations(onset=onsets, duration=durations,
-                                    description=descriptions,
-                                    orig_time=raw.info['meas_date'])
+annot_from_events = mne.annotations_from_events(
+    events=events, event_desc=mapping, sfreq=raw.info['sfreq'],
+    orig_time=raw.info['meas_date'])
 raw.set_annotations(annot_from_events)
 
 ###############################################################################
