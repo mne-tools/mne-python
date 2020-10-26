@@ -17,8 +17,8 @@ In the :ref:`introductory tutorial <overview-tut-events-section>` we saw an
 example of reading experimental events from a :term:`"STIM" channel <stim
 channel>`; here we'll discuss :term:`events` and :term:`annotations` more
 broadly, give more detailed information about reading from STIM channels, and
-give an example of reading events that are in a marker file or included in the
-data file as an embedded array. The tutorials :ref:`tut-event-arrays` and
+give an example of reading events that are in a marker file or included in
+the data file as an embedded array. The tutorials :ref:`tut-event-arrays` and
 :ref:`tut-annotate-raw` discuss how to plot, combine, load, save, and
 export :term:`events` and :class:`~mne.Annotations` (respectively), and the
 latter tutorial also covers interactive annotation of :class:`~mne.io.Raw`
