@@ -576,7 +576,6 @@ def test_snapshot_brain_montage(renderer):
 @pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                                pick_ori, kind, brain_gc):
-    # kind = 'surface'
     """Test plotting of scalar and vector source estimates."""
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
