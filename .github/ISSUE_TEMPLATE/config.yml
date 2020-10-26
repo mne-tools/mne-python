@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: GitHub Discussions
+  - name: Questions/Support/Other
     url: https://github.com/mne-tools/mne-python/discussions
-    about: Ask questions, share ideas, engage with the MNE-Python community.
+    about: Get help using MNE-Python, ask general (usage) questions, or share your ideas with the community.
   - name: Mailing list
     url: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
     about: For questions about analysis and usage, and announcements of interest to the neuroimaging community.
