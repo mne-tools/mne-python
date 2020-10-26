@@ -868,7 +868,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
 
 
 def _import_mffpy(why='read averaged .mff files'):
-    """imports and returns module mffpy"""
+    """Import and return module mffpy."""
     try:
         import mffpy
     except ImportError as exp:
