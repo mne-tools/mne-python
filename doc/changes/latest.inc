@@ -25,6 +25,8 @@ Enhancements
 
 - Reduce memory usage of volume source spaces by `Eric Larson`_ (:gh:`8379`)
 
+- Speed up heavy use of :meth:`mne.SourceMorph.apply` for volumetric source spaces by use of the method :meth:`mne.SourceMorph.compute_vol_morph_mat` by `Eric Larson`_ (:gh:`8366`)
+
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
 
 - Add sEEG source visualization using :func:`mne.stc_near_sensors` and sEEG working tutorial by `Eric Larson`_ and `Adam Li`_ (:gh:`8402`)
