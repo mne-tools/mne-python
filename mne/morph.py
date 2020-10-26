@@ -117,8 +117,8 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         If True (default False), compute the sparse matrix representation of
         the volumetric morph (if present). This takes a long time to
         compute, but can make morphs faster when thousands of points are used.
-        See :meth:`compute_vol_morph_mat` (which can be called later if
-        desired) for more information.
+        See :meth:`mne.SourceMorph.compute_vol_morph_mat` (which can be called
+        later if desired) for more information.
 
         .. versionadded:: 0.22
     %(verbose)s
