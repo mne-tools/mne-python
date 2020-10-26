@@ -318,9 +318,9 @@ def _check_skip_backend(name):
 @pytest.fixture()
 def renderer_notebook():
     """Verify that pytest_notebook is installed."""
-    from mne.viz.backends.renderer import _use_test_3d_backend
-    with _use_test_3d_backend('notebook'):
-        yield
+    from mne.viz.backends import renderer
+    with renderer._use_test_3d_backend('notebook'):
+        yield renderer
 
 
 @pytest.fixture(scope='session')
@@ -474,7 +474,7 @@ def download_is_error(monkeypatch):
 @pytest.fixture()
 def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
-    keys = ('renderer_interactive', 'renderer')
+    keys = ('renderer_interactive', 'renderer', 'renderer_notebook')
     assert set(request.fixturenames) & set(keys) != set()
     for key in keys:
         if key in request.fixturenames:
