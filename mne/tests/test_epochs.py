@@ -1040,10 +1040,7 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
                     picks=picks, on_missing='ignore')
     epochs.save(temp_fname, overwrite=True)
-    split_fname_1 = temp_fname[:-4] + '-1.fif'
-    split_fname_2 = temp_fname[:-4] + '-2.fif'
-    assert op.isfile(temp_fname)
-    assert not op.isfile(split_fname_1)
+    _assert_splits(temp_fname, 0, np.inf)
     epochs_read = read_epochs(temp_fname, preload=preload)
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
@@ -1059,16 +1056,10 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs.save(temp_fname, split_size=split_size, overwrite=True)
     # ... but we correctly account for the other stuff we need to write,
     # so end up with two files ...
-    assert op.isfile(temp_fname)
-    assert op.isfile(split_fname_1)
-    assert not op.isfile(split_fname_2)
+    _assert_splits(temp_fname, 1, split_size_bytes)
     epochs_read = read_epochs(temp_fname, preload=preload)
     # ... and none of the files exceed our limit.
-    for fname in (temp_fname, split_fname_1):
-        with open(fname, 'r') as fid:
-            fid.seek(0, 2)
-            fsize = fid.tell()
-        assert fsize <= split_size_bytes
+    _assert_splits(temp_fname, 1, split_size_bytes)
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
@@ -1088,8 +1079,8 @@ def test_epochs_io_preload(tmpdir, preload):
 
 
 @pytest.mark.parametrize('split_size, n_epochs, n_files, size', [
-    ('1MB', 9, 3, 1024 * 1024),
-    # ('2MB', 18, 2, 2 * 1024 * 1024),  # Useful for debugging
+    ('1.5MB', 9, 6, 1572864),
+    ('3MB', 18, 3, 3 * 1024 * 1024),
 ])
 @pytest.mark.parametrize('metadata', [
     False,
@@ -1126,19 +1117,59 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
     epochs.save(fname, split_size=split_size, overwrite=True)
     got_size = _get_split_size(split_size)
     assert got_size == size
-    written_fnames = [fname] + [
-        fname[:-4] + '-%d.fif' % ii for ii in range(1, n_files + 1)]
-    for this_fname in written_fnames:
-        assert op.isfile(this_fname)
-        with open(this_fname, 'r') as fid:
-            fid.seek(0, 2)
-            file_size = fid.tell()
-        assert size * 0.5 < file_size <= size
+    _assert_splits(fname, n_files, size)
     assert not op.isfile(f'{fname[:-4]}-{n_files + 1}.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
+
+
+def test_split_many_reset(tmpdir):
+    """Test splitting with many events and using reset."""
+    data = np.zeros((1000, 1, 1024))  # 1 ch, 1024 samples
+    assert data[0, 0].nbytes == 8192  # 8 kB per epoch
+    info = mne.create_info(1, 1000., 'eeg')
+    selection = np.arange(len(data)) + 100000
+    epochs = EpochsArray(data, info, tmin=0., selection=selection)
+    assert len(epochs.drop_log) == 101000
+    assert len(epochs) == len(data) == len(epochs.events)
+    fname = str(tmpdir.join('temp-epo.fif'))
+    for split_size in ('0.5MB', '1MB', '2MB'):  # tons of overhead from sel
+        with pytest.raises(ValueError, match='too small to safely'):
+            epochs.save(fname, split_size=split_size, verbose='debug')
+    with pytest.raises(ValueError, match='would result in writing'):  # ~200
+        epochs.save(fname, split_size='2.27MB', verbose='debug')
+    with pytest.warns(RuntimeWarning, match='writing overhead'):
+        epochs.save(fname, split_size='3MB', verbose='debug')
+    epochs_read = read_epochs(fname)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
+    assert epochs.drop_log == epochs_read.drop_log
+    mb = 3 * 1024 * 1024
+    _assert_splits(fname, 6, mb)
+    # reset, then it should work
+    fname = str(tmpdir.join('temp-reset-epo.fif'))
+    epochs.reset_drop_log_selection()
+    epochs.save(fname, split_size=split_size, verbose='debug')
+    _assert_splits(fname, 4, mb)
+    epochs_read = read_epochs(fname)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
+
+
+def _assert_splits(fname, n, size):
+    __tracebackhide__ = True
+    assert n >= 0
+    next_fnames = [fname] + [
+        fname[:-4] + '-%d.fif' % ii for ii in range(1, n + 2)]
+    bad_fname = next_fnames.pop(-1)
+    for ii, this_fname in enumerate(next_fnames[:-1]):
+        assert op.isfile(this_fname), f'Missing file: {this_fname}'
+        with open(this_fname, 'r') as fid:
+            fid.seek(0, 2)
+            file_size = fid.tell()
+        min_ = 0.1 if ii < len(next_fnames) - 1 else 0.1
+        assert size * min_ < file_size <= size, f'{this_fname}'
+    assert not op.isfile(bad_fname), f'Errantly wrote {bad_fname}'
 
 
 def test_epochs_proj(tmpdir):
