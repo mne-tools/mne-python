@@ -72,10 +72,11 @@ I'm not sure how to do *X* analysis step with my *Y* data...
 ------------------------------------------------------------
 
 Knowing "the right thing" to do with EEG and MEG data is challenging. We use
-the `MNE mailing list`_ to discuss analysis strategies for different kinds of
-data. It's worth searching the archives to see if there have been relevant
-discussions in the past, but don't hesitate to ask a new question if the answer
-isn't out there already.
+the `GitHub Discussions`_ page to discuss analysis strategies for different
+kinds of data. It's worth searching the archives of the `MNE mailing list`_ and
+the `MNE Gitter channel`_ to see if there have been relevant discussions in the
+past, but don't hesitate to ask a new question if the answer isn't out there
+already.
 
 
 I think I found a bug, what do I do?
@@ -84,14 +85,12 @@ I think I found a bug, what do I do?
 When you encounter an error message or unexpected results, it can be hard to
 tell whether it happened because of a bug in MNE-Python, a mistake in user
 code, a corrupted data file, or irregularities in the data itself. Your first
-step when asking for help should be `GitHub Discussions`_, the
-`MNE mailing list`_ or the `MNE Gitter channel`_, not GitHub issues. This bears
-repeating: *the GitHub issue tracker is not for usage help* — it is for
-software bugs, feature requests, and improvements to documentation. If you open
-an issue that contains only a usage question, we will close the issue and
-direct you to GitHub Discussions, the mailing list or Gitter. If you're pretty
-sure the problem you've encountered is a software bug (not bad data or user
-error):
+step when asking for help should be `GitHub Discussions`_, not GitHub issues.
+This bears repeating: *the GitHub issue tracker is not for usage help* — it is
+for software bugs, feature requests, and improvements to documentation. If you
+open an issue that contains only a usage question, we will close the issue and
+direct you to GitHub Discussions. If you're pretty sure the problem you've
+encountered is a software bug (not bad data or user error):
 
 - Make sure you're using `the most current version`_. You can check it locally
   at a shell prompt with:
@@ -122,13 +121,6 @@ three backticks (\`\`\`) above and below the lines of code. This
 MNE-Python contributors should be able to copy and paste the provided snippet
 and replicate the bug on their own computers.
 
-If you post to the `mailing list
-<https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>__
-instead, a `GitHub Public Gist <https://gist.github.com>`_ for the code sample
-is recommended; if you use the
-[Gitter channel](https://gitter.im/mne-tools/mne-python) the three backticks
-(\`\`\`) trick works there too.
-
 
 Why is it dangerous to "pickle" my MNE-Python objects and data for later use?
 -----------------------------------------------------------------------------
@@ -146,8 +138,8 @@ MNE-Python is designed to provide its own file saving formats (often based on
 the FIF standard) for its objects usually via a ``save`` method or ``write_*``
 method, e.g. :func:`mne.io.Raw.save`, :func:`mne.Epochs.save`,
 :func:`mne.write_evokeds`, :func:`mne.SourceEstimate.save`. If you have some
-data that you want to save but can't figure out how, shoot an email to the `MNE
-mailing list`_ or post it to the `GitHub issues page`_.
+data that you want to save but can't figure out how, ask your question on our
+`GitHub Discussions`_  page.
 
 If you want to write your own data to disk (e.g., subject behavioral scores),
 we strongly recommend using `h5io <https://github.com/h5io/h5io>`_, which is
@@ -427,6 +419,8 @@ References
 
 .. LINKS
 
+.. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+.. _`MNE Gitter channel`: https://gitter.im/mne-tools/mne-python
 .. _`the most current version`: https://github.com/mne-tools/mne-python/releases/latest
 .. _`minimal working example`: https://en.wikipedia.org/wiki/Minimal_Working_Example
 .. _mri_watershed: https://freesurfer.net/fswiki/mri_watershed

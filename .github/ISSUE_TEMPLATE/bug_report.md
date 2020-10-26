@@ -7,22 +7,18 @@ assignees: ''
 ---
 
 **READ THIS FIRST:** If you are having trouble getting MNE-Python to work with
-your own data, you should ask for help on one of our other channels:
-
-- [GitHub Discussions](https://github.com/mne-tools/mne-python/discussions)
-- [Mailing list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis)
-- [Gitter](https://gitter.im/mne-tools/mne-python)
+your own data, you should ask for help at our
+[GitHub Discussions](https://github.com/mne-tools/mne-python/discussions) page.
 
 Our GitHub issue tracker is only used to report bugs and suggest improvements
-to MNE-Python. For any other questions, please use GitHub Discussions, our
-mailing list or Gitter. Usage questions that are posted as GitHub issues are
-usually closed without being answered. See
-[the FAQ entry on filing bug reports](https://mne.tools/dev/overview/faq.html#i-think-i-found-a-bug-what-do-i-do)
+to MNE-Python. For any other questions, please use GitHub Discussions. Usage
+questions that are posted as GitHub issues are usually closed without being
+answered. See the [FAQ entry on filing bug reports](https://mne.tools/dev/overview/faq.html#i-think-i-found-a-bug-what-do-i-do)
 for more guidance. If you're pretty sure your problem is a bug in MNE-Python,
 please **delete this section** and fill in the headings below, replacing the
 placeholder text with your own responses. Surround any code samples with triple
-backticks above and below the code block (see
-[the GitHub guide to markdown](https://guides.github.com/features/mastering-markdown/#GitHub-flavored-markdown)
+backticks above and below the code block (see the 
+[GitHub guide to Markdown](https://guides.github.com/features/mastering-markdown/#GitHub-flavored-markdown)
 for help with issue formatting). Alternatively, you can put your MWE in a
 [public gist](https://gist.github.com) and link to it in this issue.
 

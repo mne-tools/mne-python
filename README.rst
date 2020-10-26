@@ -103,18 +103,13 @@ For full functionality, some functions require:
 - PyVista >= 0.24
 - pyvistaqt >= 0.2.0
 
+
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Please see the documentation on the MNE-Python homepage:
 
 https://mne.tools/dev/install/contributing.html
-
-
-Mailing list
-^^^^^^^^^^^^
-
-http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 
 
 Licensing

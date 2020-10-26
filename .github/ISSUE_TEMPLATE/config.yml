@@ -3,9 +3,3 @@ contact_links:
   - name: Questions/Support/Other
     url: https://github.com/mne-tools/mne-python/discussions
     about: Get help using MNE-Python, ask general (usage) questions, or share your ideas with the community.
-  - name: Mailing list
-    url: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
-    about: For questions about analysis and usage, and announcements of interest to the neuroimaging community.
-  - name: Gitter
-    url: https://gitter.im/mne-tools/mne-python
-    about: Users and developers can chat, troubleshoot, and share code samples on our Gitter channel.
