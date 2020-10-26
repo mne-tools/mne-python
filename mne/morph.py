@@ -30,7 +30,8 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          subjects_dir=None, zooms='auto',
                          niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
                          spacing=5, smooth=None, warn=True, xhemi=False,
-                         sparse=False, src_to=None, verbose=False):
+                         sparse=False, src_to=None, precompute=False,
+                         verbose=False):
     """Create a SourceMorph from one subject to another.
 
     Method is based on spherical morphing by FreeSurfer for surface
@@ -112,6 +113,14 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         - For mixed (surface + volume) morphing, this is required.
 
         .. versionadded:: 0.20
+    precompute : bool
+        If True (default False), compute the sparse matrix representation of
+        the volumetric morph (if present). This takes a long time to
+        compute, but can make morphs faster when thousands of points are used.
+        See :meth:`compute_vol_morph_mat` (which can be called later if
+        desired) for more information.
+
+        .. versionadded:: 0.22
     %(verbose)s
 
     Returns
@@ -121,14 +130,6 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
     Notes
     -----
-    Volumetric morphing is generally slower than surface-based morphing.
-    To speed up volumetric morphing, consider using the
-    :~meth:`mne.SourceMorph.compute_vol_morph_mat` method on the resulting
-    :class:`mne.SourceMorph` output and saving the result. It takes a few
-    minutes to compute, but can greatly speed up the
-    :meth:`mne.SourceMorph.apply` method by turning it into a simple sparse
-    matrix multiplication.
-
     This function can be used to morph surface data between hemispheres by
     setting ``xhemi=True``. The full cross-hemisphere morph matrix maps left
     to right and right to left. A matrix for cross-mapping only one hemisphere
@@ -261,6 +262,8 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                         niter_affine, niter_sdr, spacing, smooth, xhemi,
                         morph_mat, vertices_to, shape, affine,
                         pre_affine, sdr_morph, src_data, None)
+    if precompute:
+        morph.compute_vol_morph_mat()
     logger.info('[done]')
     return morph
 
@@ -493,7 +496,7 @@ class SourceMorph(object):
         nothing if the morph matrix has already been computed, or if there is
         no volume morphing necessary.
 
-        .. versionadded:: 0.23
+        .. versionadded:: 0.22
         """
         if self.affine is None or self.vol_morph_mat is not None:
             return
@@ -685,7 +688,7 @@ def read_source_morph(fname):
     # Backward compat with when it used to be a single array
     if isinstance(vals['src_data'].get('inuse', None), np.ndarray):
         vals['src_data']['inuse'] = [vals['src_data']['inuse']]
-    # added with compute_vol_morph_mat in 0.23:
+    # added with compute_vol_morph_mat in 0.22:
     vals['vol_morph_mat'] = vals.get('vol_morph_mat', None)
     return SourceMorph(**vals)
 

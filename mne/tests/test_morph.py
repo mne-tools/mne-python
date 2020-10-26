@@ -620,9 +620,11 @@ def test_morph_stc_dense():
                        [0, len(stc_to.times) - 1])
 
     # After dep change this to:
-    stc_to1 = compute_source_morph(
+    morph = compute_source_morph(
         subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
-        subjects_dir=subjects_dir).apply(stc_from)
+        subjects_dir=subjects_dir, precompute=True)
+    assert morph.vol_morph_mat is None  # a no-op for surface
+    stc_to1 = morph.apply(stc_from)
     assert_allclose(stc_to.data, stc_to1.data, atol=1e-5)
 
     mean_from = stc_from.data.mean(axis=0)
