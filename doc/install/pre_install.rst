@@ -84,8 +84,9 @@ automatically be installed.
 Getting help
 ^^^^^^^^^^^^
 
-Help with installation is available through the `MNE mailing list`_ and
-`MNE gitter channel`_. See the :ref:`help` page for more information.
+Help with installation is available through `GitHub Discussions`_, the
+`MNE mailing list`_, and the `MNE Gitter channel`_. See the :ref:`help` page
+for more information.
 
 
 **Next:** :doc:`mne_python`

@@ -84,13 +84,14 @@ I think I found a bug, what do I do?
 When you encounter an error message or unexpected results, it can be hard to
 tell whether it happened because of a bug in MNE-Python, a mistake in user
 code, a corrupted data file, or irregularities in the data itself. Your first
-step when asking for help should be the `MNE mailing list`_ or the
-`MNE Gitter channel`_, not GitHub. This bears repeating: *the GitHub issue
-tracker is not for usage help* — it is for software bugs, feature requests, and
-improvements to documentation. If you open an issue that contains only a usage
-question, we will close the issue and direct you to the mailing list or Gitter
-channel. If you're pretty sure the problem you've encountered is a software bug
-(not bad data or user error):
+step when asking for help should be `GitHub Discussions`_, the
+`MNE mailing list`_ or the `MNE Gitter channel`_, not GitHub issues. This bears
+repeating: *the GitHub issue tracker is not for usage help* — it is for
+software bugs, feature requests, and improvements to documentation. If you open
+an issue that contains only a usage question, we will close the issue and
+direct you to GitHub Discussions, the mailing list or Gitter. If you're pretty
+sure the problem you've encountered is a software bug (not bad data or user
+error):
 
 - Make sure you're using `the most current version`_. You can check it locally
   at a shell prompt with:

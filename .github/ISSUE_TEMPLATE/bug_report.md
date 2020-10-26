@@ -9,13 +9,14 @@ assignees: ''
 **READ THIS FIRST:** If you are having trouble getting MNE-Python to work with
 your own data, you should ask for help on one of our other channels:
 
-- [email list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis)
-- [Gitter (chat)](https://gitter.im/mne-tools/mne-python)
+- [GitHub Discussions](https://github.com/mne-tools/mne-python/discussions)
+- [Mailing list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis)
+- [Gitter](https://gitter.im/mne-tools/mne-python)
 
 Our GitHub issue tracker is only used to report bugs and suggest improvements
-to MNE-Python. For any other questions, please use the email list or Gitter.
-Usage questions that are posted as GitHub issues are usually closed without
-being answered. See
+to MNE-Python. For any other questions, please use GitHub Discussions, our
+mailing list or Gitter. Usage questions that are posted as GitHub issues are
+usually closed without being answered. See
 [the FAQ entry on filing bug reports](https://mne.tools/dev/overview/faq.html#i-think-i-found-a-bug-what-do-i-do)
 for more guidance. If you're pretty sure your problem is a bug in MNE-Python,
 please **delete this section** and fill in the headings below, replacing the
