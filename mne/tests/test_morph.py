@@ -470,7 +470,8 @@ def test_volume_source_morph(tmpdir):
         ('sample', 'fsaverage', 10, 12, float, True),  # morph_mat
     ])
 def test_volume_source_morph_round_trip(
-        tmpdir, subject_from, subject_to, lower, upper, dtype, morph_mat):
+        tmpdir, subject_from, subject_to, lower, upper, dtype, morph_mat,
+        monkeypatch):
     """Test volume source estimate morph round-trips well."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
@@ -561,18 +562,19 @@ def test_volume_source_morph_round_trip(
         fname = tmpdir.join('temp-morph.h5')
         morph_to_from.save(fname)
         morph_to_from = read_source_morph(fname)
-        assert morph_from_to.vol_morph_mat is None
         assert morph_to_from.vol_morph_mat is None
-        morph_from_to.compute_vol_morph_mat(verbose=True)
         morph_to_from.compute_vol_morph_mat(verbose=True)
         morph_to_from.save(fname, overwrite=True)
         morph_to_from = read_source_morph(fname)
-        assert isinstance(morph_from_to.vol_morph_mat, csr_matrix), 'csr'
         assert isinstance(morph_to_from.vol_morph_mat, csr_matrix), 'csr'
-        # equivalence
+        # equivalence (plus automatic calling)
+        assert morph_from_to.vol_morph_mat is None
+        monkeypatch.setattr(mne.morph, '_VOL_MAT_CHECK_RATIO', 0.)
         with catch_logging() as log:
-            stc_from_rt_lin = morph_to_from.apply(
-                morph_from_to.apply(stc_from, verbose='debug'))
+            with pytest.warns(RuntimeWarning, match=r'calling morph\.compute'):
+                stc_from_rt_lin = morph_to_from.apply(
+                    morph_from_to.apply(stc_from, verbose='debug'))
+        assert isinstance(morph_from_to.vol_morph_mat, csr_matrix), 'csr'
         log = log.getvalue()
         assert 'sparse volume morph matrix' in log
         assert_allclose(stc_from_rt.data, stc_from_rt_lin.data)
