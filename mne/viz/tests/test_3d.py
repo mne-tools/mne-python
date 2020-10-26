@@ -105,7 +105,7 @@ def test_plot_head_positions():
 @requires_pysurfer
 @traits_test
 @pytest.mark.slowtest
-def test_plot_sparse_source_estimates(renderer_interactive):
+def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
 
@@ -142,6 +142,7 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     if renderer_interactive._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(surf, mayavi.modules.surface.Surface)
+    renderer_interactive.backend._close_all()
 
 
 @testing.requires_testing_data
