@@ -479,6 +479,7 @@ def brain_gc(request):
     for key in keys:
         if key in request.fixturenames:
             is_pv = request.getfixturevalue(key)._get_3d_backend() == 'pyvista'
+            close_func = request.getfixturevalue(key).backend._close_all
             break
     if not is_pv:
         yield
@@ -487,6 +488,7 @@ def brain_gc(request):
     _assert_no_instances(Brain, 'before')
     ignore = set(id(o) for o in gc.get_objects())
     yield
+    close_func()
     _assert_no_instances(Brain, 'after')
     # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
     objs = gc.get_objects()
