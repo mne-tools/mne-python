@@ -949,8 +949,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if other_bools[key] and len(picks):
             title = DEFAULTS["titles"][key] if key != 'fnirs' else 'fNIRS'
             if key != 'fnirs' or 'channels' in fnirs:
-                other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                                           for pick in picks])
+                other_loc[key] = [
+                    info['chs'][pick]['loc'][:3] for pick in picks]
+                # deal with NaN
+                other_loc[key] = np.array([loc for loc in other_loc[key]
+                                           if np.isfinite(loc).all()], float)
                 logger.info(
                     f'Plotting {len(other_loc[key])} {title}'
                     f' location{_pl(other_loc[key])}')

@@ -17,6 +17,7 @@ from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
+from .io.constants import FIFF
 from .surface import (read_surface, _get_ico_surface, mesh_edges,
                       _project_onto_surface)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
@@ -3176,13 +3177,13 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
-                     project=True, subjects_dir=None, verbose=None):
-    """Create a STC from ECoG sensor data.
+                     project=True, subjects_dir=None, src=None, verbose=None):
+    """Create a STC from ECoG and sEEG sensor data.
 
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data. Must contain ECoG channels.
+        The evoked data. Must contain ECoG, or sEEG channels.
     %(trans)s
     subject : str
         The subject name.
@@ -3194,20 +3195,33 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         zero-order hold. See Notes.
     project : bool
         If True, project the electrodes to the nearest ``'pial`` surface
-        vertex before computing distances.
+        vertex before computing distances. Only used when doing a
+        surface projection.
     %(subjects_dir)s
+    src : instance of SourceSpaces
+        The source space.
+
+        .. warning:: If a surface source space is used, make sure that
+                     ``surf='pial'`` was used during construction.
     %(verbose)s
 
     Returns
     -------
     stc : instance of SourceEstimate
-        The surface source estimate.
+        The surface source estimate. If src is None, a surface source
+        estimate will be produced, and the number of vertices will equal
+        the number of pial-surface vertices that were close enough to
+        the sensors to take on a non-zero volue. If src is not None,
+        a surface, volume, or mixed source estimate will be produced
+        (depending on the kind of source space passed) and the
+        vertices will match those of src (i.e., there may be me
+        many all-zero values in stc.data).
 
     Notes
     -----
-    This function projects the ECoG sensors to the pial surface (if
-    ``project``), then the activation at each pial surface vertex is given
-    by the mode:
+    For surface projections, this function projects the ECoG sensors to
+    the pial surface (if ``project``), then the activation at each pial
+    surface vertex is given by the mode:
 
     - ``'sum'``
         Activation is the sum across each sensor weighted by the fractional
@@ -3224,37 +3238,84 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         The value is given by the value of the nearest sensor, up to a
         ``distance`` (beyond which it is zero).
 
-    .. versionadded:: 0.21
+    If creating a Volume STC, ``src`` must be passed in, and this
+    function will project sEEG sensors to nearby surrounding vertices.
+    Then the activation at each volume vertex is given by the mode
+    in the same way as ECoG surface projections.
+
+    .. versionadded:: 0.22
     """
     from scipy.spatial.distance import cdist, pdist
     from .evoked import Evoked
     _validate_type(evoked, Evoked, 'evoked')
     _validate_type(mode, str, 'mode')
+    _validate_type(src, (None, SourceSpaces), 'src')
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
-    evoked = evoked.copy().pick_types(meg=False, ecog=True)
-    pos = np.array([ch['loc'][:3] for ch in evoked.info['chs']])
+
+    # create a copy of Evoked using ecog and seeg
+    evoked = evoked.copy().pick_types(ecog=True, seeg=True)
+
+    # get channel positions that will be used to pinpoint where
+    # in the Source space we will use the evoked data
+    pos = evoked._get_channel_positions()
+
+    # remove nan channels
+    nan_inds = np.where(np.isnan(pos).any(axis=1))[0]
+    nan_chs = [evoked.ch_names[idx] for idx in nan_inds]
+    evoked.drop_channels(nan_chs)
+    pos = [pos[idx] for idx in range(len(pos)) if idx not in nan_inds]
+
+    # coord_frame transformation from native mne "head" to MRI coord_frame
     trans, _ = _get_trans(trans, 'head', 'mri', allow_none=True)
+
+    # convert head positions -> coord_frame MRI
+    pos = apply_trans(trans, pos)
+
     subject = _check_subject(None, subject, False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    data, vertices = list(), list()
-    rrs = [read_surface(op.join(subjects_dir, subject,
-                                'surf', f'{hemi}.pial'))[0]
-           for hemi in ('lh', 'rh')]
-    offset = len(rrs[0])
-    rrs = np.concatenate(rrs)
-    rrs /= 1000.
-    pos = apply_trans(trans, pos)
+    if src is None:  # fake a full surface one
+        rrs = [read_surface(op.join(subjects_dir, subject,
+                                    'surf', f'{hemi}.pial'))[0]
+               for hemi in ('lh', 'rh')]
+        src = SourceSpaces([
+            dict(rr=rr / 1000., vertno=np.arange(len(rr)), type='surf',
+                 coord_frame=FIFF.FIFFV_COORD_MRI)
+            for rr in rrs])
+        del rrs
+        keep_all = False
+    else:
+        keep_all = True
+    # ensure it's a usable one
+    klass = dict(
+        surface=SourceEstimate,
+        volume=VolSourceEstimate,
+        mixed=MixedSourceEstimate,
+    )
+    _check_option('src.kind', src.kind, sorted(klass.keys()))
+    klass = klass[src.kind]
+    rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
+    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+        rrs = apply_trans(trans, rrs)
+    # projection will only occur with surfaces
     logger.info(
-        f'Projecting {len(pos)} sensors onto {len(rrs)} vertices: {mode} mode')
-    if project:
+        f'Projecting data from {len(pos)} sensor{_pl(pos)} onto {len(rrs)} '
+        f'{src.kind} vertices: {mode} mode')
+    if project and src.kind == 'surface':
         logger.info('    Projecting electrodes onto surface')
         pos = _project_onto_surface(pos, dict(rr=rrs), project_rrs=True,
                                     method='nearest')[2]
+
     min_dist = pdist(pos).min() * 1000
     logger.info(
-        f'    Projected sensors have minimum distance {min_dist:0.1f} mm')
+        f'    Minimum {"projected " if project else ""}intra-sensor distance: '
+        f'{min_dist:0.1f} mm')
+
+    # compute pairwise distance between source space points and sensors
     dists = cdist(rrs, pos)
     assert dists.shape == (len(rrs), len(pos))
+
+    # only consider vertices within our "epsilon-ball"
+    # characterized by distance kwarg
     vertices = np.where((dists <= distance).any(-1))[0]
     logger.info(f'    {len(vertices)} / {len(rrs)} non-zero vertices')
     w = np.maximum(1. - dists[vertices] / distance, 0)
@@ -3269,9 +3330,20 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     if len(missing):
         warn(f'Channel{_pl(missing)} missing in STC: '
              f'{", ".join(evoked.ch_names[mi] for mi in missing)}')
-    data = w @ evoked.data
-    vertices = [vertices[vertices < offset],
-                vertices[vertices >= offset] - offset]
-    return SourceEstimate(
-        data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
-        subject=subject)
+
+    nz_data = w @ evoked.data
+    if not keep_all:
+        assert src.kind == 'surface'
+        data = nz_data
+        offset = len(src[0]['vertno'])
+        vertices = [vertices[vertices < offset],
+                    vertices[vertices >= offset] - offset]
+    else:
+        data = np.zeros(
+            (sum(len(s['vertno']) for s in src), len(evoked.times)),
+            dtype=nz_data.dtype)
+        data[vertices] = nz_data
+        vertices = [s['vertno'].copy() for s in src]
+
+    return klass(data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
+                 subject=subject, verbose=verbose)

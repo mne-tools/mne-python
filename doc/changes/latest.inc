@@ -27,6 +27,8 @@ Enhancements
 
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
 
+- Add sEEG source visualization using :func:`mne.stc_near_sensors` and sEEG working tutorial by `Eric Larson`_ and `Adam Li`_ (:gh:`8402`)
+
 Bugs
 ~~~~
 - Fix bug with reading split files that have dashes in the filename **by new contributor** |Eduard Ort|_ (:gh:`8339`)
