@@ -574,7 +574,8 @@ def test_snapshot_brain_montage(renderer):
 @pytest.mark.parametrize('pick_ori', ('vector', None))
 @pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
-                               pick_ori, kind):
+                               pick_ori, kind, brain_gc):
+    # kind = 'surface'
     """Test plotting of scalar and vector source estimates."""
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
@@ -615,6 +616,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
             these_kwargs = kwargs.copy()
             these_kwargs.pop('src')
             meth(**these_kwargs)
+    renderer_interactive.backend._close_all()
 
     with pytest.raises(ValueError, match='cannot be used'):
         these_kwargs = kwargs.copy()
@@ -648,6 +650,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
         these_kwargs.update(surface='inflated', views='flat')
         with pytest.raises(ValueError, match='surface="flat".*views="flat"'):
             flat_meth(**these_kwargs)
+    renderer_interactive.backend._close_all()
 
     # just test one for speed
     if kind != 'mixed':
@@ -666,6 +669,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     these_kwargs['volume_options'] = dict(badkey='foo')
     with pytest.raises(ValueError, match='unknown'):
         meth(**these_kwargs)
+    renderer_interactive.backend._close_all()
     # with resampling (actually downsampling but it's okay)
     these_kwargs['volume_options'] = dict(resolution=20., surface_alpha=0.)
     brain = meth(**these_kwargs)
