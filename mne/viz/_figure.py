@@ -1114,7 +1114,8 @@ class MNEBrowseFigure(MNEFigure):
         if len(raw.annotations):
             for idx, annot in enumerate(raw.annotations):
                 annot_start = _sync_onset(raw, annot['onset'])
-                annot_end = annot_start + annot['duration']
+                annot_end = annot_start + max(annot['duration'],
+                                              1 / self.mne.info['sfreq'])
                 segments.append((annot_start, annot_end))
         self.mne.annotation_segments = np.array(segments)
 
