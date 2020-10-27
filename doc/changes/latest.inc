@@ -73,6 +73,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
 
+- Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
+
 API changes
 ~~~~~~~~~~~
 
