@@ -504,9 +504,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         # something else if explicitly stated (cf. EEGLAB export below)
         if len(props) < 4:
             props += ('µV',)
-        elif len(props) == 4 and props[-1] == '':
-            # Deal with files with 4 props where unit is simply empty.
-            props[-1] = 'µV'
+        elif props[3] == '':
+            # Deal with fileswhere unit is simply empty.
+            props[3] = 'µV'
 
         name, _, resolution, unit = props[:4]
         ch_dict[chan] = name
