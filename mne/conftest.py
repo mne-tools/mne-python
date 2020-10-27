@@ -318,9 +318,9 @@ def _check_skip_backend(name):
 @pytest.fixture()
 def renderer_notebook():
     """Verify that pytest_notebook is installed."""
-    from mne.viz.backends.renderer import _use_test_3d_backend
-    with _use_test_3d_backend('notebook'):
-        yield
+    from mne.viz.backends import renderer
+    with renderer._use_test_3d_backend('notebook'):
+        yield renderer
 
 
 @pytest.fixture(scope='session')
@@ -474,19 +474,25 @@ def download_is_error(monkeypatch):
 @pytest.fixture()
 def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
-    keys = ('renderer_interactive', 'renderer')
+    keys = ('renderer_interactive', 'renderer', 'renderer_notebook')
     assert set(request.fixturenames) & set(keys) != set()
     for key in keys:
         if key in request.fixturenames:
             is_pv = request.getfixturevalue(key)._get_3d_backend() == 'pyvista'
+            close_func = request.getfixturevalue(key).backend._close_all
             break
     if not is_pv:
+        yield
+        return
+    import pyvista
+    if LooseVersion(pyvista.__version__) <= LooseVersion('0.26.1'):
         yield
         return
     from mne.viz import Brain
     _assert_no_instances(Brain, 'before')
     ignore = set(id(o) for o in gc.get_objects())
     yield
+    close_func()
     _assert_no_instances(Brain, 'after')
     # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
     objs = gc.get_objects()
