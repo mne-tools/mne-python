@@ -10,8 +10,8 @@
 
 .. _changes_0_21_1:
 
-Version 0.21.1
---------------
+Version 0.21.1 (unreleased)
+---------------------------
 
 .. |Eduard Ort| replace:: **Eduard Ort**
 
