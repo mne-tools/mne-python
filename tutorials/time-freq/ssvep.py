@@ -25,7 +25,7 @@ import warnings
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
-from mne_bids import make_bids_basename, read_raw_bids
+from mne_bids import read_raw_bids, BIDSPath
 from scipy.stats import ttest_rel, ttest_ind
 
 ###############################################################################
@@ -37,18 +37,14 @@ event_id = {
 }
 
 bids_root = "./data/"
-bids_filename = make_bids_basename(
-    subject='02',
-    session='01', task='ssvep'
-) + '_eeg.vhdr'
-
+bids_path = BIDSPath(subject='02', session='01', task='ssvep', root=bids_root)
 
 # read_raw_bids issues warnings about missing electrodes.tsv and coordsystem.json.
 # These warning prevent successful building of the tutorial.
 # As a quick workaround, we just suppress the warnings here.
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    raw = read_raw_bids(bids_filename, bids_root, verbose=False)
+    raw = read_raw_bids(bids_path, verbose=False)
 raw.load_data()
 
 ###############################################################################
