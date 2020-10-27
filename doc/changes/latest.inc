@@ -75,6 +75,8 @@ Bugs
 
 - When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly by `Richard Höchenberger`_ (:gh:`8434`)
 
+- Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
+
 API changes
 ~~~~~~~~~~~
 
