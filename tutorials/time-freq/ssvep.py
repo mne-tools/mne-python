@@ -286,6 +286,35 @@ axes.set(title="SNR spectrum - channel average", xlabel='Frequency [Hz]',
          ylabel='SNR', ylim=[0, 20])
 fig.show()
 
+##############################################################################
+# SNR topography - grand average per channel
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+# create montage (here the default)
+montage = mne.channels.make_standard_montage('easycap-M1', head_size=0.095)  # head_size parameter default = 0.095
+
+# convert digitization to xyz coordinates
+montage.positions = montage._get_ch_pos()  # luckily i dug this out in the mne code!
+
+# plot montage, if wanted
+# montage.plot(show=True)
+
+# snr topography-plot grand average (all subs, all trials)
+
+# get grand average SNR per channel (all subs, all trials) and electrode labels
+snr_grave = snrs_stim.mean(axis=0)
+
+# select only present channels from the standard montage
+topo_pos_grave = []
+[topo_pos_grave.append(montage.positions[ch][:2]) for ch in epochs.info['ch_names']]
+topo_pos_grave = np.array(topo_pos_grave)
+
+# plot SNR topography
+f, ax = plt.subplots()
+mne.viz.plot_topomap(snr_grave, topo_pos_grave, vmin=1., axes=ax)
+print("sub 2, all trials")
+print("average SNR: %f" % snr_grave.mean())
 
 ###############################################################################
 # Subsetting data
