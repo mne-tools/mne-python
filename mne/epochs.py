@@ -654,12 +654,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Baseline correction can be done multiple times.
+        Baseline correction can be done multiple times, but can never be
+        reverted once the data has been loaded.
 
         .. versionadded:: 0.10.0
         """
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
         if self.preload:
+            if self.baseline is not None and baseline is None:
+                raise RuntimeError('You cannot remove baseline correction '
+                                   'from preloaded data once it has been '
+                                   'applied.')
             picks = _pick_data_channels(self.info, exclude=[],
                                         with_ref_meg=True)
             picks_aux = _pick_aux_channels(self.info, exclude=[])
