@@ -697,7 +697,7 @@ class RawMff(BaseRaw):
 @verbose
 def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
                      baseline=None, verbose=None):
-    """Read averaged MFF file as `EvokedArray` or list of `EvokedArray`.
+    """Read averaged MFF file as EvokedArray or list of EvokedArray.
 
     Parameters
     ----------
@@ -707,8 +707,8 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
         The index (indices) or category (categories) from which to read in
         data. Averaged MFF files can contain separate averages for different
         categories. These can be indexed by the block number or the category
-        name. If `condition` is a list or None, a list of Evoked objects is
-        returned.
+        name. If ``condition`` is a list or None, a list of EvokedArray objects
+        is returned.
     channel_naming : str
         Channel naming convention for EEG channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...).
@@ -732,11 +732,11 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     Raises
     ------
     ValueError
-        If `fname` has file extension other than '.mff'.
+        If ``fname`` has file extension other than '.mff'.
     ValueError
-        If the MFF file specified by `fname` is not averaged.
+        If the MFF file specified by ``fname`` is not averaged.
     ValueError
-        If no categories.xml file in MFF directory specified by `fname`.
+        If no categories.xml file in MFF directory specified by ``fname``.
 
     See Also
     --------
