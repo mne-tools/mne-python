@@ -44,6 +44,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_source_estimates`, which wouldn't accept the valid parameter value ``backend='pyvista'``, by `Guillaume Favelier`_
 
+- Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
+
 .. _changes_0_21:
 
 Version 0.21

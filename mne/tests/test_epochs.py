@@ -745,6 +745,17 @@ def test_epochs_baseline(preload):
     expected[0] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
 
+    # we should not be able to remove baseline correction after the data
+    # has been loaded
+    epochs.apply_baseline((None, None))
+    if preload:
+        with pytest.raises(RuntimeError,
+                           match='You cannot remove baseline correction'):
+            epochs.apply_baseline(None)
+    else:
+        epochs.apply_baseline(None)
+        assert epochs.baseline is None
+
 
 def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
