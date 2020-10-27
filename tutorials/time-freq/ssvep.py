@@ -144,11 +144,11 @@ psds, freqs = mne.time_frequency.psd_welch(
 ###############################################################################
 # SNR calculation function
 # ^^^^^^^^^^^^^^^^^^^^^^^^
-def snr_spectrum(psds, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
+def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
     """
     Parameters
     ----------
-    psds - np.array
+    psd - np.array
         containing psd values as spit out by mne functions. must be 2d or 3d
         with frequencies in the last dimension
     noise_n_neighborfreqs - int
@@ -167,32 +167,32 @@ def snr_spectrum(psds, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
     """
 
     # prep not epoched / single channel data
-    is_2d = True if (len(psds.shape) == 2) else False
+    is_2d = True if (len(psd.shape) == 2) else False
     if is_2d:
-        psds = psds.reshape((1, psds.shape[0], psds.shape[1]))
+        psd = psd.reshape((1, psd.shape[0], psds.shape[1]))
 
     # SNR loop
-    snr = np.empty(psds.shape)
-    for i_freq in range(psds.shape[2]):
+    snr = np.empty(psd.shape)
+    for i_freq in range(psd.shape[2]):
 
         # skip freqs on the edges (without noise neighbors)
 
         start_freq_i = noise_n_neighborfreqs + noise_skip_neighborfreqs
-        stop_freq_i = (psds.shape[2] - noise_n_neighborfreqs
+        stop_freq_i = (psd.shape[2] - noise_n_neighborfreqs
                        - noise_skip_neighborfreqs)
         if not (stop_freq_i > i_freq >= start_freq_i):
             snr[:, :, i_freq] = np.nan
             continue
 
         # extract signal level
-        signal = psds[:, :, i_freq]
+        signal = psd[:, :, i_freq]
 
         # ... and average noise level
         i_noise = []
         for i in range(noise_n_neighborfreqs):
             i_noise.append(i_freq + noise_skip_neighborfreqs + i + 1)
             i_noise.append(i_freq - noise_skip_neighborfreqs - i - 1)
-        noise = psds[:, :, i_noise].mean(axis=2)
+        noise = psd[:, :, i_noise].mean(axis=2)
 
         snr[:, :, i_freq] = signal / noise
 
@@ -214,10 +214,8 @@ def snr_spectrum(psds, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 # the direct neighbors (this can make sense if the stimulation frequency is not
 # super constant, or frequency bands are very narrow).
 
-noise_n_neighborfreqs = 3
-noise_skip_neighborfreqs = 1
-snrs = snr_spectrum(psds, noise_n_neighborfreqs=noise_n_neighborfreqs,
-                    noise_skip_neighborfreqs=noise_skip_neighborfreqs)
+snrs = snr_spectrum(psds, noise_n_neighborfreqs=3,
+                    noise_skip_neighborfreqs=1)
 
 ###############################################################################
 # Find frequency bin containing stimulation frequency
@@ -306,7 +304,7 @@ fig.show()
 # - Alternatively, one can subset trials already at the epoch level using MNEs
 #   event information, and create individual PSD and SNR objects.
 #
-# Here we have already subsetted trials before snr calculation (only 12Hz
+# Here we have already sub-setted trials before snr calculation (only 12Hz
 # stimulation) and will now compare SNR in different channel subsets.
 #
 # For illustration purposes, we will still subset the first 5 and last 5 of the
@@ -379,12 +377,12 @@ print('mean SNR (trial subset 2) at %iHz = %.3f '
 # Compare SNR in ROIs after averaging over channels
 tstat_roi = ttest_rel(snrs_trialwise_roi_vis.mean(axis=1),
                       snrs_stim.mean(axis=1))
-print("trialwise SNR in visual ROI is significantly different from full scalp"
+print("trial-wise SNR in visual ROI is significantly different from full scalp"
       " montage: t = %.3f, p = %f" % tstat_roi)
 
 ##############################################################################
 # Compare SNR in subsets of trials after averaging over channels
 tstat_trials = ttest_ind(snrs_trialwise_cat1_1.mean(axis=1),
                          snrs_trialwise_cat1_2.mean(axis=1))
-print("trialwise SNR in trial subset 1 is NOT significantly different from"
+print("trial-wise SNR in trial subset 1 is NOT significantly different from"
       " trial subset 2: t = %.3f, p = %f" % tstat_trials)
