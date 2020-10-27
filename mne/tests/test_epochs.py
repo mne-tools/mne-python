@@ -747,6 +747,7 @@ def test_epochs_baseline(preload):
 
     # we should not be able to remove baseline correction after the data
     # has been loaded
+    epochs.apply_baseline((None, None))
     if preload:
         with pytest.raises(RuntimeError,
                            match='You cannot remove baseline correction'):
