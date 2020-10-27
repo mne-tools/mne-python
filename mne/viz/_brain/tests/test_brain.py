@@ -93,7 +93,14 @@ class TstVTKPicker(object):
 
 
 @testing.requires_testing_data
-def test_brain_init(renderer, tmpdir, pixel_ratio):
+def test_brain_gc(renderer, brain_gc):
+    """Test that a minimal version of Brain gets GC'ed."""
+    brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
     from mne.label import read_label
     hemi = 'lh'
@@ -105,14 +112,15 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
     kwargs = dict(subject_id=subject_id, subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='"size" parameter must be'):
         Brain(hemi=hemi, surf=surf, size=[1, 2, 3], **kwargs)
+    with pytest.raises(KeyError):
+        Brain(hemi='foo', surf=surf, **kwargs)
     with pytest.raises(TypeError, match='figure'):
         Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
     with pytest.raises(TypeError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
     with pytest.raises(ValueError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
-    with pytest.raises(KeyError):
-        Brain(hemi='foo', surf=surf, **kwargs)
+    renderer.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m', **kwargs)
@@ -158,6 +166,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
         brain.add_data(hemi_data, fmin=fmin, hemi=h, fmax=fmax,
                        colormap='hot', vertices=hemi_vertices,
                        smoothing_steps='nearest', colorbar=(0, 0), time=None)
+        with pytest.raises(ValueError, match='brain has no defined times'):
+            brain.set_time(0.)
         assert brain.data['lh']['array'] is hemi_data
         assert brain.views == ['lateral']
         assert brain.hemis == ('lh',)
@@ -165,6 +175,9 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
                        colormap='hot', vertices=hemi_vertices,
                        smoothing_steps=1, initial_time=0., colorbar=False,
                        time=[0])
+        with pytest.raises(ValueError, match='the range of available times'):
+            brain.set_time(7.)
+        brain.set_time(0.)
         brain.set_time_point(0)  # should hit _safe_interp1d
 
         with pytest.raises(ValueError, match='consistent with'):
@@ -203,6 +216,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
     # add annotation
     annots = ['aparc', path.join(subjects_dir, 'fsaverage', 'label',
                                  'lh.PALS_B12_Lobes.annot')]
+    brain.close()
+
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
@@ -229,21 +244,27 @@ def test_brain_init(renderer, tmpdir, pixel_ratio):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_save_movie(tmpdir, renderer):
+def test_brain_save_movie(tmpdir, renderer, brain_gc):
     """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
-    brain_data = _create_testing_brain(hemi='lh', time_viewer=False)
+    brain = _create_testing_brain(hemi='lh', time_viewer=False)
     filename = str(path.join(tmpdir, "brain_test.mov"))
-    brain_data.save_movie(filename, time_dilation=1,
-                          interpolation='nearest')
-    assert path.isfile(filename)
-    brain_data.close()
+    for interactive_state in (False, True):
+        # for coverage, we set interactivity
+        if interactive_state:
+            brain._renderer.plotter.enable()
+        else:
+            brain._renderer.plotter.disable()
+        brain.save_movie(filename, time_dilation=1,
+                         interpolation='nearest')
+        assert path.isfile(filename)
+    brain.close()
 
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_time_viewer(renderer_interactive, pixel_ratio):
+def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     """Test time viewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
@@ -285,6 +306,7 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio):
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
     assert_allclose(img.shape, want_shape)
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -300,7 +322,8 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio):
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
 @pytest.mark.slowtest
-def test_brain_traces(renderer_interactive, hemi, src, tmpdir):
+def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
+                      brain_gc):
     """Test brain traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
@@ -393,6 +416,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir):
     # only test one condition to save time
     if not (hemi == 'rh' and src == 'surface' and
             check_version('sphinx_gallery')):
+        brain.close()
         return
     fnames = [str(tmpdir.join(f'temp_{ii}.png')) for ii in range(2)]
     block_vars = dict(image_path_iterator=iter(fnames),
@@ -406,6 +430,7 @@ something
     gallery_conf = dict(src_dir=str(tmpdir), compress_images=[])
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
+    assert brain.plotter is None  # closed
     gif_0 = fnames[0][:-3] + 'gif'
     for fname in (gif_0, fnames[1]):
         assert path.basename(fname) in rst
@@ -418,12 +443,12 @@ something
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_linkviewer(renderer_interactive):
+def test_brain_linkviewer(renderer_interactive, brain_gc):
     """Test _LinkViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Linkviewer only supported on PyVista')
     brain1 = _create_testing_brain(hemi='lh', show_traces=False)
-    brain2 = _create_testing_brain(hemi='lh', show_traces=True)
+    brain2 = _create_testing_brain(hemi='lh', show_traces='separate')
     brain1._times = brain1._times * 2
     with pytest.warns(RuntimeWarning, match='linking time'):
         link_viewer = _LinkViewer(
@@ -449,9 +474,13 @@ def test_brain_linkviewer(renderer_interactive):
     link_viewer.set_fmax(1)
     link_viewer.set_playback_speed(value=0.1)
     link_viewer.toggle_playback()
+    del link_viewer
+    brain1.close()
+    brain2.close()
+    brain_data.close()
 
 
-def test_brain_colormap():
+def test_calculate_lut():
     """Test brain's colormap functions."""
     colormap = "coolwarm"
     alpha = 1.0

@@ -7,14 +7,14 @@ Built-in plotting methods for Raw objects
 
 This tutorial shows how to plot continuous data as a time series, how to plot
 the spectral density of continuous data, and how to plot the sensor locations
-and projectors stored in :class:`~mne.io.Raw` objects.
+and projectors stored in `~mne.io.Raw` objects.
 
 .. contents:: Page contents
    :local:
    :depth: 2
 
 As usual we'll start by importing the modules we need, loading some
-:ref:`example data <sample-dataset>`, and cropping the :class:`~mne.io.Raw`
+:ref:`example data <sample-dataset>`, and cropping the `~mne.io.Raw`
 object to just 60 seconds before loading it into RAM to save memory:
 """
 
@@ -29,9 +29,8 @@ raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # We've seen in :ref:`a previous tutorial <tut-raw-class>` how to plot data
-# from a :class:`~mne.io.Raw` object using :doc:`matplotlib
-# <matplotlib:index>`, but :class:`~mne.io.Raw` objects also have several
-# built-in plotting methods:
+# from a `~mne.io.Raw` object using :doc:`matplotlib <matplotlib:index>`,
+# but `~mne.io.Raw` objects also have several built-in plotting methods:
 #
 # - :meth:`~mne.io.Raw.plot`
 # - :meth:`~mne.io.Raw.plot_psd`

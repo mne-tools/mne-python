@@ -399,6 +399,18 @@ API changes
 
   1. Arguments to clustering functions, such as `mne.stats.permutation_cluster_test`, and
   2. Function names for defining adjacency, such as `mne.spatio_temporal_src_adjacency` replacing ``mne.spatio_temporal_src_connectivity``.
+  
+  The complete list of changed function names is:
+
+  - ``mne.channels.find_ch_connectivity`` → `~mne.channels.find_ch_adjacency`
+  - ``mne.channels.read_ch_connectivity`` → `~mne.channels.read_ch_adjacency`
+  - ``mne.spatial_dist_connectivity`` → `~mne.spatial_dist_adjacency`
+  - ``mne.spatial_inter_hemi_connectivity`` → `~mne.spatial_inter_hemi_adjacency`
+  - ``mne.spatial_src_connectivity`` → `~mne.spatial_src_adjacency`
+  - ``mne.spatial_tris_connectivity`` → `~mne.spatial_tris_adjacency`
+  - ``mne.spatio_temporal_dist_connectivity`` → `~mne.spatio_temporal_dist_adjacency`
+  - ``mne.spatio_temporal_src_connectivity`` → `~mne.spatio_temporal_src_adjacency`
+  - ``mne.spatio_temporal_tris_connectivity`` → `~mne.spatio_temporal_tris_adjacency`
 
   "connectivity" is now reserved for discussions of functional and effective connectivity of the brain, and "adjacency" for source or sensor neighbor definitions for cluster-based analyses, by `Eric Larson`_.
 

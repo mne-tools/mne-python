@@ -754,6 +754,7 @@ def _get_camera_direction(focalpoint, position):
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     position = np.array(figure.plotter.camera_position[0])
+    figure.plotter.reset_camera()
     if focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
@@ -931,6 +932,13 @@ def _update_picking_callback(plotter,
     plotter.picker = picker
 
 
+def _remove_picking_callback(interactor, picker):
+    interactor.RemoveObservers(vtk.vtkCommand.RenderEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.LeftButtonPressEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.EndInteractionEvent)
+    picker.RemoveObservers(vtk.vtkCommand.EndPickEvent)
+
+
 def _arrow_glyph(grid, factor):
     glyph = vtk.vtkGlyphSource2D()
     glyph.SetGlyphTypeToArrow()
@@ -1104,6 +1112,19 @@ def _disabled_depth_peeling():
         yield
     finally:
         rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
+
+
+@contextmanager
+def _disabled_interaction(renderer):
+    plotter = renderer.plotter
+    if not plotter.renderer.GetInteractive():
+        yield
+    else:
+        plotter.disable()
+        try:
+            yield
+        finally:
+            plotter.enable()
 
 
 @decorator

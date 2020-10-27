@@ -705,7 +705,7 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _on_missing(on_missing, msg):
+def _on_missing(on_missing, msg, name='on_missing'):
     """Raise error or print warning with a message.
 
     Parameters
@@ -723,10 +723,10 @@ def _on_missing(on_missing, msg):
     ValueError
         When on_missing is 'raise'.
     """
-    _validate_type(on_missing, str, 'on_missing')
+    _validate_type(on_missing, str, name)
     on_missing = 'raise' if on_missing == 'error' else on_missing
     on_missing = 'warn' if on_missing == 'warning' else on_missing
-    _check_option('on_missing', on_missing, ['raise', 'warn', 'ignore'])
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
     if on_missing == 'raise':
         raise ValueError(msg)
     elif on_missing == 'warn':

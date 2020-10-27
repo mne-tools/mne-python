@@ -58,8 +58,7 @@ def test_plot_ica_components():
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              n_pca_components=3)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
     ica_picks = _get_picks(raw)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=ica_picks)
@@ -123,7 +122,7 @@ def test_plot_ica_properties():
                     baseline=(None, 0), preload=True)
 
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1,
-              n_pca_components=2, random_state=0)
+              random_state=0)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw)
 
@@ -206,7 +205,7 @@ def test_plot_ica_sources():
     raw.pick_channels([raw.ch_names[k] for k in picks])
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
-    ica = ICA(n_components=2, n_pca_components=3)
+    ica = ICA(n_components=2)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     fig = ica.plot_sources(raw)
@@ -269,8 +268,7 @@ def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              n_pca_components=3, random_state=0)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
     # objects do picking of Raw data
     with pytest.warns(RuntimeWarning, match='projection'):
@@ -291,7 +289,7 @@ def test_plot_ica_overlay():
     raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
     picks = pick_types(raw.info, meg=True, ref_meg=False)
-    ica = ICA(n_components=2, n_pca_components=3)
+    ica = ICA(n_components=2, )
     ica.fit(raw, picks=picks)
     with pytest.warns(RuntimeWarning, match='longer than'):
         ecg_epochs = create_ecg_epochs(raw)
@@ -299,13 +297,19 @@ def test_plot_ica_overlay():
     plt.close('all')
 
 
+def _get_geometry(fig):
+    try:
+        return fig.axes[0].get_subplotspec().get_geometry()  # pragma: no cover
+    except AttributeError:  # MPL < 3.4 (probably)
+        return fig.axes[0].get_geometry()  # pragma: no cover
+
+
 @requires_sklearn
 def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              n_pca_components=3)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
@@ -326,20 +330,20 @@ def test_plot_ica_scores():
     # check setting number of columns
     fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2], [0.3, 0.2]],
                           axhline=[0.1, -0.1])
-    assert 2 == fig.get_axes()[0].get_geometry()[1]
+    assert 2 == _get_geometry(fig)[1]
     fig = ica.plot_scores([[0.3, 0.2], [0.3, 0.2]], axhline=[0.1, -0.1],
                           n_cols=1)
-    assert 1 == fig.get_axes()[0].get_geometry()[1]
+    assert 1 == _get_geometry(fig)[1]
 
     # only use 1 column (even though 2 were requested)
     fig = ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], n_cols=2)
-    assert 1 == fig.get_axes()[0].get_geometry()[1]
+    assert 1 == _get_geometry(fig)[1]
 
-    pytest.raises(
-        ValueError,
-        ica.plot_scores,
-        [0.3, 0.2], axhline=[0.1, -0.1], labels=['one', 'one-too-many'])
-    pytest.raises(ValueError, ica.plot_scores, [0.2])
+    with pytest.raises(ValueError, match='Need as many'):
+        ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1],
+                        labels=['one', 'one-too-many'])
+    with pytest.raises(ValueError, match='The length of'):
+        ica.plot_scores([0.2])
     plt.close('all')
 
 
@@ -348,8 +352,7 @@ def test_plot_instance_components():
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              n_pca_components=3)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     ica.exclude = [0]

@@ -22,7 +22,7 @@ from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
-                           write_source_spaces, _read_talxfm, _read_mri_info)
+                           write_source_spaces, read_talxfm, _read_mri_info)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
@@ -1265,14 +1265,7 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     assert coord_frame == FIFF.FIFFV_COORD_MRI
     if subject == 'fsaverage':
         return fids  # special short-circuit for fsaverage
-    mni_mri_t = invert_transform(_read_talxfm(subject, subjects_dir))
-
-    # Convert to mm since this is Freesurfer's unit.
-    lnr = np.array([f['r'] for f in fids]) * 1000.
-    assert lnr.shape == (3, 3)
-
-    # Apply transformation, to fsaverage (MNI) fiducials, convert back to m
-    lnr = apply_trans(mni_mri_t, lnr) / 1000.
-    for ii in range(3):
-        fids[ii]['r'] = lnr[ii]
+    mni_mri_t = invert_transform(read_talxfm(subject, subjects_dir))
+    for f in fids:
+        f['r'] = apply_trans(mni_mri_t, f['r'])
     return fids

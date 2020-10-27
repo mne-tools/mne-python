@@ -448,12 +448,14 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
 
 def _draw_outlines(ax, outlines):
     """Draw the outlines for a topomap."""
+    from matplotlib import rcParams
     outlines_ = {k: v for k, v in outlines.items()
                  if k not in ['patch']}
     for key, (x_coord, y_coord) in outlines_.items():
         if 'mask' in key or key in ('clip_radius', 'clip_origin'):
             continue
-        ax.plot(x_coord, y_coord, color='k', linewidth=1, clip_on=False)
+        ax.plot(x_coord, y_coord, color=rcParams['axes.edgecolor'],
+                linewidth=1, clip_on=False)
     return outlines_
 
 
@@ -2548,7 +2550,9 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     dyy = -dx.data
     axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1, clip_on=False)
     axes.figure.canvas.draw_idle()
-    tight_layout(fig=fig)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        tight_layout(fig=fig)
     plt_show(show)
 
     return fig

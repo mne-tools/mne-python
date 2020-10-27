@@ -27,7 +27,7 @@ fname_evo = data_path + '/MEG/sample/sample_audvis-ave.fif'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 # Read raw data
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname)
 
 # only pick good EEG/MEG sensors
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
@@ -42,6 +42,7 @@ event_id = {'vis/l': 3, 'vis/r': 4}
 tmin, tmax = -.2, .25  # epoch duration
 epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
                     picks=picks, baseline=(-.2, 0.), preload=True)
+del raw
 
 # covariance matrix for pre-stimulus interval
 tmin, tmax = -.2, 0.
@@ -52,19 +53,17 @@ cov_pre = mne.compute_covariance(epochs, tmin=tmin, tmax=tmax,
 tmin, tmax = 0.05, .25
 cov_post = mne.compute_covariance(epochs, tmin=tmin, tmax=tmax,
                                   method='empirical')
+info = epochs.info
+del epochs
 
 # read forward solution
 forward = mne.read_forward_solution(fname_fwd)
 # use forward operator with fixed source orientations
-forward = mne.convert_forward_solution(forward, surf_ori=True,
-                                       force_fixed=True)
+mne.convert_forward_solution(forward, surf_ori=True,
+                             force_fixed=True, copy=False)
 
 # read noise covariance matrix
 noise_cov = mne.read_cov(fname_cov)
-
-# get valid measurement info
-raw = raw.pick_types(meg=True, eeg=True, exclude='bads')
-info = raw.info
 
 # regularize noise covariance (we used 'empirical' above)
 noise_cov = mne.cov.regularize(noise_cov, info, mag=0.1, grad=0.1,
@@ -104,12 +103,13 @@ sources = [3000]
 stc_pre = get_cross_talk(rm_pre, forward['src'], sources, norm=True)
 
 stc_post = get_cross_talk(rm_post, forward['src'], sources, norm=True)
+verttrue = [forward['src'][0]['vertno'][sources[0]]]  # pick one vertex
+del forward
 
 ##############################################################################
-# Visualise
+# Visualize
 # ---------
-vertno_lh = forward['src'][0]['vertno']  # vertex of selected source
-verttrue = [vertno_lh[sources[0]]]  # pick one vertex
+# Pre:
 
 brain_pre = stc_pre.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
                          figure=1, clim=dict(kind='value', lims=(0, .2, .4)))
@@ -117,16 +117,19 @@ brain_pre = stc_pre.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
 brain_pre.add_text(0.1, 0.9, 'LCMV beamformer with pre-stimulus\ndata '
                    'covariance matrix', 'title', font_size=16)
 
+# mark true source location for CTFs
+brain_pre.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
+                   color='green')
+
+###############################################################################
+# Post:
+
 brain_post = stc_post.plot('sample', 'inflated', 'lh',
                            subjects_dir=subjects_dir,
                            figure=2, clim=dict(kind='value', lims=(0, .2, .4)))
 
 brain_post.add_text(0.1, 0.9, 'LCMV beamformer with post-stimulus\ndata '
                     'covariance matrix', 'title', font_size=16)
-
-# mark true source location for CTFs
-brain_pre.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
-                   color='green')
 
 brain_post.add_foci(verttrue, coords_as_verts=True, scale_factor=1.,
                     hemi='lh', color='green')

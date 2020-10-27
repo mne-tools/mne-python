@@ -179,7 +179,7 @@ plot_connectivity_circle(conmat, label_names, n_lines=300,
 #
 # By default matplotlib does not save using the facecolor, even though this was
 # set when the figure was generated. If not set via savefig, the labels, title,
-# and legend will be cut off from the output png file.
-
-# fname_fig = data_path + '/MEG/sample/plot_mixed_connect.png'
-# plt.savefig(fname_fig, facecolor='black')
+# and legend will be cut off from the output png file::
+#
+#     >>> fname_fig = data_path + '/MEG/sample/plot_mixed_connect.png'
+#     >>> plt.savefig(fname_fig, facecolor='black')

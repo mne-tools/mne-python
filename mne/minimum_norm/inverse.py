@@ -1411,7 +1411,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     else:
         depth_prior = compute_depth_prior(
             forward, info_picked, exp=exp, limit_depth_chs=limit_depth_chs,
-            combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov)
+            combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov,
+            rank=rank)
 
     # Deal with fixed orientation forward / inverse
     if loose.get('surface', 1.) == 0. and len(loose) == 1:

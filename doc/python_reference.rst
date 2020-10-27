@@ -802,8 +802,10 @@ Source Space Data
    read_label
    read_source_estimate
    read_source_morph
+   read_talxfm
    split_label
    stc_to_label
+   stc_near_sensors
    transform_surface_to
    vertex_to_mni
    write_labels_to_annot

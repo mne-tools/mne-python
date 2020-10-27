@@ -33,7 +33,7 @@ from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
                      _check_option, _ensure_int, _validate_type, use_log_level)
-from ..fixes import _get_args, _safe_svd, einsum, bincount, orth
+from ..fixes import _get_args, _safe_svd, einsum, bincount
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 
@@ -860,7 +860,7 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
         if S_decomp.shape[1] > n_int:
             S_ext = S_decomp[:, n_int:].copy()
             S_ext /= np.linalg.norm(S_ext, axis=0)
-            S_ext_orth = orth(S_ext, rcond=rcond)
+            S_ext_orth = linalg.orth(S_ext, rcond=rcond)
             assert S_ext_orth.shape[1] == S_ext.shape[1]
             extended_proj -= np.dot(S_ext_orth,
                                     np.dot(S_ext_orth.T, extended_proj))

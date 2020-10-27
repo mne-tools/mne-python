@@ -121,10 +121,10 @@ def test_plot_sparse_source_estimates(renderer_interactive):
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = 'mne_analyze'
-    plot_source_estimates(stc, 'sample', colormap=colormap,
-                          background=(1, 1, 0),
-                          subjects_dir=subjects_dir, colorbar=True,
-                          clim='auto')
+    brain = plot_source_estimates(
+        stc, 'sample', colormap=colormap, background=(1, 1, 0),
+        subjects_dir=subjects_dir, colorbar=True, clim='auto')
+    brain.close()
     pytest.raises(TypeError, plot_source_estimates, stc, 'sample',
                   figure='foo', hemi='both', clim='auto',
                   subjects_dir=subjects_dir)
@@ -227,11 +227,16 @@ def test_plot_alignment(tmpdir, renderer):
     evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
                                             'EEG 002': 'seeg'})
     with pytest.warns(RuntimeWarning, match='Cannot plot MEG'):
-        plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
-                       trans=trans_fname, subjects_dir=subjects_dir,
-                       surfaces=['white', 'outer_skin', 'outer_skull'],
-                       meg=['helmet', 'sensors'],
-                       eeg=['original', 'projected'], ecog=True, seeg=True)
+        with catch_logging() as log:
+            plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
+                           trans=trans_fname, subjects_dir=subjects_dir,
+                           surfaces=['white', 'outer_skin', 'outer_skull'],
+                           meg=['helmet', 'sensors'],
+                           eeg=['original', 'projected'], ecog=True, seeg=True,
+                           verbose=True)
+    log = log.getvalue()
+    assert '1 ECoG location' in log
+    assert '1 sEEG location' in log
     renderer.backend._close_all()
 
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
@@ -334,60 +339,24 @@ def test_plot_alignment(tmpdir, renderer):
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
 
-    # fNIRS
+    # fNIRS (default is pairs)
     info = read_raw_nirx(nirx_fname).info
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
     log = log.getvalue()
-    assert '26 fnirs pairs' in log
+    assert '26 fNIRS pairs' in log
+    assert '26 fNIRS locations' not in log
+    assert '26 fNIRS sources' not in log
+    assert '26 fNIRS detectors' not in log
 
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='channels')
+                       fnirs=['channels', 'sources', 'detectors'])
     log = log.getvalue()
-    assert '26 fnirs locations' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='pairs')
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='sources')
-    log = log.getvalue()
-    assert '26 fnirs sources' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs='detectors')
-    log = log.getvalue()
-    assert '26 fnirs detectors' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs=['channels', 'pairs'])
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-    assert '26 fnirs locations' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs=['pairs', 'sources', 'detectors'])
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-    assert '26 fnirs sources' in log
-    assert '26 fnirs detectors' in log
-
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs=['channels', 'pairs', 'sources', 'detectors'])
-    log = log.getvalue()
-    assert '26 fnirs pairs' in log
-    assert '26 fnirs locations' in log
-    assert '26 fnirs sources' in log
-    assert '26 fnirs detectors' in log
+    assert '26 fNIRS pairs' not in log
+    assert '26 fNIRS locations' in log
+    assert '26 fNIRS sources' in log
+    assert '26 fNIRS detectors' in log
 
     renderer.backend._close_all()
 
@@ -623,6 +592,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                   )
     if pick_ori != 'vector':
         kwargs['surface'] = 'white'
+        kwargs['backend'] = renderer_interactive._get_3d_backend()
     # Mayavi can't handle non-surface
     if kind != 'surface' and not is_pyvista:
         with pytest.raises(RuntimeError, match='PyVista'):
@@ -632,6 +602,11 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     brain.close()
     del brain
 
+    these_kwargs = kwargs.copy()
+    these_kwargs['show_traces'] = 'foo'
+    with pytest.raises(ValueError, match='show_traces'):
+        meth(**these_kwargs)
+    del these_kwargs
     if pick_ori == 'vector':
         with pytest.raises(ValueError, match='use "pos_lims"'):
             meth(**kwargs, clim=dict(pos_lims=[1, 2, 3]))
@@ -748,8 +723,6 @@ def test_brain_colorbar(orientation, diverging, lims):
     else:
         ticks = lims
     plt.draw()
-    # old mpl always spans 0->1 for the actual ticks, so we need to
-    # look at the labels
     assert_array_equal(
         [float(h.get_text().replace('−', '-')) for h in have()], ticks)
     assert_array_equal(empty(), [])

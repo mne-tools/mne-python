@@ -41,9 +41,10 @@ print(__doc__)
 data_path = refmeg_noise.data_path()
 
 ###############################################################################
-# Read raw data
+# Read raw data, cropping to 5 minutes to save memory
+
 raw_fname = data_path + '/sample_reference_MEG_noise-raw.fif'
-raw = io.read_raw_fif(raw_fname, preload=True)
+raw = io.read_raw_fif(raw_fname).crop(300, 600).load_data()
 
 ###############################################################################
 # Note that even though standard noise removal has already
@@ -66,12 +67,14 @@ raw.plot_psd(fmax=30)
 raw_tog = raw.copy()
 ica_kwargs = dict(
     method='picard',
-    fit_params=dict(tol=1e-3),  # use a high tol here for speed
+    fit_params=dict(tol=1e-4),  # use a high tol here for speed
 )
 all_picks = mne.pick_types(raw_tog.info, meg=True, ref_meg=True)
 ica_tog = ICA(n_components=60, allow_ref_meg=True, **ica_kwargs)
 ica_tog.fit(raw_tog, picks=all_picks)
-bad_comps, scores = ica_tog.find_bads_ref(raw_tog, threshold=2.5)
+# low threshold (2.0) here because of cropped data, entire recording can use
+# a higher threshold (2.5)
+bad_comps, scores = ica_tog.find_bads_ref(raw_tog, threshold=2.0)
 
 # Plot scores with bad components marked.
 ica_tog.plot_scores(scores, bad_comps)

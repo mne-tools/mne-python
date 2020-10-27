@@ -28,7 +28,7 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
-from mne.utils import _pl
+from mne.utils import _pl, _assert_no_instances
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -471,11 +471,45 @@ def download_is_error(monkeypatch):
     monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)
 
 
+@pytest.fixture()
+def brain_gc(request):
+    """Ensure that brain can be properly garbage collected."""
+    keys = ('renderer_interactive', 'renderer')
+    assert set(request.fixturenames) & set(keys) != set()
+    for key in keys:
+        if key in request.fixturenames:
+            is_pv = request.getfixturevalue(key)._get_3d_backend() == 'pyvista'
+            break
+    if not is_pv:
+        yield
+        return
+    from mne.viz import Brain
+    _assert_no_instances(Brain, 'before')
+    ignore = set(id(o) for o in gc.get_objects())
+    yield
+    _assert_no_instances(Brain, 'after')
+    # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
+    objs = gc.get_objects()
+    bad = list()
+    for o in objs:
+        try:
+            name = o.__class__.__name__
+        except Exception:  # old Python, probably
+            pass
+        else:
+            if name.startswith('vtk') and id(o) not in ignore:
+                bad.append(name)
+        del o
+    del objs, ignore, Brain
+    assert len(bad) == 0, 'VTK objects linger:\n' + '\n'.join(bad)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Handle the end of the session."""
     n = session.config.option.durations
     if n is None:
         return
+    print('\n')
     try:
         import pytest_harvest
     except ImportError:

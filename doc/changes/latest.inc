@@ -19,13 +19,23 @@ Enhancements
 
 - Add ``n_pca_components`` argument to :func:`mne.viz.plot_ica_overlay` by `Eric Larson`_ (:gh:`8351`)
 
+- Add :func:`mne.stc_near_sensors` to facilitate plotting ECoG data by `Eric Larson`_ (:gh:`8190`)
+
 - Add ``proj`` argument to :func:`mne.make_fixed_length_epochs` by `Eric Larson`_ (:gh:`8351`)
 
+- Reduce memory usage of volume source spaces by `Eric Larson`_ (:gh:`8379`)
+
+- Speed up heavy use of :meth:`mne.SourceMorph.apply` for volumetric source spaces by use of the method :meth:`mne.SourceMorph.compute_vol_morph_mat` by `Eric Larson`_ (:gh:`8366`)
+
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
+
+- Add sEEG source visualization using :func:`mne.stc_near_sensors` and sEEG working tutorial by `Eric Larson`_ and `Adam Li`_ (:gh:`8402`)
 
 Bugs
 ~~~~
 - Fix bug with reading split files that have dashes in the filename **by new contributor** |Eduard Ort|_ (:gh:`8339`)
+
+- Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted by `Daniel McCloy`_ (:gh:`8377`)
 
 - Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly by `Eric Larson`_ (:gh:`8285`)
 
@@ -59,7 +69,23 @@ Bugs
 
 - The ``ica.n_pca_components`` property is no longer be updated during :meth:`mne.preprocessing.ICA.fit`, instead ``ica.n_components_`` will be added to the instance by `Eric Larson`_ (:gh:`8351`)
 
+- Pass ``rank`` everyhwere in forward preparation for source imaging. This bug affected sparse solvers when using maxfilter data, by `Alex Gramfort`_ (:gh:`8368`)
+
+- Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
+
 API changes
 ~~~~~~~~~~~
 
-- The ``max_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_pca_components`` instead by `Eric Larson`_
+- Minimum required versions were increased for core dependencies NumPy (1.15.4), SciPy (1.1.0), and Matplotlib (3.0) and for the optional dependencies scikit-learn (0.20.2) and pandas (0.23.4), by `Eric Larson`_
+
+- The parameter ``on_split_missing`` has been added to :func:`mne.io.read_raw_fif` and its default will change from ``'warn'`` to ``'raise'`` in 0.23, by `Eric Larson`_ (:gh:`8357`)
+
+- The ``max_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_components`` during initialization and ``n_pca_components`` in :meth:`~mne.preprocessing.ICA.apply` instead by `Eric Larson`_ (:gh:`8351`)
+
+- The ``n_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_pca_components`` in :meth:`~mne.preprocessing.ICA.apply` by `Eric Larson`_ (:gh:`8356`)
+
+- The ``trans`` argument of :func:`mne.extract_label_time_course` is deprecated and will be removed in 0.23 as it is no longer necessary by `Eric Larson`_
+
+- New `mne.viz.Brain.set_time` method to set the displayed time in seconds, by `Daniel McCloy`_ (:gh:`8415`)
+
+- Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` by `Guillaume Favelier`_

@@ -112,7 +112,7 @@ for event in event_ids:
 
         ax.set_title(epochs.ch_names[ch], fontsize=10)
         ax.axvline(0, linewidth=1, color="black", linestyle=":")  # event
-        if not ax.is_first_col():
+        if ch != 0:
             ax.set_ylabel("")
             ax.set_yticklabels("")
     fig.colorbar(axes[0].images[-1], cax=axes[-1])

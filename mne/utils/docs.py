@@ -50,6 +50,20 @@ preload : bool, str, or None (default None)
     of the instances passed in.
 """
 
+# Raw
+_on_missing_base = """on_missing : str
+    Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+    warning, or ``'ignore'`` to ignore when"""
+docdict['on_split_missing'] = """
+on_split_missing : str
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, or ``'ignore'`` to ignore when a split file is missing.
+    The default will change from ``'warn'`` to ``'raise'`` in 0.23, set the
+    value explicitly to avoid deprecation warnings.
+
+    .. versionadded:: 0.22
+"""  # after deprecation period, this can use _on_missing_base
+
 # Cropping
 docdict['include_tmax'] = """
 include_tmax : bool
@@ -699,7 +713,8 @@ docdict['n_pca_components_apply'] = """
 n_pca_components : int | float | None
     The number of PCA components to be kept, either absolute (int)
     or fraction of the explained variance (float). If None (default),
-    the ``ica.n_pca_components`` from initialization will be used.
+    the ``ica.n_pca_components`` from initialization will be used in 0.22;
+    in 0.23 all components will be used.
 """
 
 # Maxwell filtering
@@ -987,9 +1002,6 @@ docdict['use_cps_restricted'] = docdict['use_cps'] + """
 """
 
 # Forward
-_on_missing_base = """on_missing : str
-    Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
-    warning, or ``'ignore'`` to ignore when"""
 docdict['on_missing_fwd'] = """
 %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
@@ -1014,6 +1026,10 @@ docdict['trans_not_none'] = """
 trans : str | dict | instance of Transform
     %s
 """ % (_trans_base,)
+docdict['trans_deprecated'] = """
+trans : str | dict | instance of Transform
+    Deprecated and will be removed in 0.23, do not pass this argument.
+"""
 docdict['trans'] = """
 trans : str | dict | instance of Transform | None
     %s
@@ -1024,8 +1040,12 @@ trans : str | dict | instance of Transform | None
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | None
-    The path to the freesurfer subjects reconstructions.
-    It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    The path to the FreeSurfer subjects reconstructions.
+    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+"""
+docdict['subject'] = """
+subject : str
+    The FreeSurfer subject name.
 """
 
 # Simulation
@@ -1425,12 +1445,6 @@ allow_empty : bool | str
        Support for "ignore".
 """
 docdict
-docdict['eltc_trans'] = """%s
-    Only needed when using a volume atlas and
-    ``src`` is in head coordinates (i.e., comes from a forward or inverse).
-
-    .. versionadded:: 0.21.0
-""" % (docdict['trans_not_none'],)
 docdict['eltc_mri_resolution'] = """
 mri_resolution : bool
     If True (default), the volume source space will be upsampled to the
@@ -1645,7 +1659,7 @@ time_format : str | None
     time values will be converted to :class:`pandas.Timedelta` values. {}
     Default is ``'ms'`` in version 0.22, and will change to ``None`` in
     version 0.23.
-"""
+"""  # XXX make sure we deal with this deprecation in 0.23
 raw_tf = ("If ``'datetime'``, time values will be converted to "
           ":class:`pandas.Timestamp` values, relative to "
           "``raw.info['meas_date']`` and offset by ``raw.first_samp``. ")

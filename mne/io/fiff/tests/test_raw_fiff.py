@@ -7,6 +7,7 @@
 from copy import deepcopy
 from functools import partial
 from io import BytesIO
+import os
 import os.path as op
 import pathlib
 import pickle
@@ -401,6 +402,14 @@ def test_split_files(tmpdir):
     data_bids, times_bids = raw_bids[:, :]
     assert_array_equal(data_1, data_bids)
     assert_array_equal(times_1, times_bids)
+    del raw_bids
+    # split missing behaviors
+    os.remove(split_fname_bids_part2)
+    with pytest.raises(ValueError, match='manually renamed'):
+        read_raw_fif(split_fname_bids_part1, on_split_missing='raise')
+    with pytest.deprecated_call():
+        read_raw_fif(split_fname_bids_part1)
+    read_raw_fif(split_fname_bids_part1, on_split_missing='ignore')
 
     # test the case where we only end up with one buffer to write
     # (GH#3210). These tests rely on writing meas info and annotations
@@ -1620,13 +1629,9 @@ def test_file_like(kind, preload, split, tmpdir):
         assert not file_fid.closed
         # Use test_preloading=False but explicitly pass the preload type
         # so that we don't bother testing preload=False
-        kwargs = dict(fname=fid, preload=preload,
+        kwargs = dict(fname=fid, preload=preload, on_split_missing='ignore',
                       test_preloading=False, test_kwargs=False)
-        if split:
-            with pytest.warns(RuntimeWarning, match='Split raw file detected'):
-                _test_raw_reader(read_raw_fif, **kwargs)
-        else:
-            _test_raw_reader(read_raw_fif, **kwargs)
+        _test_raw_reader(read_raw_fif, **kwargs)
         assert not fid.closed
         assert not file_fid.closed
     assert file_fid.closed
