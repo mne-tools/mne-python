@@ -505,7 +505,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         if len(props) < 4:
             props += ('µV',)
         elif props[3] == '':
-            # Deal with files where unit is simply empty.
+            # deal with files where the unit property is simply empty
             props[3] = 'µV'
 
         name, _, resolution, unit = props[:4]
