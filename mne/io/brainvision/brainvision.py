@@ -499,10 +499,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
 
-        # default to microvolts because that's what the older brainvision
-        # standard explicitly assumed; the unit is only allowed to be
+        # default to µV, following the BV specs; the unit is only allowed to be
         # something else if explicitly stated (cf. EEGLAB export below)
         if len(props) < 4:
+            # deal with older files, which have no unit propery
             props += ('µV',)
         elif props[3] == '':
             # deal with files where the unit property is simply empty
