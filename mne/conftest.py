@@ -484,6 +484,10 @@ def brain_gc(request):
     if not is_pv:
         yield
         return
+    import pyvista
+    if LooseVersion(pyvista.__version__) <= LooseVersion('0.26.1'):
+        yield
+        return
     from mne.viz import Brain
     _assert_no_instances(Brain, 'before')
     ignore = set(id(o) for o in gc.get_objects())
