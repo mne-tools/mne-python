@@ -66,9 +66,6 @@ eog = ['HL', 'HR', 'Vb']
 #      This should be amend in its own PR.
 montage = op.join(data_dir, 'test.hpts')
 
-# Test header with empty "unit" properties for some channels.
-vhdr_empty_units = op.join(data_dir, 'test_empty_units.vhdr')
-
 
 def test_orig_units(recwarn):
     """Test exposure of original channel units."""
@@ -76,27 +73,17 @@ def test_orig_units(recwarn):
     orig_units = raw._orig_units
     assert len(orig_units) == 32
     assert orig_units['FP1'] == 'µV'
+
+    # no unit specified in the vhdr, ensure we default to µV here
+    assert orig_units['FP2'] == 'µV'
+    assert orig_units['F3'] == 'µV'
+
+    sum([v == 'µV' for v in orig_units.values()]) == 26
+
     assert orig_units['CP5'] == 'n/a'  # originally BS, not a valid unit
     assert orig_units['CP6'] == 'µS'
     assert orig_units['HL'] == 'n/a'  # originally ARU, not a valid unit
     assert orig_units['HR'] == 'n/a'  # originally uS ...
-    assert orig_units['Vb'] == 'S'
-    assert orig_units['ReRef'] == 'C'
-
-
-def test_default_units(recwarn):
-    """Test we're defaulting to µV if the unit property in vhdr is empty."""
-    raw = read_raw_brainvision(vhdr_empty_units)
-    orig_units = raw._orig_units
-    assert len(orig_units) == 32
-
-    # EEG channels should all be µV
-    assert orig_units['FP1'] == 'µV'
-    assert orig_units['FP2'] == 'µV'
-    sum([v == 'µV' for v in orig_units.values()]) == 26
-
-    # just ensure we didn't touch these
-    assert orig_units['CP6'] == 'µS'
     assert orig_units['Vb'] == 'S'
     assert orig_units['ReRef'] == 'C'
 
