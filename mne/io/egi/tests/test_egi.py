@@ -30,8 +30,8 @@ egi_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
 egi_eprime_pause_fname = op.join(egi_path, 'test_egi_multiepoch_eprime.mff')
 egi_pause_w1337_fname = op.join(egi_path, 'w1337_20191014_105416.mff')
 egi_mff_evoked_fname = op.join(egi_path, 'test_egi_evoked.mff')
-egi_txt_evoked_cat1_fname = op.join(base_dir, 'test_egi_evoked_cat1.txt')
-egi_txt_evoked_cat2_fname = op.join(base_dir, 'test_egi_evoked_cat2.txt')
+egi_txt_evoked_cat1_fname = op.join(egi_path, 'test_egi_evoked_cat1.txt')
+egi_txt_evoked_cat2_fname = op.join(egi_path, 'test_egi_evoked_cat2.txt')
 
 # absolute event times from NetStation
 egi_pause_events = {'AM40': [7.224, 11.928, 14.413, 16.848],
