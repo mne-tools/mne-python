@@ -64,6 +64,13 @@ _kind_dict = dict(
 )
 
 
+_SCALAR_CH_KEYS = ('scanno', 'logno', 'kind', 'range', 'cal', 'coil_type',
+                   'unit', 'unit_mul', 'coord_frame')
+_ALL_CH_KEYS_SET = set(_SCALAR_CH_KEYS + ('loc', 'ch_name'))
+# XXX we need to require these except when doing simplify_info
+_MIN_CH_KEYS_SET = set(('kind', 'cal', 'unit', 'loc', 'ch_name'))
+
+
 def _get_valid_units():
     """Get valid units according to the International System of Units (SI).
 
@@ -187,6 +194,19 @@ def _format_trans(obj, key):
     else:
         if t is not None:
             obj[key] = Transform(t['from'], t['to'], t['trans'])
+
+
+def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
+    ch_keys = set(ch)
+    bad = sorted(ch_keys.difference(_ALL_CH_KEYS_SET))
+    if bad:
+        raise KeyError(
+            f'key{_pl(bad)} errantly present for {name}[{ci}]: {bad}')
+    if check_min:
+        bad = sorted(_MIN_CH_KEYS_SET.difference(ch_keys))
+        if bad:
+            raise KeyError(
+                f'key{_pl(bad)} missing for {name}[{ci}]: {bad}',)
 
 
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
@@ -731,15 +751,14 @@ class Info(dict, MontageMixin):
                 self[key] = float(self[key])
 
         # Ensure info['chs'] has immutable entries (copies much faster)
-        scalar_keys = ('unit_mul range cal kind coil_type unit '
-                       'coord_frame scanno logno').split()
         for ci, ch in enumerate(self['chs']):
+            _check_ch_keys(ch, ci)
             ch_name = ch['ch_name']
             if not isinstance(ch_name, str):
                 raise TypeError(
                     'Bad info: info["chs"][%d]["ch_name"] is not a string, '
                     'got type %s' % (ci, type(ch_name)))
-            for key in scalar_keys:
+            for key in _SCALAR_CH_KEYS:
                 val = ch.get(key, 1)
                 if not _is_numeric(val):
                     raise TypeError(
