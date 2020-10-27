@@ -16,7 +16,7 @@ Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS stan
 
 Data can be downloaded at https://osf.io/7ne6y/
 """  # noqa: E501
-# Authors: Dominik Welke <dominik.welke@ae.mpg.de>
+# Authors: Dominik Welke <dominik.welke@web.de>
 #          Evgenii Kalenkovich <e.kalenkovich@gmail.com>
 #
 # License: BSD (3-clause)
