@@ -932,8 +932,8 @@ class ICA(ContainsMixin):
             ch_info.append(dict(
                 ch_name=name, cal=1, logno=ii + 1,
                 coil_type=FIFF.FIFFV_COIL_NONE, kind=FIFF.FIFFV_MISC_CH,
-                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_NONE,
-                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_NONE,
+                loc=np.zeros(12, dtype='f4'),
                 range=1.0, scanno=ii + 1, unit_mul=0))
 
         if add_channels is not None:

@@ -48,6 +48,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
 
+- Fix bug in :func:`mne.set_bipolar_reference` where ``ch_info`` could contain invalid channel information keys by `Eric Larson`_
+
 - Fix bug in :func:`mne.viz.plot_source_estimates`, which wouldn't accept the valid parameter value ``backend='pyvista'``, by `Guillaume Favelier`_
 
 - Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)

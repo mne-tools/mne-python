@@ -319,9 +319,12 @@ def test_set_bipolar_reference():
     raw = read_raw_fif(fif_fname, preload=True)
     raw.apply_proj()
 
-    reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
-                                  {'kind': FIFF.FIFFV_EOG_CH,
-                                   'extra': 'some extra value'})
+    ch_info = {'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'}
+    with pytest.raises(KeyError, match='key errantly present'):
+        set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
+    ch_info.pop('extra')
+    reref = set_bipolar_reference(
+        raw, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
     assert (reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
@@ -347,7 +350,6 @@ def test_set_bipolar_reference():
             assert_equal(bp_info[key], FIFF.FIFFV_EOG_CH)
         else:
             assert_equal(bp_info[key], an_info[key])
-    assert_equal(bp_info['extra'], 'some extra value')
 
     # Minimalist call
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
@@ -366,8 +368,8 @@ def test_set_bipolar_reference():
         ['EEG 001', 'EEG 003'],
         ['EEG 002', 'EEG 004'],
         ['bipolar1', 'bipolar2'],
-        [{'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'},
-         {'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'}],
+        [{'kind': FIFF.FIFFV_EOG_CH},
+         {'kind': FIFF.FIFFV_EOG_CH}],
     )
     a = raw.copy().pick_channels(['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
     a = np.array([a._data[0, :] - a._data[1, :],
