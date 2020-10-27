@@ -95,7 +95,7 @@ def test_default_units(recwarn):
     assert orig_units['FP2'] == 'µV'
     sum([v == 'µV' for v in orig_units.values()]) == 26
 
-    # Just ensure we didn't touch these…
+    # just ensure we didn't touch these
     assert orig_units['CP6'] == 'µS'
     assert orig_units['Vb'] == 'S'
     assert orig_units['ReRef'] == 'C'
