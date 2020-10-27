@@ -73,6 +73,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
 
+- When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly by `Richard Höchenberger`_ (:gh:`8434`)
+
 API changes
 ~~~~~~~~~~~
 
