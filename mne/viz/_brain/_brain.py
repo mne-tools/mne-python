@@ -32,7 +32,7 @@ from .._3d import _process_clim, _handle_time, _check_views
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ...surface import mesh_edges
-from ...source_space import SourceSpaces, vertex_to_mni, _read_talxfm
+from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
 from ...transforms import apply_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn)
@@ -1269,10 +1269,10 @@ class Brain(object):
         time = self._data['time'].copy()  # avoid circular ref
         if hemi == 'vol':
             hemi_str = 'V'
-            xfm = _read_talxfm(
+            xfm = read_talxfm(
                 self._subject_id, self._subjects_dir)
-            if self._units == 'm':
-                xfm['trans'][:3, 3] /= 1000.
+            if self._units == 'mm':
+                xfm['trans'][:3, 3] *= 1000.
             ijk = np.unravel_index(
                 vertex_id, self._data[hemi]['grid_shape'], order='F')
             src_mri_t = self._data[hemi]['grid_src_mri_t']
@@ -2455,6 +2455,25 @@ class Brain(object):
 
         self._data['time_idx'] = time_idx
         self._update()
+
+    def set_time(self, time):
+        """Set the time to display (in seconds).
+
+        Parameters
+        ----------
+        time : float
+            The time to show, in seconds.
+        """
+        if self._times is None:
+            raise ValueError(
+                'Cannot set time when brain has no defined times.')
+        elif min(self._times) <= time <= max(self._times):
+            self.set_time_point(np.interp(float(time), self._times,
+                                          np.arange(self._n_times)))
+        else:
+            raise ValueError(
+                f'Requested time ({time} s) is outside the range of '
+                f'available times ({min(self._times)}-{max(self._times)} s).')
 
     def _update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import _set_colormap_range, _create_actor

@@ -25,7 +25,11 @@ Enhancements
 
 - Reduce memory usage of volume source spaces by `Eric Larson`_ (:gh:`8379`)
 
+- Speed up heavy use of :meth:`mne.SourceMorph.apply` for volumetric source spaces by use of the method :meth:`mne.SourceMorph.compute_vol_morph_mat` by `Eric Larson`_ (:gh:`8366`)
+
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
+
+- Add sEEG source visualization using :func:`mne.stc_near_sensors` and sEEG working tutorial by `Eric Larson`_ and `Adam Li`_ (:gh:`8402`)
 
 Bugs
 ~~~~
@@ -71,6 +75,10 @@ Bugs
 
 - Fix bug in :func:`mne.set_bipolar_reference` where ``ch_info`` could contain invalid channel information keys by `Eric Larson`_
 
+- When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly by `Richard Höchenberger`_ (:gh:`8434`)
+
+- Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
+
 API changes
 ~~~~~~~~~~~
 
@@ -83,5 +91,7 @@ API changes
 - The ``n_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_pca_components`` in :meth:`~mne.preprocessing.ICA.apply` by `Eric Larson`_ (:gh:`8356`)
 
 - The ``trans`` argument of :func:`mne.extract_label_time_course` is deprecated and will be removed in 0.23 as it is no longer necessary by `Eric Larson`_
+
+- New `mne.viz.Brain.set_time` method to set the displayed time in seconds, by `Daniel McCloy`_ (:gh:`8415`)
 
 - Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` by `Guillaume Favelier`_

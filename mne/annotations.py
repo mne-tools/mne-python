@@ -64,6 +64,11 @@ def _check_o_d_s(onset, duration, description):
 class Annotations(object):
     """Annotation object for annotating segments of raw data.
 
+    .. note::
+       To convert events to `~mne.Annotations`, use
+       `~mne.annotations_from_events`. To convert existing `~mne.Annotations`
+       to events, use  `~mne.events_from_annotations`.
+
     Parameters
     ----------
     onset : array of float, shape (n_annotations,)
@@ -85,6 +90,11 @@ class Annotations(object):
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of the
         ISO8601 format where the delimiter between date and time is ' '.
+
+    See Also
+    --------
+    mne.annotations_from_events
+    mne.events_from_annotations
 
     Notes
     -----
@@ -988,6 +998,10 @@ def events_from_annotations(raw, event_id="auto",
     event_id : dict
         The event_id variable that can be passed to Epochs.
 
+    See Also
+    --------
+    mne.annotations_from_events
+
     Notes
     -----
     For data formats that store integer events as strings (e.g., NeuroScan
@@ -1076,6 +1090,10 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
     -------
     annot : instance of Annotations
         The annotations.
+
+    See Also
+    --------
+    mne.events_from_annotations
 
     Notes
     -----

@@ -26,7 +26,8 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatial_src_adjacency, spatial_tris_adjacency, pick_info,
                  SourceSpaces, VolVectorSourceEstimate, read_trans, pick_types,
                  MixedVectorSourceEstimate, setup_volume_source_space,
-                 convert_forward_solution, pick_types_forward)
+                 convert_forward_solution, pick_types_forward,
+                 compute_source_morph)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
 from mne.fixes import fft, _get_img_fdata
@@ -34,12 +35,12 @@ from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
-from mne.transforms import apply_trans, invert_transform
+from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, run_tests_if_main, requires_nibabel)
+                       requires_h5py, requires_nibabel)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -1474,6 +1475,7 @@ def test_stc_near_sensors(tmpdir):
     assert info['nchan'] == 33
     evoked = EvokedArray(np.eye(info['nchan']), info)
     trans = read_trans(fname_fwd)
+    assert trans['to'] == FIFF.FIFFV_COORD_HEAD
     this_dir = str(tmpdir)
     # testing does not have pial, so fake it
     os.makedirs(op.join(this_dir, 'sample', 'surf'))
@@ -1489,13 +1491,31 @@ def test_stc_near_sensors(tmpdir):
     with catch_logging() as log:
         stc = stc_near_sensors(evoked, **kwargs)
     log = log.getvalue()
-    assert 'minimum distance 7.' in log  # 7.4
+    assert 'Minimum projected intra-sensor distance: 7.' in log  # 7.4
     # this should be left-hemisphere dominant
     assert 5000 > len(stc.vertices[0]) > 4000
     assert 200 > len(stc.vertices[1]) > 100
     # and at least one vertex should have the channel values
     dists = cdist(stc.data, evoked.data)
     assert np.isclose(dists, 0., atol=1e-6).any(0).all()
+
+    src = read_source_spaces(fname_src)  # uses "white" but should be okay
+    for s in src:
+        transform_surface_to(s, 'head', trans, copy=False)
+    assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    stc_src = stc_near_sensors(evoked, src=src, **kwargs)
+    assert len(stc_src.data) == 7928
+    with pytest.warns(RuntimeWarning, match='not included'):  # some removed
+        stc_src_full = compute_source_morph(
+            stc_src, 'sample', 'sample', smooth=5, spacing=None,
+            subjects_dir=subjects_dir).apply(stc_src)
+    lh_idx = np.searchsorted(stc_src_full.vertices[0], stc.vertices[0])
+    rh_idx = np.searchsorted(stc_src_full.vertices[1], stc.vertices[1])
+    rh_idx += len(stc_src_full.vertices[0])
+    sub_data = stc_src_full.data[np.concatenate([lh_idx, rh_idx])]
+    assert sub_data.shape == stc.data.shape
+    corr = np.corrcoef(stc.data.ravel(), sub_data.ravel())[0, 1]
+    assert 0.6 < corr < 0.7
 
     # now single-weighting mode
     stc_w = stc_near_sensors(evoked, mode='single', **kwargs)
@@ -1519,5 +1539,12 @@ def test_stc_near_sensors(tmpdir):
                                project=False, distance=0.033)
     assert stc.data.any(0).sum() == len(evoked.ch_names) - 1
 
-
-run_tests_if_main()
+    # and now with volumetric projection
+    src = read_source_spaces(fname_vsrc)
+    with catch_logging() as log:
+        stc_vol = stc_near_sensors(evoked, trans, 'sample', src=src,
+                                   subjects_dir=subjects_dir, verbose=True,
+                                   distance=0.033)
+    assert isinstance(stc_vol, VolSourceEstimate)
+    log = log.getvalue()
+    assert '4157 volume vertices' in log

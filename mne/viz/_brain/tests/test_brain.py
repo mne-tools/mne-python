@@ -166,6 +166,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
         brain.add_data(hemi_data, fmin=fmin, hemi=h, fmax=fmax,
                        colormap='hot', vertices=hemi_vertices,
                        smoothing_steps='nearest', colorbar=(0, 0), time=None)
+        with pytest.raises(ValueError, match='brain has no defined times'):
+            brain.set_time(0.)
         assert brain.data['lh']['array'] is hemi_data
         assert brain.views == ['lateral']
         assert brain.hemis == ('lh',)
@@ -173,6 +175,9 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
                        colormap='hot', vertices=hemi_vertices,
                        smoothing_steps=1, initial_time=0., colorbar=False,
                        time=[0])
+        with pytest.raises(ValueError, match='the range of available times'):
+            brain.set_time(7.)
+        brain.set_time(0.)
         brain.set_time_point(0)  # should hit _safe_interp1d
 
         with pytest.raises(ValueError, match='consistent with'):
@@ -443,7 +448,7 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Linkviewer only supported on PyVista')
     brain1 = _create_testing_brain(hemi='lh', show_traces=False)
-    brain2 = _create_testing_brain(hemi='lh', show_traces=True)
+    brain2 = _create_testing_brain(hemi='lh', show_traces='separate')
     brain1._times = brain1._times * 2
     with pytest.warns(RuntimeWarning, match='linking time'):
         link_viewer = _LinkViewer(

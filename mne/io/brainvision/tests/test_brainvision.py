@@ -72,9 +72,16 @@ def test_orig_units(recwarn):
     raw = read_raw_brainvision(vhdr_path)
     orig_units = raw._orig_units
     assert len(orig_units) == 32
-    assert orig_units['FP1'] == u'µV'
+    assert orig_units['FP1'] == 'µV'
+
+    # no unit specified in the vhdr, ensure we default to µV here
+    assert orig_units['FP2'] == 'µV'
+    assert orig_units['F3'] == 'µV'
+
+    sum([v == 'µV' for v in orig_units.values()]) == 26
+
     assert orig_units['CP5'] == 'n/a'  # originally BS, not a valid unit
-    assert orig_units['CP6'] == u'µS'
+    assert orig_units['CP6'] == 'µS'
     assert orig_units['HL'] == 'n/a'  # originally ARU, not a valid unit
     assert orig_units['HR'] == 'n/a'  # originally uS ...
     assert orig_units['Vb'] == 'S'

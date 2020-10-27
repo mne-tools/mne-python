@@ -1040,8 +1040,12 @@ trans : str | dict | instance of Transform | None
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | None
-    The path to the freesurfer subjects reconstructions.
-    It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    The path to the FreeSurfer subjects reconstructions.
+    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+"""
+docdict['subject'] = """
+subject : str
+    The FreeSurfer subject name.
 """
 
 # Simulation
@@ -1655,7 +1659,7 @@ time_format : str | None
     time values will be converted to :class:`pandas.Timedelta` values. {}
     Default is ``'ms'`` in version 0.22, and will change to ``None`` in
     version 0.23.
-"""
+"""  # XXX make sure we deal with this deprecation in 0.23
 raw_tf = ("If ``'datetime'``, time values will be converted to "
           ":class:`pandas.Timestamp` values, relative to "
           "``raw.info['meas_date']`` and offset by ``raw.first_samp``. ")
