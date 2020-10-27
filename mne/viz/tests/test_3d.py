@@ -105,7 +105,7 @@ def test_plot_head_positions():
 @requires_pysurfer
 @traits_test
 @pytest.mark.slowtest
-def test_plot_sparse_source_estimates(renderer_interactive):
+def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
 
@@ -574,7 +574,7 @@ def test_snapshot_brain_montage(renderer):
 @pytest.mark.parametrize('pick_ori', ('vector', None))
 @pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
-                               pick_ori, kind):
+                               pick_ori, kind, brain_gc):
     """Test plotting of scalar and vector source estimates."""
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
