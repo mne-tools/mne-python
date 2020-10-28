@@ -458,8 +458,8 @@ def test_own_data():
     epochs = mne.Epochs(raw, events, preload=True)
     assert epochs._data.flags['C_CONTIGUOUS']
     assert epochs._data.flags['OWNDATA']
-
-    epochs.crop(tmin=-0.1, tmax=0.4)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        epochs.crop(tmin=-0.1, tmax=0.4)
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
     assert not epochs._data.flags['OWNDATA']
@@ -852,8 +852,8 @@ def test_io_epochs_basic(tmpdir):
     data = epochs.get_data()
 
     # Bad tmin/tmax parameters
-    pytest.raises(ValueError, Epochs, raw, events, event_id, tmax, tmin,
-                  baseline=None)
+    with pytest.raises(ValueError):
+        Epochs(raw, events, event_id, tmax, tmin, baseline=None)
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
                           None, tmin, tmax, picks=picks)
@@ -1524,9 +1524,11 @@ def test_crop():
     tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
     assert (tmin_window > tmin)
     assert (tmax_window < tmax)
-    epochs3 = epochs2.copy().crop(tmin_window, tmax_window)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        epochs3 = epochs2.copy().crop(tmin_window, tmax_window)
     data3 = epochs3.get_data()
-    epochs2.crop(tmin_window, tmax_window)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        epochs2.crop(tmin_window, tmax_window)
     data2 = epochs2.get_data()
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
@@ -2584,7 +2586,8 @@ def test_add_channels():
     # Now test errors
     epoch_badsf = epoch_eeg.copy()
     epoch_badsf.info['sfreq'] = 3.1415927
-    epoch_eeg = epoch_eeg.crop(-.1, .1)
+    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
+        epoch_eeg = epoch_eeg.crop(-.1, .1)
 
     epoch_meg.load_data()
     pytest.raises(RuntimeError, epoch_meg.add_channels, [epoch_nopre])

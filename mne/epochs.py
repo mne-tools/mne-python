@@ -492,12 +492,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if (detrend not in [None, 0, 1]) or isinstance(detrend, bool):
             raise ValueError('detrend must be None, 0, or 1')
 
-        # check that baseline is in available data
-        if tmin > tmax:
-            raise ValueError('tmin has to be less than or equal to tmax')
-        _check_baseline(baseline, tmin, tmax, info['sfreq'])
-        logger.info(_log_rescale(baseline))
-        self.baseline = baseline
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self.detrend = detrend
@@ -524,6 +518,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self._data = data
         self._offset = None
 
+        # check that baseline is in available data
+        if tmin > tmax:
+            raise ValueError('tmin has to be less than or equal to tmax')
+        _check_baseline(baseline, tmin, tmax, self.info['sfreq'])
+
         # Handle times
         sfreq = float(self.info['sfreq'])
         start_idx = int(round(tmin * sfreq))
@@ -533,6 +532,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._decim = 1
         self.decimate(decim)
 
+        # baseline correction: replace `None` arguments with actual times
+        # this is necessary it later becomes easier for us to determine whether
+        # a subsequent cropping has removed (parts of) the baseline period
+        logger.info(_log_rescale(baseline))
+        self.baseline = self._gen_baseline_attr(baseline)
         # setup epoch rejection
         self.reject = None
         self.flat = None
@@ -589,6 +593,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.selection = np.arange(len(self.events))
         self.drop_log = (tuple(),) * len(self.events)
         self._check_consistency()
+
+    def _gen_baseline_attr(self, baseline):
+        """Auxiliary function to help us populate the .baseline attribute."""
+        if baseline is None:
+            baseline_attr = None
+        else:
+            baseline_attr = (self.tmin if baseline[0] is None else baseline[0],
+                             self.tmax if baseline[1] is None else baseline[1])
+        return baseline_attr
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -704,7 +717,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             rescale(self._data, self.times, baseline, copy=False, picks=picks)
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
-        self.baseline = baseline
+        self.baseline = self._gen_baseline_attr(baseline)
         return self
 
     def _reject_setup(self, reject, flat):
