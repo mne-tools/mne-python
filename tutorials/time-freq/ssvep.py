@@ -1,7 +1,7 @@
 """
-==================================
+=======================================
 Basic analysis of an SSVEP/vSSR dataset
-==================================
+=======================================
 
 Example script to compute frequency spectrum and extract snr of a target frequency
 
@@ -36,8 +36,8 @@ event_id = {
     '15hz': 10002
 }
 
-bids_root = "./data/"
-bids_path = BIDSPath(subject='02', session='01', task='ssvep', root=bids_root)
+data_path = mne.datasets.ssvep.data_path()
+bids_path = BIDSPath(subject='02', session='01', task='ssvep', root=data_path)
 
 # read_raw_bids issues warnings about missing electrodes.tsv and coordsystem.json.
 # These warning prevent successful building of the tutorial.
@@ -288,7 +288,7 @@ fig.show()
 
 ##############################################################################
 # SNR topography - grand average per channel
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 # create montage (here the default)
