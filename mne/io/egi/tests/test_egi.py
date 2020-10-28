@@ -320,6 +320,8 @@ def test_io_egi_evokeds_mff(idx, cond, signals, bads):
     assert len(evoked_cond.info['ch_names']) == 259
     assert 'ECG' in evoked_cond.info['ch_names']
     assert 'EMG' in evoked_cond.info['ch_names']
+    assert 'ecg' in evoked_cond
+    assert 'emg' in evoked_cond
     pick_eeg = pick_types(evoked_cond.info, eeg=True, exclude=[])
     assert len(pick_eeg) == 257
     assert evoked_cond.info['nchan'] == 259
