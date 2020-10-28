@@ -27,10 +27,10 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  SourceSpaces, VolVectorSourceEstimate, read_trans, pick_types,
                  MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward,
-                 compute_source_morph)
+                 compute_source_morph, labels_to_stc)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
-from mne.fixes import fft, _get_img_fdata
+from mne.fixes import fft, _get_img_fdata, nullcontext
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
@@ -836,6 +836,37 @@ def test_extract_label_time_course_volume(
                 else:
                     in_label = func(in_label)
                     assert_allclose(in_label, want, atol=1e-6, rtol=rtol)
+        if mode == 'mean' and not vector:  # check the reverse
+            if label_type is dict:
+                ctx = pytest.warns(RuntimeWarning, match='does not contain')
+            else:
+                ctx = nullcontext()
+            with ctx:
+                stc_back = labels_to_stc(labels, label_tc, src=src)
+            assert stc_back.data.shape == stcs[0].data.shape
+            corr = np.corrcoef(stc_back.data.ravel(),
+                               stcs[0].data.ravel())[0, 1]
+            assert 0.6 < corr < 0.63
+            assert_allclose(_varexp(label_tc, label_tc), 1.)
+            ve = _varexp(stc_back.data, stcs[0].data)
+            assert 0.83 < ve < 0.85
+            with pytest.warns(None):  # ignore warnings about no output
+                label_tc_rt = extract_label_time_course(
+                    stc_back, labels, src=src, mri_resolution=mri_res,
+                    allow_empty=True)
+            assert label_tc_rt.shape == label_tc.shape
+            corr = np.corrcoef(label_tc.ravel(), label_tc_rt.ravel())[0, 1]
+            lower, upper = (0.99, 0.999) if mri_res else (0.95, 0.97)
+            assert lower < corr < upper
+            ve = _varexp(label_tc_rt, label_tc)
+            lower, upper = (0.99, 0.999) if mri_res else (0.97, 0.99)
+            assert lower < ve < upper
+
+
+def _varexp(got, want):
+    return max(
+        1 - np.linalg.norm(got.ravel() - want.ravel()) ** 2 /
+        np.linalg.norm(want) ** 2, 0.)
 
 
 @testing.requires_testing_data
