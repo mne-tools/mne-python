@@ -852,7 +852,8 @@ def test_io_epochs_basic(tmpdir):
     data = epochs.get_data()
 
     # Bad tmin/tmax parameters
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError,
+                       match='tmin has to be less than or equal to tmax'):
         Epochs(raw, events, event_id, tmax, tmin, baseline=None)
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
