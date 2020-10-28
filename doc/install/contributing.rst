@@ -550,7 +550,7 @@ should follow the following patterns:
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
 number.
 
-Somtimes, changes that shall appear as a single changelog entry are spread out
+Sometimes, changes that shall appear as a single changelog entry are spread out
 across multiple PRs. In this case, simply name all relevant PRs, separated by
 commas:
 
