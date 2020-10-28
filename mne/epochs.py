@@ -533,7 +533,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.decimate(decim)
 
         # baseline correction: replace `None` arguments with actual times
-        # this is necessary it later becomes easier for us to determine whether
+        # that way, it later becomes easier for us to determine whether
         # a subsequent cropping has removed (parts of) the baseline period
         logger.info(_log_rescale(baseline))
         self.baseline = self._gen_baseline_attr(baseline)

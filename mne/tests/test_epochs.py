@@ -968,7 +968,7 @@ def test_epochs_io_preload(tmpdir, preload):
     pytest.raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
     epochs_with_bl = epochs_no_bl_read.copy().apply_baseline(baseline)
     assert (isinstance(epochs_with_bl, BaseEpochs))
-    assert (epochs_with_bl.baseline == baseline)
+    assert (epochs_with_bl.baseline == (epochs_no_bl_read.tmin, baseline[1]))
     assert (epochs_no_bl_read.baseline != baseline)
     assert (str(epochs_read).startswith('<Epochs'))
 
