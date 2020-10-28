@@ -306,13 +306,11 @@ def test_nirx_15_2():
 
     # Old name aliases for backward compat
     assert 'fnirs_cw_amplitude' in raw
-    with pytest.deprecated_call():
-        assert 'fnirs_raw' in raw
+    with pytest.raises(ValueError, match='Invalid value'):
+        'fnirs_raw' in raw
     assert 'fnirs_od' not in raw
     picks = pick_types(raw.info, fnirs='fnirs_cw_amplitude')
-    with pytest.deprecated_call():
-        picks_alias = pick_types(raw.info, fnirs='fnirs_raw')
-    assert_array_equal(picks, picks_alias)
+    assert len(picks) > 0
 
 
 @requires_testing_data

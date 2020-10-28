@@ -3,39 +3,44 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import os
 import os.path as op
+from shutil import copyfile
 import re
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose, assert_equal)
+                           assert_allclose, assert_equal, assert_array_less)
 import pytest
 from scipy import sparse
 from scipy.optimize import fmin_cobyla
+from scipy.spatial.distance import cdist
 
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
                  read_source_estimate, extract_label_time_course,
-                 spatio_temporal_tris_adjacency,
-                 spatio_temporal_src_adjacency, read_cov,
+                 spatio_temporal_tris_adjacency, stc_near_sensors,
+                 spatio_temporal_src_adjacency, read_cov, EvokedArray,
                  spatial_inter_hemi_adjacency, read_forward_solution,
-                 spatial_src_adjacency, spatial_tris_adjacency,
-                 SourceSpaces, VolVectorSourceEstimate,
+                 spatial_src_adjacency, spatial_tris_adjacency, pick_info,
+                 SourceSpaces, VolVectorSourceEstimate, read_trans, pick_types,
                  MixedVectorSourceEstimate, setup_volume_source_space,
-                 convert_forward_solution, pick_types_forward)
+                 convert_forward_solution, pick_types_forward,
+                 compute_source_morph)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
 from mne.fixes import fft, _get_img_fdata
+from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
-from mne.transforms import apply_trans, invert_transform
+from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, run_tests_if_main, requires_nibabel)
+                       requires_h5py, requires_nibabel)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -155,9 +160,11 @@ def test_volume_stc(tmpdir):
 
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
-    assert (isinstance(stc, VolSourceEstimate))
+    assert isinstance(stc, VolSourceEstimate)
 
-    assert ('sample' in repr(stc))
+    assert 'sample' in repr(stc)
+    assert ' kB' in repr(stc)
+
     stc_new = stc
     pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for ftype in ['w', 'h5']:
@@ -726,7 +733,7 @@ def test_extract_label_time_course_volume(
             return [stcs[0].extract_label_time_course(*args, **kwargs)]
 
     with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
-        eltc(fname_fs_t1, src, trans=trans, mri_resolution=mri_res)
+        eltc(fname_fs_t1, src, mri_resolution=mri_res)
     assert len(src_labels) == 46  # includes unknown
     assert_array_equal(
         src[0]['vertno'],  # src includes some in "unknown" space
@@ -766,13 +773,14 @@ def test_extract_label_time_course_volume(
     n_want -= len(missing)
 
     # actually do the testing
-    if cf == 'head' and not mri_res:  # no trans is an error
-        with pytest.raises(TypeError, match='trans must be .* Transform'):
-            eltc(labels, src, mri_resolution=mri_res)
+    if cf == 'head' and not mri_res:  # some missing
+        with pytest.deprecated_call(match='do not pass'):
+            eltc(labels, src, trans=trans, allow_empty=True,
+                 mri_resolution=mri_res)
     for mode in ('mean', 'max'):
         with catch_logging() as log:
             label_tc = eltc(labels, src, mode=mode, allow_empty='ignore',
-                            trans=trans, mri_resolution=mri_res, verbose=True)
+                            mri_resolution=mri_res, verbose=True)
         log = log.getvalue()
         assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
         if len(missing):
@@ -818,7 +826,7 @@ def test_extract_label_time_course_volume(
                 if test_label is int:
                     label = lut[label]
                 in_label = stcs[0].in_label(
-                    label, fname_aseg, src, trans).data
+                    label, fname_aseg, src).data
                 assert in_label.shape == (s['nuse'],) + end_shape
                 if vector:
                     assert_array_equal(in_label[:, :2], 0.)
@@ -1111,12 +1119,7 @@ def test_mixed_stc(tmpdir):
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    vol = read_source_spaces(fname_vsrc)
-
     # make sure error is raised for plotting surface with volume source
-    with pytest.deprecated_call(match='plot_surface'):
-        pytest.raises(ValueError, stc.plot_surface, src=vol)
-
     fname = tmpdir.join('mixed-stc.h5')
     stc.save(fname)
     stc_out = read_source_estimate(fname)
@@ -1459,4 +1462,89 @@ def test_vol_mask():
     assert_array_equal(img_data.shape, mask.shape)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_stc_near_sensors(tmpdir):
+    """Test stc_near_sensors."""
+    info = read_info(fname_evoked)
+    # pick the left EEG sensors
+    picks = pick_types(info, meg=False, eeg=True, exclude=())
+    picks = [pick for pick in picks if info['chs'][pick]['loc'][0] < 0]
+    pick_info(info, picks, copy=False)
+    info['projs'] = []
+    info['bads'] = []
+    assert info['nchan'] == 33
+    evoked = EvokedArray(np.eye(info['nchan']), info)
+    trans = read_trans(fname_fwd)
+    assert trans['to'] == FIFF.FIFFV_COORD_HEAD
+    this_dir = str(tmpdir)
+    # testing does not have pial, so fake it
+    os.makedirs(op.join(this_dir, 'sample', 'surf'))
+    for hemi in ('lh', 'rh'):
+        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.white'),
+                 op.join(this_dir, 'sample', 'surf', f'{hemi}.pial'))
+    # here we use a distance is smaller than the inter-sensor distance
+    kwargs = dict(subject='sample', trans=trans, subjects_dir=this_dir,
+                  verbose=True, distance=0.005)
+    with pytest.raises(ValueError, match='No channels'):
+        stc_near_sensors(evoked, **kwargs)
+    evoked.set_channel_types({ch_name: 'ecog' for ch_name in evoked.ch_names})
+    with catch_logging() as log:
+        stc = stc_near_sensors(evoked, **kwargs)
+    log = log.getvalue()
+    assert 'Minimum projected intra-sensor distance: 7.' in log  # 7.4
+    # this should be left-hemisphere dominant
+    assert 5000 > len(stc.vertices[0]) > 4000
+    assert 200 > len(stc.vertices[1]) > 100
+    # and at least one vertex should have the channel values
+    dists = cdist(stc.data, evoked.data)
+    assert np.isclose(dists, 0., atol=1e-6).any(0).all()
+
+    src = read_source_spaces(fname_src)  # uses "white" but should be okay
+    for s in src:
+        transform_surface_to(s, 'head', trans, copy=False)
+    assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    stc_src = stc_near_sensors(evoked, src=src, **kwargs)
+    assert len(stc_src.data) == 7928
+    with pytest.warns(RuntimeWarning, match='not included'):  # some removed
+        stc_src_full = compute_source_morph(
+            stc_src, 'sample', 'sample', smooth=5, spacing=None,
+            subjects_dir=subjects_dir).apply(stc_src)
+    lh_idx = np.searchsorted(stc_src_full.vertices[0], stc.vertices[0])
+    rh_idx = np.searchsorted(stc_src_full.vertices[1], stc.vertices[1])
+    rh_idx += len(stc_src_full.vertices[0])
+    sub_data = stc_src_full.data[np.concatenate([lh_idx, rh_idx])]
+    assert sub_data.shape == stc.data.shape
+    corr = np.corrcoef(stc.data.ravel(), sub_data.ravel())[0, 1]
+    assert 0.6 < corr < 0.7
+
+    # now single-weighting mode
+    stc_w = stc_near_sensors(evoked, mode='single', **kwargs)
+    assert_array_less(stc_w.data, stc.data + 1e-3)  # some tol
+    assert len(stc_w.data) == len(stc.data)
+    # at least one for each sensor should have projected right on it
+    dists = cdist(stc_w.data, evoked.data)
+    assert np.isclose(dists, 0., atol=1e-6).any(0).all()
+
+    # finally, nearest mode: all should match
+    stc_n = stc_near_sensors(evoked, mode='nearest', **kwargs)
+    assert len(stc_n.data) == len(stc.data)
+    # at least one for each sensor should have projected right on it
+    dists = cdist(stc_n.data, evoked.data)
+    assert np.isclose(dists, 0., atol=1e-6).any(1).all()  # all vert eq some ch
+
+    # these are EEG electrodes, so the distance 0.01 is too small for the
+    # scalp+skull. Even at a distance of 33 mm EEG 060 is too far:
+    with pytest.warns(RuntimeWarning, match='Channel missing in STC: EEG 060'):
+        stc = stc_near_sensors(evoked, trans, 'sample', subjects_dir=this_dir,
+                               project=False, distance=0.033)
+    assert stc.data.any(0).sum() == len(evoked.ch_names) - 1
+
+    # and now with volumetric projection
+    src = read_source_spaces(fname_vsrc)
+    with catch_logging() as log:
+        stc_vol = stc_near_sensors(evoked, trans, 'sample', src=src,
+                                   subjects_dir=subjects_dir, verbose=True,
+                                   distance=0.033)
+    assert isinstance(stc_vol, VolSourceEstimate)
+    log = log.getvalue()
+    assert '4157 volume vertices' in log

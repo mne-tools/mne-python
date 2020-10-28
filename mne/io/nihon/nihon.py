@@ -29,7 +29,7 @@ def read_raw_nihon(fname, preload=False, verbose=None):
     Parameters
     ----------
     fname : str
-        Path to the Nihon Kohden data file (.eeg).
+        Path to the Nihon Kohden data file (``.EEG``).
     preload : bool
         If True, all data are loaded at initialization.
     %(verbose)s
@@ -56,6 +56,7 @@ _valid_headers = [
     'EEG-2100  V02.00',
     'DAE-2100D V01.30',
     'DAE-2100D V02.00',
+    # 'EEG-1200A V01.00',  # Not working for the moment.
 ]
 
 
@@ -116,6 +117,9 @@ def _read_21e_file(fname):
                 elif keep_parsing is True:
                     idx, name = line.split('=')
                     idx = int(idx)
+                    if idx >= len(_chan_labels):
+                        n = idx - len(_chan_labels) + 1
+                        _chan_labels.extend(['UNK'] * n)
                     _chan_labels[idx] = name.strip()
     return _chan_labels
 

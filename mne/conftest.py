@@ -7,6 +7,7 @@ from distutils.version import LooseVersion
 import gc
 import os
 import os.path as op
+from pathlib import Path
 import shutil
 import sys
 import warnings
@@ -27,6 +28,7 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
+from mne.utils import _pl, _assert_no_instances
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -316,9 +318,9 @@ def _check_skip_backend(name):
 @pytest.fixture()
 def renderer_notebook():
     """Verify that pytest_notebook is installed."""
-    from mne.viz.backends.renderer import _use_test_3d_backend
-    with _use_test_3d_backend('notebook'):
-        yield
+    from mne.viz.backends import renderer
+    with renderer._use_test_3d_backend('notebook'):
+        yield renderer
 
 
 @pytest.fixture(scope='session')
@@ -467,3 +469,82 @@ def _fail(*args, **kwargs):
 def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
     monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)
+
+
+@pytest.fixture()
+def brain_gc(request):
+    """Ensure that brain can be properly garbage collected."""
+    keys = ('renderer_interactive', 'renderer', 'renderer_notebook')
+    assert set(request.fixturenames) & set(keys) != set()
+    for key in keys:
+        if key in request.fixturenames:
+            is_pv = request.getfixturevalue(key)._get_3d_backend() == 'pyvista'
+            close_func = request.getfixturevalue(key).backend._close_all
+            break
+    if not is_pv:
+        yield
+        return
+    import pyvista
+    if LooseVersion(pyvista.__version__) <= LooseVersion('0.26.1'):
+        yield
+        return
+    from mne.viz import Brain
+    _assert_no_instances(Brain, 'before')
+    ignore = set(id(o) for o in gc.get_objects())
+    yield
+    close_func()
+    _assert_no_instances(Brain, 'after')
+    # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
+    objs = gc.get_objects()
+    bad = list()
+    for o in objs:
+        try:
+            name = o.__class__.__name__
+        except Exception:  # old Python, probably
+            pass
+        else:
+            if name.startswith('vtk') and id(o) not in ignore:
+                bad.append(name)
+        del o
+    del objs, ignore, Brain
+    assert len(bad) == 0, 'VTK objects linger:\n' + '\n'.join(bad)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Handle the end of the session."""
+    n = session.config.option.durations
+    if n is None:
+        return
+    print('\n')
+    try:
+        import pytest_harvest
+    except ImportError:
+        print('Module-level timings require pytest-harvest')
+        return
+    from py.io import TerminalWriter
+    # get the number to print
+    res = pytest_harvest.get_session_synthesis_dct(session)
+    files = dict()
+    for key, val in res.items():
+        parts = Path(key.split(':')[0]).parts
+        # split mne/tests/test_whatever.py into separate categories since these
+        # are essentially submodule-level tests. Keeping just [:3] works,
+        # except for mne/viz where we want level-4 granulatity
+        parts = parts[:4 if parts[:2] == ('mne', 'viz') else 3]
+        if not parts[-1].endswith('.py'):
+            parts = parts + ('',)
+        file_key = '/'.join(parts)
+        files[file_key] = files.get(file_key, 0) + val['pytest_duration_s']
+    files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
+    # print
+    files = files[:n]
+    if len(files):
+        writer = TerminalWriter()
+        writer.line()  # newline
+        writer.sep('=', f'slowest {n} test module{_pl(n)}')
+        names, timings = zip(*files)
+        timings = [f'{timing:0.2f}s total' for timing in timings]
+        rjust = max(len(timing) for timing in timings)
+        timings = [timing.rjust(rjust) for timing in timings]
+        for name, timing in zip(names, timings):
+            writer.line(f'{timing.ljust(15)}{name}')

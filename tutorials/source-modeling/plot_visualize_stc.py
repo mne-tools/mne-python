@@ -1,5 +1,5 @@
 """
-.. _tut_viz_stcs:
+.. _tut-viz-stcs:
 
 Visualize source time courses (stcs)
 ====================================
@@ -56,8 +56,7 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 ###############################################################################
 # You can also morph it to fsaverage and visualize it using a flatmap:
 
-# sphinx_gallery_thumbnail_number = 2
-
+# sphinx_gallery_thumbnail_number = 3
 stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,
                                   smooth=5, verbose='error').apply(stc)
 brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
@@ -66,9 +65,11 @@ brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                     smoothing_steps=5, time_viewer=False,
                     add_data_kwargs=dict(
                         colorbar_kwargs=dict(label_font_size=10)))
+# You can save a movie like the one on our documentation website with:
+# brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16,
+#                  interpolation='linear', framerate=10)
 
 ###############################################################################
-#
 # Note that here we used ``initial_time=0.1``, but we can also browse through
 # time using ``time_viewer=True``.
 #
@@ -87,13 +88,16 @@ mpl_fig = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 # Let us load the sensor-level evoked data. We select the MEG channels
 # to keep things simple.
 evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
-evoked.pick_types(meg=True, eeg=False)
+evoked.pick_types(meg=True, eeg=False).crop(0.05, 0.15)
+# this risks aliasing, but these data are very smooth
+evoked.decimate(10, verbose='error')
 
 ###############################################################################
 # Then, we can load the precomputed inverse operator from a file.
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
 inv = read_inverse_operator(fname_inv)
 src = inv['src']
+mri_head_t = inv['mri_head_t']
 
 ###############################################################################
 # The source estimate is computed using the inverse operator and the
@@ -102,7 +106,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 stc = apply_inverse(evoked, inv, lambda2, method)
-stc.crop(0.0, 0.2)
+del inv
 
 ###############################################################################
 # This time, we have a different container
@@ -122,7 +126,8 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir)
 #
 # We could visualize the source estimate on a glass brain. Unlike the previous
 # visualization, a glass brain does not show us one slice but what we would
-# see if the brain was transparent like glass.
+# see if the brain was transparent like glass, and
+# :term:`maximum intensity projection`) is used:
 stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
 
 ###############################################################################
@@ -131,8 +136,8 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
 
 fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aparc.a2009s+aseg.mgz')
 label_names = mne.get_volume_labels_from_aseg(fname_aseg)
-label_tc = stc.extract_label_time_course(
-    fname_aseg, src=src, trans=inv['mri_head_t'])
+label_tc = stc.extract_label_time_course(fname_aseg, src=src)
+
 lidx, tidx = np.unravel_index(np.argmax(label_tc), label_tc.shape)
 fig, ax = plt.subplots(1)
 ax.plot(stc.times, label_tc.T, 'k', lw=1., alpha=0.5)
@@ -151,11 +156,10 @@ fig.tight_layout()
 # If we choose to use ``pick_ori='vector'`` in
 # :func:`apply_inverse <mne.minimum_norm.apply_inverse>`
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-
 inv = read_inverse_operator(fname_inv)
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
-stc.plot(subject='sample', subjects_dir=subjects_dir,
-         initial_time=initial_time)
+brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
+                 initial_time=initial_time)
 
 ###############################################################################
 # Dipole fits

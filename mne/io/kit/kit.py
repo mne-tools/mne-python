@@ -742,12 +742,6 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                 fid.seek(256, SEEK_CUR)  # marker_file (char)
             sqd.update(hsp=hsp, elp=elp, mrk=mrk)
 
-    all_names = set(ch.get('name', '') for ch in channels)
-    if standardize_names is None and all_names.difference({'', 'EEG'}):
-        standardize_names = True
-        warn('standardize_names defaults to True in 0.21 but will change '
-             'to False in 0.22', DeprecationWarning)
-
     # precompute conversion factor for reading data
     if unsupported_format:
         if sysid not in LEGACY_AMP_PARAMS:
@@ -843,7 +837,7 @@ def _read_name(fid, ch_type=None, n=None):
 @fill_doc
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
-                 allow_unknown_format=False, standardize_names=None,
+                 allow_unknown_format=False, standardize_names=False,
                  verbose=None):
     """Reader function for Ricoh/KIT conversion to FIF.
 
@@ -910,7 +904,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 @fill_doc
 def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
                     hsp=None, allow_unknown_format=False,
-                    standardize_names=None, verbose=None):
+                    standardize_names=False, verbose=None):
     """Reader function for Ricoh/KIT epochs files.
 
     Parameters

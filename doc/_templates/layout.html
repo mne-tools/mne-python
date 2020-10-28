@@ -25,15 +25,6 @@
     <link rel="stylesheet" href="{{ pathto('_static/font-source-sans-pro.css', 1) }}" type="text/css" />
     <link rel="stylesheet" href="{{ pathto('_static/flag-icon.css', 1) }}" type="text/css" />
 
-
-{% if (use_twitter|tobool) or (use_media_buttons|tobool) %}
-    <script type="text/javascript">
-    !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);
-    js.id=id;js.src="https://platform.twitter.com/widgets.js";
-    fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
-    </script>
-{% endif %}
-
 {% if use_media_buttons|tobool %}
     <script type="text/javascript">
     (function() {

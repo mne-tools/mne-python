@@ -887,7 +887,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     car_loc = list()
     eeg_loc = list()
     eegp_loc = list()
-    other_loc = {key: list() for key in other_keys}
+    other_loc = dict()
     if len(eeg) > 0:
         eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
         if len(eeg_loc) > 0:
@@ -947,27 +947,35 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     del dig
     for key, picks in other_picks.items():
         if other_bools[key] and len(picks):
+            title = DEFAULTS["titles"][key] if key != 'fnirs' else 'fNIRS'
+            if key != 'fnirs' or 'channels' in fnirs:
+                other_loc[key] = [
+                    info['chs'][pick]['loc'][:3] for pick in picks]
+                # deal with NaN
+                other_loc[key] = np.array([loc for loc in other_loc[key]
+                                           if np.isfinite(loc).all()], float)
+                logger.info(
+                    f'Plotting {len(other_loc[key])} {title}'
+                    f' location{_pl(other_loc[key])}')
             if key == 'fnirs':
-                if 'channels' in fnirs:
-                    other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
-                                               for pick in picks])
                 if 'sources' in fnirs:
                     other_loc['source'] = np.array(
                         [info['chs'][pick]['loc'][3:6]
                          for pick in picks])
                     logger.info('Plotting %d %s source%s'
                                 % (len(other_loc['source']),
-                                   key, _pl(other_loc['source'])))
+                                   title, _pl(other_loc['source'])))
                 if 'detectors' in fnirs:
                     other_loc['detector'] = np.array(
                         [info['chs'][pick]['loc'][6:9]
                          for pick in picks])
                     logger.info('Plotting %d %s detector%s'
                                 % (len(other_loc['detector']),
-                                   key, _pl(other_loc['detector'])))
-                other_keys = sorted(other_loc.keys())
-            logger.info('Plotting %d %s location%s'
-                        % (len(other_loc[key]), key, _pl(other_loc[key])))
+                                   title, _pl(other_loc['detector'])))
+    for v in other_loc.values():
+        v[:] = apply_trans(head_trans, v)
+    other_keys = sorted(other_loc)  # re-sort and only keep non-empty
+    del other_bools
 
     # initialize figure
     renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
@@ -1072,10 +1080,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               fwd_nn[:, ori, 2],
                               color=color, mode='arrow', scale=1.5e-3)
     if 'pairs' in fnirs and len(fnirs_picks) > 0:
-        fnirs_loc = np.array([info['chs'][k]['loc'][3:9] for k in fnirs_picks])
-        logger.info('Plotting %d fnirs pairs' % (fnirs_loc.shape[0]))
-        renderer.tube(origin=fnirs_loc[:, :3],
-                      destination=fnirs_loc[:, 3:])
+        origin = apply_trans(head_trans, np.array(
+            [info['chs'][k]['loc'][3:6] for k in fnirs_picks]))
+        destination = apply_trans(head_trans, np.array(
+            [info['chs'][k]['loc'][6:9] for k in fnirs_picks]))
+        logger.info(f'Plotting {origin.shape[0]} fNIRS pair{_pl(origin)}')
+        renderer.tube(origin=origin, destination=destination)
 
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
@@ -1557,19 +1567,17 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
     if _get_3d_backend() != 'pyvista':
         raise NotImplementedError("Expected 3d backend is pyvista but"
                                   " {} was given.".format(_get_3d_backend()))
-    from ._brain import _Brain, _TimeViewer, _LinkViewer
+    from ._brain import Brain, _LinkViewer
     if not isinstance(brains, Iterable):
         brains = [brains]
     if len(brains) == 0:
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
-        if isinstance(brain, _Brain):
-            # check if the _TimeViewer wrapping is not already applied
-            if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
-                brain = _TimeViewer(brain)
-        else:
+        if not isinstance(brain, Brain):
             raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
+        # enable time viewer if necessary
+        brain.setup_time_viewer()
     subjects = [brain._subject_id for brain in brains]
     if subjects.count(subjects[0]) != len(subjects):
         raise RuntimeError("Cannot link brains from different subjects.")
@@ -1696,9 +1704,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : 'auto' | 'mayavi' | 'matplotlib'
+    backend : 'auto' | 'mayavi' | 'pyvista' | 'matplotlib'
         Which backend to use. If ``'auto'`` (default), tries to plot with
-        mayavi, but resorts to matplotlib if mayavi is not available.
+        pyvista, but resorts to matplotlib if no 3d backend is available.
 
         .. versionadded:: 0.15.0
     spacing : str
@@ -1714,7 +1722,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
         .. versionadded:: 0.17.0
     %(show_traces)s
-    %(src_volume_options_layout)s
+    %(src_volume_options)s
+    %(view_layout)s
     %(add_data_kwargs)s
     %(verbose)s
 
@@ -1741,11 +1750,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
+    _check_option('backend', backend,
+                  ['auto', 'matplotlib', 'mayavi', 'pyvista'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
-            set_3d_backend(_get_3d_backend())
+            if backend == 'auto':
+                set_3d_backend(_get_3d_backend())
+            else:
+                set_3d_backend(backend)
         except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
                 warn('No 3D backend found. Resorting to matplotlib 3d.')
@@ -1789,7 +1802,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         from surfer import Brain
         _require_version('surfer', 'stc.plot', '0.9')
     else:  # PyVista
-        from ._brain import _Brain as Brain
+        from ._brain import Brain
     views = _check_views(surface, views, hemi, stc, backend)
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
@@ -1838,7 +1851,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "views": views, "alpha": brain_alpha,
     }
     if backend in ['pyvista', 'notebook']:
-        kwargs["show"] = not time_viewer
+        kwargs["show"] = False
         kwargs["view_layout"] = view_layout
     else:
         kwargs.update(_check_pysurfer_antialias(Brain))
@@ -1948,8 +1961,11 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             from surfer import TimeViewer
             TimeViewer(brain)
         else:  # PyVista
-            from ._brain import _TimeViewer as TimeViewer
-            TimeViewer(brain, show_traces=show_traces)
+            brain.setup_time_viewer(time_viewer=time_viewer,
+                                    show_traces=show_traces)
+    else:
+        if not using_mayavi:
+            brain.show()
 
     return brain
 
@@ -2509,7 +2525,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
     %(show_traces)s
-    %(src_volume_options_layout)s
+    %(src_volume_options)s
+    %(view_layout)s
     %(add_data_kwargs)s
     %(verbose)s
 

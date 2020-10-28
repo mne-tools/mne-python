@@ -173,7 +173,8 @@ evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 
 ##############################################################################
 # Based on the negative log-likelihood, the baseline covariance
-# seems more appropriate.
+# seems more appropriate. See :ref:`ex-covariance-whitening-dspm` for more
+# information.
 
 ###############################################################################
 # References

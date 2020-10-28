@@ -14,7 +14,6 @@ deoxyhaemoglobin (HbR) concentration.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
-# sphinx_gallery_thumbnail_number = 1
 
 import os
 import numpy as np
@@ -44,13 +43,13 @@ subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
-                             subject='fsaverage',
+                             subject='fsaverage', coord_frame='mri',
                              trans='fsaverage', surfaces=['brain'],
                              fnirs=['channels', 'pairs',
                                     'sources', 'detectors'],
                              subjects_dir=subjects_dir, fig=fig)
-mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
-
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=60, distance=0.4,
+                    focalpoint=(0., -0.01, 0.02))
 
 ###############################################################################
 # Selecting channels appropriate for detecting neural responses

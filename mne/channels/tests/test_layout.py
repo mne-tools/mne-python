@@ -39,10 +39,10 @@ def _get_test_info():
     loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                    dtype=np.float32)
     test_info['chs'] = [
-        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_Frame': 0,
+        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_frame': 0,
          'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0, 'scanno': 1,
          'unit': -1, 'unit_mul': 0},
-        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_Frame': 0,
+        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_frame': 0,
          'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0, 'scanno': 2,
          'unit': -1, 'unit_mul': 0},
         {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,

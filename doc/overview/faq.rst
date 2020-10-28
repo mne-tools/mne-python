@@ -428,7 +428,7 @@ References
 
 .. _`the most current version`: https://github.com/mne-tools/mne-python/releases/latest
 .. _`minimal working example`: https://en.wikipedia.org/wiki/Minimal_Working_Example
-.. _mri_watershed: http://freesurfer.net/fswiki/mri_watershed
+.. _mri_watershed: https://freesurfer.net/fswiki/mri_watershed
 .. _mri_normalize: https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize
 .. _freeview: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide/FreeviewIntroduction
 .. _`FreeSurfer listserv`: https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/

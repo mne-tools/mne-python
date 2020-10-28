@@ -6,6 +6,7 @@
 
 from contextlib import contextmanager
 import fnmatch
+import gc
 import inspect
 from math import log
 import os
@@ -319,3 +320,32 @@ def _file_like(obj):
     # but this might be more robust to file-like objects not properly
     # inheriting from these classes:
     return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))
+
+
+def _assert_no_instances(cls, when=''):
+    __tracebackhide__ = True
+    n = 0
+    ref = list()
+    gc.collect()
+    objs = gc.get_objects()
+    for obj in objs:
+        try:
+            check = isinstance(obj, cls)
+        except Exception:  # such as a weakref
+            check = False
+        if check:
+            rr = gc.get_referrers(obj)
+            count = 0
+            for r in rr:
+                if r is not objs and \
+                        r is not globals() and \
+                        r is not locals() and \
+                        not inspect.isframe(r):
+                    ref.append(
+                        f'{r.__class__.__name__}: ' +
+                        repr(r)[:100].replace('\n', ' '))
+                    count += 1
+                del r
+            del rr
+            n += count > 0
+    assert n == 0, f'{n} {when}:\n' + '\n'.join(ref)

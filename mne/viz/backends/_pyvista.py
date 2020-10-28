@@ -22,6 +22,7 @@ import vtk
 
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array, ALLOWED_QUIVER_MODES
+from ...fixes import _get_args
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
 from ...externals.decorator import decorator
 
@@ -651,16 +652,23 @@ def _compute_normals(mesh):
 
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
+    from . import renderer
     _process_events(plotter)
     mesh = kwargs.get('mesh')
     if 'smooth_shading' in kwargs:
         smooth_shading = kwargs.pop('smooth_shading')
     else:
         smooth_shading = True
+    # disable rendering pass for add_mesh, render()
+    # is called in show()
+    if 'render' not in kwargs and 'render' in _get_args(plotter.add_mesh):
+        kwargs['render'] = False
     actor = plotter.add_mesh(*args, **kwargs)
     if smooth_shading and 'Normals' in mesh.point_arrays:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
+    if renderer.MNE_3D_BACKEND_TESTING:
+        actor.SetVisibility(False)
     return actor
 
 
@@ -746,6 +754,7 @@ def _get_camera_direction(focalpoint, position):
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     position = np.array(figure.plotter.camera_position[0])
+    figure.plotter.reset_camera()
     if focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
@@ -872,8 +881,7 @@ def _set_mesh_scalars(mesh, scalars, name):
 
 
 def _update_slider_callback(slider, callback, event_type):
-    _check_option('event_type', event_type,
-                  ['start', 'end', 'always'])
+    _check_option('event_type', event_type, ['start', 'end', 'always'])
 
     def _the_callback(widget, event):
         value = widget.GetRepresentation().GetValue()
@@ -922,6 +930,13 @@ def _update_picking_callback(plotter,
     )
     picker.SetVolumeOpacityIsovalue(0.)
     plotter.picker = picker
+
+
+def _remove_picking_callback(interactor, picker):
+    interactor.RemoveObservers(vtk.vtkCommand.RenderEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.LeftButtonPressEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.EndInteractionEvent)
+    picker.RemoveObservers(vtk.vtkCommand.EndPickEvent)
 
 
 def _arrow_glyph(grid, factor):
@@ -1029,8 +1044,8 @@ def _volume(dimensions, origin, spacing, scalars,
         mapper.SetScalarModeToUseCellData()
         mapper.SetInputDataObject(grid)
     else:
-        upsampler = vtk.vtkImageResample()
-        upsampler.SetInterpolationModeToNearestNeighbor()
+        upsampler = vtk.vtkImageReslice()
+        upsampler.SetInterpolationModeToLinear()  # default anyway
         upsampler.SetOutputSpacing(*([resolution] * 3))
         upsampler.SetInputConnection(grid_alg.GetOutputPort())
         mapper.SetInputConnection(upsampler.GetOutputPort())
@@ -1072,16 +1087,20 @@ def _testing_context(interactive):
     from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
+    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
+    renderer.MNE_3D_BACKEND_TESTING = True
     if interactive:
         pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_TESTING = False
+        renderer.MNE_3D_BACKEND_INTERACTIVE = True
     else:
         pyvista.OFF_SCREEN = True
+        renderer.MNE_3D_BACKEND_INTERACTIVE = False
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
 @contextmanager
@@ -1093,6 +1112,19 @@ def _disabled_depth_peeling():
         yield
     finally:
         rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
+
+
+@contextmanager
+def _disabled_interaction(renderer):
+    plotter = renderer.plotter
+    if not plotter.renderer.GetInteractive():
+        yield
+    else:
+        plotter.disable()
+        try:
+            yield
+        finally:
+            plotter.enable()
 
 
 @decorator

@@ -301,6 +301,13 @@ def test_shift_time_evoked():
     assert_array_almost_equal(ave.times, ave_loaded.times, 8)
 
 
+def test_tmin_tmax():
+    """Test that the tmin and tmax attributes return the correct time."""
+    evoked = read_evokeds(fname, 0)
+    assert evoked.times[0] == evoked.tmin
+    assert evoked.times[-1] == evoked.tmax
+
+
 def test_evoked_resample():
     """Test resampling evoked data."""
     tempdir = _TempDir()

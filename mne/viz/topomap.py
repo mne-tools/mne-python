@@ -24,7 +24,7 @@ from ..defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _pick_data_channels, _picks_to_idx, _get_channel_types,
                        _MEG_CH_TYPES_SPLIT)
-from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
+from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
                      _validate_type, _check_sphere, _check_option, _is_numeric)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
@@ -448,12 +448,14 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
 
 def _draw_outlines(ax, outlines):
     """Draw the outlines for a topomap."""
+    from matplotlib import rcParams
     outlines_ = {k: v for k, v in outlines.items()
                  if k not in ['patch']}
     for key, (x_coord, y_coord) in outlines_.items():
         if 'mask' in key or key in ('clip_radius', 'clip_origin'):
             continue
-        ax.plot(x_coord, y_coord, color='k', linewidth=1, clip_on=False)
+        ax.plot(x_coord, y_coord, color=rcParams['axes.edgecolor'],
+                linewidth=1, clip_on=False)
     return outlines_
 
 
@@ -799,7 +801,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
-    logger.debug('Plotting topomap for data shape %s' % (data.shape,))
+    logger.debug(f'Plotting topomap for {ch_type} data shape {data.shape}')
 
     if isinstance(pos, Info):  # infer pos from Info object
         picks = _pick_data_channels(pos, exclude=())  # pick only data channels
@@ -963,7 +965,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     plt.subplots_adjust(top=.95)
 
     if onselect is not None:
+        lim = ax.dataLim
+        x0, y0, width, height = lim.x0, lim.y0, lim.width, lim.height
         ax.RS = RectangleSelector(ax, onselect=onselect)
+        ax.set(xlim=[x0, x0 + width], ylim=[y0, y0 + height])
     plt_show(show)
     return im, cont, interp
 
@@ -1382,21 +1387,17 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     cmap = _setup_cmap(cmap, norm=norm)
 
-    if axes is None:
-        fig = plt.figure(figsize=(size, size))
-        ax = fig.gca()
-    else:
-        fig = axes.figure
-        ax = axes
+    axes = plt.subplots(figsize=(size, size))[1] if axes is None else axes
+    fig = axes.figure
 
-    _hide_frame(ax)
+    _hide_frame(axes)
 
     locator = None
     if not isinstance(contours, (list, np.ndarray)):
         locator, contours = _set_contour_locator(vmin, vmax, contours)
 
     if title is not None:
-        ax.set_title(title)
+        axes.set_title(title)
     fig_wrapper = list()
     selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
@@ -1406,16 +1407,16 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                         axes=ax, cmap=cmap[0], image_interp='bilinear',
+                         axes=axes, cmap=cmap[0], image_interp='bilinear',
                          contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
-                         sensors=sensors, res=res,
+                         sensors=sensors, res=res, ch_type=ch_type,
                          outlines=outlines, sphere=sphere)
 
     if colorbar:
         from matplotlib import ticker
         unit = _handle_default('units', unit)['misc']
-        cbar, cax = _add_colorbar(ax, im, cmap, title=unit, format=cbar_fmt)
+        cbar, cax = _add_colorbar(axes, im, cmap, title=unit, format=cbar_fmt)
         if locator is None:
             locator = ticker.MaxNLocator(nbins=5)
         cbar.locator = locator
@@ -1520,13 +1521,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     from ..evoked import Evoked
 
     _validate_type(evoked, Evoked, 'evoked')
+    _validate_type(colorbar, bool, 'colorbar')
     evoked = evoked.copy()  # make a copy, since we'll be picking
     ch_type = _get_ch_type(evoked, ch_type)
-    # deprecation
-    if colorbar is None:
-        colorbar = True
-        warn('colorbar=None is deprecated and will be removed in version 0.22;'
-             ' use colorbar=True (or False) instead.', DeprecationWarning)
     # time units / formatting
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     scaling_time = 1. if time_unit == 's' else 1e3
@@ -1786,7 +1783,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
 
 
 @verbose
-def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
+def plot_epochs_psd_topomap(epochs, bands=None,
                             tmin=None, tmax=None, proj=False,
                             bandwidth=None, adaptive=False, low_bias=True,
                             normalization='length', ch_type=None,
@@ -1801,10 +1798,6 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     epochs : instance of Epochs
         The epochs object.
     %(psd_topo_bands)s
-    vmin : None
-        Deprecated; use ``vlim`` instead.
-    vmax : None
-        Deprecated; use ``vlim`` instead.
     tmin : float | None
         Start time to consider.
     tmax : float | None
@@ -1867,15 +1860,15 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
     return plot_psds_topomap(
-        psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
-        vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
+        psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun,
+        bands=bands, cmap=cmap, dB=dB, normalize=normalize,
         cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
         sphere=sphere, vlim=vlim, unit=unit, ch_type=ch_type)
 
 
 @fill_doc
 def plot_psds_topomap(
-        psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
+        psds, freqs, pos, agg_fun=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
         axes=None, show=True, sphere=None, vlim=(None, None), unit=None,
         ch_type='eeg'):
@@ -1890,10 +1883,6 @@ def plot_psds_topomap(
     pos : numpy.ndarray of float, shape (n_sensors, 2)
         The positions of the sensors.
     %(psd_topo_agg_fun)s
-    vmin : None
-        Deprecated; use ``vlim`` instead.
-    vmax : None
-        Deprecated; use ``vlim`` instead.
     %(psd_topo_bands)s
     %(psd_topo_cmap)s
     %(psd_topo_dB)s
@@ -1920,18 +1909,6 @@ def plot_psds_topomap(
 
     if cbar_fmt == 'auto':
         cbar_fmt = '%0.1f' if dB else '%0.3f'
-
-    if vmin is not None or vmax is not None:
-        msg = ('"vmin" and "vmax" are deprecated and will be removed in '
-               'version 0.22. Use "vlim" instead. ')
-        if vlim == (None, None):
-            msg += ('Since you didn\'t specify "vlim", your provided values '
-                    'of "vmin" and "vmax" will be used.')
-            vlim = (vmin, vmax)
-        else:
-            msg += ('Your provided values for "vlim" will be used, and "vmin" '
-                    'and "vmax" will be ignored.')
-        warn(msg, DeprecationWarning)
 
     if bands is None:
         bands = [(0, 4, 'Delta (0-4 Hz)'), (4, 8, 'Theta (4-8 Hz)'),
@@ -2573,7 +2550,9 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     dyy = -dx.data
     axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1, clip_on=False)
     axes.figure.canvas.draw_idle()
-    tight_layout(fig=fig)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        tight_layout(fig=fig)
     plt_show(show)
 
     return fig

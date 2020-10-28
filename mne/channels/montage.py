@@ -35,7 +35,7 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname, _on_missing,
-                     fill_doc, deprecated)
+                     fill_doc)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -79,7 +79,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
 
     Parameters
     ----------
-    ch_pos : dict
+    ch_pos : dict | None
         Dictionary of channel positions. Keys are channel names and values
         are 3D coordinates - array of shape (3,) - in native digitizer space
         in m.
@@ -116,6 +116,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_fif
     read_dig_polhemus_isotrak
     """
+    _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:
         ch_names = None
     else:
@@ -185,11 +186,12 @@ class DigMontage(object):
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=True, kind='topomap', show=True,
-             sphere=None):
+             sphere=None, verbose=None):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
                             sphere=sphere)
 
+    @fill_doc
     def rename_channels(self, mapping):
         """Rename the channels.
 
@@ -518,7 +520,6 @@ def read_dig_hpts(fname, unit='mm'):
         eeg    FP2  -31.9297  -70.6852  -57.4881
         eeg    F7  -6.1042  -68.2969   45.4939
         ...
-
     """
     from ._standard_montage_utils import _str_names, _str
     _scale = _check_unit_and_get_scaling(unit)
@@ -611,36 +612,6 @@ def read_dig_captrak(fname):
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     return make_dig_montage(**data)
-
-
-@deprecated('read_dig_captrack is deprecated and will be removed in 0.22; '
-            'please use read_dig_captrak instead '
-            '(note the spelling correction: captraCK -> captraK).')
-def read_dig_captrack(fname):
-    """Read electrode locations from CapTrak Brain Products system.
-
-    Parameters
-    ----------
-    fname : path-like
-        BrainVision CapTrak coordinates file from which to read EEG electrode
-        locations. This is typically in XML format with the .bvct extension.
-
-    Returns
-    -------
-    montage : instance of DigMontage
-        The montage.
-
-    See Also
-    --------
-    DigMontage
-    read_dig_dat
-    read_dig_egi
-    read_dig_fif
-    read_dig_hpts
-    read_dig_polhemus_isotrak
-    make_dig_montage
-    """
-    return read_dig_captrak(fname)
 
 
 def _get_montage_in_head(montage):
@@ -891,7 +862,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
         points otherwise.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
-        exported in meters. Defaults to 'm'
+        exported in meters. Defaults to 'm'.
 
     Returns
     -------
@@ -965,7 +936,7 @@ def read_polhemus_fastscan(fname, unit='mm'):
         The filepath of .txt Polhemus FastSCAN file.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
-        exported in millimeters. Defaults to 'mm'
+        exported in millimeters. Defaults to 'mm'.
 
     Returns
     -------
@@ -1028,6 +999,11 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     montage : instance of DigMontage
         The montage.
 
+    See Also
+    --------
+    make_dig_montage
+    make_standard_montage
+
     Notes
     -----
     The function is a helper to read electrode positions you may have
@@ -1038,11 +1014,6 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     10/10 or 10/05) we recommend you use :func:`make_standard_montage`.
     If you can have positions in memory you can also use
     :func:`make_dig_montage` that takes arrays as input.
-
-    See Also
-    --------
-    make_dig_montage
-    make_standard_montage
     """
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
@@ -1161,7 +1132,7 @@ def compute_native_head_t(montage):
         A native-to-head transformation matrix.
     """
     # Get fiducial points and their coord_frame
-    fid_coords, coord_frame = _get_fid_coords(montage.dig)
+    fid_coords, coord_frame = _get_fid_coords(montage.dig, raise_error=False)
     if coord_frame is None:
         coord_frame = FIFF.FIFFV_COORD_UNKNOWN
     if coord_frame == FIFF.FIFFV_COORD_HEAD:

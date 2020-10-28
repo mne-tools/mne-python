@@ -80,8 +80,9 @@ def test_io_bem(tmpdir, ext):
     surf = read_bem_surfaces(fname_bem_3, patch_stats=True)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=False)
     write_bem_surfaces(temp_bem, surf[0])
-    with pytest.deprecated_call(match='overwrite'):
+    with pytest.raises(IOError, match='exists'):
         write_bem_surfaces(temp_bem, surf[0])
+    write_bem_surfaces(temp_bem, surf[0], overwrite=True)
     if ext == 'h5':
         with h5py.File(temp_bem, 'r'):  # make sure it's valid
             pass

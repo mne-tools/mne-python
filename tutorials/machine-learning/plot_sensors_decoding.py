@@ -16,7 +16,7 @@ learning API of the scikit-learn package.
 Each estimator implements ``fit``, ``transform``, ``fit_transform``, and
 (optionally) ``inverse_transform`` methods. For more details on this design,
 visit scikit-learn_. For additional theoretical insights into the decoding
-framework in MNE, see [1]_.
+framework in MNE :footcite:`KingEtAl2018`.
 
 For ease of comprehension, we will denote instantiations of the class using
 the same name as the class but in small caps instead of camel cases.
@@ -61,6 +61,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=('grad', 'eog'), baseline=(None, 0.), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6), decim=10)
 epochs.pick_types(meg=True, exclude='bads')  # remove stim and EOG
+del raw
 
 X = epochs.get_data()  # MEG signals: n_epochs, n_meg_channels, n_times
 y = epochs.events[:, 2]  # target: Audio left or right
@@ -147,7 +148,7 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
 # :class:`mne.decoding.CSP` is a technique to analyze multichannel data based
-# on recordings from two classes [2]_ (see also
+# on recordings from two classes :footcite:`Koles1991` (see also
 # https://en.wikipedia.org/wiki/Common_spatial_pattern).
 #
 # Let :math:`X \in R^{C\times T}` be a segment of data with
@@ -205,8 +206,8 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 ###############################################################################
 # Source power comodulation (SPoC)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Source Power Comodulation (:class:`mne.decoding.SPoC`) [3]_
-# identifies the composition of
+# Source Power Comodulation (:class:`mne.decoding.SPoC`)
+# :footcite:`DahneEtAl2014` identifies the composition of
 # orthogonal spatial filters that maximally correlate with a continuous target.
 #
 # SPoC can be seen as an extension of the CSP where the target is driven by a
@@ -221,8 +222,8 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 # xDAWN
 # ^^^^^
 # :class:`mne.preprocessing.Xdawn` is a spatial filtering method designed to
-# improve the signal to signal + noise ratio (SSNR) of the ERP responses [4]_.
-# Xdawn was originally
+# improve the signal to signal + noise ratio (SSNR) of the ERP responses
+# :footcite:`RivetEtAl2009`. Xdawn was originally
 # designed for P300 evoked potential by enhancing the target response with
 # respect to the non-target response. The implementation in MNE-Python is a
 # generalization to any type of ERP.
@@ -235,7 +236,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 # Effect-matched spatial filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The result of :class:`mne.decoding.EMS` is a spatial filter at each time
-# point and a corresponding time course [5]_.
+# point and a corresponding time course :footcite:`SchurgerEtAl2013`.
 # Intuitively, the result gives the similarity between the filter at
 # each time point and the data vector (sensors) at that time point.
 #
@@ -347,7 +348,8 @@ evoked_time_gen.plot_joint(times=np.arange(0., .500, .100), title='patterns',
 # convenience, here, we refer to it as different tasks. If :math:`X`
 # corresponds to epochs data then the last dimension is time.
 #
-# This runs the analysis used in [6]_ and further detailed in [7]_:
+# This runs the analysis used in :footcite:`KingEtAl2014` and further detailed
+# in :footcite:`KingDehaene2014`:
 
 # define the Temporal generalization object
 time_gen = GeneralizingEstimator(clf, n_jobs=1, scoring='roc_auc',
@@ -388,12 +390,17 @@ plt.colorbar(im, ax=ax)
 # project these to source space. For example, using our ``evoked_time_gen``
 # from before:
 
+cov = mne.compute_covariance(epochs, tmax=0.)
+del epochs
 fwd = mne.read_forward_solution(
     data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
-cov = mne.compute_covariance(epochs, tmax=0.)
 inv = mne.minimum_norm.make_inverse_operator(
     evoked_time_gen.info, fwd, cov, loose=0.)
 stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1. / 9., 'dSPM')
+del fwd, inv
+
+###############################################################################
+# And this can be visualized using :meth:`stc.plot <mne.SourceEstimate.plot>`:
 brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
                  subjects_dir=subjects_dir)
 
@@ -419,29 +426,4 @@ brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
 #
 # References
 # ==========
-# .. [1] Jean-Rémi King et al. (2018) "Encoding and Decoding Neuronal Dynamics:
-#        Methodological Framework to Uncover the Algorithms of Cognition",
-#        2018. The Cognitive Neurosciences VI.
-#        https://hal.archives-ouvertes.fr/hal-01848442/
-# .. [2] Zoltan J. Koles. The quantitative extraction and topographic mapping
-#        of the abnormal components in the clinical EEG. Electroencephalography
-#        and Clinical Neurophysiology, 79(6):440--447, December 1991.
-# .. [3] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M.,
-#        Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for
-#        relating the amplitude of neuronal oscillations to behaviorally
-#        relevant parameters. NeuroImage, 86, 111-122.
-# .. [4] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-#        algorithm to enhance evoked potentials: application to
-#        brain-computer interface. Biomedical Engineering, IEEE Transactions
-#        on, 56(8), 2035-2043.
-# .. [5] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-#        multi-sensor data to a single time course that reveals experimental
-#        effects", BMC Neuroscience 2013, 14:122
-# .. [6] Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-#        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
-#        detection of unexpected sounds", PLOS ONE, 2013,
-#        https://www.ncbi.nlm.nih.gov/pubmed/24475052
-# .. [7] King & Dehaene (2014) 'Characterizing the dynamics of mental
-#        representations: the temporal generalization method', Trends In
-#        Cognitive Sciences, 18(4), 203-210.
-#        https://www.ncbi.nlm.nih.gov/pubmed/24593982
+# .. footbibliography::

@@ -332,8 +332,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         An instance of Raw.
     %(picks_header)s
         See `Epochs` docstring.
-    reject : dict | None
-        See `Epochs` docstring.
+    %(reject_epochs)s
     flat : dict | None
         See `Epochs` docstring.
     decim : int
@@ -637,12 +636,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     @verbose
-    def apply_baseline(self, baseline=(None, 0), verbose=None):
+    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
         """Baseline correct epochs.
 
         Parameters
         ----------
-        %(baseline)s
+        %(baseline_epochs)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
         %(verbose_meth)s
@@ -654,12 +653,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Baseline correction can be done multiple times.
+        Baseline correction can be done multiple times, but can never be
+        reverted once the data has been loaded.
 
         .. versionadded:: 0.10.0
         """
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
         if self.preload:
+            if self.baseline is not None and baseline is None:
+                raise RuntimeError('You cannot remove baseline correction '
+                                   'from preloaded data once it has been '
+                                   'applied.')
             picks = _pick_data_channels(self.info, exclude=[],
                                         with_ref_meg=True)
             picks_aux = _pick_aux_channels(self.info, exclude=[])
@@ -1091,7 +1095,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
-    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
+    def plot_psd_topomap(self, bands=None, tmin=None,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
                          cmap=None, agg_fun=None, dB=True,
@@ -1099,7 +1103,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          outlines='head', axes=None, show=True,
                          sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(
-            self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
+            self, bands=bands, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
             cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
@@ -1131,11 +1135,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        reject : dict | str | None
-            Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-            If reject is None then no rejection is done. If 'existing',
-            then the rejection parameters set at instantiation are used.
+        %(reject_drop_bad)s
         flat : dict | str | None
             Rejection parameters based on flatness of signal.
             Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
@@ -1472,8 +1472,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s | %s>' % (class_name, s)
 
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop a time interval from the epochs.
 
         Parameters
@@ -1483,6 +1483,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1931,7 +1932,7 @@ class Epochs(BaseEpochs):
         Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
         End time after event. If nothing is provided, defaults to 0.5.
-    %(baseline)s
+    %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
         time point zero.
     %(picks_all)s
@@ -1939,32 +1940,13 @@ class Epochs(BaseEpochs):
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
+    %(reject_epochs)s
     flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     %(decim)s
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
@@ -2171,17 +2153,7 @@ class EpochsArray(BaseEpochs):
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
-
+    %(reject_epochs)s
     flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
@@ -2193,7 +2165,7 @@ class EpochsArray(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    %(baseline)s
+    %(baseline_epochs)s
         Defaults to ``None``, i.e. no baseline correction.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
@@ -2614,17 +2586,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
         The epochs filename to load. Filename should end with -epo.fif or
         -epo.fif.gz. If a file-like object is provided, preloading must be
         used.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -2664,17 +2626,7 @@ class EpochsFIF(BaseEpochs):
     fname : str | file-like
         The name of the file, which should end with -epo.fif or -epo.fif.gz. If
         a file-like object is provided, preloading must be used.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -3241,7 +3193,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 @verbose
 def make_fixed_length_epochs(raw, duration=1., preload=False,
-                             reject_by_annotation=True, verbose=None):
+                             reject_by_annotation=True, proj=True,
+                             verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3254,6 +3207,9 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.21.0
+    %(proj_epochs)s
+
+        .. versionadded:: 0.22.0
     %(verbose)s
 
     Returns
@@ -3269,4 +3225,5 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     delta = 1. / raw.info['sfreq']
     return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
                   baseline=None, preload=preload,
-                  reject_by_annotation=reject_by_annotation, verbose=verbose)
+                  reject_by_annotation=reject_by_annotation, proj=proj,
+                  verbose=verbose)

@@ -157,7 +157,7 @@ def test_check_option():
 
     # Check error message for invalid value
     msg = ("Invalid value for the 'option' parameter. Allowed values are "
-           "'valid', 'good' and 'ok', but got 'bad' instead.")
+           "'valid', 'good', and 'ok', but got 'bad' instead.")
     with pytest.raises(ValueError, match=msg):
         assert _check_option('option', 'bad', allowed_values)
 

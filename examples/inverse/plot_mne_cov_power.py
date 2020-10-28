@@ -5,7 +5,14 @@ Compute source power estimate by projecting the covariance with MNE
 
 We can apply the MNE inverse operator to a covariance matrix to obtain
 an estimate of source power. This is computationally more efficient than first
-estimating the source timecourses and then computing their power.
+estimating the source timecourses and then computing their power. This
+code is based on the code from :footcite:`Sabbagh2020` and has been useful to
+correct for individual field spread using source localization in the context of
+predictive modeling.
+
+References
+----------
+.. footbibliography::
 """
 # Author: Denis A. Engemann <denis-alexander.engemann@inria.fr>
 #         Luke Bloy <luke.bloy@gmail.com>

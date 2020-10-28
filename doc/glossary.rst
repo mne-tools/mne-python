@@ -192,6 +192,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         estimate activity for a given source while suppressing cross-talk from
         other regions, see :func:`mne.beamformer.make_lcmv`.
 
+    maximum intensity projection
+        A method of displaying activity within some volume by, for each pixel,
+        finding the maximum value along vector from the viewer to the pixel
+        (i.e., along the vector pependicular to the view plane).
+
     minimum-norm estimation
         Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed
         map of activation on a :term:`source space`, usually on a cortical surface.
@@ -289,8 +294,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
     whitening
         A linear operation that transforms data with a known covariance
         structure into "whitened data" which has a covariance structure that
-        is the identity matrix (i.e., it creates virtual channels that are
-        uncorrelated and have unit variance).
+        is the identity matrix. In other words it creates virtual channels that
+        are uncorrelated and have unit variance. This is also known as a
+        sphering transformation.
 
         The term "whitening" comes from the fact that light with a flat
         frequency spectrum in the visible range is white, whereas

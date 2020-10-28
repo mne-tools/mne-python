@@ -8,7 +8,7 @@ import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
 from mne import create_info
-from mne.fixes import fft, fftfreq, nullcontext
+from mne.fixes import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
@@ -224,16 +224,12 @@ def test_notch_filters(method, filter_length, line_freq, tol):
     a += np.sum([np.sin(2 * np.pi * f * t) for f in line_freqs], axis=0)
 
     # only allow None line_freqs with 'spectrum_fit' mode
-    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'fft')
-    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'iir')
-    if method == 'spectrum_fit' and filter_length == 'auto':
-        ctx = pytest.deprecated_call(match='will change to 10.')
-    else:
-        ctx = nullcontext()
+    for kind in ('fir', 'iir'):
+        with pytest.raises(ValueError, match='freqs=None can only be used wi'):
+            notch_filter(a, sfreq, None, kind)
     with catch_logging() as log_file:
-        with ctx:
-            b = notch_filter(a, sfreq, line_freq, filter_length,
-                             method=method, verbose=True)
+        b = notch_filter(a, sfreq, line_freq, filter_length,
+                         method=method, verbose=True)
     if line_freq is None:
         out = [line.strip().split(':')[0]
                for line in log_file.getvalue().split('\n')

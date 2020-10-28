@@ -485,6 +485,16 @@ def test_check_consistency():
         if key == 'ch_name':
             info['ch_names'][idx] = old
 
+    # bad channel entries
+    info2 = info.copy()
+    info2['chs'][0]['foo'] = 'bar'
+    with pytest.raises(KeyError, match='key errantly present'):
+        info2._check_consistency()
+    info2 = info.copy()
+    del info2['chs'][0]['loc']
+    with pytest.raises(KeyError, match='key missing'):
+        info2._check_consistency()
+
 
 def _test_anonymize_info(base_info):
     """Test that sensitive information can be anonymized."""

@@ -161,8 +161,7 @@ def _assert_sinusoid(data, t, freq, amp, msg):
 ])
 def test_ricoh_data(tmpdir, fname, desc):
     """Test reading channel names and dig information from Ricoh systems."""
-    with pytest.deprecated_call(match='standardize_names'):
-        raw = read_raw_kit(fname)
+    raw = read_raw_kit(fname, standardize_names=True)
     assert raw.ch_names[0] == 'MEG 001'
     raw = read_raw_kit(fname, standardize_names=False, verbose='debug')
     assert raw.info['description'] == desc

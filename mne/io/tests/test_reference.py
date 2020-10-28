@@ -22,7 +22,10 @@ from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, catch_logging
+
+base_dir = op.join(op.dirname(__file__), 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
@@ -232,13 +235,22 @@ def test_set_eeg_reference():
     with pytest.raises(ValueError, match='supported for ref_channels="averag'):
         set_eeg_reference(raw, ['EEG 001'], True, True)
 
+
+@pytest.mark.parametrize('ch_type', ('auto', 'ecog'))
+def test_set_eeg_reference_ch_type(ch_type):
+    """Test setting EEG reference for ECoG."""
     # gh-6454
     rng = np.random.RandomState(0)
     data = rng.randn(3, 1000)
     raw = RawArray(data, create_info(3, 1000., ['ecog'] * 2 + ['misc']))
-    reref, ref_data = set_eeg_reference(raw.copy())
+    with catch_logging() as log:
+        reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
+                                            verbose=True)
+    assert 'Applying a custom ECoG' in log.getvalue()
     assert reref.info['custom_ref_applied']  # gh-7350
     _test_reference(raw, reref, ref_data, ['0', '1'])
+    with pytest.raises(ValueError, match='No channels supplied'):
+        set_eeg_reference(raw, ch_type='eeg')
 
 
 def test_set_eeg_reference_rest():
@@ -305,9 +317,12 @@ def test_set_bipolar_reference():
     raw = read_raw_fif(fif_fname, preload=True)
     raw.apply_proj()
 
-    reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
-                                  {'kind': FIFF.FIFFV_EOG_CH,
-                                   'extra': 'some extra value'})
+    ch_info = {'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'}
+    with pytest.raises(KeyError, match='key errantly present'):
+        set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
+    ch_info.pop('extra')
+    reref = set_bipolar_reference(
+        raw, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
     assert (reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
@@ -333,7 +348,6 @@ def test_set_bipolar_reference():
             assert_equal(bp_info[key], FIFF.FIFFV_EOG_CH)
         else:
             assert_equal(bp_info[key], an_info[key])
-    assert_equal(bp_info['extra'], 'some extra value')
 
     # Minimalist call
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
@@ -352,8 +366,8 @@ def test_set_bipolar_reference():
         ['EEG 001', 'EEG 003'],
         ['EEG 002', 'EEG 004'],
         ['bipolar1', 'bipolar2'],
-        [{'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'},
-         {'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'}],
+        [{'kind': FIFF.FIFFV_EOG_CH},
+         {'kind': FIFF.FIFFV_EOG_CH}],
     )
     a = raw.copy().pick_channels(['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
     a = np.array([a._data[0, :] - a._data[1, :],
@@ -544,9 +558,33 @@ def test_add_reference():
                        evoked_ref.data[picks_eeg, :])
 
     # Test invalid inputs
-    raw_np = read_raw_fif(fif_fname, preload=False)
-    pytest.raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
-    pytest.raises(ValueError, add_reference_channels, raw, 1)
+    raw = read_raw_fif(fif_fname, preload=False)
+    with pytest.raises(RuntimeError, match='loaded'):
+        add_reference_channels(raw, ['Ref'])
+    raw.load_data()
+    with pytest.raises(ValueError, match='Channel.*already.*'):
+        add_reference_channels(raw, raw.ch_names[:1])
+    with pytest.raises(TypeError, match='instance of'):
+        add_reference_channels(raw, 1)
+
+
+def test_add_reorder():
+    """Test that a reference channel can be added and then data reordered."""
+    # gh-8300
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj().pick('eeg')
+    assert len(raw.ch_names) == 60
+    with pytest.raises(RuntimeError, match='preload'):
+        add_reference_channels(raw, ['EEG 000'], copy=False)
+    raw.load_data()
+    add_reference_channels(raw, ['EEG 000'], copy=False)
+    data = raw.get_data()
+    assert_array_equal(data[-1], 0.)
+    assert raw.ch_names[-1] == 'EEG 000'
+    raw.reorder_channels(raw.ch_names[-1:] + raw.ch_names[:-1])
+    assert raw.ch_names == ['EEG %03d' % ii for ii in range(61)]
+    data_new = raw.get_data()
+    data_new = np.concatenate([data_new[1:], data_new[:1]])
+    assert_allclose(data, data_new)
 
 
 def test_bipolar_combinations():

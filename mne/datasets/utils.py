@@ -240,7 +240,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.106', misc='0.6')
+    releases = dict(testing='0.108', misc='0.7')
     # And also update the "md5_hashes['testing']" variable below.
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
@@ -258,7 +258,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
         sample='https://osf.io/86qa2/download?version=5',
-        somato='https://osf.io/tp4sg/download?version=6',
+        somato='https://osf.io/tp4sg/download?version=7',
         spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
@@ -322,11 +322,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='e00808c3b05123059e2cf49ff276e919',
+        misc='2b2f2fec9d1197ed459117db1c6341ee',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
-        somato='ea825966c0a1e9b2f84e3826c5500161',
+        somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='d67eff9e1089f15b69f88931dbbf35df',
+        testing='57a21229ebb11e3c470b5d0fdb80642f',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -619,7 +619,8 @@ def _download_all_example_data(verbose=True):
 def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     """Fetch the modified subdivided aparc parcellation.
 
-    This will download and install the subdivided aparc parcellation [1]_ files for
+    This will download and install the subdivided aparc parcellation
+    :footcite:'KhanEtAl2018' files for
     FreeSurfer's fsaverage to the specified directory.
 
     Parameters
@@ -631,10 +632,8 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     References
     ----------
-    .. [1] Khan S et al. (2018) Maturation trajectories of cortical
-           resting-state networks depend on the mediating frequency band.
-           Neuroimage 174 57-68.
-    """  # noqa: E501
+    .. footbibliography::
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     urls = dict(lh='https://osf.io/p92yb/download',

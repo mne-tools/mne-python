@@ -3,7 +3,8 @@
 Compute Phase Slope Index (PSI) in source space for a visual stimulus
 =====================================================================
 
-This example demonstrates how the phase slope index (PSI) [1]_ can be computed
+This example demonstrates how the phase slope index (PSI)
+:footcite:`NolteEtAl2008` can be computed
 in source space based on single trial dSPM source estimates. In addition,
 the example shows advanced usage of the connectivity estimation routines
 by first extracting a label time course for each epoch and then combining
@@ -13,12 +14,6 @@ connectivity.
 The result clearly shows how the activity in the visual label precedes more
 widespread activity (as a postivive PSI means the label time course is
 leading).
-
-References
-----------
-.. [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
-       Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
-       pp. 1-4, Jun. 2008.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -115,3 +110,8 @@ brain = psi_stc.plot(surface='inflated', hemi='lh',
                      clim=dict(kind='percent', pos_lims=(95, 97.5, 100)))
 brain.show_view('medial')
 brain.add_label(fname_label, color='green', alpha=0.7)
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

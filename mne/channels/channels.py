@@ -677,7 +677,7 @@ class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
 
     @verbose
-    def pick_types(self, meg=None, eeg=False, stim=False, eog=False,
+    def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
@@ -942,8 +942,10 @@ class UpdateChannelsMixin(object):
 
         pick_info(self.info, idx, copy=False)
 
-        if getattr(self, '_projector', None) is not None:
-            self._projector = self._projector[idx][:, idx]
+        for key in ('_comp', '_projector'):
+            mat = getattr(self, key, None)
+            if mat is not None:
+                setattr(self, key, mat[idx][:, idx])
 
         # All others (Evoked, Epochs, Raw) have chs axis=-2
         axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2

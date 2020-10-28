@@ -536,7 +536,8 @@ def _check_depth(depth, kind='depth_mne'):
 def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
-    Raises a ValueError with a readable error message if the value was invalid.
+    Return the value if it is valid, otherwise raise a ValueError with a
+    readable error message.
 
     Parameters
     ----------
@@ -553,10 +554,15 @@ def _check_option(parameter, value, allowed_values, extra=''):
     Raises
     ------
     ValueError
-        When the value of the parameter was not one of the valid options.
+        When the value of the parameter is not one of the valid options.
+
+    Returns
+    -------
+    value : any type
+        The value if it is valid.
     """
     if value in allowed_values:
-        return True
+        return value
 
     # Prepare a nice error message for the user
     extra = ' ' + extra if extra else extra
@@ -568,7 +574,7 @@ def _check_option(parameter, value, allowed_values, extra=''):
     else:
         options = 'Allowed values are '
         options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
-        options += f' and {repr(allowed_values[-1])}'
+        options += f', and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value, extra=extra))
 
@@ -672,9 +678,6 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
     if sphere.shape != (4,):
         raise ValueError('sphere must be float or 1D array of shape (4,), got '
                          'array-like of shape %s' % (sphere.shape,))
-    # 0.21 deprecation can just remove this conversion
-    if sphere_units is None:
-        sphere_units = 'mm'
     _check_option('sphere_units', sphere_units, ('m', 'mm'))
     if sphere_units == 'mm':
         sphere /= 1000.
@@ -702,7 +705,7 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _on_missing(on_missing, msg):
+def _on_missing(on_missing, msg, name='on_missing'):
     """Raise error or print warning with a message.
 
     Parameters
@@ -720,10 +723,10 @@ def _on_missing(on_missing, msg):
     ValueError
         When on_missing is 'raise'.
     """
-    _validate_type(on_missing, str, 'on_missing')
+    _validate_type(on_missing, str, name)
     on_missing = 'raise' if on_missing == 'error' else on_missing
     on_missing = 'warn' if on_missing == 'warning' else on_missing
-    _check_option('on_missing', on_missing, ['raise', 'warn', 'ignore'])
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
     if on_missing == 'raise':
         raise ValueError(msg)
     elif on_missing == 'warn':

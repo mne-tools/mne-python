@@ -9,6 +9,7 @@ import numpy as np
 from scipy import linalg
 
 from .constants import FIFF
+from .meas_info import _check_ch_keys
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .proj import setup_proj
 from .pick import pick_types, pick_channels, pick_channels_forward
@@ -163,13 +164,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
         Data with added EEG reference channels.
     """
     # Check to see that data is preloaded
-    if not inst.preload:
-        raise RuntimeError('Data needs to be preloaded.')
+    _check_preload(inst, 'add_reference_channels')
+    _validate_type(ref_channels, (list, tuple, str), 'ref_channels')
     if isinstance(ref_channels, str):
         ref_channels = [ref_channels]
-    elif not isinstance(ref_channels, list):
-        raise ValueError("`ref_channels` should be either str or list of str. "
-                         "%s was provided." % type(ref_channels))
     for ch in ref_channels:
         if ch in inst.info['ch_names']:
             raise ValueError("Channel %s already specified in inst." % ch)
@@ -238,8 +236,11 @@ def add_reference_channels(inst, ref_channels, copy=True):
         inst.info._update_redundant()
     if isinstance(inst, BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
+        for pi, picks in enumerate(inst._read_picks):
+            inst._read_picks[pi] = np.concatenate([picks, [np.max(picks) + 1]])
     inst.info._check_consistency()
-    set_eeg_reference(inst, ref_channels=ref_channels, copy=False)
+    set_eeg_reference(inst, ref_channels=ref_channels, copy=False,
+                      verbose=False)
     return inst
 
 
@@ -468,7 +469,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Merge specified and anode channel information dictionaries
     new_chs = []
-    for an, ci in zip(anode, ch_info):
+    for ci, (an, ch) in enumerate(zip(anode, ch_info)):
+        _check_ch_keys(ch, ci, name='ch_info', check_min=False)
         an_idx = inst.ch_names.index(an)
         this_chs = deepcopy(inst.info['chs'][an_idx])
 
@@ -476,7 +478,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         this_chs['loc'] = np.zeros(12)
         this_chs['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
 
-        this_chs.update(ci)
+        this_chs.update(ch)
         new_chs.append(this_chs)
 
     if copy:
