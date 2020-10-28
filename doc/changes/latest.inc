@@ -43,7 +43,7 @@ Bugs
 
 - Fix bug when merging fNIRS channels in :func:`mne.viz.plot_evoked_topomap` and related functions by `Robert Luke`_ (:gh:`8306`)
 
-- Fix bug where events could overflow when writing to FIF by `Eric Larson`_ (:gh:`8324`)
+- Fix bug where events could overflow when writing to FIF by `Eric Larson`_ (:gh:`8448`)
 
 - :func:`mne.io.read_raw_edf` now supports EDF files with invalid recording dates by `Clemens Brunner`_ (:gh:`8283`)
 
