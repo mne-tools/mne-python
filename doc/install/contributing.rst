@@ -539,11 +539,30 @@ Describe your changes in the changelog
 
 Include in your changeset a brief description of the change in the
 :doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`; this can be skipped
-for very minor changes like correcting typos in the documentation). Note that
-there are sections of the changelog for each release, and separate subsections
-for bugfixes, new features, and changes to the public API. It is usually best
-to wait to add a line to the changelog until your PR is finalized, to avoid
-merge conflicts (since the changelog is updated with almost every PR).
+for very minor changes like correcting typos in the documentation). The entry
+should follow the following patterns:
+
+.. code-block::
+
+    - Short description of the changes from one contributor (`Contributor Name`_: :gh:`0000`)
+    - Short description of the changes from several contributors (`Contributor Name`_, `Second Contributor`_, and `Third Contributor`_: :gh:`0000`)
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number.
+
+Somtimes, changes that shall appear as a single changelog entry are spread out
+across multiple PRs. In this case, simply name all relevant PRs, separated by
+commas:
+
+.. code-block::
+
+    - Short description of the changes from one contributor in multiple PRs (`Contributor Name`_: :gh:`0000`, :gh:`1111`)
+    - Short description of the changes from several contributors in multiple PRs (`Contributor Name`_, `Second Contributor`_, and `Third Contributor`_: :gh:`0000`, :gh:`1111`)
+
+Note that there are sections of the changelog for each release, and separate
+subsections for bugfixes, new features, and changes to the public API. It is
+usually best to wait to add a line to the changelog until your PR is finalized,
+to avoid merge conflicts (since the changelog is updated with almost every PR).
 
 
 Test locally before opening pull requests (PRs)
