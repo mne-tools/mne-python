@@ -291,7 +291,7 @@ def test_io_egi_crop_no_preload():
     assert_allclose(raw._data, raw_preload._data)
 
 
-@requires_version('mffpy', '0.5.5')
+@requires_version('mffpy', '0.5.6')
 @requires_testing_data
 @pytest.mark.parametrize('idx, cond, signals, bads', [
     (0, 'Category 1', egi_txt_evoked_cat1_fname,
