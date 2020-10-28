@@ -836,8 +836,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
+    max_alpha = 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
-        hemi_val = 1.
+        hemi_val = max_alpha
     alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
     for idx, this_skull in enumerate(skull):
         if isinstance(this_skull, dict):
@@ -864,7 +865,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         surfs[this_skull] = skull_surf
 
     if src is None and brain is False and len(skull) == 0 and not show_axes:
-        head_alpha = 1.0
+        head_alpha = max_alpha
     else:
         head_alpha = alphas[0]
 
@@ -950,7 +951,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             title = DEFAULTS["titles"][key] if key != 'fnirs' else 'fNIRS'
             if key != 'fnirs' or 'channels' in fnirs:
                 other_loc[key] = [
-                    info['chs'][pick]['loc'][:3] for pick in picks]
+                       info['chs'][pick]['loc'][:3] for pick in picks]
                 # deal with NaN
                 other_loc[key] = np.array([loc for loc in other_loc[key]
                                            if np.isfinite(loc).all()], float)
