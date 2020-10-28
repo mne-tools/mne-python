@@ -1539,6 +1539,35 @@ class Brain(object):
                                  f'{time_label_size}')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
+        from ...source_estimate import (
+            _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate,
+            _BaseVolSourceEstimate
+        )
+        if isinstance(array, _BaseSurfaceSourceEstimate):
+            stc = array
+            array = getattr(stc, hemi + '_data')
+            vertices = stc.vertices[0 if hemi == 'lh' else 1]
+        elif isinstance(array, _BaseMixedSourceEstimate):
+            stc = array
+            if hemi == 'vol':
+                stc_vol = stc.volume()
+                array = stc_vol.data
+                vertices = np.concatenate(stc_vol.vertices)
+            else:
+                stc_surf = stc.surface()
+                array = getattr(stc_surf, hemi + '_data')
+                vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
+        elif isinstance(array, _BaseVolSourceEstimate):
+            stc = array
+            if hemi == 'vol':
+                stc_vol = stc
+                array = stc_vol.data
+                vertices = np.concatenate(stc_vol.vertices)
+            else:
+                return
+        else:
+            stc = None
+
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
         self._data['vector_alpha'] = vector_alpha
@@ -3045,6 +3074,8 @@ class Brain(object):
         %(verbose_meth)s
         """
         # XXX fmid/transparent/center not used, this is a bug
+        if 'ctable' not in self._data:
+            return
         lut_lst = self._data['ctable']
         n_col = len(lut_lst)
 
