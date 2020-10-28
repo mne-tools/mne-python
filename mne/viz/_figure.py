@@ -695,6 +695,7 @@ class MNEBrowseFigure(MNEFigure):
         # fig.lasso.alpha_other = 0.3
         # fig.lasso.linewidth_selected = 3
         # fig.lasso.style_sensors(inds)
+        # plt_show(fig=fig)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
@@ -728,6 +729,7 @@ class MNEBrowseFigure(MNEFigure):
         kwargs = dict(va='top', linespacing=1.5, usetex=False)
         ax.text(0.42, 1, keys, ma='right', ha='right', **kwargs)
         ax.text(0.42, 1, vals, ma='left', ha='left', **kwargs)
+        plt_show(fig=fig)
 
     def _toggle_help_fig(self, event):
         """Show/hide the help dialog window."""
@@ -1173,6 +1175,7 @@ class MNEBrowseFigure(MNEFigure):
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
         fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
+        #plt_show(fig=fig)
 
     def _change_selection_vscroll(self, event):
         """Handle clicks on vertical scrollbar when using selections."""
@@ -1299,7 +1302,7 @@ class MNEBrowseFigure(MNEFigure):
         fig.mne.proj_checkboxes = checkboxes
         # show figure
         self.mne.fig_proj.canvas.draw()
-        plt_show(fig=self.mne.fig_proj, warn=False)
+        plt_show(fig=fig)
 
     def _toggle_proj_fig(self, event=None):
         """Show/hide the projectors dialog window."""

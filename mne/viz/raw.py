@@ -405,6 +405,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     fig.canvas.flush_events()
     fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
 
+    plt_show(show, block=block)
     return fig
 
 
