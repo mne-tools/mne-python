@@ -223,7 +223,7 @@ data *= 1e6
 mean = np.mean(data, axis=0)
 
 # make a figure
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(4.5, 3))
 
 # plot some fake EEG data
 ax.plot(times, mean)
@@ -243,6 +243,7 @@ axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 raw.copy().pick_channels(to_plot).plot_sensors(
     title="", axes=axins
 )
+plt.show()
 
 ###############################################################################
 # That looks nice. But the sensor dots are way too big for our taste.
@@ -264,3 +265,4 @@ sensor_dots = axins.collections[0]
 
 # Let's shrink the sensor dots to finish our figure.
 sensor_dots.set_sizes([1])
+plt.show()
