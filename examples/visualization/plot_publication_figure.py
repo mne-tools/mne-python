@@ -225,15 +225,19 @@ mean = np.mean(data, axis=0)
 # make a figure
 fig, ax = plt.subplots(figsize=(4.5, 3))
 
-# plot some fake EEG data
+# plot some EEG data
 ax.plot(times, mean)
 ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
 
 ###############################################################################
 # So far so good. Now let's add the smaller figure within the figure to show
 # exactly, which sensors we used to make the timecourse.
-
 # For that, we use an "inset_axes" that we plot into our existing axes
+
+# recreate the figure (only necessary for our documentation server)
+fig, ax = plt.subplots(figsize=(4.5, 3))
+ax.plot(times, mean)
+ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
 axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 
 # The head outline with the sensor positions can be plotted using the
@@ -243,7 +247,6 @@ axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 raw.copy().pick_channels(to_plot).plot_sensors(
     title="", axes=axins
 )
-plt.show()
 
 ###############################################################################
 # That looks nice. But the sensor dots are way too big for our taste.
@@ -263,6 +266,11 @@ print(axins.collections)
 # experimentation.
 sensor_dots = axins.collections[0]
 
-# Let's shrink the sensor dots to finish our figure.
+# Recreate the figure once more, then shrink the sensor dots
+# to finish our figure.
+fig, ax = plt.subplots(figsize=(4.5, 3))
+ax.plot(times, mean)
+ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
+axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
+raw.pick_channels(to_plot).plot_sensors(title="", axes=axins)
 sensor_dots.set_sizes([1])
-plt.show()
