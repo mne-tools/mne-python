@@ -244,6 +244,9 @@ axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 # MNE :class:`mne.io.raw` object that is the origin of our data.
 # Specifically, that object already contains all the sensor positions,
 # and we can plot them using the ``plot_sensors`` method.
+
+# pick_channels edits the raw object in place, so we'll make a copy here
+# so that our raw object stays intact for potential later analysis
 raw.copy().pick_channels(to_plot).plot_sensors(
     title="", axes=axins
 )
