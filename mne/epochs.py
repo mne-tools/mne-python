@@ -577,6 +577,19 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         assert all(isinstance(log, tuple) for log in self.drop_log)
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
 
+    def reset_drop_log_selection(self):
+        """Reset the drop_log and selection entries.
+
+        This method will simplify ``self.drop_log`` and ``self.selection``
+        so that they are meaningless (tuple of empty tuples and increasing
+        integers, respectively). This can be useful when concatenating
+        many Epochs instances, as ``drop_log`` can accumulate many entries
+        which can become problematic when saving.
+        """
+        self.selection = np.arange(len(self.events))
+        self.drop_log = (tuple(),) * len(self.events)
+        self._check_consistency()
+
     def load_data(self):
         """Load the data if not already preloaded.
 
@@ -1614,13 +1627,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # check for file existence
         _check_fname(fname, overwrite)
 
-        split_size = _get_split_size(split_size)
+        split_size_bytes = _get_split_size(split_size)
 
         _check_option('fmt', fmt, ['single', 'double'])
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad()
+        # total_size tracks sizes that get split
+        # over_size tracks overhead (tags, things that get written to each)
         if len(self) == 0:
             warn('Saving epochs with no data')
             total_size = 0
@@ -1630,37 +1645,69 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             assert d.dtype in ('>f8', '<f8', '>c16', '<c16')
             total_size = d.nbytes * len(self)
         self._check_consistency()
+        over_size = 0
         if fmt == "single":
             total_size //= 2  # 64bit data converted to 32bit before writing.
-        total_size += 32  # FIF tags
+        over_size += 32  # FIF tags
         # Account for all the other things we write, too
         # 1. meas_id block plus main epochs block
-        total_size += 132
+        over_size += 132
         # 2. measurement info (likely slight overestimate, but okay)
-        total_size += object_size(self.info) + 16 * len(self.info)
+        over_size += object_size(self.info) + 16 * len(self.info)
         # 3. events and event_id in its own block
-        total_size += (self.events.size * 4 +
-                       len(_event_id_string(self.event_id)) + 72)
+        total_size += self.events.size * 4
+        over_size += len(_event_id_string(self.event_id)) + 72
         # 4. Metadata in a block of its own
         if self.metadata is not None:
-            total_size += len(_prepare_write_metadata(self.metadata)) + 56
+            total_size += len(_prepare_write_metadata(self.metadata))
+        over_size += 56
         # 5. first sample, last sample, baseline
-        total_size += 40 + 40 * (self.baseline is not None)
-        # 6. drop log
-        total_size += len(json.dumps(self.drop_log)) + 16
+        over_size += 40 * (self.baseline is not None) + 40
+        # 6. drop log: gets written to each, with IGNORE for ones that are
+        #    not part of it. So make a fake one with all having entries.
+        drop_size = len(json.dumps(self.drop_log)) + 16
+        drop_size += 8 * (len(self.selection) - 1)  # worst case: all but one
+        over_size += drop_size
         # 7. reject params
         reject_params = _pack_reject_params(self)
         if reject_params:
-            total_size += len(json.dumps(reject_params)) + 16
+            over_size += len(json.dumps(reject_params)) + 16
         # 8. selection
-        total_size += self.selection.size * 4 + 16
+        total_size += self.selection.size * 4
+        over_size += 16
         # 9. end of file tags
-        total_size += _NEXT_FILE_BUFFER
+        over_size += _NEXT_FILE_BUFFER
+        logger.debug(f'    Overhead size:   {str(over_size).rjust(15)}')
+        logger.debug(f'    Splittable size: {str(total_size).rjust(15)}')
+        logger.debug(f'    Split size:      {str(split_size_bytes).rjust(15)}')
+        # need at least one per
+        n_epochs = len(self)
+        n_per = total_size // n_epochs if n_epochs else 0
+        min_size = n_per + over_size
+        if split_size_bytes < min_size:
+            raise ValueError(
+                f'The split size {split_size} is too small to safely write '
+                'the epochs contents, minimum split size is '
+                f'{sizeof_fmt(min_size)} ({min_size} bytes)')
 
         # This is like max(int(ceil(total_size / split_size)), 1) but cleaner
-        n_parts = (total_size - 1) // split_size + 1
-        assert n_parts >= 1
-        epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
+        n_parts = max(
+            (total_size - 1) // (split_size_bytes - over_size) + 1, 1)
+        assert n_parts >= 1, n_parts
+        if n_parts > 1:
+            logger.info(f'Splitting into {n_parts} parts')
+            if n_parts > 100:  # This must be an error
+                raise ValueError(
+                    f'Split size {split_size} would result in writing '
+                    f'{n_parts} files')
+
+        if len(self.drop_log) > 100000:
+            warn(f'epochs.drop_log contains {len(self.drop_log)} entries '
+                 f'which will incur up to a {sizeof_fmt(drop_size)} writing '
+                 f'overhead (per split file), consider using '
+                 'epochs.reset_drop_log_selection() prior to writing')
+
+        epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
@@ -2521,7 +2568,9 @@ def _read_one_epoch_file(f, tree, preload):
                 selection = np.array(tag.data)
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 tag = read_tag(fid, pos)
-                drop_log = tuple(tuple(x) for x in json.loads(tag.data))
+                drop_log = tag.data
+                drop_log = json.loads(drop_log)
+                drop_log = tuple(tuple(x) for x in drop_log)
             elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
                 tag = read_tag(fid, pos)
                 reject_params = json.loads(tag.data)
