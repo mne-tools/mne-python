@@ -2114,6 +2114,10 @@ class Brain(object):
         from ...label import read_labels_from_annot
         if not self.show_traces:
             return
+        # volumes are not supported
+        if ('src' in self._data and
+                self._data['src'].kind in ['volume', 'mixed']):
+            return
         self.traces_mode = 'label'
 
         if self.mpl_canvas is None:
