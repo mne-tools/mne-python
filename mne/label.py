@@ -2158,7 +2158,9 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
     subject : str | None
         The subject for which to create the STC.
     %(eltc_src)s
-        Only used if the values come from a volumetric source space.
+        Can be omitted if using a surface source space, in which case
+        the label vertices will determine the output STC vertices.
+        Required if using a volumetric source space.
 
         .. versionadded:: 0.22
     %(verbose)s
@@ -2185,25 +2187,27 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
         raise ValueError('values must have 1 or 2 dimensions, got %s'
                          % (values.ndim,))
     _validate_type(src, (SourceSpaces, None))
-    kind = getattr(src, 'kind', 'surface')  # src can be None
-    _check_option('source space kind', kind, ('surface', 'volume'))
-    if kind == 'surface':
+    if src is None:
         data, vertices = _labels_to_stc_surf(
             labels, values, tmin, tstep, subject)
         klass = SourceEstimate
     else:
-        assert kind == 'volume'
+        kind = src.kind
+        _check_option('source space kind', kind, ('surface', 'volume'))
+        if kind == 'volume':
+            klass = VolSourceEstimate
+        else:
+            klass = SourceEstimate
         # Easiest way is to get a dot-able operator and use it
         vertices = [s['vertno'].copy() for s in src]
-        stc = VolSourceEstimate(
+        stc = klass(
             np.eye(sum(len(v) for v in vertices)), vertices, 0, 1, subject)
         label_op = extract_label_time_course(
-            stc, labels, src, allow_empty=True)
+            stc, labels, src=src, mode='mean', allow_empty=True)
         _check_values_labels(values, label_op.shape[0])
         rev_op = np.zeros(label_op.shape[::-1])
         rev_op[np.arange(label_op.shape[1]), np.argmax(label_op, axis=0)] = 1.
         data = rev_op @ values
-        klass = VolSourceEstimate
     return klass(data, vertices, tmin, tstep, subject, verbose)
 
 
