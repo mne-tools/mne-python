@@ -11,6 +11,7 @@ a figure closer to publication-ready.
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -18,7 +19,8 @@ import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable, ImageGrid
+from mpl_toolkits.axes_grid1 import (make_axes_locatable, ImageGrid,
+                                     inset_locator)
 
 import mne
 
@@ -111,7 +113,7 @@ plt.rcParams.update({
 
 # sphinx_gallery_thumbnail_number = 4
 # figsize unit is inches
-fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(4.5, 3.),
+fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(6.5, 4.),
                          gridspec_kw=dict(height_ratios=[3, 4]))
 
 # alternate way #1: using subplot2grid
@@ -165,3 +167,7 @@ fig.subplots_adjust(
 for ax, label in zip(axes, 'AB'):
     ax.text(0.03, ax.get_position().ymax, label, transform=fig.transFigure,
             fontsize=12, fontweight='bold', va='top', ha='left')
+
+# Add an inset plot showing the montage
+axins = inset_locator.inset_axes(axes[0], width="30%", height="30%", loc=2)
+evoked.plot_sensors(title="", axes=axins)
