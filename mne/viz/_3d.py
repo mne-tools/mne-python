@@ -593,6 +593,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     if isinstance(surfaces, str):
         surfaces = [surfaces]
+        user_alpha = {}
+    if isinstance(surfaces, dict):
+        user_alpha = surfaces
+    else:
+        user_alpha = {}
     surfaces = list(surfaces)
     for s in surfaces:
         _validate_type(s, "str", "all entries in surfaces")
@@ -813,6 +818,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     else:  # exactly 1
         brain = brain[0]
         surfaces.pop(surfaces.index(brain))
+        if brain in user_alpha:
+            user_alpha['lh'] = user_alpha['rh'] = user_alpha.pop(brain)
         brain = 'pial' if brain == 'brain' else brain
         if is_sphere:
             if len(bem['layers']) > 0:
@@ -836,7 +843,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
-    max_alpha = 0.75
+    max_alpha = 1.0 if len(other_picks['seeg']) == 0 else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = max_alpha
     alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
@@ -950,7 +957,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if other_bools[key] and len(picks):
             title = DEFAULTS["titles"][key] if key != 'fnirs' else 'fNIRS'
             if key != 'fnirs' or 'channels' in fnirs:
-                other_loc[key] = [info['chs'][pick]['loc'][:3] for pick in picks]
+                other_loc[key] = [
+                    info['chs'][pick]['loc'][:3] for pick in picks
+                ]
                 # deal with NaN
                 other_loc[key] = np.array([loc for loc in other_loc[key]
                                            if np.isfinite(loc).all()], float)
@@ -985,6 +994,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
+    # replace default alphas with specified user_alpha
+    for k, v in user_alpha.items():
+        alphas[k] = v or alphas[k]
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
