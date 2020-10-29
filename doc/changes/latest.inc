@@ -99,9 +99,9 @@ Bugs
 
 - Fix bug in :func:`mne.set_bipolar_reference` where ``ch_info`` could contain invalid channel information keys by `Eric Larson`_
 
-- When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly (`Richard Höchenberger`_: :gh:`8434`)
+- When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly (:gh:`8434` by `Richard Höchenberger`_)
 
-- Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception (`Richard Höchenberger`_: :gh:`8435`)
+- Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception (:gh:`8435` by `Richard Höchenberger`_)
 
 - :meth:`mne.Report.parse_folder` will now correctly handle split FIFF files by `Richard Höchenberger`_ (:gh:`8486`, :gh:`8491`)
 
