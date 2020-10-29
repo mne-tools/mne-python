@@ -1539,35 +1539,10 @@ class Brain(object):
                                  f'{time_label_size}')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
-        from ...source_estimate import (
-            _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate,
-            _BaseVolSourceEstimate
-        )
-        if isinstance(array, _BaseSurfaceSourceEstimate):
-            stc = array
-            array = getattr(stc, hemi + '_data')
-            vertices = stc.vertices[0 if hemi == 'lh' else 1]
-        elif isinstance(array, _BaseMixedSourceEstimate):
-            stc = array
-            if hemi == 'vol':
-                stc_vol = stc.volume()
-                array = stc_vol.data
-                vertices = np.concatenate(stc_vol.vertices)
-            else:
-                stc_surf = stc.surface()
-                array = getattr(stc_surf, hemi + '_data')
-                vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
-        elif isinstance(array, _BaseVolSourceEstimate):
-            stc = array
-            if hemi == 'vol':
-                stc_vol = stc
-                array = stc_vol.data
-                vertices = np.concatenate(stc_vol.vertices)
-            else:
-                return
-        else:
-            stc = None
-
+        try:
+            stc, array, vertices = self._check_stc(hemi, array, vertices)
+        except ValueError:
+            return  # No data to add, skipping
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
         self._data['vector_alpha'] = vector_alpha
@@ -3006,6 +2981,36 @@ class Brain(object):
             return self._renderer.show()
         except RuntimeError:
             logger.info("No active/running renderer available.")
+
+    def _check_stc(self, hemi, array, vertices):
+        from ...source_estimate import (
+            _BaseSourceEstimate, _BaseSurfaceSourceEstimate,
+            _BaseMixedSourceEstimate, _BaseVolSourceEstimate
+        )
+        if isinstance(array, _BaseSourceEstimate):
+            stc = array
+            stc_surf = stc_vol = None
+            if isinstance(stc, _BaseSurfaceSourceEstimate):
+                stc_surf = stc
+            elif isinstance(stc, _BaseMixedSourceEstimate):
+                stc_surf = stc.surface() if hemi != 'vol' else None
+                stc_vol = stc.volume() if hemi == 'vol' else None
+            elif isinstance(stc, _BaseVolSourceEstimate):
+                stc_vol = stc if hemi == 'vol' else None
+            else:
+                raise TypeError("stc not supported")
+
+            if stc_surf is None and stc_vol is None:
+                raise ValueError("No data to be added")
+            if stc_surf is not None:
+                array = getattr(stc_surf, hemi + '_data')
+                vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
+            if stc_vol is not None:
+                array = stc_vol.data
+                vertices = np.concatenate(stc_vol.vertices)
+        else:
+            stc = None
+        return stc, array, vertices
 
     def _check_hemi(self, hemi, extras=()):
         """Check for safe single-hemi input, returns str."""
