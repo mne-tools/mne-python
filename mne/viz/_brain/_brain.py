@@ -1972,7 +1972,6 @@ class Brain(object):
                 self._data['time'], tc[0], label=orig_label.name,
                 color=color)
         else:
-            color = None
             line = None
 
         orig_color = color
