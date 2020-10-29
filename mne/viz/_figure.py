@@ -1175,7 +1175,6 @@ class MNEBrowseFigure(MNEFigure):
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
         fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
-        #plt_show(fig=fig)
 
     def _change_selection_vscroll(self, event):
         """Handle clicks on vertical scrollbar when using selections."""
