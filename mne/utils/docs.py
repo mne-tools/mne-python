@@ -1789,6 +1789,14 @@ docdict['baseline_evoked'] = """%(rescale_baseline)s
     2. Subtract this mean from the **entire** ``Evoked``.
 
 """ % docdict
+docdict['baseline_stc'] = """%(rescale_baseline)s
+    Correction is applied **to each source individually** in the following
+    way:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** source estimate data.
+
+""" % docdict
 docdict['baseline_report'] = """%(rescale_baseline)s
     Correction is applied in the following way **to each channel:**
 

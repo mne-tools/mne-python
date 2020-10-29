@@ -590,6 +590,30 @@ class _BaseSourceEstimate(TimeMixin):
             allow_empty=allow_empty, verbose=verbose)
 
     @verbose
+    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
+        """Baseline correct source estimate data.
+
+        Parameters
+        ----------
+        %(baseline_stc)s
+            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            time point zero.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The baseline-corrected source estimate object.
+
+        Notes
+        -----
+        Baseline correction can be done multiple times.
+
+        """
+        self.data = rescale(self.data, self.times, baseline, copy=False)
+        return self
+
+    @verbose
     def save(self, fname, ftype='h5', verbose=None):
         """Save the full source estimate to an HDF5 file.
 

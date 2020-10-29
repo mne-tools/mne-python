@@ -78,6 +78,15 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
+def test_stc_baseline_correction():
+    """Test baseline correction for source estimate objects."""
+    stc = mne.read_source_estimate(fname_stc)
+
+    # simple baseline correction
+    stc.apply_baseline()
+
+
+@testing.requires_testing_data
 def test_spatial_inter_hemi_adjacency():
     """Test spatial adjacency between hemispheres."""
     # trivial cases
