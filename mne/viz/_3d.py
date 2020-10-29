@@ -438,7 +438,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. Can be omitted if ``src`` is provided.
     %(subjects_dir)s
-    surfaces : str | list
+    surfaces : str | list | dict
         Surfaces to plot. Supported values:
 
         * scalp: one of 'head', 'outer_skin' (alias for 'head'),
@@ -447,6 +447,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
           'inner_skull')
         * brain: one of 'pial', 'white', 'inflated', or 'brain'
           (alias for 'pial').
+
+        Can be dict to specify alpha values for each surface. Use None
+        to specify default value. Specified values must be between 0 and 1.
+        Example:
+        ``surfaces={'brain': 0.4, 'outer_skull': 0.6, 'head': None}``
 
         Defaults to 'auto', which will look for a head surface and plot
         it if found.
@@ -593,9 +598,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     if isinstance(surfaces, str):
         surfaces = [surfaces]
-        user_alpha = {}
     if isinstance(surfaces, dict):
         user_alpha = surfaces
+        # check that alpha values contain floats between 0 and 1 or None
+        check_values = [x is None or (isinstance(x, (float, int)) and x >= 0
+                                      and x <= 1) for x in user_alpha.values()]
+        if not all(check_values):
+            raise ValueError("If surfaces is dict, its values must contain "
+                             "floats between 0 and 1 or None")
     else:
         user_alpha = {}
     surfaces = list(surfaces)
