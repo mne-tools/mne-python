@@ -258,11 +258,15 @@ raw.copy().pick_channels(to_plot).plot_sensors(
 # If we inspect our axes we find the objects contained in our plot:
 print(axins.get_children())
 
-# That's quite a mess, but we know that we want to change the sensor dots,
-# and those are most certainly a "PathCollection" object.
+###############################################################################
+# That's quite a a lot of objects, but we know that we want to change the
+# sensor dots, and those are most certainly a "PathCollection" object.
+# So let's have a look at how many "collections" we have in the axes.
 print(axins.collections)
 
-# Now we we found exactly what we needed. Sometimes this can take a bit of
+###############################################################################
+# There is only one! Those must be the sensor dots we were looking for.
+# We finally found exactly what we needed. Sometimes this can take a bit of
 # experimentation.
 sensor_dots = axins.collections[0]
 
@@ -273,4 +277,5 @@ ax.plot(times, mean)
 ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
 axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 raw.pick_channels(to_plot).plot_sensors(title="", axes=axins)
+sensor_dots = axins.collections[0]
 sensor_dots.set_sizes([1])
