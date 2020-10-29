@@ -538,9 +538,9 @@ Describe your changes in the changelog
 --------------------------------------
 
 Include in your changeset a brief description of the change in the
-:doc:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be skipped
-for very minor changes like correcting typos in the documentation). The entry
-should follow the following patterns:
+:ref:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be
+skipped for very minor changes like correcting typos in the documentation).
+The entry should follow the following patterns:
 
 .. code-block::
 
