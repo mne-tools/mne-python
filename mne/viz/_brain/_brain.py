@@ -1644,7 +1644,8 @@ class Brain(object):
                 self._data[hemi]['actors'].append(actor)
                 self._data[hemi]['mesh'] = mesh
             else:
-                actor, _ = self._add_volume_data(hemi, src, volume_options)
+                src_vol = src[2:] if src.kind == 'mixed' else src
+                actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
         assert actor is not None  # should have added one
 
         # 2) update time and smoothing properties
