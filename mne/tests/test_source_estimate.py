@@ -80,10 +80,45 @@ rng = np.random.RandomState(0)
 @testing.requires_testing_data
 def test_stc_baseline_correction():
     """Test baseline correction for source estimate objects."""
-    stc = read_source_estimate(fname_stc)
+    # test on different source estimates
+    stcs = []
+    stcs.append(read_source_estimate(fname_stc))
+    stcs.append(read_source_estimate(fname_vol, 'sample'))
 
-    # simple baseline correction
-    stc.apply_baseline()
+    # test on different "baseline" intervals
+    baselines = [(0., 0.1), (None, None)]
+
+    for stc in stcs:
+
+        times = stc.times
+
+        for baseline in baselines:
+
+            if baseline[0] is None:
+                t0 = stc.times[0]
+            else:
+                t0 = baseline[0]
+            if baseline[1] is None:
+                t1 = stc.times[-1]
+            else:
+                t1 = baseline[1]
+
+            # indec for baseline interval (include boundary latencies)
+            imin = np.abs(times-t0).argmin()
+            imax = np.abs(times-t1).argmin() + 1
+
+            # apply baseline correction
+            stc = stc.apply_baseline(baseline=baseline)
+
+            # data matrix from baseline interval
+            data_base = stc.data[:, imin:imax]
+
+            mean_base = data_base.mean(axis=1)
+
+            zero_array = np.zeros(mean_base.shape[0])
+
+            # test if baseline properly subtracted (mean=zero for all sources)
+            assert_array_almost_equal(mean_base, zero_array)
 
 
 @testing.requires_testing_data
