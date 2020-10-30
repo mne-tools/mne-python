@@ -314,9 +314,20 @@ class DigMontage(object):
         -------
         positions : dict
             A dictionary of the positions for channels (``ch_pos``),
-            coordinate frame (``coord_frame``), Nasion (``nasion``),
-            Left Periventricular (``lpa``), Right Periventricular
-            (``rpa``), (``hsp``), and (``hpi``).
+            coordinate frame (``coord_frame``), nasion (``nasion``),
+            left preauricular point (``lpa``),
+            right preauricular point (``rpa``),
+            Head Shape Polhemus (``hsp``), and
+            Head Position Indicator(``hpi``). E.g. ..
+
+                {
+                    'ch_pos': {'EEG061': [0, 0, 0]},
+                    'nasion': [0, 0, 1],
+                    'lpa': [0, 1, 0],
+                    'rpa': [1, 0, 0],
+                    'hsp': [np.nan, np.nan, np.nan],
+                    'hpi': [np.nan, np.nan, np.nan]
+                }
         """
         # get channel positions as dict
         ch_pos = self._get_ch_pos()
