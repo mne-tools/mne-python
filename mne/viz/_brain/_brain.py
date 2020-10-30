@@ -2124,7 +2124,8 @@ class Brain(object):
         # volumes are not supported
         if (self._data.get('src', None) is not None and
                 self._data['src'].kind in ['volume', 'mixed']):
-            return
+            raise RuntimeError(
+                'Label time course plotting is not supported for volume.')
         self.traces_mode = 'label'
 
         if self.mpl_canvas is None:

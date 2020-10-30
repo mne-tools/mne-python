@@ -312,12 +312,6 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
     assert_allclose(img.shape, want_shape)
-
-    # label time course
-    label = read_label(fname_label)
-    brain.add_label(label, traces=True)
-    label_data = brain._labels[label.name]
-    assert isinstance(label_data[2], Line2D)
     brain.close()
 
 
@@ -339,23 +333,65 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     """Test brain traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
+
+    hemi_str = list()
+    if src in ('surface', 'mixed'):
+        hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
+    if src in ('mixed', 'volume'):
+        hemi_str.extend(['vol'])
+
+    # label traces
+    brain = _create_testing_brain(
+        hemi=hemi, surf='white', src=src, show_traces=False, initial_time=0,
+        volume_options=None,  # for speed, don't upsample
+        n_time=5,
+    )
+    if src in ('volume', 'mixed'):
+        with pytest.raises(RuntimeError, match='volume'):
+            brain.add_annotation('aparc', traces=True)
+    else:
+        brain.add_annotation('aparc', traces=True)
+        assert brain.show_traces
+        assert brain.traces_mode == 'label'
+        assert brain.label_tool_bar is not None
+        # label tool bar: (Label, ComboBox)
+        label_tool_bar_actions = brain.label_tool_bar.actions()
+        assert len(label_tool_bar_actions) == 2
+        comboBox = label_tool_bar_actions[1].defaultWidget()
+        comboBox.setCurrentText('auto')
+
+        # test picking a cell at random
+        rng = np.random.RandomState(0)
+        for idx, current_hemi in enumerate(hemi_str):
+            current_mesh = brain._hemi_meshes[current_hemi]
+            cell_id = rng.randint(0, current_mesh.n_cells)
+            test_picker = TstVTKPicker(
+                current_mesh, cell_id, current_hemi, brain)
+            assert len(brain.picked_patches[current_hemi]) == 0
+            brain._on_pick(test_picker, None)
+            assert len(brain.picked_patches[current_hemi]) == 1
+            for label_id in list(brain.picked_patches[current_hemi]):
+                label = brain._annotation_labels[current_hemi][label_id]
+                _, _, line, _ = brain._labels[label.name]
+                assert isinstance(line, Line2D)
+            brain.clear_glyphs()
+            assert len(brain.picked_patches[current_hemi]) == 0
+    brain.close()
+
+    # vertex traces
     brain = _create_testing_brain(
         hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
         volume_options=None,  # for speed, don't upsample
         n_time=1 if src == 'mixed' else 5,
     )
     assert brain.show_traces
+    assert brain.traces_mode == 'vertex'
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
 
     # test points picked by default
     picked_points = brain.get_picked_points()
     spheres = brain._spheres
-    hemi_str = list()
-    if src in ('surface', 'mixed'):
-        hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
-    if src in ('mixed', 'volume'):
-        hemi_str.extend(['vol'])
     for current_hemi in hemi_str:
         assert len(picked_points[current_hemi]) == 1
     n_spheres = len(hemi_str)
