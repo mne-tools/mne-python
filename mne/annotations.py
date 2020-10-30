@@ -1101,7 +1101,7 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
 
     Creating events from annotations via the function
     `mne.events_from_annotations` takes in event mappings with
-    key/value pairs as description/ID, whereas ``annotations_from_events``
+    key→value pairs as description→ID, whereas `mne.annotations_from_events`
     takes in event mappings with key/value pairs as ID/description.
     If you need to use these together, you can invert the mapping by doing::
 
