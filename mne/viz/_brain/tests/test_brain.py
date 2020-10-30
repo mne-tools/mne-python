@@ -25,6 +25,7 @@ from mne.viz._brain import Brain, _LinkViewer, _BrainScraper
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
+from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 
 data_path = testing.data_path(download=False)
@@ -274,10 +275,6 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
     brain = _create_testing_brain(hemi='both', show_traces=False)
-    label = read_label(fname_label)
-    brain.add_label(fname_label, traces=True)
-    label_data = brain._labels[label.name]
-    assert label_data[2] is not None
     brain.callbacks["time"](value=0)
     brain.callbacks["orientation_lh_0_0"](
         value='lat',
@@ -315,6 +312,12 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
     assert_allclose(img.shape, want_shape)
+
+    # label time course
+    label = read_label(fname_label)
+    brain.add_label(label, traces=True)
+    label_data = brain._labels[label.name]
+    assert isinstance(label_data[2], Line2D)
     brain.close()
 
 

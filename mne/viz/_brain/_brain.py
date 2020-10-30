@@ -1965,6 +1965,11 @@ class Brain(object):
         if self.time_viewer and traces:
             if self.mpl_canvas is None:
                 self._configure_mplcanvas()
+            if self.label_extract_mode is None:
+                for source in ["stc", "src"]:
+                    if self._data[source] is not None:
+                        for mode in self.default_label_extract_modes[source]:
+                            self.label_extract_mode = mode
 
             stc = self._data["stc"]
             src = self._data["src"]
