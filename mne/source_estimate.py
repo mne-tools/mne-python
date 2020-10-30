@@ -14,6 +14,7 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
