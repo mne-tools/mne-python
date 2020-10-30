@@ -229,6 +229,9 @@ fig, ax = plt.subplots(figsize=(4.5, 3))
 ax.plot(times, mean)
 ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
 
+# Adjust the plot size by a bit so that the axes labels have more space
+fig.subplots_adjust(bottom=0.2, left=0.2, top=0.9, right=0.9)
+
 ###############################################################################
 # So far so good. Now let's add the smaller figure within the figure to show
 # exactly, which sensors we used to make the timecourse.
@@ -250,6 +253,9 @@ axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 raw.copy().pick_channels(to_plot).plot_sensors(
     title="", axes=axins
 )
+
+# we need to adjust the plot size once more
+fig.subplots_adjust(bottom=0.2, left=0.2, top=0.9, right=0.9)
 
 ###############################################################################
 # That looks nice. But the sensor dots are way too big for our taste.
@@ -282,3 +288,4 @@ axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 raw.pick_channels(to_plot).plot_sensors(title="", axes=axins)
 sensor_dots = axins.collections[0]
 sensor_dots.set_sizes([1])
+fig.subplots_adjust(bottom=0.2, left=0.2, top=0.9, right=0.9)
