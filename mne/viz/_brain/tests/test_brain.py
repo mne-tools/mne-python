@@ -124,6 +124,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m', **kwargs)
+    with pytest.raises(ValueError, match='add_data'):
+        brain.setup_time_viewer(time_viewer=True)
     assert brain.interaction == 'trackball'
     # add_data
     stc = read_source_estimate(fname_stc)
@@ -200,8 +202,12 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     # add label
     label = read_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
+    assert isinstance(brain._labels[label.name], tuple)
+    label_data = brain._labels[label.name]
+    assert label_data[2] is None
     brain.remove_labels()
     brain.add_label(fname_label)
+    label_data = brain._labels[label.name]
     brain.add_label('V1', borders=True)
     brain.remove_labels()
     brain.remove_labels()
@@ -212,12 +218,11 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
     # add text
     brain.add_text(x=0, y=0, text='foo')
+    brain.close()
 
     # add annotation
     annots = ['aparc', path.join(subjects_dir, 'fsaverage', 'label',
                                  'lh.PALS_B12_Lobes.annot')]
-    brain.close()
-
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
