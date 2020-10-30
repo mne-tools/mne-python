@@ -2848,13 +2848,12 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     if stc is not None:
         vertno = stc.vertices
 
-        # XXX: This should not be commented
-        # for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
-        #     n_missing = (~np.in1d(v, s['vertno'])).sum()
-        #     if n_missing:
-        #         raise ValueError('%d/%d %s hemisphere stc vertices missing '
-        #                          'from the source space, likely mismatch'
-        #                          % (n_missing, len(v), hemi))
+        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+            n_missing = (~np.in1d(v, s['vertno'])).sum()
+            if n_missing:
+                raise ValueError('%d/%d %s hemisphere stc vertices missing '
+                                 'from the source space, likely mismatch'
+                                 % (n_missing, len(v), hemi))
     else:
         vertno = [s['vertno'] for s in src]
 
