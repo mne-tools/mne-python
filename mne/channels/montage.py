@@ -305,39 +305,6 @@ class DigMontage(object):
 
         return dig_names
 
-    def get_positions(self):
-        """Get all channel and fiducial positions.
-
-        All positions are in the ``head`` coordinate frame.
-
-        Returns
-        -------
-        positions : dict
-            A dictionary of the positions for channels (``ch_pos``),
-            coordinate frame (``coord_frame``), Nasion (``nasion``),
-            Left Periventricular (``lpa``), Right Periventricular
-            (``rpa``), (``hsp``), and (``hpi``).
-        """
-        # get channel positions as dict
-        ch_pos = self._get_ch_pos()
-
-        # _get_fid_coords(self.dig)
-        # get coordframe and fiducial coordinates
-        montage_bunch = _get_data_as_dict_from_dig(self.dig)
-        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
-
-        # return dictionary
-        positions = dict(
-            ch_pos=ch_pos,
-            coord_frame=coord_frame,
-            nasion=montage_bunch.nasion,
-            lpa=montage_bunch.lpa,
-            rpa=montage_bunch.rpa,
-            hsp=montage_bunch.hsp,
-            hpi=montage_bunch.hpi,
-        )
-        return positions
-
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
 
