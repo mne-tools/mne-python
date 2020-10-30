@@ -432,13 +432,6 @@ def test_volume_source_morph(tmpdir):
         source_morph_vol.apply(stc_surf)
 
     # src_to
-    # zooms=20 does not match src_to zooms (7)
-    with pytest.raises(ValueError, match='If src_to is provided, zooms shoul'):
-        source_morph_vol = compute_source_morph(
-            fwd['src'], subject_from='sample', src_to=fwd['src'],
-            subject_to='sample', subjects_dir=subjects_dir, **kwargs)
-    # hack the src_to "zooms" to make it seem like a pos=20. source space
-    fwd['src'][0]['src_mri_t']['trans'][:3, :3] = 0.02 * np.eye(3)
     source_morph_vol = compute_source_morph(
         fwd['src'], subject_from='sample', src_to=fwd['src'],
         subject_to='sample', subjects_dir=subjects_dir, **kwargs)
@@ -463,10 +456,10 @@ def test_volume_source_morph(tmpdir):
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     'subject_from, subject_to, lower, upper, dtype, morph_mat', [
-        ('sample', 'fsaverage', 8.5, 9, float, False),
-        ('fsaverage', 'fsaverage', 7, 7.5, float, False),
-        ('sample', 'sample', 6, 7, complex, False),
-        ('sample', 'sample', 1, 2, float, True),  # morph_mat
+        ('sample', 'fsaverage', 5.9, 6.1, float, False),
+        ('fsaverage', 'fsaverage', 0., 0.1, float, False),
+        ('sample', 'sample', 0., 0.1, complex, False),
+        ('sample', 'sample', 0., 0.1, float, True),  # morph_mat
         ('sample', 'fsaverage', 10, 12, float, True),  # morph_mat
     ])
 def test_volume_source_morph_round_trip(
@@ -539,6 +532,7 @@ def test_volume_source_morph_round_trip(
     src_rr = np.concatenate([s['rr'][s['vertno']] for s in src_from])
     dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
     mu = np.mean(dists)
+    # fsaverage=5.99; 7.97 without additional src_ras_t fix
     # fsaverage=7.97; 25.4 without src_ras_t fix
     assert lower <= mu < upper, f'round-trip distance {mu}'
     # check that pre_affine is close to identity when subject_to==subject_from
@@ -549,9 +543,9 @@ def test_volume_source_morph_round_trip(
     # check that power is more or less preserved (labelizing messes with this)
     if morph_mat:
         if subject_to == 'fsaverage':
-            limits = (19, 20)
+            limits = (18, 18.5)
         else:
-            limits = (8, 9)
+            limits = (7, 7.5)
     else:
         limits = (1, 1.2)
     stc_from_unit = stc_from.copy().crop(0, 0)

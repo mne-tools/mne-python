@@ -220,8 +220,6 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
             src_data['to_vox_map'] = (src_to[-1]['shape'], src_ras_t)
             vertices_to_vol = [s['vertno'] for s in src_to[surf_offset:]]
             zooms_src_to = np.diag(src_to[-1]['src_mri_t']['trans'])[:3] * 1000
-            if (zooms_src_to[0] != zooms_src_to).any():
-                raise RuntimeError('Non-uniform zooms not supported')
             zooms_src_to = tuple(zooms_src_to)
 
         # pre-compute non-linear morph
@@ -526,25 +524,57 @@ class SourceMorph(object):
         # morph data
         for ii in ProgressBar(list(range(n_vols)), mesg=mesg):
             for attr in attrs:
+                # transform from source space to mri_from resolution/space
                 if vols is None:
                     img_real = interp[:, ii].toarray()
                 else:
                     img_real = interp @ getattr(vols[:, ii], attr)
                 img_real = img_real.reshape(
-                    self.src_data['src_shape_full'], order='F')
-                # reslice to match morph
-                img_real, _ = reslice(
-                    img_real, self.affine,
-                    _get_zooms_orig(self), self.zooms)
+                    self.src_data['src_shape_full'][::-1], order='F')
+                from_affine = np.dot(
+                    self.src_data['src_affine_ras'],  # mri_ras_t
+                    self.src_data['src_affine_vox'])  # vox_mri_t
+                from_affine[:3] *= 1000.
+                _debug_img(img_real, from_affine, 'From')
+
+                # reslice to match what was used during the morph
+                # (brain.mgz and whatever was used to create the source space
+                #  will not necessarily have the same domain/zooms)
+                img_real = _resample_from_to(
+                    img_real, from_affine,
+                    (self.pre_affine.codomain_shape,
+                     self.pre_affine.codomain_grid2world))
+                _debug_img(img_real, self.pre_affine.codomain_grid2world,
+                           'From-reslice')
 
                 img_real = self.pre_affine.transform(img_real)
                 if self.sdr_morph is not None:
                     img_real = self.sdr_morph.transform(img_real)
+                _debug_img(img_real, self.affine, 'From-reslice-transform')
 
                 # subselect the correct cube if src_to is provided
                 if self.src_data['to_vox_map'] is not None:
+                    affine = self.affine
+                    to_zooms = np.diag(self.src_data['to_vox_map'][1])[:3]
+                    if not np.allclose(self.zooms, to_zooms, atol=1e-3):
+                        img_real, affine = reslice(
+                            img_real, self.affine, self.zooms, to_zooms)
+                    _debug_img(img_real, affine,
+                               'From-reslice-transform-src')
                     img_real = _resample_from_to(
-                        img_real, self.affine, self.src_data['to_vox_map'])
+                        img_real, affine, self.src_data['to_vox_map'])
+                    _debug_img(img_real, self.src_data['to_vox_map'][1],
+                               'From-reslice-transform-src-subselect')
+
+                # This can be used to help debug, but it really should just
+                # show the brain filling the volume:
+                # img_want = np.zeros(np.prod(img_real.shape))
+                # img_want[np.concatenate(self._vol_vertices_to)] = 1.
+                # img_want = np.reshape(
+                #     img_want, self.src_data['src_shape'][::-1], order='F')
+                # _debug_img(img_want, self.src_data['to_vox_map'][1],
+                #            'To mask')
+                # raise RuntimeError('Check')
 
                 # combine real and complex parts
                 img_real = img_real.ravel(order='F')[vol_verts]
@@ -608,6 +638,18 @@ class SourceMorph(object):
         write_hdf5(fname, out_dict, overwrite=overwrite)
 
 
+_slicers = list()
+
+
+def _debug_img(data, affine, title):
+    # XXX uncomment these lines for debugging help with volume morph
+    # import nibabel as nib
+    # _slicers.append(nib.viewers.OrthoSlicer3D(
+    #     np.asarray(data), affine, axes=None, title=title))
+    # _slicers[-1].figs[0].suptitle(title, color='r')
+    return
+
+
 def _check_zooms(mri_from, zooms, zooms_src_to):
     # use voxel size of mri_from
     if isinstance(zooms, str) and zooms == 'auto':
@@ -621,12 +663,6 @@ def _check_zooms(mri_from, zooms, zooms_src_to):
         raise ValueError('zooms must be None, a singleton, or have shape (3,),'
                          ' got shape %s' % (zooms.shape,))
     zooms = tuple(zooms)
-    if zooms_src_to is not None:
-        if not np.allclose(zooms_src_to, zooms, atol=1e-6):
-            raise ValueError('If src_to is provided, zooms should be "auto" '
-                             'or match the src_to zooms (%s), got %s'
-                             % (zooms_src_to, zooms))
-        zooms = zooms_src_to
     return zooms
 
 
@@ -741,7 +777,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
 
     # setup empty volume
     if morph.src_data['to_vox_map'] is not None:
-        shape = morph.src_data['to_vox_map'][0]
+        shape = morph.src_data['to_vox_map'][0][::-1]
         affine = morph.src_data['to_vox_map'][1]
     else:
         shape = morph.shape
@@ -948,34 +984,24 @@ def _compute_r2(a, b):
 
 def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     """Get a matrix that morphs data from one subject to another."""
-    import nibabel as nib
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
     from dipy.align.reslice import reslice
 
     logger.info('Computing nonlinear Symmetric Diffeomorphic Registration...')
 
-    # reslice mri_from
-    mri_from_res, mri_from_res_affine = reslice(
-        _get_img_fdata(mri_from), mri_from.affine,
-        mri_from.header.get_zooms()[:3], zooms)
+    # reslice mri_from to zooms
+    mri_from_orig = mri_from
+    mri_from, mri_from_affine = reslice(
+        _get_img_fdata(mri_from_orig), mri_from_orig.affine,
+        mri_from_orig.header.get_zooms()[:3], zooms)
 
-    with warnings.catch_warnings():  # nibabel<->numpy warning
-        mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
+    # reslice mri_to to zooms
+    mri_to, affine = reslice(
+        _get_img_fdata(mri_to), mri_to.affine,
+        mri_to.header.get_zooms()[:3], zooms)
 
-    # reslice mri_to
-    mri_to_res, mri_to_res_affine = reslice(
-        _get_img_fdata(mri_to), mri_to.affine, mri_to.header.get_zooms()[:3],
-        zooms)
-
-    with warnings.catch_warnings():  # nibabel<->numpy warning
-        mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
-
-    affine = mri_to.affine
-    mri_to = _get_img_fdata(mri_to).copy()  # to ndarray
     mri_to /= mri_to.max()
-    mri_from_affine = mri_from.affine  # get mri_from to world transform
-    mri_from = _get_img_fdata(mri_from)  # to ndarray
     mri_from /= mri_from.max()  # normalize
 
     # compute center of mass
@@ -1034,14 +1060,10 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
         sdr_morph = None
 
     logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
-
-    # To debug to_vox_map, this can be used:
-    # from nibabel.processing import resample_from_to
-    # mri_from_to = sdr_morph.transform(pre_affine.transform(mri_from))
-    # mri_from_to = nib.Nifti1Image(mri_from_to, affine)
-    # fig1 = mri_from_to.orthoview()
-    # mri_from_to_cut = resample_from_to(mri_from_to, to_vox_map, 1)
-    # fig2 = mri_from_to_cut.orthoview()
+    _debug_img(mri_from_orig.dataobj, mri_from_orig.affine, 'From')
+    _debug_img(mri_from, affine, 'From-reslice')
+    _debug_img(mri_from_to, affine, 'From-reslice')
+    _debug_img(mri_to, affine, 'To-reslice')
     return shape, zooms, affine, pre_affine, sdr_morph
 
 
@@ -1360,7 +1382,8 @@ def _get_zooms_orig(morph):
     """Compute src zooms from morph zooms, morph shape and src shape."""
     # zooms_to = zooms_from / shape_to * shape_from for each spatial dimension
     return [mz / ss * ms for mz, ms, ss in
-            zip(morph.zooms, morph.shape, morph.src_data['src_shape_full'])]
+            zip(morph.zooms, morph.shape,
+                morph.src_data['src_shape_full'][::-1])]
 
 
 def _check_vertices_match(v1, v2, name):
