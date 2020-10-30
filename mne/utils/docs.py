@@ -1800,7 +1800,7 @@ docdict['baseline_stc'] = """%(rescale_baseline)s
     approximately additive, and the noise level can be estimated from the
     baseline interval. This can be the case for non-normalized source
     activities (e.g. signed and unsigned MNE), but it is not the case for
-    normalized estimates (e.g. signal-to-noise ratios, dSPM, sLORETA). 
+    normalized estimates (e.g. signal-to-noise ratios, dSPM, sLORETA).
 
 """ % docdict
 docdict['baseline_report'] = """%(rescale_baseline)s

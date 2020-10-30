@@ -104,8 +104,8 @@ def test_stc_baseline_correction():
                 t1 = baseline[1]
 
             # indec for baseline interval (include boundary latencies)
-            imin = np.abs(times-t0).argmin()
-            imax = np.abs(times-t1).argmin() + 1
+            imin = np.abs(times - t0).argmin()
+            imax = np.abs(times - t1).argmin() + 1
 
             # apply baseline correction
             stc = stc.apply_baseline(baseline=baseline)
