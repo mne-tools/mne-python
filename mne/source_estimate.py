@@ -608,7 +608,6 @@ class _BaseSourceEstimate(TimeMixin):
         Notes
         -----
         Baseline correction can be done multiple times.
-
         """
         self.data = rescale(self.data, self.times, baseline, copy=False)
         return self

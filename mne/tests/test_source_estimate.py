@@ -80,7 +80,7 @@ rng = np.random.RandomState(0)
 @testing.requires_testing_data
 def test_stc_baseline_correction():
     """Test baseline correction for source estimate objects."""
-    stc = mne.read_source_estimate(fname_stc)
+    stc = read_source_estimate(fname_stc)
 
     # simple baseline correction
     stc.apply_baseline()
