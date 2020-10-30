@@ -16,6 +16,7 @@ Current (0.22.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Update ``surfaces`` argument in :func:`mne.viz.plot_alignment` to allow dict for transparency values, and set default for sEEG data to have transparency (by `Keith Doelling`_ (:gh:`8445`))
 
 - Add ``n_pca_components`` argument to :func:`mne.viz.plot_ica_overlay` by `Eric Larson`_ (:gh:`8351`)
 
