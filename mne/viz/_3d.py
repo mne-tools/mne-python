@@ -1012,7 +1012,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     alphas.update(skull_alpha)
     # replace default alphas with specified user_alpha
     for k, v in user_alpha.items():
-        alphas[k] = v or alphas[k]
+        if v is not None:
+            alphas[k] = v
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
