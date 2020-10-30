@@ -1436,8 +1436,8 @@ class Brain(object):
                  time_label="auto", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 clim=None, stc=None, src=None, volume_options=0.4,
-                 colorbar_kwargs=None, verbose=None):
+                 clim=None, src=None, volume_options=0.4, colorbar_kwargs=None,
+                 verbose=None):
         """Display data from a numpy array on the surface or volume.
 
         This provides a similar interface to
@@ -1506,8 +1506,6 @@ class Brain(object):
             vector-valued data. If None (default), ``alpha`` is used.
         clim : dict
             Original clim arguments.
-        stc : SourceEstimate
-            The source estimates to plot.
         %(src_volume_options)s
         colorbar_kwargs : dict | None
             Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
