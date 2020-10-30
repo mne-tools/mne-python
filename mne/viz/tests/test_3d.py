@@ -327,10 +327,14 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['foo'])
-    with pytest.raises(ValueError, match="If surfaces is dict"):
+    with pytest.raises(TypeError, match="must be an instance of None or numeric"):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=dict(brain='super clear'))
+    with pytest.raises(ValueError, match="must be between 0 and 1"):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir,
+                       surfaces=dict(brain=42))
     fwd_fname = op.join(data_dir, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
     fwd = read_forward_solution(fwd_fname)
