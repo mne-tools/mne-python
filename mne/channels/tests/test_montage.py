@@ -1333,6 +1333,10 @@ def test_get_montage():
     # the montage does not change
     assert_object_equal(montage.dig, test_montage.dig)
 
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
+
     # 2. now do a standard montage
     montage = make_standard_montage('mgh60')
     # set the montage; note renaming to make standard montage map
@@ -1343,6 +1347,12 @@ def test_get_montage():
     raw2 = raw.copy()
     test_montage = raw.get_montage()
     raw.set_montage(test_montage, on_missing='ignore')
+
+    # XXX: this fails for some reason for templates
+    # because coordinate frame gets set to head?
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
 
     # chs should not change
     assert_object_equal(raw2.info['chs'], raw.info['chs'])
