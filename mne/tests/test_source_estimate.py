@@ -43,7 +43,7 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, requires_nibabel)
+                       requires_h5py, requires_nibabel, requires_version)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -1590,7 +1590,9 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
                                 reg_from, reg_from)
 
 
-@pytest.mark.parametrize('kind', ('volume', 'surface'))
+@pytest.mark.parametrize('kind', (
+    pytest.param('volume', marks=[requires_version('dipy')]),
+    'surface'))
 @pytest.mark.parametrize('scale', (1., 0.75, (1.0, 0.8, 1.2)))
 def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     """Test label extraction, morphing, and MRI scaling relationships."""
@@ -1608,8 +1610,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
             use_fname = op.join(root, f'{hemi}.{fname}')
             copyfile(op.join(testing_dir, use_fname),
                      op.join(from_dir, use_fname))
-    for root, fname in (('mri', 'aseg.mgz'), ('mri', 'brain.mgz'),
-                        ('bem', f'{subject_from}-oct-4-src.fif')):
+    for root, fname in (('mri', 'aseg.mgz'), ('mri', 'brain.mgz')):
         use_fname = op.join(root, fname)
         copyfile(op.join(testing_dir, use_fname),
                  op.join(from_dir, use_fname))
@@ -1617,14 +1618,20 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     if kind == 'surface':
         src_from = read_source_spaces(fname_src_3)
         assert src_from[0]['dist'] is None
-        klass = SourceEstimate
+        assert src_from[0]['nearest'] is not None
+        # avoid patch calc
+        src_from[0]['nearest'] = src_from[1]['nearest'] = None
         assert len(src_from) == 2
         assert src_from[0]['nuse'] == src_from[1]['nuse'] == 258
+        klass = SourceEstimate
         labels_from = read_labels_from_annot(
             subject_from, subjects_dir=tempdir)
         n_labels = len(labels_from)
+        write_source_spaces(op.join(tempdir, subject_from, 'bem',
+                                    f'{subject_from}-oct-4-src.fif'), src_from)
     else:
         assert kind == 'volume'
+        pytest.importorskip('dipy')
         volume_labels = list(read_freesurfer_lut()[0])
         src_from = setup_volume_source_space(
             subject_from, 20., 'aseg.mgz',
