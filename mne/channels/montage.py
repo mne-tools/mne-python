@@ -28,8 +28,7 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
-                                _get_fid_coords, _coord_frame_const,
-                                _get_data_as_dict_from_dig)
+                                _get_fid_coords, _coord_frame_const)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
