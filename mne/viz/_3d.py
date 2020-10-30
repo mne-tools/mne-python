@@ -450,8 +450,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
         Can be dict to specify alpha values for each surface. Use None
         to specify default value. Specified values must be between 0 and 1.
-        Example:
-        ``surfaces={'brain': 0.4, 'outer_skull': 0.6, 'head': None}``
+        for example::
+
+            surfaces=dict(brain=0.4, outer_skull=0.6, head=None)
 
         Defaults to 'auto', which will look for a head surface and plot
         it if found.
@@ -599,13 +600,16 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if isinstance(surfaces, str):
         surfaces = [surfaces]
     if isinstance(surfaces, dict):
-        user_alpha = surfaces
-        # check that alpha values contain floats between 0 and 1 or None
-        check_values = [x is None or (isinstance(x, (float, int)) and x >= 0
-                                      and x <= 1) for x in user_alpha.values()]
-        if not all(check_values):
-            raise ValueError("If surfaces is dict, its values must contain "
-                             "floats between 0 and 1 or None")
+        user_alpha = surfaces.copy()
+        for key, val in user_alpha.items():
+            _validate_type(key, "str", f"surfaces key {repr(key)}")
+            _validate_type(val, (None, "numeric"), f"surfaces[{repr(key)}]")
+            if val is not None:
+                user_alpha[key] = float(val)
+                if not 0 <= user_alpha[key] <= 1:
+                    raise ValueError(
+                        f'surfaces[{repr(key)}] ({val}) must be between 0 and 1'
+                    )
     else:
         user_alpha = {}
     surfaces = list(surfaces)
@@ -856,7 +860,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     max_alpha = 1.0 if len(other_picks['seeg']) == 0 else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = max_alpha
-    alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
+    alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]
+
     for idx, this_skull in enumerate(skull):
         if isinstance(this_skull, dict):
             skull_surf = this_skull
