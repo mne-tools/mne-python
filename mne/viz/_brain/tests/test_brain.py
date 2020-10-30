@@ -20,6 +20,7 @@ from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
 from mne.utils import check_version
+from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper
 from mne.viz._brain.colormap import calculate_lut
 
@@ -102,7 +103,6 @@ def test_brain_gc(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
-    from mne.label import read_label
     hemi = 'lh'
     surf = 'inflated'
     cortex = 'low_contrast'
@@ -274,6 +274,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
     brain = _create_testing_brain(hemi='both', show_traces=False)
+    label = read_label(fname_label)
+    brain.add_label(fname_label, traces=True)
+    label_data = brain._labels[label.name]
+    assert label_data[2] is not None
     brain.callbacks["time"](value=0)
     brain.callbacks["orientation_lh_0_0"](
         value='lat',

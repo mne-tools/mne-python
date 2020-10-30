@@ -2117,7 +2117,7 @@ class Brain(object):
         if not self.show_traces:
             return
         # volumes are not supported
-        if ('src' in self._data and
+        if (self._data.get('src', None) is not None and
                 self._data['src'].kind in ['volume', 'mixed']):
             return
         self.traces_mode = 'label'
