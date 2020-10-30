@@ -327,7 +327,7 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['foo'])
-    with pytest.raises(TypeError, match="must be an instance of None or numeric"):
+    with pytest.raises(TypeError, match="must be an instance of "):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=dict(brain='super clear'))

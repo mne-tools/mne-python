@@ -608,7 +608,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                 user_alpha[key] = float(val)
                 if not 0 <= user_alpha[key] <= 1:
                     raise ValueError(
-                        f'surfaces[{repr(key)}] ({val}) must be between 0 and 1'
+                        f'surfaces[{repr(key)}] ({val}) must be'
+                        ' between 0 and 1'
                     )
     else:
         user_alpha = {}
