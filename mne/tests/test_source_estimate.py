@@ -1676,7 +1676,10 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
                        rng.permutation(label_tc).ravel())[0, 1]
     assert -0.06 < corr < 0.06
     # project label activations to full source space
+    with pytest.raises(ValueError, match='subject'):
+        labels_to_stc(labels_from, label_tc, src=src_from, subject='foo')
     stc = labels_to_stc(labels_from, label_tc, src=src_from)
+    assert stc.subject == 'sample'
     assert isinstance(stc, klass)
     label_tc_from = extract_label_time_course(
         stc, labels_from, src_from, mode='mean')
