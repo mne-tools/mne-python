@@ -64,7 +64,7 @@ epochs.pick_types(meg=True, exclude='bads')  # remove stim and EOG
 del raw
 
 X = epochs.get_data()  # MEG signals: n_epochs, n_meg_channels, n_times
-y = epochs.events[:, 2]  # target: Audio left or right
+y = epochs.events[:, 2]  # target: auditory left vs visual left
 
 ###############################################################################
 # Transformation classes
