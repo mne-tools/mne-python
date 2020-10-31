@@ -2188,11 +2188,14 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
                          % (values.ndim,))
     _validate_type(src, (SourceSpaces, None))
     if src is None:
-        data, vertices = _labels_to_stc_surf(
+        data, vertices, subject = _labels_to_stc_surf(
             labels, values, tmin, tstep, subject)
         klass = SourceEstimate
     else:
         kind = src.kind
+        subject = _check_subject(
+            src._subject, subject, kind='source space subject',
+            raise_error=False)
         _check_option('source space kind', kind, ('surface', 'volume'))
         if kind == 'volume':
             klass = VolSourceEstimate
@@ -2238,7 +2241,7 @@ def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
         data[hemi] = mat.dot(data[hemi])
     vertices = [vertices[hemi] for hemi in hemis]
     data = np.concatenate([data[hemi] for hemi in hemis], axis=0)
-    return data, vertices
+    return data, vertices, subject
 
 
 _DEFAULT_TABLE_NAME = 'MNE-Python Colortable'
