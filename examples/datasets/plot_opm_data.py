@@ -40,11 +40,11 @@ raw.notch_filter(50., notch_widths=1)
 reject = dict(mag=2e-10)
 tmin, tmax = -0.5, 1
 
-# Find Median nerve stimulator trigger
+# Find median nerve stimulator trigger
 event_id = dict(Median=257)
 events = mne.find_events(raw, stim_channel='STI101', mask=257, mask_type='and')
 picks = mne.pick_types(raw.info, meg=True, eeg=False)
-# we use verbose='error' to suppress warning about decimation causing aliasing,
+# We use verbose='error' to suppress warning about decimation causing aliasing,
 # ideally we would low-pass and then decimate instead
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, verbose='error',
                     reject=reject, picks=picks, proj=False, decim=10,
@@ -80,8 +80,9 @@ fwd = mne.read_forward_solution(fwd_fname)
 mne.convert_forward_solution(fwd, force_fixed=True, copy=False)
 
 with mne.use_coil_def(coil_def_fname):
-    fig = mne.viz.plot_alignment(
-        evoked.info, trans, subject, subjects_dir, ('head', 'pial'), bem=bem)
+    fig = mne.viz.plot_alignment(evoked.info, trans=trans, subject=subject,
+                                 subjects_dir=subjects_dir,
+                                 surfaces=('head', 'pial'), bem=bem)
 
 mne.viz.set_3d_view(figure=fig, azimuth=45, elevation=60, distance=0.4,
                     focalpoint=(0.02, 0, 0.04))
