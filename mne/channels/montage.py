@@ -316,7 +316,8 @@ class DigMontage(object):
             left preauricular point (``lpa``),
             right preauricular point (``rpa``),
             Head Shape Polhemus (``hsp``), and
-            Head Position Indicator(``hpi``). E.g. ..
+            Head Position Indicator(``hpi``).
+            E.g. ..
 
                 {
                     'ch_pos': {'EEG061': [0, 0, 0]},
