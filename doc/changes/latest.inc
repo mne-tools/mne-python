@@ -33,7 +33,7 @@ Enhancements
 
 - Add sEEG source visualization using :func:`mne.stc_near_sensors` and sEEG working tutorial by `Eric Larson`_ and `Adam Li`_ (:gh:`8402`)
 
-- Add :meth:`mne.channels.DigMontage.get_position`, which will return a dictionary of channel positions, coordinate frame and fiducial locations by `Adam Li`_ (:gh:`8460`)
+- Add :meth:`mne.channels.DigMontage.get_positions`, which will return a dictionary of channel positions, coordinate frame and fiducial locations by `Adam Li`_ (:gh:`8460`)
 
 Bugs
 ~~~~
