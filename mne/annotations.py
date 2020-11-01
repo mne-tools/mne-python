@@ -1106,7 +1106,6 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
     If you need to use these together, you can invert the mapping by doing::
 
         event_desc = {v: k for k, v in event_id.items()}
-
     """
     event_desc = _check_event_description(event_desc, events)
     event_sel, event_desc_ = _select_events_based_on_id(events, event_desc)
