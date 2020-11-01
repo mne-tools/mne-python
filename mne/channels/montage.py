@@ -308,8 +308,6 @@ class DigMontage(object):
     def get_positions(self):
         """Get all channel and fiducial positions.
 
-        All positions are in the ``head`` coordinate frame.
-
         Returns
         -------
         positions : dict
