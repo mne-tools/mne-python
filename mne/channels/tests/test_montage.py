@@ -1340,7 +1340,7 @@ def test_get_montage():
     # 2. now do a standard montage
     montage = make_standard_montage('mgh60')
     # set the montage; note renaming to make standard montage map
-    raw.set_montage(montage)
+    raw.set_montage(montage.copy())
 
     # get montage back and set it
     # the channel locations should be the same
@@ -1348,10 +1348,8 @@ def test_get_montage():
     test_montage = raw.get_montage()
     raw.set_montage(test_montage, on_missing='ignore')
 
-    # XXX: this fails for some reason for templates
-    # because coordinate frame gets set to head?
     # the montage should fulfill a roundtrip with make_dig_montage
-    test2_montage = make_dig_montage(**montage.get_positions())
+    test2_montage = make_dig_montage(**test_montage.get_positions())
     assert_object_equal(test2_montage.dig, test_montage.dig)
 
     # chs should not change
@@ -1403,6 +1401,10 @@ def test_get_montage():
     # if dig is not set in the info, then montage returns None
     raw.info['dig'] = None
     assert raw.get_montage() is None
+
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**test_montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
 
 
 def test_read_dig_hpts():
