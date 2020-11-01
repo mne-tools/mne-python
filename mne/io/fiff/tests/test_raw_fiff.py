@@ -371,6 +371,12 @@ def test_split_files(tmpdir):
     split_fname_bids_part1 = tmpdir.join('split_raw_split-01_meg.fif')
     split_fname_bids_part2 = tmpdir.join('split_raw_split-02_meg.fif')
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
+
+    # Check that if BIDS is used and no split is needed it defaults to
+    # simple writing without _split- entity.
+    raw_1.save(split_fname, split_naming='bids')
+    assert op.exists(split_fname)
+
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     # check that the filenames match the intended pattern
