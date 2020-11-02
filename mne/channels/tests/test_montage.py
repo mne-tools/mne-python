@@ -1340,7 +1340,7 @@ def test_get_montage():
     # 2. now do a standard montage
     montage = make_standard_montage('mgh60')
     # set the montage; note renaming to make standard montage map
-    raw.set_montage(montage.copy())
+    raw.set_montage(montage)
 
     # get montage back and set it
     # the channel locations should be the same

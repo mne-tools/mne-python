@@ -324,8 +324,8 @@ class DigMontage(object):
                     'nasion': [0, 0, 1],
                     'lpa': [0, 1, 0],
                     'rpa': [1, 0, 0],
-                    'hsp': [np.nan, np.nan, np.nan],
-                    'hpi': [np.nan, np.nan, np.nan]
+                    'hsp': None,
+                    'hpi': None
                 }
         """
         # get channel positions as dict
