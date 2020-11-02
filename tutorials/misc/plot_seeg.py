@@ -145,11 +145,12 @@ stc = mne.stc_near_sensors(
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 
-# plot Nutmeg style
-stc.plot(vol_src, subject=subject, subjects_dir=subjects_dir, clim=clim)
-
 ###############################################################################
 # Plot 3D source (brain region) visualization:
+#
+# The time course shown here is the `stc.data[idx]` where `idx` is the index
+# of the source with the largest absolute value across any time point. In this
+# example, it is simply the source with the largest raw signal value.
 
 # sphinx_gallery_thumbnail_number = 4
 
@@ -162,3 +163,16 @@ brain = stc.plot_3d(
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=3, interpolation='linear', framerate=10,
 #                  time_viewer=True, filename='./mne-test-seeg.m4')
+
+###############################################################################
+# In this tutorial, we used a BEM surface for the `fsaverage` subject from
+# FreeSurfer.
+#
+# For additional common analyses of interest, see the following:
+#
+# - For volumetric plotting options, including limiting to a specific area of
+#   the volume specified by say an atlas, or plotting different types of
+#   source visualizations see:
+#   :ref:`tut-viz-stcs:Volume Source Estimates`.
+# - For extracting activation within a specific FreeSurfer volume and using
+#   different FreeSurfer volumes, see: :ref:`tut-freesurfer-mne`.
