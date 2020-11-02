@@ -1727,7 +1727,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
     edgecolors = np.repeat(rcParams['axes.edgecolor'], len(colors))
     edgecolors[bads] = 'red'
-    if ax is None:
+    axes_was_none = ax is None
+    if axes_was_none:
         fig = plt.figure(figsize=(max(rcParams['figure.figsize']),) * 2)
         if kind == '3d':
             Axes3D(fig)
@@ -1762,8 +1763,9 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
-        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                            hspace=None)
+        if axes_was_none:
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                                hspace=None)
         ax.axis("off")  # remove border around figure
     del sphere
 
