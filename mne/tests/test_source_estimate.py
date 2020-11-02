@@ -87,11 +87,12 @@ def test_stc_baseline_correction():
     baselines = [(0., 0.1), (None, None)]
 
     for stc in stcs:
-        # apply baseline correction
-        stc = stc.apply_baseline(baseline=(start, stop))
         times = stc.times
 
         for (start, stop) in baselines:
+            # apply baseline correction, then check if it worked
+            stc = stc.apply_baseline(baseline=(start, stop))
+
             t0 = start or stc.times[0]
             t1 = stop or stc.times[-1]
             # index for baseline interval (include boundary latencies)
