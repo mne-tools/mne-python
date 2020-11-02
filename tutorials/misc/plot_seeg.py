@@ -176,3 +176,5 @@ brain = stc.plot_3d(
 #   :ref:`tut-viz-stcs:Volume Source Estimates`.
 # - For extracting activation within a specific FreeSurfer volume and using
 #   different FreeSurfer volumes, see: :ref:`tut-freesurfer-mne`.
+# - For working with BEM surfaces and using FreeSurfer, or mne to generate
+#   them, see: :ref:`tut-forward`.
