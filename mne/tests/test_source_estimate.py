@@ -84,7 +84,7 @@ rng = np.random.RandomState(0)
 def test_stc_baseline_correction():
     """Test baseline correction for source estimate objects."""
     # test on different source estimates
-    stcs = [read_source_estimate(fname_stc), 
+    stcs = [read_source_estimate(fname_stc),
             read_source_estimate(fname_vol, 'sample')]
     # test on different "baseline" intervals
     baselines = [(0., 0.1), (None, None)]
