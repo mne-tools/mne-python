@@ -94,7 +94,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
             first_samp = int(event_idx) - inst.first_samp + s_start
             last_samp = int(event_idx) - inst.first_samp + s_end
             _fix_artifact(data, window, picks, first_samp, last_samp, mode)
-
     elif isinstance(inst, BaseEpochs):
         if inst.reject is not None:
             raise RuntimeError('Reject is already applied. Use reject=None '

@@ -18,6 +18,8 @@ Version 0.21.1 (unreleased)
 Bugs
 ~~~~
 
+- Fix bug with :func:`mne.io.Raw.save` when using ``split_naming='bids'`` where non-split files would still be named ``name_split-01_meg.fif`` instead of the requested ``name_meg.fif`` by `Alex Gramfort`_ and `Eric Larson`_ (:gh:`8464`)
+
 - Fix bug with reading split files that have dashes in the filename **by new contributor** |Eduard Ort|_ (:gh:`8339`)
 
 - Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly by `Eric Larson`_ (:gh:`8285`)
