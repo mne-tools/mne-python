@@ -218,48 +218,34 @@ data, times = raw.get_data(picks=to_plot,
 
 # Scale the data from the MNE internal unit V to µV
 data *= 1e6
-
 # Take the mean of the channels
 mean = np.mean(data, axis=0)
-
 # make a figure
 fig, ax = plt.subplots(figsize=(4.5, 3))
-
 # plot some EEG data
 ax.plot(times, mean)
-ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
-
-# Adjust the plot size by a bit so that the axes labels have more space
-fig.subplots_adjust(bottom=0.2, left=0.2, top=0.9, right=0.9)
 
 ###############################################################################
 # So far so good. Now let's add the smaller figure within the figure to show
 # exactly, which sensors we used to make the timecourse.
-# For that, we use an "inset_axes" that we plot into our existing axes
+# For that, we use an "inset_axes" that we plot into our existing axes.
+# The head outline with the sensor positions can be plotted using the
+# `~mne.io.Raw` object that is the source of our data.
+# Specifically, that object already contains all the sensor positions,
+# and we can plot them using the ``plot_sensors`` method.
 
 # recreate the figure (only necessary for our documentation server)
 fig, ax = plt.subplots(figsize=(4.5, 3))
 ax.plot(times, mean)
-ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
 axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 
-# The head outline with the sensor positions can be plotted using the
-# MNE :class:`mne.io.raw` object that is the origin of our data.
-# Specifically, that object already contains all the sensor positions,
-# and we can plot them using the ``plot_sensors`` method.
-
-# pick_channels edits the raw object in place, so we'll make a copy here
+# pick_channels() edits the raw object in place, so we'll make a copy here
 # so that our raw object stays intact for potential later analysis
-raw.copy().pick_channels(to_plot).plot_sensors(
-    title="", axes=axins
-)
-
-# we need to adjust the plot size once more
-fig.subplots_adjust(bottom=0.2, left=0.2, top=0.9, right=0.9)
+raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
 
 ###############################################################################
-# That looks nice. But the sensor dots are way too big for our taste.
-# Luckily, all MNE plots use Matplotlib under the hood and we can customize
+# That looks nice. But the sensor dots are way too big for our taste. Luckily,
+# all MNE-Python plots use Matplotlib under the hood and we can customize
 # each and every facet of them.
 # To make the sensor dots smaller, we need to first get a handle on them to
 # then apply a ``*.set_*`` method on them.
@@ -277,15 +263,16 @@ print(axins.collections)
 # There is only one! Those must be the sensor dots we were looking for.
 # We finally found exactly what we needed. Sometimes this can take a bit of
 # experimentation.
+
 sensor_dots = axins.collections[0]
 
-# Recreate the figure once more, then shrink the sensor dots
-# to finish our figure.
+# Recreate the figure once more; shrink the sensor dots; add axis labels
 fig, ax = plt.subplots(figsize=(4.5, 3))
 ax.plot(times, mean)
-ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
 axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
-raw.pick_channels(to_plot).plot_sensors(title="", axes=axins)
+raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
 sensor_dots = axins.collections[0]
 sensor_dots.set_sizes([1])
-fig.subplots_adjust(bottom=0.2, left=0.2, top=0.9, right=0.9)
+# add axis labels, and adjust bottom figure margin to make room for them
+ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
+fig.subplots_adjust(bottom=0.2)
