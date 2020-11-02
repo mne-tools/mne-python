@@ -44,8 +44,8 @@ fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif'
 # Read forward solution
 forward = mne.read_forward_solution(fname_fwd)
 # Convert to fixed source orientations
-forward = mne.convert_forward_solution(forward, surf_ori=True,
-                                       force_fixed=True)
+mne.convert_forward_solution(
+    forward, surf_ori=True, force_fixed=True, copy=False)
 
 # Read inverse operator
 inverse_operator = read_inverse_operator(fname_inv)
@@ -55,6 +55,8 @@ lambda2 = 1. / 3.**2
 method = 'MNE'
 rm_mne = make_inverse_resolution_matrix(forward, inverse_operator,
                                         method=method, lambda2=lambda2)
+src = inverse_operator['src']
+del forward, inverse_operator  # save memory
 
 ###############################################################################
 # Read and organise labels for cortical parcellation
@@ -91,9 +93,6 @@ rh_labels = [label[:-2] + 'rh' for label in lh_labels]
 # We summarise the PSFs per label by their first five principal components, and
 # use the first component to evaluate label-to-label leakage below.
 
-# Source space used for inverse operator
-src = inverse_operator['src']
-
 # Compute first SVD component across PSFs within labels
 # Note the differences in explained variance, probably due to different
 # spatial extents of labels
@@ -102,22 +101,22 @@ stcs_psf_mne, pca_vars_mne = get_point_spread(
     rm_mne, src, labels, mode='pca', n_comp=n_comp, norm=None,
     return_pca_vars=True)
 n_verts = rm_mne.shape[0]
+del rm_mne
 
 ###############################################################################
 # We can show the explained variances of principal components per label. Note
 # how they differ across labels, most likely due to their varying spatial
 # extent.
 
-for [name, var] in zip(label_names, pca_vars_mne):
-    print('%s: %.1f%%' % (name, var.sum()))
-    with np.printoptions(precision=1):
+with np.printoptions(precision=1):
+    for [name, var] in zip(label_names, pca_vars_mne):
+        print('%s: %.1f%%' % (name, var.sum()))
         print(var)
 
 ###############################################################################
 # The output shows the summed variance explained by the first five principal
 # components as well as the explained variances of the individual components.
-
-###############################################################################
+#
 # Evaluate leakage based on label-to-label PSF correlations
 # ---------------------------------------------------------
 #
@@ -160,20 +159,17 @@ plot_connectivity_circle(leakage_mne, label_names, n_lines=200,
 ###############################################################################
 # Most leakage occurs for neighbouring regions, but also for deeper regions
 # across hemispheres.
-
-###############################################################################
+#
 # Save the figure (optional)
 # --------------------------
 #
 # By default matplotlib does not save using the facecolor, even though this was
 # set when the figure was generated. If not set via savefig, the labels, title,
-# and legend will be cut off from the output png file.
-
-# fname_fig = data_path + '/MEG/sample/plot_label_leakage.png'
-# fig.savefig(fname_fig, facecolor='black')
-
-
-###############################################################################
+# and legend will be cut off from the output png file::
+#
+#     >>> fname_fig = data_path + '/MEG/sample/plot_label_leakage.png'
+#     >>> fig.savefig(fname_fig, facecolor='black')
+#
 # Plot PSFs for individual labels
 # -------------------------------
 #
