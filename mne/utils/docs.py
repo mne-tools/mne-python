@@ -1802,6 +1802,7 @@ docdict['baseline_stc'] = """%(rescale_baseline)s
               source activities (e.g. signed and unsigned MNE), but it is not
               the case for normalized estimates (e.g. signal-to-noise ratios,
               dSPM, sLORETA).
+
 """ % docdict
 docdict['baseline_report'] = """%(rescale_baseline)s
     Correction is applied in the following way **to each channel:**
