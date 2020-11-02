@@ -50,13 +50,10 @@ forward = mne.convert_forward_solution(forward, surf_ori=True,
 # Read inverse operator
 inverse_operator = read_inverse_operator(fname_inv)
 
-# Compute resolution matrices for MNE and sLORETA
+# Compute resolution matrices for MNE
 lambda2 = 1. / 3.**2
 method = 'MNE'
 rm_mne = make_inverse_resolution_matrix(forward, inverse_operator,
-                                        method=method, lambda2=lambda2)
-method = 'sLORETA'
-rm_lor = make_inverse_resolution_matrix(forward, inverse_operator,
                                         method=method, lambda2=lambda2)
 
 ###############################################################################
@@ -104,10 +101,6 @@ n_comp = 5
 stcs_psf_mne, pca_vars_mne = get_point_spread(
     rm_mne, src, labels, mode='pca', n_comp=n_comp, norm=None,
     return_pca_vars=True)
-stcs_psf_lor, pca_vars_lor = get_point_spread(
-    rm_lor, src, labels, mode='pca', n_comp=n_comp, norm=None,
-    return_pca_vars=True)
-
 n_verts = rm_mne.shape[0]
 
 ###############################################################################
@@ -115,11 +108,10 @@ n_verts = rm_mne.shape[0]
 # how they differ across labels, most likely due to their varying spatial
 # extent.
 
-np.set_printoptions(precision=1)
 for [name, var] in zip(label_names, pca_vars_mne):
-
     print('%s: %.1f%%' % (name, var.sum()))
-    print(var)
+    with np.printoptions(precision=1):
+        print(var)
 
 ###############################################################################
 # The output shows the summed variance explained by the first five principal
@@ -144,10 +136,6 @@ leakage_mne = np.corrcoef(psfs_mat)
 # Sign of correlation is arbitrary, so take absolute values
 leakage_mne = np.abs(leakage_mne)
 
-# Leakage matrix for sLORETA
-for [i, s] in enumerate(stcs_psf_lor):
-    psfs_mat[i, :] = s.data[:, 0]
-
 # Compute label-to-label leakage as Pearson correlation of PSFs
 leakage_lor = np.corrcoef(psfs_mat)
 # Sign of correlation is arbitrary, so take absolute values
@@ -163,24 +151,15 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 200 strongest connections.
-plt.ion()
-
-fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
+fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
 
 plot_connectivity_circle(leakage_mne, label_names, n_lines=200,
                          node_angles=node_angles, node_colors=label_colors,
-                         title='MNE Leakage', fig=fig, subplot=(1, 2, 1))
+                         title='MNE Leakage', fig=fig)
 
-no_names = [''] * len(label_names)
-
-plot_connectivity_circle(leakage_lor, no_names, n_lines=200,
-                         node_angles=node_angles, node_colors=label_colors,
-                         title='sLORETA Leakage', padding=0,
-                         fontsize_colorbar=6, fig=fig, subplot=(1, 2, 2))
 ###############################################################################
-# The leakage patterns for MNE and sLORETA are very similar. Most leakage
-# occurs for neighbouring regions, but also for deeper regions across
-# hemispheres.
+# Most leakage occurs for neighbouring regions, but also for deeper regions
+# across hemispheres.
 
 ###############################################################################
 # Save the figure (optional)
@@ -211,11 +190,17 @@ stc_rh = stcs_psf_mne[idx[1]]
 # Maximum for scaling across plots
 max_val = np.max([stc_lh.data, stc_rh.data])
 
+###############################################################################
+# Point-spread function for the lateral occipital label in the left hemisphere
+
 brain_lh = stc_lh.plot(subjects_dir=subjects_dir, subject='sample',
                        hemi='both', views='caudal',
                        clim=dict(kind='value',
                                  pos_lims=(0, max_val / 2., max_val)))
 brain_lh.add_text(0.1, 0.9, label_names[idx[0]], 'title', font_size=16)
+
+###############################################################################
+# and in the right hemisphere.
 
 brain_rh = stc_rh.plot(subjects_dir=subjects_dir, subject='sample',
                        hemi='both', views='caudal',
