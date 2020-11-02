@@ -15,7 +15,8 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .parallel import parallel_func, check_n_jobs
-from .source_estimate import (SourceEstimate, _center_of_mass,
+from .source_estimate import (SourceEstimate, VolSourceEstimate,
+                              _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
 from .source_space import add_source_space_distances, SourceSpaces
 from .stats.cluster_level import _find_clusters, _get_components
@@ -2138,7 +2139,8 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
 
 
 @verbose
-def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
+def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
+                  verbose=None):
     """Convert a set of labels and values to a STC.
 
     This function is meant to work like the opposite of
@@ -2146,8 +2148,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
 
     Parameters
     ----------
-    labels : list of Label
-        The labels. Must not overlap.
+    %(eltc_labels)s
     values : ndarray, shape (n_labels, ...)
         The values in each label. Can be 1D or 2D.
     tmin : float
@@ -2156,11 +2157,17 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
         The tstep to use for the STC.
     subject : str | None
         The subject for which to create the STC.
+    %(eltc_src)s
+        Can be omitted if using a surface source space, in which case
+        the label vertices will determine the output STC vertices.
+        Required if using a volumetric source space.
+
+        .. versionadded:: 0.22
     %(verbose)s
 
     Returns
     -------
-    stc : instance of SourceEstimate
+    stc : instance of SourceEstimate | instance of VolSourceEstimate
         The values-in-labels converted to a STC.
 
     See Also
@@ -2173,16 +2180,50 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
 
     .. versionadded:: 0.18
     """
-    subject = _check_labels_subject(labels, subject, 'subject')
     values = np.array(values, float)
     if values.ndim == 1:
         values = values[:, np.newaxis]
     if values.ndim != 2:
         raise ValueError('values must have 1 or 2 dimensions, got %s'
                          % (values.ndim,))
-    if len(labels) != len(values):
-        raise ValueError('values.shape[0] (%s) must match len(labels) (%s)'
-                         % (values.shape[0], len(labels)))
+    _validate_type(src, (SourceSpaces, None))
+    if src is None:
+        data, vertices, subject = _labels_to_stc_surf(
+            labels, values, tmin, tstep, subject)
+        klass = SourceEstimate
+    else:
+        kind = src.kind
+        subject = _check_subject(
+            src._subject, subject, kind='source space subject',
+            raise_error=False)
+        _check_option('source space kind', kind, ('surface', 'volume'))
+        if kind == 'volume':
+            klass = VolSourceEstimate
+        else:
+            klass = SourceEstimate
+        # Easiest way is to get a dot-able operator and use it
+        vertices = [s['vertno'].copy() for s in src]
+        stc = klass(
+            np.eye(sum(len(v) for v in vertices)), vertices, 0, 1, subject)
+        label_op = extract_label_time_course(
+            stc, labels, src=src, mode='mean', allow_empty=True)
+        _check_values_labels(values, label_op.shape[0])
+        rev_op = np.zeros(label_op.shape[::-1])
+        rev_op[np.arange(label_op.shape[1]), np.argmax(label_op, axis=0)] = 1.
+        data = rev_op @ values
+    return klass(data, vertices, tmin, tstep, subject, verbose)
+
+
+def _check_values_labels(values, n_labels):
+    if n_labels != len(values):
+        raise ValueError(
+            f'values.shape[0] ({values.shape[0]}) must match the number of '
+            f'labels ({n_labels})')
+
+
+def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    subject = _check_labels_subject(labels, subject, 'subject')
+    _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])
     data = dict(lh=[], rh=[])
     for li, label in enumerate(labels):
@@ -2200,8 +2241,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
         data[hemi] = mat.dot(data[hemi])
     vertices = [vertices[hemi] for hemi in hemis]
     data = np.concatenate([data[hemi] for hemi in hemis], axis=0)
-    stc = SourceEstimate(data, vertices, tmin, tstep, subject, verbose)
-    return stc
+    return data, vertices, subject
 
 
 _DEFAULT_TABLE_NAME = 'MNE-Python Colortable'

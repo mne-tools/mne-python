@@ -64,10 +64,22 @@ def write_nop(fid, last=False):
     fid.write(np.array(next_, dtype='>i4').tobytes())
 
 
+INT32_MAX = 2147483647
+
+
 def write_int(fid, kind, data):
     """Write a 32-bit integer tag to a fif file."""
     data_size = 4
-    data = np.array(data, dtype='>i4').T
+    data = np.asarray(data)
+    if data.dtype.kind not in 'uib' and data.size > 0:
+        raise TypeError(
+            f'Cannot safely write data with dtype {data.dtype} as int')
+    max_val = data.max() if data.size > 0 else 0
+    if max_val > INT32_MAX:
+        raise TypeError(
+            f'Value {max_val} exceeds maximum allowed ({INT32_MAX}) for '
+            f'tag {kind}')
+    data = data.astype('>i4').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_INT, '>i4')
 
 
@@ -327,8 +339,9 @@ def check_fiff_length(fid, close=True):
     if fid.tell() > 2147483648:  # 2 ** 31, FIFF uses signed 32-bit locations
         if close:
             fid.close()
-        raise IOError('FIFF file exceeded 2GB limit, please split file or '
-                      'save to a different format')
+        raise IOError('FIFF file exceeded 2GB limit, please split file, reduce'
+                      ' split_size (if possible), or save to a different '
+                      'format')
 
 
 def end_file(fid):
