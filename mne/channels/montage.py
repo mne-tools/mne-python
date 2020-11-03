@@ -28,7 +28,8 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
-                                _get_fid_coords, _coord_frame_const)
+                                _get_fid_coords, _coord_frame_const,
+                                _get_data_as_dict_from_dig)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
@@ -303,6 +304,49 @@ class DigMontage(object):
             dig_names[dig_idx] = self.ch_names[ch_name_idx]
 
         return dig_names
+
+    def get_positions(self):
+        """Get all channel and fiducial positions.
+
+        Returns
+        -------
+        positions : dict
+            A dictionary of the positions for channels (``ch_pos``),
+            coordinate frame (``coord_frame``), nasion (``nasion``),
+            left preauricular point (``lpa``),
+            right preauricular point (``rpa``),
+            Head Shape Polhemus (``hsp``), and
+            Head Position Indicator(``hpi``).
+            E.g.::
+
+                {
+                    'ch_pos': {'EEG061': [0, 0, 0]},
+                    'nasion': [0, 0, 1],
+                    'lpa': [0, 1, 0],
+                    'rpa': [1, 0, 0],
+                    'hsp': None,
+                    'hpi': None
+                }
+        """
+        # get channel positions as dict
+        ch_pos = self._get_ch_pos()
+
+        # _get_fid_coords(self.dig)
+        # get coordframe and fiducial coordinates
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
+
+        # return dictionary
+        positions = dict(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
+        )
+        return positions
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
