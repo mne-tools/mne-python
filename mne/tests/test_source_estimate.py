@@ -29,7 +29,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward,
                  compute_source_morph, labels_to_stc, scale_mri,
-                 read_freesurfer_lut, write_source_spaces)
+                 write_source_spaces)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
 from mne.fixes import fft, _get_img_fdata, nullcontext
@@ -1592,8 +1592,9 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
 
 @pytest.mark.parametrize('kind', (
     pytest.param('volume', marks=[requires_version('dipy')]),
-    'surface'))
-@pytest.mark.parametrize('scale', (1., 0.75, (1.0, 0.8, 1.2)))
+    'surface',
+))
+@pytest.mark.parametrize('scale', ((1.0, 0.8, 1.2), 1., 0.9))
 def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     """Test label extraction, morphing, and MRI scaling relationships."""
     tempdir = str(tmpdir)
@@ -1632,18 +1633,15 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     else:
         assert kind == 'volume'
         pytest.importorskip('dipy')
-        volume_labels = list(read_freesurfer_lut()[0])
-        src_from = setup_volume_source_space(
-            subject_from, 20., 'aseg.mgz',
-            volume_label=volume_labels, single_volume=True,
-            subjects_dir=tempdir)
+        src_from = read_source_spaces(fname_src_vol)
+        src_from[0]['subject_his_id'] = subject_from
         labels_from = op.join(
             tempdir, subject_from, 'mri', 'aseg.mgz')
         n_labels = 46
         assert op.isfile(labels_from)
         klass = VolSourceEstimate
         assert len(src_from) == 1
-        assert src_from[0]['nuse'] == 389
+        assert src_from[0]['nuse'] == 4157
         write_source_spaces(
             op.join(from_dir, 'bem', 'sample-vol20-src.fif'), src_from)
     scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
@@ -1687,7 +1685,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
         assert_allclose(label_tc, label_tc_from, rtol=1e-12, atol=1e-12)
     else:
         corr = np.corrcoef(label_tc.ravel(), label_tc_from.ravel())[0, 1]
-        assert 0.66 < corr < 0.69
+        assert 0.93 < corr < 0.95
 
     #
     # 2. Changing STC subject to the surrogate and then extracting
@@ -1702,8 +1700,8 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     # 3. Morphing STC to new subject then extracting
     #
     if isinstance(scale, tuple) and kind == 'volume':
-        ctx = pytest.raises(RuntimeError, match='Non-uniform zooms')
-        test_morph = False
+        ctx = nullcontext()
+        test_morph = True
     elif kind == 'surface':
         ctx = pytest.warns(RuntimeWarning, match='not included')
         test_morph = True
@@ -1713,7 +1711,19 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     with ctx:  # vertices not included
         morph = compute_source_morph(
             src_from, subject_to=subject_to, src_to=src_to,
-            subjects_dir=tempdir, niter_sdr=(), smooth=1, verbose=True)
+            subjects_dir=tempdir, niter_sdr=(), smooth=1,
+            zooms=14., verbose=True)  # speed up with higher zooms
+    if kind == 'volume':
+        got_affine = morph.pre_affine.affine
+        want_affine = np.eye(4)
+        want_affine.ravel()[::5][:3] = 1. / np.array(scale, float)
+        # just a scaling (to within 1% if zooms=None, 20% with zooms=10)
+        assert_allclose(want_affine[:, :3], got_affine[:, :3], atol=2e-1)
+        assert got_affine[3, 3] == 1.
+        # little translation (to within `limit` mm)
+        move = np.linalg.norm(got_affine[:3, 3])
+        limit = 2. if scale == 1. else 12
+        assert move < limit, scale
     if test_morph:
         stc_to = morph.apply(stc)
         label_tc_to_morph = extract_label_time_course(
@@ -1721,11 +1731,17 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
         if kind == 'volume':
             corr = np.corrcoef(
                 label_tc.ravel(), label_tc_to_morph.ravel())[0, 1]
-            if scale == 1.:
-                assert 0.42 < corr <= 0.47, corr
+            if isinstance(scale, tuple):
+                # some other fixed constant
+                # min_, max_ = 0.84, 0.855  # zooms='auto' values
+                min_, max_ = 0.57, 0.67
+            elif scale == 1:
+                # min_, max_ = 0.85, 0.875  # zooms='auto' values
+                min_, max_ = 0.72, 0.75
             else:
-                # XXX even just a pure scaling does not work very well, bug...
-                assert -0.1 < corr < 0.1
+                # min_, max_ = 0.84, 0.855  # zooms='auto' values
+                min_, max_ = 0.61, 0.62
+            assert min_ < corr <= max_, scale
         else:
             assert_allclose(
                 label_tc, label_tc_to_morph, atol=1e-12, rtol=1e-12)
@@ -1741,4 +1757,4 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
         assert_allclose(label_tc, label_tc_to, rtol=1e-12, atol=1e-12)
     else:
         corr = np.corrcoef(label_tc.ravel(), label_tc_to.ravel())[0, 1]
-        assert 0.66 < corr < 0.69
+        assert 0.93 < corr < 0.96, scale
