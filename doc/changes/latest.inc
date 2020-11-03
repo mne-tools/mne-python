@@ -14,6 +14,8 @@ Current (0.22.dev0)
 
 .. |Eduard Ort| replace:: **Eduard Ort**
 
+.. |Aniket Pradhan| replace:: **Aniket Pradhan**
+
 Enhancements
 ~~~~~~~~~~~~
 - Update ``surfaces`` argument in :func:`mne.viz.plot_alignment` to allow dict for transparency values, and set default for sEEG data to have transparency (by `Keith Doelling`_ (:gh:`8445`))
@@ -40,6 +42,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary **by new contributor** |Aniket Pradhan|_ (:gh:`8474`)
+
 - Fix bug with reading split files that have dashes in the filename **by new contributor** |Eduard Ort|_ (:gh:`8339`)
 
 - Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted by `Daniel McCloy`_ (:gh:`8377`)
