@@ -13,6 +13,7 @@ from copy import deepcopy
 from datetime import timedelta
 import os
 import os.path as op
+import shutil
 
 import numpy as np
 
@@ -1394,17 +1395,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
-        if split_naming == 'neuromag':
-            part_idx = 0
-        elif split_naming == 'bids':
-            part_idx = 1
-        else:
-            raise ValueError(
-                "split_naming must be either 'neuromag' or 'bids' instead "
-                "of '{}'.".format(split_naming))
+        _validate_type(split_naming, str, 'split_naming')
+        _check_option('split_naming', split_naming, ('neuromag', 'bids'))
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
-                   split_size, split_naming, part_idx, None, overwrite)
+                   split_size, split_naming, 0, None, overwrite)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
@@ -1855,18 +1850,28 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         raise RuntimeError('Cannot write raw file with no data: %s -> %s '
                            '(max: %s) requested' % (start, stop, n_times_max))
 
+    base, ext = op.splitext(fname)
     if part_idx > 0:
-        base, ext = op.splitext(fname)
         if split_naming == 'neuromag':
             # insert index in filename
             use_fname = '%s-%d%s' % (base, part_idx, ext)
         elif split_naming == 'bids':
-            use_fname = _construct_bids_filename(base, ext, part_idx)
+            use_fname = _construct_bids_filename(base, ext, part_idx + 1)
             # check for file existence
             _check_fname(use_fname, overwrite)
-
     else:
         use_fname = fname
+    # reserve our BIDS split fname in case we need to split
+    if split_naming == 'bids' and part_idx == 0:
+        # reserve our possible split name
+        reserved_fname = _construct_bids_filename(base, ext, part_idx + 1)
+        logger.info(
+            f'Reserving possible split file {op.basename(reserved_fname)}')
+        _check_fname(reserved_fname, overwrite)
+        with open(reserved_fname, 'w') as fid:
+            pass
+    else:
+        reserved_fname = use_fname
     logger.info('Writing %s' % use_fname)
 
     picks = _picks_to_idx(info, picks, 'all', ())
@@ -1878,17 +1883,13 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
     # previous file name and id
-    if split_naming == 'neuromag':
-        part_idx_tag = part_idx - 1
-    else:
-        part_idx_tag = part_idx - 2
     if part_idx > 0 and prev_fname is not None:
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
         if info['meas_id'] is not None:
             write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
-        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx_tag)
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
     pos_prev = fid.tell()
@@ -1916,6 +1917,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                      'output buffer_size, will be written as zeroes.')
 
     n_current_skip = 0
+    final_fname = use_fname
     for first, last in zip(firsts, lasts):
         if do_skips:
             if ((first >= sk_onsets) & (last <= sk_ends)).any():
@@ -1963,11 +1965,12 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         # with the "and" check
         if pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER and \
                 first + buffer_size < stop:
+            final_fname = reserved_fname
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, drop_small_buffer, split_size, split_naming,
-                part_idx + 1, use_fname, overwrite)
+                part_idx + 1, final_fname, overwrite)
 
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
@@ -1977,17 +1980,23 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
             end_block(fid, FIFF.FIFFB_REF)
             break
-
         pos_prev = pos
 
-    logger.info('Closing %s [done]' % use_fname)
+    logger.info('Closing %s' % use_fname)
     if info.get('maxshield', False):
         end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
     else:
         end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
-    return use_fname, part_idx
+    if final_fname != use_fname:
+        logger.info(f'Renaming BIDS split file {op.basename(final_fname)}')
+        shutil.move(use_fname, final_fname)
+    elif reserved_fname != use_fname:
+        os.remove(reserved_fname)
+    if part_idx == 0:
+        logger.info('[done]')
+    return final_fname, part_idx
 
 
 def _start_writing_raw(name, info, sel, data_type,
@@ -2083,11 +2092,14 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
     _check_option('fmt', fmt, ['short', 'int', 'single', 'double'])
 
+    cast_int = False  # allow unsafe cast
     if np.isrealobj(buf):
         if fmt == 'short':
             write_function = write_dau_pack16
+            cast_int = True
         elif fmt == 'int':
             write_function = write_int
+            cast_int = True
         elif fmt == 'single':
             write_function = write_float
         else:
@@ -2102,6 +2114,8 @@ def _write_raw_buffer(fid, buf, cals, fmt):
                              'writing complex data')
 
     buf = buf / np.ravel(cals)[:, None]
+    if cast_int:
+        buf = buf.astype(np.int32)
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 

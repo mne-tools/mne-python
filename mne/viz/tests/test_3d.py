@@ -105,7 +105,7 @@ def test_plot_head_positions():
 @requires_pysurfer
 @traits_test
 @pytest.mark.slowtest
-def test_plot_sparse_source_estimates(renderer_interactive):
+def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
 
@@ -289,7 +289,6 @@ def test_plot_alignment(tmpdir, renderer):
     if renderer._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
-
     # 3D coil with no defined draw (ConvexHull)
     info_cube = pick_info(info, [0])
     info['dig'] = None
@@ -328,6 +327,14 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['foo'])
+    with pytest.raises(TypeError, match="must be an instance of "):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir,
+                       surfaces=dict(brain='super clear'))
+    with pytest.raises(ValueError, match="must be between 0 and 1"):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir,
+                       surfaces=dict(brain=42))
     fwd_fname = op.join(data_dir, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
     fwd = read_forward_solution(fwd_fname)
@@ -338,7 +345,10 @@ def test_plot_alignment(tmpdir, renderer):
     plot_alignment(subject='sample', subjects_dir=subjects_dir,
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
-
+    # surfaces as dict
+    plot_alignment(subject='sample', coord_frame='head',
+                   subjects_dir=subjects_dir,
+                   surfaces={'white': 0.4, 'outer_skull': 0.6, 'head': None})
     # fNIRS (default is pairs)
     info = read_raw_nirx(nirx_fname).info
     with catch_logging() as log:
@@ -574,7 +584,7 @@ def test_snapshot_brain_montage(renderer):
 @pytest.mark.parametrize('pick_ori', ('vector', None))
 @pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
-                               pick_ori, kind):
+                               pick_ori, kind, brain_gc):
     """Test plotting of scalar and vector source estimates."""
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]

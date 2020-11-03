@@ -16,6 +16,7 @@ from scipy import sparse
 from scipy.optimize import fmin_cobyla
 from scipy.spatial.distance import cdist
 
+import mne
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
@@ -27,20 +28,22 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  SourceSpaces, VolVectorSourceEstimate, read_trans, pick_types,
                  MixedVectorSourceEstimate, setup_volume_source_space,
                  convert_forward_solution, pick_types_forward,
-                 compute_source_morph)
+                 compute_source_morph, labels_to_stc, scale_mri,
+                 read_freesurfer_lut, write_source_spaces)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
-from mne.fixes import fft, _get_img_fdata
+from mne.fixes import fft, _get_img_fdata, nullcontext
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
+from mne.surface import _make_morph_map_hemi
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, requires_nibabel)
+                       requires_h5py, requires_nibabel, requires_version)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -836,6 +839,37 @@ def test_extract_label_time_course_volume(
                 else:
                     in_label = func(in_label)
                     assert_allclose(in_label, want, atol=1e-6, rtol=rtol)
+        if mode == 'mean' and not vector:  # check the reverse
+            if label_type is dict:
+                ctx = pytest.warns(RuntimeWarning, match='does not contain')
+            else:
+                ctx = nullcontext()
+            with ctx:
+                stc_back = labels_to_stc(labels, label_tc, src=src)
+            assert stc_back.data.shape == stcs[0].data.shape
+            corr = np.corrcoef(stc_back.data.ravel(),
+                               stcs[0].data.ravel())[0, 1]
+            assert 0.6 < corr < 0.63
+            assert_allclose(_varexp(label_tc, label_tc), 1.)
+            ve = _varexp(stc_back.data, stcs[0].data)
+            assert 0.83 < ve < 0.85
+            with pytest.warns(None):  # ignore warnings about no output
+                label_tc_rt = extract_label_time_course(
+                    stc_back, labels, src=src, mri_resolution=mri_res,
+                    allow_empty=True)
+            assert label_tc_rt.shape == label_tc.shape
+            corr = np.corrcoef(label_tc.ravel(), label_tc_rt.ravel())[0, 1]
+            lower, upper = (0.99, 0.999) if mri_res else (0.95, 0.97)
+            assert lower < corr < upper
+            ve = _varexp(label_tc_rt, label_tc)
+            lower, upper = (0.99, 0.999) if mri_res else (0.97, 0.99)
+            assert lower < ve < upper
+
+
+def _varexp(got, want):
+    return max(
+        1 - np.linalg.norm(got.ravel() - want.ravel()) ** 2 /
+        np.linalg.norm(want) ** 2, 0.)
 
 
 @testing.requires_testing_data
@@ -1548,3 +1582,163 @@ def test_stc_near_sensors(tmpdir):
     assert isinstance(stc_vol, VolSourceEstimate)
     log = log.getvalue()
     assert '4157 volume vertices' in log
+
+
+def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
+                              reg_from, reg_to):
+    return _make_morph_map_hemi(subject_from, subject_from, subjects_dir,
+                                reg_from, reg_from)
+
+
+@pytest.mark.parametrize('kind', (
+    pytest.param('volume', marks=[requires_version('dipy')]),
+    'surface'))
+@pytest.mark.parametrize('scale', (1., 0.75, (1.0, 0.8, 1.2)))
+def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
+    """Test label extraction, morphing, and MRI scaling relationships."""
+    tempdir = str(tmpdir)
+    subject_from = 'sample'
+    subject_to = 'small'
+    testing_dir = op.join(subjects_dir, subject_from)
+    from_dir = op.join(tempdir, subject_from)
+    for root in ('mri', 'surf', 'label', 'bem'):
+        os.makedirs(op.join(from_dir, root), exist_ok=True)
+    for hemi in ('lh', 'rh'):
+        for root, fname in (('surf', 'sphere'), ('surf', 'white'),
+                            ('surf', 'sphere.reg'),
+                            ('label', 'aparc.annot')):
+            use_fname = op.join(root, f'{hemi}.{fname}')
+            copyfile(op.join(testing_dir, use_fname),
+                     op.join(from_dir, use_fname))
+    for root, fname in (('mri', 'aseg.mgz'), ('mri', 'brain.mgz')):
+        use_fname = op.join(root, fname)
+        copyfile(op.join(testing_dir, use_fname),
+                 op.join(from_dir, use_fname))
+    del testing_dir
+    if kind == 'surface':
+        src_from = read_source_spaces(fname_src_3)
+        assert src_from[0]['dist'] is None
+        assert src_from[0]['nearest'] is not None
+        # avoid patch calc
+        src_from[0]['nearest'] = src_from[1]['nearest'] = None
+        assert len(src_from) == 2
+        assert src_from[0]['nuse'] == src_from[1]['nuse'] == 258
+        klass = SourceEstimate
+        labels_from = read_labels_from_annot(
+            subject_from, subjects_dir=tempdir)
+        n_labels = len(labels_from)
+        write_source_spaces(op.join(tempdir, subject_from, 'bem',
+                                    f'{subject_from}-oct-4-src.fif'), src_from)
+    else:
+        assert kind == 'volume'
+        pytest.importorskip('dipy')
+        volume_labels = list(read_freesurfer_lut()[0])
+        src_from = setup_volume_source_space(
+            subject_from, 20., 'aseg.mgz',
+            volume_label=volume_labels, single_volume=True,
+            subjects_dir=tempdir)
+        labels_from = op.join(
+            tempdir, subject_from, 'mri', 'aseg.mgz')
+        n_labels = 46
+        assert op.isfile(labels_from)
+        klass = VolSourceEstimate
+        assert len(src_from) == 1
+        assert src_from[0]['nuse'] == 389
+        write_source_spaces(
+            op.join(from_dir, 'bem', 'sample-vol20-src.fif'), src_from)
+    scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
+              annot=True, skip_fiducials=True, verbose=True,
+              overwrite=True)  # XXX
+    if kind == 'surface':
+        src_to = read_source_spaces(
+            op.join(tempdir, subject_to, 'bem',
+                    f'{subject_to}-oct-4-src.fif'))
+        labels_to = read_labels_from_annot(
+            subject_to, subjects_dir=tempdir)
+        # Save time since we know these subjects are identical
+        monkeypatch.setattr(mne.surface, '_make_morph_map_hemi',
+                            _make_morph_map_hemi_same)
+    else:
+        src_to = read_source_spaces(
+            op.join(tempdir, subject_to, 'bem',
+                    f'{subject_to}-vol20-src.fif'))
+        labels_to = op.join(
+            tempdir, subject_to, 'mri', 'aseg.mgz')
+    # 1. Label->STC->Label for the given subject should be identity
+    #    (for surfaces at least; for volumes it's not as clean as this
+    #     due to interpolation)
+    n_times = 50
+    rng = np.random.RandomState(0)
+    label_tc = rng.randn(n_labels, n_times)
+    # check that a random permutation of our labels yields a terrible
+    # correlation
+    corr = np.corrcoef(label_tc.ravel(),
+                       rng.permutation(label_tc).ravel())[0, 1]
+    assert -0.06 < corr < 0.06
+    # project label activations to full source space
+    with pytest.raises(ValueError, match='subject'):
+        labels_to_stc(labels_from, label_tc, src=src_from, subject='foo')
+    stc = labels_to_stc(labels_from, label_tc, src=src_from)
+    assert stc.subject == 'sample'
+    assert isinstance(stc, klass)
+    label_tc_from = extract_label_time_course(
+        stc, labels_from, src_from, mode='mean')
+    if kind == 'surface':
+        assert_allclose(label_tc, label_tc_from, rtol=1e-12, atol=1e-12)
+    else:
+        corr = np.corrcoef(label_tc.ravel(), label_tc_from.ravel())[0, 1]
+        assert 0.66 < corr < 0.69
+
+    #
+    # 2. Changing STC subject to the surrogate and then extracting
+    #
+    stc.subject = subject_to
+    label_tc_to = extract_label_time_course(
+        stc, labels_to, src_to, mode='mean')
+    assert_allclose(label_tc_from, label_tc_to, rtol=1e-12, atol=1e-12)
+    stc.subject = subject_from
+
+    #
+    # 3. Morphing STC to new subject then extracting
+    #
+    if isinstance(scale, tuple) and kind == 'volume':
+        ctx = pytest.raises(RuntimeError, match='Non-uniform zooms')
+        test_morph = False
+    elif kind == 'surface':
+        ctx = pytest.warns(RuntimeWarning, match='not included')
+        test_morph = True
+    else:
+        ctx = nullcontext()
+        test_morph = True
+    with ctx:  # vertices not included
+        morph = compute_source_morph(
+            src_from, subject_to=subject_to, src_to=src_to,
+            subjects_dir=tempdir, niter_sdr=(), smooth=1, verbose=True)
+    if test_morph:
+        stc_to = morph.apply(stc)
+        label_tc_to_morph = extract_label_time_course(
+            stc_to, labels_to, src_to, mode='mean')
+        if kind == 'volume':
+            corr = np.corrcoef(
+                label_tc.ravel(), label_tc_to_morph.ravel())[0, 1]
+            if scale == 1.:
+                assert 0.42 < corr <= 0.47, corr
+            else:
+                # XXX even just a pure scaling does not work very well, bug...
+                assert -0.1 < corr < 0.1
+        else:
+            assert_allclose(
+                label_tc, label_tc_to_morph, atol=1e-12, rtol=1e-12)
+
+    #
+    # 4. The same round trip from (1) but in the warped space
+    #
+    stc = labels_to_stc(labels_to, label_tc, src=src_to)
+    assert isinstance(stc, klass)
+    label_tc_to = extract_label_time_course(
+        stc, labels_to, src_to, mode='mean')
+    if kind == 'surface':
+        assert_allclose(label_tc, label_tc_to, rtol=1e-12, atol=1e-12)
+    else:
+        corr = np.corrcoef(label_tc.ravel(), label_tc_to.ravel())[0, 1]
+        assert 0.66 < corr < 0.69

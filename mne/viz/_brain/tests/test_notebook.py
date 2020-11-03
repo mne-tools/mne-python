@@ -12,7 +12,7 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 @requires_version('nbformat')
 @requires_version('nbclient')
 @requires_version('ipympl')
-def test_notebook_3d_backend(renderer_notebook):
+def test_notebook_3d_backend(renderer_notebook, brain_gc):
     """Test executing a notebook that should not fail."""
     import nbformat
     from nbclient import NotebookClient

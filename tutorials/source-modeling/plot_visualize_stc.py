@@ -151,6 +151,13 @@ for key in ('right', 'top'):
 fig.tight_layout()
 
 ###############################################################################
+# And we can project these label time courses back to their original
+# locations and see how the plot has been smoothed:
+
+stc_back = mne.labels_to_stc(fname_aseg, label_tc, src=src)
+stc_back.plot(src, subjects_dir=subjects_dir, mode='glass_brain')
+
+###############################################################################
 # Vector Source Estimates
 # -----------------------
 # If we choose to use ``pick_ori='vector'`` in

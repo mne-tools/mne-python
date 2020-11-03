@@ -220,7 +220,8 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
             src_data['to_vox_map'] = (src_to[-1]['shape'], src_ras_t)
             vertices_to_vol = [s['vertno'] for s in src_to[surf_offset:]]
             zooms_src_to = np.diag(src_to[-1]['src_mri_t']['trans'])[:3] * 1000
-            assert (zooms_src_to[0] == zooms_src_to).all()
+            if (zooms_src_to[0] != zooms_src_to).any():
+                raise RuntimeError('Non-uniform zooms not supported')
             zooms_src_to = tuple(zooms_src_to)
 
         # pre-compute non-linear morph
