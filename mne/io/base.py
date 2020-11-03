@@ -798,7 +798,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def get_data(self, picks=None, start=0, stop=None,
-                 reject_by_annotation=None, return_times=False, verbose=None):
+                 reject_by_annotation=None, return_times=False, units=None,
+                 verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -815,6 +816,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well. Defaults to False.
+        units : str | dict | None
+            Specify the unit(s) that the data should be returned in. If None
+            (default), the data is returned in the channel type specific
+            default units. If str, must be a unit that will be used to scale
+            the data from all channel types generally compatible with that
+            unit. For example ``units="uV"`` will scale all channel types
+            that use Volts to micro Volts. Finally, if a dict is supplied,
+            keys must be channel types, and values must be units to scale
+            the data of that channel type to. For example
+            ``dict(eeg="nV")`` will scale all EEG channels to nano Volts,
+            but all other channel types will remain in their channel type
+            specific default unit.
+
         %(verbose_meth)s
 
         Returns
