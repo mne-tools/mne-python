@@ -300,12 +300,8 @@ def _construct_bids_filename(base, ext, part_idx):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
     deconstructed_base = base.split('_')
-    bids_supported = ['meg', 'eeg', 'ieeg']
-    for mod in bids_supported:
-        if mod in deconstructed_base:
-            idx = deconstructed_base.index(mod)
-            modality = deconstructed_base.pop(idx)
-    base = '_'.join(deconstructed_base)
+    assert len(deconstructed_base) > 1
+    modality = deconstructed_base[-1]
+    base = '_'.join(deconstructed_base[:-1])
     use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, modality, ext)
-
     return use_fname
