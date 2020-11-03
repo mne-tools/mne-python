@@ -505,7 +505,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             # deal with older files, which have no unit property
             props += ('µV',)
         elif props[3] == '':
-            # deal with files where the unit property is simply empty
+            # deal with files where the unit property is simply empty, which
+            # are created e.g. by PyCorder
             props[3] = 'µV'
 
         name, _, resolution, unit = props[:4]
