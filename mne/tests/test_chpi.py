@@ -274,6 +274,7 @@ def test_calculate_chpi_positions_vv():
         _calculate_chpi_positions(raw)
 
 
+@testing.requires_testing_data
 @pytest.mark.slowtest
 def test_calculate_chpi_positions_artemis():
     """Test on 5k artemis data."""
@@ -286,6 +287,7 @@ def test_calculate_chpi_positions_artemis():
         dist_tol=0.001, angle_tol=1., err_rtol=0.7, vel_atol=1e-2)
 
 
+@testing.requires_testing_data
 def test_initial_fit_redo():
     """Test that initial fits can be redone based on moments."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
