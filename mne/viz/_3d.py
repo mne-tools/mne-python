@@ -18,7 +18,7 @@ from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar, _get_img_fdata, _get_args
@@ -31,7 +31,7 @@ from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
 
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
-                       mesh_edges, _reorder_ccw, _complete_sphere_surf)
+                       _reorder_ccw, _complete_sphere_surf)
 from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform,
@@ -1402,7 +1402,7 @@ def _key_pressed_slider(event, params):
 
 def _smooth_plot(this_time, params):
     """Smooth source estimate data and plot with mpl."""
-    from ..morph import _morph_buffer
+    from ..morph import _hemi_morph
     ax = params['ax']
     stc = params['stc']
     ax.clear()
@@ -1418,9 +1418,10 @@ def _smooth_plot(this_time, params):
     else:
         data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
 
-    array_plot = _morph_buffer(data, params['vertices'], params['e'],
-                               params['smoothing_steps'], params['n_verts'],
-                               params['inuse'], params['maps'])
+    morph = _hemi_morph(
+        params['tris'], params['inuse'], params['vertices'],
+        params['smoothing_steps'], maps=None, warn=True)
+    array_plot = morph @ data
 
     range_ = params['scale_pts'][2] - params['scale_pts'][0]
     colors = (array_plot - params['scale_pts'][0]) / range_
@@ -1513,11 +1514,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
     tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-    e = mesh_edges(tris)
-    e.data[e.data == 2] = 1
-    n_vertices = e.shape[0]
-    maps = sparse.identity(n_vertices).tocsr()
-    e = e + sparse.eye(n_vertices, n_vertices)
     cmap = cm.get_cmap(colormap)
     greymap = cm.get_cmap('Greys')
 
@@ -1525,9 +1521,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
     curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
-                  hemi_idx=hemi_idx, vertices=vertices, e=e,
+                  hemi_idx=hemi_idx, vertices=vertices, tris=tris,
                   smoothing_steps=smoothing_steps, n_verts=n_verts,
-                  inuse=inuse, maps=maps, cmap=cmap, curv=curv,
+                  inuse=inuse, cmap=cmap, curv=curv,
                   scale_pts=scale_pts, greymap=greymap, time_label=time_label,
                   time_unit=time_unit)
     _smooth_plot(initial_time, params)
