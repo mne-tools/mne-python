@@ -341,24 +341,24 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         hemi_str.extend(['vol'])
 
     # label traces
-    brain = _create_testing_brain(
-        hemi=hemi, surf='white', src=src, show_traces=False, initial_time=0,
-        volume_options=None,  # for speed, don't upsample
-        n_time=5,
-    )
     if src in ('volume', 'mixed'):
         with pytest.raises(RuntimeError, match='volume'):
-            brain.add_annotation('aparc', traces=True)
+            brain = _create_testing_brain(
+                hemi=hemi, surf='white', src=src, show_traces='label',
+                volume_options=None,  # for speed, don't upsample
+                n_time=1,
+            )
+            brain.close()
     else:
-        brain.add_annotation('aparc', traces=True)
+        brain = _create_testing_brain(
+            hemi=hemi, surf='white', src=src, show_traces='label',
+            volume_options=None,  # for speed, don't upsample
+            n_time=5, initial_time=0,
+        )
         assert brain.show_traces
         assert brain.traces_mode == 'label'
-        assert brain.label_tool_bar is not None
-        # label tool bar: (Label, ComboBox)
-        label_tool_bar_actions = brain.label_tool_bar.actions()
-        assert len(label_tool_bar_actions) == 2
-        comboBox = label_tool_bar_actions[1].defaultWidget()
-        comboBox.setCurrentText('max')
+        assert brain._label_mode_widget is not None
+        brain._label_mode_widget.setCurrentText('max')
 
         # test picking a cell at random
         rng = np.random.RandomState(0)
@@ -376,7 +376,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
                 assert isinstance(label_data["line"], Line2D)
             brain.clear_glyphs()
             assert len(brain.picked_patches[current_hemi]) == 0
-    brain.close()
+        brain.close()
 
     # vertex traces
     brain = _create_testing_brain(
@@ -386,6 +386,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     )
     assert brain.show_traces
     assert brain.traces_mode == 'vertex'
+    assert brain._label_mode_widget is None
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
 

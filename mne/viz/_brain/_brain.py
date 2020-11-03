@@ -375,7 +375,6 @@ class Brain(object):
             "stc": ["mean", "max"],
             "src": ["mean_flip", "pca_flip", "auto"],
         }
-        self.traces_mode = 'vertex'
         self.label_extract_mode = None
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
@@ -400,12 +399,12 @@ class Brain(object):
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
         self.slider_tube_width = 0.04
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
+        self._label_mode_widget = None
 
         # Direct access parameters:
         self._iren = self._renderer.plotter.iren
         self.main_menu = self.plotter.main_menu
         self.tool_bar = self.window.addToolBar("toolbar")
-        self.label_tool_bar = None
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
 
@@ -414,9 +413,20 @@ class Brain(object):
         _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
         self.interactor_fraction = 0.25
         if isinstance(show_traces, str):
-            assert show_traces == 'separate'  # should be guaranteed earlier
-            self.show_traces = True
-            self.separate_canvas = True
+            if show_traces == 'separate':
+                self.show_traces = True
+                self.separate_canvas = True
+                self.traces_mode = 'vertex'
+            elif show_traces == 'vertex':
+                self.show_traces = True
+                self.separate_canvas = False
+                self.traces_mode = 'vertex'
+            elif show_traces == 'label':
+                self.show_traces = True
+                self.separate_canvas = False
+                self.traces_mode = 'label'
+            else:
+                self.show_traces = False
         else:
             if isinstance(show_traces, bool):
                 self.show_traces = show_traces
@@ -428,6 +438,7 @@ class Brain(object):
                         f'got {show_traces}')
                 self.show_traces = True
                 self.interactor_fraction = show_traces
+            self.traces_mode = 'vertex'
             self.separate_canvas = False
         del show_traces
 
@@ -436,11 +447,10 @@ class Brain(object):
         self._configure_sliders()
         self._configure_scalar_bar()
         self._configure_playback()
-        self._configure_picking()
-        self._configure_vertex_time_course()
         self._configure_menu()
         self._configure_tool_bar()
         self._configure_status_bar()
+        self._configure_picking()
 
         # show everything at the end
         self.toggle_interface()
@@ -962,6 +972,11 @@ class Brain(object):
             self._on_button_release,
             self._on_pick
         )
+
+        if self.traces_mode == 'vertex':
+            self._configure_vertex_time_course()
+        elif self.traces_mode == 'label':
+            self._configure_label_time_course()
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
@@ -2119,11 +2134,20 @@ class Brain(object):
         self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
                               size=font_size, justification=justification)
 
-    def _configure_label_time_course(self, annot):
-        from PyQt5.QtWidgets import QLabel, QComboBox
+    def _configure_label_time_course(self):
+        from PyQt5.QtWidgets import QComboBox
         from ...label import read_labels_from_annot
         if not self.show_traces:
             return
+
+        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
+        cands = os.listdir(dir_name)
+        cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
+                           for c in cands if '.annot' in c),
+                       key=lambda x: x.lower())
+        annot = cands[0]
+        self.add_annotation(annot)
+
         # volumes are not supported
         if (self._data.get('src', None) is not None and
                 self._data['src'].kind in ['volume', 'mixed']):
@@ -2140,14 +2164,11 @@ class Brain(object):
         self.plot_time_line()
 
         # setup label tool bar
-        self.window.addToolBarBreak()
-        self.label_tool_bar = self.window.addToolBar("label")
-        self.label_tool_bar.addWidget(QLabel("Label extraction mode"))
-        combo = QComboBox()
+        self._label_mode_widget = QComboBox()
         for source in ["stc", "src"]:
             if self._data[source] is not None:
                 for mode in self.default_label_extract_modes[source]:
-                    combo.addItem(mode)
+                    self._label_mode_widget.addItem(mode)
                     self.label_extract_mode = mode
 
         def _set_label_mode(mode):
@@ -2164,9 +2185,10 @@ class Brain(object):
             self.mpl_canvas.axes.autoscale_view()
             self.mpl_canvas.update_plot()
             self._update()
-        combo.setCurrentText(self.label_extract_mode)
-        combo.currentTextChanged.connect(_set_label_mode)
-        self.label_tool_bar.addWidget(combo)
+        self._label_mode_widget.setCurrentText(self.label_extract_mode)
+        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
+        self.tool_bar.insertWidget(self.actions["restore"],
+                                   self._label_mode_widget)
         self.mpl_canvas.update_plot()
 
         for hemi in self._hemis:
@@ -2183,8 +2205,7 @@ class Brain(object):
                 self._vertex_to_label_id[hemi][label.vertices] = idx
 
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
-                       remove_existing=True, color=None, traces=True,
-                       **kwargs):
+                       remove_existing=True, color=None, **kwargs):
         """Add an annotation file.
 
         Parameters
@@ -2211,19 +2232,12 @@ class Brain(object):
         color : matplotlib-style color code
             If used, show all annotations in the same (specified) color.
             Probably useful only when showing annotation borders.
-        traces : bool
-            If True, enable interactive picking of a label on the surface
-            of the brain and plot its time course.
         **kwargs : dict
             These are passed to the underlying
             ``mayavi.mlab.pipeline.surface`` call.
         """
         from ...label import _read_annot
         hemis = self._check_hemis(hemi)
-
-        if self.time_viewer and traces:
-            self.show_traces = True
-            self._configure_label_time_course(annot)
 
         # Figure out where the data is coming from
         if isinstance(annot, str):
@@ -2263,7 +2277,6 @@ class Brain(object):
             annot = 'annotation'
 
         for hemi, (labels, cmap) in zip(hemis, annots):
-
             # Maybe zero-out the non-border vertices
             self._to_borders(labels, hemi, borders)
 
@@ -2302,28 +2315,30 @@ class Brain(object):
                 scalars = ids
                 colormap = ctable
 
-            mesh_data = self._renderer.mesh(
-                x=self.geo[hemi].coords[:, 0],
-                y=self.geo[hemi].coords[:, 1],
-                z=self.geo[hemi].coords[:, 2],
-                triangles=self.geo[hemi].faces,
-                color=None,
-                colormap=colormap,
-                scalars=scalars,
-                vmin=np.min(scalars),
-                vmax=np.max(scalars),
-                interpolate_before_map=False,
-                polygon_offset=-2,
-            )
+            for ri, ci, _ in self._iter_views(hemi):
+                self._renderer.subplot(ri, ci)
+                mesh_data = self._renderer.mesh(
+                    x=self.geo[hemi].coords[:, 0],
+                    y=self.geo[hemi].coords[:, 1],
+                    z=self.geo[hemi].coords[:, 2],
+                    triangles=self.geo[hemi].faces,
+                    color=None,
+                    colormap=colormap,
+                    scalars=scalars,
+                    vmin=np.min(scalars),
+                    vmax=np.max(scalars),
+                    interpolate_before_map=False,
+                    polygon_offset=-2,
+                )
 
-            if not self.time_viewer or self.traces_mode == 'vertex':
-                if isinstance(mesh_data, tuple):
-                    from ..backends._pyvista import _set_colormap_range
-                    actor, mesh = mesh_data
-                    # add metadata to the mesh for picking
-                    mesh._hemi = hemi
-                    _set_colormap_range(actor, cmap.astype(np.uint8),
-                                        None)
+                if not self.time_viewer or self.traces_mode == 'vertex':
+                    if isinstance(mesh_data, tuple):
+                        from ..backends._pyvista import _set_colormap_range
+                        actor, mesh = mesh_data
+                        # add metadata to the mesh for picking
+                        mesh._hemi = hemi
+                        _set_colormap_range(actor, cmap.astype(np.uint8),
+                                            None)
 
         self._update()
 

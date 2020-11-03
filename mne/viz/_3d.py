@@ -1959,7 +1959,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
     _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
     if isinstance(show_traces, str):
-        _check_option('show_traces', show_traces, ('auto', 'separate'),
+        _check_option('show_traces', show_traces,
+                      ('auto', 'separate', 'vertex', 'label'),
                       extra='when a string')
     if time_viewer == 'auto':
         time_viewer = not using_mayavi
