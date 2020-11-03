@@ -358,7 +358,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         label_tool_bar_actions = brain.label_tool_bar.actions()
         assert len(label_tool_bar_actions) == 2
         comboBox = label_tool_bar_actions[1].defaultWidget()
-        comboBox.setCurrentText('auto')
+        comboBox.setCurrentText('max')
 
         # test picking a cell at random
         rng = np.random.RandomState(0)
