@@ -148,9 +148,10 @@ clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 ###############################################################################
 # Plot 3D source (brain region) visualization:
 #
-# The time course shown here is the ``stc.data[idx]`` where ``idx`` is the
-# index of the source with the largest absolute value across any time point.
+# By default, `stc.plot_3d() <mne.VolSourceEstimate.plot_3d>` will show a time
+# course of the source with the largest absolute value across any time point.
 # In this example, it is simply the source with the largest raw signal value.
+# Its location is marked on the brain by a small blue sphere.
 
 # sphinx_gallery_thumbnail_number = 4
 
