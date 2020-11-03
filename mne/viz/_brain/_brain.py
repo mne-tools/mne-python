@@ -1179,11 +1179,11 @@ class Brain(object):
 
     def _remove_label_glyph(self, hemi, label_id):
         label = self._annotation_labels[hemi][label_id]
-        _, mesh_data, line, color = self._labels[label.name]
-        line.remove()
-        self.color_cycle.restore(color)
+        label_data = self._labels[label.name]
+        label_data["line"].remove()
+        self.color_cycle.restore(label_data["color"])
         self.mpl_canvas.update_plot()
-        self._renderer.remove_mesh(mesh_data)
+        self._renderer.remove_mesh(label_data["mesh"])
         self.picked_patches[hemi].remove(label_id)
 
     def _add_vertex_glyph(self, hemi, mesh, vertex_id):
@@ -1736,8 +1736,8 @@ class Brain(object):
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for _, mesh_data, _, _ in self._labels.values():
-            self._renderer.remove_mesh(mesh_data)
+        for label_data in self._labels.values():
+            self._renderer.remove_mesh(label_data["mesh"])
         self._labels.clear()
         self._update()
 
@@ -2019,7 +2019,12 @@ class Brain(object):
             if reset_camera:
                 self._renderer.set_camera(**views_dicts[hemi][v])
 
-        self._labels[label_name] = (orig_label, mesh_data, line, orig_color)
+        self._labels[label_name] = {
+            "label": orig_label,
+            "color": orig_color,
+            "mesh": mesh_data,
+            "line": line,
+        }
         self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,

@@ -203,9 +203,9 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     # add label
     label = read_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
-    assert isinstance(brain._labels[label.name], tuple)
+    assert isinstance(brain._labels[label.name], dict)
     label_data = brain._labels[label.name]
-    assert label_data[2] is None
+    assert label_data["line"] is None
     brain.remove_labels()
     brain.add_label(fname_label)
     label_data = brain._labels[label.name]
@@ -372,8 +372,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             assert len(brain.picked_patches[current_hemi]) == 1
             for label_id in list(brain.picked_patches[current_hemi]):
                 label = brain._annotation_labels[current_hemi][label_id]
-                _, _, line, _ = brain._labels[label.name]
-                assert isinstance(line, Line2D)
+                label_data = brain._labels[label.name]
+                assert isinstance(label_data["line"], Line2D)
             brain.clear_glyphs()
             assert len(brain.picked_patches[current_hemi]) == 0
     brain.close()
