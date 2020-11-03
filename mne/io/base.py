@@ -819,7 +819,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         units : str | dict | None
             Specify the unit(s) that the data should be returned in. If None
             (default), the data is returned in the channel type specific
-            default units. If str, must be a unit that will be used to scale
+            default units, which are SI units (see :ref:`channel-units` and
+            :term:`data channels`).
+            If str, must be an SI unit that will be used to scale
             the data from all channel types generally compatible with that
             unit. For example ``units="uV"`` will scale all channel types
             that use Volts to micro Volts. Finally, if a dict is supplied,
