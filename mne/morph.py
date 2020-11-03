@@ -1091,9 +1091,17 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
     e = e + sparse.eye(n_vertices)
-    m = sparse.eye(len(vertices_from), format='csr')
-    mm = _morph_buffer(m, vertices_from, e, smooth, n_vertices,
-                       vertices_to, maps, warn=warn)
+    if isinstance(smooth, str):
+        _check_option('smooth', smooth, ('nearest',),
+                      extra=' when used as a string.')
+        mm = _surf_nearest(vertices_from, e)
+    else:
+        mm = _surf_upsampling_mat(vertices_from, e, smooth, warn=warn)
+    assert mm.shape == (n_vertices, len(vertices_from))
+    if maps is not None:
+        mm = maps[vertices_to] * mm
+    else:  # to == from
+        mm = mm[vertices_to]
     assert mm.shape == (len(vertices_to), len(vertices_from))
     return mm
 
@@ -1193,147 +1201,59 @@ def _surf_nearest(vertices, adj_mat):
     return mat
 
 
-def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
-                  warn=True):
-    """Morph data from one subject's source space to another.
-
-    Parameters
-    ----------
-    data : array, or csr sparse matrix
-        A n_vertices [x 3] x n_times (or other dimension) dataset to morph.
-    idx_use : array of int
-        Vertices from the original subject's data.
-    e : sparse matrix
-        The mesh edges of the "from" subject.
-    smooth : int
-        Number of smoothing iterations to perform. A hard limit of 100 is
-        also imposed.
-    n_vertices : int
-        Number of vertices.
-    nearest : array of int
-        Vertices on the reference surface to use.
-    maps : sparse matrix
-        Morph map from one subject to the other.
-    warn : bool
-        If True, warn if not all vertices were used.
-    %(verbose)s The default
-        is verbose=None.
-
-    Returns
-    -------
-    data_morphed : array, or csr sparse matrix
-        The morphed data (same type as input).
-    """
-    # When operating on vector data, morph each dimension separately
-    if data.ndim == 3:
-        data_morphed = np.zeros((len(nearest), 3, data.shape[2]),
-                                dtype=data.dtype)
-        for dim in range(3):
-            data_morphed[:, dim, :] = _morph_buffer(
-                data=data[:, dim, :], idx_use=idx_use, e=e, smooth=smooth,
-                n_vertices=n_vertices, nearest=nearest, maps=maps, warn=warn)
-        return data_morphed
-
-    n_iter = 99  # max nb of smoothing iterations (minus one)
-    _validate_type(smooth, ('int-like', str, None), 'smooth')
-    if isinstance(smooth, str):
-        _check_option('smooth', smooth, ('nearest',),
-                      extra=' when used as a string.')
-    if smooth is not None:
-        if smooth == 'nearest':
-            return (maps[nearest, :] * _surf_nearest(idx_use, e)) * data
-        smooth = _ensure_int(smooth)
-        if smooth <= 0:
-            raise ValueError('The number of smoothing operations ("smooth") '
-                             'has to be at least 1.')
-        smooth -= 1
-    # make sure we're in CSR format
-    e = e.tocsr()
-    if sparse.issparse(data):
-        use_sparse = True
-        if not isinstance(data, sparse.csr_matrix):
-            data = data.tocsr()
-    else:
-        use_sparse = False
-
-    done = False
-    # do the smoothing
-    for k in range(n_iter + 1):
-        # get the row sum
-        mult = np.zeros(e.shape[1])
-        mult[idx_use] = 1
-        idx_use_data = idx_use
-        data_sum = e * mult
-
-        # new indices are non-zero sums
-        idx_use = np.where(data_sum)[0]
-
-        # typically want to make the next iteration have these indices
-        idx_out = idx_use
-
-        # figure out if this is the last iteration
-        if smooth is None:
-            if k == n_iter or len(idx_use) >= n_vertices:
-                # stop when vertices filled
-                idx_out = None
-                done = True
-        elif k == smooth:
-            idx_out = None
-            done = True
-
-        # do standard smoothing multiplication
-        data = _morph_mult(data, e, use_sparse, idx_use_data, idx_out)
-
-        if done is True:
-            break
-
-        # do standard normalization
-        if use_sparse:
-            data.data /= data_sum[idx_use].repeat(np.diff(data.indptr))
-        else:
-            data /= data_sum[idx_use][:, None]
-
-    # do special normalization for last iteration
-    if use_sparse:
-        data_sum[data_sum == 0] = 1
-        data.data /= data_sum.repeat(np.diff(data.indptr))
-    else:
-        data[idx_use, :] /= data_sum[idx_use][:, None]
-    if len(idx_use) != len(data_sum) and warn:
-        warn_('%s/%s vertices not included in smoothing, consider increasing '
-              'the number of steps'
-              % (len(data_sum) - len(idx_use), len(data_sum)))
-
-    logger.info('    %d smooth iterations done.' % (k + 1))
-
-    data_morphed = maps[nearest, :] * data
-    return data_morphed
+def _csr_row_norm(data, row_norm):
+    assert row_norm.shape == (data.shape[0],)
+    data.data /= np.where(row_norm, row_norm, 1).repeat(np.diff(data.indptr))
 
 
-def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
-    """Help morphing.
-
-    Equivalent to "data = (e[:, idx_use_data] * data)[idx_use_out]"
-    but faster.
-    """
-    if len(idx_use_data) < e.shape[1]:
-        if use_sparse:
-            data = e[:, idx_use_data] * data
-        else:
-            # constructing a new sparse matrix is faster than sub-indexing
-            # e[:, idx_use_data]!
-            col, row = np.meshgrid(np.arange(data.shape[1]), idx_use_data)
-            d_sparse = sparse.csr_matrix((data.ravel(),
-                                          (row.ravel(), col.ravel())),
-                                         shape=(e.shape[1], data.shape[1]))
-            data = e * d_sparse
-            data = np.asarray(data.todense())
-    else:
-        data = e * data
-
-    # trim data
-    if idx_use_out is not None:
-        data = data[idx_use_out]
+def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
+    """Upsample data on a subject's surface given mesh edges."""
+    # we're in CSR format and it's to==from
+    assert isinstance(e, sparse.csr_matrix)
+    n_tot = e.shape[0]
+    assert e.shape == (n_tot, n_tot)
+    # our output matrix starts out as a smaller matrix, and will gradually
+    # increase in size
+    data = sparse.eye(len(idx_from), format='csr')
+    _validate_type(smooth, ('int-like', str, None), 'smoothing steps')
+    if smooth is not None:  # number of steps
+        smooth = _ensure_int(smooth, 'smoothing steps')
+        if smooth < 1:
+            raise ValueError(
+                'The number of smoothing operations has to be at least 1, got '
+                f'{smooth}')
+        smooth = smooth - 1
+    # idx will gradually expand from idx_from -> np.arange(n_tot)
+    idx = idx_from
+    recompute_idx_sum = True  # always compute at least once
+    mult = np.zeros(n_tot)
+    for k in range(100):  # the maximum allowed
+        # on first iteration it's already restricted, so we need to re-restrict
+        if k != 0 and len(idx) < n_tot:
+            data = data[idx]
+        # smoothing multiplication
+        use_e = e[:, idx] if len(idx) < n_tot else e
+        data = use_e * data
+        del use_e
+        # compute row sums + output indices
+        if recompute_idx_sum:
+            if len(idx) == n_tot:
+                row_sum = np.asarray(e.sum(-1))[:, 0]
+                idx = np.arange(n_tot)
+                recompute_idx_sum = False
+            else:
+                mult[idx] = 1
+                row_sum = e * mult
+                idx = np.where(row_sum)[0]
+        # do row normalization
+        _csr_row_norm(data, row_sum)
+        if k == smooth or (smooth is None and len(idx) == n_tot):
+            break  # last iteration / done
+    assert data.shape == (n_tot, len(idx_from))
+    if len(idx) != n_tot and warn:
+        warn_(f'{n_tot-len(idx)}/{n_tot} vertices not included in smoothing, '
+              'consider increasing the number of steps')
+    logger.info(f'    {k + 1} smooth iterations done.')
     return data
 
 
