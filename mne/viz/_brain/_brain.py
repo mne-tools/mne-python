@@ -2135,16 +2135,13 @@ class Brain(object):
                               size=font_size, justification=justification)
 
     def _configure_label_time_course(self):
-        from PyQt5.QtWidgets import QComboBox
-        from ...label import read_labels_from_annot
+        from PyQt5.QtWidgets import QComboBox, QLabel
+        from ...label import read_labels_from_annot, _read_annot_cands
         if not self.show_traces:
             return
 
         dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
-        cands = os.listdir(dir_name)
-        cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
-                           for c in cands if '.annot' in c),
-                       key=lambda x: x.lower())
+        cands = _read_annot_cands(dir_name)
         annot = cands[0]
         self.add_annotation(annot)
 
@@ -2187,8 +2184,8 @@ class Brain(object):
             self._update()
         self._label_mode_widget.setCurrentText(self.label_extract_mode)
         self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
-        self.tool_bar.insertWidget(self.actions["restore"],
-                                   self._label_mode_widget)
+        self.tool_bar.addWidget(QLabel("Label extraction mode"))
+        self.tool_bar.addWidget(self._label_mode_widget)
         self.mpl_canvas.update_plot()
 
         for hemi in self._hemis:
