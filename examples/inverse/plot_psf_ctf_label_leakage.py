@@ -46,8 +46,6 @@ forward = mne.read_forward_solution(fname_fwd)
 # Convert to fixed source orientations
 mne.convert_forward_solution(
     forward, surf_ori=True, force_fixed=True, copy=False)
-
-# Read inverse operator
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute resolution matrices for MNE
@@ -93,9 +91,9 @@ rh_labels = [label[:-2] + 'rh' for label in lh_labels]
 # We summarise the PSFs per label by their first five principal components, and
 # use the first component to evaluate label-to-label leakage below.
 
-# Compute first SVD component across PSFs within labels
+# Compute first PCA component across PSFs within labels.
 # Note the differences in explained variance, probably due to different
-# spatial extents of labels
+# spatial extents of labels.
 n_comp = 5
 stcs_psf_mne, pca_vars_mne = get_point_spread(
     rm_mne, src, labels, mode='pca', n_comp=n_comp, norm=None,
