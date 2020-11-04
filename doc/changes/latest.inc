@@ -14,6 +14,8 @@ Current (0.22.dev0)
 
 .. |Eduard Ort| replace:: **Eduard Ort**
 
+.. |Aniket Pradhan| replace:: **Aniket Pradhan**
+
 Enhancements
 ~~~~~~~~~~~~
 - Update ``surfaces`` argument in :func:`mne.viz.plot_alignment` to allow dict for transparency values, and set default for sEEG data to have transparency (by `Keith Doelling`_ (:gh:`8445`))
@@ -28,6 +30,10 @@ Enhancements
 
 - Speed up heavy use of :meth:`mne.SourceMorph.apply` for volumetric source spaces by use of the method :meth:`mne.SourceMorph.compute_vol_morph_mat` by `Eric Larson`_ (:gh:`8366`)
 
+- Add support for non-uniform ``zooms`` (e.g., when using a surrogate MRI via :func:`mne.scale_mri`) in volumetric morphing by `Eric Larson`_  (:gh:`8642`)
+
+- In :func:`mne.compute_source_morph` ``zooms`` are no longer required to match the spacing of ``src_to``, which is useful to ensure the morphing is accurate when the ``src_to`` spacing is large (e.g., 1 cm) by `Eric Larson`_ (:gh:`8642`)
+
 - Add volumetric source space support to :func:`mne.labels_to_stc` by `Eric Larson`_ (:gh:`8447`)
 
 - Speed up :class:`mne.decoding.TimeDelayingRidge` with edge correction using Numba by `Eric Larson`_ (:gh:`8323`)
@@ -40,6 +46,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary **by new contributor** |Aniket Pradhan|_ (:gh:`8474`)
+
 - Fix bug with reading split files that have dashes in the filename **by new contributor** |Eduard Ort|_ (:gh:`8339`)
 
 - Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted by `Daniel McCloy`_ (:gh:`8377`)
@@ -65,6 +73,8 @@ Bugs
 - Fix bug with :func:`mne.preprocessing.read_ica_eeglab` where full-rank data were not handled properly by `Eric Larson`_ (:gh:`8326`)
 
 - Fix bug with :ref:`somato-dataset` where the BEM was not included by `Eric Larson`_ (:gh:`8317`)
+
+- Fix bug with coordinate frames when performing volumetric morphs via :func:`mne.compute_source_morph` and :meth:`mne.SourceMorph.apply` that could lead to ~5 mm bias by `Eric Larson`_ (:gh:`8642`)
 
 - Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` by `Adam Li`_ (:gh`8320`)
 
