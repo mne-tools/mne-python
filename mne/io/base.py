@@ -34,6 +34,7 @@ from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
+from ..fixes import nullcontext
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
@@ -1855,7 +1856,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         if split_naming == 'neuromag':
             # insert index in filename
             use_fname = '%s-%d%s' % (base, part_idx, ext)
-        elif split_naming == 'bids':
+        else:
+            assert split_naming == 'bids'
             use_fname = _construct_bids_filename(base, ext, part_idx + 1)
             # check for file existence
             _check_fname(use_fname, overwrite)
@@ -1868,16 +1870,52 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         logger.info(
             f'Reserving possible split file {op.basename(reserved_fname)}')
         _check_fname(reserved_fname, overwrite)
-        with open(reserved_fname, 'w') as fid:
-            pass
+        ctx = _ReservedFilename(reserved_fname)
     else:
         reserved_fname = use_fname
+        ctx = nullcontext()
     logger.info('Writing %s' % use_fname)
 
     picks = _picks_to_idx(info, picks, 'all', ())
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range, raw.annotations)
+    with ctx, fid:
+        final_fname = _write_raw_fid(
+            raw, info, picks, fid, cals, part_idx, start, stop,
+            buffer_size, prev_fname, split_size, use_fname,
+            projector, drop_small_buffer, fmt, fname, reserved_fname,
+            data_type, reset_range, split_naming, overwrite)
+    if final_fname != use_fname:
+        assert split_naming == 'bids'
+        logger.info(f'Renaming BIDS split file {op.basename(final_fname)}')
+        ctx.remove = False
+        shutil.move(use_fname, final_fname)
+    if part_idx == 0:
+        logger.info('[done]')
+    return final_fname, part_idx
 
+
+class _ReservedFilename:
+
+    def __init__(self, fname):
+        self.fname = fname
+        assert op.isdir(op.dirname(fname)), fname
+        with open(fname, 'w'):
+            pass
+        self.remove = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.remove:
+            os.remove(self.fname)
+
+
+def _write_raw_fid(raw, info, picks, fid, cals, part_idx, start, stop,
+                   buffer_size, prev_fname, split_size, use_fname,
+                   projector, drop_small_buffer, fmt, fname, reserved_fname,
+                   data_type, reset_range, split_naming, overwrite):
     first_samp = raw.first_samp + start
     if first_samp != 0:
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
@@ -1894,7 +1932,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     pos_prev = fid.tell()
     if pos_prev > split_size:
-        fid.close()
         raise ValueError('file is larger than "split_size" after writing '
                          'measurement information, you must use a larger '
                          'value for split size: %s plus enough bytes for '
@@ -1952,7 +1989,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         if overage > 0:
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
-            fid.close()
             raise ValueError(
                 'buffer size (%s) is too large for the given split size (%s) '
                 'by %s bytes after writing info (%s) and leaving enough space '
@@ -1989,14 +2025,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
-    if final_fname != use_fname:
-        logger.info(f'Renaming BIDS split file {op.basename(final_fname)}')
-        shutil.move(use_fname, final_fname)
-    elif reserved_fname != use_fname:
-        os.remove(reserved_fname)
-    if part_idx == 0:
-        logger.info('[done]')
-    return final_fname, part_idx
+    return final_fname
 
 
 def _start_writing_raw(name, info, sel, data_type,
