@@ -564,6 +564,7 @@ def test_extract_label_time_course(kind, vector):
 
     src = read_inverse_operator(fname_inv)['src']
     if kind == 'mixed':
+        pytest.importorskip('nibabel')
         label_names = ('Left-Cerebellum-Cortex',
                        'Right-Cerebellum-Cortex')
         src += setup_volume_source_space(
@@ -1592,6 +1593,7 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
                                 reg_from, reg_from)
 
 
+@requires_nibabel()
 @testing.requires_testing_data
 @pytest.mark.parametrize('kind', (
     pytest.param('volume', marks=[requires_version('dipy')]),

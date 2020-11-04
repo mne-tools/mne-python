@@ -380,6 +380,7 @@ def _fwd_surf(_evoked_cov_sphere):
 @pytest.fixture(scope='session')
 def _fwd_subvolume(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
+    pytest.importorskip('nibabel')
     evoked, cov, sphere = _evoked_cov_sphere
     volume_labels = ['Left-Cerebellum-Cortex', 'right-Cerebellum-Cortex']
     with pytest.raises(ValueError,
@@ -458,6 +459,7 @@ def mixed_fwd_cov_evoked(_evoked_cov_sphere, _all_src_types_fwd):
 @pytest.mark.parametrize(params=[testing._pytest_param()])
 def src_volume_labels():
     """Create a 7mm source space with labels."""
+    pytest.importorskip('nibabel')
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
     src = mne.setup_volume_source_space(
         'sample', 7., mri='aseg.mgz', volume_label=volume_labels,

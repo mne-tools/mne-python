@@ -547,6 +547,7 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
 
 
 @testing.requires_testing_data
+@requires_nibabel()
 @pytest.mark.parametrize('fname', [
     None,
     op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
