@@ -16,6 +16,7 @@ from mne.minimum_norm.resolution_matrix import (make_inverse_resolution_matrix,
                                                 get_cross_talk,
                                                 get_point_spread,
                                                 _vertices_for_get_psf_ctf)
+from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -52,14 +53,12 @@ def test_resolution_matrix():
     """Test make_inverse_resolution_matrix() function."""
     # read forward solution
     forward = mne.read_forward_solution(fname_fwd)
-
     # forward operator with fixed source orientations
     forward_fxd = mne.convert_forward_solution(forward, surf_ori=True,
                                                force_fixed=True, copy=False)
 
     # noise covariance matrix
     noise_cov = mne.read_cov(fname_cov)
-
     # evoked data for info
     evoked = mne.read_evokeds(fname_evoked, 0)
 
@@ -76,70 +75,52 @@ def test_resolution_matrix():
     # regularisation parameter based on SNR
     snr = 3.0
     lambda2 = 1.0 / snr ** 2
-
     # resolution matrices for free source orientation
-
     # compute resolution matrix for MNE with free source orientations
     rm_mne_free = make_inverse_resolution_matrix(forward, inverse_operator,
                                                  method='MNE', lambda2=lambda2)
-
     # compute resolution matrix for MNE, fwd fixed and inv free
     rm_mne_fxdfree = make_inverse_resolution_matrix(forward_fxd,
                                                     inverse_operator,
                                                     method='MNE',
                                                     lambda2=lambda2)
-
     # resolution matrices for fixed source orientation
-
     # compute resolution matrix for MNE
     rm_mne = make_inverse_resolution_matrix(forward_fxd, inverse_operator_fxd,
                                             method='MNE', lambda2=lambda2)
-
     # compute resolution matrix for sLORETA
     rm_lor = make_inverse_resolution_matrix(forward_fxd, inverse_operator_fxd,
                                             method='sLORETA', lambda2=lambda2)
-
     # rectify resolution matrix for sLORETA before determining maxima
     rm_lor_abs = np.abs(rm_lor)
 
     # get maxima per column
     maxidxs = rm_lor_abs.argmax(axis=0)
-
     # create array with the expected stepwise increase in maximum indices
     goodidxs = np.arange(0, len(maxidxs), 1)
 
     # Tests
-
     # Does sLORETA have zero dipole localization error for columns/PSFs?
     assert_array_equal(maxidxs, goodidxs)
-
     # MNE resolution matrices symmetric?
     assert_array_almost_equal(rm_mne, rm_mne.T)
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
 
     # Some arbitrary vertex numbers
     idx = [1, 100, 400]
-
     # check various summary and normalisation options
     for mode in [None, 'sum', 'mean', 'maxval', 'maxnorm', 'pca']:
-
         n_comps = [1, 3]
-
         if mode in [None, 'sum', 'mean']:
-
             n_comps = [1]
-
         for n_comp in n_comps:
-
             for norm in [None, 'max', 'norm', True]:
-
                 stc_psf = get_point_spread(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
                     norm='norm', return_pca_vars=False)
                 stc_ctf = get_cross_talk(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
                     norm='norm', return_pca_vars=False)
-
                 # for MNE, PSF/CTFs for same vertices should be the same
                 assert_array_almost_equal(stc_psf.data, stc_ctf.data)
 
@@ -150,9 +131,7 @@ def test_resolution_matrix():
     stc_ctf, s_vars_ctf = get_cross_talk(
         rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
         norm='norm', return_pca_vars=True)
-
     assert_array_almost_equal(s_vars_psf, s_vars_ctf)
-
     # variances for SVD components should be ordered
     assert s_vars_psf[0] > s_vars_psf[1] > s_vars_psf[2]
     # all variances should sum up to 100
@@ -164,33 +143,25 @@ def test_resolution_matrix():
 
     # Test PSF/CTF for labels
     label = mne.read_label(fname_label)
-
     # must be list of Label
     label = [label]
     label2 = 2 * label
-
     # get relevant vertices in source space
     verts = _vertices_for_get_psf_ctf(label, forward_fxd['src'])[0]
 
     stc_psf_label = get_point_spread(rm_mne, forward_fxd['src'], label,
                                      norm='max')
-
     # for list of indices
     stc_psf_idx = get_point_spread(rm_mne, forward_fxd['src'], verts,
                                    norm='max')
-
     stc_ctf_label = get_cross_talk(rm_mne, forward_fxd['src'], label,
                                    norm='max')
-
     # For MNE, PSF and CTF for same vertices should be the same
     assert_array_almost_equal(stc_psf_label.data, stc_ctf_label.data)
-
     # test multiple labels
     stc_psf_label2 = get_point_spread(rm_mne, forward_fxd['src'], label2,
                                       norm='max')
-
     m, n = stc_psf_label.data.shape
-
     assert_array_equal(
         stc_psf_label.data, stc_psf_label2[0].data)
     assert_array_equal(
@@ -199,4 +170,4 @@ def test_resolution_matrix():
         stc_psf_label.data, stc_psf_idx.data)
 
 
-test_resolution_matrix()
+run_tests_if_main()
