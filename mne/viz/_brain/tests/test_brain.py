@@ -322,6 +322,7 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.help()
     assert len(plt.get_fignums()) == 1
     plt.close('all')
+    assert len(plt.get_fignums()) == 0
 
     # screenshot
     brain.show_view(view=dict(azimuth=180., elevation=90.))

@@ -3257,10 +3257,6 @@ def _get_range(brain):
     return [np.min(val), np.max(val)]
 
 
-def _normalize(point, shape):
-    return (point[0] / shape[1], point[1] / shape[0])
-
-
 class _FakeIren():
     def EnterEvent(self):
         pass
