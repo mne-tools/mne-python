@@ -1,12 +1,12 @@
 """
-===========================================================================
-Compute source leakage among labels and visualize it using a circular graph
-===========================================================================
+============================================================
+Visualize source leakage among labels using a circular graph
+============================================================
 
 This example computes all-to-all pairwise leakage between 68 regions in
 source space based on MNE inverse solutions and a FreeSurfer cortical
 parcellation. Label-to-label leakage is estimated as the correlation among the
-labels' point-spread functions. It is visualized using a circular graph
+labels' point-spread functions (PSFs). It is visualized using a circular graph
 which is ordered based on the locations of the regions in the axial plane.
 """
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
@@ -40,19 +40,15 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif'
-
-# Read forward solution
 forward = mne.read_forward_solution(fname_fwd)
-# Convert to fixed source orientations
+# Convert forward solution to fixed source orientations
 mne.convert_forward_solution(
     forward, surf_ori=True, force_fixed=True, copy=False)
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute resolution matrices for MNE
-lambda2 = 1. / 3.**2
-method = 'MNE'
 rm_mne = make_inverse_resolution_matrix(forward, inverse_operator,
-                                        method=method, lambda2=lambda2)
+                                        method='MNE', lambda2=1. / 3.**2)
 src = inverse_operator['src']
 del forward, inverse_operator  # save memory
 
@@ -65,10 +61,8 @@ labels = mne.read_labels_from_annot('sample', parc='aparc',
                                     subjects_dir=subjects_dir)
 n_labels = len(labels)
 label_colors = [label.color for label in labels]
-
 # First, we reorder the labels based on their location in the left hemi
 label_names = [label.name for label in labels]
-
 lh_labels = [name for name in label_names if name.endswith('lh')]
 
 # Get the y-location of the label
@@ -108,8 +102,7 @@ del rm_mne
 
 with np.printoptions(precision=1):
     for [name, var] in zip(label_names, pca_vars_mne):
-        print('%s: %.1f%%' % (name, var.sum()))
-        print(var)
+        print(f'{name}: {var.sum():.1f}% {var}')
 
 ###############################################################################
 # The output shows the summed variance explained by the first five principal
@@ -123,33 +116,20 @@ with np.printoptions(precision=1):
 
 # get PSFs from Source Estimate objects into matrix
 psfs_mat = np.zeros([n_labels, n_verts])
-
 # Leakage matrix for MNE, get first principal component per label
 for [i, s] in enumerate(stcs_psf_mne):
     psfs_mat[i, :] = s.data[:, 0]
-
 # Compute label-to-label leakage as Pearson correlation of PSFs
-leakage_mne = np.corrcoef(psfs_mat)
 # Sign of correlation is arbitrary, so take absolute values
-leakage_mne = np.abs(leakage_mne)
-
-# Compute label-to-label leakage as Pearson correlation of PSFs
-leakage_lor = np.corrcoef(psfs_mat)
-# Sign of correlation is arbitrary, so take absolute values
-leakage_lor = np.abs(leakage_lor)
+leakage_mne = np.abs(np.corrcoef(psfs_mat))
 
 # Save the plot order and create a circular layout
-node_order = list()
-node_order.extend(lh_labels[::-1])  # reverse the order
-node_order.extend(rh_labels)
-
+node_order = lh_labels[::-1] + rh_labels  # mirror label order across hemis
 node_angles = circular_layout(label_names, node_order, start_pos=90,
                               group_boundaries=[0, len(label_names) / 2])
-
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 200 strongest connections.
 fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
-
 plot_connectivity_circle(leakage_mne, label_names, n_lines=200,
                          node_angles=node_angles, node_colors=label_colors,
                          title='MNE Leakage', fig=fig)
@@ -161,9 +141,9 @@ plot_connectivity_circle(leakage_mne, label_names, n_lines=200,
 # Save the figure (optional)
 # --------------------------
 #
-# By default matplotlib does not save using the facecolor, even though this was
-# set when the figure was generated. If not set via savefig, the labels, title,
-# and legend will be cut off from the output png file::
+# Matplotlib controls figure facecolor separately for interactive display
+# versus for saved figures. Thus when saving you must specify ``facecolor``,
+# else your labels, title, etc will not be visible::
 #
 #     >>> fname_fig = data_path + '/MEG/sample/plot_label_leakage.png'
 #     >>> fig.savefig(fname_fig, facecolor='black')
