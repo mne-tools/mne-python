@@ -808,8 +808,6 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # Load metadata into info object
     # Exclude info['meas_date'] because record time info in
     # averaged MFF is the time of the averaging, not true record time.
-    # We can populate info['custom_ref_applied'] with info from
-    # info1.xml, but not sure what to put for type int.
     ch_names = [channel_naming % (i + 1) for i in
                 range(mff.num_channels['EEG'])]
     ch_names.extend(egi_info['pns_names'])
@@ -834,17 +832,24 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
 
     # Add bad channels to info
     info['description'] = category
-    channel_status = categories[category][0]['channelStatus']
+    try:
+        channel_status = categories[category][0]['channelStatus']
+    except KeyError:
+        warn('Channel status data not found for condition %s. No channels \
+             will be marked as bad.' % category, category=UserWarning)
+        channel_status = None
     bads = []
-    # Add bad EEG channels if present
-    if channel_status[0]['exclusion'] == 'badChannels':
-        for ch in channel_status[0]['channels']:
-            bads.append(channel_naming % ch)
-    # Add bad PNS channels if present
-    if len(channel_status) == 2:
-        if channel_status[1]['exclusion'] == 'badChannels':
-            for ch in channel_status[1]['channels']:
-                bads.append(egi_info['pns_names'][ch - 1])
+    if channel_status:
+        for entry in channel_status:
+            if entry['exclusion'] == 'badChannels':
+                if entry['signalBin'] == 1:
+                    # Add bad EEG channels
+                    for ch in entry['channels']:
+                        bads.append(channel_naming % ch)
+                elif entry['signalBin'] == 2:
+                    # Add bad PNS channels
+                    for ch in entry['channels']:
+                        bads.append(egi_info['pns_names'][ch - 1])
     info['bads'] = bads
 
     # Add EEG reference to info
@@ -861,10 +866,17 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
                 # Custom reference has been applied that is not an average
                 info['custom_ref_applied'] = True
 
+    # Get nave from categories.xml
+    try:
+        nave = categories[category][0]['keys']['#seg']['data']
+    except KeyError:
+        warn('Number of averaged epochs not found for condition %s. \
+             nave will default to 1.' % category, category=UserWarning)
+        nave = 1
+
     # Let tmin default to 0
-    # Let nave default to 1 until we can read #seg from categories.xml
     return EvokedArray(all_data, info, tmin=0., comment=category,
-                       nave=1, verbose=verbose)
+                       nave=nave, verbose=verbose)
 
 
 def _import_mffpy(why='read averaged .mff files'):

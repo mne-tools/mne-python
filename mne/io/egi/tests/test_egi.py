@@ -291,15 +291,15 @@ def test_io_egi_crop_no_preload():
     assert_allclose(raw._data, raw_preload._data)
 
 
-@requires_version('mffpy', '0.5.6')
+@requires_version('mffpy', '0.5.7')
 @requires_testing_data
-@pytest.mark.parametrize('idx, cond, signals, bads', [
-    (0, 'Category 1', egi_txt_evoked_cat1_fname,
+@pytest.mark.parametrize('idx, cond, tmax, signals, bads', [
+    (0, 'Category 1', 0.016, egi_txt_evoked_cat1_fname,
      ['E8', 'E11', 'E17', 'E28', 'ECG']),
-    (1, 'Category 2', egi_txt_evoked_cat2_fname,
+    (1, 'Category 2', 0.0, egi_txt_evoked_cat2_fname,
      ['E257', 'EMG'])
 ])
-def test_io_egi_evokeds_mff(idx, cond, signals, bads):
+def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
     # Test reading all conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname)
@@ -307,8 +307,11 @@ def test_io_egi_evokeds_mff(idx, cond, signals, bads):
     # Test reading evoked data from single condition
     evoked_cond = read_evokeds_mff(egi_mff_evoked_fname, condition=cond)
     evoked_idx = read_evokeds_mff(egi_mff_evoked_fname, condition=idx)
-    assert evoked_cond.comment == cond
-    assert evoked_idx.comment == cond
+    for evoked in [evoked_cond, evoked_idx]:
+        assert evoked.comment == cond
+        assert evoked.nave == 3
+        assert evoked.tmin == 0.0
+        assert evoked.tmax == tmax
     # Check signal data
     data = np.loadtxt(signals, ndmin=2).transpose() * 1e-6  # convert to volts
     assert_allclose(evoked_cond.data, data, atol=1e-6)
