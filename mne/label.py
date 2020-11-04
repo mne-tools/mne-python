@@ -1857,6 +1857,8 @@ def _read_annot_cands(dir_name):
     cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
                        for c in cands if '.annot' in c),
                    key=lambda x: x.lower())
+    # exclude .ctab files
+    cands = [c for c in cands if '.ctab' not in c]
     return cands
 
 
