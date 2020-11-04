@@ -1320,6 +1320,7 @@ def test_set_montage_with_missing_coordinates():
     )
 
 
+@testing.requires_testing_data
 def test_get_montage():
     """Test get montage from Instance.
 

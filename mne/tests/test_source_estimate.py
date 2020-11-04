@@ -556,6 +556,7 @@ def test_extract_label_time_course(kind, vector):
 
     src = read_inverse_operator(fname_inv)['src']
     if kind == 'mixed':
+        pytest.importorskip('nibabel')
         label_names = ('Left-Cerebellum-Cortex',
                        'Right-Cerebellum-Cortex')
         src += setup_volume_source_space(
@@ -678,6 +679,7 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('label_type, mri_res, vector, test_label, cf, call', [
     (str, False, False, False, 'head', 'meth'),  # head frame
     (str, False, False, str, 'mri', 'func'),  # fastest, default for testing
@@ -1260,6 +1262,7 @@ def test_source_estime_project(real):
     assert_allclose(directions, want_nn, atol=1e-6)
 
 
+@testing.requires_testing_data
 def test_source_estime_project_label():
     """Test projecting a source estimate onto direction of max power."""
     fwd = read_forward_solution(fname_fwd)

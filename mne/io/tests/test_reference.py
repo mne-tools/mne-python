@@ -253,6 +253,7 @@ def test_set_eeg_reference_ch_type(ch_type):
         set_eeg_reference(raw, ch_type='eeg')
 
 
+@testing.requires_testing_data
 def test_set_eeg_reference_rest():
     """Test setting a REST reference."""
     raw = read_raw_fif(fif_fname).crop(0, 1).pick_types(

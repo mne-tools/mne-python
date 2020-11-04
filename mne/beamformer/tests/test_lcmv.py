@@ -430,6 +430,7 @@ def test_make_lcmv(tmpdir, reg, proj):
               noise_cov=noise_cov)
 
 
+@testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize('weight_norm', (None, 'unit-noise-gain', 'nai'))
 @pytest.mark.parametrize('pick_ori', (None, 'max-power', 'vector'))
@@ -899,6 +900,7 @@ def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
         assert_allclose(d1, d2, atol=atol)
 
 
+@testing.requires_testing_data
 def test_lcmv_maxfiltered():
     """Test LCMV on maxfiltered data."""
     raw = mne.io.read_raw_fif(fname_raw).fix_mag_coil_types()

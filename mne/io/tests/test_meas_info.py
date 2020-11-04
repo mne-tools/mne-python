@@ -747,6 +747,7 @@ def test_repr():
     assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
 
 
+@testing.requires_testing_data
 def test_invalid_subject_birthday():
     """Test handling of an invalid birthday in the raw file."""
     with pytest.warns(RuntimeWarning, match='No birthday will be set'):

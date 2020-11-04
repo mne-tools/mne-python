@@ -547,6 +547,8 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     assert_allclose(coords, coords_2, atol=0.1)
 
 
+@testing.requires_testing_data
+@requires_nibabel()
 @pytest.mark.parametrize('fname', [
     None,
     op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
@@ -649,6 +651,7 @@ def test_source_space_from_label(tmpdir, pass_ids):
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
+@testing.requires_testing_data
 @requires_nibabel()
 def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""

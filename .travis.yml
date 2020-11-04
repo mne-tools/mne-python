@@ -38,9 +38,9 @@ matrix:
 
         # Minimal (runs with and without testing data)
         - os: linux
-          env: DEPS=minimial
+          env: DEPS=minimal
                CONDA_DEPENDENCIES="numpy scipy matplotlib"
-               MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
+               MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1 MNE_SKIP_TESTING_DATASET_TESTS=true
 
 # Setup anaconda
 before_install:
@@ -129,7 +129,7 @@ script:
       fi;
     - echo 'pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}'
     - pytest -m "${CONDITION}" --tb=short --cov=mne -vv ${USE_DIRS}
-    # run the minimal one with the testing data
+    # run the minimal one with the testing data as well
     - if [ "${DEPS}" == "minimal" ]; then
         export MNE_SKIP_TESTING_DATASET_TESTS=false;
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
