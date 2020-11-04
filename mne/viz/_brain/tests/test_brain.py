@@ -125,6 +125,14 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m', **kwargs)
+    brain._hemi = 'foo'
+    with pytest.raises(ValueError, match='not be None'):
+        brain._check_hemi(hemi=None)
+    with pytest.raises(ValueError, match='either "lh" or "rh"'):
+        brain._check_hemi(hemi='foo')
+    with pytest.raises(ValueError, match='either "lh" or "rh"'):
+        brain._check_hemis(hemi='foo')
+    brain._hemi = hemi
     with pytest.raises(ValueError, match='add_data'):
         brain.setup_time_viewer(time_viewer=True)
     assert brain.interaction == 'trackball'
