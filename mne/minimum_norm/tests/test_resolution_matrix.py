@@ -55,7 +55,7 @@ def test_resolution_matrix():
     forward = mne.read_forward_solution(fname_fwd)
     # forward operator with fixed source orientations
     forward_fxd = mne.convert_forward_solution(forward, surf_ori=True,
-                                               force_fixed=True, copy=False)
+                                               force_fixed=True)
 
     # noise covariance matrix
     noise_cov = mne.read_cov(fname_cov)
