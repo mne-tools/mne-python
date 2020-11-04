@@ -466,6 +466,7 @@ class Brain(object):
     def _clean(self):
         # resolve the reference cycle
         self.clear_glyphs()
+        self.remove_annotations()
         for h in self._hemis:
             # clear init actors
             actor = self._hemi_actors[h]
@@ -903,8 +904,6 @@ class Brain(object):
     def _configure_vertex_time_course(self):
         if not self.show_traces:
             return
-        self.traces_mode = 'vertex'
-
         if self.mpl_canvas is None:
             self._configure_mplcanvas()
         else:
@@ -1044,14 +1043,13 @@ class Brain(object):
                     self._label_mode_widget.addItem(mode)
                     self.label_extract_mode = mode
 
-        self._trace_mode_widget.currentTextChanged.connect(_set_trace_mode)
         self._trace_mode_widget.setCurrentText(self.traces_mode)
-
-        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
+        self._trace_mode_widget.currentTextChanged.connect(_set_trace_mode)
         self._annot_cands_widget.setCurrentText(self.annot)
-
-        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
+        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
         self._label_mode_widget.setCurrentText(self.label_extract_mode)
+        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
+        _set_trace_mode(self.traces_mode)
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
@@ -2225,8 +2223,10 @@ class Brain(object):
         from ...label import read_labels_from_annot
         if not self.show_traces:
             return
-
-        self.add_annotation(self.annot)
+        if self.mpl_canvas is None:
+            self._configure_mplcanvas()
+        else:
+            self.clear_glyphs()
 
         # volumes are not supported
         if (self._data.get('src', None) is not None and
@@ -2235,10 +2235,7 @@ class Brain(object):
                 'Label time course plotting is not supported for volume.')
         self.traces_mode = 'label'
 
-        if self.mpl_canvas is None:
-            self._configure_mplcanvas()
-        else:
-            self.clear_glyphs()
+        self.add_annotation(self.annot)
 
         # now plot the time line
         self.plot_time_line()

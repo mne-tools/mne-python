@@ -357,7 +357,6 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         )
         assert brain.show_traces
         assert brain.traces_mode == 'label'
-        assert brain._label_mode_widget is not None
         brain._label_mode_widget.setCurrentText('max')
 
         # test picking a cell at random
@@ -386,7 +385,6 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     )
     assert brain.show_traces
     assert brain.traces_mode == 'vertex'
-    assert brain._label_mode_widget is None
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
 
