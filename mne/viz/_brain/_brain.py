@@ -248,6 +248,7 @@ class Brain(object):
         self._vertex_to_label_id = dict()
         self._annotation_labels = dict()
         self._labels = dict()
+        self._annots = dict()
         self._hemi_actors = {}
         self._hemi_meshes = {}
         # for now only one color bar can be added
@@ -375,6 +376,8 @@ class Brain(object):
             "stc": ["mean", "max"],
             "src": ["mean_flip", "pca_flip", "auto"],
         }
+        self.default_trace_modes = ('vertex', 'label')
+        self.annot = None
         self.label_extract_mode = None
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
@@ -399,6 +402,8 @@ class Brain(object):
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
         self.slider_tube_width = 0.04
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
+        self._trace_mode_widget = None
+        self._annot_cands_widget = None
         self._label_mode_widget = None
 
         # Direct access parameters:
@@ -948,6 +953,8 @@ class Brain(object):
 
     def _configure_picking(self):
         from ..backends._pyvista import _update_picking_callback
+        from ...label import _read_annot_cands
+        from PyQt5.QtWidgets import QComboBox, QLabel
 
         # get data for each hemi
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
@@ -973,10 +980,78 @@ class Brain(object):
             self._on_pick
         )
 
-        if self.traces_mode == 'vertex':
-            self._configure_vertex_time_course()
-        elif self.traces_mode == 'label':
-            self._configure_label_time_course()
+        # setup traces mode
+        def _set_trace_mode(mode):
+            self.clear_glyphs()
+            self.remove_labels()
+            self.remove_annotations()
+            self.traces_mode = mode
+            if mode == 'vertex':
+                self._configure_vertex_time_course()
+            elif mode == 'label':
+                self._configure_label_time_course()
+            self._update()
+
+        self.tool_bar.addSeparator()
+        self.tool_bar.addWidget(QLabel("Trace mode"))
+        self._trace_mode_widget = QComboBox()
+        self.tool_bar.addWidget(self._trace_mode_widget)
+        for mode in self.default_trace_modes:
+            self._trace_mode_widget.addItem(mode)
+
+        # setup candidate annots
+        def _set_annot(annot):
+            if self.traces_mode != 'label':
+                return
+            self.annot = annot
+            _set_trace_mode('label')
+
+        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
+        cands = _read_annot_cands(dir_name)
+        self.tool_bar.addSeparator()
+        self.tool_bar.addWidget(QLabel("Parcellations"))
+        self._annot_cands_widget = QComboBox()
+        self.tool_bar.addWidget(self._annot_cands_widget)
+        for cand in cands:
+            self._annot_cands_widget.addItem(cand)
+        self.annot = cands[0]
+
+        # setup label extraction parameters
+        def _set_label_mode(mode):
+            if self.traces_mode != 'label':
+                return
+            import copy
+            glyphs = copy.deepcopy(self.picked_patches)
+            self.label_extract_mode = mode
+            self.clear_glyphs()
+            for hemi in self._hemis:
+                for label_id in glyphs[hemi]:
+                    label = self._annotation_labels[hemi][label_id]
+                    vertex_id = label.vertices[0]
+                    self._add_label_glyph(hemi, None, vertex_id)
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
+            self._update()
+
+        self.tool_bar.addSeparator()
+        self.tool_bar.addWidget(QLabel("Label extraction mode"))
+        self._label_mode_widget = QComboBox()
+        self.tool_bar.addWidget(self._label_mode_widget)
+        for source in ["stc", "src"]:
+            if self._data[source] is not None:
+                for mode in self.default_label_extract_modes[source]:
+                    self._label_mode_widget.addItem(mode)
+                    self.label_extract_mode = mode
+
+        self._trace_mode_widget.currentTextChanged.connect(_set_trace_mode)
+        self._trace_mode_widget.setCurrentText(self.traces_mode)
+
+        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
+        self._annot_cands_widget.setCurrentText(self.annot)
+
+        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
+        self._label_mode_widget.setCurrentText(self.label_extract_mode)
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
@@ -1756,6 +1831,18 @@ class Brain(object):
         self._labels.clear()
         self._update()
 
+    def remove_annotations(self):
+        """Remove all annotations from the image."""
+        for hemi in self._hemis:
+            hemi_data = self._annots.get(hemi, None)
+            if hemi_data is not None:
+                for ri, ci, _ in self._iter_views(hemi):
+                    self._renderer.subplot(ri, ci)
+                    for mesh_data in hemi_data.values():
+                        self._renderer.remove_mesh(mesh_data)
+        self._annots.clear()
+        self._update()
+
     def _add_volume_data(self, hemi, src, volume_options):
         from ..backends._pyvista import _volume
         _validate_type(src, SourceSpaces, 'src')
@@ -2135,15 +2222,11 @@ class Brain(object):
                               size=font_size, justification=justification)
 
     def _configure_label_time_course(self):
-        from PyQt5.QtWidgets import QComboBox, QLabel
-        from ...label import read_labels_from_annot, _read_annot_cands
+        from ...label import read_labels_from_annot
         if not self.show_traces:
             return
 
-        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
-        cands = _read_annot_cands(dir_name)
-        annot = cands[0]
-        self.add_annotation(annot)
+        self.add_annotation(self.annot)
 
         # volumes are not supported
         if (self._data.get('src', None) is not None and
@@ -2159,39 +2242,12 @@ class Brain(object):
 
         # now plot the time line
         self.plot_time_line()
-
-        # setup label tool bar
-        self._label_mode_widget = QComboBox()
-        for source in ["stc", "src"]:
-            if self._data[source] is not None:
-                for mode in self.default_label_extract_modes[source]:
-                    self._label_mode_widget.addItem(mode)
-                    self.label_extract_mode = mode
-
-        def _set_label_mode(mode):
-            import copy
-            glyphs = copy.deepcopy(self.picked_patches)
-            self.label_extract_mode = mode
-            self.clear_glyphs()
-            for hemi in self._hemis:
-                for label_id in glyphs[hemi]:
-                    label = self._annotation_labels[hemi][label_id]
-                    vertex_id = label.vertices[0]
-                    self._add_label_glyph(hemi, None, vertex_id)
-            self.mpl_canvas.axes.relim()
-            self.mpl_canvas.axes.autoscale_view()
-            self.mpl_canvas.update_plot()
-            self._update()
-        self._label_mode_widget.setCurrentText(self.label_extract_mode)
-        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
-        self.tool_bar.addWidget(QLabel("Label extraction mode"))
-        self.tool_bar.addWidget(self._label_mode_widget)
         self.mpl_canvas.update_plot()
 
         for hemi in self._hemis:
             labels = read_labels_from_annot(
                 subject=self._subject_id,
-                parc=annot,
+                parc=self.annot,
                 hemi=hemi,
                 subjects_dir=self._subjects_dir
             )
@@ -2327,6 +2383,9 @@ class Brain(object):
                     interpolate_before_map=False,
                     polygon_offset=-2,
                 )
+                if hemi not in self._annots:
+                    self._annots[hemi] = dict()
+                self._annots[hemi][annot] = mesh_data
 
                 if not self.time_viewer or self.traces_mode == 'vertex':
                     if isinstance(mesh_data, tuple):
