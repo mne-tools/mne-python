@@ -418,20 +418,15 @@ class Brain(object):
         _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
         self.interactor_fraction = 0.25
         if isinstance(show_traces, str):
+            self.show_traces = True
+            self.separate_canvas = False
+            self.traces_mode = 'vertex'
             if show_traces == 'separate':
-                self.show_traces = True
                 self.separate_canvas = True
-                self.traces_mode = 'vertex'
-            elif show_traces == 'vertex':
-                self.show_traces = True
-                self.separate_canvas = False
-                self.traces_mode = 'vertex'
             elif show_traces == 'label':
-                self.show_traces = True
-                self.separate_canvas = False
                 self.traces_mode = 'label'
             else:
-                self.show_traces = False
+                assert show_traces == 'vertex'  # guaranteed above
         else:
             if isinstance(show_traces, bool):
                 self.show_traces = show_traces

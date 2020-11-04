@@ -274,7 +274,11 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     """Test time viewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        _create_testing_brain(hemi='lh', show_traces=-1.0)
+
     brain = _create_testing_brain(hemi='both', show_traces=False)
+    brain.setup_time_viewer()  # for coverage
     brain.callbacks["time"](value=0)
     brain.callbacks["orientation_lh_0_0"](
         value='lat',
@@ -297,8 +301,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.callbacks["fmin"](value=12.0)
     brain.callbacks["fmid"](value=4.0)
     brain.toggle_interface()
+    brain.toggle_interface(value=False)
     brain.callbacks["playback_speed"](value=0.1)
     brain.toggle_playback()
+    brain.toggle_playback(value=False)
     brain.apply_auto_scaling()
     brain.restore_user_scaling()
     brain.reset()
@@ -373,8 +379,12 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
                 label = brain._annotation_labels[current_hemi][label_id]
                 label_data = brain._labels[label.name]
                 assert isinstance(label_data["line"], Line2D)
+            brain._label_mode_widget.setCurrentText('mean')
             brain.clear_glyphs()
             assert len(brain.picked_patches[current_hemi]) == 0
+        # test switching from 'label' to 'vertex'
+        brain._annot_cands_widget.setCurrentText('None')
+        brain._label_mode_widget.setCurrentText('max')
         brain.close()
 
     # vertex traces
@@ -398,6 +408,10 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         n_spheres += 1
     assert len(spheres) == n_spheres
 
+    # test switching from 'vertex' to 'label'
+    if src == 'surface':
+        brain._annot_cands_widget.setCurrentText('aparc')
+        brain._annot_cands_widget.setCurrentText('None')
     # test removing points
     brain.clear_glyphs()
     assert len(spheres) == 0
@@ -506,7 +520,7 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
             picking=False,
         )
 
-    brain_data = _create_testing_brain(hemi='split', show_traces=True)
+    brain_data = _create_testing_brain(hemi='split', show_traces='vertex')
     link_viewer = _LinkViewer(
         [brain2, brain_data],
         time=True,
