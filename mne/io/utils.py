@@ -300,7 +300,9 @@ def _construct_bids_filename(base, ext, part_idx):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
     deconstructed_base = base.split('_')
-    assert len(deconstructed_base) > 1
+    if len(deconstructed_base) < 2:
+        raise ValueError('Filename base must end with an underscore followed '
+                         f'by the modality (e.g., _eeg or _meg), got {base}')
     modality = deconstructed_base[-1]
     base = '_'.join(deconstructed_base[:-1])
     use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, modality, ext)

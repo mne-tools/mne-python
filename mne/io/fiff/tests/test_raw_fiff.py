@@ -358,18 +358,23 @@ def test_multiple_files(tmpdir):
 
 
 @testing.requires_testing_data
-def test_split_files(tmpdir):
+@pytest.mark.parametrize('mod', (
+    'meg',
+    pytest.param('raw', marks=[pytest.mark.filterwarnings(
+        'ignore:.*naming conventions.*:RuntimeWarning')]),
+))
+def test_split_files(tmpdir, mod):
     """Test writing and reading of split raw files."""
     raw_1 = read_raw_fif(fif_fname, preload=True)
     # Test a very close corner case
     raw_crop = raw_1.copy().crop(0, 1.)
 
     assert_allclose(raw_1.buffer_size_sec, 10., atol=1e-2)  # samp rate
-    split_fname = tmpdir.join('split_raw_meg.fif')
+    split_fname = tmpdir.join(f'split_raw_{mod}.fif')
     # intended filenames
-    split_fname_elekta_part2 = tmpdir.join('split_raw_meg-1.fif')
-    split_fname_bids_part1 = tmpdir.join('split_raw_split-01_meg.fif')
-    split_fname_bids_part2 = tmpdir.join('split_raw_split-02_meg.fif')
+    split_fname_elekta_part2 = tmpdir.join(f'split_raw_{mod}-1.fif')
+    split_fname_bids_part1 = tmpdir.join(f'split_raw_split-01_{mod}.fif')
+    split_fname_bids_part2 = tmpdir.join(f'split_raw_split-02_{mod}.fif')
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
 
     # Check that if BIDS is used and no split is needed it defaults to
@@ -482,6 +487,9 @@ def test_split_files(tmpdir):
     raw_read = read_raw_fif(split_fname)
     assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (299, 2))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
+
+    with pytest.raises(ValueError, match='must end with an underscore'):
+        raw_crop.save('test.fif', split_naming='bids', verbose='error')
 
 
 def _no_write_file_name(fid, kind, data):
