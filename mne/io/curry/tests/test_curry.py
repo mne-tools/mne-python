@@ -295,6 +295,7 @@ def test_read_events_curry_are_same_as_bdf(fname):
     assert raw.info['dev_head_t'] is None
 
 
+@testing.requires_testing_data
 def test_check_missing_files():
     """Test checking for missing curry files (smoke test)."""
     invalid_fname = "/invalid/path/name.xy"
