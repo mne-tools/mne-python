@@ -8,7 +8,7 @@ from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..event import find_events
 
-from ..io.pick import _pick_data_channels
+from ..io.pick import _picks_to_idx
 from ..utils import _check_preload, _check_option
 
 
@@ -36,7 +36,8 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
 
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
-                      tmax=0.01, mode='linear', stim_channel=None):
+                      tmax=0.01, mode='linear', stim_channel=None,
+                      picks=None):
     """Eliminate stimulation's artifacts from instance.
 
     .. note:: This function operates in-place, consider passing
@@ -61,6 +62,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         'window' applies a (1 - hanning) window.
     stim_channel : str | None
         Stim channel to use.
+    %(picks_all_data)s
 
     Returns
     -------
@@ -76,7 +78,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
-    picks = _pick_data_channels(inst.info)
+
+    picks = _picks_to_idx(inst.info, picks, 'data', exclude=())
 
     _check_preload(inst, 'fix_stim_artifact')
     if isinstance(inst, BaseRaw):
