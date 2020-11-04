@@ -979,38 +979,31 @@ class Brain(object):
             self._on_pick
         )
 
-        # setup traces mode
-        def _set_trace_mode(mode):
-            self.clear_glyphs()
-            self.remove_labels()
-            self.remove_annotations()
-            self.traces_mode = mode
-            if mode == 'vertex':
-                self._configure_vertex_time_course()
-            elif mode == 'label':
-                self._configure_label_time_course()
-            self._update()
-
-        self.tool_bar.addSeparator()
-        self.tool_bar.addWidget(QLabel("Trace mode"))
-        self._trace_mode_widget = QComboBox()
-        self.tool_bar.addWidget(self._trace_mode_widget)
-        for mode in self.default_trace_modes:
-            self._trace_mode_widget.addItem(mode)
+        if not self.show_traces:
+            return
 
         # setup candidate annots
         def _set_annot(annot):
-            if self.traces_mode != 'label':
-                return
-            self.annot = annot
-            _set_trace_mode('label')
+            self.clear_glyphs()
+            self.remove_labels()
+            self.remove_annotations()
+
+            if annot == 'None':
+                self.traces_mode = 'vertex'
+                self._configure_vertex_time_course()
+            else:
+                self.annot = annot
+                self.traces_mode = 'label'
+                self._configure_label_time_course()
+            self._update()
 
         dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
         cands = _read_annot_cands(dir_name)
         self.tool_bar.addSeparator()
-        self.tool_bar.addWidget(QLabel("Parcellations"))
+        self.tool_bar.addWidget(QLabel("Annotation"))
         self._annot_cands_widget = QComboBox()
         self.tool_bar.addWidget(self._annot_cands_widget)
+        self._annot_cands_widget.addItem('None')
         for cand in cands:
             self._annot_cands_widget.addItem(cand)
         self.annot = cands[0]
@@ -1043,13 +1036,14 @@ class Brain(object):
                     self._label_mode_widget.addItem(mode)
                     self.label_extract_mode = mode
 
-        self._trace_mode_widget.setCurrentText(self.traces_mode)
-        self._trace_mode_widget.currentTextChanged.connect(_set_trace_mode)
+        if self.traces_mode == 'vertex':
+            _set_annot('None')
+        else:
+            _set_annot(self.annot)
         self._annot_cands_widget.setCurrentText(self.annot)
-        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
         self._label_mode_widget.setCurrentText(self.label_extract_mode)
+        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
         self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
-        _set_trace_mode(self.traces_mode)
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
