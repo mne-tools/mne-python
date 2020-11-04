@@ -227,6 +227,13 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
+    brain = Brain(subject_id='fsaverage', hemi='both', size=size,
+                  surf='inflated', subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match="both hemispheres"):
+        brain.add_annotation(annots[-1])
+    with pytest.raises(ValueError, match="does not exist"):
+        brain.add_annotation('foo')
+    brain.close()
     brain = Brain(subject_id='fsaverage', hemi=hemi, size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     for a, b, p, color in zip(annots, borders, alphas, colors):
@@ -276,6 +283,9 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
         pytest.skip('TimeViewer tests only supported on PyVista')
     with pytest.raises(ValueError, match="between 0 and 1"):
         _create_testing_brain(hemi='lh', show_traces=-1.0)
+    with pytest.raises(ValueError, match="got unknown keys"):
+        _create_testing_brain(hemi='lh', surf='white', src='volume',
+                              volume_options={'foo': 'bar'})
 
     brain = _create_testing_brain(hemi='both', show_traces=False)
     brain.setup_time_viewer()  # for coverage
