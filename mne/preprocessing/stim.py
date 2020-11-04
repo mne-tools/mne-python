@@ -9,7 +9,7 @@ from ..io import BaseRaw
 from ..event import find_events
 
 from ..io.pick import _picks_to_idx
-from ..utils import _check_preload, _check_option
+from ..utils import _check_preload, _check_option, fill_doc
 
 
 def _get_window(start, end):
@@ -35,6 +35,7 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
             data[picks, first_samp:last_samp] * window[np.newaxis, :]
 
 
+@fill_doc
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
                       tmax=0.01, mode='linear', stim_channel=None,
                       picks=None):
