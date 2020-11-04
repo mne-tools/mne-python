@@ -203,8 +203,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     # add label
     label = read_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
-    assert isinstance(brain._labels[label.name], dict)
-    label_data = brain._labels[label.name]
+    assert isinstance(brain.labels[label.name], dict)
+    label_data = brain.labels[label.name]
     assert label_data["line"] is None
     brain.remove_labels()
     brain.add_label(fname_label)

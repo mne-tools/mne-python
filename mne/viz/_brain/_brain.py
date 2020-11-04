@@ -148,15 +148,15 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | foci                      | ✓            |               |
        +---------------------------+--------------+---------------+
-       | labels                    | ✓            |               |
+       | labels                    | ✓            | ✓             |
        +---------------------------+--------------+---------------+
-       | labels_dict               | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | remove_data               | ✓            |               |
+       | remove_data               | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | remove_foci               | ✓            |               |
        +---------------------------+--------------+---------------+
        | remove_labels             | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_annotations        | -            | ✓             |
        +---------------------------+--------------+---------------+
        | save_image                | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -462,21 +462,15 @@ class Brain(object):
         # resolve the reference cycle
         self.clear_glyphs()
         self.remove_annotations()
+        # clear init actors
         for h in self._hemis:
-            # clear init actors
             actor = self._hemi_actors[h]
             if actor is not None:
                 mapper = actor.GetMapper()
                 mapper.SetLookupTable(None)
                 actor.SetMapper(None)
-            # clear data actors
-            hemi_data = self._data.get(h)
-            if hemi_data is not None:
-                if hemi_data['actors'] is not None:
-                    for actor in hemi_data['actors']:
-                        mapper = actor.GetMapper()
-                        mapper.SetLookupTable(None)
-                        actor.SetMapper(None)
+        # clear data actors
+        self.remove_data()
         self._clear_callbacks()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
@@ -1811,6 +1805,25 @@ class Brain(object):
             actor, mesh = mesh_data, None
         return actor, mesh
 
+    def remove_data(self, hemi=None):
+        """Remove data shown with ``Brain.add_data()``.
+
+        Parameters
+        ----------
+        hemi : str | None
+            Hemisphere from which to remove data (default is all shown
+            hemispheres).
+        """
+        hemis = [hemi] if hemi is not None else self._hemis
+        for h in hemis:
+            hemi_data = self._data.get(h)
+            if hemi_data is not None:
+                if hemi_data['actors'] is not None:
+                    for actor in hemi_data['actors']:
+                        mapper = actor.GetMapper()
+                        mapper.SetLookupTable(None)
+                        actor.SetMapper(None)
+
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
         for label_data in self._labels.values():
@@ -2810,6 +2823,10 @@ class Brain(object):
     def data(self):
         """Data used by time viewer and color bar widgets."""
         return self._data
+
+    @property
+    def labels(self):
+        return self._labels
 
     @property
     def views(self):
