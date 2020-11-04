@@ -363,7 +363,7 @@ def test_multiple_files(tmpdir):
     pytest.param('raw', marks=[pytest.mark.filterwarnings(
         'ignore:.*naming conventions.*:RuntimeWarning')]),
 ))
-def test_split_files(tmpdir, mod):
+def test_split_files(tmpdir, mod, monkeypatch):
     """Test writing and reading of split raw files."""
     raw_1 = read_raw_fif(fif_fname, preload=True)
     # Test a very close corner case
@@ -488,8 +488,23 @@ def test_split_files(tmpdir, mod):
     assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (299, 2))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
 
+    # proper ending
+    assert op.isdir(tmpdir)
     with pytest.raises(ValueError, match='must end with an underscore'):
-        raw_crop.save('test.fif', split_naming='bids', verbose='error')
+        raw_crop.save(
+            tmpdir.join('test.fif'), split_naming='bids', verbose='error')
+
+    # reserved file is deleted
+    fname = tmpdir.join('test_raw.fif')
+    monkeypatch.setattr(base, '_write_raw_fid', _err)
+    with pytest.raises(RuntimeError, match='Killed mid-write'):
+        raw_1.save(fname, split_size='10MB', split_naming='bids')
+    assert op.isfile(fname)
+    assert not op.isfile(tmpdir.join('test_split-01_raw.fif'))
+
+
+def _err(*args, **kwargs):
+    raise RuntimeError('Killed mid-write')
 
 
 def _no_write_file_name(fid, kind, data):
