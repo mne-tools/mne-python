@@ -382,6 +382,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             volume_options=None,  # for speed, don't upsample
             n_time=5, initial_time=0,
         )
+        brain._data['src'] = None  # remove src for testing
         assert brain.show_traces
         assert brain.traces_mode == 'label'
         brain._label_mode_widget.setCurrentText('max')
