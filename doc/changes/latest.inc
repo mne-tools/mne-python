@@ -106,7 +106,7 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- Added `mne.source_estimate.apply_baseline` method for baseline-correction of source estimates, by `Olaf Hauk`_ (:gh:`8452`)
+- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates, by `Olaf Hauk`_ (:gh:`8452`)
 
 - Minimum required versions were increased for core dependencies NumPy (1.15.4), SciPy (1.1.0), and Matplotlib (3.0) and for the optional dependencies scikit-learn (0.20.2) and pandas (0.23.4), by `Eric Larson`_
 
