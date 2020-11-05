@@ -212,13 +212,17 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
                            vertices=hemi_vertices)
     # add label
     label = read_label(fname_label)
+    with pytest.raises(ValueError, match="not a filename"):
+        brain.add_label(0)
+    with pytest.raises(ValueError, match="does not exist"):
+        brain.add_label('foo', subdir='bar')
+    label.name = None
     brain.add_label(label, scalar_thresh=0.)
-    assert isinstance(brain.labels[label.name], dict)
-    label_data = brain.labels[label.name]
+    assert isinstance(brain.labels['unnamed'], dict)
+    label_data = brain.labels['unnamed']
     assert label_data["line"] is None
     brain.remove_labels()
     brain.add_label(fname_label)
-    label_data = brain._labels[label.name]
     brain.add_label('V1', borders=True)
     brain.remove_labels()
     brain.remove_labels()

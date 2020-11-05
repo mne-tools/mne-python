@@ -1244,8 +1244,7 @@ class Brain(object):
             return
 
         if hemi == label.hemi:
-            self.add_label(label, borders=True, reset_camera=False,
-                           traces=True)
+            self.add_label(label, borders=True, reset_camera=False)
             self.picked_patches[hemi].append(label_id)
 
     def _remove_label_glyph(self, hemi, label_id):
@@ -1961,7 +1960,7 @@ class Brain(object):
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None,
-                  reset_camera=True, traces=True):
+                  reset_camera=True):
         """Add an ROI label to the image.
 
         Parameters
@@ -1995,8 +1994,6 @@ class Brain(object):
         reset_camera : bool
             If True, reset the camera view after adding the label. Defaults
             to True.
-        traces : bool
-            If True, plot the label time course. Defaults to True.
 
         Notes
         -----
@@ -2062,15 +2059,7 @@ class Brain(object):
         label = np.zeros(self.geo[hemi].coords.shape[0])
         label[ids] = 1
 
-        if self.time_viewer and traces:
-            if self.mpl_canvas is None:
-                self._configure_mplcanvas()
-            if self.label_extract_mode is None:
-                for source in ["stc", "src"]:
-                    if self._data[source] is not None:
-                        for mode in self.default_label_extract_modes[source]:
-                            self.label_extract_mode = mode
-
+        if self.time_viewer and self.show_traces:
             stc = self._data["stc"]
             src = self._data["src"]
             tc = stc.extract_label_time_course(orig_label, src=src,
