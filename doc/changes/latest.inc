@@ -103,6 +103,8 @@ Bugs
 
 - Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
 
+- :meth:`mne.Report.parse_folder` will now correctly handle split FIFF files by `Richard Höchenberger`_ (:gh:`8486`)
+
 API changes
 ~~~~~~~~~~~
 
