@@ -1458,7 +1458,7 @@ class Report(object):
 
         # For split files, only keep the first one.
         fnames_to_remove = []
-        for fname in fnames.copy():  # We intend to mofidy the original
+        for fname in fnames:
             if _endswith(fname, ('raw', 'sss', 'meg')):
                 data = read_raw_fif(fname, allow_maxshield=True, preload=False)
             elif _endswith(fname, ('epo',)):
@@ -1474,7 +1474,7 @@ class Report(object):
         fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
         for fname in fnames_to_remove:
             del fnames[fnames(fname)]
-        del fnames_to_remove
+        del fnames_to_remove, fname
 
         if self.info_fname is not None:
             info = read_info(self.info_fname, verbose=False)
