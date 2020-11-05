@@ -104,6 +104,12 @@ def test_brain_gc(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
+    from mne.source_estimate import _BaseSourceEstimate
+
+    class FakeSTC(_BaseSourceEstimate):
+        def __init__(self):
+            pass
+
     hemi = 'lh'
     surf = 'inflated'
     cortex = 'low_contrast'
@@ -135,6 +141,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     brain._hemi = hemi  # end testing: hemis
     with pytest.raises(ValueError, match='bool or positive'):
         brain._to_borders(None, None, 'foo')
+    with pytest.raises(TypeError, match='not supported'):
+        brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
     with pytest.raises(ValueError, match='add_data'):
         brain.setup_time_viewer(time_viewer=True)
     assert brain.interaction == 'trackball'
@@ -371,15 +379,22 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     if src in ('mixed', 'volume'):
         hemi_str.extend(['vol'])
 
+    # test sub routines when show_traces=False
+    brain = _create_testing_brain(
+        hemi=hemi, surf='white', src=src, show_traces=False)
+    brain._on_pick(None, None)
+    brain._configure_vertex_time_course()
+    brain._configure_label_time_course()
+    brain.close()
+
     # label traces
     if src in ('volume', 'mixed'):
         with pytest.raises(RuntimeError, match='volume'):
-            brain = _create_testing_brain(
+            _create_testing_brain(
                 hemi=hemi, surf='white', src=src, show_traces='label',
                 volume_options=None,  # for speed, don't upsample
                 n_time=1,
             )
-            brain.close()
     else:
         brain = _create_testing_brain(
             hemi=hemi, surf='white', src=src, show_traces='label',
@@ -407,6 +422,10 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
                 assert isinstance(label_data["line"], Line2D)
             brain._label_mode_widget.setCurrentText('mean')
             brain.clear_glyphs()
+            assert len(brain.picked_patches[current_hemi]) == 0
+            brain._on_pick(test_picker, None)  # picked and added
+            assert len(brain.picked_patches[current_hemi]) == 1
+            brain._on_pick(test_picker, None)  # picked again so removed
             assert len(brain.picked_patches[current_hemi]) == 0
         # test switching from 'label' to 'vertex'
         brain._annot_cands_widget.setCurrentText('None')
