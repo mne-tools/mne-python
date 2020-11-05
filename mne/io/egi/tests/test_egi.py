@@ -304,6 +304,12 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     # Test reading all conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname)
     assert len(evokeds) == 2
+    # Test reading list of conditions from evokeds
+    evokeds = read_evokeds_mff(egi_mff_evoked_fname, condition=[0, 1])
+    assert len(evokeds) == 2
+    # Test invalid condition type
+    with pytest.raises(TypeError):
+        read_evokeds_mff(egi_mff_evoked_fname, condition=1.2)
     # Test reading evoked data from single condition
     evoked_cond = read_evokeds_mff(egi_mff_evoked_fname, condition=cond)
     evoked_idx = read_evokeds_mff(egi_mff_evoked_fname, condition=idx)
@@ -330,6 +336,18 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
+
+
+@requires_version('mffpy', '0.5.7')
+@requires_testing_data
+def test_read_evokeds_mff_bad_input():
+    """Test errors are thrown when reading an invalid averaged MFF."""
+    # Test file that is not an MFF
+    with pytest.raises(ValueError):
+        read_evokeds_mff(egi_fname)
+    # Test continuous MFF
+    with pytest.raises(ValueError):
+        read_evokeds_mff(egi_mff_fname)
 
 
 run_tests_if_main()

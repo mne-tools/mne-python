@@ -754,7 +754,7 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     mff = mffpy.Reader(fname)
     if mff.flavor != 'averaged':
         raise ValueError('%s is a %s MFF file. fname must be the path to an \
-                         averaged MFF file.' % fname, mff.flavor)
+                         averaged MFF file.' % (fname, mff.flavor))
     # Check for categories.xml file
     if 'categories.xml' not in mff.directory.listdir():
         raise ValueError('categories.xml not found in MFF directory. \
