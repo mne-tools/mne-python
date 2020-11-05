@@ -1457,6 +1457,7 @@ class Report(object):
             fnames.extend(sorted(_recursive_search(self.data_path, p)))
 
         # For split files, only keep the first one.
+        fnames_to_remove = []
         for fname in fnames.copy():  # We intend to mofidy the original
             if _endswith(fname, ('raw', 'sss', 'meg')):
                 data = read_raw_fif(fname, allow_maxshield=True, preload=False)
@@ -1468,12 +1469,12 @@ class Report(object):
                 continue
 
             if len(data.filenames) > 1:
-                for fname_to_remove in data.filenames[1:]:
-                    try:
-                        del fnames[fnames.index(fname_to_remove)]
-                    except ValueError:
-                        # Has already been removed in a previous iteration.
-                        continue
+                fnames_to_remove.extend(data.filenames[1:])
+
+        fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
+        for fname in fnames_to_remove:
+            del fnames[fnames(fname)]
+        del fnames_to_remove
 
         if self.info_fname is not None:
             info = read_info(self.info_fname, verbose=False)
