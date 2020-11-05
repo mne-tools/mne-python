@@ -1456,6 +1456,25 @@ class Report(object):
         for p in pattern:
             fnames.extend(sorted(_recursive_search(self.data_path, p)))
 
+        # For split files, only keep the first one.
+        for fname in fnames.copy():  # We intend to mofidy the original
+            if _endswith(fname, ('raw', 'sss', 'meg')):
+                data = read_raw_fif(fname, allow_maxshield=True, preload=False)
+            elif _endswith(fname, ('epo',)):
+                data = read_epochs(fname, preload=False)
+            elif _endswith(fname, ('ave',)):
+                data = read_evokeds(fname, condition=0, allow_maxshield=True)
+            else:
+                continue
+
+            if len(data.filenames) > 1:
+                for fname_to_remove in data.filenames[1:]:
+                    try:
+                        del fnames[fnames.index(fname_to_remove)]
+                    except ValueError:
+                        # Has already been removed in a previous iteration.
+                        continue
+
         if self.info_fname is not None:
             info = read_info(self.info_fname, verbose=False)
             sfreq = info['sfreq']
