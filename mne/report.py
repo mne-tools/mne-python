@@ -1476,7 +1476,8 @@ class Report(object):
 
         fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
         for fname in fnames_to_remove:
-            del fnames[fnames(fname)]
+            if fname in fnames:
+                del fnames[fnames.index(fname)]
         del fnames_to_remove
 
         if self.info_fname is not None:

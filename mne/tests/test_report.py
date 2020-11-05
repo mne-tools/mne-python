@@ -496,4 +496,17 @@ def test_scraper(tmpdir):
     assert op.isfile(img_fname.replace('png', 'svg'))
 
 
+@pytest.mark.parametrize('split_naming', ('neuromag', 'bids',))
+def test_split_files(tmpdir, split_naming):
+    raw = read_raw_fif(raw_fname)
+    split_size = '7MB'  # Should produce 3 files
+    buffer_size_sec = 1  # Tiny buffer so it's smaller than the split size
+    raw.save(op.join(tmpdir, 'raw_meg.fif'), split_size=split_size,
+             split_naming=split_naming, buffer_size_sec=buffer_size_sec)
+
+    report = Report()
+    report.parse_folder(tmpdir, render_bem=False)
+    assert len(report.fnames) == 1
+
+
 run_tests_if_main()
