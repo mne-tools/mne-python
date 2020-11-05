@@ -2116,7 +2116,7 @@ class SelectFromCollection(object):
             inters = set(inds) - set(sels)
             inds = list(inters.union(set(sels) - set(inds)))
 
-        self.selection = np.array(self.ch_names)[inds].tolist()
+        self.selection[:] = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
         self.canvas.callbacks.process('lasso_event')
 
@@ -2134,7 +2134,7 @@ class SelectFromCollection(object):
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""
-        self.selection = np.array(self.ch_names)[inds].tolist()
+        self.selection[:] = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
 
     def style_sensors(self, inds):
