@@ -72,7 +72,7 @@ jobs:
           echo 'pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}'
           pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
         env:
-          CONDITION: 'not slowtest'
+          CONDITION: 'not ultraslowtest'
           USE_DIRS: 'mne/'
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
@@ -139,7 +139,7 @@ jobs:
           echo 'pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}'
           pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
         env:
-          CONDITION: 'not ultraslowtest'
+          CONDITION: 'not slowtest'
           USE_DIRS: 'mne/'
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
