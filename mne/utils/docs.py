@@ -1789,6 +1789,21 @@ docdict['baseline_evoked'] = """%(rescale_baseline)s
     2. Subtract this mean from the **entire** ``Evoked``.
 
 """ % docdict
+docdict['baseline_stc'] = """%(rescale_baseline)s
+    Correction is applied **to each source individually** in the following
+    way:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** source estimate data.
+
+    .. note:: Baseline correction is appropriate when signal and noise are
+              approximately additive, and the noise level can be estimated from
+              the baseline interval. This can be the case for non-normalized
+              source activities (e.g. signed and unsigned MNE), but it is not
+              the case for normalized estimates (e.g. signal-to-noise ratios,
+              dSPM, sLORETA).
+
+""" % docdict
 docdict['baseline_report'] = """%(rescale_baseline)s
     Correction is applied in the following way **to each channel:**
 

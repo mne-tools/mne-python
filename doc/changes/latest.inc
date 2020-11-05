@@ -44,6 +44,9 @@ Enhancements
 
 - Add :meth:`mne.channels.DigMontage.get_positions`, which will return a dictionary of channel positions, coordinate frame and fiducial locations by `Adam Li`_ (:gh:`8460`)
 
+- Add ``picks`` parameter to :func:`mne.preprocessing.fix_stim_artifact` to specify which channel needs to be fixed, by `Alex Gramfort`_ (:gh:`8482`)
+
+
 Bugs
 ~~~~
 - Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary **by new contributor** |Aniket Pradhan|_ (:gh:`8474`)
