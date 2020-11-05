@@ -16,7 +16,7 @@ jobs:
         shell: bash
     env:
       DISPLAY: ':99.0'
-      PYTHON_VERSION: '3.7'
+      PYTHON_VERSION: '3.8'
       MNE_LOGGING_LEVEL: 'warning'
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
