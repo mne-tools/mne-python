@@ -498,6 +498,7 @@ def test_scraper(tmpdir):
 
 @pytest.mark.parametrize('split_naming', ('neuromag', 'bids',))
 def test_split_files(tmpdir, split_naming):
+    """Test that in the case of split files, we only parse the first."""
     raw = read_raw_fif(raw_fname)
     split_size = '7MB'  # Should produce 3 files
     buffer_size_sec = 1  # Tiny buffer so it's smaller than the split size
