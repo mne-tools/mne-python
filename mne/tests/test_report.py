@@ -296,7 +296,8 @@ def test_render_mri_without_bem(tmpdir):
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
-    report.parse_folder(tempdir, render_bem=False)
+    with pytest.raises(RuntimeError, match='No matching files found'):
+        report.parse_folder(tempdir, render_bem=False)
     with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
         report.parse_folder(tempdir, render_bem=True, mri_decim=20)
     assert 'bem' in report.fnames
