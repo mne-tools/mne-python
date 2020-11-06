@@ -744,7 +744,7 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
 
     Notes
     -----
-    .. versionadded:: 0.23
+    .. versionadded:: 0.22
     """
     mffpy = _import_mffpy()
     # Confirm `fname` is a path to an MFF file
