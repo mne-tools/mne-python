@@ -3,6 +3,8 @@
 # Install MNE
 python setup.py build
 python setup.py install
+
+# Show infos
 mne sys_info
 python -c "import numpy; numpy.show_config()"
 
