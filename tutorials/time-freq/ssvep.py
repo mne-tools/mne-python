@@ -329,7 +329,7 @@ print("average SNR: %f" % snr_grave.mean())
 # - Alternatively, one can subset trials already at the epoch level using MNEs
 #   event information, and create individual PSD and SNR objects.
 #
-# Here we have already sub-setted trials before snr calculation (only 12Hz
+# Here we have already subsetted trials before snr calculation (only 12Hz
 # stimulation) and will now compare SNR in different channel subsets.
 #
 # For illustration purposes, we will still subset the first 5 and last 5 of the
