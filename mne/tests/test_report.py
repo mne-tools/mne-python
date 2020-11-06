@@ -496,6 +496,7 @@ def test_scraper(tmpdir):
     assert op.isfile(img_fname.replace('png', 'svg'))
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('split_naming', ('neuromag', 'bids',))
 def test_split_files(tmpdir, split_naming):
     """Test that in the case of split files, we only parse the first."""
