@@ -18,7 +18,7 @@ from ..meas_info import _empty_info, create_info
 from ..proj import setup_proj
 from ..utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, _check_option
 from ...evoked import EvokedArray
 
 
@@ -753,19 +753,18 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     # Confirm the input MFF is averaged
     mff = mffpy.Reader(fname)
     if mff.flavor != 'averaged':
-        raise ValueError('%s is a %s MFF file. fname must be the path to an \
-                         averaged MFF file.' % (fname, mff.flavor))
+        raise ValueError(f'{fname} is a {mff.flavor} MFF file. '
+                         'fname must be the path to an averaged MFF file.')
     # Check for categories.xml file
     if 'categories.xml' not in mff.directory.listdir():
-        raise ValueError('categories.xml not found in MFF directory. \
-                         %s may not be an averaged MFF file.' % fname)
+        raise ValueError('categories.xml not found in MFF directory. '
+                         f'{fname} may not be an averaged MFF file.')
     if condition is None:
         categories = mff.categories.categories
         condition = list(categories.keys())
     elif not isinstance(condition, list):
         condition = [condition]
-    logger.info('Reading %d evoked datasets from %s ...'
-                % (len(condition), fname))
+    logger.info(f'Reading {len(condition)} evoked datasets from {fname} ...')
     output = [_read_evoked_mff(fname, c, channel_naming=channel_naming,
                                verbose=verbose).apply_baseline(baseline)
               for c in condition]
@@ -781,22 +780,25 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
 
     if isinstance(condition, str):
         # Condition is interpreted as category name
-        category = condition
+        category = _check_option('condition', condition, categories,
+                                 extra='provided as category name')
         epoch = mff.epochs[category]
     elif isinstance(condition, int):
         # Condition is interpreted as epoch index
-        epoch = mff.epochs[condition]
+        try:
+            epoch = mff.epochs[condition]
+        except KeyError:
+            raise KeyError(f'"condition" parameter ({condition}), provided '
+                           'as epoch index, is out of range for available '
+                           f'epochs ({len(mff.epochs)}).')
         category = epoch.name
     else:
-        raise TypeError('Condition must be either int or str.')
-    assert category in categories.keys(), 'Condition "%s" not found in \
-                                           available conditions %s.'\
-                                           % (category, categories.keys())
+        raise TypeError('"condition" parameter must be either int or str.')
 
     # Read in signals from the target epoch
     data = mff.get_physical_samples_from_epoch(epoch)
     eeg_data, t0 = data['EEG']
-    if 'PNSData' in data.keys():
+    if 'PNSData' in data:
         pns_data, t0 = data['PNSData']
         all_data = np.vstack((eeg_data, pns_data))
         ch_types = egi_info['chan_type'] + egi_info['pns_types']
@@ -813,9 +815,6 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
     info['nchan'] = sum(mff.num_channels.values())
-    assert info['nchan'] == all_data.shape[0], 'Number of channels does \
-                                               not match number of signals \
-                                               in binary file(s).'
 
     # Add individual channel info
     # Get calibration info for EEG channels
@@ -835,8 +834,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     try:
         channel_status = categories[category][0]['channelStatus']
     except KeyError:
-        warn('Channel status data not found for condition %s. No channels \
-             will be marked as bad.' % category, category=UserWarning)
+        warn(f'Channel status data not found for condition {category}. '
+             'No channels will be marked as bad.', category=UserWarning)
         channel_status = None
     bads = []
     if channel_status:
@@ -870,8 +869,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     try:
         nave = categories[category][0]['keys']['#seg']['data']
     except KeyError:
-        warn('Number of averaged epochs not found for condition %s. \
-             nave will default to 1.' % category, category=UserWarning)
+        warn(f'Number of averaged epochs not found for condition {category}. '
+             'nave will default to 1.', category=UserWarning)
         nave = 1
 
     # Let tmin default to 0
@@ -884,7 +883,7 @@ def _import_mffpy(why='read averaged .mff files'):
     try:
         import mffpy
     except ImportError as exp:
-        msg = 'mffpy is required to %s, got:\n%s' % (why, exp)
+        msg = f'mffpy is required to {why}, got:\n{exp}'
         raise ImportError(msg)
 
     return mffpy
