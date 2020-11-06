@@ -8,7 +8,7 @@ on:
       - '*'
 
 jobs:
-  MacOS:
+  Conda:
     if: "!contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     runs-on: macos-latest
     defaults:
@@ -40,36 +40,29 @@ jobs:
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
-          pip uninstall -yq mne
-          pip install --upgrade -r requirements_testing.txt
-          pip install nitime
+          ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
           mne_surf2bem --version
         name: 'Install dependencies'
       - shell: bash -el {0}
         run: |
-          python setup.py build
-          python setup.py install
-          mne sys_info
-          python -c "import numpy; numpy.show_config()"
+          ./tools/github_actions_install.sh
         name: 'Install MNE'
       - shell: bash -el {0}
         run: |
-          python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
+          ./tools/github_actions_infos.sh
+        name: 'Show infos'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
         run: |
-          echo "Print locale "
-          locale
-          echo "Other stuff"
+          ./tools/github_actions_locale.sh
         name: 'Print locale'
       - shell: bash -el {0}
         run: |
-          echo 'pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}'
-          pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
-        env:
-          CONDITION: 'not slowtest'
-          USE_DIRS: 'mne/'
+          ./tools/github_actions_test.sh
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
         if: success()

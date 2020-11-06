@@ -8,7 +8,7 @@ on:
       - '*'
 
 jobs:
-  Linux:
+  Conda:
     if: "!contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     runs-on: ubuntu-latest
     defaults:
@@ -45,12 +45,26 @@ jobs:
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
-          pip uninstall -yq mne
-          pip install --upgrade -r requirements_testing.txt
-          pip install nitime
+          ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
           mne_surf2bem --version
         name: 'Install dependencies'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_install.sh
+        name: 'Install MNE'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_infos.sh
+        name: 'Show infos'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_download.sh
+        name: 'Download testing data'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_locale.sh
+        name: 'Print locale'
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_test.sh
