@@ -24,7 +24,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
-                       _get_split_size, _NEXT_FILE_BUFFER)
+                       _get_split_size, _NEXT_FILE_BUFFER, INT32_MAX)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -87,9 +87,14 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
         next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
                                                  base[idx + 1:]))
         next_idx = part_idx + 1
+    else:
+        next_idx = None
 
-    fid = start_file(fname)
+    with start_file(fname) as fid:
+        _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
+
+def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     info = epochs.info
     meas_id = info['meas_id']
 
@@ -208,8 +213,8 @@ def _merge_events(events, event_id, selection):
 
         # If duplicate time samples have same event val, "merge" == "drop"
         # and no new event_id key will be created
-        ev_vals = events[idxs, 2]
-        if len(np.unique(ev_vals)) <= 1:
+        ev_vals = np.unique(events[idxs, 2])
+        if len(ev_vals) <= 1:
             new_event_val = ev_vals[0]
 
         # Else, make a new event_id for the merged event
@@ -232,11 +237,18 @@ def _merge_events(events, event_id, selection):
             # Else, find an unused value for the new key and make an entry into
             # the event_id dict
             else:
-                ev_vals = np.concatenate((list(event_id.values()),
-                                          events[:, 1:].flatten()),
-                                         axis=0)
-                new_event_val = np.setdiff1d(np.arange(1, 9999999),
-                                             ev_vals).min()
+                ev_vals = np.unique(
+                    np.concatenate((list(event_id.values()),
+                                    events[:, 1:].flatten()),
+                                   axis=0))
+                if ev_vals[0] > 1:
+                    new_event_val = 1
+                else:
+                    diffs = np.diff(ev_vals)
+                    idx = np.where(diffs > 1)[0]
+                    idx = -1 if len(idx) == 0 else idx[0]
+                    new_event_val = ev_vals[idx] + 1
+
                 new_event_id_key = '/'.join(sorted(new_key_comps))
                 event_id[new_event_id_key] = int(new_event_val)
 
@@ -393,15 +405,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 events = np.asarray(events)
             if not np.issubdtype(events.dtype, np.integer):
                 raise TypeError('events should be a NumPy array of integers, '
-                                'got {}'.format(events_type))
+                                f'got {events_type}')
+            if events.ndim != 2 or events.shape[1] != 3:
+                raise ValueError(
+                    'events must be of shape (N, 3), got {events.shape}')
+            events_max = events.max()
+            if events_max > INT32_MAX:
+                raise ValueError(
+                    f'events array values must not exceed {INT32_MAX}, '
+                    f'got {events_max}')
         event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
 
         if events is not None:  # RtEpochs can have events=None
-            if events.ndim != 2 or events.shape[1] != 3:
-                raise ValueError('events must be of shape (N, 3), got %s'
-                                 % (events.shape,))
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
@@ -500,6 +517,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             if data.ndim != 3 or data.shape[2] != \
                     round((tmax - tmin) * self.info['sfreq']) + 1:
                 raise RuntimeError('bad data shape')
+            if data.shape[0] != len(self.events):
+                raise ValueError(
+                    'The number of epochs and the number of events must match')
             self.preload = True
             self._data = data
         self._offset = None
@@ -556,6 +576,19 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         assert isinstance(self.drop_log, tuple)
         assert all(isinstance(log, tuple) for log in self.drop_log)
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
+
+    def reset_drop_log_selection(self):
+        """Reset the drop_log and selection entries.
+
+        This method will simplify ``self.drop_log`` and ``self.selection``
+        so that they are meaningless (tuple of empty tuples and increasing
+        integers, respectively). This can be useful when concatenating
+        many Epochs instances, as ``drop_log`` can accumulate many entries
+        which can become problematic when saving.
+        """
+        self.selection = np.arange(len(self.events))
+        self.drop_log = (tuple(),) * len(self.events)
+        self._check_consistency()
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -1594,13 +1627,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # check for file existence
         _check_fname(fname, overwrite)
 
-        split_size = _get_split_size(split_size)
+        split_size_bytes = _get_split_size(split_size)
 
         _check_option('fmt', fmt, ['single', 'double'])
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad()
+        # total_size tracks sizes that get split
+        # over_size tracks overhead (tags, things that get written to each)
         if len(self) == 0:
             warn('Saving epochs with no data')
             total_size = 0
@@ -1610,37 +1645,69 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             assert d.dtype in ('>f8', '<f8', '>c16', '<c16')
             total_size = d.nbytes * len(self)
         self._check_consistency()
+        over_size = 0
         if fmt == "single":
             total_size //= 2  # 64bit data converted to 32bit before writing.
-        total_size += 32  # FIF tags
+        over_size += 32  # FIF tags
         # Account for all the other things we write, too
         # 1. meas_id block plus main epochs block
-        total_size += 132
+        over_size += 132
         # 2. measurement info (likely slight overestimate, but okay)
-        total_size += object_size(self.info)
+        over_size += object_size(self.info) + 16 * len(self.info)
         # 3. events and event_id in its own block
-        total_size += (self.events.size * 4 +
-                       len(_event_id_string(self.event_id)) + 72)
+        total_size += self.events.size * 4
+        over_size += len(_event_id_string(self.event_id)) + 72
         # 4. Metadata in a block of its own
         if self.metadata is not None:
-            total_size += len(_prepare_write_metadata(self.metadata)) + 56
+            total_size += len(_prepare_write_metadata(self.metadata))
+        over_size += 56
         # 5. first sample, last sample, baseline
-        total_size += 40 + 40 * (self.baseline is not None)
-        # 6. drop log
-        total_size += len(json.dumps(self.drop_log)) + 16
+        over_size += 40 * (self.baseline is not None) + 40
+        # 6. drop log: gets written to each, with IGNORE for ones that are
+        #    not part of it. So make a fake one with all having entries.
+        drop_size = len(json.dumps(self.drop_log)) + 16
+        drop_size += 8 * (len(self.selection) - 1)  # worst case: all but one
+        over_size += drop_size
         # 7. reject params
         reject_params = _pack_reject_params(self)
         if reject_params:
-            total_size += len(json.dumps(reject_params)) + 16
+            over_size += len(json.dumps(reject_params)) + 16
         # 8. selection
-        total_size += self.selection.size * 4 + 16
+        total_size += self.selection.size * 4
+        over_size += 16
         # 9. end of file tags
-        total_size += _NEXT_FILE_BUFFER
+        over_size += _NEXT_FILE_BUFFER
+        logger.debug(f'    Overhead size:   {str(over_size).rjust(15)}')
+        logger.debug(f'    Splittable size: {str(total_size).rjust(15)}')
+        logger.debug(f'    Split size:      {str(split_size_bytes).rjust(15)}')
+        # need at least one per
+        n_epochs = len(self)
+        n_per = total_size // n_epochs if n_epochs else 0
+        min_size = n_per + over_size
+        if split_size_bytes < min_size:
+            raise ValueError(
+                f'The split size {split_size} is too small to safely write '
+                'the epochs contents, minimum split size is '
+                f'{sizeof_fmt(min_size)} ({min_size} bytes)')
 
         # This is like max(int(ceil(total_size / split_size)), 1) but cleaner
-        n_parts = (total_size - 1) // split_size + 1
-        assert n_parts >= 1
-        epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
+        n_parts = max(
+            (total_size - 1) // (split_size_bytes - over_size) + 1, 1)
+        assert n_parts >= 1, n_parts
+        if n_parts > 1:
+            logger.info(f'Splitting into {n_parts} parts')
+            if n_parts > 100:  # This must be an error
+                raise ValueError(
+                    f'Split size {split_size} would result in writing '
+                    f'{n_parts} files')
+
+        if len(self.drop_log) > 100000:
+            warn(f'epochs.drop_log contains {len(self.drop_log)} entries '
+                 f'which will incur up to a {sizeof_fmt(drop_size)} writing '
+                 f'overhead (per split file), consider using '
+                 'epochs.reset_drop_log_selection() prior to writing')
+
+        epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
@@ -2218,13 +2285,8 @@ class EpochsArray(BaseEpochs):
         if events is None:
             n_epochs = len(data)
             events = _gen_events(n_epochs)
-        if data.shape[0] != len(events):
-            raise ValueError('The number of epochs and the number of events'
-                             'must match')
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
-        if event_id is None:  # convert to int to make typing-checks happy
-            event_id = {str(e): int(e) for e in np.unique(events[:, 2])}
         super(EpochsArray, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, reject=reject,
             flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
@@ -2506,7 +2568,9 @@ def _read_one_epoch_file(f, tree, preload):
                 selection = np.array(tag.data)
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 tag = read_tag(fid, pos)
-                drop_log = tuple(tuple(x) for x in json.loads(tag.data))
+                drop_log = tag.data
+                drop_log = json.loads(drop_log)
+                drop_log = tuple(tuple(x) for x in drop_log)
             elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
                 tag = read_tag(fid, pos)
                 reject_params = json.loads(tag.data)
@@ -2661,6 +2725,11 @@ class EpochsFIF(BaseEpochs):
              reject_params, fmt) = \
                 _read_one_epoch_file(fid, tree, preload)
 
+            if (events[:, 0] < 0).any():
+                events = events.copy()
+                warn('Incorrect events detected on disk, setting event '
+                     'numbers to consecutive increasing integers')
+                events[:, 0] = np.arange(1, len(events) + 1)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
             epoch = BaseEpochs(
@@ -2879,6 +2948,18 @@ def _compare_epochs_infos(info1, info2, name):
                          'runs to a common head position.')
 
 
+def _update_offset(offset, events, shift):
+    if offset == 0:
+        return offset
+    offset = 0 if offset is None else offset
+    offset = np.int64(offset) + np.max(events[:, 0]) + shift
+    if offset > INT32_MAX:
+        warn(f'Event number greater than {INT32_MAX} created, events[:, 0] '
+             'will be assigned consecutive increasing integer values')
+        offset = 0
+    return offset
+
+
 def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
@@ -2902,8 +2983,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     event_id = deepcopy(out.event_id)
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
-    events_offset = (np.max(out.events[:, 0]) +
-                     int((10 + tmax) * epochs.info['sfreq']))
+    shift = int((10 + tmax) * out.info['sfreq'])
+    events_offset = _update_offset(None, out.events, shift)
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _compare_epochs_infos(epochs.info, info, ii)
         if not np.allclose(epochs.times, epochs_list[0].times):
@@ -2930,15 +3011,16 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
         if add_offset:
             evs[:, 0] += events_offset
         # Update offset for the next iteration.
-        # offset is the last epoch + tmax + 10 second
-        events_offset += (np.max(epochs.events[:, 0]) +
-                          int((10 + tmax) * epochs.info['sfreq']))
+        events_offset = _update_offset(events_offset, epochs.events, shift)
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
         event_id.update(epochs.event_id)
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
+    # check to see if we exceeded our maximum event offset
+    if events_offset == 0:
+        events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
     n_have = sum(this_meta is not None for this_meta in metadata)

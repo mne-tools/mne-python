@@ -42,7 +42,7 @@ def raw():
 @pytest.fixture(scope='module')
 def new_mpl():
     """Check matplotlib version."""
-    return check_version('matplotlib', '3.0')
+    return check_version('matplotlib', '3.1')
 
 
 def _get_events():
@@ -286,7 +286,11 @@ def test_plot_raw_selection(raw, new_mpl):
     _fake_click(sel_fig, sensor_ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(sel_fig, sensor_ax, (0.65, 0.7), xform='ax', kind='motion')
     _fake_click(sel_fig, sensor_ax, (0, 0.7), xform='ax', kind='release')
-    assert sel_fig.lasso.selection == ['MEG 0121', 'MEG 0122', 'MEG 0123']
+    want = ['MEG 0121', 'MEG 0122', 'MEG 0123'] if new_mpl else \
+        ['MEG 0111', 'MEG 0112', 'MEG 0131', 'MEG 0132', 'MEG 0133']  # XXX old
+    want = sorted(want)
+    got = sorted(sel_fig.lasso.selection)
+    assert got == want
     # test joint closing of selection & data windows
     sel_fig.canvas.key_press_event(sel_fig.mne.close_key)
     _close_event(sel_fig)
@@ -304,7 +308,7 @@ def test_plot_raw_ssp_interaction(raw):
     fig = raw.plot()
     # open SSP window
     _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5])
-    assert len(plt.get_fignums()) == 2  # XXX this fails with minimal deps
+    assert len(plt.get_fignums()) == 2
     ssp_fig = fig.mne.fig_proj
     t = ssp_fig.mne.proj_checkboxes.labels
     ax = ssp_fig.mne.proj_checkboxes.ax

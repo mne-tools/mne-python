@@ -17,6 +17,7 @@ from mne import (pick_channels, pick_types, Epochs, read_events,
                  make_forward_solution, setup_volume_source_space,
                  pick_channels_forward, read_evokeds)
 from mne.epochs import BaseEpochs
+from mne.fixes import nullcontext
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
@@ -253,6 +254,7 @@ def test_set_eeg_reference_ch_type(ch_type):
         set_eeg_reference(raw, ch_type='eeg')
 
 
+@testing.requires_testing_data
 def test_set_eeg_reference_rest():
     """Test setting a REST reference."""
     raw = read_raw_fif(fif_fname).crop(0, 1).pick_types(
@@ -568,20 +570,29 @@ def test_add_reference():
         add_reference_channels(raw, 1)
 
 
-def test_add_reorder():
+@pytest.mark.parametrize('n_ref', (1, 2))
+def test_add_reorder(n_ref):
     """Test that a reference channel can be added and then data reordered."""
     # gh-8300
     raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj().pick('eeg')
     assert len(raw.ch_names) == 60
+    chs = ['EEG %03d' % (60 + ii) for ii in range(1, n_ref)] + ['EEG 000']
     with pytest.raises(RuntimeError, match='preload'):
-        add_reference_channels(raw, ['EEG 000'], copy=False)
+        with pytest.warns(None):  # ignore multiple warning
+            add_reference_channels(raw, chs, copy=False)
     raw.load_data()
-    add_reference_channels(raw, ['EEG 000'], copy=False)
+    if n_ref == 1:
+        ctx = nullcontext()
+    else:
+        assert n_ref == 2
+        ctx = pytest.warns(RuntimeWarning, match='locations of multiple')
+    with ctx:
+        add_reference_channels(raw, chs, copy=False)
     data = raw.get_data()
     assert_array_equal(data[-1], 0.)
-    assert raw.ch_names[-1] == 'EEG 000'
+    assert raw.ch_names[-n_ref:] == chs
     raw.reorder_channels(raw.ch_names[-1:] + raw.ch_names[:-1])
-    assert raw.ch_names == ['EEG %03d' % ii for ii in range(61)]
+    assert raw.ch_names == ['EEG %03d' % ii for ii in range(60 + n_ref)]
     data_new = raw.get_data()
     data_new = np.concatenate([data_new[1:], data_new[:1]])
     assert_allclose(data, data_new)

@@ -433,7 +433,10 @@ def test_labels_to_stc():
         labels_to_stc(labels, values[:, np.newaxis, np.newaxis])
     with pytest.raises(ValueError, match=r'values\.shape'):
         labels_to_stc(labels, values[np.newaxis])
+    with pytest.raises(ValueError, match='multiple values of subject'):
+        labels_to_stc(labels, values, subject='foo')
     stc = labels_to_stc(labels, values)
+    assert stc.subject == 'sample'
     for value, label in zip(values, labels):
         stc_label = stc.in_label(label)
         assert (stc_label.data == value).all()

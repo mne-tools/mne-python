@@ -1311,6 +1311,7 @@ def test_set_montage_with_missing_coordinates():
     )
 
 
+@testing.requires_testing_data
 def test_get_montage():
     """Test get montage from Instance.
 
@@ -1333,6 +1334,10 @@ def test_get_montage():
     # the montage does not change
     assert_object_equal(montage.dig, test_montage.dig)
 
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
+
     # 2. now do a standard montage
     montage = make_standard_montage('mgh60')
     # set the montage; note renaming to make standard montage map
@@ -1343,6 +1348,10 @@ def test_get_montage():
     raw2 = raw.copy()
     test_montage = raw.get_montage()
     raw.set_montage(test_montage, on_missing='ignore')
+
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**test_montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
 
     # chs should not change
     assert_object_equal(raw2.info['chs'], raw.info['chs'])
@@ -1393,6 +1402,10 @@ def test_get_montage():
     # if dig is not set in the info, then montage returns None
     raw.info['dig'] = None
     assert raw.get_montage() is None
+
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**test_montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
 
 
 def test_read_dig_hpts():

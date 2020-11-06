@@ -18,7 +18,7 @@ from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar, _get_img_fdata, _get_args
@@ -31,7 +31,7 @@ from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
 
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
-                       mesh_edges, _reorder_ccw, _complete_sphere_surf)
+                       _reorder_ccw, _complete_sphere_surf)
 from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform,
@@ -438,7 +438,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. Can be omitted if ``src`` is provided.
     %(subjects_dir)s
-    surfaces : str | list
+    surfaces : str | list | dict
         Surfaces to plot. Supported values:
 
         * scalp: one of 'head', 'outer_skin' (alias for 'head'),
@@ -447,6 +447,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
           'inner_skull')
         * brain: one of 'pial', 'white', 'inflated', or 'brain'
           (alias for 'pial').
+
+        Can be dict to specify alpha values for each surface. Use None
+        to specify default value. Specified values must be between 0 and 1.
+        for example::
+
+            surfaces=dict(brain=0.4, outer_skull=0.6, head=None)
 
         Defaults to 'auto', which will look for a head surface and plot
         it if found.
@@ -593,6 +599,20 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     if isinstance(surfaces, str):
         surfaces = [surfaces]
+    if isinstance(surfaces, dict):
+        user_alpha = surfaces.copy()
+        for key, val in user_alpha.items():
+            _validate_type(key, "str", f"surfaces key {repr(key)}")
+            _validate_type(val, (None, "numeric"), f"surfaces[{repr(key)}]")
+            if val is not None:
+                user_alpha[key] = float(val)
+                if not 0 <= user_alpha[key] <= 1:
+                    raise ValueError(
+                        f'surfaces[{repr(key)}] ({val}) must be'
+                        ' between 0 and 1'
+                    )
+    else:
+        user_alpha = {}
     surfaces = list(surfaces)
     for s in surfaces:
         _validate_type(s, "str", "all entries in surfaces")
@@ -813,6 +833,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     else:  # exactly 1
         brain = brain[0]
         surfaces.pop(surfaces.index(brain))
+        if brain in user_alpha:
+            user_alpha['lh'] = user_alpha['rh'] = user_alpha.pop(brain)
         brain = 'pial' if brain == 'brain' else brain
         if is_sphere:
             if len(bem['layers']) > 0:
@@ -836,9 +858,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
+    max_alpha = 1.0 if len(other_picks['seeg']) == 0 else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
-        hemi_val = 1.
-    alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
+        hemi_val = max_alpha
+    alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]
+
     for idx, this_skull in enumerate(skull):
         if isinstance(this_skull, dict):
             skull_surf = this_skull
@@ -864,7 +888,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         surfs[this_skull] = skull_surf
 
     if src is None and brain is False and len(skull) == 0 and not show_axes:
-        head_alpha = 1.0
+        head_alpha = max_alpha
     else:
         head_alpha = alphas[0]
 
@@ -950,7 +974,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             title = DEFAULTS["titles"][key] if key != 'fnirs' else 'fNIRS'
             if key != 'fnirs' or 'channels' in fnirs:
                 other_loc[key] = [
-                    info['chs'][pick]['loc'][:3] for pick in picks]
+                    info['chs'][pick]['loc'][:3] for pick in picks
+                ]
                 # deal with NaN
                 other_loc[key] = np.array([loc for loc in other_loc[key]
                                            if np.isfinite(loc).all()], float)
@@ -985,6 +1010,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
+    # replace default alphas with specified user_alpha
+    for k, v in user_alpha.items():
+        if v is not None:
+            alphas[k] = v
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
@@ -1373,7 +1402,7 @@ def _key_pressed_slider(event, params):
 
 def _smooth_plot(this_time, params):
     """Smooth source estimate data and plot with mpl."""
-    from ..morph import _morph_buffer
+    from ..morph import _hemi_morph
     ax = params['ax']
     stc = params['stc']
     ax.clear()
@@ -1389,9 +1418,10 @@ def _smooth_plot(this_time, params):
     else:
         data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
 
-    array_plot = _morph_buffer(data, params['vertices'], params['e'],
-                               params['smoothing_steps'], params['n_verts'],
-                               params['inuse'], params['maps'])
+    morph = _hemi_morph(
+        params['tris'], params['inuse'], params['vertices'],
+        params['smoothing_steps'], maps=None, warn=True)
+    array_plot = morph @ data
 
     range_ = params['scale_pts'][2] - params['scale_pts'][0]
     colors = (array_plot - params['scale_pts'][0]) / range_
@@ -1484,11 +1514,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
     tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-    e = mesh_edges(tris)
-    e.data[e.data == 2] = 1
-    n_vertices = e.shape[0]
-    maps = sparse.identity(n_vertices).tocsr()
-    e = e + sparse.eye(n_vertices, n_vertices)
     cmap = cm.get_cmap(colormap)
     greymap = cm.get_cmap('Greys')
 
@@ -1496,9 +1521,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
     curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
-                  hemi_idx=hemi_idx, vertices=vertices, e=e,
+                  hemi_idx=hemi_idx, vertices=vertices, tris=tris,
                   smoothing_steps=smoothing_steps, n_verts=n_verts,
-                  inuse=inuse, maps=maps, cmap=cmap, curv=curv,
+                  inuse=inuse, cmap=cmap, curv=curv,
                   scale_pts=scale_pts, greymap=greymap, time_label=time_label,
                   time_unit=time_unit)
     _smooth_plot(initial_time, params)

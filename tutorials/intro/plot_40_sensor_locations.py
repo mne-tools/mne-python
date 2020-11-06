@@ -209,8 +209,7 @@ ax3d.view_init(azim=70, elev=15)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # It is also possible to render an image of a MEG sensor helmet in 3D, using
-# mayavi instead of matplotlib, by calling the :func:`mne.viz.plot_alignment`
-# function:
+# mayavi instead of matplotlib, by calling :func:`mne.viz.plot_alignment`
 
 fig = mne.viz.plot_alignment(raw.info, trans=None, dig=False, eeg=False,
                              surfaces=[], meg=['helmet', 'sensors'],
