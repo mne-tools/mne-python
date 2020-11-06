@@ -307,9 +307,22 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     # Test reading list of conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname, condition=[0, 1])
     assert len(evokeds) == 2
-    # Test invalid condition type
-    with pytest.raises(TypeError):
+    # Test invalid condition
+    with pytest.raises(ValueError) as exc_info:
+        read_evokeds_mff(egi_mff_evoked_fname, condition='Invalid Condition')
+    message = "Invalid value for the 'condition' parameter provided as " \
+              "category name. Allowed values are 'Category 1', and " \
+              "'Category 2', but got 'Invalid Condition' instead."
+    assert str(exc_info.value) == message
+    with pytest.raises(ValueError) as exc_info:
+        read_evokeds_mff(egi_mff_evoked_fname, condition=2)
+    message = '"condition" parameter (2), provided as epoch index, ' \
+              'is out of range for available epochs (2).'
+    assert str(exc_info.value) == message
+    with pytest.raises(TypeError) as exc_info:
         read_evokeds_mff(egi_mff_evoked_fname, condition=1.2)
+    message = '"condition" parameter must be either int or str.'
+    assert str(exc_info.value) == message
     # Test reading evoked data from single condition
     evoked_cond = read_evokeds_mff(egi_mff_evoked_fname, condition=cond)
     evoked_idx = read_evokeds_mff(egi_mff_evoked_fname, condition=idx)
@@ -319,9 +332,9 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
         assert evoked.tmin == 0.0
         assert evoked.tmax == tmax
     # Check signal data
-    data = np.loadtxt(signals, ndmin=2).transpose() * 1e-6  # convert to volts
-    assert_allclose(evoked_cond.data, data, atol=1e-6)
-    assert_allclose(evoked_idx.data, data, atol=1e-6)
+    data = np.loadtxt(signals, ndmin=2).T * 1e-6  # convert to volts
+    assert_allclose(evoked_cond.data, data, atol=1e-12)
+    assert_allclose(evoked_idx.data, data, atol=1e-12)
     # Check info
     assert object_diff(evoked_cond.info, evoked_idx.info) == ''
     assert evoked_cond.info['description'] == cond
@@ -341,13 +354,18 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
 @requires_version('mffpy', '0.5.7')
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
-    """Test errors are thrown when reading an invalid averaged MFF."""
+    """Test errors are thrown when reading invalid input file."""
     # Test file that is not an MFF
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         read_evokeds_mff(egi_fname)
+    message = 'fname must be an MFF file with extension ".mff".'
+    assert str(exc_info.value) == message
     # Test continuous MFF
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         read_evokeds_mff(egi_mff_fname)
+    message = f'{egi_mff_fname} is a continuous MFF file. ' \
+              'fname must be the path to an averaged MFF file.'
+    assert str(exc_info.value) == message
 
 
 run_tests_if_main()

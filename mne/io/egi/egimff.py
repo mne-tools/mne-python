@@ -787,10 +787,10 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
         # Condition is interpreted as epoch index
         try:
             epoch = mff.epochs[condition]
-        except KeyError:
-            raise KeyError(f'"condition" parameter ({condition}), provided '
-                           'as epoch index, is out of range for available '
-                           f'epochs ({len(mff.epochs)}).')
+        except IndexError:
+            raise ValueError(f'"condition" parameter ({condition}), provided '
+                             'as epoch index, is out of range for available '
+                             f'epochs ({len(mff.epochs)}).')
         category = epoch.name
     else:
         raise TypeError('"condition" parameter must be either int or str.')
