@@ -613,8 +613,18 @@ def test_read_vmrk_annotations(tmpdir):
 
 
 @testing.requires_testing_data
-def test_read_vhdr_annotations_and_events():
+def test_read_vhdr_annotations_and_events(tmpdir):
     """Test load brainvision annotations and parse them to events."""
+    # First we add a custom event that contains a comma in its description
+    for src, dest in zip((vhdr_path, vmrk_path, eeg_path),
+                         ('test.vhdr', 'test.vmrk', 'test.eeg')):
+        shutil.copyfile(src, tmpdir / dest)
+
+    # Commas are encoded as "\1"
+    with open(tmpdir / 'test.vmrk', 'a') as fout:
+        fout.write(r"Mk15=Comma\1Type,CommaValue\11,7800,1,0")
+        fout.write("\n")
+
     sfreq = 1000.0
     expected_orig_time = _stamp_to_dt((1384359243, 794232))
     expected_onset_latency = np.array(
@@ -638,7 +648,7 @@ def test_read_vhdr_annotations_and_events():
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
                          'Optic/O  1': 2001, 'Comma,Type/CommaValue,1': 10001}
 
-    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    raw = read_raw_brainvision(tmpdir / 'test.vhdr', eog=eog)
 
     # validate annotations
     assert raw.annotations.orig_time == expected_orig_time
