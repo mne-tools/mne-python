@@ -23,20 +23,11 @@ jobs:
       TRAVIS_OS_NAME: 'osx'
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        env:
-          # Increase this value to reset cache if environment.yml has not changed
-          CACHE_NUMBER: 0
-        with:
-          path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
-        name: 'Cache conda'
       - uses: goanpeca/setup-miniconda@v1
         with:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
