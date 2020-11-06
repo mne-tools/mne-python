@@ -759,16 +759,18 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     if 'categories.xml' not in mff.directory.listdir():
         raise ValueError('categories.xml not found in MFF directory. '
                          f'{fname} may not be an averaged MFF file.')
+    return_list = True
     if condition is None:
         categories = mff.categories.categories
         condition = list(categories.keys())
     elif not isinstance(condition, list):
         condition = [condition]
+        return_list = False
     logger.info(f'Reading {len(condition)} evoked datasets from {fname} ...')
     output = [_read_evoked_mff(fname, c, channel_naming=channel_naming,
                                verbose=verbose).apply_baseline(baseline)
               for c in condition]
-    return output if len(output) > 1 else output[0]
+    return output if return_list else output[0]
 
 
 def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
