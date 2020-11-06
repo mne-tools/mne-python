@@ -291,14 +291,17 @@ def test_ch_names_comma(tmpdir):
         lines = fin.readlines()
 
     new_lines = []
+    nperformed_replacements = 0
     for line in lines:
         for to_replace, replacement in replace_dict.items():
             if to_replace in line:
                 new = line.replace(to_replace, replacement)
                 new_lines.append(new)
+                nperformed_replacements += 1
                 break
         else:
             new_lines.append(line)
+    assert nperformed_replacements == len(replace_dict)
 
     with open(comma_vhdr, 'w') as fout:
         fout.writelines(new_lines)
