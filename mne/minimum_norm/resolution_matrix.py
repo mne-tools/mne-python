@@ -187,7 +187,7 @@ def _normalise_psf_ctf(funcs, norm):
     """Normalise PSFs/CTFs in _get_psf_ctf()."""
     # normalise PSFs/CTFs if specified
     if norm == 'max':
-        maxval = np.abs(funcs).max()  # normalise to maximum absolute value
+        maxval = max(-funcs.min(), funcs.max())
         funcs = funcs / maxval
     elif norm == 'norm':  # normalise to maximum norm across columns
         norms = np.linalg.norm(funcs, axis=0)
@@ -201,25 +201,21 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
     s_var = None  # only computed for return_pca_vars=True
 
     if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
-
-        absvals = np.abs(funcs).max(axis=0)
+        absvals = np.array([abs(col).max() for col in funcs.T])
         if n_comp > 1:  # only keep requested number of sorted PSFs/CTFs
             sortidx = np.argsort(absvals)
             maxidx = sortidx[-n_comp:]
         else:  # faster if only one required
             maxidx = absvals.argmax()
-
         funcs = funcs[:, maxidx]
 
     elif mode == 'maxnorm':  # pick PSF/CTF with maximum norm
-
         norms = np.linalg.norm(funcs, axis=0)
         if n_comp > 1:  # only keep requested number of sorted PSFs/CTFs
             sortidx = np.argsort(norms)
             maxidx = sortidx[-n_comp:]
         else:  # faster if only one required
             maxidx = norms.argmax()
-
         funcs = funcs[:, maxidx]
 
     elif mode == 'sum':  # sum across PSFs/CTFs
@@ -229,11 +225,9 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
         funcs = np.mean(funcs, axis=1)
 
     elif mode == 'pca':  # SVD across PSFs/CTFs
-
         # compute SVD of PSFs/CTFs across vertices
         u, s, _ = linalg.svd(funcs, full_matrices=False, compute_uv=True)
         funcs = u[:, :n_comp]
-
         # if explained variances for SVD components requested
         if return_pca_vars:
             # explained variance of individual SVD components
