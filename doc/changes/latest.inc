@@ -81,7 +81,7 @@ Bugs
 
 - Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` by `Adam Li`_ (:gh`8320`)
 
-- Fix bug with :func:`mne.add_reference_channels` when :func:`mne.io.Raw.reorder_channels` or related methods are used afterward by `Eric Larson`_ (:gh:`8303`)
+- Fix bug with :func:`mne.add_reference_channels` when :func:`mne.io.Raw.reorder_channels` or related methods are used afterward by `Eric Larson`_ (:gh:`8303`, :gh:`#8484`)
 
 - Fix bug where the ``verbose`` arguments to :meth:`mne.Evoked.apply_baseline` and :meth:`mne.Epochs.apply_baseline` were not keyword-only by `Eric Larson`_ (:gh:`8349`)
 
@@ -103,8 +103,12 @@ Bugs
 
 - Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
 
+- :meth:`mne.Report.parse_folder` will now correctly handle split FIFF files by `Richard Höchenberger`_ (:gh:`8486`)
+
 API changes
 ~~~~~~~~~~~
+
+- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates, by `Olaf Hauk`_ (:gh:`8452`)
 
 - Minimum required versions were increased for core dependencies NumPy (1.15.4), SciPy (1.1.0), and Matplotlib (3.0) and for the optional dependencies scikit-learn (0.20.2) and pandas (0.23.4), by `Eric Larson`_
 

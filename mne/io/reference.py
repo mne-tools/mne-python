@@ -236,8 +236,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
         inst.info._update_redundant()
     if isinstance(inst, BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
+        range_ = np.arange(1, len(ref_channels) + 1)
         for pi, picks in enumerate(inst._read_picks):
-            inst._read_picks[pi] = np.concatenate([picks, [np.max(picks) + 1]])
+            inst._read_picks[pi] = np.concatenate(
+                [picks, np.max(picks) + range_])
     inst.info._check_consistency()
     set_eeg_reference(inst, ref_channels=ref_channels, copy=False,
                       verbose=False)
