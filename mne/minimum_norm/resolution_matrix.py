@@ -201,7 +201,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
     s_var = None  # only computed for return_pca_vars=True
 
     if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
-        absvals = np.array([abs(col).max() for col in funcs.T])
+        absvals = np.maximum(-np.min(funcs, axis=0), np.max(funcs, axis=0))
         if n_comp > 1:  # only keep requested number of sorted PSFs/CTFs
             sortidx = np.argsort(absvals)
             maxidx = sortidx[-n_comp:]
