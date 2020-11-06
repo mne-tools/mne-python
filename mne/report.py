@@ -1456,6 +1456,30 @@ class Report(object):
         for p in pattern:
             fnames.extend(sorted(_recursive_search(self.data_path, p)))
 
+        if not fnames and not render_bem:
+            raise RuntimeError(f'No matching files found in {self.data_path}')
+
+        # For split files, only keep the first one.
+        fnames_to_remove = []
+        for fname in fnames:
+            if _endswith(fname, ('raw', 'sss', 'meg')):
+                inst = read_raw_fif(fname, allow_maxshield=True, preload=False)
+            elif _endswith(fname, ('epo',)):
+                inst = read_epochs(fname, preload=False)
+            elif _endswith(fname, ('ave',)):
+                inst = read_evokeds(fname, condition=0, allow_maxshield=True)
+            else:
+                continue
+
+            if len(inst.filenames) > 1:
+                fnames_to_remove.extend(inst.filenames[1:])
+
+        fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
+        for fname in fnames_to_remove:
+            if fname in fnames:
+                del fnames[fnames.index(fname)]
+        del fnames_to_remove
+
         if self.info_fname is not None:
             info = read_info(self.info_fname, verbose=False)
             sfreq = info['sfreq']
