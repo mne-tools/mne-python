@@ -43,7 +43,7 @@ def test_xdawn():
     # Init xdawn with good parameters
     Xdawn(n_components=2, correct_overlap='auto', signal_cov=None, reg=None)
     # Init xdawn with bad parameters
-    pytest.raises(ValueError, Xdawn, correct_overlap=42)
+    pytest.raises(ValueError, Xdawn, correct_overlap='foo')
 
 
 def test_xdawn_picks():

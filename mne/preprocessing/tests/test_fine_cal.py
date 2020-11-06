@@ -108,7 +108,7 @@ def test_compute_fine_cal():
     raw_sss_py = maxwell_filter(raw, calibration=got_cal, **kwargs)
     _assert_shielding(raw_sss, raw, 26, 27)
     _assert_shielding(raw_sss_mf, raw, 61, 63)
-    _assert_shielding(raw_sss_py, raw, 59, 60)
+    _assert_shielding(raw_sss_py, raw, 58, 60)
 
     # redoing with given mag data should yield same result
     got_cal_redo, _ = compute_fine_calibration(
