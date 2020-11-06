@@ -482,6 +482,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         assert cell_id == test_picker.cell_id
         assert test_picker.point_id is None
         brain._on_pick(test_picker, None)
+        brain._on_pick(test_picker, None)
         assert test_picker.point_id is not None
         assert len(picked_points[current_hemi]) == 1
         assert picked_points[current_hemi][0] == test_picker.point_id
