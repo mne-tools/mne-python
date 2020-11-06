@@ -4,6 +4,7 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+import os
 import os.path as op
 import shutil
 
@@ -270,6 +271,38 @@ def test_ascii(tmpdir):
     data_new, times_new = raw[:]
     assert_allclose(data_new, data, atol=1e-15)
     assert_allclose(times_new, times)
+
+
+def test_ch_names_comma():
+    """Test that channel names containing commas are properly read."""
+    find_line = "Ch4=F4,,0.5,µV"
+    change_to = r"Ch4=F4\1foo,,0.5,µV"  # commas in BV are encoded as \1
+
+    # Manipulate existing vhdr file to contain a channel with comma
+    with open(vhdr_path, 'r') as fin:
+        lines = fin.readlines()
+    new_lines = []
+    for line in lines:
+        if find_line in line:
+            new_lines.append(change_to + '\n')
+            continue
+        new_lines.append(line)
+
+    # Write temporary vhdr file for the test
+    # XXX: tmp printing for debugging
+    for line in new_lines:
+        if line.startswith("Ch4="):
+            print(line)
+
+    tmpvhdr = vhdr_path.replace('.vhdr', '_comma-test.vhdr')
+    with open(tmpvhdr, 'w') as fout:
+        fout.writelines(new_lines)
+
+    raw = read_raw_brainvision(tmpvhdr)
+    os.remove(tmpvhdr)
+
+    assert "F4,foo" in raw.ch_names
+
 
 
 def test_brainvision_data_highpass_filters():
