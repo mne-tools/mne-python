@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Conversion tool from Brain Vision EEG to FIF."""
+"""Conversion tool from BrainVision EEG to FIF."""
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -510,6 +510,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             props[3] = 'µV'
 
         name, _, resolution, unit = props[:4]
+        # in BrainVision, commas in channel names are encoded as "\1"
+        name = name.replace(r'\1', ',')
         ch_dict[chan] = name
         ch_names[n] = name
         if resolution == "":

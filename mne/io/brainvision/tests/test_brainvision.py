@@ -4,7 +4,6 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
-import os
 import os.path as op
 import shutil
 
@@ -275,8 +274,11 @@ def test_ascii(tmpdir):
 
 def test_ch_names_comma(tmpdir):
     """Test that channel names containing commas are properly read."""
-    find_line = "Ch4=F4,,0.5,µV"
-    change_to = r"Ch4=F4\1foo,,0.5,µV"  # commas in BV are encoded as \1
+    # commas in BV are encoded as \1
+    replace_dict = {
+        "Ch4=F4,,0.5,µV": r"Ch4=F4\1foo,,0.5,µV",
+        "4     F4": r"4     F4,foo",
+    }
 
     # Copy existing vhdr file to tmpdir and manipulate to contain
     # a channel with comma
@@ -287,19 +289,22 @@ def test_ch_names_comma(tmpdir):
     comma_vhdr = tmpdir / 'test.vhdr'
     with open(comma_vhdr, 'r') as fin:
         lines = fin.readlines()
+
     new_lines = []
     for line in lines:
-        if find_line in line:
-            new_lines.append(change_to + '\n')
-            continue
-        new_lines.append(line)
+        for to_replace, replacement in replace_dict.items():
+            if to_replace in line:
+                new = line.replace(to_replace, replacement)
+                new_lines.append(new)
+                break
+        else:
+            new_lines.append(line)
 
     with open(comma_vhdr, 'w') as fout:
         fout.writelines(new_lines)
 
+    # Read the line containing a "comma channel name"
     raw = read_raw_brainvision(comma_vhdr)
-    os.remove(comma_vhdr)
-
     assert "F4,foo" in raw.ch_names
 
 
