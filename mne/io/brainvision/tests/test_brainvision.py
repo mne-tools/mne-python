@@ -619,24 +619,24 @@ def test_read_vhdr_annotations_and_events():
     expected_orig_time = _stamp_to_dt((1384359243, 794232))
     expected_onset_latency = np.array(
         [0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945., 5999., 6619.,
-         6629., 7629., 7699.]
+         6629., 7629., 7699., 7799.]
     )
     expected_annot_description = [
         'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Event/254',
         'Stimulus/S255', 'Event/254', 'Stimulus/S255', 'Stimulus/S253',
         'Stimulus/S255', 'Response/R255', 'Event/254', 'Stimulus/S255',
-        'SyncStatus/Sync On', 'Optic/O  1'
+        'SyncStatus/Sync On', 'Optic/O  1', 'Comma,Type/CommaValue,1'
     ]
     expected_events = np.stack([
         expected_onset_latency,
         np.zeros_like(expected_onset_latency),
         [99999, 253, 255, 254, 255, 254, 255, 253, 255, 1255, 254, 255, 99998,
-         2001],
+         2001, 10001],
     ]).astype('int64').T
     expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
                          'Stimulus/S255': 255, 'Event/254': 254,
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
-                         'Optic/O  1': 2001}
+                         'Optic/O  1': 2001, 'Comma,Type/CommaValue,1': 10001}
 
     raw = read_raw_brainvision(vhdr_path, eog=eog)
 
@@ -659,7 +659,9 @@ def test_read_vhdr_annotations_and_events():
     # Add some custom ones, plus a 2-digit one
     s_10 = 'Stimulus/S 10'
     raw.annotations.append([1, 2, 3], 10, ['ZZZ', s_10, 'YYY'])
-    expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
+    # others starting at 10001 ...
+    # we already have "Comma,Type/CommaValue,1" as 10001
+    expected_event_id.update(YYY=10002, ZZZ=10003)
     expected_event_id[s_10] = 10
     _, event_id = events_from_annotations(raw)
     assert event_id == expected_event_id
@@ -682,7 +684,7 @@ def test_automatic_vmrk_sfreq_recovery():
 @testing.requires_testing_data
 def test_event_id_stability_when_save_and_fif_reload(tmpdir):
     """Test load events from brainvision annotations when read_raw_fif."""
-    fname = op.join(str(tmpdir), 'bv-raw.fif')
+    fname = tmpdir / 'bv-raw.fif'
     raw = read_raw_brainvision(vhdr_path, eog=eog)
     original_events, original_event_id = events_from_annotations(raw)
 

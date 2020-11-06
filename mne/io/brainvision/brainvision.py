@@ -220,6 +220,9 @@ def _read_vmrk(fname):
     for info in items:
         info_data = info.split(',')
         mtype, mdesc, this_onset, this_duration = info_data[:4]
+        # commas in mtype and mdesc are handled as "\1". convert back to comma
+        mtype = mtype.replace(r'\1', ',')
+        mdesc = mdesc.replace(r'\1', ',')
         if date_str == '' and len(info_data) == 5 and mtype == 'New Segment':
             # to handle the origin of time and handle the presence of multiple
             # New Segment annotations. We only keep the first one that is
