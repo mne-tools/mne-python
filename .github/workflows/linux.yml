@@ -1,4 +1,4 @@
-name: 'CI/Linux'
+name: 'Linux'
 on:
   push:
     branches:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   Conda:
-    if: "!contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
+    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,27 +47,21 @@ jobs:
         run: |
           ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
-          mne_surf2bem --version
         name: 'Install dependencies'
       - shell: bash -el {0}
-        run: |
-          ./tools/github_actions_install.sh
+        run: ./tools/github_actions_install.sh
         name: 'Install MNE'
       - shell: bash -el {0}
-        run: |
-          ./tools/github_actions_infos.sh
+        run: ./tools/github_actions_infos.sh
         name: 'Show infos'
       - shell: bash -el {0}
-        run: |
-          ./tools/github_actions_download.sh
+        run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
-        run: |
-          ./tools/github_actions_locale.sh
+        run: ./tools/github_actions_locale.sh
         name: 'Print locale'
       - shell: bash -el {0}
-        run: |
-          ./tools/github_actions_test.sh
+        run: ./tools/github_actions_test.sh
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
         if: success()
