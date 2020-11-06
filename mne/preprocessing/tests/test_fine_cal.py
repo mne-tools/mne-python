@@ -133,4 +133,4 @@ def test_compute_fine_cal():
     corr = np.corrcoef(got_grad_3_imbs[:, 0], got_grad_imbs[:, 0])[0, 1]
     assert 0.6 < corr < 0.7
     raw_sss_py = maxwell_filter(raw, calibration=got_cal_3, **kwargs)
-    _assert_shielding(raw_sss_py, raw, 60, 62)
+    _assert_shielding(raw_sss_py, raw, 59, 62)
