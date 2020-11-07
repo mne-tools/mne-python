@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 import os.path as op
+import re
 import shutil
 
 import numpy as np
@@ -276,8 +277,8 @@ def test_ch_names_comma(tmpdir):
     """Test that channel names containing commas are properly read."""
     # commas in BV are encoded as \1
     replace_dict = {
-        "Ch4=F4,,0.5,µV": r"Ch4=F4\1foo,,0.5,µV",
-        "4     F4": r"4     F4,foo",
+        r"^Ch4=F4,": r"^Ch4=F4\\1foo,",
+        r"^4\s\s\s\s\sF4": r"^4     F4,foo ",
     }
 
     # Copy existing vhdr file to tmpdir and manipulate to contain
@@ -294,8 +295,9 @@ def test_ch_names_comma(tmpdir):
     nperformed_replacements = 0
     for line in lines:
         for to_replace, replacement in replace_dict.items():
-            if to_replace in line:
-                new = line.replace(to_replace, replacement)
+            match = re.search(to_replace, line)
+            if match is not None:
+                new = re.sub(to_replace, replacement, line)
                 new_lines.append(new)
                 nperformed_replacements += 1
                 break
