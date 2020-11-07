@@ -10,6 +10,9 @@ EEG processing and Event Related Potentials (ERPs)
 
 """
 
+import tempfile
+from os import path as op
+
 import mne
 from mne.datasets import sample
 from mne.channels import combine_channels
@@ -190,7 +193,8 @@ mne.combine_evoked(
 # If they are stored in a list, they can be easily averaged, for example,
 # for a grand average across subjects (or conditions).
 grand_average = mne.grand_average(all_evokeds)
-mne.write_evokeds('/tmp/tmp-ave.fif', all_evokeds)
+destination = op.join(tempfile.gettempdir(), 'tmp-ave.fif')
+mne.write_evokeds(destination, all_evokeds)
 
 # If Evokeds objects are stored in a dictionary, they can be retrieved by name.
 all_evokeds = dict((cond, epochs[cond].average()) for cond in event_id)
