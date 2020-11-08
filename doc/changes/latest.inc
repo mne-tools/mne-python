@@ -105,7 +105,7 @@ Bugs
 
 - :meth:`mne.Report.parse_folder` will now correctly handle split FIFF files by `Richard Höchenberger`_ (:gh:`8486`, :gh:`8491`)
 
-- Fix bug where BrainVision channel names, event types, and event descriptions containing commas were incorrectly parsed, `Stefan Appelhoff`_ (:gh:`8492`)
+- Fix bug where BrainVision channel names, event types, and event descriptions containing commas were incorrectly parsed (:gh:`8492` by `Stefan Appelhoff`_)
 
 API changes
 ~~~~~~~~~~~

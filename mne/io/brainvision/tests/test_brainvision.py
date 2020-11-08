@@ -277,8 +277,8 @@ def test_ch_names_comma(tmpdir):
     """Test that channel names containing commas are properly read."""
     # commas in BV are encoded as \1
     replace_dict = {
-        r"^Ch4=F4,": r"^Ch4=F4\\1foo,",
-        r"^4\s\s\s\s\sF4": r"^4     F4,foo ",
+        r"^Ch4=F4,": r"Ch4=F4\\1foo,",
+        r"^4\s\s\s\s\sF4": r"4     F4,foo ",
     }
 
     # Copy existing vhdr file to tmpdir and manipulate to contain
