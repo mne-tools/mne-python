@@ -17,8 +17,9 @@ import warnings
 
 import numpy as np
 
+from .raw import _setup_channel_selections
 from ..defaults import _handle_default
-from ..utils import verbose, logger, warn, fill_doc
+from ..utils import verbose, logger, warn, fill_doc, _check_option
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -627,7 +628,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, event_color=None,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
-                epoch_colors=None, event_id=None):
+                epoch_colors=None, event_id=None, group_by='type'):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -758,6 +759,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     decim, picks_data = _handle_decim(epochs.info.copy(), decim, None)
     noise_cov = _check_cov(noise_cov, epochs.info)
     event_id_rev = {v: k for k, v in (event_id or {}).items()}
+    _check_option('group_by', group_by,
+                  ('selection', 'position', 'original', 'type'))
     # validate epoch_colors
     _validate_type(epoch_colors, (list, None), 'epoch_colors')
     if epoch_colors is not None:
@@ -812,6 +815,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     ch_names = np.array(epochs.ch_names)
     ch_types = np.array(epochs.get_channel_types())
     order = _get_channel_plotting_order(order, ch_types, picks)
+    selections = None
+    if group_by in ('selection', 'position'):
+        selections = _setup_channel_selections(epochs, group_by, order)
+        order = np.concatenate(list(selections.values()))
+        default_selection = list(selections)[0]
+        n_channels = len(selections[default_selection])
 
     # generate window title
     if title is None:
@@ -831,7 +840,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   picks=order[:n_channels],
                   n_channels=n_channels,
                   picks_data=picks_data,
-                  ch_selections=None,
+                  group_by=group_by,
+                  ch_selections=selections,
                   # time
                   t_start=0,
                   duration=duration,
@@ -869,6 +879,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   xlabel='Epoch number')
     fig = _browse_figure(**params)
     fig._update_picks()
+
+    # make channel selection dialog, if requested (doesn't work well in init)
+    if group_by in ('selection', 'position'):
+        fig._create_selection_fig()
+
     fig._update_projector()
     fig._update_trace_offsets()
     fig._update_data()

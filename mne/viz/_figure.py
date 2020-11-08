@@ -239,6 +239,22 @@ class MNESelectionFigure(MNEFigure):
         parent.mne.ch_selections['Custom'] = inds.nonzero()[0]
         buttons.set_active(labels.index('Custom'))
 
+    def _style_radio_buttons_butterfly(self):
+        """Handle RadioButton state for keyboard interactions."""
+        # Show all radio buttons as selected when in butterfly mode
+        parent = self.mne.parent_fig
+        buttons = self.mne.radio_ax.buttons
+        color = (buttons.activecolor if parent.mne.butterfly else
+                 parent.mne.bgcolor)
+        for circle in buttons.circles:
+            circle.set_facecolor(color)
+        # when leaving butterfly mode, make most-recently-used selection active
+        if not parent.mne.butterfly:
+            with _events_off(buttons):
+                buttons.set_active(self.mne.old_selection)
+        # update the sensors too
+        parent._update_highlighted_sensors()
+
 
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
@@ -1324,6 +1340,7 @@ class MNEBrowseFigure(MNEFigure):
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',
                      axes=fig.mne.sensor_ax, ch_groups=self.mne.group_by,
                      show=False)
+        fig.subplots_adjust(bottom=0.01, top=0.99, left=0.01, right=0.99)
         # style the sensors so the selection is easier to distinguish
         fig.lasso.linewidth_selected = 2
         self._update_highlighted_sensors()
@@ -1342,6 +1359,7 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_radius(0.25 / len(labels))
             circle.set_linewidth(2)
             circle.set_edgecolor(self.mne.fgcolor)
+        fig._style_radio_buttons_butterfly()
         # add instructions at bottom
         instructions = (
             'To use a custom selection, first click-drag on the sensor plot '
@@ -1728,15 +1746,7 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.vline_visible:
             self._blit_vline(True)
         if self.mne.fig_selection is not None:
-            # Show all radio buttons as selected when in butterfly mode
-            fig = self.mne.fig_selection
-            buttons = fig.mne.radio_ax.buttons
-            color = (buttons.activecolor if self.mne.butterfly else
-                     self.mne.bgcolor)
-            for circle in buttons.circles:
-                circle.set_facecolor(color)
-            # update the sensors too
-            self._update_highlighted_sensors()
+            self.mne.fig_selection._style_radio_buttons_butterfly()
 
     def _update_picks(self):
         """Compute which channel indices to show."""

@@ -1098,7 +1098,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
              title=None, events=None, event_colors=None, event_color=None,
              order=None, show=True, block=False, decim='auto', noise_cov=None,
              butterfly=False, show_scrollbars=True, epoch_colors=None,
-             event_id=None):
+             event_id=None, group_by='type'):
         if event_colors is not None:
             depr_msg = ('event_colors is deprecated and will be replaced by '
                         'event_color in 0.23.')
@@ -1115,7 +1115,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                            show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
                            show_scrollbars=show_scrollbars,
-                           epoch_colors=epoch_colors, event_id=event_id)
+                           epoch_colors=epoch_colors, event_id=event_id,
+                           group_by=group_by)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,

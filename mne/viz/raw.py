@@ -557,8 +557,10 @@ def _setup_channel_selections(raw, kind, order):
         selections_dict = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # omit 'Vertex'
     else:  # kind == 'selection'
-        from ..io import RawFIF, RawArray
-        if not isinstance(raw, (RawFIF, RawArray)):
+        from ..channels.channels import _get_ch_info
+        (has_vv_mag, has_vv_grad, *_, has_neuromag_122_grad, has_csd_coils
+         ) = _get_ch_info(raw.info)
+        if not (has_vv_grad or has_vv_mag or has_neuromag_122_grad):
             raise ValueError("order='selection' only works for Neuromag "
                              "data. Use order='position' instead.")
         selections_dict = OrderedDict()
