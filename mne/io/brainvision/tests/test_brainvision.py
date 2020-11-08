@@ -278,7 +278,7 @@ def test_ch_names_comma(tmpdir):
     # commas in BV are encoded as \1
     replace_dict = {
         r"^Ch4=F4,": r"Ch4=F4\\1foo,",
-        r"^4\s\s\s\s\sF4": r"4     F4,foo ",
+        r"^4\s\s\s\s\sF4": "4     F4,foo ",
     }
 
     # Copy existing vhdr file to tmpdir and manipulate to contain
@@ -627,8 +627,7 @@ def test_read_vhdr_annotations_and_events(tmpdir):
 
     # Commas are encoded as "\1"
     with open(tmpdir / 'test.vmrk', 'a') as fout:
-        fout.write(r"Mk15=Comma\1Type,CommaValue\11,7800,1,0")
-        fout.write("\n")
+        fout.write(r"Mk15=Comma\1Type,CommaValue\11,7800,1,0\n")
 
     sfreq = 1000.0
     expected_orig_time = _stamp_to_dt((1384359243, 794232))
