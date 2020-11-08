@@ -540,6 +540,12 @@ Describe your changes in the changelog
 Include in your changeset a brief description of the change in the
 :ref:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be
 skipped for very minor changes like correcting typos in the documentation).
+
+.. note::
+  There are different sections of the changelog for each release, and separate
+  **subsections for bugfixes, new features, and changes to the public API.**
+  Please be sure to add your entry to the end of the appropriate subsection.
+
 The entry should follow the following patterns:
 
 .. code-block::
@@ -559,10 +565,10 @@ commas:
     - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
     - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
 
-Note that there are sections of the changelog for each release, and separate
-subsections for bugfixes, new features, and changes to the public API. It is
-usually best to wait to add a line to the changelog until your PR is finalized,
-to avoid merge conflicts (since the changelog is updated with almost every PR).
+.. note::
+  It is usually best to wait to add a line to the changelog until your PR is
+  finalized, to avoid merge conflicts (since the changelog is updated with
+  almost every PR).
 
 Include your name in :file:`names.inc`
 --------------------------------------------
