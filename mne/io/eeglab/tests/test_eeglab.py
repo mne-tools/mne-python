@@ -129,6 +129,24 @@ def test_io_set_raw_more(tmpdir):
                     overlap_fname.replace('.set', '.fdt'))
     read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
+    # test reading file with empty event durations
+    empty_dur_fname = op.join(tmpdir, 'test_empty_durations.set')
+    evnts = deepcopy(eeg.event)
+    for ev in evnts:
+        ev.duration = np.array([], dtype='float')
+
+    io.savemat(empty_dur_fname,
+               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
+                        'nbchan': eeg.nbchan,
+                        'data': 'test_negative_latency.fdt',
+                        'epoch': eeg.epoch, 'event': evnts,
+                        'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    empty_dur_fname.replace('.set', '.fdt'))
+    read_raw_eeglab(input_fname=empty_dur_fname, preload=True)
+
+
     # test reading file when the EEG.data name is wrong
     io.savemat(overlap_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
