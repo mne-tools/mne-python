@@ -146,7 +146,6 @@ def test_io_set_raw_more(tmpdir):
                     empty_dur_fname.replace('.set', '.fdt'))
     read_raw_eeglab(input_fname=empty_dur_fname, preload=True)
 
-
     # test reading file when the EEG.data name is wrong
     io.savemat(overlap_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
