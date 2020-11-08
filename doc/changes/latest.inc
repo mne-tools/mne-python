@@ -105,6 +105,8 @@ Bugs
 
 - :meth:`mne.Report.parse_folder` will now correctly handle split FIFF files by `Richard Höchenberger`_ (:gh:`8486`, :gh:`8491`)
 
+- Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error by `Mikołaj Magnuski`_ (:gh:`8383`, :gh:`8384`)
+
 API changes
 ~~~~~~~~~~~
 
