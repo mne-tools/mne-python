@@ -564,6 +564,19 @@ subsections for bugfixes, new features, and changes to the public API. It is
 usually best to wait to add a line to the changelog until your PR is finalized,
 to avoid merge conflicts (since the changelog is updated with almost every PR).
 
+Include your name in :file:`names.inc`
+--------------------------------------------
+Make sure that your name is included in the list of authors in
+:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+To add an author name, simply append a line with the following pattern (note
+how the syntax is different from that used in the changelog):
+
+.. code-block::
+
+  .. _Contributor Name: https://www.your-website.com/
+
+Many contributors decide to link to their GitHub profile that way. Have a look
+at the existing entries in the file to get some inspiration.
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
