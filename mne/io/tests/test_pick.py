@@ -231,7 +231,9 @@ def test_pick_seeg_ecog():
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
     events = np.array([[1, 0, 0], [2, 0, 0]])
-    epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
+    epochs = Epochs(raw, events=events, event_id={'event': 0},
+                    tmin=-1e-5, tmax=1e-5,
+                    baseline=(0, 0))  # only one sample
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
     for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
