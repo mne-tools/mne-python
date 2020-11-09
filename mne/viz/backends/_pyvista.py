@@ -204,6 +204,10 @@ class _Renderer(_BaseRenderer):
             if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
+        # Fix AttributeError: https://github.com/pyvista/pyvistaqt/pull/68
+        if not hasattr(self.plotter, "iren"):
+            self.plotter.iren = None
+
         self.update_lighting()
 
     @contextmanager
@@ -277,6 +281,8 @@ class _Renderer(_BaseRenderer):
         lights[2].SetIntensity(0.5)
 
     def set_interaction(self, interaction):
+        if self.plotter.iren is None:
+            return
         if interaction == "rubber_band_2d":
             for renderer in self.plotter.renderers:
                 renderer.enable_parallel_projection()
