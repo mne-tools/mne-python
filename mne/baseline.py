@@ -74,6 +74,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
             raise ValueError('bmin is too large (%s), it exceeds the largest '
                              'time value' % (bmin,))
         imin = int(imin[0])
+
     if bmax is None:
         imax = len(times)
     else:
@@ -82,6 +83,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
             raise ValueError('bmax is too small (%s), it is smaller than the '
                              'smallest time value' % (bmax,))
         imax = int(imax[-1]) + 1
+
     if imin >= imax:
         raise ValueError('Bad rescaling slice (%s:%s) from time values %s, %s'
                          % (imin, imax, bmin, bmax))

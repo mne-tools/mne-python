@@ -458,8 +458,7 @@ def test_own_data():
     epochs = mne.Epochs(raw, events, preload=True)
     assert epochs._data.flags['C_CONTIGUOUS']
     assert epochs._data.flags['OWNDATA']
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        epochs.crop(tmin=-0.1, tmax=0.4)
+    epochs.crop(tmin=-0.1, tmax=0.4)
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
     assert not epochs._data.flags['OWNDATA']
@@ -771,8 +770,14 @@ def test_epochs_baseline(preload):
 def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
     raw, events = _get_data()[:2]
-    pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (-0.2, 0))
-    pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0, 0.4))
+
+    # baseline outside data range during Epochs initialization should get
+    # adjusted to be within the allowed range
+    epochs = Epochs(raw, events, None, -0.1, 0.3, (-0.2, 0))
+    assert epochs.baseline == (epochs.times[0], 0)
+    epochs = Epochs(raw, events, None, -0.1, 0.3, (0, 0.4))
+    assert epochs.baseline == (0, epochs.times[-1])
+
     pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0.1, 0))
     pytest.raises(ValueError, Epochs, raw, events, None, 0.1, 0.3, (None, 0))
     pytest.raises(ValueError, Epochs, raw, events, None, -0.3, -0.1, (0, None))
@@ -958,7 +963,7 @@ def test_epochs_io_preload(tmpdir, preload):
 
     epochs_no_bl = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                           baseline=None, preload=True)
-    assert (epochs_no_bl.baseline is None)
+    assert epochs_no_bl.baseline is None
     epochs_no_bl.save(temp_fname_no_bl, overwrite=True)
 
     epochs_read = read_epochs(temp_fname, preload=preload)
@@ -1003,13 +1008,14 @@ def test_epochs_io_preload(tmpdir, preload):
     assert epochs.times[0] < 0
     assert epochs.times[-1] > 0
     epochs.apply_baseline((None, 0))
-    with pytest.warns(RuntimeWarning,
-                      match=r'setting epochs\.baseline = None'):
-        epochs.crop(1. / epochs.info['sfreq'], None)
-    assert epochs.baseline is None
+    baseline_before_crop = (epochs.times[0], 0)
+    epochs.crop(1. / epochs.info['sfreq'], None)
+    # baseline shouldn't be modified by crop()
+    assert epochs.baseline == baseline_before_crop
     epochs.save(fname_temp, overwrite=True)
     epochs_read = read_epochs(fname_temp, preload=preload)
-    assert epochs_read.baseline is None
+    assert_allclose(epochs_read.baseline, baseline_before_crop)
+
     assert_allclose(epochs.get_data(), epochs_read.get_data(),
                     rtol=6e-4)  # XXX this rtol should be better...?
     del epochs, epochs_read
@@ -1079,9 +1085,9 @@ def test_epochs_io_preload(tmpdir, preload):
 
     # Test that having a single time point works
     assert epochs.baseline is not None
-    with pytest.warns(RuntimeWarning, match=r'setting epochs\.baseline'):
-        epochs.load_data().crop(0, 0)
-    assert epochs.baseline is None
+    baseline_before_crop = epochs.baseline
+    epochs.load_data().crop(0, 0)
+    assert epochs.baseline == baseline_before_crop
     assert_equal(len(epochs.times), 1)
     assert_equal(epochs.get_data().shape[-1], 1)
     epochs.save(temp_fname, overwrite=True)
@@ -1525,12 +1531,14 @@ def test_crop():
     tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
     assert (tmin_window > tmin)
     assert (tmax_window < tmax)
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        epochs3 = epochs2.copy().crop(tmin_window, tmax_window)
+    
+    epochs3 = epochs2.copy().crop(tmin_window, tmax_window)
+    assert epochs3.baseline == epochs2.baseline
     data3 = epochs3.get_data()
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        epochs2.crop(tmin_window, tmax_window)
+
+    epochs2.crop(tmin_window, tmax_window)
     data2 = epochs2.get_data()
+
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
     assert_array_equal(epochs.time_as_index([tmin, tmax], use_rounding=True),
@@ -2587,8 +2595,7 @@ def test_add_channels():
     # Now test errors
     epoch_badsf = epoch_eeg.copy()
     epoch_badsf.info['sfreq'] = 3.1415927
-    with pytest.warns(RuntimeWarning, match='Cropping removes baseline'):
-        epoch_eeg = epoch_eeg.crop(-.1, .1)
+    epoch_eeg = epoch_eeg.crop(-.1, .1)
 
     epoch_meg.load_data()
     pytest.raises(RuntimeError, epoch_meg.add_channels, [epoch_nopre])

@@ -531,7 +531,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # baseline correction: replace `None` arguments with actual times
         # that way, it later becomes easier for us to determine whether
         # a subsequent cropping has removed (parts of) the baseline period
-        self.baseline = _check_baseline(baseline, tmin=tmin, tmax=tmax,
+        self.baseline = _check_baseline(baseline, tmin=self.tmin,
+                                        tmax=self.tmax,
                                         sfreq=self.info['sfreq'],
                                         on_error='info')
         if self.baseline is not None and self.baseline != baseline:
@@ -810,7 +811,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                             ignore_chs=self.info['bads'])
 
     @verbose
-    def _detrend_offset_decim(self, epoch, verbose=None):
+    def _detrend_offset_decim(self, epoch, rescale_data=True, verbose=None):
         """Aux Function: detrend, baseline correct, offset, decim.
 
         Note: operates inplace
@@ -824,12 +825,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
-        picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                           ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, bio=True, ecog=True, fnirs=True,
-                           exclude=[])
-        epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
-                               copy=False, verbose=False)
+        if rescale_data:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               ref_meg=True, eog=True, ecg=True, seeg=True,
+                               emg=True, bio=True, ecog=True, fnirs=True,
+                               exclude=[])
+            epoch[picks] = rescale(epoch[picks], self._raw_times,
+                                   self.baseline, copy=False, verbose=False)
 
         # Decimate if necessary (i.e., epoch not preloaded)
         epoch = epoch[:, self._decim_slice]
@@ -1362,6 +1364,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             data = np.empty((0, len(self.info['ch_names']), len(self.times)))
             logger.info('Loading data for %s events and %s original time '
                         'points ...' % (n_events, len(self._raw_times)))
+
+        # don't rescale if the baseline is invalid (due to cropping of the
+        # baseline period)
+        rescale_data = True
+        if self.baseline != _check_baseline(self.baseline, tmin=self.tmin,
+                                            tmax=self.tmax,
+                                            sfreq=self.info['sfreq'],
+                                            on_error='ignore'):
+            rescale_data = False
+
         if self._bad_dropped:
             if not out:
                 return
@@ -1377,7 +1389,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
-                epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                epoch_noproj = self._detrend_offset_decim(
+                    epoch_noproj, rescale_data=rescale_data)
                 if self._do_delayed_proj:
                     epoch_out = epoch_noproj
                 else:
@@ -1403,7 +1416,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         epoch = self._data[idx]
                 else:  # from disk
                     epoch_noproj = self._get_epoch_from_raw(idx)
-                    epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                    epoch_noproj = self._detrend_offset_decim(
+                        epoch_noproj, rescale_data=rescale_data)
                     epoch = self._project_epoch(epoch_noproj)
 
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
@@ -1968,9 +1982,9 @@ def _check_baseline(baseline, tmin, tmax, sfreq, on_error='raise'):
 
         if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
             if baseline_tmin < tmin - tstep:
-                baseline_tmin = tmin - tstep
+                baseline_tmin = tmin
             if baseline_tmax > tmax + tstep:
-                baseline_tmax = tmax + tstep
+                baseline_tmax = tmax
             msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
                    f"is outside of epoch data [{tmin}, {tmax}] sec")
             if on_error == 'raise':
