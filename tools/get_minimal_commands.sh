@@ -17,3 +17,4 @@ else
 	export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH
 fi
 popd > /dev/null
+mne_surf2bem --version
