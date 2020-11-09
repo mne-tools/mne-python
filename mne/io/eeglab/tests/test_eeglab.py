@@ -144,7 +144,8 @@ def test_io_set_raw_more(tmpdir):
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     empty_dur_fname.replace('.set', '.fdt'))
-    read_raw_eeglab(input_fname=empty_dur_fname, preload=True)
+    raw = read_raw_eeglab(input_fname=empty_dur_fname, preload=True)
+    assert (raw.annotations.duration == 0).all()
 
     # test reading file when the EEG.data name is wrong
     io.savemat(overlap_fname,
