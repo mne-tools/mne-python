@@ -109,12 +109,18 @@ class GetEpochsMixin(object):
 
             3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
                with a copy of the subset of epochs corresponding to multiple
-               experimental conditions as specified by
-               ``'name_1', 'name_2', ...`` .
+               experimental conditions. The list of names is treated as an
+               inclusive-or condition; if *none* of the provided names match
+               any epoch labels, a ``KeyError`` will be raised.
 
-               If conditions are separated by '/', selects every item
-               containing every list tag (e.g. ['audio', 'left'] selects
-               'audio/left' and 'audio/center/left', but not 'audio/right').
+               If epoch labels are tags separated by '/', then providing
+               multiple tags as *separate list entries* (e.g.,
+               ``epochs[['audio', 'left']]``) will also act as an inclusive-or
+               filter. If multiple tags are provided as *a single list entry*
+               (e.g., ``epochs['name_1/name_2']``), this selects every item
+               containing every list tag. For example, ``epochs['audio/left']``
+               selects 'audio/left' and 'audio/center/left', but not
+               'audio/right'.
 
             4. ``epochs['pandas query']``: Return ``Epochs`` object with a
                copy of the subset of epochs (and matching metadata) that match
