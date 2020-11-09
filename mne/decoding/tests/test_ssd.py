@@ -12,8 +12,6 @@ from mne.utils import requires_sklearn, _time_mask
 from mne.filter import filter_data
 from mne import create_info
 
-
-
 freqs_sig = 9, 12
 freqs_noise = 8, 13
 
