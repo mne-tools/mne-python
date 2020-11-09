@@ -103,6 +103,8 @@ def test_plot_epochs_basic(epochs, capsys):
     # test title error handling
     with pytest.raises(TypeError, match='title must be None or a string, got'):
         epochs.plot(title=7)
+    # test auto-generated title, and selection mode
+    epochs.plot(group_by='selection', title='')
 
 
 def test_plot_epochs_colors(epochs):
@@ -124,8 +126,7 @@ def test_plot_epochs_colors(epochs):
 
 def test_plot_epochs_clicks(epochs, capsys):
     """Test plot_epochs mouse interaction."""
-    epochs.load_data()
-    fig = epochs.plot(events=epochs.events, title='')
+    fig = epochs.plot(events=epochs.events)
     data_ax = fig.mne.ax_main
     x = fig.mne.traces[0].get_xdata()[3]
     y = fig.mne.traces[0].get_ydata()[3]
@@ -174,9 +175,11 @@ def test_plot_epochs_clicks(epochs, capsys):
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
 
 
-def test_plot_epochs_keypresses(epochs):
+def test_plot_epochs_keypresses():
     """Test plot_epochs keypress interaction."""
-    fig = epochs.plot(n_epochs=5)
+    epochs = _get_epochs(stop=15).load_data()  # we need more than 1 epoch
+    epochs.drop_bad(dict(mag=4e-12))  # for histogram plot coverage
+    fig = epochs.plot(n_epochs=3)
     data_ax = fig.mne.ax_main
     # make sure green vlines are visible first (for coverage)
     sample_idx = len(epochs.times) // 2  # halfway through the first epoch

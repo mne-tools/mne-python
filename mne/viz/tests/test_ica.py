@@ -104,7 +104,6 @@ def test_plot_ica_components():
     ica.info = None
     with pytest.raises(RuntimeError, match='fit the ICA'):
         ica.plot_components(1, ch_type='mag')
-    plt.close('all')
 
 
 @pytest.mark.slowtest
@@ -196,7 +195,6 @@ def test_plot_ica_properties():
     assert_equal(len(fig), 2)
     # don't drop
     ica.plot_properties(raw_annot, reject_by_annotation=False, **topoargs)
-    plt.close('all')
 
 
 @requires_sklearn
@@ -252,14 +250,17 @@ def test_plot_ica_sources():
     assert len(fig.mne.ax_hscroll.collections) == 1
     raw.set_annotations(orig_annot)
 
+    # test error handling
     raw.info['bads'] = ['MEG 0113']
     with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
         ica.plot_sources(inst=raw)
-    ica.plot_sources(epochs)
     epochs.info['bads'] = ['MEG 0113']
     with pytest.raises(RuntimeError, match="Epochs don't match fitted data"):
         ica.plot_sources(inst=epochs)
     epochs.info['bads'] = []
+
+    # test w/ epochs and evokeds
+    ica.plot_sources(epochs)
     ica.plot_sources(epochs.average())
     evoked = epochs.average()
     fig = ica.plot_sources(evoked)
@@ -278,7 +279,6 @@ def test_plot_ica_sources():
     ica.plot_sources(evoked)  # now with labels
     with pytest.raises(ValueError, match='must be of Raw or Epochs type'):
         ica.plot_sources('meeow')
-    plt.close('all')
 
 
 @pytest.mark.slowtest
@@ -313,7 +313,6 @@ def test_plot_ica_overlay():
     with pytest.warns(RuntimeWarning, match='longer than'):
         ecg_epochs = create_ecg_epochs(raw)
     ica.plot_overlay(ecg_epochs.average())
-    plt.close('all')
 
 
 def _get_geometry(fig):
@@ -363,7 +362,6 @@ def test_plot_ica_scores():
                         labels=['one', 'one-too-many'])
     with pytest.raises(ValueError, match='The length of'):
         ica.plot_scores([0.2])
-    plt.close('all')
 
 
 @requires_sklearn
@@ -398,7 +396,6 @@ def test_plot_instance_components():
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
     _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
     fig.canvas.key_press_event('escape')
-    plt.close('all')
 
 
 run_tests_if_main()

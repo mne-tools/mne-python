@@ -130,18 +130,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Individual projectors can be enabled/disabled interactively (see
         Notes). This argument only affects the plot; use ``raw.apply_proj()``
         to modify the data stored in the Raw object.
-    group_by : str
-        How to group channels. ``'type'`` groups by channel type,
-        ``'original'`` plots in the order of ch_names, ``'selection'`` uses
-        Elekta's channel groupings (only works for Neuromag data),
-        ``'position'`` groups the channels by the positions of the sensors.
-        ``'selection'`` and ``'position'`` modes allow custom selections by
-        using a lasso selector on the topomap. Pressing ``ctrl`` key while
-        selecting allows appending to the current selection. Channels marked as
-        bad appear with red edges on the topomap. In butterfly mode, ``'type'``
-        and ``'original'`` group the channels by type, whereas ``'selection'``
-        and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
-        modes are overridden with ``order`` keyword.
+    %(browse_group_by)s
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
     decim : int | 'auto'

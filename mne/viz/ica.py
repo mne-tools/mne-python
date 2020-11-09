@@ -894,8 +894,6 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
     # handle defaults / check arg validity
     is_raw = isinstance(inst, BaseRaw)
     is_epo = isinstance(inst, BaseEpochs)
-    if not is_raw and not is_epo:
-        raise TypeError(f'inst must be Raw or Epochs, got {type(inst)}')
     sfreq = inst.info['sfreq']
     color = _handle_default('color', (0., 0., 0.))
     units = _handle_default('units', None)

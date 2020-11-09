@@ -720,6 +720,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         ``epochs.event_id`` when there are overlapping keys.
 
         .. versionadded:: 0.20
+    %(browse_group_by)s
 
     Returns
     -------

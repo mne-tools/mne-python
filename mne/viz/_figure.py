@@ -1925,7 +1925,7 @@ class MNEBrowseFigure(MNEFigure):
                 custom_colors = np.tile(ch_colors[:, None, :],
                                         (1, self.mne.n_epochs, 1))
             else:
-                custom_colors = np.empty((self.mne.n_channels,
+                custom_colors = np.empty((len(self.mne.picks),
                                           self.mne.n_epochs, 4))
                 for ii, _epoch_ix in enumerate(epoch_ix):
                     this_colors = self.mne.epoch_colors[_epoch_ix]
