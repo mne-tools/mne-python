@@ -1531,7 +1531,7 @@ def test_crop():
     tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
     assert (tmin_window > tmin)
     assert (tmax_window < tmax)
-    
+
     epochs3 = epochs2.copy().crop(tmin_window, tmax_window)
     assert epochs3.baseline == epochs2.baseline
     data3 = epochs3.get_data()
