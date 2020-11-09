@@ -5,7 +5,6 @@
 
 import numpy as np
 import os.path as op
-import sys
 
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
@@ -43,7 +42,7 @@ def test_xdawn():
     # Init xdawn with good parameters
     Xdawn(n_components=2, correct_overlap='auto', signal_cov=None, reg=None)
     # Init xdawn with bad parameters
-    pytest.raises(ValueError, Xdawn, correct_overlap=42)
+    pytest.raises(ValueError, Xdawn, correct_overlap='foo')
 
 
 def test_xdawn_picks():
@@ -194,8 +193,7 @@ def test_xdawn_regularization():
     xd.fit(epochs)
     xd = Xdawn(correct_overlap=False, reg='diagonal_fixed')
     xd.fit(epochs)
-    bad_eig = (sys.platform.startswith('win') and
-               check_version('numpy', '1.16.5'))  # some problem with on Win
+    bad_eig = check_version('numpy', '1.16.5')  # some problem with newer NumPy
     if bad_eig:
         pytest.skip('Unknown MKL+Windows error fails for eig check')
     xd = Xdawn(correct_overlap=False, reg=None)
