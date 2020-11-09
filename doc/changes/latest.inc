@@ -141,7 +141,7 @@ Bugs
 
 - Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
 
-- Partial cropping of an `~mne.Epochs` baseline will now correctly inform the user that baseline correction has been switched off. Previously, this warning would only be issued if the **entire** baseline period was removed, by `Richard Höchenberger`_ (:gh:`8442`)
+- `~mne.Epochs` will retain the information about an applied baseline correction, even if the baseline period is partially or completely removed through cropping later on, by `Richard Höchenberger`_ (:gh:`8442`)
 
 API changes
 ~~~~~~~~~~~
