@@ -1248,7 +1248,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head',
-                     contours=6, sphere=None):
+                     contours=6, sphere=None, mask=None, mask_params=None):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
@@ -1340,6 +1340,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         the contours. If colorbar=True, the ticks in colorbar correspond to the
         contour levels. Defaults to 6.
     %(topomap_sphere_auto)s
+    %(topomap_mask)s
+    %(topomap_mask_params)s
 
     Returns
     -------
@@ -1411,7 +1413,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                          contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
                          sensors=sensors, res=res, ch_type=ch_type,
-                         outlines=outlines, sphere=sphere)
+                         outlines=outlines, sphere=sphere,
+                         mask=mask, mask_params=mask_params)
 
     if colorbar:
         from matplotlib import ticker
