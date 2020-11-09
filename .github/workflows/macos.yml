@@ -23,7 +23,7 @@ jobs:
       TRAVIS_OS_NAME: 'osx'
     steps:
       - uses: actions/checkout@v2
-      - uses: goanpeca/setup-miniconda@v1
+      - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
