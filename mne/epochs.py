@@ -1955,46 +1955,46 @@ def _check_baseline(baseline, tmin, tmax, sfreq, on_error='raise'):
     """Check for a valid baseline."""
     if baseline is None:
         return None
-    else:
-        if not isinstance(baseline, tuple) or len(baseline) != 2:
-            raise ValueError('`baseline=%s` is an invalid argument, must be '
-                             'a tuple of length 2 or None' % str(baseline))
-        # check default value of baseline and `tmin=0`
-        if baseline == (None, 0) and tmin == 0:
-            raise ValueError('Baseline interval is only one sample. Use '
-                             '`baseline=(0, 0)` if this is desired.')
 
-        baseline_tmin, baseline_tmax = baseline
-        tstep = 1. / float(sfreq)
+    if not isinstance(baseline, tuple) or len(baseline) != 2:
+        raise ValueError('`baseline=%s` is an invalid argument, must be '
+                         'a tuple of length 2 or None' % str(baseline))
+    # check default value of baseline and `tmin=0`
+    if baseline == (None, 0) and tmin == 0:
+        raise ValueError('Baseline interval is only one sample. Use '
+                         '`baseline=(0, 0)` if this is desired.')
 
-        if baseline_tmin is None:
+    baseline_tmin, baseline_tmax = baseline
+    tstep = 1. / float(sfreq)
+
+    if baseline_tmin is None:
+        baseline_tmin = tmin
+    baseline_tmin = float(baseline_tmin)
+
+    if baseline_tmax is None:
+        baseline_tmax = tmax
+    baseline_tmax = float(baseline_tmax)
+
+    if baseline_tmin > baseline_tmax:
+        raise ValueError(
+            "Baseline min (%s) must be less than baseline max (%s)"
+            % (baseline_tmin, baseline_tmax))
+
+    if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
+        if baseline_tmin < tmin - tstep:
             baseline_tmin = tmin
-        baseline_tmin = float(baseline_tmin)
-
-        if baseline_tmax is None:
+        if baseline_tmax > tmax + tstep:
             baseline_tmax = tmax
-        baseline_tmax = float(baseline_tmax)
+        msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
+               f"is outside of epoch data [{tmin}, {tmax}] sec")
+        if on_error == 'raise':
+            raise ValueError(msg)
+        elif on_error == 'ignore':
+            pass
+        else:
+            logger.info(msg)
 
-        if baseline_tmin > baseline_tmax:
-            raise ValueError(
-                "Baseline min (%s) must be less than baseline max (%s)"
-                % (baseline_tmin, baseline_tmax))
-
-        if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
-            if baseline_tmin < tmin - tstep:
-                baseline_tmin = tmin
-            if baseline_tmax > tmax + tstep:
-                baseline_tmax = tmax
-            msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
-                   f"is outside of epoch data [{tmin}, {tmax}] sec")
-            if on_error == 'raise':
-                raise ValueError(msg)
-            elif on_error == 'ignore':
-                pass
-            else:
-                logger.info(msg)
-
-        return baseline_tmin, baseline_tmax
+    return baseline_tmin, baseline_tmax
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
