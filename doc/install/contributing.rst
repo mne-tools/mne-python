@@ -7,7 +7,7 @@ Contributing to MNE-Python
 
 .. contents:: Page contents
    :local:
-   :depth: 2
+   :depth: 3
 
 .. highlight:: console
 
@@ -546,7 +546,45 @@ skipped for very minor changes like correcting typos in the documentation).
   **subsections for bugfixes, new features, and changes to the public API.**
   Please be sure to add your entry to the end of the appropriate subsection.
 
-The entry should follow the following patterns:
+The styling and positioning of the entry depends on whether you are a
+first-time contributor or have been mentioned in the changelog before.
+
+First-time contributors
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
+get proper credit for your work, please add a changelog entry with the
+following pattern **at the top** of the respective subsection (bugfix,
+new feature etc.):
+
+.. code-block::
+
+  - Short description of the changes **by new contributor** |Your Name|_ (:gh:`0000`)
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number.
+
+.. note::
+  It is usually best to wait to add a line to the changelog until your PR is
+  finalized, to avoid merge conflicts (since the changelog is updated with
+  almost every PR).
+
+Lastly, make sure that your name is included in the list of authors in
+:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+To add an author name, simply append a line with the following pattern (note
+how the syntax is different from that used in the changelog):
+
+.. code-block::
+
+  .. _Your Name: https://www.your-website.com/
+
+Many contributors opt to link to their GitHub profile that way. Have a look
+at the existing entries in the file to get some inspiration.
+
+Recurring contributors
+^^^^^^^^^^^^^^^^^^^^^^
+
+The chngelog entry should follow the following patterns:
 
 .. code-block::
 
@@ -564,25 +602,6 @@ commas:
 
     - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
     - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
-
-.. note::
-  It is usually best to wait to add a line to the changelog until your PR is
-  finalized, to avoid merge conflicts (since the changelog is updated with
-  almost every PR).
-
-Include your name in :file:`names.inc`
---------------------------------------------
-Make sure that your name is included in the list of authors in
-:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
-To add an author name, simply append a line with the following pattern (note
-how the syntax is different from that used in the changelog):
-
-.. code-block::
-
-  .. _Contributor Name: https://www.your-website.com/
-
-Many contributors decide to link to their GitHub profile that way. Have a look
-at the existing entries in the file to get some inspiration.
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
