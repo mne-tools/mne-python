@@ -204,7 +204,7 @@ class _Renderer(_BaseRenderer):
             if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
-        # Fix AttributeError: https://github.com/pyvista/pyvistaqt/pull/68
+        # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
             self.plotter.iren = None
 
@@ -831,9 +831,14 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         _process_events(figure.plotter)
-        return figure.plotter.screenshot(
+        # FIX: https://github.com/pyvista/pyvista/pull/995
+        old_window_size = figure.plotter.window_size
+        figure.plotter.window_size = figure.store["window_size"]
+        img = figure.plotter.screenshot(
             transparent_background=(mode == 'rgba'),
             filename=filename)
+        figure.plotter.window_size = old_window_size
+        return img
 
 
 def _process_events(plotter):
