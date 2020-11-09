@@ -527,7 +527,10 @@ class MNEBrowseFigure(MNEFigure):
                 new_margins[side] = 1 - ratio * (1 - rel_dim)
             else:
                 new_margins[side] = ratio * rel_dim
-        self.subplots_adjust(**new_margins)
+        # gh-8304: don't allow resizing too small
+        if (new_margins['bottom'] < new_margins['top'] and
+                new_margins['left'] < new_margins['right']):
+            self.subplots_adjust(**new_margins)
         # zen mode bookkeeping
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
