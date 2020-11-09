@@ -147,8 +147,6 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     # save baseline
     if epochs.baseline is not None:
         bmin, bmax = epochs.baseline
-        bmin = epochs.times[0] if bmin is None else bmin
-        bmax = epochs.times[-1] if bmax is None else bmax
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
 
@@ -518,10 +516,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self._data = data
         self._offset = None
 
-        # check that baseline is in available data
         if tmin > tmax:
             raise ValueError('tmin has to be less than or equal to tmax')
-        _check_baseline(baseline, tmin, tmax, self.info['sfreq'])
 
         # Handle times
         sfreq = float(self.info['sfreq'])
@@ -535,8 +531,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # baseline correction: replace `None` arguments with actual times
         # that way, it later becomes easier for us to determine whether
         # a subsequent cropping has removed (parts of) the baseline period
-        logger.info(_log_rescale(baseline))
-        self.baseline = self._gen_baseline_attr(baseline)
+        self.baseline = _check_baseline(baseline, tmin=tmin, tmax=tmax,
+                                        sfreq=self.info['sfreq'],
+                                        on_error='info')
+        if self.baseline is not None and self.baseline != baseline:
+            logger.info(f'Setting baseline interval to '
+                        f'[{self.baseline[0]}, {self.baseline[1]}] sec')
+
+        logger.info(_log_rescale(self.baseline))
+
         # setup epoch rejection
         self.reject = None
         self.flat = None
@@ -593,15 +596,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.selection = np.arange(len(self.events))
         self.drop_log = (tuple(),) * len(self.events)
         self._check_consistency()
-
-    def _gen_baseline_attr(self, baseline):
-        """Auxiliary function to help us populate the .baseline attribute."""
-        if baseline is None:
-            baseline_attr = None
-        else:
-            baseline_attr = (self.tmin if baseline[0] is None else baseline[0],
-                             self.tmax if baseline[1] is None else baseline[1])
-        return baseline_attr
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -704,7 +698,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         .. versionadded:: 0.10.0
         """
-        _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
+        baseline = _check_baseline(baseline, tmin=self.tmin, tmax=self.tmax,
+                                   sfreq=self.info['sfreq'], on_error='raise')
+
         if self.preload:
             if self.baseline is not None and baseline is None:
                 raise RuntimeError('You cannot remove baseline correction '
@@ -717,7 +713,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             rescale(self._data, self.times, baseline, copy=False, picks=picks)
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
-        self.baseline = self._gen_baseline_attr(baseline)
+        self.baseline = baseline
         return self
 
     def _reject_setup(self, reject, flat):
@@ -1515,8 +1511,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self.baseline is None:
             s += 'off'
         else:
-            s += '[%s, %s]' % tuple(['None' if b is None else ('%g' % b)
-                                     for b in self.baseline])
+            s += '[%s, %s] sec' % tuple(['None' if b is None else ('%g' % b)
+                                        for b in self.baseline])
+            if self.baseline != _check_baseline(self.baseline, tmin=self.tmin,
+                                                tmax=self.tmax,
+                                                sfreq=self.info['sfreq'],
+                                                on_error='ignore'):
+                s += ' (baseline period cropped after baseline correction)'
+
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
         s += ', with metadata' if self.metadata is not None else ''
@@ -1572,12 +1574,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
-        try:
-            _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
-        except ValueError:  # in no longer applies, wipe it out
-            warn('Cropping removes baseline period, setting '
-                 'epochs.baseline = None')
-            self.baseline = None
         return self
 
     def copy(self):
@@ -1728,7 +1724,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             warn(f'epochs.drop_log contains {len(self.drop_log)} entries '
                  f'which will incur up to a {sizeof_fmt(drop_size)} writing '
                  f'overhead (per split file), consider using '
-                 'epochs.reset_drop_log_selection() prior to writing')
+                 f'epochs.reset_drop_log_selection() prior to writing')
 
         epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
@@ -1941,9 +1937,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
-def _check_baseline(baseline, tmin, tmax, sfreq):
+def _check_baseline(baseline, tmin, tmax, sfreq, on_error='raise'):
     """Check for a valid baseline."""
-    if baseline is not None:
+    if baseline is None:
+        return None
+    else:
         if not isinstance(baseline, tuple) or len(baseline) != 2:
             raise ValueError('`baseline=%s` is an invalid argument, must be '
                              'a tuple of length 2 or None' % str(baseline))
@@ -1954,24 +1952,35 @@ def _check_baseline(baseline, tmin, tmax, sfreq):
 
         baseline_tmin, baseline_tmax = baseline
         tstep = 1. / float(sfreq)
+
         if baseline_tmin is None:
             baseline_tmin = tmin
         baseline_tmin = float(baseline_tmin)
+
         if baseline_tmax is None:
             baseline_tmax = tmax
         baseline_tmax = float(baseline_tmax)
-        if baseline_tmin < tmin - tstep:
-            raise ValueError(
-                "Baseline interval (tmin = %s) is outside of epoch "
-                "data (tmin = %s)" % (baseline_tmin, tmin))
-        if baseline_tmax > tmax + tstep:
-            raise ValueError(
-                "Baseline interval (tmax = %s) is outside of epoch "
-                "data (tmax = %s)" % (baseline_tmax, tmax))
+
         if baseline_tmin > baseline_tmax:
             raise ValueError(
                 "Baseline min (%s) must be less than baseline max (%s)"
                 % (baseline_tmin, baseline_tmax))
+
+        if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
+            if baseline_tmin < tmin - tstep:
+                baseline_tmin = tmin - tstep
+            if baseline_tmax > tmax + tstep:
+                baseline_tmax = tmax + tstep
+            msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
+                   f"is outside of epoch data [{tmin}, {tmax}] sec")
+            if on_error == 'raise':
+                raise ValueError(msg)
+            elif on_error == 'ignore':
+                pass
+            else:
+                logger.info(msg)
+
+        return baseline_tmin, baseline_tmax
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
@@ -2760,6 +2769,11 @@ class EpochsFIF(BaseEpochs):
                 metadata=metadata, on_missing='ignore',
                 selection=selection, drop_log=drop_log,
                 proj=False, verbose=False)
+            # retain original baseline – BaseEpochs.__init__ changes the period
+            # such that it doesn't exceed the data, but we want to override
+            # this when loading from disk (could be Epochs that were cropped
+            # after baseline correction!)
+            epoch.baseline = baseline
             ep_list.append(epoch)
             if not preload:
                 # store everything we need to index back to the original data
@@ -2795,6 +2809,10 @@ class EpochsFIF(BaseEpochs):
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname_rep,
             metadata=metadata, verbose=verbose, **reject_params)
+
+        # again, ensure we reatain the baseline period originally loaded from
+        # disk
+        self.baseline = baseline
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
