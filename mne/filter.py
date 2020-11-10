@@ -2018,9 +2018,7 @@ class FilterMixin(object):
                  pad='edge', verbose=None):  # lgtm
         """Resample data.
 
-        Through use of an FFT-based (fast Fourier transform) method for
-        resampling, aliasing artifacts are prevented as if an anti-aliasing
-        filter were applied beforehand.
+        If appropriate, an anti-aliasing filter is applied before resampling.
         See :ref:`resampling-and-decimating` for more information.
 
         .. note:: Data must be loaded.

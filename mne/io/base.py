@@ -1058,9 +1058,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # lgtm
         """Resample all channels.
 
-        Through use of an FFT-based (fast Fourier transform) method for
-        resampling, aliasing artifacts are prevented as if an anti-aliasing
-        filter were applied beforehand.
+        If appropriate, an anti-aliasing filter is applied before resampling.
         See :ref:`resampling-and-decimating` for more information.
 
         .. warning:: The intended purpose of this function is primarily to
