@@ -541,10 +541,9 @@ Include in your changeset a brief description of the change in the
 :ref:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be
 skipped for very minor changes like correcting typos in the documentation).
 
-.. note::
-  There are different sections of the changelog for each release, and separate
-  **subsections for bugfixes, new features, and changes to the public API.**
-  Please be sure to add your entry to the appropriate subsection.
+There are different sections of the changelog for each release, and separate
+**subsections for bugfixes, new features, and changes to the public API.**
+Please be sure to add your entry to the appropriate subsection.
 
 The styling and positioning of the entry depends on whether you are a
 first-time contributor or have been mentioned in the changelog before.
@@ -572,10 +571,9 @@ new feature etc.):
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
 number.
 
-.. note::
-  It is usually best to wait to add a line to the changelog until your PR is
-  finalized, to avoid merge conflicts (since the changelog is updated with
-  almost every PR).
+It is usually best to wait to add a line to the changelog until your PR is
+finalized, to avoid merge conflicts (since the changelog is updated with
+almost every PR).
 
 Lastly, make sure that your name is included in the list of authors in
 :file:`doc/changes/names.inc`, otherwise the documentation build will fail.
