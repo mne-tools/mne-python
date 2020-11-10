@@ -50,6 +50,8 @@ Enhancements
 
 - Further improved documentation building instructions and execution on Windows (:gh:`8502` by `kalenkovich`_ and `Eric Larson`_)
 
+- Add :class:`mne.decoding.SSD`, implementation of the spatio-spectral-decomposition (SSD) method, by `Denis Engemann`_ and `Victoria Peterson`_ (:gh:`7070`)
+
 
 Bugs
 ~~~~
