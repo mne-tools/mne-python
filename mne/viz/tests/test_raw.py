@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import (run_tests_if_main, _dt_to_stamp, check_version,
-                       _click_ch_name, _close_event)
+from mne.utils import (run_tests_if_main, _dt_to_stamp, _click_ch_name,
+                       _close_event)
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -39,12 +39,6 @@ def raw():
     raw.pick_channels(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
-
-
-@pytest.fixture(scope='module')
-def new_mpl():
-    """Check matplotlib version."""
-    return check_version('matplotlib', '3.1')
 
 
 def _get_events():
@@ -225,7 +219,7 @@ def test_scale_bar():
     plt.close('all')
 
 
-def test_plot_raw_selection(raw, new_mpl):
+def test_plot_raw_selection(raw):
     """Test selection mode of plot_raw()."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     plt.close('all')           # ensure all are closed
@@ -273,11 +267,8 @@ def test_plot_raw_selection(raw, new_mpl):
     _fake_click(sel_fig, sensor_ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(sel_fig, sensor_ax, (0.65, 0.7), xform='ax', kind='motion')
     _fake_click(sel_fig, sensor_ax, (0, 0.7), xform='ax', kind='release')
-    want = ['MEG 0121', 'MEG 0122', 'MEG 0123'] if new_mpl else \
-        ['MEG 0111', 'MEG 0112', 'MEG 0131', 'MEG 0132', 'MEG 0133']  # XXX old
-    want = sorted(want)
-    got = sorted(sel_fig.lasso.selection)
-    assert got == want
+    want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
+    assert sorted(want) == sorted(sel_fig.lasso.selection)
     # test joint closing of selection & data windows
     sel_fig.canvas.key_press_event(sel_fig.mne.close_key)
     _close_event(sel_fig)
@@ -295,7 +286,7 @@ def test_plot_raw_ssp_interaction(raw):
     fig = raw.plot()
     # open SSP window
     _fake_click(fig, fig.mne.ax_proj, [0.5, 0.5])
-    assert len(plt.get_fignums()) == 2  # XXX this fails with minimal deps
+    assert len(plt.get_fignums()) == 2
     ssp_fig = fig.mne.fig_proj
     t = ssp_fig.mne.proj_checkboxes.labels
     ax = ssp_fig.mne.proj_checkboxes.ax

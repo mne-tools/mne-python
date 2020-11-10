@@ -134,3 +134,7 @@ API changes
 - New `mne.viz.Brain.set_time` method to set the displayed time in seconds (:gh:`8415` by `Daniel McCloy`_)
 
 - Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` (:gh:`8395` by `Guillaume Favelier`_)
+
+- Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
+
+- Parameter ``event_colors`` in `mne.viz.plot_epochs` and `mne.Epochs.plot` is deprecated, replaced by ``event_color`` which is consistent with `mne.viz.plot_raw` and provides greater flexibility (:gh:`8381` by `Daniel McCloy`_)
