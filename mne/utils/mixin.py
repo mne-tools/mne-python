@@ -139,7 +139,7 @@ class GetEpochsMixin(object):
            Query-based indexing only works if Pandas is installed and
            ``self.metadata`` is a :class:`pandas.DataFrame`.
 
-               .. versionadded:: 0.16
+           .. versionadded:: 0.16
         """
         return self._getitem(item)
 
