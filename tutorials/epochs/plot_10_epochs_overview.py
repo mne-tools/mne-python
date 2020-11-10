@@ -314,9 +314,9 @@ for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
 
 ###############################################################################
 # Cropping removed part of the baseline. When printing the
-# cropped :class:`~mne.Epochs`, MNE will inform you about the time period that
-# was originally used to perform baseline correction by displaying the string
-# "baseline period cropped after baseline correction":
+# cropped :class:`~mne.Epochs`, MNE-Python will inform you about the time
+# period that was originally used to perform baseline correction by displaying
+# the string "baseline period cropped after baseline correction":
 
 print(shorter_epochs)
 
