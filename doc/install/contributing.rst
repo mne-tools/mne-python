@@ -550,7 +550,7 @@ The styling and positioning of the entry depends on whether you are a
 first-time contributor or have been mentioned in the changelog before.
 
 First-time contributors
-^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""
 
 Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
 get proper credit for your work, please add a changelog entry with the
@@ -582,7 +582,7 @@ Many contributors opt to link to their GitHub profile that way. Have a look
 at the existing entries in the file to get some inspiration.
 
 Recurring contributors
-^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""
 
 The chngelog entry should follow the following patterns:
 
