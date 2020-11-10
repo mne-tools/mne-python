@@ -712,7 +712,9 @@ class _BaseSourceEstimate(TimeMixin):
                  verbose=None):
         """Resample data.
 
-        If appropriate, an anti-aliasing filter is applied before resampling.
+        Through use of an FFT-based (fast Fourier transform) method for
+        resampling, aliasing artifacts are prevented as if an anti-aliasing
+        filter were applied beforehand.
         See :ref:`resampling-and-decimating` for more information.
 
         Parameters
