@@ -1727,7 +1727,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         in the two sets of epochs. For example, if one had event times
         [1, 2, 3, 4, 120, 121] and the other one had [3.5, 4.5, 120.5, 121.5],
         it would remove events at times [1, 2] in the first epochs and not
-        [20, 21].
+        [120, 121].
 
         Parameters
         ----------
