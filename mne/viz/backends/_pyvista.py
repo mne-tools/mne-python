@@ -834,10 +834,12 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
         # FIX: https://github.com/pyvista/pyvista/pull/995
         old_window_size = figure.plotter.window_size
         figure.plotter.window_size = figure.store["window_size"]
-        img = figure.plotter.screenshot(
-            transparent_background=(mode == 'rgba'),
-            filename=filename)
-        figure.plotter.window_size = old_window_size
+        try:
+            img = figure.plotter.screenshot(
+                transparent_background=(mode == 'rgba'),
+                filename=filename)
+        finally:
+            figure.plotter.window_size = old_window_size
         return img
 
 
