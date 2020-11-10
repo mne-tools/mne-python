@@ -107,7 +107,7 @@ Bugs
 
 - Fix bug where BrainVision channel names, event types, and event descriptions containing commas were incorrectly parsed (:gh:`8492` by `Stefan Appelhoff`_)
 
-- Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error (:gh:`8383`, :gh:`8384` by `Mikołaj Magnuski`_)
+- Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error (:gh:`8384` by `Mikołaj Magnuski`_)
 
 
 API changes
