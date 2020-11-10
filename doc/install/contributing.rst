@@ -544,7 +544,7 @@ skipped for very minor changes like correcting typos in the documentation).
 .. note::
   There are different sections of the changelog for each release, and separate
   **subsections for bugfixes, new features, and changes to the public API.**
-  Please be sure to add your entry to the end of the appropriate subsection.
+  Please be sure to add your entry to the appropriate subsection.
 
 The styling and positioning of the entry depends on whether you are a
 first-time contributor or have been mentioned in the changelog before.
