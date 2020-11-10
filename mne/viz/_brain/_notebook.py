@@ -2,19 +2,15 @@
 #
 # License: Simplified BSD
 
-from ..backends._notebook \
-    import _NotebookInteractor as _PyVistaNotebookInteractor
 
-
-class _NotebookInteractor(_PyVistaNotebookInteractor):
+class _NotebookInteractor(object):
     def __init__(self, brain):
         self.brain = brain
-        super().__init__(self.brain._renderer)
+        self.plotter = brain._renderer.plotter
 
     def configure_controllers(self):
         from ipywidgets import (IntSlider, interactive, Play, VBox,
                                 HBox, Label, jslink)
-        super().configure_controllers()
         # orientation
         self.controllers["orientation"] = interactive(
             self.set_orientation,

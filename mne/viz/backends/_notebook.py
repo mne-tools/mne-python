@@ -19,7 +19,7 @@ class _Renderer(_PyVistaRenderer):
         super().__init__(*args, **kwargs)
 
     def show(self):
-        self.figure.display = _NotebookInteractor(self)
+        self.disp = self.plotter.show(use_ipyvtk=True, return_viewer=True)
         return self.scene()
 
 

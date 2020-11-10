@@ -648,8 +648,18 @@ class Brain(object):
                 slider_rep.GetCapProperty().SetOpacity(0)
 
     def _configure_notebook(self):
-        from ._notebook import _NotebookInteractor
-        self._renderer.figure.display = _NotebookInteractor(self)
+        from IPython import display
+        from ipywidgets import VBox
+        from mne.viz._brain._notebook import _NotebookInteractor
+        self.disp = self._renderer.plotter.show(use_ipyvtk=True,
+                                                return_viewer=True)
+        nint = _NotebookInteractor(self)
+        nint.controllers = dict()
+        nint.sliders = dict()
+        nint.configure_controllers()
+        controllers = VBox(list(nint.controllers.values()))
+        layout = VBox([controllers, self.disp])
+        display.display(layout)
 
     def _configure_time_label(self):
         self.time_actor = self._data.get('time_actor')
