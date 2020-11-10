@@ -280,8 +280,9 @@ And for building our documentation::
 
       WARNING: dot command 'dot' cannot be run (needed for graphviz output), check the graphviz_dot setting
 
-   you might have to install `graphviz`_ manually.
-   Make sure to agree to add graphviz to path during installation.
+   try adding the graphviz folder to path::
+
+      $ set PATH=%CONDA_PREFIX%\Library\bin\graphviz;%PATH%
 
 To build documentation, you will also require `optipng`_:
 
@@ -985,7 +986,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _travis: https://travis-ci.org/mne-tools/mne-python/branches
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 .. _circle: https://circleci.com/gh/mne-tools/mne-python
-.. _graphviz: https://graphviz.org/
 
 .. optipng
 
