@@ -557,9 +557,17 @@ get proper credit for your work, please add a changelog entry with the
 following pattern **at the top** of the respective subsection (bugfix,
 new feature etc.):
 
-.. code-block::
+.. code-block:: rst
 
-  - Short description of the changes **by new contributor** |Your Name|_ (:gh:`0000`)
+
+  Bug
+  ---
+
+  .. |Your Name| replace:: **Your Name**
+
+  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  
+  - ...
 
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
 number.
@@ -574,7 +582,7 @@ Lastly, make sure that your name is included in the list of authors in
 To add an author name, simply append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
 
-.. code-block::
+.. code-block:: rst
 
   .. _Your Name: https://www.your-website.com/
 
@@ -584,9 +592,9 @@ at the existing entries in the file to get some inspiration.
 Recurring contributors
 """"""""""""""""""""""
 
-The chngelog entry should follow the following patterns:
+The changelog entry should follow the following patterns:
 
-.. code-block::
+.. code-block:: rst
 
     - Short description of the changes from one contributor (:gh:`0000` by `Contributor Name`_)
     - Short description of the changes from several contributors (:gh:`0000` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
@@ -598,7 +606,7 @@ Sometimes, changes that shall appear as a single changelog entry are spread out
 across multiple PRs. In this case, simply name all relevant PRs, separated by
 commas:
 
-.. code-block::
+.. code-block:: rst
 
     - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
     - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
