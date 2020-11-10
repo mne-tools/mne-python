@@ -38,6 +38,7 @@ freqs_noise = 8, 13
 
 
 ssd = SSD(info=raw.info,
+          reg='oas',
           sort_by_spectral_ratio=False,  # True is recommended here.
           filt_params_signal=dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
                                   l_trans_bandwidth=1, h_trans_bandwidth=1,
@@ -117,6 +118,7 @@ epochs = Epochs(raw, events, tmin=0., tmax=5,
                 baseline=None, preload=True)
 
 ssd_epochs = SSD(info=epochs.info,
+                 reg='oas',
                  filt_params_signal=dict(l_freq=freqs_sig[0],
                                          h_freq=freqs_sig[1],
                                          l_trans_bandwidth=1,

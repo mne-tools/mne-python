@@ -16,7 +16,7 @@ freqs_sig = 9, 12
 freqs_noise = 8, 13
 
 
-def __get_spectral_ratio(X_ssd, sf, ssd):
+def _get_spectral_ratio(X_ssd, sf, ssd):
     """Get the spectal signal-to-noise ratio for each spatial filter.
 
     Spectral ratio measure for best n_components selection
@@ -156,7 +156,7 @@ def test_ssd():
     assert_array_almost_equal(X_denoised, X)
 
     # Power ratio ordering
-    spec_ratio, _ = __get_spectral_ratio(ssd.transform(X), sf, ssd)
+    spec_ratio, _ = _get_spectral_ratio(ssd.transform(X), sf, ssd)
     # since we now that the number of true components is 5, the relative
     # difference should be low for the first 5 and then increases
     index_diff = np.argmax(-np.diff(spec_ratio))
@@ -224,8 +224,8 @@ def test_ssd_epoched_data():
     ssd.fit(X)
 
     # Check if the 5 first 5 components are the same for both
-    _, sorter_spec_e = __get_spectral_ratio(ssd_e.transform(X_e), sf, ssd_e)
-    _, sorter_spec = __get_spectral_ratio(ssd.transform(X), sf, ssd)
+    _, sorter_spec_e = _get_spectral_ratio(ssd_e.transform(X_e), sf, ssd_e)
+    _, sorter_spec = _get_spectral_ratio(ssd.transform(X), sf, ssd)
     assert_array_equal(sorter_spec_e[:n_components_true],
                        sorter_spec[:n_components_true])
 

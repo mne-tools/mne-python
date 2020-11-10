@@ -33,11 +33,11 @@ class SSD(BaseEstimator, TransformerMixin):
         Filtering for the frequencies of interest.
     filt_params_noise  : dict
         Filtering for the frequencies of non-interest.
-    estimator : float | str | None (default 'oas')
+    reg : float | str | None (default)
         Which covariance estimator to use.
         If not None (same as 'empirical'), allow regularization for
         covariance estimation. If float, shrinkage is used
-        (0 <= shrinkage <= 1). For str options, estimator will be passed to
+        (0 <= shrinkage <= 1). For str options, reg will be passed to
         method to :func:`mne.compute_covariance`.
     n_components : int | None (default None)
         The number of components to extract from the signal.
@@ -81,7 +81,7 @@ class SSD(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, info, filt_params_signal, filt_params_noise,
-                 estimator='oas', n_components=None, picks=None,
+                 reg=None, n_components=None, picks=None,
                  sort_by_spectral_ratio=True, return_filtered=False,
                  n_fft=None, cov_method_params=None, rank=None):
         """Initialize instance."""
@@ -122,7 +122,7 @@ class SSD(BaseEstimator, TransformerMixin):
             self.n_fft = int(n_fft)
         self.picks_ = (Ellipsis if picks is None else picks)
         self.return_filtered = return_filtered
-        self.estimator = estimator
+        self.reg = reg
         self.n_components = n_components
         self.rank = rank
         self.cov_method_params = cov_method_params
@@ -184,10 +184,10 @@ class SSD(BaseEstimator, TransformerMixin):
             X_noise = np.hstack(X_noise)
 
         cov_signal = _regularized_covariance(
-            X_signal, reg=self.estimator, method_params=self.cov_method_params,
+            X_signal, reg=self.reg, method_params=self.cov_method_params,
             rank=self.rank, info=self.info)
         cov_noise = _regularized_covariance(
-            X_noise, reg=self.estimator, method_params=self.cov_method_params,
+            X_noise, reg=self.reg, method_params=self.cov_method_params,
             rank=self.rank, info=self.info)
 
         eigvals_, eigvects_ = eigh(cov_signal, cov_noise)
