@@ -833,13 +833,13 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
         _process_events(figure.plotter)
         # FIX: https://github.com/pyvista/pyvista/pull/995
         old_window_size = figure.plotter.window_size
-        figure.plotter.window_size = figure.store["window_size"]
+        figure.plotter.ren_win.SetSize(*figure.store["window_size"])
         try:
             img = figure.plotter.screenshot(
                 transparent_background=(mode == 'rgba'),
                 filename=filename)
         finally:
-            figure.plotter.window_size = old_window_size
+            figure.plotter.ren_win.SetSize(*old_window_size)
         return img
 
 
