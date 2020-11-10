@@ -1981,10 +1981,6 @@ def _check_baseline(baseline, tmin, tmax, sfreq, on_error='raise'):
             % (baseline_tmin, baseline_tmax))
 
     if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
-        if baseline_tmin < tmin - tstep:
-            baseline_tmin = tmin
-        if baseline_tmax > tmax + tstep:
-            baseline_tmax = tmax
         msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
                f"is outside of epoch data [{tmin}, {tmax}] sec")
         if on_error == 'raise':
@@ -1993,6 +1989,11 @@ def _check_baseline(baseline, tmin, tmax, sfreq, on_error='raise'):
             pass
         else:
             logger.info(msg)
+
+        if baseline_tmin < tmin - tstep:
+            baseline_tmin = tmin
+        if baseline_tmax > tmax + tstep:
+            baseline_tmax = tmax
 
     return baseline_tmin, baseline_tmax
 
