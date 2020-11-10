@@ -76,6 +76,13 @@ epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
                     event_color=dict(button='red', face='blue'))
 
 ###############################################################################
+# To see all sensors at once, we can use butterfly mode and group by selection:
+
+epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
+                    event_color=dict(button='red', face='blue'),
+                    group_by='selection', butterfly=True)
+
+###############################################################################
 # Plotting projectors from an ``Epochs`` object
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -192,7 +199,7 @@ epochs['auditory'].plot_image(picks='mag', combine='mean')
 # plot the global field power (useful for combining sensors that respond with
 # opposite polarity).
 
-# sphinx_gallery_thumbnail_number = 10
+# sphinx_gallery_thumbnail_number = 11
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
