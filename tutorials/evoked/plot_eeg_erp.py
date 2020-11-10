@@ -10,9 +10,6 @@ EEG processing and Event Related Potentials (ERPs)
 
 """
 
-import tempfile
-from os import path as op
-
 import mne
 from mne.datasets import sample
 from mne.channels import combine_channels
