@@ -8,35 +8,13 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal)
 from mne import io
 from mne.time_frequency import psd_array_welch
 from mne.decoding.ssd import SSD
-from mne.utils import requires_sklearn, _time_mask
+from mne.utils import requires_sklearn
 from mne.filter import filter_data
 from mne import create_info
-from sklearn.pipeline import Pipeline
 from mne.decoding import CSP
 
 freqs_sig = 9, 12
 freqs_noise = 8, 13
-
-
-def _get_spectral_ratio(X_ssd, sf, ssd):
-    """Get the spectal signal-to-noise ratio for each spatial filter.
-
-    Spectral ratio measure for best n_components selection
-    See :footcite:`NikulinEtAl2011`, Eq. (24).
-    """
-    psd, freqs = psd_array_welch(X_ssd, sfreq=sf, n_fft=sf)
-    sig_idx = _time_mask(freqs, *ssd.freqs_signal)
-    noise_idx = _time_mask(freqs, *ssd.freqs_noise)
-    if psd.ndim == 3:
-        mean_sig = psd[:, :, sig_idx].mean(axis=2).mean(axis=0)
-        mean_noise = psd[:, :, noise_idx].mean(axis=2).mean(axis=0)
-        spec_ratio = mean_sig / mean_noise
-    else:
-        mean_sig = psd[:, sig_idx].mean(axis=1)
-        mean_noise = psd[:, noise_idx].mean(axis=1)
-        spec_ratio = mean_sig / mean_noise
-    sorter_spec = spec_ratio.argsort()[::-1]
-    return spec_ratio, sorter_spec
 
 
 def simulate_data(freqs_sig=[9, 12], n_trials=100, n_channels=20,
@@ -159,7 +137,7 @@ def test_ssd():
     assert_array_almost_equal(X_denoised, X)
 
     # Power ratio ordering
-    spec_ratio, _ = _get_spectral_ratio(ssd.transform(X), sf, ssd)
+    spec_ratio, _ = ssd.get_spectral_ratio(ssd.transform(X))
     # since we now that the number of true components is 5, the relative
     # difference should be low for the first 5 components and then increases
     index_diff = np.argmax(-np.diff(spec_ratio))
@@ -223,8 +201,8 @@ def test_ssd_epoched_data():
     ssd.fit(X)
 
     # Check if the 5 first 5 components are the same for both
-    _, sorter_spec_e = _get_spectral_ratio(ssd_e.transform(X_e), sf, ssd_e)
-    _, sorter_spec = _get_spectral_ratio(ssd.transform(X), sf, ssd)
+    _, sorter_spec_e = ssd_e.get_spectral_ratio(ssd_e.transform(X_e))
+    _, sorter_spec = ssd.get_spectral_ratio(ssd.transform(X))
     assert_array_equal(sorter_spec_e[:n_components_true],
                        sorter_spec[:n_components_true])
 
@@ -232,6 +210,7 @@ def test_ssd_epoched_data():
 @requires_sklearn
 def test_ssd_pipeline():
     """Test if SSD works in a pipeline."""
+    from sklearn.pipeline import Pipeline
     sf = 250
     X, A, S = simulate_data(n_trials=100, n_channels=20, n_samples=500)
     X_e = np.reshape(X, (100, 20, 500))
