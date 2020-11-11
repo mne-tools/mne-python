@@ -46,7 +46,7 @@ Enhancements
 
 - Add ``picks`` parameter to :func:`mne.preprocessing.fix_stim_artifact` to specify which channel needs to be fixed, by `Alex Gramfort`_ (:gh:`8482`)
 
-- Further improved documentation building instructions and execution on Windows by `kalenkovich`_, and `Eric Larson`_
+- Further improved documentation building instructions and execution on Windows (:gh:`8502` by `kalenkovich`_ and `Eric Larson`_)
 
 
 Bugs
