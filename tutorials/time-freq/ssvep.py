@@ -161,42 +161,24 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
         NaN for frequencies on the edge, that do not have enoug neighbors on
         one side to calculate snr
     """
+    # Construct a kernel that calculates the mean of the neighboring frequencies
+    averaging_kernel = np.concatenate((
+        np.ones(noise_n_neighborfreqs),
+        np.zeros(2 * noise_skip_neighborfreqs + 1),
+        np.ones(noise_n_neighborfreqs)))
+    averaging_kernel /= averaging_kernel.sum()
 
-    # prep not epoched / single channel data
-    is_2d = True if (len(psd.shape) == 2) else False
-    if is_2d:
-        psd = psd.reshape((1, psd.shape[0], psds.shape[1]))
+    # Calculate the mean of the neighboring frequencies by convolving with the averaging kernel.
+    mean_noise = np.apply_along_axis(lambda psd_: np.convolve(psd_, averaging_kernel, mode='valid'),
+                                     axis=-1, arr=psd)
 
-    # SNR loop
-    snr = np.empty(psd.shape)
-    for i_freq in range(psd.shape[2]):
+    # The mean is not defined on the edges so we will pad it with nas. The padding needs to be done for the last
+    # dimension only so we set it to (0, 0) for the other ones.
+    edge_width = noise_n_neighborfreqs + noise_skip_neighborfreqs
+    pad_width = [(0, 0)] * (mean_noise.ndim - 1) + [(edge_width, edge_width)]
+    mean_noise = np.pad(mean_noise, pad_width=pad_width, constant_values=np.nan)
 
-        # skip freqs on the edges (without noise neighbors)
-
-        start_freq_i = noise_n_neighborfreqs + noise_skip_neighborfreqs
-        stop_freq_i = (psd.shape[2] - noise_n_neighborfreqs
-                       - noise_skip_neighborfreqs)
-        if not (stop_freq_i > i_freq >= start_freq_i):
-            snr[:, :, i_freq] = np.nan
-            continue
-
-        # extract signal level
-        signal = psd[:, :, i_freq]
-
-        # ... and average noise level
-        i_noise = []
-        for i in range(noise_n_neighborfreqs):
-            i_noise.append(i_freq + noise_skip_neighborfreqs + i + 1)
-            i_noise.append(i_freq - noise_skip_neighborfreqs - i - 1)
-        noise = psd[:, :, i_noise].mean(axis=2)
-
-        snr[:, :, i_freq] = signal / noise
-
-    # reshape not epoched / single channel data to original dimensions
-    if is_2d:
-        snr = snr.reshape(snr.shape[1], snr.shape[2])
-
-    return snr
+    return psd / mean_noise
 
 
 ###############################################################################
