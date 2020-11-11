@@ -4,12 +4,12 @@
 
 import numpy as np
 from scipy.linalg import eigh
-from ..io.pick import channel_type
 from ..filter import filter_data
 from ..cov import _regularized_covariance
 from . import TransformerMixin, BaseEstimator
 from ..time_frequency import psd_array_welch
-from ..utils import _time_mask
+from ..utils import _time_mask, fill_doc, _validate_type, _check_option
+from ..io.pick import _get_channel_types, _picks_to_idx
 
 
 @fill_doc
@@ -47,7 +47,7 @@ class SSD(BaseEstimator, TransformerMixin):
     picks : array of int | None (default None)
         The indices of good channels.
     sort_by_spectral_ratio : bool (default False)
-       If set to True, the components are sorted according
+       If set to True, the components are sorted accordingly
        to the spectral ratio.
        See Eq. (24) in :footcite:`NikulinEtAl2011`.
     return_filtered : bool (default True)
@@ -94,14 +94,17 @@ class SSD(BaseEstimator, TransformerMixin):
                     '%s must be defined in filter parameters for %s'
                     % (param + '_freq', key))
             val = dicts[key][param + '_freq']
-            _validate_type(val, ('numeric',), f'{key} {param}_freq')
+            if not isinstance(val, (int, float)):
+                _validate_type(val, ('numeric',), f'{key} {param}_freq')
         # check freq bands
         if (filt_params_noise['l_freq'] > filt_params_signal['l_freq'] or
                 filt_params_signal['h_freq'] > filt_params_noise['h_freq']):
             raise ValueError('Wrongly specified frequency bands!\n'
                              'The signal band-pass must be within the noise '
                              'band-pass!')
-        ch_types = _get_channel_types(info, unique=True)
+        self.picks_ = _picks_to_idx(info, picks, none='data', exclude='bads')
+        del picks
+        ch_types = _get_channel_types(info, picks=self.picks_, unique=True)
         if len(ch_types) > 1:
             raise ValueError('At this point SSD only supports fitting '
                              'single channel types. Your info has %i types' %
@@ -118,8 +121,6 @@ class SSD(BaseEstimator, TransformerMixin):
             self.n_fft = int(self.info['sfreq'])
         else:
             self.n_fft = int(n_fft)
-        self.picks_ = _picks_to_idx(info, picks, none='data', exclude='bads')
-        del picks
         self.return_filtered = return_filtered
         self.reg = reg
         self.n_components = n_components
@@ -129,8 +130,7 @@ class SSD(BaseEstimator, TransformerMixin):
     def _check_X(self, X):
         """Check input data."""
         _validate_type(X, np.ndarray, 'X')
-        _check_option('X.ndim', (2, 3), X.ndim)
-
+        _check_option('X.ndim', X.ndim, (2, 3))
         n_chan = X.shape[-2]
         if n_chan != self.info['nchan']:
             raise ValueError('Info must match the input data.'
@@ -161,7 +161,6 @@ class SSD(BaseEstimator, TransformerMixin):
             X_aux, self.info['sfreq'], **self.filt_params_signal)
         X_noise = filter_data(
             X_aux, self.info['sfreq'], **self.filt_params_noise)
-
         X_noise -= X_signal
         if X.ndim == 3:
             X_signal = np.hstack(X_signal)
@@ -203,8 +202,8 @@ class SSD(BaseEstimator, TransformerMixin):
         self._check_X(X)
         if self.filters_ is None:
             raise RuntimeError('No filters available. Please first call fit')
-        X_ssd = self.filters_.T @ X[..., self.picks_, :]
 
+        X_ssd = self.filters_.T @ X[..., self.picks_, :]
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This is why we apply component picks
         # after ordering.

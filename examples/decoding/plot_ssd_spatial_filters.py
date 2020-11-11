@@ -8,7 +8,7 @@ oscillatory brain activity and down-weighting 1/f background signals
 as proposed by :footcite:`NikulinEtAl2011`.
 The idea is to learn spatial filters that separate oscillatory dynamics
 from surrounding non-oscillatory noise based on the covariance in the
-frequency band of interest and the noise covariance absed on surrounding
+frequency band of interest and the noise covariance based on surrounding
 frequencies.
 """
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
@@ -41,11 +41,9 @@ ssd = SSD(info=raw.info,
           reg='oas',
           sort_by_spectral_ratio=False,  # True is recommended here.
           filt_params_signal=dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
-                                  l_trans_bandwidth=1, h_trans_bandwidth=1,
-                                  fir_design='firwin'),
+                                  l_trans_bandwidth=1, h_trans_bandwidth=1),
           filt_params_noise=dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
-                                 l_trans_bandwidth=1, h_trans_bandwidth=1,
-                                 fir_design='firwin'))
+                                 l_trans_bandwidth=1, h_trans_bandwidth=1))
 ssd.fit(X=raw.get_data())
 
 
@@ -83,7 +81,7 @@ ax.axhline(1, linestyle='--')
 
 # We can see that the initial sorting based on the eigenvalues
 # was already quite good. However, when using few components only
-# The sorting might\ make a difference.
+# the sorting might make a difference.
 
 ###############################################################################
 # Let's also look at the power spectrum of that source and compare it to
@@ -102,7 +100,7 @@ ax.set_ylabel('log(power)')
 ax.legend()
 
 # We can clearly see that the selected component enjoys an SNR that is
-# way above the average powe spectrum.
+# way above the average power spectrum.
 
 ###############################################################################
 # Epoched data
@@ -122,13 +120,11 @@ ssd_epochs = SSD(info=epochs.info,
                  filt_params_signal=dict(l_freq=freqs_sig[0],
                                          h_freq=freqs_sig[1],
                                          l_trans_bandwidth=1,
-                                         h_trans_bandwidth=1,
-                                         fir_design='firwin'),
+                                         h_trans_bandwidth=1),
                  filt_params_noise=dict(l_freq=freqs_noise[0],
                                         h_freq=freqs_noise[1],
                                         l_trans_bandwidth=1,
-                                        h_trans_bandwidth=1,
-                                        fir_design='firwin'))
+                                        h_trans_bandwidth=1))
 ssd_epochs.fit(X=epochs.get_data())
 
 # Plot topographies.
