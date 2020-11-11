@@ -282,7 +282,7 @@ And for building our documentation::
 
    try adding the graphviz folder to path::
 
-      $ set PATH=%CONDA_PREFIX%\Library\bin\graphviz;%PATH%
+      $ PATH=$CONDA_PREFIX\\Library\\bin\\graphviz:$PATH
 
 To build documentation, you will also require `optipng`_:
 
