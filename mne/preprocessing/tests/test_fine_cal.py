@@ -99,7 +99,7 @@ def test_compute_fine_cal():
             # processing a very short (one 10-sec segment), downsampled (90 Hz)
             # file
             assert 66 < want_orig_max_angle < 68, want_orig_max_angle
-            assert 70 < got_orig_max_angle < 107, got_orig_max_angle
+            assert 67 < got_orig_max_angle < 107, got_orig_max_angle
             assert 53 < got_want_max_angle < 60, got_want_max_angle
 
     kwargs = dict(bad_condition='warning', cross_talk=ctc, coord_frame='meg')
@@ -108,7 +108,7 @@ def test_compute_fine_cal():
     raw_sss_py = maxwell_filter(raw, calibration=got_cal, **kwargs)
     _assert_shielding(raw_sss, raw, 26, 27)
     _assert_shielding(raw_sss_mf, raw, 61, 63)
-    _assert_shielding(raw_sss_py, raw, 59, 60)
+    _assert_shielding(raw_sss_py, raw, 58, 60)
 
     # redoing with given mag data should yield same result
     got_cal_redo, _ = compute_fine_calibration(
@@ -133,4 +133,4 @@ def test_compute_fine_cal():
     corr = np.corrcoef(got_grad_3_imbs[:, 0], got_grad_imbs[:, 0])[0, 1]
     assert 0.6 < corr < 0.7
     raw_sss_py = maxwell_filter(raw, calibration=got_cal_3, **kwargs)
-    _assert_shielding(raw_sss_py, raw, 60, 62)
+    _assert_shielding(raw_sss_py, raw, 59, 62)

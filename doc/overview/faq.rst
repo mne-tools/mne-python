@@ -221,6 +221,8 @@ whether to use :func:`mne.read_cov`, :func:`mne.read_epochs`,
     events
 
 
+.. _resampling-and-decimating:
+
 Resampling and decimating data
 ==============================
 

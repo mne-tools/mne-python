@@ -1464,10 +1464,6 @@ class Report(object):
         for fname in fnames:
             if _endswith(fname, ('raw', 'sss', 'meg')):
                 inst = read_raw_fif(fname, allow_maxshield=True, preload=False)
-            elif _endswith(fname, ('epo',)):
-                inst = read_epochs(fname, preload=False)
-            elif _endswith(fname, ('ave',)):
-                inst = read_evokeds(fname, condition=0, allow_maxshield=True)
             else:
                 continue
 
