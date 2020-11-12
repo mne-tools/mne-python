@@ -16,7 +16,6 @@ import sys
 import warnings
 from collections.abc import Iterable
 from functools import partial
-from distutils.version import LooseVersion
 
 import numpy as np
 from scipy import linalg
@@ -1403,7 +1402,6 @@ def _key_pressed_slider(event, params):
 
 def _smooth_plot(this_time, params):
     """Smooth source estimate data and plot with mpl."""
-    from matplotlib import __version__ as matplotlib_version
     from ..morph import _hemi_morph
     ax = params['ax']
     stc = params['stc']
@@ -1435,17 +1433,12 @@ def _smooth_plot(this_time, params):
                             antialiased=False, vmin=0, vmax=1)
     color_ave = np.mean(colors[faces], axis=1).flatten()
     curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
-    # matplotlib/matplotlib#11877
-    if LooseVersion(matplotlib_version) < '3.3.3':
-        facecolors = polyc._facecolors3d
-    else:
-        facecolors = polyc._facecolor3d
     colors = cmap(color_ave)
     # alpha blend
     colors[:, :3] *= colors[:, [3]]
     colors[:, :3] += greymap(curv_ave)[:, :3] * (1. - colors[:, [3]])
     colors[:, 3] = 1.
-    facecolors[:] = colors
+    polyc.set_facecolor(colors)
     if params['time_label'] is not None:
         ax.set_title(params['time_label'](times[time_idx] * scaler,),
                      color='w')
