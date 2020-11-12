@@ -254,7 +254,6 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(pctf_norm)s
     %(pctf_return_pca_vars)s
     %(verbose)s
-    %(verbose)s
 
     Returns
     -------
