@@ -1400,14 +1400,12 @@ def _smooth_plot(this_time, params):
                             antialiased=False, vmin=0, vmax=1)
     color_ave = np.mean(colors[faces], axis=1).flatten()
     curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
-    # matplotlib/matplotlib#11877
-    facecolors = polyc._facecolors3d
     colors = cmap(color_ave)
     # alpha blend
     colors[:, :3] *= colors[:, [3]]
     colors[:, :3] += greymap(curv_ave)[:, :3] * (1. - colors[:, [3]])
     colors[:, 3] = 1.
-    facecolors[:] = colors
+    polyc.set_facecolor(colors)
     if params['time_label'] is not None:
         ax.set_title(params['time_label'](times[time_idx] * scaler,),
                      color='w')
@@ -1425,7 +1423,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   transparent=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
@@ -1461,7 +1458,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = Axes3D(fig)
+    ax = fig.gca(projection='3d')
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
@@ -3034,7 +3031,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     dd = dims // 2
     if ax is None:
         fig = plt.figure()
-        ax = Axes3D(fig)
+        ax = fig.gca(projection='3d')
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D")
         fig = ax.get_figure()

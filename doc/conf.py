@@ -351,10 +351,9 @@ intersphinx_mapping = {
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     'pyvista': ('https://docs.pyvista.org', None),
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
-    # There are some problems with dipy's redirect:
-    # https://github.com/nipy/dipy/issues/1955
-    'dipy': ('https://dipy.org/documentation/latest',
-             'https://dipy.org/documentation/1.1.1./objects.inv/'),
+    # We need to stick with 1.2.0 for now:
+    # https://github.com/dipy/dipy/issues/2290
+    'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
