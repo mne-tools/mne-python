@@ -214,6 +214,7 @@ jobs:
       python -m pip install https://github.com/pyvista/pyvista/zipball/master
       python -m pip install https://github.com/pyvista/pyvistaqt/zipball/master
       python -m pip install -r requirements.txt -r requirements_testing.txt codecov
+      python -c "from numpy._pytesttester import _show_numpy_info; _show_numpy_info()"
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'
   - powershell: |
