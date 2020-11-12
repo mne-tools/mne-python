@@ -369,7 +369,7 @@ jobs:
         - run:
             name: pytest
             command: |
-              pytest mne/tests/test_filter.py mne/preprocessing/tests/test_optical_density.py -v
+              pytest -m "not ultraslowtest" mne -xv
 
 workflows:
   version: 2
@@ -385,7 +385,7 @@ workflows:
               only:
                 - master
                 - maint/0.21
-      - interactive_test
+      # interactive_test
 
   weekly:
     jobs:
