@@ -1492,7 +1492,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = Axes3D(fig)
+    ax = fig.gca(projection='3d')
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
@@ -3058,7 +3058,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     dd = dims // 2
     if ax is None:
         fig = plt.figure()
-        ax = Axes3D(fig)
+        ax = fig.gca(projection='3d')
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D")
         fig = ax.get_figure()
