@@ -205,8 +205,9 @@ class _Renderer(_BaseRenderer):
                 _enable_aa(self.figure, self.plotter)
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
-        if not hasattr(self.plotter, "iren"):
-            self.plotter.iren = None
+        if LooseVersion(pyvista.__version__) >= '0.27.0':
+            if not hasattr(self.plotter, "iren"):
+                self.plotter.iren = None
 
         self.update_lighting()
 
@@ -281,7 +282,7 @@ class _Renderer(_BaseRenderer):
         lights[2].SetIntensity(0.5)
 
     def set_interaction(self, interaction):
-        if self.plotter.iren is None:
+        if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
             return
         if interaction == "rubber_band_2d":
             for renderer in self.plotter.renderers:
@@ -831,16 +832,9 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         _process_events(figure.plotter)
-        # FIX: https://github.com/pyvista/pyvista/pull/995
-        old_window_size = figure.plotter.window_size
-        figure.plotter.window_size = figure.store["window_size"]
-        try:
-            img = figure.plotter.screenshot(
-                transparent_background=(mode == 'rgba'),
-                filename=filename)
-        finally:
-            figure.plotter.window_size = old_window_size
-        return img
+        return figure.plotter.screenshot(
+            transparent_background=(mode == 'rgba'),
+            filename=filename)
 
 
 def _process_events(plotter):
