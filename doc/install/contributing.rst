@@ -275,6 +275,15 @@ And for building our documentation::
     $ pip install -r requirements_doc.txt
     $ conda install graphviz
 
+.. note::
+   On Windows, if you installed graphviz using the conda command above but still get an error like this::
+
+      WARNING: dot command 'dot' cannot be run (needed for graphviz output), check the graphviz_dot setting
+
+   try adding the graphviz folder to path::
+
+      $ PATH=$CONDA_PREFIX\\Library\\bin\\graphviz:$PATH
+
 To build documentation, you will also require `optipng`_:
 
 - On Linux, use the command ``sudo apt install optipng``.
