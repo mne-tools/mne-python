@@ -3,7 +3,7 @@
 Visualize source leakage among labels using a circular graph
 ============================================================
 
-This example computes all-to-all pairwise leakage between 68 regions in
+This example computes all-to-all pairwise leakage among 68 regions in
 source space based on MNE inverse solutions and a FreeSurfer cortical
 parcellation. Label-to-label leakage is estimated as the correlation among the
 labels' point-spread functions (PSFs). It is visualized using a circular graph
