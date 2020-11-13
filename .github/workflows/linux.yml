@@ -70,11 +70,11 @@ jobs:
         run: |
           ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
-        name: 'Install dependencies'
         env:
           CONDA_ENV: ${{ matrix.CONDA_ENV }}
           CONDA_DEPENDENCIES: ${{ matrix.CONDA_DEPENDENCIES }}
           DEPS: ${{ matrix.DEPS }}
+        name: 'Install dependencies'
       - shell: bash -el {0}
         run: ./tools/github_actions_install.sh
         name: 'Install MNE'
@@ -83,16 +83,18 @@ jobs:
         name: 'Show infos'
       - shell: bash -el {0}
         run: ./tools/github_actions_download.sh
+        env:
+          DEPS: ${{ matrix.DEPS }}
         name: 'Download testing data'
       - shell: bash -el {0}
         run: ./tools/github_actions_locale.sh
         name: 'Print locale'
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
-        name: 'Run tests'
         env:
           PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
           DEPS: ${{ matrix.DEPS }}
+        name: 'Run tests'
       - uses: codecov/codecov-action@v1
         if: success()
         name: 'Upload coverage to CodeCov'
