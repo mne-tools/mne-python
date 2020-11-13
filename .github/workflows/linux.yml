@@ -42,7 +42,7 @@ jobs:
             PIP: false
 
           # PIP + non-default stim channel + log level info
-          - JOB_NAME: 'pip/pre'
+          - JOB_NAME: 'pip / pre'
             PYTHON_VERSION: '3.8'
             MNE_STIM_CHANNEL: 'STI101'
             MNE_LOGGING_LEVEL: 'info'
