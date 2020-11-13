@@ -23,37 +23,36 @@ jobs:
       TRAVIS_OS_NAME: 'linux'
     strategy:
       matrix:
-        JOB_NAME: ['conda', 'pip/pre', 'minimal']
+        - JOB_NAME: 'conda'
+          PYTHON_VERSION: '3.8'
+          PIP: false
+        - JOB_NAME: 'pip/pre'
+          PYTHON_VERSION: '3.8'
+          PIP: true
+        - JOB_NAME: 'minimal'
+          PYTHON_VERSION: '3.6'
+          PIP: false
     steps:
       # Linux
       - if: ${{ matrix.JOB_NAME == 'conda' }}
-        run: echo ${{ matrix.JOB_NAME }}
-        env:
-            PYTHON_VERSION: '3.8'
-            CONDA_ENV: 'environment.yml'
-            PIP: false
+        run: |
+          echo "CONDA_ENV=environment.yml" >> GITHUB_ENV
 
       # PIP + non-default stim channel + log level info
       - if: ${{ matrix.JOB_NAME == 'pip/pre' }}
-        run: echo ${{ matrix.JOB_NAME }}
-        env:
-            PYTHON_VERSION: '3.8'
-            MNE_STIM_CHANNEL: 'STI101'
-            MNE_LOGGING_LEVEL: 'info'
-            PIP: true
+        run: |
+          echo "MNE_STIM_CHANNEL=STI101" >> GITHUB_ENV
+          echo "MNE_LOGGING_LEVEL=info" >> GITHUB_ENV
 
       # Minimal (runs with and without testing data)
       - if: ${{ matrix.JOB_NAME == 'minimal' }}
-        run: echo ${{ matrix.JOB_NAME }}
-        env:
-            PYTHON_VERSION: '3.6'
-            DEPS: 'minimal'
-            CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
-            MNE_DONTWRITE_HOME: true
-            MNE_FORCE_SERIAL: true
-            MNE_SKIP_NETWORK_TEST: 1
-            MNE_SKIP_TESTING_DATASET_TESTS: true
-            PIP: false
+        run: |
+          echo "DEPS=minimal" >> GITHUB_ENV
+          echo "CONDA_DEPENDENCIES=numpy scipy matplotlib" >> GITHUB_ENV
+          echo "MNE_DONTWRITE_HOME=true" >> GITHUB_ENV
+          echo "MNE_FORCE_SERIAL=true" >> GITHUB_ENV
+          echo "MNE_SKIP_NETWORK_TEST=1" >> GITHUB_ENV
+          echo "MNE_SKIP_TESTING_DATASET_TESTS=true" >> GITHUB_ENV
 
       - uses: actions/checkout@v2
         with:
@@ -62,16 +61,16 @@ jobs:
           sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         name: 'Setup xvfb'
-      - if: ${{ env.PIP == true }}
+      - if: ${{ matrix.PIP == true }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.PYTHON_VERSION }}
         name: 'Setup python'
-      - if: ${{ env.PIP == false }}
+      - if: ${{ matrix.PIP == false }}
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.PYTHON_VERSION }}
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
