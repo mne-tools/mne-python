@@ -599,12 +599,10 @@ class _Renderer(_BaseRenderer):
             self.plotter.add_scalar_bar(**kwargs)
 
     def show(self):
-        from . import renderer
-        if not renderer.MNE_3D_BACKEND_TESTING:
-            self.figure.display = self.plotter.show()
-            if hasattr(self.plotter, "app_window"):
-                with self.ensure_minimum_sizes():
-                    self.plotter.app_window.show()
+        self.figure.display = self.plotter.show()
+        if hasattr(self.plotter, "app_window"):
+            with self.ensure_minimum_sizes():
+                self.plotter.app_window.show()
         return self.scene()
 
     def close(self):
