@@ -1,4 +1,4 @@
-name: 'Linux'
+name: 'Compatibility'
 on:
   push:
     branches:
@@ -34,19 +34,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux
-          - JOB_NAME: 'conda'
-            PYTHON_VERSION: '3.8'
-            CONDA_ENV: 'environment.yml'
+          # Old dependencies
+          - JOB_NAME: 'old'
+            PYTHON_VERSION: '3.6'
+            CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
             MNE_LOGGING_LEVEL: 'warning'
-            PIP: false
 
-          # PIP + non-default stim channel + log level info
-          - JOB_NAME: 'pip'
-            PYTHON_VERSION: '3.8'
-            MNE_STIM_CHANNEL: 'STI101'
-            MNE_LOGGING_LEVEL: 'info'
-            PIP: true
+          # Minimal (runs with and without testing data)
+          - JOB_NAME: 'minimal'
+            PYTHON_VERSION: '3.6'
+            DEPS: 'minimal'
+            CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
+            MNE_DONTWRITE_HOME: true
+            MNE_FORCE_SERIAL: true
+            MNE_LOGGING_LEVEL: 'warning'
+            MNE_SKIP_NETWORK_TEST: 1
+            MNE_SKIP_TESTING_DATASET_TESTS: true
     steps:
       - uses: actions/checkout@v2
         with:
@@ -55,13 +58,7 @@ jobs:
           sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         name: 'Setup xvfb'
-      - if: ${{ matrix.PIP == true }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
-        name: 'Setup python'
-      - if: ${{ matrix.PIP == false }}
-        uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
           python-version: ${{ matrix.PYTHON_VERSION }}
