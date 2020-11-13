@@ -635,7 +635,7 @@ class _Renderer(_BaseRenderer):
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
-        self.plotter.renderer.remove_actor(actor)
+        self.plotter.remove_actor(actor)
 
 
 def _create_actor(mapper=None):
