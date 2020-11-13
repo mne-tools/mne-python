@@ -646,7 +646,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         the scaling factor is set to match the 99.5th percentile of a subset of
         the corresponding data. If scalings == 'auto', all scalings fields are
         set to 'auto'. If any fields are 'auto' and data is not preloaded,
-        a subset of epochs up to 100mb will be loaded. If None, defaults to::
+        a subset of epochs up to 100 Mb will be loaded. If None, defaults to::
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4,
