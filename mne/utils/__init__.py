@@ -47,7 +47,8 @@ from ._testing import (run_tests_if_main, run_command_if_main,
                        requires_neuromag2ft, requires_pylsl, assert_object_equal,
                        assert_and_remove_boundary_annot, _raw_annot,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
-                       assert_stcs_equal, modified_env)
+                       assert_stcs_equal, modified_env, _click_ch_name,
+                       _close_event)
 from .numerics import (hashfunc, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,

@@ -26,16 +26,16 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=120)
 
 ###############################################################################
-# To create the :class:`~mne.Epochs` data structure, we'll extract the event
+# To create the `~mne.Epochs` data structure, we'll extract the event
 # IDs stored in the :term:`stim channel`, map those integer event IDs to more
 # descriptive condition labels using an event dictionary, and pass those to the
-# :class:`~mne.Epochs` constructor, along with the :class:`~mne.io.Raw` data
+# `~mne.Epochs` constructor, along with the `~mne.io.Raw` data
 # and the desired temporal limits of our epochs, ``tmin`` and ``tmax`` (for a
 # detailed explanation of these steps, see :ref:`tut-epochs-class`).
 
 events = mne.find_events(raw, stim_channel='STI 014')
 event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'face': 5, 'buttonpress': 32}
+              'visual/right': 4, 'face': 5, 'button': 32}
 epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, event_id=event_dict,
                     preload=True)
 del raw
@@ -46,14 +46,14 @@ del raw
 #
 # .. sidebar:: Interactivity in pipelines and scripts
 #
-#     To use the interactive features of the :meth:`~mne.Epochs.plot` method
+#     To use the interactive features of the `~mne.Epochs.plot` method
 #     when running your code non-interactively, pass the ``block=True``
 #     parameter, which halts the Python interpreter until the figure window is
 #     closed. That way, any channels or epochs that you mark as "bad" will be
 #     taken into account in subsequent processing steps.
 #
 # To visualize epoched data as time series (one time series per channel), the
-# :meth:`mne.Epochs.plot` method is available. It creates an interactive window
+# `mne.Epochs.plot` method is available. It creates an interactive window
 # where you can scroll through epochs and channels, enable/disable any
 # unapplied :term:`SSP projectors <projector>` to see how they affect the
 # signal, and even manually mark bad channels (by clicking the channel name) or
@@ -66,14 +66,21 @@ del raw
 # <sample-dataset>`, and pass in our events array so that the button press
 # responses also get marked (we'll plot them in red, and plot the "face" events
 # defining time zero for each epoch in blue). We also need to pass in
-# our ``event_dict`` so that the :meth:`~mne.Epochs.plot` method will know what
-# we mean by "buttonpress" — this is because subsetting the conditions by
+# our ``event_dict`` so that the `~mne.Epochs.plot` method will know what
+# we mean by "button" — this is because subsetting the conditions by
 # calling ``epochs['face']`` automatically purges the dropped entries from
 # ``epochs.event_id``:
 
 catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
 epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
-                    event_colors=dict(buttonpress='red', face='blue'))
+                    event_color=dict(button='red', face='blue'))
+
+###############################################################################
+# To see all sensors at once, we can use butterfly mode and group by selection:
+
+epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
+                    event_color=dict(button='red', face='blue'),
+                    group_by='selection', butterfly=True)
 
 ###############################################################################
 # Plotting projectors from an ``Epochs`` object
@@ -192,7 +199,7 @@ epochs['auditory'].plot_image(picks='mag', combine='mean')
 # plot the global field power (useful for combining sensors that respond with
 # opposite polarity).
 
-# sphinx_gallery_thumbnail_number = 10
+# sphinx_gallery_thumbnail_number = 11
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
