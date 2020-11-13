@@ -725,6 +725,8 @@ def _read_gdf_header(fname, exclude):
             exclude = _find_exclude_idx(ch_names, exclude)
             sel = list()
             for i, unit in enumerate(units):
+                if i in exclude:
+                    continue
                 if unit[:2] == 'uV':
                     units[i] = 1e-6
                 else:
@@ -916,6 +918,8 @@ def _read_gdf_header(fname, exclude):
             unitcodes = np.array(units[:])
             sel = list()
             for i, unit in enumerate(units):
+                if i in exclude:
+                    continue
                 if unit == 4275:  # microvolts
                     units[i] = 1e-6
                 elif unit == 4274:  # millivolts
