@@ -1058,6 +1058,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # lgtm
         """Resample all channels.
 
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
+
         .. warning:: The intended purpose of this function is primarily to
                      speed up computations (e.g., projection calculation) when
                      precise timing of events is not required, as downsampling

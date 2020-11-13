@@ -117,6 +117,7 @@ nitpick_ignore = [
     ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
+    ("py:class", "(k, v), remove and return some (key, value) pair as a"),
 ]
 for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
@@ -353,10 +354,9 @@ intersphinx_mapping = {
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     'pyvista': ('https://docs.pyvista.org', None),
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
-    # There are some problems with dipy's redirect:
-    # https://github.com/nipy/dipy/issues/1955
-    'dipy': ('https://dipy.org/documentation/latest',
-             'https://dipy.org/documentation/1.1.1./objects.inv/'),
+    # We need to stick with 1.2.0 for now:
+    # https://github.com/dipy/dipy/issues/2290
+    'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }

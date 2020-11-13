@@ -1116,7 +1116,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     if isinstance(smooth, str):
         _check_option('smooth', smooth, ('nearest',),
                       extra=' when used as a string.')
-        mm = _surf_nearest(vertices_from, e)
+        mm = _surf_nearest(vertices_from, e).tocsr()
     else:
         mm = _surf_upsampling_mat(vertices_from, e, smooth, warn=warn)
     assert mm.shape == (n_vertices, len(vertices_from))

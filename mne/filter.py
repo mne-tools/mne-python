@@ -2018,6 +2018,9 @@ class FilterMixin(object):
                  pad='edge', verbose=None):  # lgtm
         """Resample data.
 
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
+
         .. note:: Data must be loaded.
 
         Parameters

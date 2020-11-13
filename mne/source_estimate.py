@@ -712,6 +712,9 @@ class _BaseSourceEstimate(TimeMixin):
                  verbose=None):
         """Resample data.
 
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
+
         Parameters
         ----------
         sfreq : float
