@@ -42,11 +42,17 @@ jobs:
             PIP: false
 
           # PIP + non-default stim channel + log level info
-          - JOB_NAME: 'pip / pre'
+          - JOB_NAME: 'pip'
             PYTHON_VERSION: '3.8'
             MNE_STIM_CHANNEL: 'STI101'
             MNE_LOGGING_LEVEL: 'info'
             PIP: true
+
+          # Old dependencies
+          - JOB_NAME: 'old'
+            PYTHON_VERSION: '3.6'
+            CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
+            MNE_LOGGING_LEVEL: 'warning'
 
           # Minimal (runs with and without testing data)
           - JOB_NAME: 'minimal'
