@@ -976,12 +976,12 @@ class Brain(object):
             self.clear_glyphs()
             self.remove_labels()
             self.remove_annotations()
+            self.annot = annot
 
             if annot == 'None':
                 self.traces_mode = 'vertex'
                 self._configure_vertex_time_course()
             else:
-                self.annot = annot
                 self.traces_mode = 'label'
                 self._configure_label_time_course()
             self._update()
