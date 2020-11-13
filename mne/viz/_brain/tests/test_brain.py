@@ -310,6 +310,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
                               volume_options={'foo': 'bar'})
 
     brain = _create_testing_brain(hemi='both', show_traces=False)
+    # test sub routines when show_traces=False
+    brain._on_pick(None, None)
+    brain._configure_vertex_time_course()
+    brain._configure_label_time_course()
     brain.setup_time_viewer()  # for coverage
     brain.callbacks["time"](value=0)
     brain.callbacks["orientation_lh_0_0"](
@@ -378,14 +382,6 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
     if src in ('mixed', 'volume'):
         hemi_str.extend(['vol'])
-
-    # test sub routines when show_traces=False
-    brain = _create_testing_brain(
-        hemi=hemi, surf='white', src=src, show_traces=False)
-    brain._on_pick(None, None)
-    brain._configure_vertex_time_course()
-    brain._configure_label_time_course()
-    brain.close()
 
     # label traces
     if src in ('volume', 'mixed'):
