@@ -519,3 +519,23 @@ def modified_env(**d):
                 os.environ[key] = val
             elif key in os.environ:
                 del os.environ[key]
+
+
+def _click_ch_name(fig, ch_index=0, button=1):
+    """Click on a channel name in a raw/epochs/ICA browse-style plot."""
+    from ..viz.utils import _fake_click
+    fig.canvas.draw()
+    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
+    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
+    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
+                xform='data', button=button)
+
+
+def _close_event(fig):
+    """Force calling of the MPL figure close event."""
+    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
+    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+    try:
+        fig.canvas.close_event()
+    except ValueError:  # old mpl with Qt
+        pass  # pragma: no cover
