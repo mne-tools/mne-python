@@ -2,6 +2,8 @@
 
 if [ ! -z "$CONDA_ENV" ]; then
 	conda env update --file $CONDA_ENV
+	CONDA_BASE=$(conda info --base)
+	source $CONDA_BASE/etc/profile.d/conda.sh
 	conda activate mne
 	pip uninstall -yq mne
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
