@@ -16,10 +16,20 @@ jobs:
       run:
         shell: bash
     env:
+      CONDA_DEPENDENCIES: ${{ matrix.CONDA_DEPENDENCIES }}
+      CONDA_ENV: ${{ matrix.CONDA_ENV }}
+      DEPS: ${{ matrix.DEPS }}
       DISPLAY: ':99.0'
+      MNE_DONTWRITE_HOME: ${{ matrix.MNE_DONTWRITE_HOME }}
+      MNE_FORCE_SERIAL: ${{ matrix.FORCE_SERIAL }}
+      MNE_LOGGING_LEVEL: ${{ matrix.MNE_LOGGING_LEVEL }}
       MNE_LOGGING_LEVEL: 'warning'
+      MNE_SKIP_NETWORK_TEST: ${{ matrix.MNE_SKIP_NETWORK_TEST }}
+      MNE_SKIP_TESTING_DATASET_TESTS: ${{ matrix.MNE_SKIP_TESTING_DATASET_TESTS }}
+      MNE_STIM_CHANNEL: ${{ matrix.MNE_STIM_CHANNEL }}
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
+      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
       TRAVIS_OS_NAME: 'linux'
     strategy:
       matrix:
@@ -58,22 +68,18 @@ jobs:
       - if: ${{ matrix.PIP == true }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          python-version: $PYTHON_VERSION
         name: 'Setup python'
       - if: ${{ matrix.PIP == false }}
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          python-version: $PYTHON_VERSION
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
-        env:
-          CONDA_ENV: ${{ matrix.CONDA_ENV }}
-          CONDA_DEPENDENCIES: ${{ matrix.CONDA_DEPENDENCIES }}
-          DEPS: ${{ matrix.DEPS }}
         name: 'Install dependencies'
       - shell: bash -el {0}
         run: ./tools/github_actions_install.sh
@@ -83,17 +89,12 @@ jobs:
         name: 'Show infos'
       - shell: bash -el {0}
         run: ./tools/github_actions_download.sh
-        env:
-          DEPS: ${{ matrix.DEPS }}
         name: 'Download testing data'
       - shell: bash -el {0}
         run: ./tools/github_actions_locale.sh
         name: 'Print locale'
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
-        env:
-          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
-          DEPS: ${{ matrix.DEPS }}
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
         if: success()
