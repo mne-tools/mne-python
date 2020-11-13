@@ -45,7 +45,7 @@ def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
-                        proj=False)
+                        proj=False, preload=False)
     epochs.info.normalize_proj()  # avoid warnings
     return epochs
 
@@ -56,9 +56,14 @@ def epochs():
     return _get_epochs().load_data()
 
 
+def test_plot_epochs_not_preloaded():
+    """Test plotting non-preloaded epochs."""
+    epochs = _get_epochs()
+    epochs.plot()
+
+
 def test_plot_epochs_basic(epochs, capsys):
     """Test epoch plotting."""
-    epochs.load_data()
     assert len(epochs.events) == 1
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title='Epochs')
@@ -105,6 +110,13 @@ def test_plot_epochs_basic(epochs, capsys):
         epochs.plot(title=7)
     # test auto-generated title, and selection mode
     epochs.plot(group_by='selection', title='')
+
+
+@pytest.mark.parametrize('scalings', (dict(mag=1e-12, grad=1e-11, stim='auto'),
+                                      None, 'auto'))
+def test_plot_epochs_scalings(epochs, scalings):
+    """Test the valid options for scalings."""
+    epochs.plot(scalings=scalings)
 
 
 def test_plot_epochs_colors(epochs):
