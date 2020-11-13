@@ -25,20 +25,20 @@ jobs:
       matrix:
         include:
           # Linux
-          - GHA_NAME: 'conda'
+          - JOB_NAME: 'conda'
             PYTHON_VERSION: '3.8'
             CONDA_ENV: 'environment.yml'
             PIP: false
 
           # PIP + non-default stim channel + log level info
-          - GHA_NAME: 'pip/pre'
+          - JOB_NAME: 'pip/pre'
             PYTHON_VERSION: '3.8'
             MNE_STIM_CHANNEL: 'STI101'
             MNE_LOGGING_LEVEL: 'info'
             PIP: true
 
           # Minimal (runs with and without testing data)
-          - GHA_NAME: 'minimal'
+          - JOB_NAME: 'minimal'
             PYTHON_VERSION: '3.6'
             DEPS: 'minimal'
             CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
