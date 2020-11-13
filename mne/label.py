@@ -1534,7 +1534,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         seeds).
     surface : str
         The surface used to grow the labels, defaults to the white surface.
-    colors: ndarray | None
+    colors : ndarray | None
         Whether and how to assign colors to each label. If None then unique
         colors will be chosen automatically (default), otherwise colors will be
         defined based on the array.
