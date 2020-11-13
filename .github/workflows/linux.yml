@@ -23,15 +23,16 @@ jobs:
       TRAVIS_OS_NAME: 'linux'
     strategy:
       matrix:
-        - JOB_NAME: 'conda'
-          PYTHON_VERSION: '3.8'
-          PIP: false
-        - JOB_NAME: 'pip/pre'
-          PYTHON_VERSION: '3.8'
-          PIP: true
-        - JOB_NAME: 'minimal'
-          PYTHON_VERSION: '3.6'
-          PIP: false
+        include:
+          - JOB_NAME: 'conda'
+            PYTHON_VERSION: '3.8'
+            PIP: false
+          - JOB_NAME: 'pip/pre'
+            PYTHON_VERSION: '3.8'
+            PIP: true
+          - JOB_NAME: 'minimal'
+            PYTHON_VERSION: '3.6'
+            PIP: false
     steps:
       # Linux
       - if: ${{ matrix.JOB_NAME == 'conda' }}
