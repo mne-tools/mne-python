@@ -590,3 +590,7 @@ h3.panel-title p {
 #python-api-reference table p {
   -webkit-hyphens: none;
 }
+
+.section h5 {
+  font-weight: bold;
+}

@@ -190,7 +190,8 @@ mne.combine_evoked(
 # If they are stored in a list, they can be easily averaged, for example,
 # for a grand average across subjects (or conditions).
 grand_average = mne.grand_average(all_evokeds)
-mne.write_evokeds('/tmp/tmp-ave.fif', all_evokeds)
+# And they can be written to disk like any other evoked data, e.g.:
+# mne.write_evokeds('tmp-ave.fif', all_evokeds)
 
 # If Evokeds objects are stored in a dictionary, they can be retrieved by name.
 all_evokeds = dict((cond, epochs[cond].average()) for cond in event_id)

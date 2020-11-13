@@ -102,7 +102,7 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     destination = op.join(limo_dir, '%s.zip') % subject_id
 
     # url for subject in question
-    url = op.join(root_url, subject_ids[subject_id], '?zip=')
+    url = root_url + subject_ids[subject_id] + '/?zip='
 
     # check if LIMO directory exists; update if desired
     if not op.isdir(limo_dir) or force_update:
