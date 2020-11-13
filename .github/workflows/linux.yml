@@ -62,12 +62,12 @@ jobs:
           sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         name: 'Setup xvfb'
-      - if: $PIP == true
+      - if: ${{ env.PIP == true }}
         uses: actions/setup-python@v2
         with:
           python-version: $PYTHON_VERSION
         name: 'Setup python'
-      - if: $PIP == false
+      - if: ${{ env.PIP == false }}
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
