@@ -8,9 +8,9 @@ on:
       - '*'
 
 jobs:
-  Pip:
+  main:
     if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
-    name: py${{ matrix.PYTHON_VERSION }} - ${{ matrix.GHA_NAME }}
+    name: ${{ matrix.JOB_NAME }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,21 +24,28 @@ jobs:
     strategy:
       matrix:
         include:
-          # Linux
-          - GHA_NAME: 'conda'
+          - JOB_NAME: 'conda'
+          - JOB_NAME: 'pip/pre'
+          - JOB_NAME: 'minimal'
+    steps:
+      # Linux
+      - if: ${{ matrix.JOB_NAME == 'conda' }}
+        env:
             PYTHON_VERSION: '3.8'
             CONDA_ENV: 'environment.yml'
             PIP: false
 
-          # PIP + non-default stim channel + log level info
-          - GHA_NAME: 'pip/pre'
+      # PIP + non-default stim channel + log level info
+      - if: ${{ matrix.JOB_NAME == 'pip/pre' }}
+        env:
             PYTHON_VERSION: '3.8'
             MNE_STIM_CHANNEL: 'STI101'
             MNE_LOGGING_LEVEL: 'info'
             PIP: true
 
-          # Minimal (runs with and without testing data)
-          - GHA_NAME: 'minimal'
+      # Minimal (runs with and without testing data)
+      - if: ${{ matrix.JOB_NAME == 'minimal' }}
+        env:
             PYTHON_VERSION: '3.6'
             DEPS: 'minimal'
             CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
@@ -47,7 +54,7 @@ jobs:
             MNE_SKIP_NETWORK_TEST: 1
             MNE_SKIP_TESTING_DATASET_TESTS: true
             PIP: false
-    steps:
+
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -55,12 +62,12 @@ jobs:
           sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         name: 'Setup xvfb'
-      - if: ${{ matrix.PIP == true }}
+      - if: ${{ PIP == true }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          python-version: ${{ PYTHON_VERSION }}
         name: 'Setup python'
-      - if: ${{ matrix.PIP == false }}
+      - if: ${{ PIP == false }}
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
