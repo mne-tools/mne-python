@@ -1,11 +1,11 @@
 #!/bin/bash -ef
 
-if [ "$CONDA_ENV" ]; then
+if [ ! -z "$CONDA_ENV" ]; then
 	echo "conda env detected"
 	conda env update --file $CONDA_ENV
 	conda activate mne
 	pip uninstall -yq mne
-elif [ "$CONDA_DEPENDENCIES" ]; then
+elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "conda deps detected"
 	conda install $CONDA_DEPENDENCIES
 else # pip
