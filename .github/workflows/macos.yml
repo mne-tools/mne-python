@@ -8,7 +8,7 @@ on:
       - '*'
 
 jobs:
-  Conda:
+  conda:
     if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     runs-on: macos-latest
     defaults:
@@ -27,9 +27,8 @@ jobs:
           fetch-depth: 0
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: 'mne'
+          auto-activate-base: true
           python-version: ${{ env.PYTHON_VERSION }}
-          environment-file: ${{ env.CONDA_ENV }}
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
