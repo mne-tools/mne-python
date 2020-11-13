@@ -1,11 +1,5 @@
 #!/bin/bash -ef
 
-if [ ! -z "$CONDA_ENV" ]; then
-	CONDA_BASE=$(conda info --base)
-	source $CONDA_BASE/etc/profile.d/conda.sh
-	conda activate mne
-fi
-
 # Remove numpydoc tests on older Python (builtin docstrings not as good)
 if [ "${PYTHON_VERSION}" == "3.6" ]; then
 	pip uninstall -yq numpydoc;

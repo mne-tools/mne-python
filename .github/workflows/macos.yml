@@ -1,4 +1,4 @@
-name: 'MacOS'
+name: 'macos'
 on:
   push:
     branches:
@@ -27,8 +27,9 @@ jobs:
           fetch-depth: 0
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-activate-base: true
+          activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
+          environment-file: ${{ env.CONDA_ENV }}
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |

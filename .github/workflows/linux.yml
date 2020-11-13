@@ -1,4 +1,4 @@
-name: 'Linux'
+name: 'linux'
 on:
   push:
     branches:
@@ -58,13 +58,14 @@ jobs:
       - if: ${{ matrix.PIP == true }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup python'
       - if: ${{ matrix.PIP == false }}
         uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-activate-base: true
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          activate-environment: 'mne'
+          python-version: ${{ env.PYTHON_VERSION }}
+          environment-file: ${{ env.CONDA_ENV }}
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |

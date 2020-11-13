@@ -1,4 +1,4 @@
-name: 'Compatibility'
+name: 'compat'
 on:
   push:
     branches:
@@ -42,7 +42,7 @@ jobs:
 
           # Minimal (runs with and without testing data)
           - JOB_NAME: 'minimal'
-            PYTHON_VERSION: '3.6'
+            PYTHON_VERSION: '3.7'
             DEPS: 'minimal'
             CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
             MNE_DONTWRITE_HOME: true
