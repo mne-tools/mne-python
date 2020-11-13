@@ -1773,6 +1773,8 @@ class MNEBrowseFigure(MNEFigure):
         if 'raw' in (self.mne.instance_type, self.mne.ica_type):
             return self.mne.inst[:, start:stop]
         else:
+            if not self.mne.inst.preload:
+                self.mne.inst.load_data()
             data = np.concatenate(self.mne.inst._data, axis=-1)[:, start:stop]
             times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
                               )[start:stop] / self.mne.info['sfreq']
