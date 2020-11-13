@@ -1502,7 +1502,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 @fill_doc
 def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
-                overlap=True, names=None, surface='white'):
+                overlap=True, names=None, surface='white', colors=None):
     """Generate circular labels in source space with region growing.
 
     This function generates a number of labels in source space by growing
@@ -1534,6 +1534,10 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         seeds).
     surface : str
         The surface used to grow the labels, defaults to the white surface.
+    colors: ndarray | None
+        Whether and how to assign colors to each label. If None then unique
+        colors will be chosen automatically (default), otherwise colors will be
+        defined based on the array.
 
     Returns
     -------
@@ -1615,9 +1619,15 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         labels = _grow_nonoverlapping_labels(subject, seeds, extents, hemis,
                                              vert, dist, names)
 
-    # add a unique color to each label
-    colors = _n_colors(len(labels))
-    for label, color in zip(labels, colors):
+    if colors is None:
+        # add a unique color to each label
+        label_colors = _n_colors(len(labels))
+    else:
+        # use specified colors
+        label_colors = np.zeros([len(labels), 4])
+        label_colors[:, :3] = colors
+
+    for label, color in zip(labels, label_colors):
         label.color = color
 
     return labels
