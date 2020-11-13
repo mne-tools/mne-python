@@ -63,7 +63,7 @@ jobs:
       - if: ${{ matrix.PIP == false }}
         uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: 'base'
+          auto-activate-base: true
           python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup conda'
       - shell: bash -el {0}
