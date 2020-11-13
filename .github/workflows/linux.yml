@@ -23,13 +23,11 @@ jobs:
       TRAVIS_OS_NAME: 'linux'
     strategy:
       matrix:
-        include:
-          - JOB_NAME: 'conda'
-          - JOB_NAME: 'pip/pre'
-          - JOB_NAME: 'minimal'
+        JOB_NAME: ['conda', 'pip/pre', 'minimal']
     steps:
       # Linux
       - if: ${{ matrix.JOB_NAME == 'conda' }}
+        run: echo ${{ matrix.JOB_NAME }}
         env:
             PYTHON_VERSION: '3.8'
             CONDA_ENV: 'environment.yml'
@@ -37,6 +35,7 @@ jobs:
 
       # PIP + non-default stim channel + log level info
       - if: ${{ matrix.JOB_NAME == 'pip/pre' }}
+        run: echo ${{ matrix.JOB_NAME }}
         env:
             PYTHON_VERSION: '3.8'
             MNE_STIM_CHANNEL: 'STI101'
@@ -45,6 +44,7 @@ jobs:
 
       # Minimal (runs with and without testing data)
       - if: ${{ matrix.JOB_NAME == 'minimal' }}
+        run: echo ${{ matrix.JOB_NAME }}
         env:
             PYTHON_VERSION: '3.6'
             DEPS: 'minimal'
