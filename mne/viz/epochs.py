@@ -757,6 +757,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     color = _handle_default('color', None)
     scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
+    if scalings['whitened'] == 'auto':
+        scalings['whitened'] = 1.
     decim, picks_data = _handle_decim(epochs.info.copy(), decim, None)
     noise_cov = _check_cov(noise_cov, epochs.info)
     event_id_rev = {v: k for k, v in (event_id or {}).items()}
