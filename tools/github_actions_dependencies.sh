@@ -1,12 +1,15 @@
 #!/bin/bash -ef
 
 if [ "$CONDA_ENV" ]; then
+	echo "conda env detected"
 	conda env update --file $CONDA_ENV
 	conda activate mne
 	pip uninstall -yq mne
 elif [ "$CONDA_DEPENDENCIES" ]; then
+	echo "conda deps detected"
 	conda install $CONDA_DEPENDENCIES
 else # pip
+	echo "pip env detected"
 	python -m pip install --upgrade pip setuptools wheel
 	pip uninstall -yq numpy
 	pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre "numpy!=1.20.0.dev0+20201111233731.0ffaaf8,!=1.20.0.dev0+20201111232921.0ffaaf8"
