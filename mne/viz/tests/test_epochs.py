@@ -59,7 +59,9 @@ def epochs():
 def test_plot_epochs_not_preloaded():
     """Test plotting non-preloaded epochs."""
     epochs = _get_epochs()
+    assert epochs._data is None
     epochs.plot()
+    assert epochs._data is None
 
 
 def test_plot_epochs_basic(epochs, capsys):

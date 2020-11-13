@@ -1773,9 +1773,9 @@ class MNEBrowseFigure(MNEFigure):
         if 'raw' in (self.mne.instance_type, self.mne.ica_type):
             return self.mne.inst[:, start:stop]
         else:
-            if not self.mne.inst.preload:
-                self.mne.inst.load_data()
-            data = np.concatenate(self.mne.inst._data, axis=-1)[:, start:stop]
+            ix = np.searchsorted(self.mne.boundary_times, self.mne.t_start)
+            item = slice(ix, ix + self.mne.n_epochs)
+            data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
             times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
                               )[start:stop] / self.mne.info['sfreq']
             return data, times
