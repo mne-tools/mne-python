@@ -31,6 +31,7 @@ jobs:
       PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
       TRAVIS_OS_NAME: 'linux'
     strategy:
+      fail-fast: false
       matrix:
         include:
           # Linux
@@ -69,13 +70,13 @@ jobs:
       - if: ${{ matrix.PIP == true }}
         uses: actions/setup-python@v2
         with:
-          python-version: $PYTHON_VERSION
+          python-version: ${{ matrix.PYTHON_VERSION }}
         name: 'Setup python'
       - if: ${{ matrix.PIP == false }}
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
-          python-version: $PYTHON_VERSION
+          python-version: ${{ matrix.PYTHON_VERSION }}
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
