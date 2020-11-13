@@ -24,37 +24,30 @@ jobs:
     strategy:
       matrix:
         include:
-          - JOB_NAME: 'conda'
+          # Linux
+          - GHA_NAME: 'conda'
             PYTHON_VERSION: '3.8'
+            CONDA_ENV: 'environment.yml'
             PIP: false
-          - JOB_NAME: 'pip/pre'
+
+          # PIP + non-default stim channel + log level info
+          - GHA_NAME: 'pip/pre'
             PYTHON_VERSION: '3.8'
+            MNE_STIM_CHANNEL: 'STI101'
+            MNE_LOGGING_LEVEL: 'info'
             PIP: true
-          - JOB_NAME: 'minimal'
+
+          # Minimal (runs with and without testing data)
+          - GHA_NAME: 'minimal'
             PYTHON_VERSION: '3.6'
+            DEPS: 'minimal'
+            CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
+            MNE_DONTWRITE_HOME: true
+            MNE_FORCE_SERIAL: true
+            MNE_SKIP_NETWORK_TEST: 1
+            MNE_SKIP_TESTING_DATASET_TESTS: true
             PIP: false
     steps:
-      # Linux
-      - if: ${{ matrix.JOB_NAME == 'conda' }}
-        run: |
-          echo "CONDA_ENV=environment.yml" >> GITHUB_ENV
-
-      # PIP + non-default stim channel + log level info
-      - if: ${{ matrix.JOB_NAME == 'pip/pre' }}
-        run: |
-          echo "MNE_STIM_CHANNEL=STI101" >> GITHUB_ENV
-          echo "MNE_LOGGING_LEVEL=info" >> GITHUB_ENV
-
-      # Minimal (runs with and without testing data)
-      - if: ${{ matrix.JOB_NAME == 'minimal' }}
-        run: |
-          echo "DEPS=minimal" >> GITHUB_ENV
-          echo "CONDA_DEPENDENCIES=numpy scipy matplotlib" >> GITHUB_ENV
-          echo "MNE_DONTWRITE_HOME=true" >> GITHUB_ENV
-          echo "MNE_FORCE_SERIAL=true" >> GITHUB_ENV
-          echo "MNE_SKIP_NETWORK_TEST=1" >> GITHUB_ENV
-          echo "MNE_SKIP_TESTING_DATASET_TESTS=true" >> GITHUB_ENV
-
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -78,6 +71,10 @@ jobs:
           ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
         name: 'Install dependencies'
+        env:
+          CONDA_ENV: ${{ matrix.CONDA_ENV }}
+          CONDA_DEPENDENCIES: ${{ matrix.CONDA_DEPENDENCIES }}
+          DEPS: ${{ matrix.DEPS }}
       - shell: bash -el {0}
         run: ./tools/github_actions_install.sh
         name: 'Install MNE'
@@ -93,6 +90,9 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
+        env:
+          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+          DEPS: ${{ matrix.DEPS }}
       - uses: codecov/codecov-action@v1
         if: success()
         name: 'Upload coverage to CodeCov'

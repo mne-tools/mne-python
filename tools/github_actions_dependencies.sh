@@ -1,7 +1,5 @@
 #!/bin/bash -ef
 
-cat $GITHUB_ENV
-
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "conda env detected"
 	conda env update --file $CONDA_ENV
