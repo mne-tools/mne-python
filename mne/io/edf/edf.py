@@ -992,7 +992,7 @@ def _read_gdf_header(fname, exclude):
                 meas_id=meas_id, n_records=n_records, n_samps=n_samps,
                 nchan=nchan, notch=notch, subject_info=patient,
                 physical_max=physical_max, physical_min=physical_min,
-                record_length=record_length, ref=ref, units=units)
+                record_length=record_length, ref=ref)
 
             # EVENT TABLE
             # -----------------------------------------------------------------
