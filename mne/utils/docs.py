@@ -1766,6 +1766,12 @@ docdict['baseline_report'] = """%(rescale_baseline)s
 """ % docdict
 
 
+# Other
+docdict['accept'] = """
+accept : bool
+    If True (default False), accept the license terms of this dataset.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)

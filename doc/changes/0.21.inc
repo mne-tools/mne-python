@@ -7,11 +7,23 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
+.. _changes_0_21_2:
+
+Version 0.21.2
+--------------
+
+Bugs
+~~~~
+
+- Add option to disable TQDM entirely with ``MNE_TQDM='off'`` (:gh:`8515` by `Eric Larson`_)
+
+- Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
+
 
 .. _changes_0_21_1:
 
-Version 0.21.1 (unreleased)
----------------------------
+Version 0.21.1
+--------------
 
 .. |Eduard Ort| replace:: **Eduard Ort**
 
@@ -55,8 +67,6 @@ Bugs
 - Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
 
 - When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly by `Richard Höchenberger`_ (:gh:`8434`)
-
-- Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
 
 .. _changes_0_21:
 
