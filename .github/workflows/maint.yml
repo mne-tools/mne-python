@@ -28,10 +28,11 @@ jobs:
         name: 'Setup flake8 annotations'
       - run: make flake
         name: 'Run flake8'
-      - uses: codespell-project/actions-codespell@master
+      - uses: GuillaumeFavelier/actions-codespell@master
         with:
           path: ${{ env.CODESPELL_DIRS }}
           skip: ${{ env.CODESPELL_SKIPS }}
+          quiet_level: '3'
           builtin: 'clear,rare,informal,names'
           ignore_words_file: 'ignore_words.txt'
         name: 'Run codespell'
