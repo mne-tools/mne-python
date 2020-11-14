@@ -6,7 +6,7 @@ Creating MNE objects from data arrays
 =====================================
 
 In this simple example, the creation of MNE objects from
-numpy arrays is demonstrated. In the last example case, a
+NumPy arrays is demonstrated. In the last example case, a
 NEO file format is used as a source for the data.
 """
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
