@@ -127,5 +127,4 @@ def test_gdf_exclude_channels():
     assert 'O1' not in raw.ch_names
 
 
-
 run_tests_if_main()
