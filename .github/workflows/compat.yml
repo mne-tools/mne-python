@@ -8,44 +8,20 @@ on:
       - '*'
 
 jobs:
-  main:
+  old:
     if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
-    name: ${{ matrix.JOB_NAME }}
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     env:
-      CONDA_DEPENDENCIES: ${{ matrix.CONDA_DEPENDENCIES }}
-      DEPS: ${{ matrix.DEPS }}
       DISPLAY: ':99.0'
-      MNE_DONTWRITE_HOME: ${{ matrix.MNE_DONTWRITE_HOME }}
-      MNE_FORCE_SERIAL: ${{ matrix.FORCE_SERIAL }}
       MNE_LOGGING_LEVEL: 'warning'
-      MNE_SKIP_NETWORK_TEST: ${{ matrix.MNE_SKIP_NETWORK_TEST }}
-      MNE_SKIP_TESTING_DATASET_TESTS: ${{ matrix.MNE_SKIP_TESTING_DATASET_TESTS }}
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
-      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
       TRAVIS_OS_NAME: 'linux'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Old dependencies
-          - JOB_NAME: 'old'
-            PYTHON_VERSION: '3.6'
-            CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
-
-          # Minimal (runs with and without testing data)
-          - JOB_NAME: 'minimal'
-            PYTHON_VERSION: '3.7'
-            DEPS: 'minimal'
-            CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
-            MNE_DONTWRITE_HOME: true
-            MNE_FORCE_SERIAL: true
-            MNE_SKIP_NETWORK_TEST: 1
-            MNE_SKIP_TESTING_DATASET_TESTS: true
+      PYTHON_VERSION: '3.6'
+      CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
     steps:
       - uses: actions/checkout@v2
         with:
@@ -57,7 +33,63 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+        name: 'Setup conda'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_dependencies.sh
+          source tools/get_minimal_commands.sh
+        name: 'Install dependencies'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_install.sh
+        name: 'Install MNE'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_infos.sh
+        name: 'Show infos'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_download.sh
+        name: 'Download testing data'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_locale.sh
+        name: 'Print locale'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_test.sh
+        name: 'Run tests'
+      - uses: codecov/codecov-action@v1
+        if: success()
+        name: 'Upload coverage to CodeCov'
+
+  minimal:
+    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      DISPLAY: ':99.0'
+      MNE_LOGGING_LEVEL: 'warning'
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONUNBUFFERED: '1'
+      TRAVIS_OS_NAME: 'linux'
+      PYTHON_VERSION: '3.7'
+      DEPS: 'minimal'
+      CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
+      MNE_DONTWRITE_HOME: true
+      MNE_FORCE_SERIAL: true
+      MNE_SKIP_NETWORK_TEST: 1
+      MNE_SKIP_TESTING_DATASET_TESTS: true
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - run: |
+          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0
+          /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+        name: 'Setup xvfb'
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-activate-base: true
+          python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
