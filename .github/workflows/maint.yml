@@ -32,6 +32,6 @@ jobs:
         with:
           path: ${{ env.CODESPELL_DIRS }}
           skip: ${{ env.CODESPELL_SKIPS }}
-          builtin: 'clear,rare,informal,names,usage'
+          builtin: 'clear,rare,informal,names'
           ignore_words_file: 'ignore_words.txt'
         name: 'Run codespell'
