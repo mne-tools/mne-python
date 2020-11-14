@@ -209,8 +209,7 @@ class Brain(object):
         self._interaction = 'trackball'
 
         if isinstance(background, str):
-            background = \
-             colorConverter.to_rgb(background)
+            background = colorConverter.to_rgb(background)
         self._bg_color = background
         if foreground is None:
             foreground = 'w' if sum(self._bg_color) < 2 else 'k'
