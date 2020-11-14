@@ -20,7 +20,7 @@ Current (0.22.dev0)
 
 .. |Victoria Peterson| replace:: **Victoria Peterson**
 
-    
+
 Enhancements
 ~~~~~~~~~~~~
 - Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
@@ -123,6 +123,8 @@ Bugs
 - Fix bug where BrainVision channel names, event types, and event descriptions containing commas were incorrectly parsed (:gh:`8492` by `Stefan Appelhoff`_)
 
 - Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error (:gh:`8384` by `Mikołaj Magnuski`_)
+
+- Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
 
 API changes
 ~~~~~~~~~~~
