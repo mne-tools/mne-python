@@ -48,10 +48,10 @@ class ProgressBar(object):
         # from ..externals.tqdm import auto
         from ..externals import tqdm
         which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
-        _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.'),
+        _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.', 'off'),
                       extra='beginning')
         logger.debug(f'Using ProgressBar with {which_tqdm}')
-        if which_tqdm != 'tqdm':
+        if which_tqdm not in ('tqdm', 'off'):
             tqdm = getattr(tqdm, which_tqdm.split('.', 1)[1])
         tqdm = tqdm.tqdm
         defaults = dict(
@@ -76,7 +76,7 @@ class ProgressBar(object):
             self._mmap_fname = tf.name
         del tf  # should remove the file
         self._mmap = None
-        disable = logger.level > logging.INFO
+        disable = logger.level > logging.INFO or which_tqdm == 'off'
         self._tqdm = tqdm(
             iterable=self.iterable, desc=mesg, total=self.max_value,
             initial=initial_value, ncols=max_total_width,

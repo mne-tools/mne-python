@@ -47,23 +47,23 @@ else
                 python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
+                python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True, accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_resting.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.brainstorm.bst_resting.data_path(update_path=True))" --accept-brainstorm-license;
+                python -c "import mne; print(mne.datasets.brainstorm.bst_resting.data_path(update_path=True, accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
+                python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True, accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_ctf.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path(update_path=True))" --accept-brainstorm-license;
+                python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path(update_path=True, accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True))" --accept-brainstorm-license;
+                python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True, accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects'))" --accept-hcpmmp-license;
+                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects'), accept=True)";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";

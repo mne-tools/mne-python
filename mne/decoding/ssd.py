@@ -32,7 +32,7 @@ class SSD(BaseEstimator, TransformerMixin):
         It must match the input data.
     filt_params_signal : dict
         Filtering for the frequencies of interest.
-    filt_params_noise  : dict
+    filt_params_noise : dict
         Filtering for the frequencies of non-interest.
     reg : float | str | None (default)
         Which covariance estimator to use.
