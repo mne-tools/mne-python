@@ -16,19 +16,13 @@ jobs:
       run:
         shell: bash
     env:
-      CONDA_DEPENDENCIES: ${{ matrix.CONDA_DEPENDENCIES }}
       CONDA_ENV: ${{ matrix.CONDA_ENV }}
-      DEPS: ${{ matrix.DEPS }}
       DISPLAY: ':99.0'
-      MNE_DONTWRITE_HOME: ${{ matrix.MNE_DONTWRITE_HOME }}
-      MNE_FORCE_SERIAL: ${{ matrix.FORCE_SERIAL }}
       MNE_LOGGING_LEVEL: ${{ matrix.MNE_LOGGING_LEVEL }}
-      MNE_SKIP_NETWORK_TEST: ${{ matrix.MNE_SKIP_NETWORK_TEST }}
-      MNE_SKIP_TESTING_DATASET_TESTS: ${{ matrix.MNE_SKIP_TESTING_DATASET_TESTS }}
       MNE_STIM_CHANNEL: ${{ matrix.MNE_STIM_CHANNEL }}
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
-      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+      PYTHON_VERSION: '3.8'
       TRAVIS_OS_NAME: 'linux'
     strategy:
       fail-fast: false
@@ -36,14 +30,12 @@ jobs:
         include:
           # Linux
           - JOB_NAME: 'conda'
-            PYTHON_VERSION: '3.8'
             CONDA_ENV: 'environment.yml'
             MNE_LOGGING_LEVEL: 'warning'
             PIP: false
 
           # PIP + non-default stim channel + log level info
           - JOB_NAME: 'pip'
-            PYTHON_VERSION: '3.8'
             MNE_STIM_CHANNEL: 'STI101'
             MNE_LOGGING_LEVEL: 'info'
             PIP: true

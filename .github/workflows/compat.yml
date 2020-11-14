@@ -17,15 +17,13 @@ jobs:
         shell: bash
     env:
       CONDA_DEPENDENCIES: ${{ matrix.CONDA_DEPENDENCIES }}
-      CONDA_ENV: ${{ matrix.CONDA_ENV }}
       DEPS: ${{ matrix.DEPS }}
       DISPLAY: ':99.0'
       MNE_DONTWRITE_HOME: ${{ matrix.MNE_DONTWRITE_HOME }}
       MNE_FORCE_SERIAL: ${{ matrix.FORCE_SERIAL }}
-      MNE_LOGGING_LEVEL: ${{ matrix.MNE_LOGGING_LEVEL }}
+      MNE_LOGGING_LEVEL: 'warning'
       MNE_SKIP_NETWORK_TEST: ${{ matrix.MNE_SKIP_NETWORK_TEST }}
       MNE_SKIP_TESTING_DATASET_TESTS: ${{ matrix.MNE_SKIP_TESTING_DATASET_TESTS }}
-      MNE_STIM_CHANNEL: ${{ matrix.MNE_STIM_CHANNEL }}
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
@@ -38,7 +36,6 @@ jobs:
           - JOB_NAME: 'old'
             PYTHON_VERSION: '3.6'
             CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
-            MNE_LOGGING_LEVEL: 'warning'
 
           # Minimal (runs with and without testing data)
           - JOB_NAME: 'minimal'
@@ -47,7 +44,6 @@ jobs:
             CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
             MNE_DONTWRITE_HOME: true
             MNE_FORCE_SERIAL: true
-            MNE_LOGGING_LEVEL: 'warning'
             MNE_SKIP_NETWORK_TEST: 1
             MNE_SKIP_TESTING_DATASET_TESTS: true
     steps:
