@@ -27,8 +27,8 @@ jobs:
         name: 'Run flake8'
       - uses: codespell-project/actions-codespell@master
         with:
-          path: $CODESPELL_DIRS
-          skip: $CODESPELL_SKIPS
+          path: ${{ env.CODESPELL_DIRS }}
+          skip: ${{ env.CODESPELL_SKIPS }}
         name: 'Run codespell'
         env:
           CODESPELL_DIRS: 'mne/ doc/ tutorials/ examples/'
