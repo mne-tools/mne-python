@@ -56,6 +56,8 @@ Bugs
 
 - When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly by `Richard Höchenberger`_ (:gh:`8434`)
 
+- Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
+
 .. _changes_0_21:
 
 Version 0.21
@@ -263,7 +265,7 @@ Enhancements
 
 - Add reader for SNIRF NIRS data in :func:`mne.io.read_raw_snirf` by `Robert Luke`_
 
-- `~mne.Evoked` has gained ``tmin`` and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_		
+- `~mne.Evoked` has gained ``tmin`` and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_
 
 Bugs
 ~~~~
@@ -448,7 +450,7 @@ API changes
 
   1. Arguments to clustering functions, such as `mne.stats.permutation_cluster_test`, and
   2. Function names for defining adjacency, such as `mne.spatio_temporal_src_adjacency` replacing ``mne.spatio_temporal_src_connectivity``.
-  
+
   The complete list of changed function names is:
 
   - ``mne.channels.find_ch_connectivity`` → `~mne.channels.find_ch_adjacency`
