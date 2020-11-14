@@ -2318,7 +2318,7 @@ def _add_interpolator(sp):
                 interp[:, s['inuse'].astype(bool)].sum(1)
             )[:, 0].astype(bool).astype(float)
         )
-        s['interpolator'] = any_ * interp
+        s['interpolator'] = any_ @ interp
         logger.info('    %d/%d nonzero values for %s'
                     % (len(s['interpolator'].data), nvox, s['seg_name']))
     logger.info('[done]')
