@@ -2295,36 +2295,57 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
-    s = sp[0]
-    mri_width, mri_height, mri_depth, nvox = _src_vol_dims(s)
+    mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #
     # Convert MRI voxels from destination (MRI volume) to source (volume
     # source space subset) coordinates
     #
-    combo_trans = combine_transforms(s['vox_mri_t'],
-                                     invert_transform(s['src_mri_t']),
+    combo_trans = combine_transforms(sp[0]['vox_mri_t'],
+                                     invert_transform(sp[0]['src_mri_t']),
                                      'mri_voxel', 'mri_voxel')
 
     logger.info('Setting up volume interpolation ...')
-    interp = _grid_interp(s['vol_dims'], (mri_width, mri_height, mri_depth),
-                          combo_trans['trans'])
+    inuse = np.zeros(sp[0]['np'], bool)
+    for s_ in sp:
+        np.logical_or(inuse, s_['inuse'], out=inuse)
+    interp = _grid_interp(
+        sp[0]['vol_dims'], (mri_width, mri_height, mri_depth),
+        combo_trans['trans'], order=1, inuse=inuse)
+    assert isinstance(interp, sparse.csr_matrix)
 
     # Compose the sparse matrices
     for si, s in enumerate(sp):
-        # limit it columns that have any contribution from inuse
-        any_ = sparse.diags(
-            np.asarray(
-                interp[:, s['inuse'].astype(bool)].sum(1)
-            )[:, 0].astype(bool).astype(float)
-        )
-        s['interpolator'] = any_ @ interp
+        if len(sp) == 1:  # no need to do these gymnastics
+            this_interp = interp
+        else:  # limit it rows that have any contribution from inuse
+            # This is the same as the following, but more efficient:
+            # not_any_ = ~(np.asarray(
+            #     interp[:, s['inuse'].astype(bool)].sum(1)
+            # )[:, 0].astype(bool))
+            not_any = np.zeros(interp.indices.size + 1, np.int64)
+            not_any[1:] = s['inuse'][interp.indices]
+            np.cumsum(not_any, out=not_any)
+            not_any = np.diff(not_any[interp.indptr]) == 0
+            assert not_any.shape == (interp.shape[0],)
+            which = np.repeat(not_any, np.diff(interp.indptr))
+            indptr = np.empty_like(interp.indptr)
+            indptr[0] = 0
+            indptr[1:] = np.diff(interp.indptr)
+            indptr[1:][not_any] = 0
+            np.cumsum(indptr, out=indptr)
+            indices = np.delete(interp.indices, which)
+            data = np.delete(interp.data, which)
+            assert data.shape == indices.shape == (indptr[-1],)
+            this_interp = sparse.csr_matrix(
+                (data, indices, indptr), shape=interp.shape)
+        s['interpolator'] = this_interp
         logger.info('    %d/%d nonzero values for %s'
                     % (len(s['interpolator'].data), nvox, s['seg_name']))
     logger.info('[done]')
 
 
-def _grid_interp(from_shape, to_shape, trans, order=1):
+def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     """Compute a grid-to-grid linear or nearest interpolation given."""
     from_shape = np.array(from_shape, int)
     to_shape = np.array(to_shape, int)
@@ -2332,8 +2353,12 @@ def _grid_interp(from_shape, to_shape, trans, order=1):
     assert trans.shape == (4, 4) and np.array_equal(trans[3], [0, 0, 0, 1])
     assert from_shape.shape == to_shape.shape == (3,)
     shape = (np.prod(to_shape), np.prod(from_shape))
+    if inuse is None:
+        inuse = np.ones(shape[1], bool)
+    assert inuse.dtype == bool
+    assert inuse.shape == (shape[1],)
     data, indices, indptr = _grid_interp_jit(
-        from_shape, to_shape, trans, order)
+        from_shape, to_shape, trans, order, inuse)
     data = np.concatenate(data)
     indices = np.concatenate(indices)
     indptr = np.cumsum(indptr)
@@ -2342,7 +2367,7 @@ def _grid_interp(from_shape, to_shape, trans, order=1):
 
 
 # This is all set up to do jit, but it's actually slower!
-def _grid_interp_jit(from_shape, to_shape, trans, order):
+def _grid_interp_jit(from_shape, to_shape, trans, order, inuse):
     # Loop over slices to save (lots of) memory
     # Note that it is the slowest incrementing index
     # This is equivalent to using mgrid and reshaping, but faster
@@ -2414,8 +2439,6 @@ def _grid_interp_jit(from_shape, to_shape, trans, order):
         mask[:, 6] = jjp1_g & kkp1_g & ppp1_g
         vss[:, 7] = _vol_vertex(width, height, jj, kkp1, ppp1)
         mask[:, 7] = jj_g & kkp1_g & ppp1_g
-        indices.append(vss[mask])
-        indptr[good + p * mri_height * mri_width + 1] = mask.sum(1)
 
         # figure out weights for each vertex
         xf = r0s[:, 0] - rns[:, 0].astype(np.float64)
@@ -2434,6 +2457,18 @@ def _grid_interp_jit(from_shape, to_shape, trans, order):
         this_w[:, 5] = xf * omyf * zf
         this_w[:, 6] = xf * yf * zf
         this_w[:, 7] = omxf * yf * zf
+
+        # eliminate zeros
+        mask[this_w <= 0] = False
+
+        # eliminate rows where none of inuse are actually present
+        row_mask = mask.copy()
+        row_mask[mask] = inuse[vss[mask]]
+        mask[~(row_mask.any(axis=-1))] = False
+
+        # construct the parts we need
+        indices.append(vss[mask])
+        indptr[good + p * mri_height * mri_width + 1] = mask.sum(1)
         data.append(this_w[mask])
     return data, indices, indptr
 
@@ -3055,11 +3090,13 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
             if name in s0 or name in s1:
                 assert name in s0, f'{name} in s1 but not s0'
                 assert name in s1, f'{name} in s1 but not s0'
+                n = np.prod(s0['interpolator'].shape)
                 diffs = (s0['interpolator'] - s1['interpolator']).data
                 if len(diffs) > 0 and 'nointerp' not in mode:
-                    # 10%
+                    # 0.1%
                     assert_array_less(
-                        np.sqrt(np.mean(diffs ** 2)), 0.10, err_msg=name)
+                        np.sqrt(np.sum(diffs * diffs) / n), 0.001,
+                        err_msg=f'{name} > 0.1%')
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
             if s0[name] is None:
                 assert_(s1[name] is None, name)
