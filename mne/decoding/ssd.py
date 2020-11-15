@@ -71,9 +71,9 @@ class SSD(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    filters_ : array, shape(n_channels, n_components)
+    filters_ : array, shape (n_channels, n_components)
         The spatial filters to be multiplied with the signal.
-    patterns_ : array, shape(n_components, n_channels)
+    patterns_ : array, shape (n_components, n_channels)
         The patterns for reconstructing the signal from the filtered data.
 
     References
@@ -182,7 +182,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X):
         """Estimate epochs sources given the SSD filters.
 
         Parameters
@@ -191,8 +191,6 @@ class SSD(BaseEstimator, TransformerMixin):
             The input data from which to estimate the SSD. Either 2D array
             obtained from continuous data or 3D array obtained from epoched
             data.
-        y : None | array, shape (n_samples,)
-            Used for scikit-learn compatibility.
 
         Returns
         -------
@@ -253,12 +251,11 @@ class SSD(BaseEstimator, TransformerMixin):
         sorter_spec = spec_ratio.argsort()[::-1]
         return spec_ratio, sorter_spec
 
-    def apply(self):
-        """Not implemented, see ssd.inverse_transform() instead."""
-        # Exists because of _XdawnTransformer
-        raise NotImplementedError('See ssd.inverse_transform()')
+    def inverse_transform(self):
+        """Not implemented yet."""
+        raise NotImplementedError('inverse_transform is not yet available.')
 
-    def inverse_transform(self, X):
+    def apply_array(self, X):
         """Remove selected components from the signal.
 
         This procedure will reconstruct M/EEG signals from which the dynamics

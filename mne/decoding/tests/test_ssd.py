@@ -25,19 +25,19 @@ def simulate_data(freqs_sig=[9, 12], n_trials=100, n_channels=20,
     Data are simulated in the statistical source space, where n=n_components
     sources contain the peak of interest.
     """
-    rs = np.random.RandomState(random_state)
+    rng = np.random.RandomState(random_state)
 
     filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
                               l_trans_bandwidth=1, h_trans_bandwidth=1,
                               fir_design='firwin')
 
     # generate an orthogonal mixin matrix
-    mixing_mat = np.linalg.svd(rs.randn(n_channels, n_channels))[0]
+    mixing_mat = np.linalg.svd(rng.randn(n_channels, n_channels))[0]
     # define sources
-    S_s = rs.randn(n_trials * n_samples, n_components)
+    S_s = rng.randn(n_trials * n_samples, n_components)
     # filter source in the specific freq. band of interest
     S_s = filter_data(S_s.T, samples_per_second, **filt_params_signal).T
-    S_n = rs.randn(n_trials * n_samples, n_channels - n_components)
+    S_n = rng.randn(n_trials * n_samples, n_channels - n_components)
     S = np.hstack((S_s, S_n))
     # mix data
     X_s = np.dot(mixing_mat[:, :n_components], S_s.T).T
@@ -133,7 +133,7 @@ def test_ssd():
     ssd = SSD(info, filt_params_signal, filt_params_noise,
               n_components=None, sort_by_spectral_ratio=False)
     ssd.fit(X)
-    X_denoised = ssd.inverse_transform(X)
+    X_denoised = ssd.apply_array(X)
     assert_array_almost_equal(X_denoised, X)
 
     # Power ratio ordering
