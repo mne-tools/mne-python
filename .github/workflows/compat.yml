@@ -8,6 +8,7 @@ on:
       - '*'
 
 jobs:
+  # Old dependencies
   old:
     if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     runs-on: ubuntu-latest
@@ -15,13 +16,13 @@ jobs:
       run:
         shell: bash
     env:
+      CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
       DISPLAY: ':99.0'
       MNE_LOGGING_LEVEL: 'warning'
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
-      TRAVIS_OS_NAME: 'linux'
       PYTHON_VERSION: '3.6'
-      CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
+      TRAVIS_OS_NAME: 'linux'
     steps:
       - uses: actions/checkout@v2
         with:
@@ -59,6 +60,7 @@ jobs:
         if: success()
         name: 'Upload coverage to CodeCov'
 
+  # Minimal (runs with and without testing data)
   minimal:
     if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     runs-on: ubuntu-latest
@@ -66,18 +68,18 @@ jobs:
       run:
         shell: bash
     env:
-      DISPLAY: ':99.0'
-      MNE_LOGGING_LEVEL: 'warning'
-      OPENBLAS_NUM_THREADS: '1'
-      PYTHONUNBUFFERED: '1'
-      TRAVIS_OS_NAME: 'linux'
-      PYTHON_VERSION: '3.7'
-      DEPS: 'minimal'
       CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
+      DEPS: 'minimal'
+      DISPLAY: ':99.0'
       MNE_DONTWRITE_HOME: true
       MNE_FORCE_SERIAL: true
+      MNE_LOGGING_LEVEL: 'warning'
       MNE_SKIP_NETWORK_TEST: 1
       MNE_SKIP_TESTING_DATASET_TESTS: true
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHON_VERSION: '3.7'
+      TRAVIS_OS_NAME: 'linux'
     steps:
       - uses: actions/checkout@v2
         with:
