@@ -4,7 +4,7 @@ Generate a left cerebellum volume source space
 ==============================================
 
 Generate a volume source space of the left cerebellum and plot its vertices
-relative to the left cortical surface source space and the freesurfer
+relative to the left cortical surface source space and the FreeSurfer
 segmentation file.
 
 """
