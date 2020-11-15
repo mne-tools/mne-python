@@ -4,12 +4,12 @@
 
 import numpy as np
 from scipy.linalg import eigh
-from ..filter import filter_data
-from ..cov import _regularized_covariance
-from . import TransformerMixin, BaseEstimator
-from ..time_frequency import psd_array_welch
-from ..utils import _time_mask, fill_doc, _validate_type, _check_option
-from ..io.pick import _get_channel_types, _picks_to_idx
+from mne.filter import filter_data
+from mne.cov import _regularized_covariance
+from sklearn.base import BaseEstimator, TransformerMixin
+from mne.time_frequency import psd_array_welch
+from mne.utils import _time_mask, fill_doc, _validate_type, _check_option
+from mne.io.pick import _get_channel_types, _picks_to_idx
 
 
 @fill_doc
@@ -178,7 +178,14 @@ class SSD(BaseEstimator, TransformerMixin):
         self.eigvals_ = eigvals_[ix]
         self.filters_ = eigvects_[:, ix]
         self.patterns_ = np.linalg.pinv(self.filters_)
-
+        # We assume that ordering by spectral ratio is more important
+        # than the initial ordering. This ording should be also learned when
+        # fitting.
+        X_ssd = self.filters_.T @ X[..., self.picks_, :]
+        sorter_spec = Ellipsis
+        if self.sort_by_spectral_ratio:
+            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
+        self.sorter_spec = sorter_spec
         return self
 
     def transform(self, X):
@@ -199,18 +206,15 @@ class SSD(BaseEstimator, TransformerMixin):
         self._check_X(X)
         if self.filters_ is None:
             raise RuntimeError('No filters available. Please first call fit')
-
+        if self.return_filtered:
+            X_aux = X[..., self.picks_, :]
+            X = filter_data(X_aux, self.info['sfreq'],
+                            **self.filt_params_signal)
         X_ssd = self.filters_.T @ X[..., self.picks_, :]
-        # We assume that ordering by spectral ratio is more important
-        # than the initial ordering. This is why we apply component picks
-        # after ordering.
-        sorter_spec = Ellipsis
-        if self.sort_by_spectral_ratio:
-            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
         if X.ndim == 2:
-            X_ssd = X_ssd[sorter_spec][:self.n_components]
+            X_ssd = X_ssd[self.sorter_spec][:self.n_components]
         else:
-            X_ssd = X_ssd[:, sorter_spec, :][:, :self.n_components, :]
+            X_ssd = X_ssd[:, self.sorter_spec, :][:, :self.n_components, :]
         return X_ssd
 
     def get_spectral_ratio(self, ssd_sources):
@@ -222,7 +226,7 @@ class SSD(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         ssd_sources : array
-            Data projectded to SSD space.
+            Data projected to SSD space.
 
         Returns
         -------
@@ -278,10 +282,6 @@ class SSD(BaseEstimator, TransformerMixin):
             The processed data.
         """
         X_ssd = self.transform(X)
-        sorter_spec = Ellipsis
-        if self.sort_by_spectral_ratio:
-            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
-
-        pick_patterns = self.patterns_[sorter_spec, :self.n_components].T
+        pick_patterns = self.patterns_[self.sorter_spec][:self.n_components].T
         X = pick_patterns @ X_ssd
         return X

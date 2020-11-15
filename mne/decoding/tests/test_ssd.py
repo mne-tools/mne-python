@@ -135,13 +135,28 @@ def test_ssd():
     ssd.fit(X)
     X_denoised = ssd.apply(X)
     assert_array_almost_equal(X_denoised, X)
+    # denoised by low-rank-factorization
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=n_components, sort_by_spectral_ratio=True)
+    ssd.fit(X)
+    X_denoised = ssd.apply(X)
+    assert (np.linalg.matrix_rank(X_denoised) == n_components)
 
     # Power ratio ordering
-    spec_ratio, _ = ssd.get_spectral_ratio(ssd.transform(X))
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=False)
+    ssd.fit(X)
+    spec_ratio, sorter_spec = ssd.get_spectral_ratio(ssd.transform(X))
     # since we now that the number of true components is 5, the relative
     # difference should be low for the first 5 components and then increases
     index_diff = np.argmax(-np.diff(spec_ratio))
     assert index_diff == n_components_true - 1
+    # check sort_by_spectral_ratio
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=True)
+    ssd.fit(X)
+    sorter_spec2 = ssd.sorter_spec
+    assert all(sorter_spec == sorter_spec2)
 
     # Check detected peaks
     # fit ssd
