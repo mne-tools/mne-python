@@ -21,6 +21,8 @@ Bugs
 
 - Fix bug in :func:`mne.preprocessing.compute_fine_calibration` where the magnetometer calibration coefficients were computed incorrectly (:gh:`8522` by `Eric Larson`_)
 
+- Fix bug in :class:`mne.preprocessing.Xdawn` tests by `Eric Larson`_ (:gh:`8496`)
+
 
 .. _changes_0_21_1:
 
