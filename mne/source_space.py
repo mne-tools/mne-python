@@ -2320,22 +2320,22 @@ def _add_interpolator(sp):
             this_interp = interp
         else:  # limit it rows that have any contribution from inuse
             # This is the same as the following, but more efficient:
-            # not_any_ = ~(np.asarray(
+            # any_ = np.asarray(
             #     interp[:, s['inuse'].astype(bool)].sum(1)
-            # )[:, 0].astype(bool))
-            not_any = np.zeros(interp.indices.size + 1, np.int64)
-            not_any[1:] = s['inuse'][interp.indices]
-            np.cumsum(not_any, out=not_any)
-            not_any = np.diff(not_any[interp.indptr]) == 0
-            assert not_any.shape == (interp.shape[0],)
-            which = np.repeat(not_any, np.diff(interp.indptr))
+            # )[:, 0].astype(bool)
+            any_ = np.zeros(interp.indices.size + 1, np.int64)
+            any_[1:] = s['inuse'][interp.indices]
+            np.cumsum(any_, out=any_)
+            any_ = np.diff(any_[interp.indptr]) > 0
+            assert any_.shape == (interp.shape[0],)
             indptr = np.empty_like(interp.indptr)
             indptr[0] = 0
             indptr[1:] = np.diff(interp.indptr)
-            indptr[1:][not_any] = 0
+            indptr[1:][~any_] = 0
             np.cumsum(indptr, out=indptr)
-            indices = np.delete(interp.indices, which)
-            data = np.delete(interp.data, which)
+            mask = np.repeat(any_, np.diff(interp.indptr))
+            indices = interp.indices[mask]
+            data = interp.data[mask]
             assert data.shape == indices.shape == (indptr[-1],)
             this_interp = sparse.csr_matrix(
                 (data, indices, indptr), shape=interp.shape)
