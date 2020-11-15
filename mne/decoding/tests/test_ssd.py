@@ -133,7 +133,7 @@ def test_ssd():
     ssd = SSD(info, filt_params_signal, filt_params_noise,
               n_components=None, sort_by_spectral_ratio=False)
     ssd.fit(X)
-    X_denoised = ssd.apply_array(X)
+    X_denoised = ssd.apply(X)
     assert_array_almost_equal(X_denoised, X)
 
     # Power ratio ordering

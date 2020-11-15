@@ -255,13 +255,17 @@ class SSD(BaseEstimator, TransformerMixin):
         """Not implemented yet."""
         raise NotImplementedError('inverse_transform is not yet available.')
 
-    def apply_array(self, X):
+    def apply(self, X):
         """Remove selected components from the signal.
 
         This procedure will reconstruct M/EEG signals from which the dynamics
         described by the excluded components is subtracted
         (denoised by low-rank factorization).
         See :footcite:`HaufeEtAl2014b` for more information.
+
+        .. note:: Only NumPy arrays are supported
+           At this point, unlike in other classes with an apply method,
+           only NumPy arrays are supported but not instances of MNE objects.
 
         Parameters
         ----------
