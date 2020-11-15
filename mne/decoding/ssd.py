@@ -42,8 +42,7 @@ class SSD(BaseEstimator, TransformerMixin):
         method to :func:`mne.compute_covariance`.
     n_components : int | None (default None)
         The number of components to extract from the signal.
-        If n_components is None, no dimensionality reduction is applied, and
-        the transformed data is projected in the whole source space.
+        If n_components is None, no dimensionality reduction is applied.
     picks : array of int | None (default None)
         The indices of good channels.
     sort_by_spectral_ratio : bool (default False)
@@ -54,7 +53,7 @@ class SSD(BaseEstimator, TransformerMixin):
         If return_filtered is True, data is bandpassed and projected onto
         the SSD components.
     n_fft : int (default None)
-       If sort_by_spectral_ratio is set to True, then the sources will be
+       If sort_by_spectral_ratio is set to True, then the SSD sources will be
        sorted accordingly to their spectral ratio which is calculated based on
        :func:`mne.time_frequency.psd_array_welch` function. The n_fft parameter
        set the length of FFT used.
@@ -223,7 +222,7 @@ class SSD(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         ssd_sources : array
-            Data proyected on source space.
+            Data projectded to SSD space.
 
         Returns
         -------
