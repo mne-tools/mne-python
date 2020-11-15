@@ -4,7 +4,7 @@ if [ "${DEPS}" != "minimal" ]; then
 	pushd ~ > /dev/null
 	export MNE_ROOT="${PWD}/minimal_cmds"
 	export PATH=${MNE_ROOT}/bin:$PATH
-	if [ "${TRAVIS_OS_NAME}" != "osx" ]; then
+	if [ "${CI_OS_NAME}" != "osx" ]; then
 		if [ ! -d "${PWD}/minimal_cmds" ]; then
 			curl -L https://osf.io/g7dzs/download | tar xz
 		fi;

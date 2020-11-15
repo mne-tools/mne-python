@@ -22,7 +22,6 @@ jobs:
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.6'
-      TRAVIS_OS_NAME: 'linux'
     steps:
       - uses: actions/checkout@v2
         with:
@@ -79,7 +78,6 @@ jobs:
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.7'
-      TRAVIS_OS_NAME: 'linux'
     steps:
       - uses: actions/checkout@v2
         with:

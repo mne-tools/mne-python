@@ -13,7 +13,7 @@ if [ "${DEPS}" == "minimal" ]; then
 fi;
 
 USE_DIRS="mne/"
-if [ "${TRAVIS_OS_NAME}" != "osx" ]; then
+if [ "${CI_OS_NAME}" != "osx" ]; then
   CONDITION="not ultraslowtest"
 else
   CONDITION="not slowtest"
