@@ -42,8 +42,7 @@ class SSD(BaseEstimator, TransformerMixin):
         method to :func:`mne.compute_covariance`.
     n_components : int | None (default None)
         The number of components to extract from the signal.
-        If n_components is None, no dimensionality reduction is applied, and
-        the transformed data is projected in the whole source space.
+        If n_components is None, no dimensionality reduction is applied.
     picks : array of int | None (default None)
         The indices of good channels.
     sort_by_spectral_ratio : bool (default False)
@@ -54,7 +53,7 @@ class SSD(BaseEstimator, TransformerMixin):
         If return_filtered is True, data is bandpassed and projected onto
         the SSD components.
     n_fft : int (default None)
-       If sort_by_spectral_ratio is set to True, then the sources will be
+       If sort_by_spectral_ratio is set to True, then the SSD sources will be
        sorted accordingly to their spectral ratio which is calculated based on
        :func:`mne.time_frequency.psd_array_welch` function. The n_fft parameter
        set the length of FFT used.
@@ -71,9 +70,9 @@ class SSD(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    filters_ : array, shape(n_channels, n_components)
+    filters_ : array, shape (n_channels, n_components)
         The spatial filters to be multiplied with the signal.
-    patterns_ : array, shape(n_components, n_channels)
+    patterns_ : array, shape (n_components, n_channels)
         The patterns for reconstructing the signal from the filtered data.
 
     References
@@ -182,7 +181,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X):
         """Estimate epochs sources given the SSD filters.
 
         Parameters
@@ -191,8 +190,6 @@ class SSD(BaseEstimator, TransformerMixin):
             The input data from which to estimate the SSD. Either 2D array
             obtained from continuous data or 3D array obtained from epoched
             data.
-        y : None | array, shape (n_samples,)
-            Used for scikit-learn compatibility.
 
         Returns
         -------
@@ -225,7 +222,7 @@ class SSD(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         ssd_sources : array
-            Data proyected on source space.
+            Data projectded to SSD space.
 
         Returns
         -------
@@ -253,18 +250,20 @@ class SSD(BaseEstimator, TransformerMixin):
         sorter_spec = spec_ratio.argsort()[::-1]
         return spec_ratio, sorter_spec
 
-    def apply(self):
-        """Not implemented, see ssd.inverse_transform() instead."""
-        # Exists because of _XdawnTransformer
-        raise NotImplementedError('See ssd.inverse_transform()')
+    def inverse_transform(self):
+        """Not implemented yet."""
+        raise NotImplementedError('inverse_transform is not yet available.')
 
-    def inverse_transform(self, X):
+    def apply(self, X):
         """Remove selected components from the signal.
 
         This procedure will reconstruct M/EEG signals from which the dynamics
         described by the excluded components is subtracted
         (denoised by low-rank factorization).
         See :footcite:`HaufeEtAl2014b` for more information.
+
+        .. note:: Unlike in other classes with an apply method,
+           only NumPy arrays are supported (not instances of MNE objects).
 
         Parameters
         ----------
