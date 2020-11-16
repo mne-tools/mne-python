@@ -19,9 +19,6 @@ jobs:
     PYTHON_VERSION: '3.8'
     PYTHON_ARCH: 'x64'
   steps:
-  - bash: exit 0
-    condition: or(contains(variables['Build.SourceVersionMessage'], '[skip azp]'), contains(variables['Build.SourceVersionMessage'], '[azp skip]'), contains(variables['Build.SourceVersionMessage'], '[skip ci]'), contains(variables['Build.SourceVersionMessage'], '[ci skip]'))
-    displayName: 'CHECK: check if commit contains CI skip'
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
@@ -70,9 +67,6 @@ jobs:
     DISPLAY: ':99'
     OPENBLAS_NUM_THREADS: '1'
   steps:
-  - bash: exit 0
-    condition: or(contains(variables['Build.SourceVersionMessage'], '[skip azp]'), contains(variables['Build.SourceVersionMessage'], '[azp skip]'), contains(variables['Build.SourceVersionMessage'], '[skip ci]'), contains(variables['Build.SourceVersionMessage'], '[ci skip]'))
-    displayName: 'CHECK: check if commit contains CI skip'
   - bash: |
       sudo apt install libxkbcommon-x11-0 xvfb tcsh libxcb*
     displayName: 'Install Ubuntu dependencies'
@@ -125,9 +119,6 @@ jobs:
   pool:
     vmImage: 'ubuntu-18.04'
   steps:
-  - bash: exit 0
-    condition: or(contains(variables['Build.SourceVersionMessage'], '[skip azp]'), contains(variables['Build.SourceVersionMessage'], '[azp skip]'), contains(variables['Build.SourceVersionMessage'], '[skip ci]'), contains(variables['Build.SourceVersionMessage'], '[ci skip]'))
-    displayName: 'CHECK: check if commit contains CI skip'
   - bash: |
       set -e
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
@@ -187,9 +178,6 @@ jobs:
         PYTHON_VERSION: '3.8'
         OPENBLAS_CORETYPE: 'prescott'  # workaround for https://github.com/numpy/numpy/issues/16913
   steps:
-  - bash: exit 0
-    condition: or(contains(variables['Build.SourceVersionMessage'], '[skip azp]'), contains(variables['Build.SourceVersionMessage'], '[azp skip]'), contains(variables['Build.SourceVersionMessage'], '[skip ci]'), contains(variables['Build.SourceVersionMessage'], '[ci skip]'))
-    displayName: 'CHECK: check if commit contains CI skip'
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
