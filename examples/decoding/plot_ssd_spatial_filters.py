@@ -1,6 +1,6 @@
 """
 ===========================================================
-Compute Sepctro-Spatial Decomposition (SDD) spatial filters
+Compute Sepctro-Spatial Decomposition (SSD) spatial filters
 ===========================================================
 
 In this example, we will compute spatial filters for retaining
@@ -39,7 +39,7 @@ freqs_noise = 8, 13
 
 ssd = SSD(info=raw.info,
           reg='oas',
-          sort_by_spectral_ratio=False,  # True is recommended here.
+          sort_by_spectral_ratio=False,  # False for purpose of example.
           filt_params_signal=dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
                                   l_trans_bandwidth=1, h_trans_bandwidth=1),
           filt_params_noise=dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
@@ -68,6 +68,7 @@ psd, freqs = mne.time_frequency.psd_array_welch(
     ssd_sources, sfreq=raw.info['sfreq'], n_fft=4096)
 
 # Get spec_ratio information (already sorted).
+# Note that this is not necessary if sort_by_spectral_ratio=True (default).
 spec_ratio, sorter = ssd.get_spectral_ratio(ssd_sources)
 
 # Plot spectral ratio (see Eq. 24 in Nikulin 2011).

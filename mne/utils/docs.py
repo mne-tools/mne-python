@@ -1933,6 +1933,12 @@ reject : dict | str | None
     (default), then the rejection parameters set at instantiation are used.
 """
 
+# Other
+docdict['accept'] = """
+accept : bool
+    If True (default False), accept the license terms of this dataset.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
