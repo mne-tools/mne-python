@@ -20,51 +20,49 @@ jobs:
     PYTHON_ARCH: 'x64'
   steps:
   - bash: |
-      commit_msg=`git log -n 10 --pretty=format:"%s"`
+      commit_msg=`git log -n 2 --pretty=format:"%s"`
       echo "commit_msg=${commit_msg}"
       echo "##vso[task.setvariable variable=commit_msg]${commit_msg}"
-  - bash: echo ${{ variables.commit_msg }}
-  - bash: echo "Run tests"
-    condition: not(contains(variables.commit_msg, '[skip ci]'))
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
       architecture: $(PYTHON_ARCH)
       addToPath: true
     displayName: 'Get Python'
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
       python -m pip install numpy scipy matplotlib -r requirements_testing.txt
     displayName: Install dependencies
-    condition: always()
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
   - bash: |
       make flake
     displayName: make flake
-    condition: always()
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
   - bash: |
       make pydocstyle
     displayName: make pydocstyle
-    condition: always()
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
   - bash: |
       make codespell-error
     displayName: make codespell-error
-    condition: always()
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
   - bash: |
       make docstring
     displayName: make docstring
   - bash: |
       make nesting
     displayName: make nesting
-    condition: always()
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
   - bash: |
       make check-manifest
     displayName: make check-manifest
-    condition: always()
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
   - bash: |
       make check-readme
     displayName: make check-readme
-    condition: always()
+    condition: and(not(contains(variables.commit_msg, '[skip azp]'), not(contains(variables.commit_msg, '[azp skip]'), not(contains(variables.commit_msg, '[skip ci]')), not(contains(variables.commit_msg, '[ci skip]'))))
 
 
 - job: Ultraslow
