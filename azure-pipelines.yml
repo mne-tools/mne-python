@@ -10,6 +10,10 @@ pr:
     include:
       - '*'  # must quote since "*" is a YAML reserved character; we want a string
 
+variables:
+- name: github_status
+  value: ''
+
 jobs:
 
 - job: Style
@@ -19,6 +23,11 @@ jobs:
     PYTHON_VERSION: '3.8'
     PYTHON_ARCH: 'x64'
   steps:
+  - bash: echo ${{ variables.github_status }}
+  - bash: |
+      commit_msg=$(git log HEAD~2..HEAD~1 --pretty=%B)
+      echo "##vso[task.setvariable variable=github_status]${commit_msg}"
+  - bash: echo ${{ variables.github_status }}
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
