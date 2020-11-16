@@ -1534,10 +1534,10 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         seeds).
     surface : str
         The surface used to grow the labels, defaults to the white surface.
-    colors : ndarray | None
-        Whether and how to assign colors to each label. If None then unique
-        colors will be chosen automatically (default), otherwise colors will be
-        defined based on the array.
+    colors : array, shape (n, 4) | None
+        How to assign colors to each label. If None then unique colors will be
+        chosen automatically (default), otherwise colors will be defined based
+        on the array. For RGB colors the first three columns will be used.
 
     Returns
     -------
@@ -1624,7 +1624,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         label_colors = _n_colors(len(labels))
     else:
         # use specified colors
-        label_colors = colors
+        label_colors = np.empty((len(labels), 4))
+        label_colors[:] = colors
 
     for label, color in zip(labels, label_colors):
         label.color = color
