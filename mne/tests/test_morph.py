@@ -24,8 +24,10 @@ from mne.fixes import _get_img_fdata
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
 from mne.source_space import (get_volume_labels_from_aseg, _get_mri_info_data,
-                              _get_atlas_values, _add_interpolator)
-from mne.utils import (run_tests_if_main, requires_nibabel, check_version,
+                              _get_atlas_values, _add_interpolator,
+                              _grid_interp)
+from mne.transforms import quat_to_rot
+from mne.utils import (requires_nibabel, check_version,
                        requires_dipy, requires_h5py, catch_logging)
 from mne.fixes import _get_args
 
@@ -731,9 +733,9 @@ def test_morph_stc_sparse():
 @testing.requires_testing_data
 @pytest.mark.parametrize('sl, n_real, n_mri, n_orig', [
     # First and last should add up, middle can have overlap should be <= sum
-    (slice(0, 1), 37, 123, 8),
-    (slice(1, 2), 51, 225, 12),
-    (slice(0, 2), 88, 330, 20),
+    (slice(0, 1), 37, 138, 8),
+    (slice(1, 2), 51, 204, 12),
+    (slice(0, 2), 88, 324, 20),
 ])
 def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     """Test generating a source space from volume label."""
@@ -875,4 +877,94 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
     assert_allclose(stc_fs.data, stc_fs_2.data)
 
 
-run_tests_if_main()
+def _rand_affine(rng):
+    quat = rng.randn(3)
+    quat /= 5 * np.linalg.norm(quat)
+    affine = np.eye(4)
+    affine[:3, 3] = rng.randn(3) / 5.
+    affine[:3, :3] = quat_to_rot(quat)
+    return affine
+
+
+@requires_nibabel()
+@requires_dipy()
+@pytest.mark.parametrize('from_shape', [
+    (10, 10, 10),
+    (5, 10, 20),
+])
+@pytest.mark.parametrize('from_affine', [
+    np.eye(4),
+    np.eye(4)[[0, 2, 1, 3]],
+    'rand',
+])
+@pytest.mark.parametrize('to_shape', [
+    (10, 10, 10),
+    (20, 5, 10),
+])
+@pytest.mark.parametrize('to_affine', [
+    np.eye(4),
+    [[2, 0, 0, 1],
+     [0, 0, 1, -1],
+     [0, -1, 0, 2],
+     [0, 0, 0, 1]],
+    np.eye(4)[[0, 2, 1, 3]],
+    'rand',
+])
+@pytest.mark.parametrize('order', [1])
+@pytest.mark.parametrize('seed', [0, 1])
+def test_resample_equiv(from_shape, from_affine, to_shape, to_affine,
+                        order, seed):
+    """Test resampling equivalences."""
+    rng = np.random.RandomState(seed)
+    from_data = rng.randn(*from_shape)
+    is_rand = False
+    if isinstance(to_affine, str):
+        assert to_affine == 'rand'
+        to_affine = _rand_affine(rng)
+        is_rand = True
+    if isinstance(from_affine, str):
+        assert from_affine == 'rand'
+        from_affine = _rand_affine(rng)
+        is_rand = True
+    to_affine = np.array(to_affine, float)
+    assert to_affine.shape == (4, 4)
+    from_affine = np.array(from_affine, float)
+    assert from_affine.shape == (4, 4)
+    #
+    # 1. nibabel.processing.resample_from_to
+    #
+    from nibabel.processing import resample_from_to
+    from nibabel.spatialimages import SpatialImage
+    start = np.linalg.norm(from_data)
+    got_nibabel = resample_from_to(
+        SpatialImage(from_data, from_affine),
+        (to_shape, to_affine), order=order).get_fdata()
+    end = np.linalg.norm(got_nibabel)
+    assert end > 0.05 * start  # not too much power lost
+    #
+    # 2. dipy.align.imaffine
+    #
+    import dipy.align.imaffine
+    interp = 'linear' if order == 1 else 'nearest'
+    got_dipy = dipy.align.imaffine.AffineMap(
+        None, to_shape, to_affine,
+        from_shape, from_affine).transform(
+            from_data, interpolation=interp, resample_only=True)
+    # XXX possibly some error in dipy or nibabel (/SciPy), or some boundary
+    # condition?
+    if is_rand:
+        assert not np.allclose(got_dipy, got_nibabel), 'nibabel fixed'
+    else:
+        assert_allclose(got_dipy, got_nibabel, err_msg='dipy<->nibabel')
+    #
+    # 3. mne.source_space._grid_interp
+    #
+    trans = np.linalg.inv(from_affine) @ to_affine  # to -> from
+    interp = _grid_interp(from_shape, to_shape, trans, order=order)
+    got_mne = np.asarray(
+        interp @ from_data.ravel(order='F')).reshape(to_shape, order='F')
+    assert_allclose(got_mne, got_dipy, err_msg='MNE<->dipy')
+    if is_rand:
+        assert not np.allclose(got_mne, got_nibabel), 'nibabel fixed'
+    else:
+        assert_allclose(got_mne, got_nibabel, err_msg='MNE<->nibabel')

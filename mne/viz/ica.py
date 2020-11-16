@@ -185,7 +185,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     else:
         x = np.linspace(ymin, ymax, 50)
         kde_ = kde(x)
-        kde_ /= kde_.max()
+        kde_ /= kde_.max() or 1.
         kde_ *= hist_ax.get_xlim()[-1] * .9
         hist_ax.plot(kde_, x, color="k")
         hist_ax.set_ylim(ymin, ymax)
