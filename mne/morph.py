@@ -534,7 +534,6 @@ class SourceMorph(object):
         resamp_0 = _grid_interp(
             src_shape, self.pre_affine.codomain_shape,
             linalg.inv(from_affine) @ self.pre_affine.codomain_grid2world)
-        assert self.pre_affine.domain_shape == self.pre_affine.codomain_shape
         # reslice to match what was used during the morph
         # (brain.mgz and whatever was used to create the source space
         #  will not necessarily have the same domain/zooms)
