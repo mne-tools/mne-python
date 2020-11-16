@@ -1624,8 +1624,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         label_colors = _n_colors(len(labels))
     else:
         # use specified colors
-        label_colors = np.zeros([len(labels), 4])
-        label_colors[:, :3] = colors
+        label_colors = colors
 
     for label, color in zip(labels, label_colors):
         label.color = color
