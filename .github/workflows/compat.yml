@@ -32,7 +32,6 @@ jobs:
         name: 'Setup xvfb'
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-activate-base: true
           python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup conda'
       - shell: bash -el {0}
@@ -88,7 +87,6 @@ jobs:
         name: 'Setup xvfb'
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-activate-base: true
           python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup conda'
       - shell: bash -el {0}
