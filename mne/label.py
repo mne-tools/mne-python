@@ -1537,7 +1537,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     colors : array, shape (n, 4) | None
         How to assign colors to each label. If None then unique colors will be
         chosen automatically (default), otherwise colors will be defined based
-        on the array. For RGB colors the first three columns will be used.
+        on the array. The first three columns will be interpreted as RGB
+        values and the fourth column as the alpha value (commonly 1).
 
     Returns
     -------
