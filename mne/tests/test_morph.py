@@ -280,7 +280,7 @@ def test_surface_vector_source_morph(tmpdir):
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_volume_source_morph(tmpdir):
+def test_volume_source_morph_basic(tmpdir):
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
@@ -449,6 +449,15 @@ def test_volume_source_morph(tmpdir):
     )
     with pytest.raises(ValueError, match=match):
         source_morph_vol.apply(stc_vol_bad)
+
+    # nifti outputs and stc equiv
+    img_vol = source_morph_vol.apply(stc_vol, output='nifti1')
+    img_vol_2 = stc_vol_2.as_volume(src=fwd['src'], mri_resolution=False)
+    assert_allclose(img_vol.affine, img_vol_2.affine)
+    img_vol = img_vol.get_fdata()
+    img_vol_2 = img_vol_2.get_fdata()
+    assert img_vol.shape == img_vol_2.shape
+    assert_allclose(img_vol, img_vol_2)
 
 
 @requires_h5py
@@ -886,31 +895,29 @@ def _rand_affine(rng):
     return affine
 
 
-@requires_nibabel()
-@requires_dipy()
-@pytest.mark.parametrize('from_shape', [
-    (10, 10, 10),
-    (5, 10, 20),
-])
-@pytest.mark.parametrize('from_affine', [
-    np.eye(4),
-    np.eye(4)[[0, 2, 1, 3]],
-    'rand',
-])
-@pytest.mark.parametrize('to_shape', [
+_shapes = (
     (10, 10, 10),
     (20, 5, 10),
-])
-@pytest.mark.parametrize('to_affine', [
-    np.eye(4),
+    (5, 10, 20),
+)
+_affines = (
     [[2, 0, 0, 1],
      [0, 0, 1, -1],
      [0, -1, 0, 2],
      [0, 0, 0, 1]],
+    np.eye(4),
     np.eye(4)[[0, 2, 1, 3]],
     'rand',
-])
-@pytest.mark.parametrize('order', [1])
+)
+
+
+@requires_nibabel()
+@requires_dipy()
+@pytest.mark.parametrize('from_shape', _shapes)
+@pytest.mark.parametrize('from_affine', _affines)
+@pytest.mark.parametrize('to_shape', _shapes)
+@pytest.mark.parametrize('to_affine', _affines)
+@pytest.mark.parametrize('order', [0, 1])
 @pytest.mark.parametrize('seed', [0, 1])
 def test_resample_equiv(from_shape, from_affine, to_shape, to_affine,
                         order, seed):
@@ -933,6 +940,7 @@ def test_resample_equiv(from_shape, from_affine, to_shape, to_affine,
     #
     # 1. nibabel.processing.resample_from_to
     #
+    # for a 1mm iso / 256 -> 5mm / 51 one sample takes ~486 ms
     from nibabel.processing import resample_from_to
     from nibabel.spatialimages import SpatialImage
     start = np.linalg.norm(from_data)
@@ -944,6 +952,7 @@ def test_resample_equiv(from_shape, from_affine, to_shape, to_affine,
     #
     # 2. dipy.align.imaffine
     #
+    # ~366 ms
     import dipy.align.imaffine
     interp = 'linear' if order == 1 else 'nearest'
     got_dipy = dipy.align.imaffine.AffineMap(
@@ -952,19 +961,27 @@ def test_resample_equiv(from_shape, from_affine, to_shape, to_affine,
             from_data, interpolation=interp, resample_only=True)
     # XXX possibly some error in dipy or nibabel (/SciPy), or some boundary
     # condition?
-    if is_rand:
+    nib_different = (
+        (is_rand and order == 1) or
+        (from_affine[0, 0] == 2. and not
+         np.allclose(from_affine, to_affine))
+    )
+    nib_different = nib_different and not (
+        is_rand and from_affine[0, 0] == 2 and order == 0)
+    if nib_different:
         assert not np.allclose(got_dipy, got_nibabel), 'nibabel fixed'
     else:
         assert_allclose(got_dipy, got_nibabel, err_msg='dipy<->nibabel')
     #
     # 3. mne.source_space._grid_interp
     #
+    # ~339 ms
     trans = np.linalg.inv(from_affine) @ to_affine  # to -> from
     interp = _grid_interp(from_shape, to_shape, trans, order=order)
     got_mne = np.asarray(
         interp @ from_data.ravel(order='F')).reshape(to_shape, order='F')
-    assert_allclose(got_mne, got_dipy, err_msg='MNE<->dipy')
-    if is_rand:
-        assert not np.allclose(got_mne, got_nibabel), 'nibabel fixed'
+    if order == 1:
+        assert_allclose(got_mne, got_dipy, err_msg='MNE<->dipy')
     else:
-        assert_allclose(got_mne, got_nibabel, err_msg='MNE<->nibabel')
+        perc = 100 * np.isclose(got_mne, got_dipy).mean()
+        assert 83 < perc <= 100
