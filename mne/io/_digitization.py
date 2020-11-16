@@ -18,7 +18,7 @@ import numpy as np
 
 from ..utils import logger, warn, _check_option, Bunch, _validate_type
 
-from .constants import FIFF
+from .constants import FIFF, _coord_frame_named
 from .tree import dir_tree_find
 from .tag import read_tag
 from .write import (start_file, end_file, write_dig_points)
@@ -177,6 +177,7 @@ def _read_dig_fif(fid, meas_info):
         warn('Multiple Isotrak found')
     else:
         isotrak = isotrak[0]
+        coord_frame = FIFF.FIFFV_COORD_HEAD
         dig = []
         for k in range(isotrak['nent']):
             kind = isotrak['directory'][k].kind
@@ -184,7 +185,11 @@ def _read_dig_fif(fid, meas_info):
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
                 dig.append(tag.data)
-                dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+            elif kind == FIFF.FIFF_MNE_COORD_FRAME:
+                tag = read_tag(fid, pos)
+                coord_frame = _coord_frame_named.get(int(tag.data))
+        for d in dig:
+            d['coord_frame'] = coord_frame
     return _format_dig_points(dig)
 
 

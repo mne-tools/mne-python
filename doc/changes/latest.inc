@@ -55,6 +55,8 @@ Enhancements
 
 - Add ``picks`` parameter to :func:`mne.preprocessing.fix_stim_artifact` to specify which channel needs to be fixed (:gh:`8482` by `Alex Gramfort`_)
 
+- Add support for writing digitization points in a coordinate frame other than head in :meth:`mne.DigMontage.save` (:gh:`8532` by `Eric Larson`_)
+
 - Further improved documentation building instructions and execution on Windows (:gh:`8502` by `kalenkovich`_ and `Eric Larson`_)
 
 - Add option to disable TQDM entirely with ``MNE_TQDM='off'`` (:gh:`8515` by `Eric Larson`_)
