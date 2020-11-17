@@ -3221,6 +3221,9 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
         produced during coregistration, or the Transformation itself. If trans
         is None, an identity matrix is assumed. Only needed when ``inst`` is a
         source space in MRI coordinates.
+    mode : str
+        How to compute source depth. 'dist' computes Euclidean distance
+        between vertices and nearest sensors.
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).

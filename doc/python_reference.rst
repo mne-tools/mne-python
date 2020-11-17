@@ -810,6 +810,7 @@ Source Space Data
    vertex_to_mni
    write_labels_to_annot
    write_label
+   vertex_depths
 
 
 Time-Frequency
