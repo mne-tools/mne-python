@@ -3243,14 +3243,14 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
         # if trans is None:
         #     raise ValueError('Source space is in MRI coordinates, but no '
-        #                      'head<->MRI transform was given. Please specify '
+        #                      'head<->MRI transform was given. Please specify'
         #                      'the full path to the appropriate *-trans.fif '
         #                      'file as the "trans" parameter.')
-        # if isinstance(trans, string_types):
-        #     trans = read_trans(trans, return_all=True)
-        #     for trans in trans:  # we got at least 1
-        #         try:
-        #             trans = _ensure_trans(trans, 'head', 'mri')
+        if isinstance(trans, string_types):
+            trans = read_trans(trans, return_all=True)
+            for trans in trans:  # we got at least 1
+                #  try:
+                trans = _ensure_trans(trans, 'head', 'mri')
         #         except Exception as exp:
         #             pass
         #         else:
