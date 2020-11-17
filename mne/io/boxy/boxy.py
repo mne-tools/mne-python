@@ -131,8 +131,16 @@ class RawBOXY(BaseRaw):
                     boxy_labels.append('S' + str(src_num + 1) +
                                        '_D' + str(det_num + 1) + ' ' + i_type)
 
+        # Determine channel types.  
+        if datatype == 'Ph':    
+            chan_type = 'fnirs_fd_phase'    
+        else:   
+            chan_type = 'fnirs_cw_amplitude'    
+
+        ch_types = ([chan_type for i_chan in boxy_labels])
+
         # Create info structure.
-        info = create_info(boxy_labels, srate)
+        info = create_info(boxy_labels, srate, ch_types=ch_types)
 
         raw_extras = {'source_num': source_num,
                       'detect_num': detect_num,
