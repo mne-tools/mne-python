@@ -36,7 +36,7 @@ jobs:
       architecture: $(PYTHON_ARCH)
       addToPath: true
     displayName: 'Get Python'
-    condition: not(contains(variables['COMMIT_MSG'], '[skip azp]')
+    condition: not(contains(variables['COMMIT_MSG'], '[skip azp]'))
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
