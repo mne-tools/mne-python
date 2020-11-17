@@ -11,7 +11,7 @@ jobs:
   # Linux
   job:
     if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
-    name: ${{ env.PYTHON_VERSION }}
+    name: 'py3.8'
     runs-on: ubuntu-latest
     defaults:
       run:
