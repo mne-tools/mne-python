@@ -135,9 +135,7 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- Added argument ``colors`` to `mne.labels.grow_labels` (:gh:`8519` by `Olaf Hauk`_)
-
-- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates (:gh:`8452` by `Olaf Hauk`_)
+- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates, (:gh:`8452` by `Olaf Hauk`_)
 
 - Minimum required versions were increased for core dependencies NumPy (1.15.4), SciPy (1.1.0), and Matplotlib (3.0) and for the optional dependencies scikit-learn (0.20.2) and pandas (0.23.4) (:gh:`8374` by `Eric Larson`_)
 

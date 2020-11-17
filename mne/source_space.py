@@ -3202,7 +3202,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     return nn
 
 
-def vertex_depth(inst, info=None, picks=None, trans=None, mode='dist',
+def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
                  verbose=None):
     """Compute source depths as distances between vertices and nearest sensor.
     Parameters
@@ -3239,8 +3239,8 @@ def vertex_depth(inst, info=None, picks=None, trans=None, mode='dist',
     #                          'information about the channels.')
     src = inst
     # The following caused problem on circle "exp defined by never used"
-    # # Load the head<->MRI transform if necessary
-    # if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+    # Load the head<->MRI transform if necessary
+    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
     #     if trans is None:
     #         raise ValueError('Source space is in MRI coordinates, but no '
     #                          'head<->MRI transform was given. Please specify '

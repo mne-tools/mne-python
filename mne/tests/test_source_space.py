@@ -30,7 +30,7 @@ from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, _get_trans
 from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
-                              _compare_source_spaces, vertex_depth)
+                              _compare_source_spaces, vertex_depths)
 from mne.io import read_info
 from mne.io.constants import FIFF
 
@@ -62,15 +62,15 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-def test_vertex_depth():
+def test_vertex_depths():
     """Test source depth calculation."""
     src = read_source_spaces(fname_fs)
     info = read_info(fname_ave)
     trans = read_trans(trans_fname)
 
     # minimum distances between vertices and sensors
-    depths = vertex_depth(src, info=info, picks=None, trans=trans, mode='dist',
-                          verbose=None)
+    depths = vertex_depths(src, info=info, picks=None, trans=trans,
+                           mode='dist', verbose=None)
 
     nuse = src[0]['nuse'] + src[1]['nuse']
     assert(nuse == len(depths))
