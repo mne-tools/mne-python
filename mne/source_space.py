@@ -14,6 +14,7 @@ import os.path as op
 
 import numpy as np
 from scipy import sparse, linalg
+from scipy.spatial.distance import cdist as scipy_cdist
 
 from .io.constants import FIFF
 from .io.meas_info import create_info
@@ -24,6 +25,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
+from .io.pick import channel_type, pick_types
 from .bem import read_bem_surfaces
 from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
@@ -41,6 +43,7 @@ from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
                          _ensure_trans, read_ras_mni_t)
+from six import string_types
 
 
 def read_freesurfer_lut(fname=None):
@@ -3197,3 +3200,98 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     else:
         nn = s['nn'][vertices, :]
     return nn
+
+
+def vertex_depth(inst, info=None, picks=None, trans=None, mode='dist',
+                 verbose=None):
+    """Compute source depths as distances between vertices and nearest sensor.
+    Parameters
+    ----------
+    inst : instance of Forward | instance of SourceSpaces
+        The object to select vertices from.
+    info : instance of Info | None
+        The info structure that contains information about the channels with
+        respect to which to compute distances.
+    picks : array-like of int | None
+        Indices of sensors to include in distance calculations. If `None``
+        (default) then only MEG channels are used.
+    trans : str | instance of Transform | None
+        Either the full path to the head<->MRI transform ``*-trans.fif`` file
+        produced during coregistration, or the Transformation itself. If trans
+        is None, an identity matrix is assumed. Only needed when ``inst`` is a
+        source space in MRI coordinates.
+    verbose : bool | str | int | None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+    Returns
+    -------
+    depth : array of shape (,n_vertices)
+        The depths of source space vertices with respect to sensors.
+    """
+    # Coulnd't get the imports for SourceSpace and Forward to work
+    # if isinstance(inst, Forward):
+    #     info = inst['info']
+    #     src = inst['src']
+    # elif isinstance(inst, SourceSpaces):
+    #     src = inst
+    #     if info is None:
+    #         raise ValueError('You need to specify an Info object with '
+    #                          'information about the channels.')
+    src = inst
+    # Load the head<->MRI transform if necessary
+    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        if trans is None:
+            raise ValueError('Source space is in MRI coordinates, but no '
+                             'head<->MRI transform was given. Please specify '
+                             'the full path to the appropriate *-trans.fif '
+                             'file as the "trans" parameter.')
+        if isinstance(trans, string_types):
+            trans = read_trans(trans, return_all=True)
+            for trans in trans:  # we got at least 1
+                try:
+                    trans = _ensure_trans(trans, 'head', 'mri')
+                except Exception as exp:
+                    pass
+                else:
+                    break
+            else:
+                raise exp
+
+        src_trans = invert_transform(_ensure_trans(trans, 'head', 'mri'))
+        print('Transform!')
+    else:
+        src_trans = Transform('head', 'head')  # Identity transform
+
+    dev_to_head = _ensure_trans(info['dev_head_t'], 'meg', 'head')
+
+    # Select channels to be used for distance calculations
+    if picks is None:
+        picks = pick_types(info, meg=True)
+        if len(picks) > 0:
+            logger.info('Using MEG channels')
+        else:
+            logger.info('Using EEG channels')
+            picks = pick_types(info, eeg=True)
+
+    # get vertex position in same coordinates as for sensors below
+    src_pos = np.vstack([
+        apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
+        for s in src
+    ])
+
+    # get sensor positions
+    sensor_pos = []
+    for ch in picks:
+        # MEG channels are in device coordinates, translate them to head
+        if channel_type(info, ch) in ['mag', 'grad']:
+            sensor_pos.append(apply_trans(dev_to_head,
+                                          info['chs'][ch]['loc'][:3]))
+        else:
+            sensor_pos.append(info['chs'][ch]['loc'][:3])
+    sensor_pos = np.array(sensor_pos)
+
+    # minimum distances per vertex
+    depths = scipy_cdist(sensor_pos, src_pos).min(axis=0)
+
+    return depths
+

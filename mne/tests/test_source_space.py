@@ -18,7 +18,8 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, compute_source_morph,
-                 read_bem_solution, read_freesurfer_lut, read_talxfm)
+                 read_bem_solution, read_freesurfer_lut, read_talxfm,
+                 read_trans)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, run_tests_if_main,
@@ -29,7 +30,8 @@ from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, _get_trans
 from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
-                              _compare_source_spaces)
+                              _compare_source_spaces, vertex_depth)
+from mne.io import read_info
 from mne.io.constants import FIFF
 
 data_path = testing.data_path(download=False)
@@ -55,7 +57,23 @@ trans_fname = op.join(data_path, 'MEG', 'sample',
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
+fname_ave = op.join(base_dir, 'test-ave.fif')
 rng = np.random.RandomState(0)
+
+
+@testing.requires_testing_data
+def test_vertex_depth():
+    """Test source depth calculation."""
+    src = read_source_spaces(fname_fs)
+    info = read_info(fname_ave)
+    trans = read_trans(trans_fname)
+
+    # minimum distances between vertices and sensors
+    depths = vertex_depth(src, info=info, picks=None, trans=trans, mode='dist',
+                          verbose=None)
+
+    nuse = src[0]['nuse'] + src[1]['nuse']
+    assert(nuse == len(depths))
 
 
 @testing.requires_testing_data
