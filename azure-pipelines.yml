@@ -21,12 +21,11 @@ stages:
       steps:
       - bash: |
           git_log=`git log -n 2 --pretty=format:"%s"`
-          echo "##vso[task.setvariable variable=commit_msg;isOutput=true]${git_log}"
-          echo $(commit_msg)
-        name: first_step
+          echo "##vso[task.setvariable variable=start_main;isOutput=true]false"
+        name: result
 
 - stage: Main
-  condition: not(contains(dependencies.Check.outputs['Skip.first_step.commit_msg'], '[skip azp]'))
+  condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   jobs:
   - job: Style
