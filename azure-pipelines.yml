@@ -21,7 +21,6 @@ jobs:
   steps:
   - bash: |
       commit_msg=`git log -n 2 --pretty=format:"%s"`
-      echo "commit_msg=${commit_msg}"
       echo "##vso[task.setvariable variable=commit_msg]${commit_msg}"
   - task: UsePythonVersion@0
     inputs:
@@ -29,40 +28,33 @@ jobs:
       architecture: $(PYTHON_ARCH)
       addToPath: true
     displayName: 'Get Python'
-    condition: not(contains(variables.commit_msg, '[skip azp]'))
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
       python -m pip install numpy scipy matplotlib -r requirements_testing.txt
     displayName: Install dependencies
-    condition: always()
+    condition: not(contains(variables.commit_msg, '[skip azp]'))
   - bash: |
       make flake
     displayName: make flake
-    condition: always()
   - bash: |
       make pydocstyle
     displayName: make pydocstyle
-    condition: always()
   - bash: |
       make codespell-error
     displayName: make codespell-error
-    condition: always()
   - bash: |
       make docstring
     displayName: make docstring
   - bash: |
       make nesting
     displayName: make nesting
-    condition: always()
   - bash: |
       make check-manifest
     displayName: make check-manifest
-    condition: always()
   - bash: |
       make check-readme
     displayName: make check-readme
-    condition: always()
 
 
 - job: Ultraslow
