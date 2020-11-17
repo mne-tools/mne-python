@@ -1064,7 +1064,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
 
-    fig.suptitle(title)
+    ax.set(title=title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)
