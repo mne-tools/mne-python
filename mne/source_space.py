@@ -3203,7 +3203,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
 
 
 def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
-                 verbose=None):
+                  verbose=None):
     """Compute source depths as distances between vertices and nearest sensor.
     Parameters
     ----------
@@ -3241,23 +3241,22 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     # The following caused problem on circle "exp defined by never used"
     # Load the head<->MRI transform if necessary
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-    #     if trans is None:
-    #         raise ValueError('Source space is in MRI coordinates, but no '
-    #                          'head<->MRI transform was given. Please specify '
-    #                          'the full path to the appropriate *-trans.fif '
-    #                          'file as the "trans" parameter.')
-    #     if isinstance(trans, string_types):
-    #         trans = read_trans(trans, return_all=True)
-    #         for trans in trans:  # we got at least 1
-    #             try:
-    #                 trans = _ensure_trans(trans, 'head', 'mri')
-    #             except Exception as exp:
-    #                 pass
-    #             else:
-    #                 break
-    #         else:
-    #             raise exp
-
+        # if trans is None:
+        #     raise ValueError('Source space is in MRI coordinates, but no '
+        #                      'head<->MRI transform was given. Please specify '
+        #                      'the full path to the appropriate *-trans.fif '
+        #                      'file as the "trans" parameter.')
+        # if isinstance(trans, string_types):
+        #     trans = read_trans(trans, return_all=True)
+        #     for trans in trans:  # we got at least 1
+        #         try:
+        #             trans = _ensure_trans(trans, 'head', 'mri')
+        #         except Exception as exp:
+        #             pass
+        #         else:
+        #             break
+        #     else:
+        #         raise exp
         src_trans = invert_transform(_ensure_trans(trans, 'head', 'mri'))
         print('Transform!')
     else:
