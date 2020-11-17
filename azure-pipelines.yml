@@ -30,6 +30,7 @@ jobs:
     PYTHON_ARCH: 'x64'
     COMMIT_MSG: $[ dependencies.Skip.outputs['first_step.commit_msg'] ]
   steps:
+  - bash: echo $COMMIT_MSG
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
