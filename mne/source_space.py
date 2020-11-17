@@ -40,7 +40,7 @@ from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     object_size, sizeof_fmt)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
-                         combine_transforms, _get_trans,
+                         combine_transforms, read_trans, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
                          _ensure_trans, read_ras_mni_t)
 from six import string_types
@@ -3294,4 +3294,3 @@ def vertex_depth(inst, info=None, picks=None, trans=None, mode='dist',
     depths = scipy_cdist(sensor_pos, src_pos).min(axis=0)
 
     return depths
-
