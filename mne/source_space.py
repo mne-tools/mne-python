@@ -3205,6 +3205,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
 def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
                   verbose=None):
     """Compute source depths as distances between vertices and nearest sensor.
+
     Parameters
     ----------
     inst : instance of Forward | instance of SourceSpaces
@@ -3223,6 +3224,7 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
     Returns
     -------
     depth : array of shape (,n_vertices)
