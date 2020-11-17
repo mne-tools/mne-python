@@ -826,6 +826,12 @@ def test_grow_labels():
     assert_array_equal(l11_c.color, lab_colors[0, :])
     assert_array_equal(l12_c.color, lab_colors[1, :])
 
+    lab_colors = np.array([.1, .2, .3, .9])
+    l11_c, l12_c = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                               overlap=False, colors=lab_colors)
+    assert_array_equal(l11_c.color, lab_colors)
+    assert_array_equal(l12_c.color, lab_colors)
+
     # make sure set 1 does not overlap
     overlap = np.intersect1d(l11.vertices, l12.vertices, True)
     assert_array_equal(overlap, [])
