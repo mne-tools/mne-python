@@ -12,23 +12,29 @@ pr:
 
 jobs:
 
+- job: Skip
+  steps:
+  - bash: |
+      commit_msg=`git log -n 2 --pretty=format:"%s"`
+      echo "##vso[task.setvariable variable=commit_msg;isOutput=true]${commit_msg}"
+    name: first_step
+
 - job: Style
+  dependsOn: Skip
   pool:
     vmImage: 'ubuntu-18.04'
   variables:
     PYTHON_VERSION: '3.8'
     PYTHON_ARCH: 'x64'
+    COMMIT_MSG: $[ dependencies.Skip.outputs['first_step.commit_msg'] ]
   steps:
-  - bash: |
-      commit_msg=`git log -n 2 --pretty=format:"%s"`
-      echo "##vso[task.setvariable variable=commit_msg]${commit_msg}"
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
       architecture: $(PYTHON_ARCH)
       addToPath: true
     displayName: 'Get Python'
-    condition: not(contains(variables['commit_msg'], '[skip azp]'))
+    condition: not(contains(variables['COMMIT_MSG'], '[skip azp]')
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
