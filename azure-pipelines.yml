@@ -52,27 +52,34 @@ stages:
         python -m pip install --upgrade pip setuptools
         python -m pip install numpy scipy matplotlib -r requirements_testing.txt
       displayName: Install dependencies
+      condition: always()
     - bash: |
         make flake
       displayName: make flake
+      condition: always()
     - bash: |
         make pydocstyle
       displayName: make pydocstyle
+      condition: always()
     - bash: |
         make codespell-error
       displayName: make codespell-error
+      condition: always()
     - bash: |
         make docstring
       displayName: make docstring
     - bash: |
         make nesting
       displayName: make nesting
+      condition: always()
     - bash: |
         make check-manifest
       displayName: make check-manifest
+      condition: always()
     - bash: |
         make check-readme
       displayName: make check-readme
+      condition: always()
 
 
   - job: Ultraslow
