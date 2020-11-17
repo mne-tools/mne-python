@@ -15,7 +15,7 @@ from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
                  create_info, EpochsArray)
 from mne.decoding import Vectorizer
 from mne.io import read_raw_fif
-from mne.utils import requires_sklearn, check_version
+from mne.utils import requires_sklearn
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
