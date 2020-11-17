@@ -135,7 +135,7 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- Added argument ``colors`` to `mne.labels.grow_labels` (:gh:`8519` by `Olaf Hauk`_)
+- Added argument ``colors`` to `mne.grow_labels` (:gh:`8519` by `Olaf Hauk`_)
 
 - Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates (:gh:`8452` by `Olaf Hauk`_)
 
