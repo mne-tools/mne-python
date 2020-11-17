@@ -18,14 +18,16 @@ stages:
     - job: Skip
       pool:
         vmImage: 'ubuntu-18.04'
+      variables:
+        RET: 'true'
       steps:
       - bash: |
-          git_log=`git log -n 2 --pretty=format:"%s"`
+          git_log=`git log HEAD~2..HEAD~1 --pretty=format:"%s"`
           echo "##vso[task.setvariable variable=log]$git_log"
-      - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]true"
-      - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]false"
+          echo $log
+      - bash: echo "##vso[task.setvariable variable=RET]false"
         condition: contains(variables.log, '[skip azp]')
-      - bash: echo $(start_main)
+      - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
         name: result
 
 - stage: Main
