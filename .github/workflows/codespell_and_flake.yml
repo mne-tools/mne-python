@@ -1,4 +1,4 @@
-name: 'maint'
+name: 'codespell_and_flake'
 on:
   push:
     branches:
