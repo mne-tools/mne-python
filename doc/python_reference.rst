@@ -807,10 +807,10 @@ Source Space Data
    stc_to_label
    stc_near_sensors
    transform_surface_to
+   vertex_depths
    vertex_to_mni
    write_labels_to_annot
    write_label
-   vertex_depths
 
 
 Time-Frequency
