@@ -13,6 +13,8 @@ pr:
 jobs:
 
 - job: Skip
+  pool:
+    vmImage: 'ubuntu-18.04'
   steps:
   - bash: |
       commit_msg=`git log -n 2 --pretty=format:"%s"`
