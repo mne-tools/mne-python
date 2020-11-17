@@ -28,41 +28,33 @@ jobs:
       architecture: $(PYTHON_ARCH)
       addToPath: true
     displayName: 'Get Python'
-    condition: not(contains($(commit_msg), '[skip azp]'))
+    condition: not(contains(variables['commit_msg'], '[skip azp]'))
   - bash: |
       set -e
       python -m pip install --upgrade pip setuptools
       python -m pip install numpy scipy matplotlib -r requirements_testing.txt
     displayName: Install dependencies
-    condition: not(contains($(commit_msg), '[skip azp]'))
   - bash: |
       make flake
     displayName: make flake
-    condition: not(contains($(commit_msg), '[skip azp]'))
   - bash: |
       make pydocstyle
     displayName: make pydocstyle
-    condition: not(contains($(commit_msg), '[skip azp]'))
   - bash: |
       make codespell-error
     displayName: make codespell-error
-    condition: not(contains($(commit_msg), '[skip azp]'))
   - bash: |
       make docstring
     displayName: make docstring
-    condition: not(contains($(commit_msg), '[skip azp]'))
   - bash: |
       make nesting
     displayName: make nesting
-    condition: not(contains($(commit_msg), '[skip azp]'))
   - bash: |
       make check-manifest
     displayName: make check-manifest
-    condition: not(contains($(commit_msg), '[skip azp]'))
   - bash: |
       make check-readme
     displayName: make check-readme
-    condition: not(contains($(commit_msg), '[skip azp]'))
 
 
 - job: Ultraslow
