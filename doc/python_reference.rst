@@ -647,6 +647,7 @@ Forward Modeling
    surface.complete_surface_info
    surface.read_curvature
    use_coil_def
+   vertex_depths
    write_bem_surfaces
    write_trans
 
@@ -807,7 +808,6 @@ Source Space Data
    stc_to_label
    stc_near_sensors
    transform_surface_to
-   vertex_depths
    vertex_to_mni
    write_labels_to_annot
    write_label
