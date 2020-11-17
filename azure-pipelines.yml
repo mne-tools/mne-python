@@ -22,7 +22,7 @@ stages:
         RET: 'true'
       steps:
       - bash: |
-          git_log=`git log -n 1 --pretty=format:"%s"`
+          git_log=`git log --max-count=1 --skip=1 --pretty=format:"%s"`
           echo "##vso[task.setvariable variable=log]$git_log"
           echo $log
       - bash: echo "##vso[task.setvariable variable=RET]false"
