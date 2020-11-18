@@ -1502,7 +1502,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 @fill_doc
 def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
-                overlap=True, names=None, surface='white'):
+                overlap=True, names=None, surface='white', colors=None):
     """Generate circular labels in source space with region growing.
 
     This function generates a number of labels in source space by growing
@@ -1534,6 +1534,11 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         seeds).
     surface : str
         The surface used to grow the labels, defaults to the white surface.
+    colors : array, shape (n, 4) or (, 4) | None
+        How to assign colors to each label. If None then unique colors will be
+        chosen automatically (default), otherwise colors will be broadcast
+        from the array. The first three values will be interpreted as RGB
+        colors and the fourth column as the alpha value (commonly 1).
 
     Returns
     -------
@@ -1568,6 +1573,21 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     if len(hemis) != 1 and len(hemis) != n_seeds:
         raise ValueError('The hemis parameter has to be of length 1 or '
                          'len(seeds)')
+
+    if colors is not None:
+        if len(colors.shape) == 1:  # if one color for all seeds
+            n_colors = 1
+            n = colors.shape[0]
+        else:
+            n_colors, n = colors.shape
+
+        if n_colors != n_seeds and n_colors != 1:
+            msg = ('Number of colors (%d) and seeds (%d) are not compatible.' %
+                   (n_colors, n_seeds))
+            raise ValueError(msg)
+        if n != 4:
+            msg = 'Colors must have 4 values (RGB and alpha), not %d.' % n
+            raise ValueError(msg)
 
     # make the arrays the same length as seeds
     if len(extents) == 1:
@@ -1615,9 +1635,15 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         labels = _grow_nonoverlapping_labels(subject, seeds, extents, hemis,
                                              vert, dist, names)
 
-    # add a unique color to each label
-    colors = _n_colors(len(labels))
-    for label, color in zip(labels, colors):
+    if colors is None:
+        # add a unique color to each label
+        label_colors = _n_colors(len(labels))
+    else:
+        # use specified colors
+        label_colors = np.empty((len(labels), 4))
+        label_colors[:] = colors
+
+    for label, color in zip(labels, label_colors):
         label.color = color
 
     return labels
