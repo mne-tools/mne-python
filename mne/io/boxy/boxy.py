@@ -130,16 +130,15 @@ class RawBOXY(BaseRaw):
                 for i_type in ['DC', 'AC', 'Ph']:
                     boxy_labels.append('S' + str(src_num + 1) +
                                        '_D' + str(det_num + 1) + ' ' + i_type)
+                    # Determine channel types.
+                    if i_type == 'Ph':
+                        chan_type = 'fnirs_fd_phase'
+                    elif i_type == 'DC':
+                        chan_type = 'fnirs_fd_dc_amplitude'
+                    else:
+                        chan_type = 'fnirs_fd_ac_amplitude'
 
-        # Determine channel types.  
-        if datatype == 'Ph':    
-            chan_type = 'fnirs_fd_phase'    
-        elif datatype == 'DC':
-            chan_type = 'fnirs_fd_dc_amplitude'
-        else:   
-            chan_type = 'fnirs_fd_ac_amplitude'    
-
-        ch_types = ([chan_type for i_chan in boxy_labels])
+                    ch_types = ([chan_type for i_chan in boxy_labels])
 
         # Create info structure.
         info = create_info(boxy_labels, srate, ch_types=ch_types)
