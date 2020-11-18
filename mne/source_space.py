@@ -14,7 +14,6 @@ import os.path as op
 
 import numpy as np
 from scipy import sparse, linalg
-from scipy.spatial import distance
 
 from .io.constants import FIFF
 from .io.meas_info import create_info
@@ -25,7 +24,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
-from .io.pick import channel_type, pick_types
+from .io.pick import channel_type, _picks_to_idx
 from .bem import read_bem_surfaces
 from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
@@ -40,10 +39,9 @@ from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     object_size, sizeof_fmt)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
-                         combine_transforms, read_trans, _get_trans,
+                         combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
                          _ensure_trans, read_ras_mni_t)
-from six import string_types
 
 
 def read_freesurfer_lut(fname=None):
@@ -3202,23 +3200,21 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     return nn
 
 
-def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
+@verbose
+def vertex_depths(src, info=None, picks=None, trans=None, mode='dist',
                   verbose=None):
     """Compute source depths as distances between vertices and nearest sensor.
 
     Parameters
     ----------
-    inst : instance of Forward | instance of SourceSpaces
+    src : instance of SourceSpaces
         The object to select vertices from.
     info : instance of Info | None
         The info structure that contains information about the channels with
         respect to which to compute distances. Can be None if ``inst`` is
         a :class:`~mne.Forward` instance.
-    %(picks_data)s
+    %(picks_good_data)s
     %(trans_not_none)s
-    mode : str
-        How to compute source depth. 'dist' computes Euclidean distance
-        between vertices and nearest sensors.
     %(verbose)s
 
     Returns
@@ -3226,21 +3222,17 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     depth : array of shape (,n_vertices)
         The depths of source space vertices with respect to sensors.
     """
-    from .forward import Forward
-    if isinstance(inst, Forward):
-        info = inst['info']
-        src = inst['src']
-    elif isinstance(inst, SourceSpaces):
-        src = inst
-        if info is None:
-            raise ValueError('You need to specify an Info object with '
-                             'information about the channels.')
-    src = inst
-    _valididate_type(info, (Info,), 'info')
+    from . import Info
+
+    assert isinstance(src, SourceSpaces)
+    _validate_type(info, (Info,), 'info')
 
     # Load the head<->MRI transform if necessary
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-        src_trans = _get_trans(trans, allow_none=False)
+        # this did not work with testing data set, but did with sample dataset
+        # "TypeError: tuple indices must be integers or slices, not tuple"
+        # src_trans = _get_trans(trans, allow_none=False)
+        src_trans = invert_transform(_ensure_trans(trans, 'head', 'mri'))
     else:
         src_trans = Transform('head', 'head')  # Identity transform
 

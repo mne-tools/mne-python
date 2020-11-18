@@ -10,7 +10,8 @@ from shutil import copytree
 import pytest
 import scipy
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+from numpy.testing import (assert_array_equal, assert_allclose, assert_equal,
+                           assert_array_less)
 from mne.datasets import testing
 import mne
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
@@ -74,8 +75,8 @@ def test_vertex_depths():
 
     nuse = src[0]['nuse'] + src[1]['nuse']
     assert nuse == len(depths)
-    assert_array_less(0.005, depths)
-    assert_array_less(depths, 0.1)
+    assert_array_less(0.001, depths)
+    assert_array_less(depths, 0.15)
 
 
 @testing.requires_testing_data
