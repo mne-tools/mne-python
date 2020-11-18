@@ -20,6 +20,7 @@ jobs:
       DISPLAY: ':99.0'
       MNE_LOGGING_LEVEL: 'info'
       MNE_STIM_CHANNEL: 'STI101'
+      OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.9'
     steps:

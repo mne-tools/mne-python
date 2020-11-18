@@ -25,6 +25,7 @@ jobs:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_SKIP_NETWORK_TEST: 1
       MNE_SKIP_TESTING_DATASET_TESTS: true
+      OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.7'
     steps:
