@@ -647,7 +647,6 @@ Forward Modeling
    surface.complete_surface_info
    surface.read_curvature
    use_coil_def
-   vertex_depths
    write_bem_surfaces
    write_trans
 
