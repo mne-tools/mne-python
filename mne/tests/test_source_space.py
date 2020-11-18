@@ -73,7 +73,9 @@ def test_vertex_depths():
                            mode='dist', verbose=None)
 
     nuse = src[0]['nuse'] + src[1]['nuse']
-    assert(nuse == len(depths))
+    assert nuse == len(depths)
+    assert_array_less(0.005, depths)
+    assert_array_less(depths, 0.1)
 
 
 @testing.requires_testing_data
