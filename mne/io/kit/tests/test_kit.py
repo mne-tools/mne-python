@@ -43,6 +43,12 @@ yokogawa_path = op.join(
     data_path, 'KIT', 'ArtificalSignalData_Yokogawa_1khz.con')
 ricoh_path = op.join(
     data_path, 'KIT', 'ArtificalSignalData_RICOH_1khz.con')
+ricoh_systems_paths = [op.join(
+    data_path, 'KIT', 'Example_PQA160C_1001-export_anonymyze.con')]
+ricoh_systems_paths += [op.join(
+    data_path, 'KIT', 'Example_RICOH160-1_10020-export_anonymyze.con')]
+ricoh_systems_paths += [op.join(
+    data_path, 'KIT', 'Example_RICOH160-1_10021-export_anonymyze.con')]
 
 
 @requires_testing_data
@@ -110,7 +116,7 @@ def test_data(tmpdir):
     assert_array_almost_equal(data_py, data_bin)
 
     # KIT-UMD data
-    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
+    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path, test_rank='less')
     raw = read_raw_kit(sqd_umd_path)
     assert raw.info['description'] == \
         'University of Maryland/Kanazawa Institute of Technology/160-channel MEG System (53) V2R004 PQ1160R'  # noqa: E501
@@ -155,8 +161,7 @@ def _assert_sinusoid(data, t, freq, amp, msg):
 ])
 def test_ricoh_data(tmpdir, fname, desc):
     """Test reading channel names and dig information from Ricoh systems."""
-    with pytest.deprecated_call(match='standardize_names'):
-        raw = read_raw_kit(fname)
+    raw = read_raw_kit(fname, standardize_names=True)
     assert raw.ch_names[0] == 'MEG 001'
     raw = read_raw_kit(fname, standardize_names=False, verbose='debug')
     assert raw.info['description'] == desc
@@ -314,6 +319,22 @@ def test_decimate(tmpdir):
     hsp_rad = np.mean(dist)
     hsp_dec_rad = np.mean(dist_dec)
     assert_array_almost_equal(hsp_rad, hsp_dec_rad, decimal=3)
+
+
+@requires_testing_data
+@pytest.mark.parametrize('fname, desc, system_id', [
+    (ricoh_systems_paths[0],
+        'Meg160/Analysis (1001) V2R004 PQA160C', 1001),
+    (ricoh_systems_paths[1],
+        'RICOH MEG System (10020) V3R000 RICOH160-1', 10020),
+    (ricoh_systems_paths[2],
+        'RICOH MEG System (10021) V3R000 RICOH160-1', 10021),
+])
+def test_ricoh_systems(tmpdir, fname, desc, system_id):
+    """Test reading channel names and dig information from Ricoh systems."""
+    raw = read_raw_kit(fname, standardize_names=False)
+    assert raw.info['description'] == desc
+    assert raw.info['kit_system_id'] == system_id
 
 
 run_tests_if_main()

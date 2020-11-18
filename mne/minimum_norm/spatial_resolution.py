@@ -9,8 +9,8 @@ Metrics can be computed for point-spread and cross-talk functions (PSFs/CTFs).
 """
 import numpy as np
 
-from mne import SourceEstimate
-from mne.utils import logger, verbose
+from .. import SourceEstimate
+from ..utils import logger, verbose
 
 
 @verbose
@@ -146,7 +146,8 @@ def _localisation_error(resmat, src, function, metric):
     resmat = _rectify_resolution_matrix(resmat)
     locations = _get_src_locations(src)  # locs used in forw. and inv. operator
     locations = 100. * locations  # convert to cm (more common)
-    resmat = np.absolute(resmat)  # only use absolute values
+    # we want to use absolute values, but doing abs() mases a copy and this
+    # can be quite expensive in memory. So let's just use abs() in place below.
 
     # The code below will operate on columns, so transpose if you want CTFs
     if function == 'ctf':
@@ -154,16 +155,16 @@ def _localisation_error(resmat, src, function, metric):
 
     # Euclidean distance between true location and maximum
     if metric == 'peak_err':
-        resmax = resmat.argmax(axis=0)  # find indices of maxima along columns
+        resmax = [abs(col).argmax() for col in resmat.T]  # max inds along cols
         maxloc = locations[resmax, :]   # locations of maxima
         diffloc = locations - maxloc    # diff btw true locs and maxima locs
-        locerr = np.sqrt(np.sum(diffloc ** 2, 1))  # Euclidean distance
+        locerr = np.linalg.norm(diffloc, axis=1)  # Euclidean distance
 
     # centre of gravity
     elif metric == 'cog_err':
         locerr = np.empty(locations.shape[0])  # initialise result array
         for ii, rr in enumerate(locations):
-            resvec = resmat[:, ii].T  # corresponding column of resmat
+            resvec = abs(resmat[:, ii].T)  # corresponding column of resmat
             cog = resvec.dot(locations) / np.sum(resvec)   # centre of gravity
             locerr[ii] = np.sqrt(np.sum((rr - cog) ** 2))  # Euclidean distance
 
@@ -202,14 +203,12 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
     """
     locations = _get_src_locations(src)  # locs used in forw. and inv. operator
     locations = 100. * locations  # convert to cm (more common)
-    resmat = np.absolute(resmat)  # only use absolute values
 
     # The code below will operate on columns, so transpose if you want CTFs
     if function == 'ctf':
         resmat = resmat.T
 
-    resmax = resmat.argmax(axis=0)  # find indices of maxima along rows
-    width = np.empty(len(resmax))   # initialise output array
+    width = np.empty(resmat.shape[1])   # initialise output array
 
     # spatial deviation as in Molins et al.
     if metric == 'sd_ext':
@@ -217,16 +216,16 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
 
             diffloc = locations - locations[ii, :]  # locs w/r/t true source
             locerr = np.sum(diffloc**2, 1)  # squared Eucl dists to true source
-            resvec = resmat[:, ii]**2       # pick current row
+            resvec = abs(resmat[:, ii]) ** 2       # pick current row
             # spatial deviation (Molins et al, NI 2008, eq. 12)
             width[ii] = np.sqrt(np.sum(np.multiply(locerr, resvec)) /
                                 np.sum(resvec))
 
     # maximum radius to 50% of max amplitude
     elif metric == 'maxrad_ext':
-        maxamp = resmat.max(axis=0)  # peak ampl. per location across columns
-        for ii, amps in enumerate(maxamp):  # for all locations
-            resvec = resmat[:, ii]  # pick current column
+        for ii, resvec in enumerate(resmat.T):  # iterate over columns
+            resvec = abs(resvec)  # operate on absolute values
+            amps = resvec.max()
             # indices of elements with values larger than fraction threshold
             # of peak amplitude
             thresh_idx = np.where(resvec > threshold * amps)
@@ -269,17 +268,17 @@ def _relative_amplitude(resmat, src, function, metric):
     if function == 'ctf':
         resmat = resmat.T
 
-    resmat = np.absolute(resmat)  # only use absolute values
-
     # Ratio between amplitude at peak and global peak maximum
     if metric == 'peak_amp':
-        maxamps = resmat.max(axis=0)  # maximum amplitudes per column
+        # maximum amplitudes per column
+        maxamps = np.array([abs(col).max() for col in resmat.T])
         maxmaxamps = maxamps.max()    # global absolute maximum
         relamp = maxamps / maxmaxamps
 
     # ratio between sums of absolute amplitudes
     elif metric == 'sum_amp':
-        sumamps = np.sum(resmat, axis=0)  # sum of amplitudes per column
+        # sum of amplitudes per column
+        sumamps = np.array([abs(col).sum() for col in resmat.T])
         sumampsmax = sumamps.max()        # maximum of summed amplitudes
         relamp = sumamps / sumampsmax
 

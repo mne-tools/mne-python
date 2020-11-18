@@ -3,7 +3,8 @@
 Continuous Target Decoding with SPoC
 ====================================
 
-Source Power Comodulation (SPoC) [1]_ allows to identify the composition of
+Source Power Comodulation (SPoC) :footcite:`DahneEtAl2014` allows to identify
+the composition of
 orthogonal spatial filters that maximally correlate with a continuous target.
 
 SPoC can be seen as an extension of the CSP for continuous variables.
@@ -12,12 +13,6 @@ Here, SPoC is applied to decode the (continuous) fluctuation of an
 electromyogram from MEG beta activity using data from
 `Cortico-Muscular Coherence example of FieldTrip
 <http://www.fieldtriptoolbox.org/tutorial/coherence>`_
-
-References
-----------
-.. [1] Dahne, S., et al (2014). SPoC: a novel framework for relating the
-       amplitude of neuronal oscillations to behaviorally relevant parameters.
-       NeuroImage, 86, 111-122.
 """
 
 # Author: Alexandre Barachant <alexandre.barachant@gmail.com>
@@ -87,3 +82,8 @@ plt.show()
 
 spoc.fit(X, y)
 spoc.plot_patterns(meg_epochs.info)
+
+##############################################################################
+# References
+# ----------
+# .. footbibliography::

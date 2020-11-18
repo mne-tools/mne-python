@@ -39,14 +39,14 @@ from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _set_source_space_vertices,
                             _write_source_spaces_to_fid, _get_src_nn,
                             _src_kind_dict)
-from ..source_estimate import _BaseSourceEstimate
+from ..source_estimate import _BaseVectorSourceEstimate, _BaseSourceEstimate
 from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units, _stamp_to_dt)
+                     _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
 from ..fixes import einsum
 
@@ -1293,12 +1293,7 @@ def _stc_src_sel(src, stc, on_missing='raise',
                'source space%s'
                % (n_joint, n_stc, 'vertex' if n_stc == 1 else 'vertices',
                   extra))
-        if on_missing == 'raise':
-            raise RuntimeError(msg)
-        elif on_missing == 'warn':
-            warn(msg)
-        else:
-            assert on_missing == 'ignore'
+        _on_missing(on_missing, msg)
     return src_sel, stc_sel, out_vertices
 
 
@@ -1325,11 +1320,18 @@ def _fill_measurement_info(info, fwd, sfreq):
 
 @verbose
 def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
-                   verbose=None):
+                   use_cps=True, verbose=None):
     """Apply forward model and return data, times, ch_names."""
-    if not is_fixed_orient(fwd):
-        raise ValueError('Only fixed-orientation forward operators are '
-                         'supported.')
+    _validate_type(stc, _BaseSourceEstimate, 'stc', 'SourceEstimate')
+    _validate_type(fwd, Forward, 'fwd')
+    if isinstance(stc, _BaseVectorSourceEstimate):
+        vector = True
+        fwd = convert_forward_solution(fwd, force_fixed=False, surf_ori=False)
+    else:
+        vector = False
+        if not is_fixed_orient(fwd):
+            fwd = convert_forward_solution(fwd, force_fixed=True,
+                                           use_cps=use_cps)
 
     if np.all(stc.data > 0):
         warn('Source estimate only contains currents with positive values. '
@@ -1339,16 +1341,19 @@ def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
     _check_stc_units(stc)
 
     src_sel, stc_sel, _ = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
-    gain = fwd['sol']['data'][:, src_sel]
-    # save some memory if possible
+    gain = fwd['sol']['data']
     stc_sel = slice(None) if len(stc_sel) == len(stc.data) else stc_sel
+    times = stc.times[start:stop].copy()
+    stc_data = stc.data[stc_sel, ..., start:stop].reshape(-1, len(times))
+    del stc
+    if vector:
+        gain = gain.reshape(len(gain), gain.shape[1] // 3, 3)
+    gain = gain[:, src_sel].reshape(len(gain), -1)
+    # save some memory if possible
 
     logger.info('Projecting source estimate to sensor space...')
-    data = np.dot(gain, stc.data[stc_sel, start:stop])
+    data = np.dot(gain, stc_data)
     logger.info('[done]')
-
-    times = deepcopy(stc.times[start:stop])
-
     return data, times
 
 
@@ -1381,7 +1386,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     %(use_cps)s
 
         .. versionadded:: 0.15
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1406,9 +1412,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
                              'evoked_template.' % ch_name)
 
     # project the source estimate to the sensor space
-    if not is_fixed_orient(fwd):
-        fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=use_cps)
-    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing)
+    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing,
+                                 use_cps=use_cps)
 
     # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
@@ -1424,7 +1429,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
 
 @verbose
 def apply_forward_raw(fwd, stc, info, start=None, stop=None,
-                      on_missing='raise', verbose=None):
+                      on_missing='raise', use_cps=True, verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
     The sensor space data is computed for all channels present in fwd. Use
@@ -1439,7 +1444,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     Parameters
     ----------
     fwd : Forward
-        Forward operator to use. Has to be fixed-orientation.
+        Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
     info : instance of Info
@@ -1448,9 +1453,13 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    %(on_missing)s Default is "raise".
+    %(on_missing_fwd)s
+        Default is "raise".
 
         .. versionadded:: 0.18
+    %(use_cps)s
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -1469,7 +1478,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                              'info.' % ch_name)
 
     # project the source estimate to the sensor space
-    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing)
+    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing,
+                                 use_cps=use_cps)
 
     sfreq = 1.0 / stc.tstep
     info = _fill_measurement_info(info, fwd, sfreq)
@@ -1495,7 +1505,8 @@ def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
         Forward operator.
     stc : instance of SourceEstimate
         Source estimate.
-    %(on_missing)s Default is "ignore".
+    %(on_missing_fwd)s
+        Default is "ignore".
 
         .. versionadded:: 0.18
 

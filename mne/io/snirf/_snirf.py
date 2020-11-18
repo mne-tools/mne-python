@@ -4,9 +4,11 @@
 
 import re
 import numpy as np
+import datetime
 
 from ..base import BaseRaw
 from ..meas_info import create_info
+from ..utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
 from ...utils.check import _require_version
@@ -220,6 +222,40 @@ class RawSNIRF(BaseRaw):
                                                coord_frame=_frame_to_str[
                                                    coord_frame])
 
+            str_date = np.array((dat.get(
+                '/nirs/metaDataTags/MeasurementDate')))[0].decode('UTF-8')
+            str_time = np.array((dat.get(
+                '/nirs/metaDataTags/MeasurementTime')))[0].decode('UTF-8')
+            str_datetime = str_date + str_time
+
+            # Several formats have been observed so we try each in turn
+            for dt_code in ['%Y-%m-%d%H:%M:%SZ',
+                            '%Y-%m-%d%H:%M:%S']:
+                try:
+                    meas_date = datetime.datetime.strptime(
+                        str_datetime, dt_code)
+                except ValueError:
+                    pass
+                else:
+                    break
+            else:
+                warn("Extraction of measurement date from SNIRF file failed. "
+                     "The date is being set to January 1st, 2000, "
+                     f"instead of {str_datetime}")
+                meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
+            meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
+            info['meas_date'] = meas_date
+
+            if 'DateOfBirth' in dat.get('nirs/metaDataTags/'):
+                str_birth = np.array((dat.get('/nirs/metaDataTags/'
+                                              'DateOfBirth')))[0].decode()
+                birth_matched = re.fullmatch(r'(\d+)-(\d+)-(\d+)', str_birth)
+                if birth_matched is not None:
+                    info["subject_info"]['birthday'] = (
+                        int(birth_matched.groups()[0]),
+                        int(birth_matched.groups()[1]),
+                        int(birth_matched.groups()[2]))
+
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
                                            last_samps=[last_samps],
                                            verbose=verbose)
@@ -246,6 +282,6 @@ class RawSNIRF(BaseRaw):
         import h5py
 
         with h5py.File(self._filenames[0], 'r') as dat:
-            data[:] = dat.get('/nirs/data1/dataTimeSeries')[start:stop].T[idx]
+            one = dat['/nirs/data1/dataTimeSeries'][start:stop].T
 
-        return data
+        _mult_cal_one(data, one, idx, cals, mult)

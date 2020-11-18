@@ -12,7 +12,7 @@ from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  Info, Transform)
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
-                       requires_pandas, grand_average)
+                       requires_pandas, grand_average, catch_logging)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
@@ -548,9 +548,13 @@ def test_plot_joint():
     topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
 
     for combine in ('mean', 'rms', None):
-        tfr.plot_joint(title='auto', colorbar=True,
-                       combine=combine, topomap_args=topomap_args)
+        with catch_logging() as log:
+            tfr.plot_joint(title='auto', colorbar=True,
+                           combine=combine, topomap_args=topomap_args,
+                           verbose='debug')
         plt.close('all')
+        log = log.getvalue()
+        assert 'Plotting topomap for grad data' in log
 
     # check various timefreqs
     for timefreqs in (

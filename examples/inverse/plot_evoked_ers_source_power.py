@@ -33,7 +33,8 @@ task = 'somato'
 raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
                     'sub-{}_task-{}_meg.fif'.format(subject, task))
 
-raw = mne.io.read_raw_fif(raw_fname)
+# crop to 5 minutes to save memory
+raw = mne.io.read_raw_fif(raw_fname).crop(0, 300)
 
 # We are interested in the beta band (12-30 Hz)
 raw.load_data().filter(12, 30)
@@ -45,7 +46,7 @@ picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 # Read epochs
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
-                    preload=True)
+                    preload=True, decim=3)
 
 # Read forward operator and point to freesurfer subject directory
 fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
@@ -86,7 +87,8 @@ def _gen_dics(active_win, baseline_win, epochs):
                               tmax=baseline_win[1], decim=20)
     csd_ers = csd_morlet(epochs, freqs, tmin=active_win[0], tmax=active_win[1],
                          decim=20)
-    filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power')
+    filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power',
+                        reduce_rank=True)
     stc_base, freqs = apply_dics_csd(csd_baseline.mean(), filters)
     stc_act, freqs = apply_dics_csd(csd_ers.mean(), filters)
     stc_act /= stc_base
@@ -122,9 +124,22 @@ stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info)
 ###############################################################################
 # Plot source estimates
 # ---------------------
+# DICS:
 
-for method, stc in zip(['DICS', 'LCMV', 'dSPM'],
-                       [stc_dics, stc_lcmv, stc_dspm]):
-    title = '%s source power in the 12-30 Hz frequency band' % method
-    brain = stc.plot(hemi='rh', subjects_dir=subjects_dir,
-                     subject=subject, time_label=title)
+brain_dics = stc_dics.plot(
+    hemi='rh', subjects_dir=subjects_dir, subject=subject,
+    time_label='DICS source power in the 12-30 Hz frequency band')
+
+###############################################################################
+# LCMV:
+
+brain_lcmv = stc_lcmv.plot(
+    hemi='rh', subjects_dir=subjects_dir, subject=subject,
+    time_label='LCMV source power in the 12-30 Hz frequency band')
+
+###############################################################################
+# dSPM:
+
+brain_dspm = stc_dspm.plot(
+    hemi='rh', subjects_dir=subjects_dir, subject=subject,
+    time_label='dSPM source power in the 12-30 Hz frequency band')

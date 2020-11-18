@@ -21,8 +21,9 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
-from ._utils import _get_colormap_from_array
-from ...utils import copy_base_doc_to_subclass_doc
+from ._utils import _get_colormap_from_array, ALLOWED_QUIVER_MODES
+from ...fixes import _get_args
+from ...utils import copy_base_doc_to_subclass_doc, _check_option
 from ...externals.decorator import decorator
 
 
@@ -96,6 +97,7 @@ class _Figure(object):
             if self.plotter_class is BackgroundPlotter and \
                     hasattr(BackgroundPlotter, 'set_icon'):
                 _init_resources()
+                _process_events(plotter)
                 plotter.set_icon(":/mne-icon.png")
         _process_events(self.plotter)
         _process_events(self.plotter)
@@ -202,6 +204,13 @@ class _Renderer(_BaseRenderer):
             if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
+        # FIX: https://github.com/pyvista/pyvistaqt/pull/68
+        if LooseVersion(pyvista.__version__) >= '0.27.0':
+            if not hasattr(self.plotter, "iren"):
+                self.plotter.iren = None
+
+        self.update_lighting()
+
     @contextmanager
     def ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
@@ -243,7 +252,38 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.figure
 
+    def _orient_lights(self):
+        lights = list(self.plotter.renderer.GetLights())
+        lights.pop(0)  # unused headlight
+        lights[0].SetPosition(_to_pos(45.0, -45.0))
+        lights[1].SetPosition(_to_pos(-30.0, 60.0))
+        lights[2].SetPosition(_to_pos(-30.0, -60.0))
+
+    def update_lighting(self):
+        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
+        lights = list(self.plotter.renderer.GetLights())
+        headlight = lights.pop(0)
+        headlight.SetSwitch(False)
+        for i in range(len(lights)):
+            if i < 3:
+                lights[i].SetSwitch(True)
+                lights[i].SetIntensity(1.0)
+                lights[i].SetColor(1.0, 1.0, 1.0)
+            else:
+                lights[i].SetSwitch(False)
+                lights[i].SetPosition(_to_pos(0.0, 0.0))
+                lights[i].SetIntensity(1.0)
+                lights[i].SetColor(1.0, 1.0, 1.0)
+
+        lights[0].SetPosition(_to_pos(45.0, 45.0))
+        lights[1].SetPosition(_to_pos(-30.0, -60.0))
+        lights[1].SetIntensity(0.6)
+        lights[2].SetPosition(_to_pos(-30.0, 60.0))
+        lights[2].SetIntensity(0.5)
+
     def set_interaction(self, interaction):
+        if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
+            return
         if interaction == "rubber_band_2d":
             for renderer in self.plotter.renderers:
                 renderer.enable_parallel_projection()
@@ -260,7 +300,8 @@ class _Renderer(_BaseRenderer):
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
-                 representation='surface', line_width=1., **kwargs):
+                 representation='surface', line_width=1.,
+                 polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             rgba = False
@@ -293,12 +334,19 @@ class _Renderer(_BaseRenderer):
                 style=representation, line_width=line_width, **kwargs,
             )
 
+            if polygon_offset is not None:
+                mapper = actor.GetMapper()
+                mapper.SetResolveCoincidentTopologyToPolygonOffset()
+                mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
+                    polygon_offset, polygon_offset)
+
             return actor, mesh
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None, **kwargs):
+             representation='surface', line_width=1., normals=None,
+             polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             vertices = np.c_[x, y, z]
@@ -317,6 +365,7 @@ class _Renderer(_BaseRenderer):
             interpolate_before_map=interpolate_before_map,
             representation=representation,
             line_width=line_width,
+            polygon_offset=polygon_offset,
             **kwargs,
         )
 
@@ -334,7 +383,7 @@ class _Renderer(_BaseRenderer):
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             mesh = PolyData(vertices, triangles)
             mesh.point_arrays['scalars'] = scalars
-            contour = mesh.contour(isosurfaces=contours, rng=(vmin, vmax))
+            contour = mesh.contour(isosurfaces=contours)
             line_width = width
             if kind == 'tube':
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
@@ -345,6 +394,7 @@ class _Renderer(_BaseRenderer):
                 show_scalar_bar=False,
                 line_width=line_width,
                 color=color,
+                rng=[vmin, vmax],
                 cmap=colormap,
                 opacity=opacity,
                 smooth_shading=self.figure.smooth_shading
@@ -354,7 +404,7 @@ class _Renderer(_BaseRenderer):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
-                backface_culling=False):
+                backface_culling=False, polygon_offset=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             normals = surface.get('nn', None)
@@ -375,6 +425,7 @@ class _Renderer(_BaseRenderer):
             colormap=colormap,
             vmin=vmin,
             vmax=vmax,
+            polygon_offset=polygon_offset,
         )
 
     def sphere(self, center, color, scale, opacity=1.0,
@@ -433,6 +484,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, line_width=2., name=None):
+        _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -453,7 +505,7 @@ class _Renderer(_BaseRenderer):
                 scale = False
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
-            elif mode == 'arrow' or mode == '3darrow':
+            elif mode == 'arrow':
                 alg = _glyph(
                     grid,
                     orient='vec',
@@ -461,61 +513,43 @@ class _Renderer(_BaseRenderer):
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
-                _add_mesh(
-                    self.plotter,
-                    mesh=mesh,
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
-            elif mode == 'cone':
-                cone = vtk.vtkConeSource()
-                if glyph_height is not None:
-                    cone.SetHeight(glyph_height)
-                if glyph_center is not None:
-                    cone.SetCenter(glyph_center)
-                if glyph_resolution is not None:
-                    cone.SetResolution(glyph_resolution)
-                cone.Update()
-
-                geom = cone.GetOutput()
-                _add_mesh(
-                    self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor,
-                                    geom=geom),
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
-            elif mode == 'cylinder':
-                cylinder = vtk.vtkCylinderSource()
-                cylinder.SetHeight(glyph_height)
-                cylinder.SetRadius(0.15)
-                cylinder.SetCenter(glyph_center)
-                cylinder.SetResolution(glyph_resolution)
-                cylinder.Update()
-
-                # fix orientation
-                tr = vtk.vtkTransform()
-                tr.RotateWXYZ(90, 0, 0, 1)
-                trp = vtk.vtkTransformPolyDataFilter()
-                trp.SetInputData(cylinder.GetOutput())
-                trp.SetTransform(tr)
-                trp.Update()
-
-                geom = trp.GetOutput()
-                _add_mesh(
-                    self.plotter,
-                    mesh=grid.glyph(orient='vec',
-                                    scale=scale,
-                                    factor=factor,
-                                    geom=geom),
-                    color=color,
-                    opacity=opacity,
-                    backface_culling=backface_culling
-                )
+            else:
+                if mode == 'cone':
+                    glyph = vtk.vtkConeSource()
+                    glyph.SetCenter(0.5, 0, 0)
+                    glyph.SetRadius(0.15)
+                elif mode == 'cylinder':
+                    glyph = vtk.vtkCylinderSource()
+                    glyph.SetRadius(0.15)
+                else:
+                    assert mode == 'sphere', mode  # guaranteed above
+                    glyph = vtk.vtkSphereSource()
+                if mode == 'cylinder':
+                    if glyph_height is not None:
+                        glyph.SetHeight(glyph_height)
+                    if glyph_center is not None:
+                        glyph.SetCenter(glyph_center)
+                    if glyph_resolution is not None:
+                        glyph.SetResolution(glyph_resolution)
+                    # fix orientation
+                    glyph.Update()
+                    tr = vtk.vtkTransform()
+                    tr.RotateWXYZ(90, 0, 0, 1)
+                    trp = vtk.vtkTransformPolyDataFilter()
+                    trp.SetInputData(glyph.GetOutput())
+                    trp.SetTransform(tr)
+                    glyph = trp
+                glyph.Update()
+                geom = glyph.GetOutput()
+                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
+                                  geom=geom)
+            _add_mesh(
+                self.plotter,
+                mesh=mesh,
+                color=color,
+                opacity=opacity,
+                backface_culling=backface_culling
+            )
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
@@ -625,16 +659,23 @@ def _compute_normals(mesh):
 
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
+    from . import renderer
     _process_events(plotter)
     mesh = kwargs.get('mesh')
     if 'smooth_shading' in kwargs:
         smooth_shading = kwargs.pop('smooth_shading')
     else:
         smooth_shading = True
+    # disable rendering pass for add_mesh, render()
+    # is called in show()
+    if 'render' not in kwargs and 'render' in _get_args(plotter.add_mesh):
+        kwargs['render'] = False
     actor = plotter.add_mesh(*args, **kwargs)
     if smooth_shading and 'Normals' in mesh.point_arrays:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
+    if renderer.MNE_3D_BACKEND_TESTING:
+        actor.SetVisibility(False)
     return actor
 
 
@@ -644,6 +685,15 @@ def _deg2rad(deg):
 
 def _rad2deg(rad):
     return rad * 180. / np.pi
+
+
+def _to_pos(elevation, azimuth):
+    theta = azimuth * np.pi / 180.0
+    phi = (90.0 - elevation) * np.pi / 180.0
+    x = np.sin(theta) * np.sin(phi)
+    y = np.cos(phi)
+    z = np.cos(theta) * np.sin(phi)
+    return x, y, z
 
 
 def _mat_to_array(vtk_mat):
@@ -711,6 +761,7 @@ def _get_camera_direction(focalpoint, position):
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     position = np.array(figure.plotter.camera_position[0])
+    figure.plotter.reset_camera()
     if focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
@@ -719,8 +770,6 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
         phi = _deg2rad(azimuth)
     if elevation is not None:
         theta = _deg2rad(elevation)
-    if roll is not None:
-        roll = _deg2rad(roll)
 
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
@@ -839,6 +888,7 @@ def _set_mesh_scalars(mesh, scalars, name):
 
 
 def _update_slider_callback(slider, callback, event_type):
+    _check_option('event_type', event_type, ['start', 'end', 'always'])
 
     def _the_callback(widget, event):
         value = widget.GetRepresentation().GetValue()
@@ -850,7 +900,8 @@ def _update_slider_callback(slider, callback, event_type):
         event = vtk.vtkCommand.StartInteractionEvent
     elif event_type == 'end':
         event = vtk.vtkCommand.EndInteractionEvent
-    elif event_type == 'always':
+    else:
+        assert event_type == 'always', event_type
         event = vtk.vtkCommand.InteractionEvent
 
     slider.RemoveObserver(event)
@@ -886,6 +937,13 @@ def _update_picking_callback(plotter,
     )
     picker.SetVolumeOpacityIsovalue(0.)
     plotter.picker = picker
+
+
+def _remove_picking_callback(interactor, picker):
+    interactor.RemoveObservers(vtk.vtkCommand.RenderEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.LeftButtonPressEvent)
+    interactor.RemoveObservers(vtk.vtkCommand.EndInteractionEvent)
+    picker.RemoveObservers(vtk.vtkCommand.EndPickEvent)
 
 
 def _arrow_glyph(grid, factor):
@@ -993,8 +1051,8 @@ def _volume(dimensions, origin, spacing, scalars,
         mapper.SetScalarModeToUseCellData()
         mapper.SetInputDataObject(grid)
     else:
-        upsampler = vtk.vtkImageResample()
-        upsampler.SetInterpolationModeToNearestNeighbor()
+        upsampler = vtk.vtkImageReslice()
+        upsampler.SetInterpolationModeToLinear()  # default anyway
         upsampler.SetOutputSpacing(*([resolution] * 3))
         upsampler.SetInputConnection(grid_alg.GetOutputPort())
         mapper.SetInputConnection(upsampler.GetOutputPort())
@@ -1036,16 +1094,20 @@ def _testing_context(interactive):
     from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
+    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
+    renderer.MNE_3D_BACKEND_TESTING = True
     if interactive:
         pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_TESTING = False
+        renderer.MNE_3D_BACKEND_INTERACTIVE = True
     else:
         pyvista.OFF_SCREEN = True
+        renderer.MNE_3D_BACKEND_INTERACTIVE = False
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
 @contextmanager
@@ -1057,6 +1119,19 @@ def _disabled_depth_peeling():
         yield
     finally:
         rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
+
+
+@contextmanager
+def _disabled_interaction(renderer):
+    plotter = renderer.plotter
+    if not plotter.renderer.GetInteractive():
+        yield
+    else:
+        plotter.disable()
+        try:
+            yield
+        finally:
+            plotter.enable()
 
 
 @decorator

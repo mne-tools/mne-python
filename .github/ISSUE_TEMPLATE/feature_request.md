@@ -1,22 +1,27 @@
 ---
 name: Feature request
-about: Suggest an idea for this project.
-
+about: Suggest additions or improvements to MNE-Python.
+title: ''
+labels: ENH
+assignees: ''
 ---
 
-If your issue is a usage question, please consider asking on our [Gitter channel](https://gitter.im/mne-tools/mne-python) or on our [mailing list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis) instead of opening an issue.
+#### Describe the new feature or enhancement
+*Please provide a clear and concise description of what you want to add or
+change.*
 
-#### Describe the problem
-Please provide a clear and concise description of the problem.
 
-
-#### Describe your solution
-A clear and concise description of what you want to happen.
+#### Describe your proposed implementation
+*Describe how you think the feature or improvement should be implemented (e.g., 
+as a new method on an existing class? as new capability added to an existing
+method?) If you're not sure, please delete this section and the next section.*
 
 
 #### Describe possible alternatives
-A clear and concise description of any alternative solutions or features you have considered.
+*If you've suggested an implementation above, list here any alternative
+implementations you can think of, and brief comments explaining why the chosen
+implementation is better.*
 
 
-#### Additional context
-Add any other context or screenshots about the feature request here.
+#### Additional comments
+*Add any other context or screenshots about the feature request here.*

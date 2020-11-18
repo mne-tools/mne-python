@@ -12,6 +12,8 @@ from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal, assert_allclose)
 import pytest
 
+from mne import (SourceEstimate, VolSourceEstimate, MixedSourceEstimate,
+                 SourceSpaces)
 from mne.fixes import has_numba
 from mne.parallel import _force_serial
 from mne.stats import cluster_level, ttest_ind_no_p, combine_adjacency
@@ -218,11 +220,6 @@ def test_cluster_permutation_test(numba_conditional):
                                      n_jobs=2, buffer_size=buffer_size,
                                      out_type='mask')
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
-
-    # test param deprecation
-    with pytest.deprecated_call():
-        _ = permutation_cluster_test(
-            [condition1_1d, condition2_1d], n_permutations=10, out_type=None)
 
     def stat_fun(X, Y):
         return stats.f_oneway(X, Y)[0]
@@ -610,16 +607,44 @@ def ttest_1samp(X):
     return stats.ttest_1samp(X, 0)[0]
 
 
-def test_summarize_clusters():
+@pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
+def test_summarize_clusters(kind):
     """Test cluster summary stcs."""
-    clu = (np.random.random([1, 20484]),
+    src_surf = SourceSpaces(
+        [dict(vertno=np.arange(10242), type='surf') for _ in range(2)])
+    assert src_surf.kind == 'surface'
+    src_vol = SourceSpaces(
+        [dict(vertno=np.arange(10), type='vol')])
+    assert src_vol.kind == 'volume'
+    if kind == 'surface':
+        src = src_surf
+        klass = SourceEstimate
+    elif kind == 'volume':
+        src = src_vol
+        klass = VolSourceEstimate
+    else:
+        assert kind == 'mixed'
+        src = src_surf + src_vol
+        klass = MixedSourceEstimate
+    n_vertices = sum(len(s['vertno']) for s in src)
+    clu = (np.random.random([1, n_vertices]),
            [(np.array([0]), np.array([0, 2, 4]))],
            np.array([0.02, 0.1]),
            np.array([12, -14, 30]))
-    stc_sum = summarize_clusters_stc(clu)
+    kwargs = dict()
+    if kind == 'volume':
+        with pytest.raises(ValueError, match='did not match'):
+            summarize_clusters_stc(clu)
+        assert len(src) == 1
+        kwargs['vertices'] = [src[0]['vertno']]
+    elif kind == 'mixed':
+        kwargs['vertices'] = src
+    stc_sum = summarize_clusters_stc(clu, **kwargs)
+    assert isinstance(stc_sum, klass)
     assert stc_sum.data.shape[1] == 2
     clu[2][0] = 0.3
-    pytest.raises(RuntimeError, summarize_clusters_stc, clu)
+    with pytest.raises(RuntimeError, match='No significant'):
+        summarize_clusters_stc(clu, **kwargs)
 
 
 def test_permutation_test_H0(numba_conditional):

@@ -15,6 +15,7 @@ from ...utils import logger, verbose, get_config, _check_option
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
+MNE_3D_BACKEND_INTERACTIVE = False
 
 
 _backend_name_map = dict(
@@ -147,8 +148,8 @@ def _get_3d_backend():
                     MNE_3D_BACKEND = name
                     break
             else:
-                raise RuntimeError('Could not load any valid 3D backend: %s'
-                                   % (VALID_3D_BACKENDS))
+                raise RuntimeError(f'Could not load any valid 3D backend: '
+                                   f'{", ".join(VALID_3D_BACKENDS)}')
         else:
             _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
             _reload_backend(MNE_3D_BACKEND)
@@ -200,7 +201,7 @@ def _use_test_3d_backend(backend_name, interactive=False):
 
 
 def set_3d_view(figure, azimuth=None, elevation=None,
-                focalpoint=None, distance=None):
+                focalpoint=None, distance=None, roll=None):
     """Configure the view of the given scene.
 
     Parameters
@@ -215,10 +216,12 @@ def set_3d_view(figure, azimuth=None, elevation=None,
         The focal point of the view: (x, y, z).
     distance : float
         The distance to the focal point.
+    roll : float
+        The view roll.
     """
     backend._set_3d_view(figure=figure, azimuth=azimuth,
                          elevation=elevation, focalpoint=focalpoint,
-                         distance=distance)
+                         distance=distance, roll=roll)
 
 
 def set_3d_title(figure, title, size=40):
@@ -288,5 +291,5 @@ def get_brain_class():
     if get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
-        from ...viz._brain import _Brain as Brain
+        from ...viz._brain import Brain
     return Brain

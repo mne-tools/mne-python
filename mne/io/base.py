@@ -13,6 +13,7 @@ from copy import deepcopy
 from datetime import timedelta
 import os
 import os.path as op
+import shutil
 
 import numpy as np
 
@@ -33,6 +34,7 @@ from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
+from ..fixes import nullcontext
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
@@ -363,7 +365,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                                      cumul_lens[:-1]))
 
         # set up cals and mult (cals, compensation, and projector)
+        n_out = len(np.arange(len(self.ch_names))[idx])
         cals = self._cals.ravel()[np.newaxis, :]
+        if projector is not None:
+            assert projector.shape[0] == projector.shape[1] == cals.shape[1]
         if self._comp is not None:
             if projector is not None:
                 mult = self._comp * cals
@@ -374,7 +379,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             mult = projector[idx] * cals
         else:
             mult = None
-        cals = cals.T[idx]
+        del projector
+
+        if mult is None:
+            cals = cals.T[idx]
+            assert cals.shape == (n_out, 1)
+            need_idx = idx  # sufficient just to read the given channels
+        else:
+            cals = None  # shouldn't be used
+            assert mult.shape == (n_out, len(self.ch_names))
+            # read all necessary for proj
+            need_idx = np.where(np.any(mult, axis=0))[0]
+            mult = mult[:, need_idx]
+            logger.debug(
+                f'Reading {len(need_idx)}/{len(self.ch_names)} channels '
+                f'due to projection')
+        assert (mult is None) ^ (cals is None)  # xor
 
         # read from necessary files
         offset = 0
@@ -390,7 +410,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             n_read = stop_file - start_file
             this_sl = slice(offset, offset + n_read)
             # reindex back to original file
-            orig_idx = _convert_slice(self._read_picks[fi][idx])
+            orig_idx = _convert_slice(self._read_picks[fi][need_idx])
             _ReadSegmentFileProtector(self)._read_segment_file(
                 data[:, this_sl], orig_idx, fi,
                 int(start_file), int(stop_file), cals, mult)
@@ -413,7 +433,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        data : ndarray, shape (len(idx), stop - start + 1)
+        data : ndarray, shape (n_out, stop - start + 1)
             The data array. Should be modified inplace.
         idx : ndarray | slice
             The requested channel indices.
@@ -425,7 +445,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The stop sample in the given file (inclusive).
         cals : ndarray, shape (len(idx), 1)
             Channel calibrations (already sub-indexed).
-        mult : ndarray, shape (len(idx), len(info['chs']) | None
+        mult : ndarray, shape (n_out, len(idx) | None
             The compensation + projection + cals matrix, if applicable.
         """
         raise NotImplementedError
@@ -507,7 +527,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data_buffer = None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
-        self._data = self._read_segment(data_buffer=data_buffer)
+        self._data = self._read_segment(
+            data_buffer=data_buffer, projector=self._projector)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self._comp = None  # no longer needed
@@ -1037,6 +1058,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # lgtm
         """Resample all channels.
 
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
+
         .. warning:: The intended purpose of this function is primarily to
                      speed up computations (e.g., projection calculation) when
                      precise timing of events is not required, as downsampling
@@ -1375,17 +1399,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
-        if split_naming == 'neuromag':
-            part_idx = 0
-        elif split_naming == 'bids':
-            part_idx = 1
-        else:
-            raise ValueError(
-                "split_naming must be either 'neuromag' or 'bids' instead "
-                "of '{}'.".format(split_naming))
+        _validate_type(split_naming, str, 'split_naming')
+        _check_option('split_naming', split_naming, ('neuromag', 'bids'))
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
-                   split_size, split_naming, part_idx, None, overwrite)
+                   split_size, split_naming, 0, None, overwrite)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
@@ -1564,7 +1582,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment()
+                this_data = self._read_segment(projector=self._projector)
             else:
                 this_data = self._data
 
@@ -1576,7 +1594,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 if not raws[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    raws[ri]._read_segment(data_buffer=data_buffer)
+                    raws[ri]._read_segment(data_buffer=data_buffer,
+                                           projector=self._projector)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
@@ -1788,11 +1807,13 @@ class _ReadSegmentFileProtector(object):
 
     def __init__(self, raw):
         self.__raw = raw
+        assert hasattr(raw, '_projector')
         self._filenames = raw._filenames
         self._raw_extras = raw._raw_extras
 
-    def _read_segment_file(self, *args, **kwargs):
-        return self.__raw.__class__._read_segment_file(self, *args, **kwargs)
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        return self.__raw.__class__._read_segment_file(
+            self, data, idx, fi, start, stop, cals, mult)
 
 
 class _RawShell(object):
@@ -1833,45 +1854,87 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         raise RuntimeError('Cannot write raw file with no data: %s -> %s '
                            '(max: %s) requested' % (start, stop, n_times_max))
 
+    base, ext = op.splitext(fname)
     if part_idx > 0:
-        base, ext = op.splitext(fname)
         if split_naming == 'neuromag':
             # insert index in filename
             use_fname = '%s-%d%s' % (base, part_idx, ext)
-        elif split_naming == 'bids':
-            use_fname = _construct_bids_filename(base, ext, part_idx)
+        else:
+            assert split_naming == 'bids'
+            use_fname = _construct_bids_filename(base, ext, part_idx + 1)
             # check for file existence
             _check_fname(use_fname, overwrite)
-
     else:
         use_fname = fname
+    # reserve our BIDS split fname in case we need to split
+    if split_naming == 'bids' and part_idx == 0:
+        # reserve our possible split name
+        reserved_fname = _construct_bids_filename(base, ext, part_idx + 1)
+        logger.info(
+            f'Reserving possible split file {op.basename(reserved_fname)}')
+        _check_fname(reserved_fname, overwrite)
+        ctx = _ReservedFilename(reserved_fname)
+    else:
+        reserved_fname = use_fname
+        ctx = nullcontext()
     logger.info('Writing %s' % use_fname)
 
     picks = _picks_to_idx(info, picks, 'all', ())
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range, raw.annotations)
+    with ctx, fid:
+        final_fname = _write_raw_fid(
+            raw, info, picks, fid, cals, part_idx, start, stop,
+            buffer_size, prev_fname, split_size, use_fname,
+            projector, drop_small_buffer, fmt, fname, reserved_fname,
+            data_type, reset_range, split_naming, overwrite)
+    if final_fname != use_fname:
+        assert split_naming == 'bids'
+        logger.info(f'Renaming BIDS split file {op.basename(final_fname)}')
+        ctx.remove = False
+        shutil.move(use_fname, final_fname)
+    if part_idx == 0:
+        logger.info('[done]')
+    return final_fname, part_idx
 
+
+class _ReservedFilename:
+
+    def __init__(self, fname):
+        self.fname = fname
+        assert op.isdir(op.dirname(fname)), fname
+        with open(fname, 'w'):
+            pass
+        self.remove = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.remove:
+            os.remove(self.fname)
+
+
+def _write_raw_fid(raw, info, picks, fid, cals, part_idx, start, stop,
+                   buffer_size, prev_fname, split_size, use_fname,
+                   projector, drop_small_buffer, fmt, fname, reserved_fname,
+                   data_type, reset_range, split_naming, overwrite):
     first_samp = raw.first_samp + start
     if first_samp != 0:
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
     # previous file name and id
-    if split_naming == 'neuromag':
-        part_idx_tag = part_idx - 1
-    else:
-        part_idx_tag = part_idx - 2
     if part_idx > 0 and prev_fname is not None:
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
         if info['meas_id'] is not None:
             write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
-        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx_tag)
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
     pos_prev = fid.tell()
     if pos_prev > split_size:
-        fid.close()
         raise ValueError('file is larger than "split_size" after writing '
                          'measurement information, you must use a larger '
                          'value for split size: %s plus enough bytes for '
@@ -1894,6 +1957,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                      'output buffer_size, will be written as zeroes.')
 
     n_current_skip = 0
+    final_fname = use_fname
     for first, last in zip(firsts, lasts):
         if do_skips:
             if ((first >= sk_onsets) & (last <= sk_ends)).any():
@@ -1928,7 +1992,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         if overage > 0:
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
-            fid.close()
             raise ValueError(
                 'buffer size (%s) is too large for the given split size (%s) '
                 'by %s bytes after writing info (%s) and leaving enough space '
@@ -1941,11 +2004,12 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         # with the "and" check
         if pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER and \
                 first + buffer_size < stop:
+            final_fname = reserved_fname
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, drop_small_buffer, split_size, split_naming,
-                part_idx + 1, use_fname, overwrite)
+                part_idx + 1, final_fname, overwrite)
 
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
@@ -1955,17 +2019,16 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
             end_block(fid, FIFF.FIFFB_REF)
             break
-
         pos_prev = pos
 
-    logger.info('Closing %s [done]' % use_fname)
+    logger.info('Closing %s' % use_fname)
     if info.get('maxshield', False):
         end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
     else:
         end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
-    return use_fname, part_idx
+    return final_fname
 
 
 def _start_writing_raw(name, info, sel, data_type,
@@ -2061,11 +2124,14 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
     _check_option('fmt', fmt, ['short', 'int', 'single', 'double'])
 
+    cast_int = False  # allow unsafe cast
     if np.isrealobj(buf):
         if fmt == 'short':
             write_function = write_dau_pack16
+            cast_int = True
         elif fmt == 'int':
             write_function = write_int
+            cast_int = True
         elif fmt == 'single':
             write_function = write_float
         else:
@@ -2080,6 +2146,8 @@ def _write_raw_buffer(fid, buf, cals, fmt):
                              'writing complex data')
 
     buf = buf / np.ravel(cals)[:, None]
+    if cast_int:
+        buf = buf.astype(np.int32)
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 

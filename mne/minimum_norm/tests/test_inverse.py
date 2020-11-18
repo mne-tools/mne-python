@@ -26,7 +26,6 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  SourceEstimate, make_sphere_model, make_ad_hoc_cov,
                  pick_channels_forward, compute_raw_covariance)
 from mne.io import read_raw_fif
-from mne.io.proj import make_projector
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               apply_inverse_raw, apply_inverse_epochs,
                               make_inverse_operator, apply_inverse_cov,
@@ -347,8 +346,9 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
     assert not is_fixed_orient(fwd)
     inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose,
                                       depth=depth)
-    loc = apply_inverse(
-        evoked, inv_loose, lambda2, method, pick_ori=pick_ori)
+    loc, res = apply_inverse(
+        evoked, inv_loose, lambda2, method, pick_ori=pick_ori,
+        return_residual=True)
     if pick_ori is not None:
         assert loc.data.ndim == 3
         loc, directions = loc.project('pca', src=fwd['src'])
@@ -577,53 +577,68 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
     assert vmin < R2 < vmax
 
 
+def assert_stc_res(evoked, stc, forward, res, atol=1e-20):
+    """Assert that orig == residual + estimate."""
+    __tracebackhide__ = True
+    with pytest.warns(None):  # could be all positive or large values
+        estimated = apply_forward(forward, stc, evoked.info)
+    meg, eeg = 'meg' in estimated, 'eeg' in estimated
+    evoked = evoked.copy().pick_types(meg=meg, eeg=eeg, exclude=())
+    evoked.apply_proj()
+    res = res.copy().pick_types(meg=meg, eeg=eeg, exclude=())
+    estimated.info['bads'] = evoked.info['bads']  # proj the same channels
+    estimated.add_proj(evoked.info['projs']).apply_proj()
+    estimated.pick_channels(res.ch_names, ordered=True)
+    evoked.pick_channels(res.ch_names, ordered=True)
+    recon = estimated.data + res.data
+    assert_allclose(evoked.data, recon.data, atol=atol, rtol=1e-6)
+
+
+def assert_var_exp_log(log, lower, upper):
+    """Assert a variance explained log value."""
+    __tracebackhide__ = True
+    exp_var = re.match(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*',
+                       log.replace('\n', ' '))
+    assert exp_var is not None, f'No explained variance found:\n{log}'
+    exp_var = float(exp_var.group(1))
+    assert lower <= exp_var <= upper
+    return exp_var
+
+
 @pytest.mark.parametrize('method', INVERSE_METHODS)
-def test_inverse_residual(evoked, method):
+@pytest.mark.parametrize('pick_ori', (None, 'vector'))
+def test_inverse_residual(evoked, method, pick_ori):
     """Test MNE inverse application."""
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
     evoked = evoked.pick_types(meg=True)
-    inv = read_inverse_operator(fname_inv_fixed_depth)
+    if pick_ori is None:  # use fixed
+        inv = read_inverse_operator(fname_inv_fixed_depth)
+    else:
+        inv = read_inverse_operator(fname_inv)
     fwd = read_forward_solution(fname_fwd)
     pick_channels_forward(fwd, evoked.ch_names, copy=False)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
-    matcher = re.compile(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*')
 
     # make it complex to ensure we handle it properly
     evoked.data = 1j * evoked.data
     with catch_logging() as log:
         stc, residual = apply_inverse(
-            evoked, inv, method=method, return_residual=True, verbose=True)
-    # revert the complex-ification (except STC, allow that to be complex still)
+            evoked, inv, method=method, return_residual=True, verbose=True,
+            pick_ori=pick_ori)
     assert_array_equal(residual.data.real, 0)
     residual.data = (-1j * residual.data).real
     evoked.data = (-1j * evoked.data).real
-    # continue testing
-    log = log.getvalue()
-    match = matcher.match(log.replace('\n', ' '))
-    assert match is not None
-    match = float(match.group(1))
-    assert 45 < match < 50
+    assert stc.data.min() < 0
+    stc.data = (-1j * stc.data)
+    assert_var_exp_log(log.getvalue(), 45, 52)
     if method not in ('dSPM', 'sLORETA'):
-        # revert effects of STC being forced to be complex
-        recon = apply_forward(fwd, stc, evoked.info)
-        recon.data = (-1j * recon.data).real
-        proj_op = make_projector(evoked.info['projs'], evoked.ch_names)[0]
-        recon.data[:] = np.dot(proj_op, recon.data)
-        residual_fwd = evoked.copy()
-        residual_fwd.data -= recon.data
-        corr = np.corrcoef(residual_fwd.data.ravel(),
-                           residual.data.ravel())[0, 1]
-        assert corr > 0.999
+        assert_stc_res(evoked, stc, fwd, residual, atol=1e-16)
 
     if method != 'sLORETA':  # XXX divide by zero error
         with catch_logging() as log:
             _, residual = apply_inverse(
                 evoked, inv, 0., method, return_residual=True, verbose=True)
-        log = log.getvalue()
-        match = matcher.match(log.replace('\n', ' '))
-        assert match is not None
-        match = float(match.group(1))
-        assert match == 100.
+        assert_var_exp_log(log.getvalue(), 100, 100)
         assert_array_less(np.abs(residual.data), 1e-15)
 
 
@@ -1099,9 +1114,9 @@ def test_inverse_mixed(all_src_types_inv_evoked):
         assert_allclose(getattr(stcs['mixed'], kind)().magnitude().data,
                         stcs[kind].magnitude().data)
     assert not np.allclose(stcs['surface'].data[0], 0., atol=1e-2)
-    with pytest.deprecated_call():
-        assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
-                        stcs['surface'].normal(surf_src).data)
+    assert_allclose(
+        stcs['mixed'].surface().project('normal', surf_src)[0].data,
+        stcs['surface'].project('normal', surf_src)[0].data)
 
 
 def test_inverse_mixed_loose(mixed_fwd_cov_evoked):

@@ -72,7 +72,12 @@ Reading raw data
    read_raw_fif
    read_raw_eximia
    read_raw_fieldtrip
+<<<<<<< HEAD
    read_raw_boxy
+=======
+   read_raw_persyst
+   read_raw_nihon
+>>>>>>> master
 
 Base class:
 
@@ -224,6 +229,7 @@ Visualization
 .. autosummary::
    :toctree: generated/
 
+   Brain
    ClickableImage
    add_background_image
    centers_to_edges
@@ -318,6 +324,7 @@ Projections:
 
    Layout
    DigMontage
+   compute_native_head_t
    fix_mag_coil_types
    read_polhemus_fastscan
    get_builtin_montages
@@ -356,6 +363,7 @@ Projections:
 
    ICA
    Xdawn
+   annotate_flat
    annotate_movement
    annotate_muscle_zscore
    compute_average_dev_head_t
@@ -372,7 +380,6 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
-   mark_flat
    maxwell_filter
    oversampled_temporal_projection
    peak_finder
@@ -740,7 +747,6 @@ Inverse Solutions
    apply_dics_epochs
    rap_music
    tf_dics
-   tf_lcmv
    make_lcmv_resolution_matrix
 
 .. currentmodule:: mne
@@ -800,8 +806,10 @@ Source Space Data
    read_label
    read_source_estimate
    read_source_morph
+   read_talxfm
    split_label
    stc_to_label
+   stc_near_sensors
    transform_surface_to
    vertex_to_mni
    write_labels_to_annot
@@ -1022,6 +1030,7 @@ Decoding
    SlidingEstimator
    GeneralizingEstimator
    SPoC
+   SSD
 
 Functions that assist with decoding and model fitting:
 

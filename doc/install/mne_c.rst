@@ -189,7 +189,7 @@ If you encounter other errors installing MNE-C, please send a message to the
 .. _netpbm: http://netpbm.sourceforge.net/
 .. _MacPorts: https://www.macports.org/
 .. _Homebrew: https://brew.sh/
-.. _XCode developer tools: http://appstore.com/mac/apple/xcode
+.. _XCode developer tools: https://developer.apple.com/xcode/
 .. _xquartz: https://www.xquartz.org/
 .. _debian: https://packages.debian.org/jessie/amd64/libxp6/download
 .. _pkgs.org: https://pkgs.org/download/libxp6

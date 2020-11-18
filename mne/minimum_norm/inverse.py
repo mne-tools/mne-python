@@ -120,7 +120,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     logger.info('Reading inverse operator decomposition from %s...'
                 % fname)
-    f, tree, _ = fiff_open(fname, preload=True)
+    f, tree, _ = fiff_open(fname)
     with f as fid:
         #
         #   Find all inverse operators
@@ -483,11 +483,12 @@ def _check_ch_names(inv, info):
     _check_compensation_grade(inv['info'], info, 'inverse')
 
 
-def _check_or_prepare(inv, nave, lambda2, method, method_params, prepared):
+def _check_or_prepare(inv, nave, lambda2, method, method_params, prepared,
+                      copy=True):
     """Check if inverse was prepared, or prepare it."""
     if not prepared:
         inv = prepare_inverse_operator(
-            inv, nave, lambda2, method, method_params)
+            inv, nave, lambda2, method, method_params, copy=copy)
     elif 'colorer' not in inv:
         raise ValueError('inverse operator has not been prepared, but got '
                          'argument prepared=True. Either pass prepared=False '
@@ -497,7 +498,7 @@ def _check_or_prepare(inv, nave, lambda2, method, method_params, prepared):
 
 @verbose
 def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
-                             method_params=None, verbose=None):
+                             method_params=None, copy=True, verbose=None):
     """Prepare an inverse operator for actually computing the inverse.
 
     Parameters
@@ -514,6 +515,12 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    copy : bool | str
+        If True (default), copy the inverse. False will not copy.
+        Can be "non-src" to avoid copying the source space, which typically
+        is not modified and can be large in memory.
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -524,8 +531,23 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     if nave <= 0:
         raise ValueError('The number of averages should be positive')
 
+    _validate_type(copy, (bool, str), 'copy')
+    if isinstance(copy, str):
+        _check_option('copy', copy, ('non-src',), extra='when a string')
     logger.info('Preparing the inverse operator for use...')
-    inv = orig.copy()
+    inv = orig
+    if copy:
+        src = orig['src']
+        if copy == 'non-src':
+            orig['src'] = None
+        try:
+            inv = orig.copy()
+        finally:
+            orig['src'] = src
+        if copy == 'non-src':
+            inv['src'] = src
+    del orig
+
     #
     #   Scale some of the stuff
     #
@@ -681,7 +703,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     source_nn = inv['source_nn']
 
     if label is not None:
-        vertno, src_sel = label_src_vertno_sel(label, inv['src'])
+        vertno, src_sel = label_src_vertno_sel(label, src)
 
         if method not in ["MNE", "eLORETA"]:
             noise_norm = noise_norm[src_sel]
@@ -878,6 +900,15 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     return out
 
 
+def _log_exp_var(data, est, prefix='    '):
+    res = data - est
+    var_exp = 1 - ((res * res.conj()).sum().real /
+                   (data * data.conj()).sum().real)
+    var_exp *= 100
+    logger.info(f'{prefix}Explained {var_exp:5.1f}% variance')
+    return var_exp
+
+
 def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
                    prepared, label, method_params, return_residual, use_cps):
     _validate_type(evoked, Evoked, 'evoked')
@@ -893,7 +924,8 @@ def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
     _check_ch_names(inverse_operator, evoked.info)
 
     inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
-                            method_params, prepared)
+                            method_params, prepared, copy='non-src')
+    del inverse_operator
 
     #
     #   Pick the correct channels from the data
@@ -916,16 +948,12 @@ def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
                       np.dot(inv['eigen_fields']['data'].T,  # U
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
-    res_w = data_w - data_est_w
-    var_exp = 1 - ((res_w * res_w.conj()).sum().real /
-                   (data_w * data_w.conj()).sum().real)
-    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
-
+    _log_exp_var(data_w, data_est_w)
     if return_residual:
         residual = evoked.copy()
         residual.data[sel] -= data_est
-    is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
+    is_free_ori = (inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI and
+                   pick_ori != 'normal')
 
     if is_free_ori and pick_ori != 'vector':
         logger.info('    Combining the current components...')
@@ -939,8 +967,8 @@ def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
 
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.times[0])
-    subject = _subject_from_inverse(inverse_operator)
-    src_type = _get_src_type(inverse_operator['src'], vertno)
+    subject = _subject_from_inverse(inv)
+    src_type = _get_src_type(inv['src'], vertno)
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,
                     src_type=src_type)
@@ -1262,6 +1290,14 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     Notes
     -----
     .. versionadded:: 0.20
+
+    This code is based on the original research code from
+    :footcite:`Sabbagh2020` and has been useful to correct for individual field
+    spread using source localization in the context of predictive modeling.
+
+    References
+    ----------
+    .. footbibliography::
     """
     _validate_type(cov, Covariance, cov)
     _validate_type(inverse_operator, InverseOperator, 'inverse_operator')
@@ -1375,7 +1411,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     else:
         depth_prior = compute_depth_prior(
             forward, info_picked, exp=exp, limit_depth_chs=limit_depth_chs,
-            combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov)
+            combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov,
+            rank=rank)
 
     # Deal with fixed orientation forward / inverse
     if loose.get('surface', 1.) == 0. and len(loose) == 1:
@@ -1497,7 +1534,18 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         trace_GRGT, noise_cov, _ = _prepare_forward(
             forward, info, noise_cov, fixed, loose, rank, pca='white',
             use_cps=use_cps, **depth)
-    del fixed, loose, depth, use_cps
+    # no need to copy any attributes of forward here because there is
+    # a deepcopy in _prepare_forward
+    inv = dict(
+        projs=deepcopy(gain_info['projs']), eigen_leads_weighted=False,
+        source_ori=forward['source_ori'], mri_head_t=forward['mri_head_t'],
+        nsource=forward['nsource'], units='Am',
+        coord_frame=forward['coord_frame'], source_nn=forward['source_nn'],
+        src=forward['src'], fmri_prior=None, info=deepcopy(forward['info']))
+    inv['info']['bads'] = [bad for bad in info['bads']
+                           if bad in forward['info']['ch_names']]
+    inv['info']._check_consistency()
+    del fixed, loose, depth, use_cps, forward
 
     # Decompose the combined matrix
     logger.info('Computing SVD of whitened and weighted lead field matrix.')
@@ -1544,28 +1592,11 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                       kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
                       names=[], projs=[], eig=None, eigvec=None,
                       nfree=1, bads=[])
-    # no need to copy any attributes of forward here because there is
-    # a deepcopy in _prepare_forward
-    inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
-                  sing=sing, nave=1., depth_prior=depth_prior,
-                  source_cov=source_cov, noise_cov=noise_cov,
-                  orient_prior=orient_prior,
-                  projs=deepcopy(gain_info['projs']),
-                  eigen_leads_weighted=False, source_ori=forward['source_ori'],
-                  mri_head_t=forward['mri_head_t'],
-                  methods=methods, nsource=forward['nsource'],
-                  coord_frame=forward['coord_frame'],
-                  source_nn=forward['source_nn'],
-                  src=forward['src'],
-                  fmri_prior=None)
-    inv_info = deepcopy(forward['info'])
-    inv_info['bads'] = [bad for bad in info['bads']
-                        if bad in forward['info']['ch_names']]
-    inv_info._check_consistency()
-    inv_op['units'] = 'Am'
-    inv_op['info'] = inv_info
-
-    return InverseOperator(inv_op)
+    inv.update(
+        eigen_fields=eigen_fields, eigen_leads=eigen_leads, sing=sing, nave=1.,
+        depth_prior=depth_prior, source_cov=source_cov, noise_cov=noise_cov,
+        orient_prior=orient_prior, methods=methods)
+    return InverseOperator(inv)
 
 
 def _compute_reginv(inv, lambda2):
@@ -1675,7 +1706,8 @@ def estimate_snr(evoked, inv, verbose=None):
     from scipy.stats import chi2
     _check_reference(evoked, inv['info']['ch_names'])
     _check_ch_names(inv, evoked.info)
-    inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE')
+    inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE',
+                                   copy='non-src')
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     data_white = np.dot(inv['whitener'], np.dot(inv['proj'], evoked.data[sel]))

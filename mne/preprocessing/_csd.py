@@ -17,7 +17,7 @@ import numpy as np
 from scipy import linalg
 
 from .. import pick_types
-from ..utils import _validate_type, _ensure_int
+from ..utils import _validate_type, _ensure_int, _check_preload
 from ..io import BaseRaw
 from ..io.constants import FIFF
 from ..epochs import BaseEpochs
@@ -95,6 +95,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     .. footbibliography::
     """
     _validate_type(inst, (BaseEpochs, BaseRaw, Evoked), 'inst')
+    _check_preload(inst, 'Computing CSD')
 
     if inst.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_CSD:
         raise ValueError('CSD already applied, should not be reapplied')

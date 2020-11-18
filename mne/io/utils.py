@@ -12,6 +12,7 @@
 
 import numpy as np
 import os
+import os.path as op
 
 from .constants import FIFF
 from .meas_info import _get_valid_units
@@ -78,15 +79,16 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
     one = np.asarray(one, dtype=data_view.dtype)
     assert data_view.shape[1] == one.shape[1]
     if mult is not None:
-        data_view[:] = np.dot(mult, one)
+        mult.ndim == one.ndim == 2
+        data_view[:] = mult @ one[idx]
     else:
+        assert cals is not None
         if isinstance(idx, slice):
             data_view[:] = one[idx]
         else:
             # faster than doing one = one[idx]
             np.take(one, idx, axis=0, out=data_view)
-        if cals is not None:
-            data_view *= cals
+        data_view *= cals
 
 
 def _blk_read_lims(start, stop, buf_len):
@@ -298,13 +300,15 @@ def _synthesize_stim_channel(events, n_samples):
 def _construct_bids_filename(base, ext, part_idx):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
+    dirname = op.dirname(base)
+    base = op.basename(base)
     deconstructed_base = base.split('_')
-    bids_supported = ['meg', 'eeg', 'ieeg']
-    for mod in bids_supported:
-        if mod in deconstructed_base:
-            idx = deconstructed_base.index(mod)
-            modality = deconstructed_base.pop(idx)
-    base = '_'.join(deconstructed_base)
+    if len(deconstructed_base) < 2:
+        raise ValueError('Filename base must end with an underscore followed '
+                         f'by the modality (e.g., _eeg or _meg), got {base}')
+    modality = deconstructed_base[-1]
+    base = '_'.join(deconstructed_base[:-1])
     use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, modality, ext)
-
+    if dirname:
+        use_fname = op.join(dirname, use_fname)
     return use_fname

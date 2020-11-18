@@ -24,7 +24,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
-                       _get_split_size, _NEXT_FILE_BUFFER)
+                       _get_split_size, _NEXT_FILE_BUFFER, INT32_MAX)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -55,7 +55,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
-                    _scale_dataframe_data, _check_time_format, object_size)
+                    _scale_dataframe_data, _check_time_format, object_size,
+                    _on_missing)
 from .utils.docs import fill_doc
 
 
@@ -86,9 +87,14 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
         next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
                                                  base[idx + 1:]))
         next_idx = part_idx + 1
+    else:
+        next_idx = None
 
-    fid = start_file(fname)
+    with start_file(fname) as fid:
+        _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
+
+def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     info = epochs.info
     meas_id = info['meas_id']
 
@@ -207,8 +213,8 @@ def _merge_events(events, event_id, selection):
 
         # If duplicate time samples have same event val, "merge" == "drop"
         # and no new event_id key will be created
-        ev_vals = events[idxs, 2]
-        if len(np.unique(ev_vals)) <= 1:
+        ev_vals = np.unique(events[idxs, 2])
+        if len(ev_vals) <= 1:
             new_event_val = ev_vals[0]
 
         # Else, make a new event_id for the merged event
@@ -231,11 +237,18 @@ def _merge_events(events, event_id, selection):
             # Else, find an unused value for the new key and make an entry into
             # the event_id dict
             else:
-                ev_vals = np.concatenate((list(event_id.values()),
-                                          events[:, 1:].flatten()),
-                                         axis=0)
-                new_event_val = np.setdiff1d(np.arange(1, 9999999),
-                                             ev_vals).min()
+                ev_vals = np.unique(
+                    np.concatenate((list(event_id.values()),
+                                    events[:, 1:].flatten()),
+                                   axis=0))
+                if ev_vals[0] > 1:
+                    new_event_val = 1
+                else:
+                    diffs = np.diff(ev_vals)
+                    idx = np.where(diffs > 1)[0]
+                    idx = -1 if len(idx) == 0 else idx[0]
+                    new_event_val = ev_vals[idx] + 1
+
                 new_event_id_key = '/'.join(sorted(new_key_comps))
                 event_id[new_event_id_key] = int(new_event_val)
 
@@ -331,8 +344,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         An instance of Raw.
     %(picks_header)s
         See `Epochs` docstring.
-    reject : dict | None
-        See `Epochs` docstring.
+    %(reject_epochs)s
     flat : dict | None
         See `Epochs` docstring.
     decim : int
@@ -380,13 +392,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
-                 detrend=None, proj=True, on_missing='error',
+                 detrend=None, proj=True, on_missing='raise',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, metadata=None, event_repeated='error',
                  verbose=None):  # noqa: D102
         self.verbose = verbose
-
-        _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
 
         if events is not None:  # RtEpochs can have events=None
             events_type = type(events)
@@ -395,25 +405,25 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 events = np.asarray(events)
             if not np.issubdtype(events.dtype, np.integer):
                 raise TypeError('events should be a NumPy array of integers, '
-                                'got {}'.format(events_type))
+                                f'got {events_type}')
+            if events.ndim != 2 or events.shape[1] != 3:
+                raise ValueError(
+                    'events must be of shape (N, 3), got {events.shape}')
+            events_max = events.max()
+            if events_max > INT32_MAX:
+                raise ValueError(
+                    f'events array values must not exceed {INT32_MAX}, '
+                    f'got {events_max}')
         event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
 
         if events is not None:  # RtEpochs can have events=None
-            if events.ndim != 2 or events.shape[1] != 3:
-                raise ValueError('events must be of shape (N, 3), got %s'
-                                 % (events.shape,))
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
                            '(event id %i)' % (key, val))
-                    if on_missing == 'error':
-                        raise ValueError(msg)
-                    elif on_missing == 'warning':
-                        warn(msg)
-                    else:  # on_missing == 'ignore':
-                        pass
+                    _on_missing(on_missing, msg)
 
             # ensure metadata matches original events size
             self.selection = np.arange(len(events))
@@ -507,6 +517,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             if data.ndim != 3 or data.shape[2] != \
                     round((tmax - tmin) * self.info['sfreq']) + 1:
                 raise RuntimeError('bad data shape')
+            if data.shape[0] != len(self.events):
+                raise ValueError(
+                    'The number of epochs and the number of events must match')
             self.preload = True
             self._data = data
         self._offset = None
@@ -563,6 +576,19 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         assert isinstance(self.drop_log, tuple)
         assert all(isinstance(log, tuple) for log in self.drop_log)
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
+
+    def reset_drop_log_selection(self):
+        """Reset the drop_log and selection entries.
+
+        This method will simplify ``self.drop_log`` and ``self.selection``
+        so that they are meaningless (tuple of empty tuples and increasing
+        integers, respectively). This can be useful when concatenating
+        many Epochs instances, as ``drop_log`` can accumulate many entries
+        which can become problematic when saving.
+        """
+        self.selection = np.arange(len(self.events))
+        self.drop_log = (tuple(),) * len(self.events)
+        self._check_consistency()
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -643,12 +669,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     @verbose
-    def apply_baseline(self, baseline=(None, 0), verbose=None):
+    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
         """Baseline correct epochs.
 
         Parameters
         ----------
-        %(baseline)s
+        %(baseline_epochs)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
         %(verbose_meth)s
@@ -660,12 +686,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Baseline correction can be done multiple times.
+        Baseline correction can be done multiple times, but can never be
+        reverted once the data has been loaded.
 
         .. versionadded:: 0.10.0
         """
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
         if self.preload:
+            if self.baseline is not None and baseline is None:
+                raise RuntimeError('You cannot remove baseline correction '
+                                   'from preloaded data once it has been '
+                                   'applied.')
             picks = _pick_data_channels(self.info, exclude=[],
                                         with_ref_meg=True)
             picks_aux = _pick_aux_channels(self.info, exclude=[])
@@ -1064,18 +1095,28 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
-             title=None, events=None, event_colors=None, order=None,
-             show=True, block=False, decim='auto', noise_cov=None,
+             title=None, events=None, event_colors=None, event_color=None,
+             order=None, show=True, block=False, decim='auto', noise_cov=None,
              butterfly=False, show_scrollbars=True, epoch_colors=None,
-             event_id=None):
+             event_id=None, group_by='type'):
+        if event_colors is not None:
+            depr_msg = ('event_colors is deprecated and will be replaced by '
+                        'event_color in 0.23.')
+            if event_color is None:
+                event_color = event_colors
+            else:
+                depr_msg += (' Since you passed values for both event_colors '
+                             'and event_color, event_colors will be ignored.')
+            warn(depr_msg, DeprecationWarning)
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
-                           title=title, events=events,
+                           title=title, events=events, event_color=event_color,
                            event_colors=event_colors, order=order,
                            show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
                            show_scrollbars=show_scrollbars,
-                           epoch_colors=epoch_colors, event_id=event_id)
+                           epoch_colors=epoch_colors, event_id=event_id,
+                           group_by=group_by)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
@@ -1097,7 +1138,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
-    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
+    def plot_psd_topomap(self, bands=None, tmin=None,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
                          cmap=None, agg_fun=None, dB=True,
@@ -1105,7 +1146,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          outlines='head', axes=None, show=True,
                          sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(
-            self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
+            self, bands=bands, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
             cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
@@ -1137,11 +1178,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        reject : dict | str | None
-            Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-            If reject is None then no rejection is done. If 'existing',
-            then the rejection parameters set at instantiation are used.
+        %(reject_drop_bad)s
         flat : dict | str | None
             Rejection parameters based on flatness of signal.
             Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
@@ -1478,8 +1515,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s | %s>' % (class_name, s)
 
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop a time interval from the epochs.
 
         Parameters
@@ -1489,6 +1526,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1599,13 +1637,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # check for file existence
         _check_fname(fname, overwrite)
 
-        split_size = _get_split_size(split_size)
+        split_size_bytes = _get_split_size(split_size)
 
         _check_option('fmt', fmt, ['single', 'double'])
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad()
+        # total_size tracks sizes that get split
+        # over_size tracks overhead (tags, things that get written to each)
         if len(self) == 0:
             warn('Saving epochs with no data')
             total_size = 0
@@ -1615,37 +1655,69 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             assert d.dtype in ('>f8', '<f8', '>c16', '<c16')
             total_size = d.nbytes * len(self)
         self._check_consistency()
+        over_size = 0
         if fmt == "single":
             total_size //= 2  # 64bit data converted to 32bit before writing.
-        total_size += 32  # FIF tags
+        over_size += 32  # FIF tags
         # Account for all the other things we write, too
         # 1. meas_id block plus main epochs block
-        total_size += 132
+        over_size += 132
         # 2. measurement info (likely slight overestimate, but okay)
-        total_size += object_size(self.info)
+        over_size += object_size(self.info) + 16 * len(self.info)
         # 3. events and event_id in its own block
-        total_size += (self.events.size * 4 +
-                       len(_event_id_string(self.event_id)) + 72)
+        total_size += self.events.size * 4
+        over_size += len(_event_id_string(self.event_id)) + 72
         # 4. Metadata in a block of its own
         if self.metadata is not None:
-            total_size += len(_prepare_write_metadata(self.metadata)) + 56
+            total_size += len(_prepare_write_metadata(self.metadata))
+        over_size += 56
         # 5. first sample, last sample, baseline
-        total_size += 40 + 40 * (self.baseline is not None)
-        # 6. drop log
-        total_size += len(json.dumps(self.drop_log)) + 16
+        over_size += 40 * (self.baseline is not None) + 40
+        # 6. drop log: gets written to each, with IGNORE for ones that are
+        #    not part of it. So make a fake one with all having entries.
+        drop_size = len(json.dumps(self.drop_log)) + 16
+        drop_size += 8 * (len(self.selection) - 1)  # worst case: all but one
+        over_size += drop_size
         # 7. reject params
         reject_params = _pack_reject_params(self)
         if reject_params:
-            total_size += len(json.dumps(reject_params)) + 16
+            over_size += len(json.dumps(reject_params)) + 16
         # 8. selection
-        total_size += self.selection.size * 4 + 16
+        total_size += self.selection.size * 4
+        over_size += 16
         # 9. end of file tags
-        total_size += _NEXT_FILE_BUFFER
+        over_size += _NEXT_FILE_BUFFER
+        logger.debug(f'    Overhead size:   {str(over_size).rjust(15)}')
+        logger.debug(f'    Splittable size: {str(total_size).rjust(15)}')
+        logger.debug(f'    Split size:      {str(split_size_bytes).rjust(15)}')
+        # need at least one per
+        n_epochs = len(self)
+        n_per = total_size // n_epochs if n_epochs else 0
+        min_size = n_per + over_size
+        if split_size_bytes < min_size:
+            raise ValueError(
+                f'The split size {split_size} is too small to safely write '
+                'the epochs contents, minimum split size is '
+                f'{sizeof_fmt(min_size)} ({min_size} bytes)')
 
         # This is like max(int(ceil(total_size / split_size)), 1) but cleaner
-        n_parts = (total_size - 1) // split_size + 1
-        assert n_parts >= 1
-        epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
+        n_parts = max(
+            (total_size - 1) // (split_size_bytes - over_size) + 1, 1)
+        assert n_parts >= 1, n_parts
+        if n_parts > 1:
+            logger.info(f'Splitting into {n_parts} parts')
+            if n_parts > 100:  # This must be an error
+                raise ValueError(
+                    f'Split size {split_size} would result in writing '
+                    f'{n_parts} files')
+
+        if len(self.drop_log) > 100000:
+            warn(f'epochs.drop_log contains {len(self.drop_log)} entries '
+                 f'which will incur up to a {sizeof_fmt(drop_size)} writing '
+                 f'overhead (per split file), consider using '
+                 'epochs.reset_drop_log_selection() prior to writing')
+
+        epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
@@ -1665,7 +1737,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         in the two sets of epochs. For example, if one had event times
         [1, 2, 3, 4, 120, 121] and the other one had [3.5, 4.5, 120.5, 121.5],
         it would remove events at times [1, 2] in the first epochs and not
-        [20, 21].
+        [120, 121].
 
         Parameters
         ----------
@@ -1937,7 +2009,7 @@ class Epochs(BaseEpochs):
         Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
         End time after event. If nothing is provided, defaults to 0.5.
-    %(baseline)s
+    %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
         time point zero.
     %(picks_all)s
@@ -1945,32 +2017,13 @@ class Epochs(BaseEpochs):
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
+    %(reject_epochs)s
     flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     %(decim)s
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
@@ -1988,8 +2041,8 @@ class Epochs(BaseEpochs):
         (will yield equivalent results but be slower).
     on_missing : str
         What to do if one or several event ids are not found in the recording.
-        Valid keys are 'error' | 'warning' | 'ignore'
-        Default is 'error'. If on_missing is 'warning' it will proceed but
+        Valid keys are 'raise' | 'warn' | 'ignore'
+        Default is 'raise'. If on_missing is 'warn' it will proceed but
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
@@ -2083,7 +2136,7 @@ class Epochs(BaseEpochs):
     def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), picks=None, preload=False, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
-                 reject_tmax=None, detrend=None, on_missing='error',
+                 reject_tmax=None, detrend=None, on_missing='raise',
                  reject_by_annotation=True, metadata=None,
                  event_repeated='error', verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
@@ -2177,17 +2230,7 @@ class EpochsArray(BaseEpochs):
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
-
+    %(reject_epochs)s
     flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
@@ -2199,7 +2242,7 @@ class EpochsArray(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    %(baseline)s
+    %(baseline_epochs)s
         Defaults to ``None``, i.e. no baseline correction.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
@@ -2238,7 +2281,7 @@ class EpochsArray(BaseEpochs):
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
-                 on_missing='error', metadata=None, selection=None,
+                 on_missing='raise', metadata=None, selection=None,
                  verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -2252,13 +2295,8 @@ class EpochsArray(BaseEpochs):
         if events is None:
             n_epochs = len(data)
             events = _gen_events(n_epochs)
-        if data.shape[0] != len(events):
-            raise ValueError('The number of epochs and the number of events'
-                             'must match')
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
-        if event_id is None:  # convert to int to make typing-checks happy
-            event_id = {str(e): int(e) for e in np.unique(events[:, 2])}
         super(EpochsArray, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, reject=reject,
             flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
@@ -2540,7 +2578,9 @@ def _read_one_epoch_file(f, tree, preload):
                 selection = np.array(tag.data)
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 tag = read_tag(fid, pos)
-                drop_log = tuple(tuple(x) for x in json.loads(tag.data))
+                drop_log = tag.data
+                drop_log = json.loads(drop_log)
+                drop_log = tuple(tuple(x) for x in drop_log)
             elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
                 tag = read_tag(fid, pos)
                 reject_params = json.loads(tag.data)
@@ -2620,17 +2660,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
         The epochs filename to load. Filename should end with -epo.fif or
         -epo.fif.gz. If a file-like object is provided, preloading must be
         used.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -2670,17 +2700,7 @@ class EpochsFIF(BaseEpochs):
     fname : str | file-like
         The name of the file, which should end with -epo.fif or -epo.fif.gz. If
         a file-like object is provided, preloading must be used.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
+    %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -2715,6 +2735,11 @@ class EpochsFIF(BaseEpochs):
              reject_params, fmt) = \
                 _read_one_epoch_file(fid, tree, preload)
 
+            if (events[:, 0] < 0).any():
+                events = events.copy()
+                warn('Incorrect events detected on disk, setting event '
+                     'numbers to consecutive increasing integers')
+                events[:, 0] = np.arange(1, len(events) + 1)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
             epoch = BaseEpochs(
@@ -2933,6 +2958,18 @@ def _compare_epochs_infos(info1, info2, name):
                          'runs to a common head position.')
 
 
+def _update_offset(offset, events, shift):
+    if offset == 0:
+        return offset
+    offset = 0 if offset is None else offset
+    offset = np.int64(offset) + np.max(events[:, 0]) + shift
+    if offset > INT32_MAX:
+        warn(f'Event number greater than {INT32_MAX} created, events[:, 0] '
+             'will be assigned consecutive increasing integer values')
+        offset = 0
+    return offset
+
+
 def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
@@ -2943,7 +2980,10 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
                             'got %s' % (ei, type(epochs)))
     out = epochs_list[0]
-    data = [out.get_data()] if with_data else None
+    offsets = [0]
+    if with_data:
+        out.drop_bad()
+        offsets.append(len(out))
     events = [out.events]
     metadata = [out.metadata]
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
@@ -2953,9 +2993,9 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     event_id = deepcopy(out.event_id)
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
-    events_offset = (np.max(out.events[:, 0]) +
-                     int((10 + tmax) * epochs.info['sfreq']))
-    for ii, epochs in enumerate(epochs_list[1:]):
+    shift = int((10 + tmax) * out.info['sfreq'])
+    events_offset = _update_offset(None, out.events, shift)
+    for ii, epochs in enumerate(epochs_list[1:], 1):
         _compare_epochs_infos(epochs.info, info, ii)
         if not np.allclose(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
@@ -2974,21 +3014,23 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
                                             epochs.event_id[key]))
 
         if with_data:
-            data.append(epochs.get_data())
+            epochs.drop_bad()
+            offsets.append(len(epochs))
         evs = epochs.events.copy()
         # add offset
         if add_offset:
             evs[:, 0] += events_offset
         # Update offset for the next iteration.
-        # offset is the last epoch + tmax + 10 second
-        events_offset += (np.max(epochs.events[:, 0]) +
-                          int((10 + tmax) * epochs.info['sfreq']))
+        events_offset = _update_offset(events_offset, epochs.events, shift)
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
         event_id.update(epochs.event_id)
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
+    # check to see if we exceeded our maximum event offset
+    if events_offset == 0:
+        events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
     n_have = sum(this_meta is not None for this_meta in metadata)
@@ -3004,8 +3046,17 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
             metadata = pd.concat(metadata)
         else:  # dict of dicts
             metadata = sum(metadata, list())
+    assert len(offsets) == (len(epochs_list) if with_data else 0) + 1
+    data = None
     if with_data:
-        data = np.concatenate(data, axis=0)
+        offsets = np.cumsum(offsets)
+        for start, stop, epochs in zip(offsets[:-1], offsets[1:], epochs_list):
+            this_data = epochs.get_data()
+            if data is None:
+                data = np.empty(
+                    (offsets[-1], len(out.ch_names), len(out.times)),
+                    dtype=this_data.dtype)
+            data[start:stop] = this_data
     return (info, data, events, event_id, tmin, tmax, metadata, baseline,
             selection, drop_log, verbose)
 
@@ -3234,7 +3285,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 @verbose
 def make_fixed_length_epochs(raw, duration=1., preload=False,
-                             reject_by_annotation=True, verbose=None):
+                             reject_by_annotation=True, proj=True,
+                             verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3247,6 +3299,9 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.21.0
+    %(proj_epochs)s
+
+        .. versionadded:: 0.22.0
     %(verbose)s
 
     Returns
@@ -3262,4 +3317,5 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     delta = 1. / raw.info['sfreq']
     return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
                   baseline=None, preload=preload,
-                  reject_by_annotation=reject_by_annotation, verbose=verbose)
+                  reject_by_annotation=reject_by_annotation, proj=proj,
+                  verbose=verbose)

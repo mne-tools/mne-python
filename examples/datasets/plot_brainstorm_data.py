@@ -6,16 +6,9 @@ Brainstorm raw (median nerve) dataset
 =====================================
 
 Here we compute the evoked from raw for the Brainstorm
-tutorial dataset. For comparison, see [1]_ and:
+tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
 
     https://neuroimage.usc.edu/brainstorm/Tutorials/MedianNerveCtf
-
-References
-----------
-.. [1] Tadel F, Baillet S, Mosher JC, Pantazis D, Leahy RM.
-       Brainstorm: A User-Friendly Application for MEG/EEG Analysis.
-       Computational Intelligence and Neuroscience, vol. 2011, Article ID
-       879716, 13 pages, 2011. doi:10.1155/2011/879716
 """
 
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
@@ -78,3 +71,8 @@ evoked.plot(time_unit='s')
 # show topomaps
 evoked.plot_topomap(times=np.array([0.016, 0.030, 0.060, 0.070]),
                     time_unit='s')
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

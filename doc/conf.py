@@ -14,10 +14,10 @@
 
 from datetime import date
 from distutils.version import LooseVersion
-import gc
 import os
 import os.path as op
 import sys
+import time
 import warnings
 
 import sphinx_gallery
@@ -25,7 +25,9 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 import matplotlib
 import mne
-from mne.utils import linkcode_resolve  # noqa, analysis:ignore
+from mne.viz import Brain
+from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
+                       _assert_no_instances, sizeof_fmt)
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
@@ -115,6 +117,7 @@ nitpick_ignore = [
     ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
+    ("py:class", "(k, v), remove and return some (key, value) pair as a"),
 ]
 for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
@@ -123,7 +126,7 @@ for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'channels.DigMontage', 'channels.Layout',
             'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
             'decoding.GeneralizingEstimator', 'decoding.LinearModel',
-            'decoding.PSDEstimator', 'decoding.ReceptiveField',
+            'decoding.PSDEstimator', 'decoding.ReceptiveField', 'decoding.SSD',
             'decoding.SPoC', 'decoding.Scaler', 'decoding.SlidingEstimator',
             'decoding.TemporalFilter', 'decoding.TimeDelayingRidge',
             'decoding.TimeFrequency', 'decoding.UnsupervisedSpatialFilter',
@@ -287,7 +290,7 @@ html_show_sphinx = False
 # variables to pass to HTML templating engine
 build_dev_html = bool(int(os.environ.get('BUILD_DEV_HTML', False)))
 
-html_context = {'use_google_analytics': True, 'use_twitter': True,
+html_context = {'use_google_analytics': True,
                 'use_media_buttons': True, 'build_dev_html': build_dev_html}
 
 # This is the file name suffix for HTML files (e.g. ".xhtml").
@@ -349,10 +352,11 @@ intersphinx_mapping = {
     'seaborn': ('https://seaborn.pydata.org/', None),
     'statsmodels': ('https://www.statsmodels.org/dev', None),
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
-    # There are some problems with dipy's redirect:
-    # https://github.com/nipy/dipy/issues/1955
-    'dipy': ('https://dipy.org/documentation/latest',
-             'https://dipy.org/documentation/1.1.1./objects.inv/'),
+    'pyvista': ('https://docs.pyvista.org', None),
+    'imageio': ('https://imageio.readthedocs.io/en/latest', None),
+    # We need to stick with 1.2.0 for now:
+    # https://github.com/dipy/dipy/issues/2290
+    'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
@@ -368,8 +372,8 @@ bibtex_footbibliography_header = ''
 ##############################################################################
 # sphinx-gallery
 
-examples_dirs = ['../examples', '../tutorials']
-gallery_dirs = ['auto_examples', 'auto_tutorials']
+examples_dirs = ['../tutorials', '../examples']
+gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 
 scrapers = ('matplotlib',)
@@ -439,16 +443,33 @@ def setup(app):
 class Resetter(object):
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
+    def __init__(self):
+        self.t0 = time.time()
+
     def __repr__(self):
         return '<%s>' % (self.__class__.__name__,)
 
     def __call__(self, gallery_conf, fname):
         import matplotlib.pyplot as plt
+        try:
+            from pyvista import Plotter
+        except ImportError:
+            Plotter = None
         reset_warnings(gallery_conf, fname)
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
-        gc.collect()
+        plt.rcParams['animation.embed_limit'] = 30.
+        _assert_no_instances(Brain, 'running')  # calls gc.collect()
+        if Plotter is not None:
+            _assert_no_instances(Plotter, 'running')
+        # This will overwrite some Sphinx printing but it's useful
+        # for memory timestamps
+        if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
+            import psutil
+            process = psutil.Process(os.getpid())
+            mem = sizeof_fmt(process.memory_info().rss)
+            print(f'{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
 
 
 def reset_warnings(gallery_conf, fname):
@@ -627,6 +648,7 @@ numpydoc_xref_aliases = {
     'Vectorizer': 'mne.decoding.Vectorizer',
     'UnsupervisedSpatialFilter': 'mne.decoding.UnsupervisedSpatialFilter',
     'TemporalFilter': 'mne.decoding.TemporalFilter',
+    'SSD': 'mne.decoding.SSD',
     'Scaler': 'mne.decoding.Scaler', 'SPoC': 'mne.decoding.SPoC',
     'PSDEstimator': 'mne.decoding.PSDEstimator',
     'LinearModel': 'mne.decoding.LinearModel',
@@ -652,10 +674,15 @@ numpydoc_xref_ignore = {
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
-    'n_dipoles_fwd', 'n_picks_ref',
+    'n_dipoles_fwd', 'n_picks_ref', 'n_coords',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
+<<<<<<< HEAD
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
+=======
+    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF',
+    'RawPersyst', 'RawNihon',
+>>>>>>> master
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable

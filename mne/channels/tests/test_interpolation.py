@@ -157,7 +157,7 @@ def test_interpolation_meg():
     """Test interpolation of MEG channels."""
     # speed accuracy tradeoff: channel subselection is faster but the
     # correlation drops
-    thresh = 0.7
+    thresh = 0.68
 
     raw, epochs_meg = _load_data('meg')
 

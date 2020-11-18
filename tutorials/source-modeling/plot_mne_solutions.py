@@ -22,14 +22,16 @@ print(__doc__)
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 
-# Read data
+# Read data (just MEG here for speed, though we could use MEG+EEG)
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
                           baseline=(None, 0))
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
+fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
+# crop for speed in these examples
+evoked.crop(0.05, 0.15)
 
 ###############################################################################
 # Fixed orientation
@@ -42,7 +44,6 @@ inv = make_inverse_operator(evoked.info, fwd, cov, loose=0., depth=0.8,
 ###############################################################################
 # Let's look at the current estimates using MNE. We'll take the absolute
 # value of the source estimates to simplify the visualization.
-
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
@@ -51,7 +52,6 @@ kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
 stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
 brain = stc.plot(figure=1, **kwargs)
 brain.add_text(0.1, 0.9, 'MNE', 'title', font_size=14)
-
 
 ###############################################################################
 # Next let's use the default noise normalization, dSPM:
@@ -73,6 +73,7 @@ brain.add_text(0.1, 0.9, 'sLORETA', 'title', font_size=14)
 stc = abs(apply_inverse(evoked, inv, lambda2, 'eLORETA', verbose=True))
 brain = stc.plot(figure=4, **kwargs)
 brain.add_text(0.1, 0.9, 'eLORETA', 'title', font_size=14)
+del inv
 
 ###############################################################################
 # Free orientation
@@ -82,6 +83,7 @@ brain.add_text(0.1, 0.9, 'eLORETA', 'title', font_size=14)
 
 inv = make_inverse_operator(evoked.info, fwd, cov, loose=1., depth=0.8,
                             verbose=True)
+del fwd
 
 ###############################################################################
 # Let's look at the current estimates using MNE. We'll take the absolute
@@ -90,7 +92,6 @@ inv = make_inverse_operator(evoked.info, fwd, cov, loose=1., depth=0.8,
 stc = apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True)
 brain = stc.plot(figure=5, **kwargs)
 brain.add_text(0.1, 0.9, 'MNE', 'title', font_size=14)
-
 
 ###############################################################################
 # Next let's use the default noise normalization, dSPM:
@@ -109,6 +110,7 @@ brain.add_text(0.1, 0.9, 'sLORETA', 'title', font_size=14)
 ###############################################################################
 # And finally eLORETA:
 
-stc = apply_inverse(evoked, inv, lambda2, 'eLORETA', verbose=True)
+stc = apply_inverse(evoked, inv, lambda2, 'eLORETA', verbose=True,
+                    method_params=dict(eps=1e-4))  # larger eps just for speed
 brain = stc.plot(figure=8, **kwargs)
 brain.add_text(0.1, 0.9, 'eLORETA', 'title', font_size=14)

@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from contextlib import contextmanager
 from ...fixes import nullcontext
 from ._pyvista import _Renderer as _PyVistaRenderer
+from ._pyvista import \
+    _close_all, _set_3d_view, _set_3d_title  # noqa: F401 analysis:ignore
 
 
 class _Renderer(_PyVistaRenderer):

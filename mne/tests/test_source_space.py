@@ -17,16 +17,16 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, read_trans, compute_source_morph,
-                 read_bem_solution, read_freesurfer_lut)
+                 head_to_mni, compute_source_morph,
+                 read_bem_solution, read_freesurfer_lut, read_talxfm)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, run_tests_if_main,
                        check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mgz_header, _read_talxfm
+from mne.source_space import _get_mgz_header
 from mne.source_estimate import _get_src_type
-from mne.transforms import apply_trans, invert_transform
+from mne.transforms import apply_trans, _get_trans
 from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
                               _compare_source_spaces)
@@ -226,7 +226,8 @@ def test_discrete_source_space(tmpdir):
     # now do MRI
     pytest.raises(ValueError, setup_volume_source_space, 'sample',
                   pos=pos_dict, mri=fname_mri)
-    assert repr(src_new) == repr(src_c)
+    assert repr(src_new).split('~')[0] == repr(src_c).split('~')[0]
+    assert ' kB' in repr(src_new)
     assert src_new.kind == 'discrete'
     assert _get_src_type(src_new, None) == 'discrete'
 
@@ -267,6 +268,7 @@ def test_volume_source_space(tmpdir):
             'sample', bem=bem, mri=fname_mri, subjects_dir=subjects_dir)
     del bem
     assert repr(src) == repr(src_new)
+    assert ' MB' in repr(src)
     assert src.kind == 'volume'
     # Spheres
     sphere = make_sphere_model(r0=(0., 0., 0.), head_radius=0.1,
@@ -403,8 +405,8 @@ def test_setup_source_space(tmpdir):
         src_new = setup_source_space('fsaverage', spacing='ico5',
                                      subjects_dir=subjects_dir, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
-    assert_equal(repr(src), repr(src_new))
-    assert_equal(repr(src).count('surface ('), 2)
+    assert repr(src).split('~')[0] == repr(src_new).split('~')[0]
+    assert repr(src).count('surface (') == 2
     assert_array_equal(src[0]['vertno'], np.arange(10242))
     assert_array_equal(src[1]['vertno'], np.arange(10242))
 
@@ -512,13 +514,12 @@ def test_head_to_mni():
     """Test conversion of aseg vertices to MNI coordinates."""
     # obtained using freeview
     coords = np.array([[22.52, 11.24, 17.72], [22.52, 5.46, 21.58],
-                       [16.10, 5.46, 22.23], [21.24, 8.36, 22.23]])
+                       [16.10, 5.46, 22.23], [21.24, 8.36, 22.23]]) / 1000.
 
-    xfm = _read_talxfm('sample', subjects_dir)
-    coords_MNI = apply_trans(xfm['trans'], coords)
+    xfm = read_talxfm('sample', subjects_dir)
+    coords_MNI = apply_trans(xfm['trans'], coords) * 1000.
 
-    trans = read_trans(trans_fname)  # head->MRI (surface RAS)
-    mri_head_t = invert_transform(trans)  # MRI (surface RAS)->head matrix
+    mri_head_t, _ = _get_trans(trans_fname, 'mri', 'head', allow_none=False)
 
     # obtained from sample_audvis-meg-oct-6-mixed-fwd.fif
     coo_right_amygdala = np.array([[0.01745682, 0.02665809, 0.03281873],
@@ -545,6 +546,8 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     assert_allclose(coords, coords_2, atol=0.1)
 
 
+@testing.requires_testing_data
+@requires_nibabel()
 @pytest.mark.parametrize('fname', [
     None,
     op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
@@ -647,6 +650,7 @@ def test_source_space_from_label(tmpdir, pass_ids):
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
+@testing.requires_testing_data
 @requires_nibabel()
 def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""
@@ -758,7 +762,7 @@ def test_combine_source_spaces(tmpdir):
     src.save(src_out_name)
     src_from_file = read_source_spaces(src_out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
-    assert_equal(repr(src), repr(src_from_file))
+    assert repr(src).split('~')[0] == repr(src_from_file).split('~')[0]
     assert_equal(src.kind, 'mixed')
 
     # test that all source spaces are in MRI coordinates

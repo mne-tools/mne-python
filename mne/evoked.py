@@ -92,14 +92,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Number of averaged epochs.
     kind : str
         Type of data, either average or standard_error.
-    first : int
-        First time sample.
-    last : int
-        Last time sample.
     comment : str
         Comment on dataset. Can be the condition.
     data : array of shape (n_channels, n_times)
         Evoked response.
+    first : int
+        First time sample.
+    last : int
+        Last time sample.
+    tmin : float
+        The first time point in seconds.
+    tmax : float
+        The last time point in seconds.
     times :  array
         Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
@@ -147,12 +151,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._data = data
 
     @verbose
-    def apply_baseline(self, baseline=(None, 0), verbose=None):
+    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
         """Baseline correct evoked data.
 
         Parameters
         ----------
-        %(baseline)s
+        %(baseline_evoked)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
         %(verbose_meth)s
@@ -199,8 +203,24 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Channel names."""
         return self.info['ch_names']
 
+    @property
+    def tmin(self):
+        """First time point.
+
+        .. versionadded:: 0.21
+        """
+        return self.times[0]
+
+    @property
+    def tmax(self):
+        """Last time point.
+
+        .. versionadded:: 0.21
+        """
+        return self.times[-1]
+
     @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop data to a given time interval.
 
         Parameters
@@ -210,6 +230,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -336,10 +357,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
-                   n_jobs=1, fig=None, verbose=None):
+                   n_jobs=1, fig=None, vmax=None, n_contours=21, verbose=None):
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs,
-                                 fig=fig, verbose=verbose)
+                                 fig=fig, vmax=vmax, n_contours=n_contours,
+                                 verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
@@ -909,7 +931,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
         list.
-    %(baseline)s
+    %(baseline_evoked)s
         Defaults to ``None``, i.e. no baseline correction.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.

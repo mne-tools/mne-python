@@ -169,6 +169,44 @@ eXimia EEG data (.nxe)
 EEG data from the Nexstim eXimia system can be read in using the
 :func:`mne.io.read_raw_eximia` function.
 
+
+.. _import-persyst:
+
+Persyst EEG data (.lay, .dat)
+=============================
+
+EEG data from the Persyst system can be read in using the
+:func:`mne.io.read_raw_persyst` function.
+
+Note that not all the subject metadata may be properly read in
+due to the fact that Persyst changes its specification
+sometimes from version to version. Please submit an issue, or
+pull request if you encounter a problem.
+
+Nihon Kohden EEG data (.EEG, .21E, .PNT, .LOG)
+==============================================
+
+EEG data from the Nihon Kohden (NK) system can be read using the
+:func:`mne.io.read_raw_nihon` function.
+
+Files with the following extensions will be read:
+
+- The ``.EEG`` file contains the actual raw EEG data.
+- The ``.PNT`` file contains the metadata related to the recording, such
+  as the measurement date.
+- The ``.LOG`` file contains annotations for the recording.
+- The ``.21E`` file contains the channel and electrode
+  recording system information.
+
+Reading ``.11D``, ``.CMT``, ``.CN2``, and ``.EDF`` files is currently not
+supported.
+
+Note that not all the subject metadata may be properly read in
+due to the fact that NK changes the specification
+sometimes from version to version. Please submit an issue, or
+pull request if you encounter a problem.
+
+
 Setting EEG references
 ======================
 

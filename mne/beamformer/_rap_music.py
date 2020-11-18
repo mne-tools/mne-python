@@ -8,7 +8,10 @@
 import numpy as np
 from scipy import linalg
 
+from ..forward import is_fixed_orient, convert_forward_solution
 from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
+from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
+from ..minimum_norm.inverse import _log_exp_var
 from ..utils import logger, verbose, _check_info_inv
 from ..dipole import Dipole
 from ._compute_beamformer import _prepare_beamformer_input
@@ -46,20 +49,26 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     """
     info = pick_info(info, picks)
     del picks
+    # things are much simpler if we avoid surface orientation
+    align = forward['source_nn'].copy()
+    if forward['surf_ori'] and not is_fixed_orient(forward):
+        forward = convert_forward_solution(forward, surf_ori=False)
     is_free_ori, info, _, _, G, whitener, _, _ = _prepare_beamformer_input(
         info, forward, noise_cov=noise_cov, rank=None)
     forward = pick_channels_forward(forward, info['ch_names'], ordered=True)
     del info
 
-    gain = forward['sol']['data'].copy()
-
     # whiten the data (leadfield already whitened)
-    data = np.dot(whitener, data)
+    M = np.dot(whitener, data)
+    del data
 
-    eig_values, eig_vectors = linalg.eigh(np.dot(data, data.T))
+    _, eig_vectors = linalg.eigh(np.dot(M, M.T))
     phi_sig = eig_vectors[:, -n_dipoles:]
 
     n_orient = 3 if is_free_ori else 1
+    G.shape = (G.shape[0], -1, n_orient)
+    gain = forward['sol']['data'].copy()
+    gain.shape = G.shape
     n_channels = G.shape[0]
     A = np.empty((n_channels, n_dipoles))
     gain_dip = np.empty((n_channels, n_dipoles))
@@ -69,41 +78,31 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     G_proj = G.copy()
     phi_sig_proj = phi_sig.copy()
 
+    idxs = list()
     for k in range(n_dipoles):
         subcorr_max = -1.
-        for i_source in range(G.shape[1] // n_orient):
-            idx_k = slice(n_orient * i_source, n_orient * (i_source + 1))
-            Gk = G_proj[:, idx_k]
-            if n_orient == 3:
-                Gk = np.dot(Gk, forward['source_nn'][idx_k])
-
+        source_idx, source_ori, source_pos = 0, [0, 0, 0], [0, 0, 0]
+        for i_source in range(G.shape[1]):
+            Gk = G_proj[:, i_source]
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
             if subcorr > subcorr_max:
                 subcorr_max = subcorr
                 source_idx = i_source
                 source_ori = ori
-                if n_orient == 3 and source_ori[-1] < 0:
-                    # make sure ori is relative to surface ori
-                    source_ori *= -1  # XXX
-
                 source_pos = forward['source_rr'][i_source]
+                if n_orient == 3 and align is not None:
+                    surf_normal = forward['source_nn'][3 * i_source + 2]
+                    # make sure ori is aligned to the surface orientation
+                    source_ori *= np.sign(source_ori @ surf_normal) or 1.
                 if n_orient == 1:
                     source_ori = forward['source_nn'][i_source]
 
-        idx_k = slice(n_orient * source_idx, n_orient * (source_idx + 1))
-        Ak = G[:, idx_k]
+        idxs.append(source_idx)
         if n_orient == 3:
-            Ak = np.dot(Ak, np.dot(forward['source_nn'][idx_k], source_ori))
-
-        A[:, k] = Ak.ravel()
-
-        gain_k = gain[:, idx_k]
-        if n_orient == 3:
-            gain_k = np.dot(gain_k,
-                            np.dot(forward['source_nn'][idx_k],
-                                   source_ori))
-        gain_dip[:, k] = gain_k.ravel()
-
+            Ak = np.dot(G[:, source_idx], source_ori)
+        else:
+            Ak = G[:, source_idx, 0]
+        A[:, k] = Ak
         oris[k] = source_ori
         poss[k] = source_pos
 
@@ -112,16 +111,42 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
             logger.info("ori = %s %s %s" % tuple(oris[k]))
 
         projection = _compute_proj(A[:, :k + 1])
-        G_proj = np.dot(projection, G)
+        G_proj = np.einsum('ab,bso->aso', projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
+    del G, G_proj
 
-    sol = linalg.lstsq(A, data)[0]
+    sol = linalg.lstsq(A, M)[0]
+    if n_orient == 3:
+        X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
+        X.shape = (-1, len(times))
+    else:
+        X = sol
 
-    explained_data = np.dot(gain_dip, sol)
-    residual = data - np.dot(whitener, explained_data)
-    gof = 1. - np.sum(residual ** 2, axis=0) / np.sum(data ** 2, axis=0)
-    return _make_dipoles(times, poss,
-                         oris, sol, gof), explained_data
+    gain_active = gain[:, idxs]
+    if n_orient == 3:
+        gain_dip = (oris * gain_active).sum(-1)
+        idxs = np.array(idxs)
+        active_set = np.array(
+            [[3 * idxs, 3 * idxs + 1, 3 * idxs + 2]]).T.ravel()
+    else:
+        gain_dip = gain_active[:, :, 0]
+        active_set = idxs
+    gain_active = whitener @ gain_active.reshape(gain.shape[0], -1)
+    assert gain_active.shape == (n_channels, X.shape[0])
+
+    explained_data = gain_dip @ sol
+    M_estimate = whitener @ explained_data
+    _log_exp_var(M, M_estimate)
+    tstep = np.median(np.diff(times)) if len(times) > 1 else 1.
+    dipoles = _make_dipoles_sparse(
+        X, active_set, forward, times[0], tstep, M,
+        gain_active, active_is_idx=True)
+    for dipole, ori in zip(dipoles, oris):
+        signs = np.sign((dipole.ori * ori).sum(-1, keepdims=True))
+        dipole.ori *= signs
+        dipole.amplitude *= signs[:, 0]
+    logger.info('[done]')
+    return dipoles, explained_data
 
 
 def _make_dipoles(times, poss, oris, sol, gof):

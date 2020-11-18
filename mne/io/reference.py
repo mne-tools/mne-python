@@ -9,6 +9,7 @@ import numpy as np
 from scipy import linalg
 
 from .constants import FIFF
+from .meas_info import _check_ch_keys
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .proj import setup_proj
 from .pick import pick_types, pick_channels, pick_channels_forward
@@ -47,12 +48,15 @@ def _copy_channel(inst, ch_name, new_ch_name):
     return inst
 
 
-def _apply_reference(inst, ref_from, ref_to=None, forward=None):
+def _apply_reference(inst, ref_from, ref_to=None, forward=None,
+                     ch_type='auto'):
     """Apply a custom EEG referencing scheme."""
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
-    eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
+    ch_type = _get_ch_type(inst, ch_type)
+    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
+    eeg_idx = pick_types(inst.info, **ch_dict)
 
     if ref_to is None:
         ref_to = [inst.ch_names[i] for i in eeg_idx]
@@ -109,8 +113,8 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None):
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
 
-        # If the reference touches EEG electrodes, note in the info that a
-        # non-CAR has been applied.
+        # If the reference touches EEG/ECoG/sEEG electrodes, note in the info
+        # that a non-CAR has been applied.
         if len(np.intersect1d(ref_to, eeg_idx)) > 0:
             inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         # REST
@@ -160,13 +164,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
         Data with added EEG reference channels.
     """
     # Check to see that data is preloaded
-    if not inst.preload:
-        raise RuntimeError('Data needs to be preloaded.')
+    _check_preload(inst, 'add_reference_channels')
+    _validate_type(ref_channels, (list, tuple, str), 'ref_channels')
     if isinstance(ref_channels, str):
         ref_channels = [ref_channels]
-    elif not isinstance(ref_channels, list):
-        raise ValueError("`ref_channels` should be either str or list of str. "
-                         "%s was provided." % type(ref_channels))
     for ch in ref_channels:
         if ch in inst.info['ch_names']:
             raise ValueError("Channel %s already specified in inst." % ch)
@@ -235,8 +236,13 @@ def add_reference_channels(inst, ref_channels, copy=True):
         inst.info._update_redundant()
     if isinstance(inst, BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
+        range_ = np.arange(1, len(ref_channels) + 1)
+        for pi, picks in enumerate(inst._read_picks):
+            inst._read_picks[pi] = np.concatenate(
+                [picks, np.max(picks) + range_])
     inst.info._check_consistency()
-    set_eeg_reference(inst, ref_channels=ref_channels, copy=False)
+    set_eeg_reference(inst, ref_channels=ref_channels, copy=False,
+                      verbose=False)
     return inst
 
 
@@ -323,25 +329,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     del projection  # not used anymore
 
     inst = inst.copy() if copy else inst
-
-    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
-    # if ch_type is 'auto', search through list to find first reasonable
-    # reference-able channel type.
-    possible_types = ['eeg', 'ecog', 'seeg']
-    if ch_type == 'auto':
-        for type_ in possible_types:
-            if type_ in inst:
-                ch_type = type_
-                logger.info('%s channel type selected for '
-                            're-referencing' % DEFAULTS['titles'][type_])
-                break
-        # if auto comes up empty, or the user specifies a bad ch_type.
-        else:
-            raise ValueError('No EEG, ECoG or sEEG channels found '
-                             'to rereference.')
-    else:
-        type_ = ch_type
-
+    ch_type = _get_ch_type(inst, ch_type)
     ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
     eeg_idx = pick_types(inst.info, **ch_dict)
     ch_sel = [inst.ch_names[i] for i in eeg_idx]
@@ -359,9 +347,29 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         logger.info('EEG data marked as already having the desired reference.')
     else:
         logger.info('Applying a custom %s '
-                    'reference.' % DEFAULTS['titles'][type_])
+                    'reference.' % DEFAULTS['titles'][ch_type])
 
-    return _apply_reference(inst, ref_channels, ch_sel, forward)
+    return _apply_reference(inst, ref_channels, ch_sel, forward,
+                            ch_type=ch_type)
+
+
+def _get_ch_type(inst, ch_type):
+    _validate_type(ch_type, str, 'ch_type')
+    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
+    # if ch_type is 'auto', search through list to find first reasonable
+    # reference-able channel type.
+    if ch_type == 'auto':
+        for type_ in ['eeg', 'ecog', 'seeg']:
+            if type_ in inst:
+                ch_type = type_
+                logger.info('%s channel type selected for '
+                            're-referencing' % DEFAULTS['titles'][type_])
+                break
+        # if auto comes up empty, or the user specifies a bad ch_type.
+        else:
+            raise ValueError('No EEG, ECoG or sEEG channels found '
+                             'to rereference.')
+    return ch_type
 
 
 @verbose
@@ -463,7 +471,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Merge specified and anode channel information dictionaries
     new_chs = []
-    for an, ci in zip(anode, ch_info):
+    for ci, (an, ch) in enumerate(zip(anode, ch_info)):
+        _check_ch_keys(ch, ci, name='ch_info', check_min=False)
         an_idx = inst.ch_names.index(an)
         this_chs = deepcopy(inst.info['chs'][an_idx])
 
@@ -471,7 +480,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         this_chs['loc'] = np.zeros(12)
         this_chs['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
 
-        this_chs.update(ci)
+        this_chs.update(ch)
         new_chs.append(this_chs)
 
     if copy:
