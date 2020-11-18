@@ -171,11 +171,11 @@ stages:
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
+      OPENBLAS_NUM_THREADS: 1
       PYTHONUNBUFFERED: 1
       PYTHONIOENCODING: 'utf-8'
-      OPENBLAS_NUM_THREADS: 1
-      AZURE_CI_WINDOWS: 'true'
       MKL_NUM_THREADS: 1
+      AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
     strategy:
       maxParallel: 4
