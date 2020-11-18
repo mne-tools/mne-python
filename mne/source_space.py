@@ -3214,14 +3214,8 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
         The info structure that contains information about the channels with
         respect to which to compute distances. Can be None if ``inst`` is
         a :class:`~mne.Forward` instance.
-    picks : array-like of int | None
-        Indices of sensors to include in distance calculations. If `None``
-        (default) then only MEG channels are used.
-    trans : str | instance of Transform | None
-        Either the full path to the head<->MRI transform ``*-trans.fif`` file
-        produced during coregistration, or the Transformation itself. If trans
-        is None, an identity matrix is assumed. Only needed when ``inst`` is a
-        source space in MRI coordinates.
+    %(picks_data)s
+    %(trans_not_none)s
     mode : str
         How to compute source depth. 'dist' computes Euclidean distance
         between vertices and nearest sensors.
