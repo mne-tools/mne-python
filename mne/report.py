@@ -21,13 +21,13 @@ import webbrowser
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .fixes import _get_img_fdata
 from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
-                    fill_doc, _check_option)
-from .viz import plot_events, plot_alignment, plot_cov, plot_projs_topomap
+                    fill_doc, _check_option, _validate_type, _safe_input)
+from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
+                  plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from .forward import read_forward_solution
 from .epochs import read_epochs
@@ -238,9 +238,9 @@ def _get_toc_property(fname):
         tooltip = 'MRI'
         text = 'MRI'
     elif fname.endswith(('bem')):
-        div_klass = 'mri'
-        tooltip = 'MRI'
-        text = 'MRI'
+        div_klass = 'bem'
+        tooltip = 'BEM'
+        text = 'BEM'
     elif fname.endswith('(whitened)'):
         div_klass = 'evoked'
         tooltip = fname
@@ -868,16 +868,8 @@ class Report(object):
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    baseline : None or tuple of length 2 (default (None, 0))
-        The time interval to apply baseline correction for evokeds.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-        The baseline (a, b) includes both endpoints, i.e. all
-        timepoints t such that a <= t <= b.
+    %(baseline_report)s
+        Defaults to ``None``, i.e. no baseline correction.
     image_format : str
         Default image format to use (default is 'png').
         SVG uses vector graphics, so fidelity is higher but can increase
@@ -1444,6 +1436,8 @@ class Report(object):
             .. versionadded:: 0.16
         %(verbose_meth)s
         """
+        _validate_type(data_path, 'path-like', 'data_path')
+        data_path = str(data_path)
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
         self._sort = sort_sections
@@ -1461,6 +1455,26 @@ class Report(object):
         fnames = list()
         for p in pattern:
             fnames.extend(sorted(_recursive_search(self.data_path, p)))
+
+        if not fnames and not render_bem:
+            raise RuntimeError(f'No matching files found in {self.data_path}')
+
+        # For split files, only keep the first one.
+        fnames_to_remove = []
+        for fname in fnames:
+            if _endswith(fname, ('raw', 'sss', 'meg')):
+                inst = read_raw_fif(fname, allow_maxshield=True, preload=False)
+            else:
+                continue
+
+            if len(inst.filenames) > 1:
+                fnames_to_remove.extend(inst.filenames[1:])
+
+        fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
+        for fname in fnames_to_remove:
+            if fname in fnames:
+                del fnames[fnames.index(fname)]
+        del fnames_to_remove
 
         if self.info_fname is not None:
             info = read_info(self.info_fname, verbose=False)
@@ -1509,10 +1523,10 @@ class Report(object):
         if render_bem:
             if self.subjects_dir is not None and self.subject is not None:
                 logger.info('Rendering BEM')
-                self.html.append(self._render_bem(
-                    self.subject, self.subjects_dir, mri_decim, n_jobs))
                 self.fnames.append('bem')
-                self._sectionlabels.append('bem')
+                self.add_bem_to_section(
+                    self.subject, decim=mri_decim, n_jobs=n_jobs,
+                    subjects_dir=self.subjects_dir)
             else:
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
@@ -1592,7 +1606,7 @@ class Report(object):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
                    % fname)
-            answer = input(msg)
+            answer = _safe_input(msg, alt='pass overwrite=True')
             if answer.lower() == 'y':
                 overwrite = True
 
@@ -1703,6 +1717,10 @@ class Report(object):
                                 div_klass=div_klass, id=global_id,
                                 tooltip=fname, color=color, text=ev.comment)
                             global_id += 1
+                        html_toc += toc_list.substitute(
+                            div_klass=div_klass, id=global_id,
+                            tooltip=fname, color=color, text='GFP')
+                        global_id += 1
                         html_toc += u'</ul></li>'
 
                     elif fname.endswith(tuple(VALID_EXTENSIONS +
@@ -1796,30 +1814,6 @@ class Report(object):
         html.append(_build_html_slider(sl, slides_klass, slider_id))
         html.append(u'</div>')
         return '\n'.join(html)
-
-    def _render_image_png(self, image, cmap='gray', n_jobs=1):
-        """Render one slice of mri without bem as a PNG."""
-        import nibabel as nib
-
-        global_id = self._get_id()
-
-        if 'mri' not in self.sections:
-            self.sections.append('mri')
-            self._sectionvars['mri'] = 'mri'
-
-        nim = nib.load(image)
-        data = _get_img_fdata(nim)
-        shape = data.shape
-        limits = {'sagittal': range(0, shape[0], 2),
-                  'axial': range(0, shape[1], 2),
-                  'coronal': range(0, shape[2], 2)}
-        name = op.basename(image)
-        html = u'<li class="mri" id="%d">\n' % global_id
-        html += u'<h4>%s</h4>\n' % name
-        html += self._render_array(data, global_id=global_id,
-                                   cmap=cmap, limits=limits, n_jobs=n_jobs)
-        html += u'</li>\n'
-        return html
 
     def _render_raw(self, raw_fname, data_path):
         """Render raw (only text)."""
@@ -1979,6 +1973,22 @@ class Report(object):
                 html.append(image_template.substitute(
                     img=img, div_klass='evoked', img_klass='evoked',
                     caption=caption, show=True, image_format=image_format))
+
+        # Plot GFP comparison.
+        figs = plot_compare_evokeds(evokeds=evokeds, ci=None,
+                                    show_sensors=True, **kwargs)
+        for fig in figs:
+            img = _fig_to_img(fig, image_format)
+            caption = self._gen_caption(prefix='Evoked',
+                                        suffix='(GFPs)',
+                                        fname=evoked_fname,
+                                        data_path=data_path)
+            global_id = self._get_id()
+            html.append(image_template.substitute(
+                img=img, id=global_id, div_klass='evoked',
+                img_klass='evoked', caption=caption, show=True,
+                image_format=image_format))
+
         logger.debug('Evoked: done')
         return '\n'.join(html)
 
@@ -2091,22 +2101,17 @@ class Report(object):
         surfaces = _get_bem_plotting_surfaces(bem_path)
         if len(surfaces) == 0:
             warn('No BEM surfaces found, rendering empty MRI')
-            return self._render_image_png(mri_fname, cmap='gray',
-                                          n_jobs=n_jobs)
 
         html = []
 
         global_id = self._get_id()
-
-        if section == 'bem' and 'bem' not in self.sections:
-            self.sections.append('bem')
-            self._sectionvars['bem'] = 'bem'
+        klass = _clean_varnames(section)
+        if section == 'bem':  # special case for bulitin one
+            if 'bem' not in self.sections:
+                self.sections.append('bem')
+                self._sectionvars['bem'] = 'bem'
             klass = 'bem'
-        else:
-            klass = 'report_' + _clean_varnames(section)
-
         name = caption
-
         html += u'<li class="%s" id="%d">\n' % (klass, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         html += self._render_one_bem_axis(mri_fname, surfaces, global_id,

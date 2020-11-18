@@ -14,7 +14,9 @@ from mne.utils import run_tests_if_main, requires_numpydoc, _pl
 public_modules = [
     # the list of modules users need to access for all functionality
     'mne',
+    'mne.baseline',
     'mne.beamformer',
+    'mne.channels',
     'mne.chpi',
     'mne.connectivity',
     'mne.cov',
@@ -87,6 +89,9 @@ error_ignores = {
     # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
 }
+error_ignores_specific = {  # specific instances to skip
+    ('regress_artifact', 'SS05'),  # "Regress" is actually imperative
+}
 subclass_name_ignores = (
     (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
             'copy', 'popitem', 'get', 'items', 'fromkeys', 'clear'}),
@@ -112,7 +117,8 @@ def check_parameters_match(func, cls=None):
                 return list()
     incorrect = ['%s : %s : %s' % (name, err[0], err[1])
                  for err in validate(name)['errors']
-                 if err[0] not in error_ignores]
+                 if err[0] not in error_ignores and
+                 (name.split('.')[-1], err[0]) not in error_ignores_specific]
     return incorrect
 
 

@@ -15,7 +15,7 @@ heartbeat artifacts.
    :depth: 2
 
 We begin as always by importing the necessary Python modules. To save ourselves
-from repeatedly typing ``mne.preprocessing`` we'll directly import a couple
+from repeatedly typing ``mne.preprocessing`` we'll directly import a handful of
 functions from that submodule:
 """
 

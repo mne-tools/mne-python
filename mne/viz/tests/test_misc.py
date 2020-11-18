@@ -181,9 +181,24 @@ def test_plot_events():
     with pytest.warns(RuntimeWarning, match=multimatch):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id={'aud_l': 1}, color=color)
+    extra_id = {'missing': 111}
     with pytest.raises(ValueError, match='from event_id is not present in'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
-                    event_id={'aud_l': 111}, color=color)
+                    event_id=extra_id)
+    with pytest.raises(RuntimeError, match='No usable event IDs'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=extra_id, on_missing='ignore')
+    extra_id = {'aud_l': 1, 'missing': 111}
+    with pytest.warns(RuntimeWarning, match='from event_id is not present in'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=extra_id, on_missing='warn')
+    with pytest.warns(RuntimeWarning, match='event 2 missing'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=extra_id, on_missing='ignore')
+    events = events[events[:, 2] == 1]
+    assert len(events) > 0
+    plot_events(events, raw.info['sfreq'], raw.first_samp,
+                event_id=extra_id, on_missing='ignore')
     with pytest.raises(ValueError, match='No events'):
         plot_events(np.empty((0, 3)))
     plt.close('all')

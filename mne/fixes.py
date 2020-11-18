@@ -73,7 +73,7 @@ def _get_read_geometry():
         has_nibabel = True
     except ImportError:
         has_nibabel = False
-    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+    if has_nibabel:
         from nibabel.freesurfer import read_geometry
     else:
         read_geometry = _read_geometry
@@ -142,171 +142,6 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
 
 
 ###############################################################################
-# Triaging scipy.signal.windows.dpss (1.1)
-
-def tridisolve(d, e, b, overwrite_b=True):
-    """Symmetric tridiagonal system solver, from Golub and Van Loan p157.
-
-    .. note:: Copied from NiTime.
-
-    Parameters
-    ----------
-    d : ndarray
-      main diagonal stored in d[:]
-    e : ndarray
-      superdiagonal stored in e[:-1]
-    b : ndarray
-      RHS vector
-
-    Returns
-    -------
-    x : ndarray
-      Solution to Ax = b (if overwrite_b is False). Otherwise solution is
-      stored in previous RHS vector b
-
-    """
-    N = len(b)
-    # work vectors
-    dw = d.copy()
-    ew = e.copy()
-    if overwrite_b:
-        x = b
-    else:
-        x = b.copy()
-    for k in range(1, N):
-        # e^(k-1) = e(k-1) / d(k-1)
-        # d(k) = d(k) - e^(k-1)e(k-1) / d(k-1)
-        t = ew[k - 1]
-        ew[k - 1] = t / dw[k - 1]
-        dw[k] = dw[k] - t * ew[k - 1]
-    # This iterative solver can fail sometimes. There is probably a
-    # graceful way to solve this, but it should only be a problem
-    # in very rare cases. Users of SciPy 1.1+ will never hit this anyway,
-    # so not worth spending more time figuring out how to do it faster.
-    if dw[N - 1] == 0:
-        a = np.diag(d) + np.diag(e[:-1], -1) + np.diag(e[:-1], 1)
-        x[:] = linalg.solve(a, b)
-    else:
-        for k in range(1, N):
-            x[k] = x[k] - ew[k - 1] * x[k - 1]
-        if dw[N - 1] != 0:
-            x[N - 1] = x[N - 1] / dw[N - 1]
-        for k in range(N - 2, -1, -1):
-            x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
-
-    if not overwrite_b:
-        return x
-
-
-def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
-    """Perform an inverse iteration.
-
-    This will find the eigenvector corresponding to the given eigenvalue
-    in a symmetric tridiagonal system.
-
-    ..note:: Copied from NiTime.
-
-    Parameters
-    ----------
-    d : ndarray
-      main diagonal of the tridiagonal system
-    e : ndarray
-      offdiagonal stored in e[:-1]
-    w : float
-      eigenvalue of the eigenvector
-    x0 : ndarray
-      initial point to start the iteration
-    rtol : float
-      tolerance for the norm of the difference of iterates
-
-    Returns
-    -------
-    e: ndarray
-      The converged eigenvector
-    """
-    eig_diag = d - w
-    if x0 is None:
-        x0 = np.random.randn(len(d))
-    x_prev = np.zeros_like(x0)
-    norm_x = np.linalg.norm(x0)
-    # the eigenvector is unique up to sign change, so iterate
-    # until || |x^(n)| - |x^(n-1)| ||^2 < rtol
-    x0 /= norm_x
-    while np.linalg.norm(np.abs(x0) - np.abs(x_prev)) > rtol:
-        x_prev = x0.copy()
-        tridisolve(eig_diag, e, x0)
-        norm_x = np.linalg.norm(x0)
-        x0 /= norm_x
-    return x0
-
-
-def _dpss(N, half_nbw, Kmax):
-    """Compute DPSS windows."""
-    # here we want to set up an optimization problem to find a sequence
-    # whose energy is maximally concentrated within band [-W,W].
-    # Thus, the measure lambda(T,W) is the ratio between the energy within
-    # that band, and the total energy. This leads to the eigen-system
-    # (A - (l1)I)v = 0, where the eigenvector corresponding to the largest
-    # eigenvalue is the sequence with maximally concentrated energy. The
-    # collection of eigenvectors of this system are called Slepian
-    # sequences, or discrete prolate spheroidal sequences (DPSS). Only the
-    # first K, K = 2NW/dt orders of DPSS will exhibit good spectral
-    # concentration
-    # [see http://en.wikipedia.org/wiki/Spectral_concentration_problem]
-
-    # Here I set up an alternative symmetric tri-diagonal eigenvalue
-    # problem such that
-    # (B - (l2)I)v = 0, and v are our DPSS (but eigenvalues l2 != l1)
-    # the main diagonal = ([N-1-2*t]/2)**2 cos(2PIW), t=[0,1,2,...,N-1]
-    # and the first off-diagonal = t(N-t)/2, t=[1,2,...,N-1]
-    # [see Percival and Walden, 1993]
-    nidx = np.arange(N, dtype='d')
-    W = float(half_nbw) / N
-    diagonal = ((N - 1 - 2 * nidx) / 2.) ** 2 * np.cos(2 * np.pi * W)
-    off_diag = np.zeros_like(nidx)
-    off_diag[:-1] = nidx[1:] * (N - nidx[1:]) / 2.
-    # put the diagonals in LAPACK "packed" storage
-    ab = np.zeros((2, N), 'd')
-    ab[1] = diagonal
-    ab[0, 1:] = off_diag[:-1]
-    # only calculate the highest Kmax eigenvalues
-    w = linalg.eigvals_banded(ab, select='i',
-                              select_range=(N - Kmax, N - 1))
-    w = w[::-1]
-
-    # find the corresponding eigenvectors via inverse iteration
-    t = np.linspace(0, np.pi, N)
-    dpss = np.zeros((Kmax, N), 'd')
-    for k in range(Kmax):
-        dpss[k] = tridi_inverse_iteration(diagonal, off_diag, w[k],
-                                          x0=np.sin((k + 1) * t))
-
-    # By convention (Percival and Walden, 1993 pg 379)
-    # * symmetric tapers (k=0,2,4,...) should have a positive average.
-    # * antisymmetric tapers should begin with a positive lobe
-    fix_symmetric = (dpss[0::2].sum(axis=1) < 0)
-    for i, f in enumerate(fix_symmetric):
-        if f:
-            dpss[2 * i] *= -1
-    # rather than test the sign of one point, test the sign of the
-    # linear slope up to the first (largest) peak
-    pk = np.argmax(np.abs(dpss[1::2, :N // 2]), axis=1)
-    for i, p in enumerate(pk):
-        if np.sum(dpss[2 * i + 1, :p]) < 0:
-            dpss[2 * i + 1] *= -1
-
-    return dpss
-
-
-def _get_dpss():
-    try:
-        from scipy.signal.windows import dpss
-    except ImportError:
-        dpss = _dpss
-    return dpss
-
-
-###############################################################################
 # Triaging FFT functions to get fast pocketfft (SciPy 1.4)
 
 try:
@@ -316,23 +151,8 @@ except ImportError:
 
 
 ###############################################################################
-# Orth with rcond argument (SciPy 1.1)
-
-if LooseVersion(scipy.__version__) >= '1.1':
-    from scipy.linalg import orth
-else:
-    def orth(A, rcond=None):  # noqa
-        u, s, vh = linalg.svd(A, full_matrices=False)
-        M, N = u.shape[0], vh.shape[1]
-        if rcond is None:
-            rcond = numpy.finfo(s.dtype).eps * max(M, N)
-        tol = np.amax(s) * rcond
-        num = np.sum(s > tol, dtype=int)
-        Q = u[:, :num]
-        return Q
-
-###############################################################################
 # NumPy Generator (NumPy 1.17)
+
 
 def rng_uniform(rng):
     """Get the unform/randint from the rng."""
@@ -356,12 +176,12 @@ def _validate_sos(sos):
 ###############################################################################
 # Misc utilities
 
-# Deal with nibabel 2.5 img.get_data() deprecation
+# get_fdata() requires knowing the dtype ahead of time, so let's triage on our
+# own instead
 def _get_img_fdata(img):
-    try:
-        return img.get_fdata()
-    except AttributeError:
-        return img.get_data().astype(float)
+    data = np.asanyarray(img.dataobj)
+    dtype = np.complex128 if np.iscomplexobj(data) else np.float64
+    return data.astype(dtype)
 
 
 def _read_volume_info(fobj):
@@ -577,6 +397,17 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+    def _get_tags(self):
+        collected_tags = {}
+        for base_class in reversed(inspect.getmro(self.__class__)):
+            if hasattr(base_class, '_more_tags'):
+                # need the if because mixins might not have _more_tags
+                # but might do redundant work in estimators
+                # (i.e. calling more tags on BaseEstimator multiple times)
+                more_tags = base_class._more_tags(self)
+                collected_tags.update(more_tags)
+        return collected_tags
 
 
 # newer sklearn deprecates importing from sklearn.metrics.scoring,
@@ -1066,12 +897,13 @@ except ImportError:  # NumPy < 1.15
 ###############################################################################
 # From nilearn
 
+
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     """
     crop a colorbar to show from cbar_vmin to cbar_vmax
-
     Used when symmetric_cbar=False is used.
     """
+    import matplotlib
     if (cbar_vmin is None) and (cbar_vmax is None):
         return
     cbar_tick_locs = cbar.locator.locs
@@ -1081,12 +913,33 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
         cbar_vmin = cbar_tick_locs.min()
     new_tick_locs = np.linspace(cbar_vmin, cbar_vmax,
                                 len(cbar_tick_locs))
-    cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
-    outline = cbar.outline.get_xy()
-    outline[:2, 1] += cbar.norm(cbar_vmin)
-    outline[2:6, 1] -= (1. - cbar.norm(cbar_vmax))
-    outline[6:, 1] += cbar.norm(cbar_vmin)
-    cbar.outline.set_xy(outline)
+
+    # matplotlib >= 3.2.0 no longer normalizes axes between 0 and 1
+    # See https://matplotlib.org/3.2.1/api/prev_api_changes/api_changes_3.2.0.html
+    # _outline was removed in
+    # https://github.com/matplotlib/matplotlib/commit/03a542e875eba091a027046d5ec652daa8be6863
+    # so we use the code from there
+    if LooseVersion(matplotlib.__version__) >= LooseVersion("3.2.0"):
+        cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
+        X, _ = cbar._mesh()
+        X = np.array([X[0], X[-1]])
+        Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
+        N = X.shape[0]
+        ii = [0, 1, N - 2, N - 1, 2 * N - 1, 2 * N - 2, N + 1, N, 0]
+        x = X.T.reshape(-1)[ii]
+        y = Y.T.reshape(-1)[ii]
+        xy = (np.column_stack([y, x])
+              if cbar.orientation == 'horizontal' else
+              np.column_stack([x, y]))
+        cbar.outline.set_xy(xy)
+    else:
+        cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
+        outline = cbar.outline.get_xy()
+        outline[:2, 1] += cbar.norm(cbar_vmin)
+        outline[2:6, 1] -= (1. - cbar.norm(cbar_vmax))
+        outline[6:, 1] += cbar.norm(cbar_vmin)
+        cbar.outline.set_xy(outline)
+
     cbar.set_ticks(new_tick_locs, update_ticks=True)
 
 

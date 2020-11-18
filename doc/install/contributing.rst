@@ -7,7 +7,7 @@ Contributing to MNE-Python
 
 .. contents:: Page contents
    :local:
-   :depth: 2
+   :depth: 3
 
 .. highlight:: console
 
@@ -93,12 +93,12 @@ computer:
 - On MacOS, download `the .dmg installer`_; Atlassian also provides `more
   detailed instructions and alternatives`_ such as using MacPorts or Homebrew.
 
-- On Windows, we recommend `git Bash`_ rather than the `official Windows
-  version of git`_, because git Bash provides its own shell that includes many
-  Linux-equivalent command line programs that are useful for development.
-  Windows 10 also offers the `Windows subsystem for Linux`_ that offers similar
-  functionality to git Bash, but has not been widely tested by MNE-Python
-  developers yet.
+- On Windows, download and install `git for Windows`_. With Git BASH it provides its own shell that
+  includes many Linux-equivalent command line programs that are useful for development.
+
+  *Windows 10 also offers the* `Windows subsystem for Linux`_ *that offers similar
+  functionality to git BASH, but has not been widely tested by MNE-Python
+  developers yet and may still pose problems with graphical output (e.g. building the documentation)*
 
 
 Once git is installed, the only absolutely necessary configuration step is
@@ -119,6 +119,45 @@ when writing commit messages, so you might as well configure that now too::
 
 There are many other ways to customize git's behavior; see `configuring git`_
 for more information.
+
+
+GNU Make
+~~~~~~~~
+GNU Make facilitates deploying a package by executing corresponding commands
+from the ``Makefile``. For MNE-Python we have two Makefiles, one in the parent
+directory mainly for testing and one in ``/doc`` for building the documentation.
+
+To check if make is already installed type ::
+
+   $ make
+
+into a terminal and you should see ::
+
+   make: *** No targets specified and no makefile found.  Stop.
+
+If you don't see this or something similar:
+
+.. sidebar::
+   If you get:
+
+   *bash: conda: command not found*
+
+   you need to add
+
+   - ``(Anaconda-Path)``
+   - ``(Anaconda-Path)\Scripts``
+
+   to Windows-PATH.
+
+- For Linux/MacOS, get `GNU Make`_
+- For Windows, you can install make for git BASH (which comes with `git for Windows`_):
+
+  1. Download ``make-(newest version)-without-guile-w32-bin.zip`` from `ezwinports`_
+  2. Extract zip-folder
+  3. Copy the contents into ``(git-path)\mingw64\`` (e.g. by merging the folders with the equivalent ones already inside)
+  4. For the first time using git BASH, you need to run once (to be able to activate your mnedev-environment): ::
+
+      $ conda init bash
 
 
 Forking the MNE-Python repository
@@ -184,6 +223,9 @@ contributors. First, edit these two variables for your situation::
     $ # pick where to put your local copy of MNE-Python development version:
     $ INSTALL_LOCATION="/opt"
 
+.. note::
+   On Windows, add ``set`` before the variable names (``set GITHUB_USERNAME=...``, etc.).
+
 Then make a local clone of your remote fork (``origin``)::
 
     $ cd $INSTALL_LOCATION
@@ -231,6 +273,24 @@ MNE-Python, but are needed for locally running our test suite::
 And for building our documentation::
 
     $ pip install -r requirements_doc.txt
+    $ conda install graphviz
+
+.. note::
+   On Windows, if you installed graphviz using the conda command above but still get an error like this::
+
+      WARNING: dot command 'dot' cannot be run (needed for graphviz output), check the graphviz_dot setting
+
+   try adding the graphviz folder to path::
+
+      $ PATH=$CONDA_PREFIX\\Library\\bin\\graphviz:$PATH
+
+To build documentation, you will also require `optipng`_:
+
+- On Linux, use the command ``sudo apt install optipng``.
+
+- On MacOS, optipng can be installed using Homebrew.
+
+- On Windows, unzip optipng.exe from the `optipng for Windows`_ archive into the ``doc`` folder.
 
 You can also choose to install some optional linters for reStructuredText::
 
@@ -487,13 +547,76 @@ Describe your changes in the changelog
 --------------------------------------
 
 Include in your changeset a brief description of the change in the
-:doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`; this can be skipped
-for very minor changes like correcting typos in the documentation). Note that
-there are sections of the changelog for each release, and separate subsections
-for bugfixes, new features, and changes to the public API. It is usually best
-to wait to add a line to the changelog until your PR is finalized, to avoid
-merge conflicts (since the changelog is updated with almost every PR).
+:ref:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be
+skipped for very minor changes like correcting typos in the documentation).
 
+There are different sections of the changelog for each release, and separate
+**subsections for bugfixes, new features, and changes to the public API.**
+Please be sure to add your entry to the appropriate subsection.
+
+The styling and positioning of the entry depends on whether you are a
+first-time contributor or have been mentioned in the changelog before.
+
+First-time contributors
+"""""""""""""""""""""""
+
+Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
+get proper credit for your work, please add a changelog entry with the
+following pattern **at the top** of the respective subsection (bugfix,
+new feature etc.):
+
+.. code-block:: rst
+
+
+  Bug
+  ---
+
+  .. |Your Name| replace:: **Your Name**
+
+  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  
+  - ...
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number.
+
+It is usually best to wait to add a line to the changelog until your PR is
+finalized, to avoid merge conflicts (since the changelog is updated with
+almost every PR).
+
+Lastly, make sure that your name is included in the list of authors in
+:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+To add an author name, simply append a line with the following pattern (note
+how the syntax is different from that used in the changelog):
+
+.. code-block:: rst
+
+  .. _Your Name: https://www.your-website.com/
+
+Many contributors opt to link to their GitHub profile that way. Have a look
+at the existing entries in the file to get some inspiration.
+
+Recurring contributors
+""""""""""""""""""""""
+
+The changelog entry should follow the following patterns:
+
+.. code-block:: rst
+
+    - Short description of the changes from one contributor (:gh:`0000` by `Contributor Name`_)
+    - Short description of the changes from several contributors (:gh:`0000` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number. Mind the Oxford comma in the case of multiple contributors.
+
+Sometimes, changes that shall appear as a single changelog entry are spread out
+across multiple PRs. In this case, simply name all relevant PRs, separated by
+commas:
+
+.. code-block:: rst
+
+    - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
+    - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
@@ -687,7 +810,7 @@ from the ``mne-python`` root folder. Testing the entire module can be quite
 slow, however, so to run individual tests while working on a new feature, you
 can run, e.g.::
 
-    $ pytest mne/tests/test_evoked.py:test_io_evoked --verbose
+    $ pytest mne/tests/test_evoked.py::test_io_evoked --verbose
 
 Or alternatively::
 
@@ -728,6 +851,14 @@ tutorial, you should instead run
 all the documentation and additionally execute just your example or tutorial
 (so you can make sure it runs successfully and generates the output / figures
 you expect).
+
+.. note::
+   On Windows, to use the pattern approach, use the following two lines:
+
+   .. code-block:: python
+
+      set PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>}
+      make html_dev-pattern
 
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. Additional ``make``
@@ -853,12 +984,13 @@ it can serve as a useful example of what to expect from the PR review process.
 .. git installation
 
 .. _the .dmg installer: https://git-scm.com/download/mac
-.. _official Windows version of git: https://git-scm.com/download/win
+.. _git for Windows: https://gitforwindows.org/
 .. _official Linux instructions: https://git-scm.com/download/linux
 .. _more detailed instructions and alternatives: https://www.atlassian.com/git/tutorials/install-git
 .. _Windows subsystem for Linux: https://docs.microsoft.com/en-us/windows/wsl/about
-.. _git bash: https://gitforwindows.org/
 .. _GitHub desktop: https://desktop.github.com/
+.. _GNU Make: https://www.gnu.org/software/make/
+.. _ezwinports: https://sourceforge.net/projects/ezwinports/files/
 
 .. github help pages
 
@@ -912,9 +1044,13 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _anaconda: https://www.anaconda.com/distribution/
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _Spyder: https://www.spyder-ide.org/
-.. _GNU Make: https://www.gnu.org/software/make/
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
 .. _travis: https://travis-ci.org/mne-tools/mne-python/branches
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 .. _circle: https://circleci.com/gh/mne-tools/mne-python
+
+.. optipng
+
+.. _optipng: http://optipng.sourceforge.net/
+.. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.7-win32.zip?download

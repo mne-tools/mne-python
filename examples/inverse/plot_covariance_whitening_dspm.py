@@ -1,4 +1,7 @@
 """
+
+.. _ex-covariance-whitening-dspm:
+
 ===================================================
 Demonstrate impact of whitening on source estimates
 ===================================================

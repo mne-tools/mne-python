@@ -201,6 +201,14 @@ def test_io_evoked(tmpdir):
             assert_equal(av1.first, av2.first)
             assert_equal(av1.comment, av2.comment)
 
+    # test saving and reading complex numbers in evokeds
+    ave_complex = ave.copy()
+    ave_complex._data = 1j * ave_complex.data
+    fname_temp = str(tmpdir.join('complex-ave.fif'))
+    ave_complex.save(fname_temp)
+    ave_complex = read_evokeds(fname_temp)[0]
+    assert_allclose(ave.data, ave_complex.data.imag)
+
     # test warnings on bad filenames
     fname2 = tmpdir.join('test-bad-name.fif')
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
@@ -291,6 +299,13 @@ def test_shift_time_evoked():
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
     ave_loaded = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
     assert_array_almost_equal(ave.times, ave_loaded.times, 8)
+
+
+def test_tmin_tmax():
+    """Test that the tmin and tmax attributes return the correct time."""
+    evoked = read_evokeds(fname, 0)
+    assert evoked.times[0] == evoked.tmin
+    assert evoked.times[-1] == evoked.tmax
 
 
 def test_evoked_resample():

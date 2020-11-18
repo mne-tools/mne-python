@@ -183,6 +183,18 @@ imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
 # axes of the volume itself. For more information, see
 # :ref:`coordinate_systems`.
 #
+# .. note:: In general, you should assume that the MRI coordinate system for
+#           a given subject is specific to that subject, i.e., it is not the
+#           same coordinate MRI coordinate system that is used for any other
+#           FreeSurfer subject. Even though during processing FreeSurfer will
+#           align each subject's MRI to ``fsaverage`` to do reconstruction,
+#           all data (surfaces, MRIs, etc.) get stored in the coordinate frame
+#           specific to that subject. This is why it's important for group
+#           analyses to transform data to a common coordinate frame for example
+#           by :ref:`surface <ex-morph-surface>` or
+#           :ref:`volumetric <ex-morph-volume>` morphing, or even by just
+#           applying :ref:`mni-affine-transformation` to points.
+#
 # Since MNE-Python uses FreeSurfer extensively for surface computations (e.g.,
 # white matter, inner/outer skull meshes), internally MNE-Python uses the
 # Freeurfer surface RAS coordinate system (not the :mod:`nibabel` scanner RAS
@@ -293,8 +305,8 @@ print(f'rr_mm.max() = {rr_mm.max()}')  # just to show that we are in mm
 ###############################################################################
 # Let's actually plot it:
 
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(600, 600), bgcolor='w')
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(600, 600), bgcolor='w', scene=False)
 gray = (0.5, 0.5, 0.5)
 renderer.mesh(*rr_mm.T, triangles=tris, color=gray)
 view_kwargs = dict(elevation=90, azimuth=0)
@@ -332,8 +344,8 @@ fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
 # to the same location in the destination (fsaverage) mesh, and vice-versa.
 
 renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 400), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 400), scene=False, **renderer_kwargs)
 curvs = [
     (mne.surface.read_curvature(os.path.join(
         subjects_dir, subj, 'surf', 'rh.curv'),
@@ -366,8 +378,8 @@ renderer.show()
 
 cyan = '#66CCEE'
 purple = '#AA3377'
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 800), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 800), scene=False, **renderer_kwargs)
 fnames = [os.path.join(subjects_dir, subj, 'surf', 'rh.sphere')
           for subj in ('sample', 'fsaverage')]
 colors = [cyan, purple]
@@ -400,8 +412,8 @@ print(src)
 
 # sphinx_gallery_thumbnail_number = 10
 blue = '#4477AA'
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 800), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 800), scene=False, **renderer_kwargs)
 rr_sph, _ = mne.read_surface(fnames[0])
 for tris, color in [(src[1]['tris'], cyan), (src[1]['use_tris'], blue)]:
     renderer.mesh(*rr_sph.T, triangles=tris, color=color,
@@ -413,8 +425,8 @@ renderer.show()
 # We can also then look at how these two meshes compare by plotting the
 # original, high-density mesh as well as our decimated mesh white surfaces.
 
-renderer = mne.viz.backends.renderer._get_renderer(
-    size=(800, 400), **renderer_kwargs)
+renderer = mne.viz.backends.renderer.create_3d_figure(
+    size=(800, 400), scene=False, **renderer_kwargs)
 y_shifts = [-125, 125]
 tris = [src[1]['tris'], src[1]['use_tris']]
 for y_shift, tris in zip(y_shifts, tris):
@@ -425,7 +437,40 @@ renderer.quiver3d([0], [-width / 2.], [0], [0], [1], [0], 'k', width, 'arrow')
 mne.viz.set_3d_view(figure=renderer.figure, distance=400, **view_kwargs)
 renderer.show()
 
+
 ###############################################################################
 # .. warning::
 #    Some source space vertices can be removed during forward computation.
 #    See :ref:`tut-forward` for more information.
+#
+# .. _mni-affine-transformation:
+#
+# FreeSurfer's MNI affine transformation
+# --------------------------------------
+# In addition to surface-based approaches, FreeSurfer also provides a simple
+# affine coregistration of each subject's data to the ``fsaverage`` subject.
+# Let's pick a point for ``sample`` and plot it on the brain:
+
+brain = mne.viz.Brain('sample', 'lh', 'white', subjects_dir=subjects_dir,
+                      background='w')
+xyz = np.array([[-55, -10, 35]])
+brain.add_foci(xyz, hemi='lh', color='k')
+brain.show_view('lat')
+
+###############################################################################
+# We can take this point and transform it to MNI space:
+
+mri_mni_trans = mne.read_talxfm(subject, subjects_dir)
+print(mri_mni_trans)
+xyz_mni = apply_trans(mri_mni_trans, xyz / 1000.) * 1000.
+print(np.round(xyz_mni, 1))
+
+###############################################################################
+# And because ``fsaverage`` is special in that it's already in MNI space
+# (its MRI-to-MNI transform is identity), it should land in the equivalent
+# anatomical location:
+
+brain = mne.viz.Brain('fsaverage', 'lh', 'white', subjects_dir=subjects_dir,
+                      background='w')
+brain.add_foci(xyz_mni, hemi='lh', color='k')
+brain.show_view('lat')

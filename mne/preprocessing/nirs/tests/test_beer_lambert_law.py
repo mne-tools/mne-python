@@ -18,11 +18,12 @@ from mne.externals.pymatreader import read_mat
 
 
 fname_nirx_15_0 = op.join(data_path(download=False),
-                          'NIRx', 'nirx_15_0_recording')
+                          'NIRx', 'nirscout', 'nirx_15_0_recording')
 fname_nirx_15_2 = op.join(data_path(download=False),
-                          'NIRx', 'nirx_15_2_recording')
+                          'NIRx', 'nirscout', 'nirx_15_2_recording')
 fname_nirx_15_2_short = op.join(data_path(download=False),
-                                'NIRx', 'nirx_15_2_recording_w_short')
+                                'NIRx', 'nirscout',
+                                'nirx_15_2_recording_w_short')
 
 
 @testing.requires_testing_data
@@ -37,21 +38,15 @@ def test_beer_lambert(fname, fmt, tmpdir):
         raw.save(tmpdir.join('test_raw.fif'))
         raw = read_raw_fif(tmpdir.join('test_raw.fif'))
     assert 'fnirs_cw_amplitude' in raw
-    with pytest.deprecated_call():
-        assert 'fnirs_raw' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)
     _validate_type(raw, BaseRaw, 'raw')
     assert 'fnirs_cw_amplitude' not in raw
-    with pytest.deprecated_call():
-        assert 'fnirs_raw' not in raw
     assert 'fnirs_od' in raw
     assert 'hbo' not in raw
     raw = beer_lambert_law(raw)
     _validate_type(raw, BaseRaw, 'raw')
     assert 'fnirs_cw_amplitude' not in raw
-    with pytest.deprecated_call():
-        assert 'fnirs_raw' not in raw
     assert 'fnirs_od' not in raw
     assert 'hbo' in raw
     assert 'hbr' in raw
@@ -88,7 +83,8 @@ def test_beer_lambert_v_matlab():
     raw._data *= 1e6  # Scale to uM for comparison to MATLAB
 
     matlab_fname = op.join(data_path(download=False),
-                           'NIRx', 'validation', 'nirx_15_0_recording_bl.mat')
+                           'NIRx', 'nirscout', 'validation',
+                           'nirx_15_0_recording_bl.mat')
     matlab_data = read_mat(matlab_fname)
 
     for idx in range(raw.get_data().shape[0]):

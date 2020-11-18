@@ -8,7 +8,7 @@ from scipy import linalg
 
 from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
-                                    _check_reference)
+                                    _check_reference, _log_exp_var)
 from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
@@ -98,9 +98,10 @@ def _compute_residual(forward, evoked, X, active_set, info):
             non_active_projs.append(p)
 
     if len(active_projs) > 0:
-        r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True)
-        r_tmp.apply_proj()
-        r_tmp.add_proj(non_active_projs, remove_existing=False)
+        r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True,
+                                              verbose=False)
+        r_tmp.apply_proj(verbose=False)
+        r_tmp.add_proj(non_active_projs, remove_existing=False, verbose=False)
 
     residual.data -= r_tmp.data
 
@@ -146,9 +147,44 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
         vector=vector, source_nn=source_nn)
 
 
+def _split_gof(M, X, gain):
+    # parse out the variance explained using an orthogonal basis
+    # assuming x is estimated using elements of gain, with residual res
+    # along the first axis
+    assert M.ndim == X.ndim == gain.ndim == 2, (M.ndim, X.ndim, gain.ndim)
+    assert gain.shape == (M.shape[0], X.shape[0])
+    assert M.shape[1] == X.shape[1]
+    norm = (M * M.conj()).real.sum(0, keepdims=True)
+    norm[norm == 0] = np.inf
+    M_est = gain @ X
+    assert M.shape == M_est.shape
+    res = M - M_est
+    assert gain.shape[0] == M.shape[0], (gain.shape, M.shape)
+    # find an orthonormal basis for our matrices that spans the actual data
+    U, s, _ = np.linalg.svd(gain, full_matrices=False)
+    U = U[:, s >= s[0] * 1e-6]
+    # the part that gets explained
+    fit_orth = U.T @ M
+    # the part that got over-explained (landed in residual)
+    res_orth = U.T @ res
+    # determine the weights by projecting each one onto this basis
+    w = (U.T @ gain)[:, :, np.newaxis] * X
+    w_norm = np.linalg.norm(w, axis=1, keepdims=True)
+    w_norm[w_norm == 0] = 1.
+    w /= w_norm
+    # our weights are now unit-norm positive (will presrve power)
+    fit_back = np.linalg.norm(fit_orth[:, np.newaxis] * w, axis=0) ** 2
+    res_back = np.linalg.norm(res_orth[:, np.newaxis] * w, axis=0) ** 2
+    # and the resulting goodness of fits
+    gof_back = 100 * (fit_back - res_back) / norm
+    assert gof_back.shape == X.shape, (gof_back.shape, X.shape)
+    return gof_back
+
+
 @verbose
-def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
-                         active_is_idx=False, verbose=None):
+def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
+                         gain_active, active_is_idx=False,
+                         verbose=None):
     times = tmin + tstep * np.arange(X.shape[1])
 
     if not active_is_idx:
@@ -156,15 +192,23 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
     else:
         active_idx = active_set
 
+    # Compute the GOF split amongst the dipoles
+    assert M.shape == (gain_active.shape[0], len(times))
+    assert gain_active.shape[1] == len(active_idx) == X.shape[0]
+    gof_split = _split_gof(M, X, gain_active)
+    assert gof_split.shape == (len(active_idx), len(times))
+    assert X.shape[0] in (len(active_idx), 3 * len(active_idx))
+
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
-        active_idx = np.unique(active_idx // n_dip_per_pos)
-
-    gof = np.zeros(M_est.shape[1])
-    M_norm2 = np.sum(M ** 2, axis=0)
-    R_norm2 = np.sum((M - M_est) ** 2, axis=0)
-    gof[M_norm2 > 0.0] = 1. - R_norm2[M_norm2 > 0.0] / M_norm2[M_norm2 > 0.0]
-    gof *= 100.
+        active_idx = active_idx // n_dip_per_pos
+        _, keep = np.unique(active_idx, return_index=True)
+        keep.sort()  # maintain old order
+        active_idx = active_idx[keep]
+        gof_split.shape = (len(active_idx), n_dip_per_pos, len(times))
+        gof_split = gof_split.sum(1)
+        assert (gof_split < 100).all()
+    assert gof_split.shape == (len(active_idx), len(times))
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
@@ -179,13 +223,12 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
             if forward['surf_ori']:
                 X_ = np.dot(forward['source_nn'][
                     i_dip * n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
-
-            amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
+            amplitude = np.linalg.norm(X_, axis=0)
             i_ori = np.zeros((len(times), 3))
             i_ori[amplitude > 0.] = (X_[:, amplitude > 0.] /
                                      amplitude[amplitude > 0.]).T
 
-        dipoles.append(Dipole(times, i_pos, amplitude, i_ori, gof))
+        dipoles.append(Dipole(times, i_pos, amplitude, i_ori, gof_split[k]))
 
     return dipoles
 
@@ -264,13 +307,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     alpha : float in range [0, 100)
         Regularization parameter. 0 means no regularization, 100 would give 0
         active dipole.
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation.
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumic or discrete source space.
+    %(loose)s
     %(depth)s
     maxit : int
         Maximum number of iterations.
@@ -399,9 +436,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         X = np.dot(X, Vh)
         M = np.dot(M, Vh)
 
-    # Compute estimated whitened sensor data
-    M_estimated = np.dot(gain[:, active_set], X)
-
+    gain_active = gain[:, active_set]
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
         active_set_tmp[mask] = active_set
@@ -413,6 +448,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     # Reapply weights to have correct unit
     X = _reapply_source_weighting(X, source_weighting, active_set)
+    source_weighting[source_weighting == 0] = 1  # zeros
+    gain_active /= source_weighting[active_set]
+    del source_weighting
+    M_estimate = np.dot(gain_active, X)
 
     outs = list()
     residual = list()
@@ -425,7 +464,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             out = _make_dipoles_sparse(
                 Xe, active_set, forward, tmin, tstep,
                 M[:, cnt:(cnt + len(e.times))],
-                M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
+                gain_active)
         else:
             out = _make_sparse_stc(
                 Xe, active_set, forward, tmin, tstep, pick_ori=pick_ori)
@@ -436,6 +475,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             residual.append(_compute_residual(forward, e, Xe, active_set,
                                               gain_info))
 
+    _log_exp_var(M, M_estimate, prefix='')
     logger.info('[done]')
 
     if len(outs) == 1:
@@ -479,7 +519,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
-    dictionary. Works with evoked data [1]_ [2]_.
+    dictionary. Works with evoked data
+    :footcite:`GramfortEtAl2013,GramfortEtAl2011`.
 
     Parameters
     ----------
@@ -489,13 +530,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation.
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumic or discrete source space.
+    %(loose)s
     %(depth)s
     maxit : int
         Maximum number of iterations.
@@ -516,13 +551,14 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         Length of the STFT window in samples (must be a multiple of 4).
         If an array is passed, multiple TF dictionaries are used (each having
         its own wsize and tstep) and each entry of wsize must be a multiple
-        of 4. See [3]_.
+        of 4. See :footcite:`BekhtiEtAl2016`.
     tstep : int or array-like
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
         If an array is passed, multiple TF dictionaries are used (each having
         its own wsize and tstep), and each entry of tstep must be a multiple
-        of 2 and divide the corresponding entry of wsize. See [3]_.
+        of 2 and divide the corresponding entry of wsize. See
+        :footcite:`BekhtiEtAl2016`.
     window : float or (float, float)
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
@@ -565,24 +601,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     References
     ----------
-    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-       "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-       non-stationary source activations",
-       Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
-       DOI: 10.1016/j.neuroimage.2012.12.051
-
-    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-       "Functional Brain Imaging with M/EEG Using Structured Sparsity in
-       Time-Frequency Dictionaries",
-       Proceedings Information Processing in Medical Imaging
-       Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
-       DOI: 10.1007/978-3-642-22092-0_49
-
-    .. [3] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort.
-       "M/EEG source localization with multiscale time-frequency dictionaries",
-       6th International Workshop on Pattern Recognition in Neuroimaging
-       (PRNI), 2016.
-       DOI: 10.1109/PRNI.2016.7552337
+    .. footbibliography::
     """
     _check_reference(evoked)
 
@@ -658,8 +677,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         raise Exception("No active dipoles found. "
                         "alpha_space/alpha_time are too big.")
 
-    # Compute estimated whitened sensor data
-    M_estimated = np.dot(gain[:, active_set], X)
+    # Compute estimated whitened sensor data for each dipole (dip, ch, time)
+    gain_active = gain[:, active_set]
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=bool)
@@ -668,6 +687,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         del active_set_tmp
 
     X = _reapply_source_weighting(X, source_weighting, active_set)
+    gain_active /= source_weighting[active_set]
 
     if return_residual:
         residual = _compute_residual(
@@ -676,7 +696,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     if return_as_dipoles:
         out = _make_dipoles_sparse(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
-            M, M_estimated, verbose=None)
+            M, gain_active)
     else:
         out = _make_sparse_stc(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],

@@ -12,7 +12,7 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option, warn)
+                     _check_option)
 
 
 def get_channel_type_constants():
@@ -270,8 +270,7 @@ def _triage_fnirs_pick(ch, fnirs, warned):
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE and \
-            fnirs in ('fnirs_cw_amplitude', 'fnirs_raw'):  # alias
-        fnirs = _fnirs_raw_dep(fnirs, warned)
+            fnirs == 'fnirs_cw_amplitude':
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
         return True
@@ -302,7 +301,7 @@ def _check_info_exclude(info, exclude):
     return exclude
 
 
-def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
+def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
                gof=False, bio=False, ecog=False, fnirs=False, csd=False,
@@ -376,14 +375,7 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     """
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
-    if meg is None:
-        meg = True  # previous default arg
-        meg_default_arg = True  # default argument for meg was used
-    else:
-        meg_default_arg = False
-    # only issue deprecation warning if there are MEG channels in the data and
-    # if the function was called with the default arg for meg
-    deprecation_warn = False
+    _validate_type(meg, (bool, str), 'meg')
 
     exclude = _check_info_exclude(info, exclude)
     nchan = info['nchan']
@@ -416,8 +408,6 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     warned = [False]
     for k in range(nchan):
         ch_type = channel_type(info, k)
-        if ch_type in ('grad', 'mag') and meg_default_arg:
-            deprecation_warn = True
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
@@ -425,12 +415,8 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
                                'fnirs_cw_amplitude', 'fnirs_od')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
-                if meg_default_arg:
-                    deprecation_warn = True
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
-                if meg_default_arg:
-                    deprecation_warn = True
             else:  # ch_type in ('hbo', 'hbr')
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs, warned)
 
@@ -452,9 +438,6 @@ def pick_types(info, meg=None, eeg=False, stim=False, eog=False, ecg=False,
     else:
         sel = pick_channels(info['ch_names'], myinclude, exclude)
 
-    if deprecation_warn:
-        warn("The default of meg=True will change to meg=False in version 0.22"
-             ", set meg explicitly to avoid this warning.", DeprecationWarning)
     return sel
 
 
@@ -660,7 +643,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     return fwd
 
 
-def pick_types_forward(orig, meg=None, eeg=False, ref_meg=True, seeg=False,
+def pick_types_forward(orig, meg=False, eeg=False, ref_meg=True, seeg=False,
                        ecog=False, include=[], exclude=[]):
     """Pick by channel type and names from a forward operator.
 
@@ -791,17 +774,6 @@ def _mag_grad_dependent(info):
                for ph in info.get('proc_history', []))
 
 
-def _fnirs_raw_dep(ch_type, warned):
-    if ch_type == 'fnirs_raw':  # alias
-        if not warned[0]:
-            warn('"fnirs_raw" has been deprecated in favor of the more '
-                 'explicit "fnirs_cw_amplitude" and will be removed in 0.22',
-                 DeprecationWarning)
-            warned[0] = True
-        ch_type = 'fnirs_cw_amplitude'
-    return ch_type
-
-
 def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object.
 
@@ -821,7 +793,6 @@ def _contains_ch_type(info, ch_type):
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']
-    ch_type = _fnirs_raw_dep(ch_type, [False])
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
                                   if key != 'meg'] + meg_extras + fnirs_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
@@ -960,8 +931,7 @@ def _pick_aux_channels(info, exclude='bads'):
 def _pick_data_or_ica(info, exclude=()):
     """Pick only data or ICA channels."""
     if any(ch_name.startswith('ICA') for ch_name in info['ch_names']):
-        # FIXME: is meg=True really correct here?
-        picks = pick_types(info, exclude=exclude, misc=True, meg=True)
+        picks = pick_types(info, exclude=exclude, misc=True)
     else:
         picks = _pick_data_channels(info, exclude=exclude, with_ref_meg=True)
     return picks

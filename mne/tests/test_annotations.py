@@ -2,6 +2,7 @@
 #
 # License: BSD 3 clause
 
+from collections import OrderedDict
 from datetime import datetime, timezone
 from itertools import repeat
 import sys
@@ -275,6 +276,33 @@ def test_chunk_duration(first_samp):
     expected_events[:, 0] = np.arange(0, 9, step=3) + first_samp
     events, events_id = events_from_annotations(raw, chunk_duration=3.)
     assert_array_equal(events, expected_events)
+
+
+def test_events_from_annotation_orig_time_none():
+    """Tests events_from_annotation with orig_time None and first_sampe > 0."""
+    # Create fake data
+    sfreq, duration_s = 100, 10
+    data = np.random.RandomState(42).randn(1, sfreq * duration_s)
+    info = mne.create_info(ch_names=['EEG1'], ch_types=['eeg'], sfreq=sfreq)
+    raw = mne.io.RawArray(data, info)
+
+    # Add annotation toward the end
+    onset = [8]
+    duration = [1]
+    description = ['0']
+    annots = mne.Annotations(onset, duration, description)
+    raw = raw.set_annotations(annots)
+
+    # Crop start of raw
+    raw.crop(tmin=7)
+
+    # Extract epochs
+    events, event_ids = mne.events_from_annotations(raw)
+    epochs = mne.Epochs(
+        raw, events, tmin=0, tmax=1, baseline=None, on_missing='warning')
+
+    # epochs is empty
+    assert_array_equal(epochs.get_data()[0], data[:, 800:901])
 
 
 def test_crop_more():
@@ -967,7 +995,7 @@ def test_annotations_simple_iteration():
                         orig_time=None)
 
     for ii, elements in enumerate(annot[:2]):
-        assert isinstance(elements, dict)
+        assert isinstance(elements, OrderedDict)
         expected_values = (ii, ii, str(ii))
         for elem, expected_type, expected_value in zip(elements.values(),
                                                        EXPECTED_ELEMENTS_TYPE,

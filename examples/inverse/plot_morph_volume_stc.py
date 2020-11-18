@@ -7,7 +7,7 @@ Morph volumetric source estimate
 
 This example demonstrates how to morph an individual subject's
 :class:`mne.VolSourceEstimate` to a common reference space. We achieve this
-using :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
+using :class:`mne.SourceMorph`. Data will be morphed based on
 an affine transformation and a nonlinear registration method
 known as Symmetric Diffeomorphic Registration (SDR) by
 :footcite:`AvantsEtAl2008`.
@@ -92,7 +92,21 @@ morph = mne.compute_source_morph(
 # --------------------------------
 #
 # The morph can be applied to the source estimate data, by giving it as the
-# first argument to the :meth:`morph.apply() <mne.SourceMorph.apply>` method:
+# first argument to the :meth:`morph.apply() <mne.SourceMorph.apply>` method.
+#
+# .. note::
+#      Volumetric morphing is much slower than surface morphing because the
+#      volume for each time point is individually resampled and SDR morphed.
+#      The :meth:`mne.SourceMorph.compute_vol_morph_mat` method can be used
+#      to compute an equivalent sparse matrix representation by computing the
+#      transformation for each source point individually. This generally takes
+#      a few minutes to compute, but can be
+#      :meth:`saved <mne.SourceMorph.save>` to disk and be reused. The
+#      resulting sparse matrix operation is very fast (about 400× faster) to
+#      :meth:`apply <mne.SourceMorph.apply>`. This approach is more efficient
+#      when the number of time points to be morphed exceeds the number of
+#      source space points, which is generally in the thousands. This can
+#      easily occur when morphing many time points and multiple conditions.
 
 stc_fsaverage = morph.apply(stc)
 

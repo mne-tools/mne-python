@@ -223,7 +223,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             raise ValueError("If `group_by` is a dict, `axes` must be "
                              "a dict of axes or None.")
         _validate_if_list_of_axes(list(axes.values()))
-        remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
+        remove_xlabels = any([_is_last_row(ax) for ax in axes.values()])
         for sel in group_by:  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(sel + " present in `group_by`, but not "
@@ -243,7 +243,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
                          sphere=sphere)
-            if remove_xlabels and not ax.is_last_row():
+            if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
@@ -369,6 +369,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     return fig
 
 
+def _is_last_row(ax):
+    try:
+        return ax.get_subplotspec().is_last_row()
+    except AttributeError:  # XXX old mpl
+        return ax.is_last_row()
+
+
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
@@ -492,10 +499,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     if spatial_colors is True:
                         line.set_linestyle("--")
             ax.set_ylabel(ch_unit)
-            # for old matplotlib, we actually need this to have a bounding
-            # box (!), so we have to put some valid text here, change
-            # alpha and path effects later
-            texts.append(ax.text(0, 0, 'blank', zorder=3,
+            texts.append(ax.text(0, 0, '', zorder=3,
                                  verticalalignment='baseline',
                                  horizontalalignment='left',
                                  fontweight='bold', alpha=0,
@@ -1926,9 +1930,12 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     ----------
     evokeds : instance of mne.Evoked | list | dict
         If a single Evoked instance, it is plotted as a time series.
+        If a list of Evokeds, the contents are plotted with their
+        ``.comment`` attributes used as condition labels. If no comment is set,
+        the index of the respectiv Evoked the list will be used instead,
+        starting with ``1`` for the first Evoked.
         If a dict whose values are Evoked objects, the contents are plotted as
-        single time series each and the keys are used as condition labels.
-        If a list of Evokeds, the contents are plotted with indices as labels.
+        single time series each and the keys are used as labels.
         If a [dict/list] of lists, the unweighted mean is plotted as a time
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
@@ -2129,8 +2136,19 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     # build up evokeds into a dict, if it's not already
     if isinstance(evokeds, Evoked):
         evokeds = [evokeds]
+
     if isinstance(evokeds, (list, tuple)):
-        evokeds = {str(idx + 1): evk for idx, evk in enumerate(evokeds)}
+        evokeds_copy = evokeds.copy()
+        evokeds = dict()
+
+        for evk_idx, evk in enumerate(evokeds_copy, start=1):
+            label = None
+            if hasattr(evk, 'comment'):
+                label = evk.comment
+            label = label if label else str(evk_idx)
+            evokeds[label] = evk
+        del evokeds_copy
+
     if not isinstance(evokeds, dict):
         raise TypeError('"evokeds" must be a dict, list, or instance of '
                         'mne.Evoked; got {}'.format(type(evokeds).__name__))

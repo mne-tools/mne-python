@@ -10,21 +10,26 @@
 import os
 import os.path as op
 import sys
+from collections import OrderedDict
+from copy import deepcopy
+from functools import partial
 
 import numpy as np
 from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
-from ..utils import (verbose, logger, warn, _check_preload, _validate_type,
-                     fill_doc, _check_option)
+from ..transforms import _frame_to_str
+from ..utils import (verbose, logger, warn,
+                     _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info, MontageMixin
+from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
                        _get_channel_types)
 from ..io.write import DATE_NONE
+from ..io._digitization import _get_data_as_dict_from_dig
 
 
 def _get_meg_system(info):
@@ -34,6 +39,8 @@ def _get_meg_system(info):
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
             # Only take first 16 bits, as higher bits store CTF grad comp order
             coil_type = ch['coil_type'] & 0xFFFF
+            nmag = np.sum(
+                [c['kind'] == FIFF.FIFFV_MEG_CH for c in info['chs']])
             if coil_type == FIFF.FIFFV_COIL_NM_122:
                 system = '122m'
                 break
@@ -42,8 +49,6 @@ def _get_meg_system(info):
                 break
             elif (coil_type == FIFF.FIFFV_COIL_MAGNES_MAG or
                   coil_type == FIFF.FIFFV_COIL_MAGNES_GRAD):
-                nmag = np.sum([c['kind'] == FIFF.FIFFV_MEG_CH
-                               for c in info['chs']])
                 system = 'Magnes_3600wh' if nmag > 150 else 'Magnes_2500wh'
                 break
             elif coil_type == FIFF.FIFFV_COIL_CTF_GRAD:
@@ -51,6 +56,8 @@ def _get_meg_system(info):
                 break
             elif coil_type == FIFF.FIFFV_COIL_KIT_GRAD:
                 system = 'KIT'
+                # Our helmet does not match very well, so let's just create it
+                have_helmet = False
                 break
             elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
                 system = 'BabySQUID'
@@ -230,6 +237,43 @@ class ContainsMixin(object):
         return _get_channel_types(self.info, picks=picks, unique=unique,
                                   only_data_chs=only_data_chs)
 
+    @fill_doc
+    def get_montage(self):
+        """Get a DigMontage from instance.
+
+        Returns
+        -------
+        %(montage)s
+        """
+        from ..channels.montage import make_dig_montage
+        if self.info['dig'] is None:
+            return None
+        # obtain coord_frame, and landmark coords
+        # (nasion, lpa, rpa, hsp, hpi) from DigPoints
+        montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
+
+        # get the channel names and chs data structure
+        ch_names, chs = self.info['ch_names'], self.info['chs']
+        picks = pick_types(self.info, meg=False, eeg=True,
+                           seeg=True, ecog=True)
+
+        # channel positions from dig do not match ch_names one to one,
+        # so use loc[:3] instead
+        ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
+
+        # create montage
+        montage = make_dig_montage(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
+        )
+        return montage
+
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
@@ -291,7 +335,7 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          ch_type='auto', verbose=None):
+                          ch_type='auto', forward=None, verbose=None):
         """Specify which reference to use for EEG data.
 
         Use this function to explicitly specify the desired reference for EEG.
@@ -301,27 +345,10 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        ref_channels : list of str | str
-            The name(s) of the channel(s) used to construct the reference. To
-            apply an average reference, specify ``'average'`` here (default).
-            If an empty list is specified, the data is assumed to already have
-            a proper reference and MNE will not attempt any re-referencing of
-            the data. Defaults to an average reference.
-        projection : bool
-            If ``ref_channels='average'`` this argument specifies if the
-            average reference should be computed as a projection (True) or not
-            (False; default). If ``projection=True``, the average reference is
-            added as a projection and is not applied to the data (it can be
-            applied afterwards with the ``apply_proj`` method). If
-            ``projection=False``, the average reference is directly applied to
-            the data. If ``ref_channels`` is not ``'average'``, ``projection``
-            must be set to ``False`` (the default in this case).
-        ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
-            The name of the channel type to apply the reference to. If 'auto',
-            the first channel type of eeg, ecog or seeg that is found (in that
-            order) will be selected.
-
-            .. versionadded:: 0.19
+        %(set_eeg_reference_ref_channels)s
+        %(set_eeg_reference_projection)s
+        %(set_eeg_reference_ch_type)s
+        %(set_eeg_reference_forward)s
         %(verbose_meth)s
 
         Returns
@@ -334,7 +361,8 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
-                                 projection=projection, ch_type=ch_type)[0]
+                                 projection=projection, ch_type=ch_type,
+                                 forward=forward)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
@@ -649,7 +677,7 @@ class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
 
     @verbose
-    def pick_types(self, meg=None, eeg=False, stim=False, eog=False,
+    def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
@@ -737,7 +765,23 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
             selection=selection)
-        return self._pick_drop_channels(idx)
+
+        self._pick_drop_channels(idx)
+
+        # remove dropped channel types from reject and flat
+        if getattr(self, 'reject', None) is not None:
+            # use list(self.reject) to avoid RuntimeError for changing
+            # dictionary size during iteration
+            for ch_type in list(self.reject):
+                if ch_type not in self:
+                    del self.reject[ch_type]
+
+        if getattr(self, 'flat', None) is not None:
+            for ch_type in list(self.flat):
+                if ch_type not in self:
+                    del self.flat[ch_type]
+
+        return self
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick some channels.
@@ -880,8 +924,12 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
 
-        if not isinstance(self, BaseRaw):
-            _check_preload(self, 'adding, dropping, or reordering channels')
+        msg = 'adding, dropping, or reordering channels'
+        if isinstance(self, BaseRaw):
+            if self._projector is not None:
+                _check_preload(self, f'{msg} after calling .apply_proj()')
+        else:
+            _check_preload(self, msg)
 
         if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]
@@ -894,8 +942,10 @@ class UpdateChannelsMixin(object):
 
         pick_info(self.info, idx, copy=False)
 
-        if getattr(self, '_projector', None) is not None:
-            self._projector = self._projector[idx][:, idx]
+        for key in ('_comp', '_projector'):
+            mat = getattr(self, key, None)
+            if mat is not None:
+                setattr(self, key, mat[idx][:, idx])
 
         # All others (Evoked, Epochs, Raw) have chs axis=-2
         axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
@@ -1578,3 +1628,141 @@ def make_1020_channel_selections(info, midline="z"):
                       for selection, picks in selections.items()}
 
     return selections
+
+
+def combine_channels(inst, groups, method='mean', keep_stim=False,
+                     drop_bad=False):
+    """Combine channels based on specified channel grouping.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs, or Evoked
+        An MNE-Python object to combine the channels for. The object can be of
+        type Raw, Epochs, or Evoked.
+    groups : dict
+        Specifies which channels are aggregated into a single channel, with
+        aggregation method determined by the ``method`` parameter. One new
+        pseudo-channel is made per dict entry; the dict values must be lists of
+        picks (integer indices of ``ch_names``). For example::
+
+            groups=dict(Left=[1, 2, 3, 4], Right=[5, 6, 7, 8])
+
+        Note that within a dict entry all channels must have the same type.
+    method : str | callable
+        Which method to use to combine channels. If a :class:`str`, must be one
+        of 'mean', 'median', or 'std' (standard deviation). If callable, the
+        callable must accept one positional input (data of shape ``(n_channels,
+        n_times)``, or ``(n_epochs, n_channels, n_times)``) and return an
+        :class:`array <numpy.ndarray>` of shape ``(n_times,)``, or ``(n_epochs,
+        n_times)``. For example with an instance of Raw or Evoked::
+
+            method = lambda data: np.mean(data, axis=0)
+
+        Another example with an instance of Epochs::
+
+            method = lambda data: np.median(data, axis=1)
+
+        Defaults to ``'mean'``.
+    keep_stim : bool
+        If ``True``, include stimulus channels in the resulting object.
+        Defaults to ``False``.
+    drop_bad : bool
+        If ``True``, drop channels marked as bad before combining. Defaults to
+        ``False``.
+
+    Returns
+    -------
+    combined_inst : instance of Raw, Epochs, or Evoked
+        An MNE-Python object of the same type as the input ``inst``, containing
+        one virtual channel for each group in ``groups`` (and, if ``keep_stim``
+        is ``True``, also containing stimulus channels).
+    """
+    from ..io import BaseRaw, RawArray
+    from .. import BaseEpochs, EpochsArray, Evoked, EvokedArray
+
+    ch_axis = 1 if isinstance(inst, BaseEpochs) else 0
+    ch_idx = list(range(inst.info['nchan']))
+    ch_names = inst.info['ch_names']
+    ch_types = inst.get_channel_types()
+    inst_data = inst.data if isinstance(inst, Evoked) else inst.get_data()
+    groups = OrderedDict(deepcopy(groups))
+
+    # Convert string values of ``method`` into callables
+    # XXX Possibly de-duplicate with _make_combine_callable of mne/viz/utils.py
+    if isinstance(method, str):
+        method_dict = {key: partial(getattr(np, key), axis=ch_axis)
+                       for key in ('mean', 'median', 'std')}
+        try:
+            method = method_dict[method]
+        except KeyError:
+            raise ValueError('"method" must be a callable, or one of "mean", '
+                             f'"median", or "std"; got "{method}".')
+
+    # Instantiate channel info and data
+    new_ch_names, new_ch_types, new_data = [], [], []
+    if not isinstance(keep_stim, bool):
+        raise TypeError('"keep_stim" must be of type bool, not '
+                        f'{type(keep_stim)}.')
+    if keep_stim:
+        stim_ch_idx = list(pick_types(inst.info, meg=False, stim=True))
+        if stim_ch_idx:
+            new_ch_names = [ch_names[idx] for idx in stim_ch_idx]
+            new_ch_types = [ch_types[idx] for idx in stim_ch_idx]
+            new_data = [np.take(inst_data, idx, axis=ch_axis)
+                        for idx in stim_ch_idx]
+        else:
+            warn('Could not find stimulus channels.')
+
+    # Get indices of bad channels
+    ch_idx_bad = []
+    if not isinstance(drop_bad, bool):
+        raise TypeError('"drop_bad" must be of type bool, not '
+                        f'{type(drop_bad)}.')
+    if drop_bad and inst.info['bads']:
+        ch_idx_bad = pick_channels(ch_names, inst.info['bads'])
+
+    # Check correctness of combinations
+    for this_group, this_picks in groups.items():
+        # Check if channel indices are out of bounds
+        if not all(idx in ch_idx for idx in this_picks):
+            raise ValueError('Some channel indices are out of bounds.')
+        # Check if heterogeneous sensor type combinations
+        this_ch_type = np.array(ch_types)[this_picks]
+        if len(set(this_ch_type)) > 1:
+            types = ', '.join(set(this_ch_type))
+            raise ValueError('Cannot combine sensors of different types; '
+                             f'"{this_group}" contains types {types}.')
+        # Remove bad channels
+        these_bads = [idx for idx in this_picks if idx in ch_idx_bad]
+        this_picks = [idx for idx in this_picks if idx not in ch_idx_bad]
+        if these_bads:
+            logger.info('Dropped the following channels in group '
+                        f'{this_group}: {these_bads}')
+        #  Check if combining less than 2 channel
+        if len(set(this_picks)) < 2:
+            warn(f'Less than 2 channels in group "{this_group}" when '
+                 f'combining by method "{method}".')
+        # If all good create more detailed dict without bad channels
+        groups[this_group] = dict(picks=this_picks, ch_type=this_ch_type[0])
+
+    # Combine channels and add them to the new instance
+    for this_group, this_group_dict in groups.items():
+        new_ch_names.append(this_group)
+        new_ch_types.append(this_group_dict['ch_type'])
+        this_picks = this_group_dict['picks']
+        this_data = np.take(inst_data, this_picks, axis=ch_axis)
+        new_data.append(method(this_data))
+    new_data = np.swapaxes(new_data, 0, ch_axis)
+    info = create_info(sfreq=inst.info['sfreq'], ch_names=new_ch_names,
+                       ch_types=new_ch_types)
+    if isinstance(inst, BaseRaw):
+        combined_inst = RawArray(new_data, info, first_samp=inst.first_samp,
+                                 verbose=inst.verbose)
+    elif isinstance(inst, BaseEpochs):
+        combined_inst = EpochsArray(new_data, info, events=inst.events,
+                                    tmin=inst.times[0], verbose=inst.verbose)
+    elif isinstance(inst, Evoked):
+        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
+                                    verbose=inst.verbose)
+
+    return combined_inst

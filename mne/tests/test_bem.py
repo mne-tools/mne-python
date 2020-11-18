@@ -19,7 +19,7 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, catch_logging)
+from mne.utils import (run_tests_if_main, catch_logging, requires_h5py)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface)
@@ -66,26 +66,41 @@ def _compare_bem_solutions(sol_a, sol_b):
 
 
 @testing.requires_testing_data
-def test_io_bem(tmpdir):
+@requires_h5py
+@pytest.mark.parametrize('ext', ('fif', 'h5'))
+def test_io_bem(tmpdir, ext):
     """Test reading and writing of bem surfaces and solutions."""
-    temp_bem = op.join(str(tmpdir), 'temp-bem.fif')
-    pytest.raises(ValueError, read_bem_surfaces, fname_raw)
-    pytest.raises(ValueError, read_bem_surfaces, fname_bem_3, s_id=10)
+    import h5py
+    temp_bem = op.join(str(tmpdir), f'temp-bem.{ext}')
+    # model
+    with pytest.raises(ValueError, match='BEM data not found'):
+        read_bem_surfaces(fname_raw)
+    with pytest.raises(ValueError, match='surface with id 10'):
+        read_bem_surfaces(fname_bem_3, s_id=10)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=True)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=False)
     write_bem_surfaces(temp_bem, surf[0])
+    with pytest.raises(IOError, match='exists'):
+        write_bem_surfaces(temp_bem, surf[0])
+    write_bem_surfaces(temp_bem, surf[0], overwrite=True)
+    if ext == 'h5':
+        with h5py.File(temp_bem, 'r'):  # make sure it's valid
+            pass
     surf_read = read_bem_surfaces(temp_bem, patch_stats=False)
     _compare_bem_surfaces(surf, surf_read)
 
-    pytest.raises(RuntimeError, read_bem_solution, fname_bem_3)
-    temp_sol = op.join(str(tmpdir), 'temp-sol.fif')
+    # solution
+    with pytest.raises(RuntimeError, match='No BEM solution found'):
+        read_bem_solution(fname_bem_3)
+    temp_sol = op.join(str(tmpdir), f'temp-sol.{ext}')
     sol = read_bem_solution(fname_bem_sol_3)
     assert 'BEM' in repr(sol)
     write_bem_solution(temp_sol, sol)
     sol_read = read_bem_solution(temp_sol)
     _compare_bem_solutions(sol, sol_read)
     sol = read_bem_solution(fname_bem_sol_1)
-    pytest.raises(RuntimeError, _bem_find_surface, sol, 3)
+    with pytest.raises(RuntimeError, match='BEM model does not have'):
+        _bem_find_surface(sol, 3)
 
 
 def test_make_sphere_model():

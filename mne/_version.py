@@ -3,4 +3,4 @@
 #
 # License: BSD (3-clause)
 
-__version__ = '0.21.dev0'
+__version__ = '0.22.dev0'

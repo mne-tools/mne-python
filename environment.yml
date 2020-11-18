@@ -29,12 +29,13 @@ dependencies:
   - imageio-ffmpeg>=0.4.1
   - vtk>=9.0.1
   - pyvista>=0.24
-  - pyvistaqt
-  - https://github.com/enthought/mayavi/archive/master.zip
+  - pyvistaqt>=0.2.0
+  - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
   - nilearn
   - neo
   - python-picard
-  - PyQt5>=5.10
+  - PyQt5>=5.10,<5.14; platform_system == "Darwin"
+  - PyQt5>=5.10; platform_system != "Darwin"

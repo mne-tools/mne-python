@@ -102,7 +102,9 @@ def test_gdf2_data():
     # gh-5604
     assert raw.info['meas_date'] is None
     _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
-                     eog=None, misc=None)
+                     eog=None, misc=None,
+                     test_scaling=False,  # XXX this should be True
+                     )
 
 
 @testing.requires_testing_data
@@ -112,6 +114,17 @@ def test_one_channel_gdf():
         ecg = read_raw_gdf(gdf_1ch_path, preload=True)
     assert ecg['ECG'][0].shape == (1, 4500)
     assert 150.0 == ecg.info['sfreq']
+
+
+@testing.requires_testing_data
+def test_gdf_exclude_channels():
+    """Test reading GDF data with excluded channels."""
+    raw = read_raw_gdf(gdf1_path + '.gdf', exclude=('FP1', 'O1'))
+    assert 'FP1' not in raw.ch_names
+    assert 'O1' not in raw.ch_names
+    raw = read_raw_gdf(gdf2_path + '.gdf', exclude=('Fp1', 'O1'))
+    assert 'Fp1' not in raw.ch_names
+    assert 'O1' not in raw.ch_names
 
 
 run_tests_if_main()

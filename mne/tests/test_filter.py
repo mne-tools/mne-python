@@ -14,7 +14,8 @@ from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
-                        estimate_ringing_samples, create_filter)
+                        estimate_ringing_samples, create_filter,
+                        _length_factors)
 
 from mne.utils import (sum_squared, run_tests_if_main,
                        catch_logging, requires_mne, run_subprocess)
@@ -197,41 +198,47 @@ def test_iir_stability():
     assert_allclose(x_sos[100:-100], x_ba[100:-100])
 
 
-def test_notch_filters():
+line_freqs = tuple(range(60, 241, 60))
+
+
+@pytest.mark.parametrize('method, filter_length, line_freq, tol', [
+    ('spectrum_fit', 'auto', None, 2),  # 'auto' same as None on 0.21
+    ('spectrum_fit', None, None, 2),
+    ('spectrum_fit', '10s', None, 2),
+    ('spectrum_fit', 'auto', line_freqs, 1),
+    ('fft', 'auto', line_freqs, 1),
+    ('fft', 8192, line_freqs, 1),
+])
+def test_notch_filters(method, filter_length, line_freq, tol):
     """Test notch filters."""
     # let's use an ugly, prime sfreq for fun
     rng = np.random.RandomState(0)
-    sfreq = 487.0
-    sig_len_secs = 20
-    t = np.arange(0, int(sig_len_secs * sfreq)) / sfreq
-    freqs = np.arange(60, 241, 60)
+    sfreq = 487
+    sig_len_secs = 21
+    t = np.arange(0, int(round(sig_len_secs * sfreq))) / sfreq
 
     # make a "signal"
     a = rng.randn(int(sig_len_secs * sfreq))
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
-    a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
+    a += np.sum([np.sin(2 * np.pi * f * t) for f in line_freqs], axis=0)
 
     # only allow None line_freqs with 'spectrum_fit' mode
-    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'fft')
-    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'iir')
-    methods = ['spectrum_fit', 'spectrum_fit', 'fft', 'fft', 'iir']
-    filter_lengths = ['auto', 'auto', 'auto', 8192, 'auto']
-    line_freqs = [None, freqs, freqs, freqs, freqs]
-    tols = [2, 1, 1, 1]
-    for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
-        with catch_logging() as log_file:
-            with pytest.warns(None):
-                b = notch_filter(a, sfreq, lf, fl, method=meth,
-                                 fir_design='firwin', verbose=True)
-        if lf is None:
-            out = log_file.getvalue().split('\n')[:-1]
-            if len(out) != 2 and len(out) != 3:  # force_serial: len(out) == 3
-                raise ValueError('Detected frequencies not logged properly')
-            out = np.fromstring(out[-1], sep=', ')
-            assert_array_almost_equal(out, freqs)
-        new_power = np.sqrt(sum_squared(b) / b.size)
-        assert_almost_equal(new_power, orig_power, tol)
+    for kind in ('fir', 'iir'):
+        with pytest.raises(ValueError, match='freqs=None can only be used wi'):
+            notch_filter(a, sfreq, None, kind)
+    with catch_logging() as log_file:
+        b = notch_filter(a, sfreq, line_freq, filter_length,
+                         method=method, verbose=True)
+    if line_freq is None:
+        out = [line.strip().split(':')[0]
+               for line in log_file.getvalue().split('\n')
+               if line.startswith(' ')]
+        assert len(out) == 4, 'Detected frequencies not logged properly'
+        out = np.array(out, float)
+        assert_array_almost_equal(out, line_freqs)
+    new_power = np.sqrt(sum_squared(b) / b.size)
+    assert_almost_equal(new_power, orig_power, tol)
 
 
 def test_resample():
@@ -332,7 +339,8 @@ def test_filters():
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
-        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, fl,
+        pytest.raises((ValueError, TypeError),
+                      filter_data, a, sfreq, 4, 8, None, fl,
                       1.0, 1.0, fir_design='firwin')
     for nj in ['blah', 0.5]:
         pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
@@ -449,11 +457,24 @@ def test_filters():
                       np.array([0, 1]), 100, 1.0, 1.0)
 
     # check corner case (#4693)
+    want_length = int(round(_length_factors['hamming'] * 1000. / 0.5))
+    want_length += (want_length % 2 == 0)
+    assert want_length == 6601
     h = create_filter(
         np.empty(10000), 1000., l_freq=None, h_freq=55.,
         h_trans_bandwidth=0.5, method='fir', phase='zero-double',
         fir_design='firwin', verbose=True)
     assert len(h) == 6601
+    h = create_filter(
+        np.empty(10000), 1000., l_freq=None, h_freq=55.,
+        h_trans_bandwidth=0.5, method='fir', phase='zero',
+        fir_design='firwin', filter_length='7s', verbose=True)
+    assert len(h) == 7001
+    h = create_filter(
+        np.empty(10000), 1000., l_freq=None, h_freq=55.,
+        h_trans_bandwidth=0.5, method='fir', phase='zero-double',
+        fir_design='firwin', filter_length='7s', verbose=True)
+    assert len(h) == 8193  # next power of two
 
 
 def test_filter_auto():

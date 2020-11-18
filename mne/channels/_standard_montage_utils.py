@@ -2,6 +2,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
+from collections import OrderedDict
 import os.path as op
 import numpy as np
 
@@ -10,6 +11,7 @@ import xml.etree.ElementTree as ElementTree
 
 from .montage import make_dig_montage
 from ..transforms import _sph_to_cart
+from ..utils import warn, _pl
 from . import __file__ as _CHANNELS_INIT_FILE
 
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
@@ -90,7 +92,7 @@ def _mgh_or_standard(basename, head_size):
             ch_names_.append(line.strip(' ').strip('\n'))
 
     pos = np.array(pos)
-    ch_pos = dict(zip(ch_names_, pos))
+    ch_pos = _check_dupes_odict(ch_names_, pos)
     nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
     scale = head_size / np.median(np.linalg.norm(pos, axis=1))
     for value in ch_pos.values():
@@ -149,9 +151,14 @@ def _read_sfp(fname, head_size):
     fid_names = ('FidNz', 'FidT9', 'FidT10')
     options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
-
-    pos = np.stack([xs, ys, zs], axis=-1)
-    ch_pos = dict(zip(ch_names, pos))
+    # deal with "headshape"
+    mask = np.array([ch_name == 'headshape' for ch_name in ch_names], bool)
+    hsp = np.stack([xs[mask], ys[mask], zs[mask]], axis=-1)
+    mask = ~mask
+    pos = np.stack([xs[mask], ys[mask], zs[mask]], axis=-1)
+    ch_names = [ch_name for ch_name, m in zip(ch_names, mask) if m]
+    ch_pos = _check_dupes_odict(ch_names, pos)
+    del xs, ys, zs, ch_names
     # no one grants that fid names are there.
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
@@ -164,7 +171,7 @@ def _read_sfp(fname, head_size):
         rpa = rpa * scale if rpa is not None else None
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
-                            nasion=nasion, rpa=rpa, lpa=lpa)
+                            nasion=nasion, rpa=rpa, lpa=lpa, hsp=hsp)
 
 
 def _read_csd(fname, head_size):
@@ -177,7 +184,23 @@ def _read_csd(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
+    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
+
+
+def _check_dupes_odict(ch_names, pos):
+    """Warn if there are duplicates, then turn to ordered dict."""
+    ch_names = list(ch_names)
+    dups = OrderedDict((ch_name, ch_names.count(ch_name))
+                       for ch_name in ch_names)
+    dups = OrderedDict((ch_name, count) for ch_name, count in dups.items()
+                       if count > 1)
+    n = len(dups)
+    if n:
+        dups = ', '.join(
+            f'{ch_name} ({count})' for ch_name, count in dups.items())
+        warn(f'Duplicate channel position{_pl(n)} found, the last will be '
+             f'used for {dups}')
+    return OrderedDict(zip(ch_names, pos))
 
 
 def _read_elc(fname, head_size):
@@ -225,7 +248,7 @@ def _read_elc(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    ch_pos = dict(zip(ch_names_, pos))
+    ch_pos = _check_dupes_odict(ch_names_, pos)
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
@@ -251,7 +274,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
 
     radii = np.full(len(phi), head_size)
     pos = _sph_to_cart(np.array([radii, np.deg2rad(phi), np.deg2rad(theta)]).T)
-    ch_pos = dict(zip(ch_names, pos))
+    ch_pos = _check_dupes_odict(ch_names, pos)
 
     nasion, lpa, rpa = None, None, None
     if fid_names is not None:
@@ -282,7 +305,7 @@ def _read_elp_besa(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    ch_pos = dict(zip(ch_names, pos))
+    ch_pos = _check_dupes_odict(ch_names, pos)
 
     fid_names = ('Nz', 'LPA', 'RPA')
     # No one grants that the fid names actually exist.
@@ -310,4 +333,4 @@ def _read_brainvision(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
+    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))

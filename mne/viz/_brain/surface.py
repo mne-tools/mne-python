@@ -9,8 +9,9 @@
 from os import path as path
 
 import numpy as np
-from ...utils import _check_option, get_subjects_dir
-from ...surface import complete_surface_info, read_surface, read_curvature
+from ...utils import _check_option, get_subjects_dir, _check_fname
+from ...surface import (complete_surface_info, read_surface, read_curvature,
+                        _read_patch)
 
 
 class Surface(object):
@@ -80,12 +81,11 @@ class Surface(object):
             raise ValueError('offset should either float or int, given ' +
                              'type {0}'.format(type(offset).__name__))
 
-        _check_option('units', units, ('mm', 'm'))
+        self.units = _check_option('units', units, ('mm', 'm'))
         self.subject_id = subject_id
         self.hemi = hemi
         self.surf = surf
         self.offset = offset
-        self.units = units
         self.bin_curv = None
         self.coords = None
         self.curv = None
@@ -108,9 +108,17 @@ class Surface(object):
         -------
         None
         """
-        surf_path = path.join(self.data_path, 'surf',
-                              '%s.%s' % (self.hemi, self.surf))
-        coords, faces = read_surface(surf_path)
+        if self.surf == 'flat':  # special case
+            fname = path.join(self.data_path, 'surf',
+                              '%s.%s' % (self.hemi, 'cortex.patch.flat'))
+            _check_fname(fname, overwrite='read', must_exist=True,
+                         name='flatmap surface file')
+            coords, faces, orig_faces = _read_patch(fname)
+        else:
+            coords, faces = read_surface(
+                path.join(self.data_path, 'surf',
+                          '%s.%s' % (self.hemi, self.surf)))
+            orig_faces = faces
         if self.units == 'm':
             coords /= 1000.
         if self.offset is not None:
@@ -121,15 +129,10 @@ class Surface(object):
         surf = dict(rr=coords, tris=faces)
         complete_surface_info(surf, copy=False, verbose=False)
         nn = surf['nn']
-
-        if self.coords is None:
-            self.coords = coords
-            self.faces = faces
-            self.nn = nn
-        else:
-            self.coords[:] = coords
-            self.faces[:] = faces
-            self.nn[:] = nn
+        self.coords = coords
+        self.faces = faces
+        self.orig_faces = orig_faces
+        self.nn = nn
 
     def __len__(self):
         """Return number of vertices."""

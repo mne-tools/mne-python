@@ -283,10 +283,10 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         Sampling frequency of the data.
     method : 'multitaper' | 'morlet', default 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
-        'multitaper' uses Morlet wavelets windowed with multiple DPSS
-        multitapers.
+        'multitaper' uses complex exponentials windowed with multiple DPSS
+        tapers.
     n_cycles : float | array of float, default 7.0
-        Number of cycles  in the Morlet wavelet. Fixed number
+        Number of cycles in the wavelet. Fixed number
         or one per frequency.
     zero_mean : bool | None, default None
         None means True for method='multitaper' and False for method='morlet'.
@@ -660,6 +660,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
+    Same computation as `~mne.time_frequency.tfr_array_morlet`, but
+    operates on `~mne.Epochs` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
+
     Parameters
     ----------
     inst : Epochs | Evoked
@@ -722,9 +726,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
                      n_jobs=1, verbose=None):
-    """Compute time-frequency transform using Morlet wavelets.
+    """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
-    Convolves epoch data with selected Morlet wavelets.
+    Same computation as `~mne.time_frequency.tfr_morlet`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     Parameters
     ----------
@@ -797,6 +802,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
                    n_jobs=1, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
+
+    Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
+    operates on `~mne.Epochs` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
     ----------
@@ -1456,6 +1465,7 @@ class AverageTFR(_BaseTFR):
                              k not in ('axes', 'show', 'colorbar')}
         topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
         topomap_args_pass["contours"] = topomap_args.get('contours', 6)
+        topomap_args_pass['ch_type'] = ch_type
 
         ##############
         # Image plot #
@@ -1596,8 +1606,10 @@ class AverageTFR(_BaseTFR):
         plt_show(show)
         return fig
 
+    @verbose
     def _onselect(self, eclick, erelease, baseline=None, mode=None,
-                  cmap=None, source_plot_joint=False, topomap_args=None):
+                  cmap=None, source_plot_joint=False, topomap_args=None,
+                  verbose=None):
         """Handle rubber band selector in channel tfr."""
         from ..viz.topomap import plot_tfr_topomap, plot_topomap, _add_colorbar
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
@@ -1651,13 +1663,13 @@ class AverageTFR(_BaseTFR):
                                  baseline=baseline, mode=mode, cmap=None,
                                  title=ch_type, vmin=None, vmax=None, axes=ax)
 
-    @fill_doc
+    @verbose
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', fig_background=None,
-                  font_color='w', yscale='auto'):
+                  font_color='w', yscale='auto', verbose=None):
         """Plot TFRs in a topography with images.
 
         Parameters
@@ -1733,6 +1745,7 @@ class AverageTFR(_BaseTFR):
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
             are log-spaced and only then sets the y axis to 'log'.
+        %(verbose)s
 
         Returns
         -------

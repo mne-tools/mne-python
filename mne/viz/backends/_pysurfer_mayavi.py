@@ -24,10 +24,10 @@ from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
 from .base_renderer import _BaseRenderer
-from ._utils import _check_color
+from ._utils import _check_color, ALLOWED_QUIVER_MODES
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
-                      copy_base_doc_to_subclass_doc)
+                      copy_base_doc_to_subclass_doc, _check_option)
 
 
 class _Projection(object):
@@ -89,22 +89,21 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.fig
 
-    def set_interactive(self):
+    def set_interaction(self, interaction):
         from tvtk.api import tvtk
         if self.fig.scene is not None:
             self.fig.scene.interactor.interactor_style = \
-                tvtk.InteractorStyleTerrain()
-
-    def _mesh(self, mesh, color, opacity=1.0,
-              backface_culling=False, scalars=None, colormap=None,
-              vmin=None, vmax=None, interpolate_before_map=True,
-              representation='surface', line_width=1., **kwargs):
-        raise NotImplementedError("This feature is not available with mayavi.")
+                getattr(tvtk, f'InteractorStyle{interaction.capitalize()}')()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None, **kwargs):
+             representation='surface', line_width=1., normals=None,
+             polygon_offset=None, **kwargs):
+        # normals and pickable are unused
+        kwargs.pop('pickable', None)
+        del normals
+
         if color is not None:
             color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
@@ -146,6 +145,8 @@ class _Renderer(_BaseRenderer):
                 from matplotlib.cm import get_cmap
                 l_m.load_lut_from_list(
                     get_cmap(colormap)(np.linspace(0, 1, 256)))
+            else:
+                assert color is not None
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface
@@ -164,7 +165,7 @@ class _Renderer(_BaseRenderer):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
-                backface_culling=False):
+                backface_culling=False, polygon_offset=None):
         if color is not None:
             color = _check_color(color)
         if normalized_colormap:
@@ -234,26 +235,33 @@ class _Renderer(_BaseRenderer):
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, colormap=None, vmin=None, vmax=None,
                  line_width=2., name=None):
+        _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
-            if mode in ('arrow', '2darrow', '3darrow'):
+            if mode in ('arrow', '2darrow'):
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
                                    color=color, scale_factor=scale,
                                    scale_mode=scale_mode,
                                    resolution=resolution, scalars=scalars,
                                    opacity=opacity, figure=self.fig)
-            elif mode == 'cone':
-                self.mlab.quiver3d(x, y, z, u, v, w, color=color,
-                                   mode=mode, scale_factor=scale,
-                                   opacity=opacity, figure=self.fig)
-            elif mode == 'cylinder':
+            elif mode in ('cone', 'sphere'):
+                quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
+                                          mode=mode, scale_factor=scale,
+                                          opacity=opacity, figure=self.fig)
+                if mode == 'sphere':
+                    quiv.glyph.glyph_source.glyph_source.center = 0., 0., 0.
+            else:
+                assert mode == 'cylinder', mode  # should be guaranteed above
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
                                           color=color, scale_factor=scale,
                                           opacity=opacity, figure=self.fig)
-                quiv.glyph.glyph_source.glyph_source.height = glyph_height
-                quiv.glyph.glyph_source.glyph_source.center = glyph_center
-                quiv.glyph.glyph_source.glyph_source.resolution = \
-                    glyph_resolution
+                if glyph_height is not None:
+                    quiv.glyph.glyph_source.glyph_source.height = glyph_height
+                if glyph_center is not None:
+                    quiv.glyph.glyph_source.glyph_source.center = glyph_center
+                if glyph_resolution is not None:
+                    quiv.glyph.glyph_source.glyph_source.resolution = \
+                        glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
@@ -305,10 +313,10 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None):
+                   focalpoint=None, roll=None):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
-                     focalpoint=focalpoint)
+                     focalpoint=focalpoint, roll=roll)
 
     def reset_camera(self):
         renderer = getattr(self.fig.scene, 'renderer', None)
@@ -442,12 +450,12 @@ def _close_all():
     mlab.close(all=True)
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     from mayavi import mlab
     with warnings.catch_warnings(record=True):  # traits
         with SilenceStdout():
             mlab.view(azimuth, elevation, distance,
-                      focalpoint=focalpoint, figure=figure)
+                      focalpoint=focalpoint, figure=figure, roll=roll)
             mlab.draw(figure)
 
 
@@ -494,16 +502,16 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
             figure_size = figure._window_size
         else:
             figure_size = figure.scene._renwin.size
-        return np.zeros(tuple(figure_size) + (ndim,), np.uint8)
+        img = np.zeros(tuple(figure_size) + (ndim,), np.uint8)
     else:
         from pyface.api import GUI
         gui = GUI()
         gui.process_events()
         with warnings.catch_warnings(record=True):  # traits
             img = mlab.screenshot(figure, mode=mode)
-        if isinstance(filename, str):
-            _save_figure(img, filename)
-        return img
+    if isinstance(filename, str):
+        _save_figure(img, filename)
+    return img
 
 
 @contextmanager

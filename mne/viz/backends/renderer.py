@@ -15,6 +15,7 @@ from ...utils import logger, verbose, get_config, _check_option
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
+MNE_3D_BACKEND_INTERACTIVE = False
 
 
 _backend_name_map = dict(
@@ -147,8 +148,8 @@ def _get_3d_backend():
                     MNE_3D_BACKEND = name
                     break
             else:
-                raise RuntimeError('Could not load any valid 3D backend: %s'
-                                   % (VALID_3D_BACKENDS))
+                raise RuntimeError(f'Could not load any valid 3D backend: '
+                                   f'{", ".join(VALID_3D_BACKENDS)}')
         else:
             _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
             _reload_backend(MNE_3D_BACKEND)
@@ -200,7 +201,7 @@ def _use_test_3d_backend(backend_name, interactive=False):
 
 
 def set_3d_view(figure, azimuth=None, elevation=None,
-                focalpoint=None, distance=None):
+                focalpoint=None, distance=None, roll=None):
     """Configure the view of the given scene.
 
     Parameters
@@ -215,10 +216,12 @@ def set_3d_view(figure, azimuth=None, elevation=None,
         The focal point of the view: (x, y, z).
     distance : float
         The distance to the focal point.
+    roll : float
+        The view roll.
     """
     backend._set_3d_view(figure=figure, azimuth=azimuth,
                          elevation=elevation, focalpoint=focalpoint,
-                         distance=distance)
+                         distance=distance, roll=roll)
 
 
 def set_3d_title(figure, title, size=40):
@@ -236,8 +239,14 @@ def set_3d_title(figure, title, size=40):
     backend._set_3d_title(figure=figure, title=title, size=size)
 
 
-def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
+def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
+                     handle=None, scene=True):
     """Return an empty figure based on the current 3d backend.
+
+    .. warning:: Proceed with caution when the renderer object is
+                 returned (with ``scene=False``) because the _Renderer
+                 API is not necessarily stable enough for production,
+                 it's still actively in development.
 
     Parameters
     ----------
@@ -245,16 +254,30 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
         The dimensions of the 3d figure (width, height).
     bgcolor : tuple
         The color of the background.
+    smooth_shading : bool
+        If True, smooth shading is enabled. Defaults to True.
     handle : int | None
         The figure identifier.
+    scene : bool
+        Specify if the returned object is the scene. If False,
+        the renderer object is returned. Defaults to True.
 
     Returns
     -------
     figure : object
-        The requested empty scene.
+        The requested empty scene or the renderer object if
+        ``scene=False``.
     """
-    renderer = _get_renderer(fig=handle, size=size, bgcolor=bgcolor)
-    return renderer.scene()
+    renderer = _get_renderer(
+        fig=handle,
+        size=size,
+        bgcolor=bgcolor,
+        smooth_shading=smooth_shading,
+    )
+    if scene:
+        return renderer.scene()
+    else:
+        return renderer
 
 
 def get_brain_class():
@@ -268,5 +291,5 @@ def get_brain_class():
     if get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
-        from ...viz._brain import _Brain as Brain
+        from ...viz._brain import Brain
     return Brain

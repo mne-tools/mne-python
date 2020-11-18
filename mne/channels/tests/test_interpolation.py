@@ -157,7 +157,7 @@ def test_interpolation_meg():
     """Test interpolation of MEG channels."""
     # speed accuracy tradeoff: channel subselection is faster but the
     # correlation drops
-    thresh = 0.7
+    thresh = 0.68
 
     raw, epochs_meg = _load_data('meg')
 
@@ -255,7 +255,7 @@ def test_interpolation_ctf_comp():
 def test_interpolation_nirs():
     """Test interpolating bad nirs channels."""
     fname = op.join(data_path(download=False),
-                    'NIRx', 'nirx_15_2_recording_w_overlap')
+                    'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
     sci = scalp_coupling_index(raw_od)

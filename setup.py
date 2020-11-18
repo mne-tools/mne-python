@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2019 Alexandre Gramfort
+# Copyright (C) 2011-2020 Alexandre Gramfort
 # <alexandre.gramfort@inria.fr>
 
 import os
@@ -72,6 +72,12 @@ if __name__ == "__main__":
                        'Operating System :: MacOS',
                        'Programming Language :: Python :: 3',
                        ],
+          keywords='neuroscience neuroimaging MEG EEG ECoG fNIRS brain',
+          project_urls={
+              'Documentation': 'https://mne.tools/',
+              'Source': 'https://github.com/mne-tools/mne-python/',
+              'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
+          },
           platforms='any',
           python_requires='>=3.6',
           install_requires=['numpy>=1.11.3', 'scipy>=0.17.1'],
@@ -96,6 +102,7 @@ if __name__ == "__main__":
               op.join('html', '*.js'),
               op.join('html', '*.css'),
               op.join('icons', '*.svg'),
+              op.join('icons', '*.png'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
           ]},

@@ -28,7 +28,7 @@ from mne.preprocessing.maxwell import (
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
-from mne.utils import (assert_meg_snr, run_tests_if_main, catch_logging,
+from mne.utils import (assert_meg_snr, catch_logging,
                        object_diff, buggy_mkl_svd, use_log_level)
 
 data_path = testing.data_path(download=False)
@@ -643,9 +643,13 @@ def test_fine_calibration():
 
     # Test 1D SSS fine calibration
     with use_coil_def(elekta_def_fname):
-        raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
-                                 origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore')
+        with catch_logging() as log:
+            raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
+                                     origin=mf_head_origin, regularize=None,
+                                     bad_condition='ignore', verbose=True)
+    log = log.getvalue()
+    assert 'Using fine calibration' in log
+    assert op.basename(fine_cal_fname) in log
     assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert (py_cal is not None)
@@ -1335,14 +1339,11 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         # Check "flat" scores.
         scores_flat = got_scores['scores_flat']
         limits_flat = got_scores['limits_flat']
-        # The following essentially is just this:
-        #     n_segments_below_limit = (scores_flat < limits_flat).sum(-1)
-        # made to work with NaN's in the scores.
-        n_segments_below_limit = np.less(
-            scores_flat, limits_flat,
-            where=np.equal(np.isnan(scores_flat), False),
-            out=np.full_like(scores_flat, fill_value=False)).sum(-1)
-
+        # Deal with NaN's in the scores (can't use np.less directly because of
+        # https://github.com/numpy/numpy/issues/17198)
+        scores_flat[np.isnan(scores_flat)] = np.inf
+        limits_flat[np.isnan(limits_flat)] = -np.inf
+        n_segments_below_limit = (scores_flat < limits_flat).sum(-1)
         ch_idx = np.where(n_segments_below_limit >=
                           min(min_count, len(got_scores['bins'])))
         flats = set(got_scores['ch_names'][ch_idx])
@@ -1351,18 +1352,10 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         # Check "noisy" scores.
         scores_noisy = got_scores['scores_noisy']
         limits_noisy = got_scores['limits_noisy']
-        # The following essentially is just this:
-        #     n_segments_beyond_limit = (scores_noisy > limits_noisy).sum(-1)
-        # made to work with NaN's in the scores.
-        n_segments_beyond_limit = np.greater(
-            scores_noisy, limits_noisy,
-            where=np.equal(np.isnan(scores_noisy), False),
-            out=np.full_like(scores_noisy, fill_value=False)).sum(-1)
-
+        scores_noisy[np.isnan(scores_noisy)] = -np.inf
+        limits_noisy[np.isnan(limits_noisy)] = np.inf
+        n_segments_beyond_limit = (scores_noisy > limits_noisy).sum(-1)
         ch_idx = np.where(n_segments_beyond_limit >=
                           min(min_count, len(got_scores['bins'])))
         bads = set(got_scores['ch_names'][ch_idx])
         assert bads == set(want_bads)
-
-
-run_tests_if_main()

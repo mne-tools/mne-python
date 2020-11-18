@@ -14,7 +14,7 @@
         <div class="carousel-inner">
 
           <div class="item active">
-            <div class="chopper container" style="background-image: url(_images/sphx_glr_plot_mne_dspm_source_localization_009.png)" title="dSPM">
+            <div class="chopper container" style="background-image: url(_images/sphx_glr_plot_mne_dspm_source_localization_008.gif)" title="dSPM">
               <div class="carousel-caption">
                 <h3>Source estimation</h3>
                 <p>Distributed, sparse, mixed-norm, beamformers, dipole fitting, and more.

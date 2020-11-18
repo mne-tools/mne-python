@@ -21,7 +21,7 @@ from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
-                     _check_option, _check_sphere)
+                     _check_option, _check_sphere, logger)
 from .channels import _get_ch_info
 
 
@@ -434,10 +434,11 @@ def find_layout(info, ch_type=None, exclude='bads'):
 
     # If no known layout is found, fall back on automatic layout
     if layout_name is None:
-        xy = _find_topomap_coords(info, picks=range(info['nchan']),
-                                  ignore_overlap=True)
-        return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
-                                  normalize=False)
+        picks = _picks_to_idx(info, 'data', exclude=(), with_ref_meg=False)
+        ch_names = [info['ch_names'][pick] for pick in picks]
+        xy = _find_topomap_coords(info, picks=picks, ignore_overlap=True)
+        return generate_2d_layout(xy, ch_names=ch_names, name='custom',
+                                  normalize=True)
 
     layout = read_layout(layout_name)
     if not is_old_vv:
@@ -656,6 +657,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     """
     from scipy.spatial.distance import pdist, squareform
     sphere = _check_sphere(sphere, info)
+    logger.debug(f'Generating coords using: {sphere}')
 
     picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
     chs = [info['chs'][i] for i in picks]
@@ -726,9 +728,10 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         # translate to sphere origin, transform/flatten Z, translate back
         locs3d -= sphere[:3]
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
-        out = _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+        cart_coords = _cart_to_sph(locs3d)
+        out = _pol_to_cart(cart_coords[:, 1:][:, ::-1])
         # scale from radians to mm
-        out *= (sphere[3] / (np.pi / 2.))
+        out *= cart_coords[:, [0]] / (np.pi / 2.)
         out += sphere[:2]
     else:
         out = _pol_to_cart(_cart_to_sph(locs3d))
@@ -974,6 +977,7 @@ def _merge_nirs_data(data, merged_names):
                 indices = np.append(indices, merged_names.index(sub_ch))
             data[idx] = np.mean(data[np.append(idx, indices)], axis=0)
             to_remove = np.append(to_remove, indices)
+    to_remove = np.unique(to_remove)
     for rem in sorted(to_remove, reverse=True):
         del merged_names[rem]
         data = np.delete(data, rem, 0)
@@ -995,9 +999,9 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     xy : ndarray, shape (N, 2)
         The xy coordinates of sensor locations.
     w : float
-        The width of each sensor's axis (between 0 and 1)
+        The width of each sensor's axis (between 0 and 1).
     h : float
-        The height of each sensor's axis (between 0 and 1)
+        The height of each sensor's axis (between 0 and 1).
     pad : float
         Portion of the box to reserve for padding. The value can range between
         0.0 (boxes will touch, default) to 1.0 (boxes consist of only padding).

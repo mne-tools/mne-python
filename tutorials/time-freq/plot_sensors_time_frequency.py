@@ -1,9 +1,9 @@
 """
 .. _tut-sensors-time-freq:
 
-=============================================
-Frequency and time-frequency sensors analysis
-=============================================
+============================================
+Frequency and time-frequency sensor analysis
+============================================
 
 The objective is to show you how to explore the spectral content
 of your data (frequency and time-frequency). Here we'll work on Epochs.

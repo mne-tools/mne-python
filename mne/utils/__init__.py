@@ -16,7 +16,8 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_rank, _check_option, _check_depth, _check_combine,
                     _check_path_like, _check_src_normal, _check_stc_units,
                     _check_pyqt5_version, _check_sphere, _check_time_format,
-                    _check_freesurfer_home, _suggest)
+                    _check_freesurfer_home, _suggest, _require_version,
+                    _on_missing, int_like, _safe_input)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -27,10 +28,12 @@ from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
 from .fetching import _fetch_file, _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
-                       ETSContext, wrapped_stdout, _get_call_line)
+                       ETSContext, wrapped_stdout, _get_call_line,
+                       ClosingStringIO)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
-                   running_subprocess, _DefaultEventParser)
+                   running_subprocess, _DefaultEventParser,
+                   _assert_no_instances)
 from .progressbar import ProgressBar
 from ._testing import (run_tests_if_main, run_command_if_main,
                        requires_sklearn,
@@ -44,7 +47,8 @@ from ._testing import (run_tests_if_main, run_command_if_main,
                        requires_neuromag2ft, requires_pylsl, assert_object_equal,
                        assert_and_remove_boundary_annot, _raw_annot,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
-                       assert_stcs_equal, modified_env)
+                       assert_stcs_equal, modified_env, _click_ch_name,
+                       _close_event)
 from .numerics import (hashfunc, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,

@@ -7,7 +7,7 @@ from scipy import linalg
 
 from ..forward import is_fixed_orient
 
-from ..minimum_norm.inverse import _check_reference
+from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (_check_ori, _make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
@@ -171,7 +171,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     Models each source time course using a zero-mean Gaussian prior with an
     unknown variance (gamma) parameter. During estimation, most gammas are
     driven to zero, resulting in a sparse source estimate, as in
-    [1]_ and [2]_.
+    :footcite:`WipfEtAl2007` and :footcite:`WipfNagarajan2009`.
 
     For fixed-orientation forward operators, a separate gamma is used for each
     source time course, while for free-orientation forward operators, the same
@@ -188,13 +188,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter (noise variance).
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation.
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumic or discrete source space.
+    %(loose)s
     %(depth)s
     xyz_same_gamma : bool
         Use same gamma for xyz current components at each source space point.
@@ -230,14 +224,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     References
     ----------
-    .. [1] Wipf et al. Analysis of Empirical Bayesian Methods for
-           Neuroelectromagnetic Source Localization, Advances in Neural
-           Information Process. Systems (2007)
-
-    .. [2] D. Wipf, S. Nagarajan
-           "A unified Bayesian framework for MEG/EEG source imaging",
-           Neuroimage, Volume 44, Number 3, pp. 947-966, Feb. 2009.
-           DOI: 10.1016/j.neuroimage.2008.02.059
+    .. footbibliography::
     """
     _check_reference(evoked)
 
@@ -263,8 +250,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     if len(active_set) == 0:
         raise Exception("No active dipoles found. alpha is too big.")
 
-    # Compute estimated whitened sensor data
-    M_estimated = np.dot(gain[:, active_set], X)
+    M_estimate = gain[:, active_set] @ X
 
     # Reapply weights to have correct unit
     X = _reapply_source_weighting(X, source_weighting, active_set)
@@ -275,30 +261,31 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     if group_size == 1 and not is_fixed_orient(forward):
         # make sure each source has 3 components
-        active_src = np.unique(active_set // 3)
-        in_pos = 0
+        idx, offset = divmod(active_set, 3)
+        active_src = np.unique(idx)
         if len(X) < 3 * len(active_src):
-            X_xyz = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
-            for ii in range(len(active_src)):
-                for jj in range(3):
-                    if in_pos >= len(active_set):
-                        break
-                    if (active_set[in_pos] + jj) % 3 == 0:
-                        X_xyz[3 * ii + jj] = X[in_pos]
-                        in_pos += 1
+            X_xyz = np.zeros((len(active_src), 3, X.shape[1]), dtype=X.dtype)
+            idx = np.searchsorted(active_src, idx)
+            X_xyz[idx, offset, :] = X
+            X_xyz.shape = (len(active_src) * 3, X.shape[1])
             X = X_xyz
+        active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
+    source_weighting[source_weighting == 0] = 1  # zeros
+    gain_active = gain[:, active_set] / source_weighting[active_set]
+    del source_weighting
 
     tmin = evoked.times[0]
     tstep = 1.0 / evoked.info['sfreq']
 
     if return_as_dipoles:
         out = _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
-                                   M_estimated, active_is_idx=True)
+                                   gain_active, active_is_idx=True)
     else:
         out = _make_sparse_stc(X, active_set, forward, tmin, tstep,
                                active_is_idx=True, pick_ori=pick_ori,
                                verbose=verbose)
 
+    _log_exp_var(M, M_estimate, prefix='')
     logger.info('[done]')
 
     if return_residual:

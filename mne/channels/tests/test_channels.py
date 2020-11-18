@@ -11,9 +11,9 @@ from functools import partial
 import pytest
 import numpy as np
 from scipy.io import savemat
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
-from mne.channels import (rename_channels, read_ch_adjacency,
+from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
                           read_custom_montage, equalize_channels)
 from mne.channels.channels import (_ch_neighbor_adjacency,
@@ -23,25 +23,48 @@ from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
-                 make_ad_hoc_cov, create_info)
+                 make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
+eve_fname = op .join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
-def test_reorder_channels():
+@pytest.mark.parametrize('preload', (True, False))
+@pytest.mark.parametrize('proj', (True, False))
+def test_reorder_channels(preload, proj):
     """Test reordering of channels."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj()
+    if proj:  # a no-op but should test it
+        raw._projector = np.eye(len(raw.ch_names))
+    if preload:
+        raw.load_data()
+    # with .reorder_channels
+    if proj and not preload:
+        with pytest.raises(RuntimeError, match='load data'):
+            raw.copy().reorder_channels(raw.ch_names[::-1])
+        return
     raw_new = raw.copy().reorder_channels(raw.ch_names[::-1])
+    assert raw_new.ch_names == raw.ch_names[::-1]
+    if proj:
+        assert_allclose(raw_new._projector, raw._projector, atol=1e-12)
+    else:
+        assert raw._projector is None
+        assert raw_new._projector is None
     assert_array_equal(raw[:][0], raw_new[:][0][::-1])
     raw_new.reorder_channels(raw_new.ch_names[::-1][1:-1])
     raw.drop_channels(raw.ch_names[:1] + raw.ch_names[-1:])
     assert_array_equal(raw[:][0], raw_new[:][0])
     with pytest.raises(ValueError, match='repeated'):
         raw.reorder_channels(raw.ch_names[:1] + raw.ch_names[:1])
+    # and with .pick
+    reord = [1, 0] + list(range(2, len(raw.ch_names)))
+    rev = np.argsort(reord)
+    raw_new = raw.copy().pick(reord)
+    assert_array_equal(raw[:][0], raw_new[rev][0])
 
 
 def test_rename_channels():
@@ -269,7 +292,7 @@ def test_find_ch_adjacency():
     data_path = testing.data_path()
 
     raw = read_raw_fif(raw_fname, preload=True)
-    sizes = {'mag': 828, 'grad': 1700, 'eeg': 386}
+    sizes = {'mag': 828, 'grad': 1700, 'eeg': 384}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
     for ch_type in ['mag', 'grad', 'eeg']:
         conn, ch_names = find_ch_adjacency(raw.info, ch_type)
@@ -358,6 +381,72 @@ def test_equalize_channels():
     raw2, epochs2 = equalize_channels([raw, epochs], copy=False)
     assert raw is raw2
     assert epochs is epochs2
+
+
+def test_combine_channels():
+    """Test channel combination on Raw, Epochs, and Evoked."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw_ch_bad = read_raw_fif(raw_fname, preload=True)
+    raw_ch_bad.info['bads'] = ['MEG 0113', 'MEG 0112']
+    epochs = Epochs(raw, read_events(eve_fname))
+    evoked = epochs.average()
+    good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
+
+    # Test good cases
+    combine_channels(raw, good)
+    combined_epochs = combine_channels(epochs, good)
+    assert_array_equal(combined_epochs.events, epochs.events)
+    combine_channels(evoked, good)
+    combine_channels(raw, good, drop_bad=True)
+    combine_channels(raw_ch_bad, good, drop_bad=True)
+
+    # Test with stimulus channels
+    combine_stim = combine_channels(raw, good, keep_stim=True)
+    target_nchan = len(good) + len(pick_types(raw.info, meg=False, stim=True))
+    assert combine_stim.info['nchan'] == target_nchan
+
+    # Test results with one ROI
+    good_single = dict(foo=[0, 1, 3, 4])  # good grad
+    combined_mean = combine_channels(raw, good_single, method='mean')
+    combined_median = combine_channels(raw, good_single, method='median')
+    combined_std = combine_channels(raw, good_single, method='std')
+    foo_mean = np.mean(raw.get_data()[good_single['foo']], axis=0)
+    foo_median = np.median(raw.get_data()[good_single['foo']], axis=0)
+    foo_std = np.std(raw.get_data()[good_single['foo']], axis=0)
+    assert_array_equal(combined_mean.get_data(),
+                       np.expand_dims(foo_mean, axis=0))
+    assert_array_equal(combined_median.get_data(),
+                       np.expand_dims(foo_median, axis=0))
+    assert_array_equal(combined_std.get_data(),
+                       np.expand_dims(foo_std, axis=0))
+
+    # Test bad cases
+    bad1 = dict(foo=[0, 376], bar=[5, 2])  # out of bounds
+    bad2 = dict(foo=[0, 2], bar=[5, 2])  # type mix in same group
+    with pytest.raises(ValueError, match='"method" must be a callable, or'):
+        combine_channels(raw, good, method='bad_method')
+    with pytest.raises(TypeError, match='"keep_stim" must be of type bool'):
+        combine_channels(raw, good, keep_stim='bad_type')
+    with pytest.raises(TypeError, match='"drop_bad" must be of type bool'):
+        combine_channels(raw, good, drop_bad='bad_type')
+    with pytest.raises(ValueError, match='Some channel indices are out of'):
+        combine_channels(raw, bad1)
+    with pytest.raises(ValueError, match='Cannot combine sensors of diff'):
+        combine_channels(raw, bad2)
+
+    # Test warnings
+    raw_no_stim = read_raw_fif(raw_fname, preload=True)
+    raw_no_stim.pick_types(meg=True, stim=False)
+    warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
+    warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)
+    warn3 = dict(foo=[0, 4], bar=[5, 2])  # one good channel left
+    with pytest.warns(RuntimeWarning, match='Could not find stimulus'):
+        combine_channels(raw_no_stim, good, keep_stim=True)
+    with pytest.warns(RuntimeWarning, match='Less than 2 channels') as record:
+        combine_channels(raw, warn1)
+        combine_channels(raw, warn2)
+        combine_channels(raw_ch_bad, warn3, drop_bad=True)
+    assert len(record) == 3
 
 
 run_tests_if_main()

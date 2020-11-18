@@ -1,17 +1,45 @@
 import os
 import os.path as op
+import re
 import warnings
 
 import pytest
 
 from mne import read_evokeds
 from mne.utils import (warn, set_log_level, set_log_file, filter_out_warnings,
-                       verbose, _get_call_line, use_log_level)
+                       verbose, _get_call_line, use_log_level, catch_logging,
+                       logger)
+from mne.utils._logging import _frame_info
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
+
+
+@verbose
+def _fun(verbose=None):
+    logger.debug('Test')
+
+
+def test_frame_info(capsys, monkeypatch):
+    """Test _frame_info."""
+    stack = _frame_info(100)
+    assert 2 < len(stack) < 100
+    this, pytest_line = stack[:2]
+    assert re.match('^test_logging:[1-9][0-9]$', this) is not None, this
+    assert 'pytest' in pytest_line
+    capsys.readouterr()
+    with use_log_level('debug', add_frames=4):
+        _fun()
+    out, _ = capsys.readouterr()
+    out = out.replace('\n', ' ')
+    assert re.match(
+        '.*pytest'
+        '.*test_logging:[2-9][0-9] '
+        '.*test_logging:[1-9][0-9] :.*Test', out) is not None, this
+    monkeypatch.setattr('inspect.currentframe', lambda: None)
+    assert _frame_info(1) == ['unknown']
 
 
 def test_how_to_deal_with_warnings():
@@ -106,6 +134,9 @@ def test_logging_options(tmpdir):
         with open(test_name, 'r') as new_log_file:
             new_lines = clean_lines(new_log_file.readlines())
         assert new_lines == old_lines
+    with catch_logging() as log:
+        pass
+    assert log.getvalue() == ''
 
 
 def test_warn(capsys):

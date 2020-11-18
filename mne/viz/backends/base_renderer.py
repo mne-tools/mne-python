@@ -28,15 +28,16 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def set_interactive(self):
-        """Enable interactive mode."""
+    def set_interaction(self, interaction):
+        """Set interaction mode."""
         pass
 
     @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None, **kwargs):
+             representation='surface', line_width=1., normals=None,
+             polygon_offset=None, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -79,6 +80,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The width of the lines when representation='wireframe'.
         normals: array, shape (n_vertices, 3)
             The array containing the normal of each vertex.
+        polygon_offset: float
+            If not None, the factor used to resolve coincident topology.
         kwargs: args
             The arguments to pass to triangular_mesh
 
@@ -128,8 +131,9 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
-                backface_culling=False):
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
+                backface_culling=False, polygon_offset=None):
         """Add a surface in the scene.
 
         Parameters
@@ -154,6 +158,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The scalar valued associated to the vertices.
         backface_culling: bool
             If True, enable backface culling on the surface.
+        polygon_offset: float
+            If not None, the factor used to resolve coincident topology.
         """
         pass
 
