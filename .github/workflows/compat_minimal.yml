@@ -33,35 +33,42 @@ jobs:
           fetch-depth: 0
       - uses: GuillaumeFavelier/ci-skip@enh/separator
         with:
-          fail-fast: true
           commit-filter: '[skip ci];[ci skip];[skip github]'
           separator: ';'
       - run: ./tools/setup_xvfb.sh
+        if: ${{ env.CI_SKIP == 'false' }}
         name: 'Setup xvfb'
       - uses: conda-incubator/setup-miniconda@v2
+        if: ${{ env.CI_SKIP == 'false' }}
         with:
           python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup conda'
       - shell: bash -el {0}
+        if: ${{ env.CI_SKIP == 'false' }}
         run: |
           ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
         name: 'Install dependencies'
       - shell: bash -el {0}
+        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_install.sh
         name: 'Install MNE'
       - shell: bash -el {0}
+        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_infos.sh
         name: 'Show infos'
       - shell: bash -el {0}
+        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
+        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_locale.sh
         name: 'Print locale'
       - shell: bash -el {0}
+        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
-        if: success()
+        if: success() && ${{ env.CI_SKIP == 'false' }}
         name: 'Upload coverage to CodeCov'
