@@ -3231,8 +3231,7 @@ def vertex_depths(src, info=None, picks=None, trans=None, mode='dist',
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
         # this did not work with testing data set, but did with sample dataset
         # "TypeError: tuple indices must be integers or slices, not tuple"
-        # src_trans = _get_trans(trans, allow_none=False)
-        src_trans = invert_transform(_ensure_trans(trans, 'head', 'mri'))
+        src_trans, _ = _get_trans(trans, allow_none=False)
     else:
         src_trans = Transform('head', 'head')  # Identity transform
 
