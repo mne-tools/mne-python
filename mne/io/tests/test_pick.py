@@ -112,8 +112,10 @@ def test_pick_refs():
     for info in infos:
         info['bads'] = []
         _assert_channel_types(info)
-        pytest.raises(ValueError, pick_types, info, meg='foo')
-        pytest.raises(ValueError, pick_types, info, ref_meg='foo')
+        with pytest.raises(ValueError, match="'planar2'] or bool, not foo"):
+            pick_types(info, meg='foo')
+        with pytest.raises(ValueError, match="'planar2', 'auto'] or bool,"):
+            pick_types(info, ref_meg='foo')
         picks_meg_ref = pick_types(info, meg=True, ref_meg=True)
         picks_meg = pick_types(info, meg=True, ref_meg=False)
         picks_ref = pick_types(info, meg=False, ref_meg=True)
