@@ -16,7 +16,7 @@ import numpy as np
 from scipy import sparse, linalg
 
 from .io.constants import FIFF
-from .io.meas_info import create_info
+from .io.meas_info import create_info, Info
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -3222,8 +3222,6 @@ def vertex_depths(src, info=None, picks=None, trans=None, mode='dist',
     depth : array of shape (,n_vertices)
         The depths of source space vertices with respect to sensors.
     """
-    from . import Info
-
     assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), 'info')
 
