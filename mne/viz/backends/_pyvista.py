@@ -37,7 +37,7 @@ with warnings.catch_warnings():
         from pyvista import BackgroundPlotter
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
-VTK9 = LooseVersion(vtk.VTK_VERSION) >= LooseVersion('9.0')
+VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
 
 
 _FIGURES = dict()
