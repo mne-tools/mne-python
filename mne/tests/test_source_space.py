@@ -18,7 +18,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, compute_source_morph,
+                 head_to_mni, compute_source_morph, pick_types,
                  read_bem_solution, read_freesurfer_lut, read_talxfm,
                  read_trans)
 from mne.fixes import _get_img_fdata
@@ -63,20 +63,38 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-def test_vertex_depths():
+@pytest.mark.parametrize('picks, limits', [
+    ('meg', (0.020, 0.110)),
+    (None, (0.002, 0.110)),  # should be same as EEG
+    ('eeg', (0.002, 0.110)),
+])
+def test_vertex_depths(picks, limits):
     """Test source depth calculation."""
     src = read_source_spaces(fname_fs)
     info = read_info(fname_ave)
     trans = read_trans(trans_fname)
+    if isinstance(picks, str):
+        kwargs = dict()
+        kwargs[picks] = True
+        if picks == 'eeg':
+            info['dev_head_t'] = None  # should not break anything
+        use_picks = pick_types(info, **kwargs, exclude=())
+    else:
+        use_picks = picks
 
     # minimum distances between vertices and sensors
-    depths = vertex_depths(src, info=info, picks=None, trans=trans,
-                           mode='dist', verbose=None)
-
+    depths = vertex_depths(src, info=info, picks=use_picks, trans=trans)
     nuse = src[0]['nuse'] + src[1]['nuse']
-    assert nuse == len(depths)
-    assert_array_less(0.001, depths)
-    assert_array_less(depths, 0.15)
+    assert depths.shape == (nuse,)
+    assert limits[0] * 2 > depths.min()  # decent/meaningful choice of limits
+    assert_array_less(limits[0], depths)
+    assert_array_less(depths, limits[1])
+
+    if picks != 'eeg':
+        # this should break things
+        info['dev_head_t'] = None
+        with pytest.raises(ValueError, match='Transform between meg<->head'):
+            vertex_depths(src, info, use_picks, trans)
 
 
 @testing.requires_testing_data

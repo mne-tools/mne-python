@@ -3201,8 +3201,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
 
 
 @verbose
-def vertex_depths(src, info=None, picks=None, trans=None, mode='dist',
-                  verbose=None):
+def vertex_depths(src, info=None, picks=None, trans=None, verbose=None):
     """Compute source depths as distances between vertices and nearest sensor.
 
     Parameters
@@ -3233,8 +3232,6 @@ def vertex_depths(src, info=None, picks=None, trans=None, mode='dist',
     else:
         src_trans = Transform('head', 'head')  # Identity transform
 
-    dev_to_head = _ensure_trans(info['dev_head_t'], 'meg', 'head')
-
     # Select channels to be used for distance calculations
     picks = _picks_to_idx(info, picks, 'data', exclude=())
 
@@ -3246,9 +3243,12 @@ def vertex_depths(src, info=None, picks=None, trans=None, mode='dist',
 
     # get sensor positions
     sensor_pos = []
+    dev_to_head = None
     for ch in picks:
         # MEG channels are in device coordinates, translate them to head
         if channel_type(info, ch) in ['mag', 'grad']:
+            if dev_to_head is None:
+                dev_to_head = _ensure_trans(info['dev_head_t'], 'meg', 'head')
             sensor_pos.append(apply_trans(dev_to_head,
                                           info['chs'][ch]['loc'][:3]))
         else:
