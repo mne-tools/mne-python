@@ -3291,6 +3291,6 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     sensor_pos = np.array(sensor_pos)
 
     # minimum distances per vertex
-    depths = distance.cdist(sensor_pos, src_pos).min(axis=0)
+    depths = _compute_nearest(sensor_pos, src_pos, return_dists=True)[1]
 
     return depths
