@@ -26,6 +26,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - uses: GuillaumeFavelier/ci-skip@enh/separator
+        with:
+          fail-fast: true
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          separator: ';'
       - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
       - uses: actions/setup-python@v2
