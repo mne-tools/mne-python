@@ -27,15 +27,16 @@ def test_boxy_load():
 
     # Test sampling rate.
     assert boxy_data.info['sfreq'] == 62.5
+    
+    #Test the returned types
+    assert 'fnirs_fd_phase' in raw 
+    assert 'fnirs_fd_dc_amplitude' in raw 
+    assert 'fnirs_fd_ac_amplitude' in raw 
 
     # Grab our different data types.
-    chans_dc = np.arange(0, 80) * 3 + 0
-    chans_ac = np.arange(0, 80) * 3 + 1
-    chans_ph = np.arange(0, 80) * 3 + 2
-
-    mne_dc = boxy_data.copy().pick(chans_dc)
-    mne_ac = boxy_data.copy().pick(chans_ac)
-    mne_ph = boxy_data.copy().pick(chans_ph)
+    mne_ph = boxy_data.copy().pick(picks='fnirs_fd_ph')
+    mne_dc = boxy_data.copy().pick(picks='fnirs_fd_dc_amplitude')
+    mne_ac = boxy_data.copy().pick(picks='fnirs_fd_ac_amplitude')
 
     # Check channel names.
     first_chans = ['S1_D1', 'S2_D1', 'S3_D1', 'S4_D1', 'S5_D1',

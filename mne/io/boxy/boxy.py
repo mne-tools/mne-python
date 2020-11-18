@@ -134,8 +134,10 @@ class RawBOXY(BaseRaw):
         # Determine channel types.  
         if datatype == 'Ph':    
             chan_type = 'fnirs_fd_phase'    
+        elif datatype == 'DC':
+            chan_type = 'fnirs_fd_dc_amplitude'
         else:   
-            chan_type = 'fnirs_cw_amplitude'    
+            chan_type = 'fnirs_fd_ac_amplitude'    
 
         ch_types = ([chan_type for i_chan in boxy_labels])
 
