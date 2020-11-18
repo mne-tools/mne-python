@@ -3212,7 +3212,8 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
         The object to select vertices from.
     info : instance of Info | None
         The info structure that contains information about the channels with
-        respect to which to compute distances.
+        respect to which to compute distances. Can be None if ``inst`` is
+        a :class:`~mne.Forward` instance.
     picks : array-like of int | None
         Indices of sensors to include in distance calculations. If `None``
         (default) then only MEG channels are used.
