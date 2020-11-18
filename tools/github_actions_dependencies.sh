@@ -13,7 +13,7 @@ else # pip 3.9 (missing statsmodels and dipy)
 	# built using vtk master branch on an Ubuntu 18.04.5 VM and uploaded to OSF:
 	wget -q https://osf.io/kej3v/download -O vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
 	pip install vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
-	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/5ee02e2f295f667e33f11e71946e774cca40256c
+	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/1ee2603fc6ec7bf1f712dadaf7db29590090173c
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
 	pip install --progress-bar off --upgrade --pre PyQt5
 	python -c "import vtk"
