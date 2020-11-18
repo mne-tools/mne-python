@@ -79,7 +79,6 @@ stages:
       vmImage: 'ubuntu-18.04'
     variables:
       DISPLAY: ':99'
-      OPENBLAS_NUM_THREADS: '1'
     steps:
     - bash: |
         sudo apt install libxkbcommon-x11-0 xvfb tcsh libxcb*
@@ -171,10 +170,8 @@ stages:
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
-      OPENBLAS_NUM_THREADS: 1
       PYTHONUNBUFFERED: 1
       PYTHONIOENCODING: 'utf-8'
-      MKL_NUM_THREADS: 1
       AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
     strategy:
