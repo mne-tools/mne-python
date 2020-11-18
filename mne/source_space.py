@@ -3271,13 +3271,7 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     dev_to_head = _ensure_trans(info['dev_head_t'], 'meg', 'head')
 
     # Select channels to be used for distance calculations
-    if picks is None:
-        picks = pick_types(info, meg=True)
-        if len(picks) > 0:
-            logger.info('Using MEG channels')
-        else:
-            logger.info('Using EEG channels')
-            picks = pick_types(info, eeg=True)
+    picks = _picks_to_idx(info, picks, 'data', exclude=())
 
     # get vertex position in same coordinates as for sensors below
     src_pos = np.vstack([
