@@ -10,7 +10,6 @@ on:
 jobs:
   # PIP + non-default stim channel + log level info
   job:
-    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     name: 'py3.9'
     runs-on: ubuntu-18.04  # same as ubuntu-latest, but more precise name
     defaults:

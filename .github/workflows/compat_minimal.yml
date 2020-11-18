@@ -10,7 +10,6 @@ on:
 jobs:
   # Minimal (runs with and without testing data)
   job:
-    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     name: 'py3.7'
     runs-on: ubuntu-latest
     defaults:
