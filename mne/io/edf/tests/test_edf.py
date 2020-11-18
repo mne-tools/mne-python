@@ -27,12 +27,12 @@ from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _read_ch
 from mne.io.edf.edf import _parse_prefilter_string
-from mne.io.pick import channel_indices_by_type
+from mne.io.pick import channel_indices_by_type, get_channel_type_constants
 from mne.annotations import events_from_annotations, read_annotations
-from mne.io.meas_info import _kind_dict as _KIND_DICT
 
 
 FILE = inspect.getfile(inspect.currentframe())
+KIND_DICT = get_channel_type_constants()
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')  # XXX: missing reader
 bdf_path = op.join(data_dir, 'test.bdf')
@@ -363,7 +363,8 @@ def test_load_generator(fname, recwarn):
 def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
     # This is fragile for EEG/EEG-CSD, so just omit csd
-    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items() if k != 'csd'}
+    TYPE_LUT = {v['kind']: k for k, v in KIND_DICT.items() if k not in
+                ('csd', 'chpi')}  # chpi not needed, and unhashable (a list)
     fname = op.join(data_dir, 'test_stim_channel.edf')
 
     raw = read_raw_edf(fname, stim_channel=test_input)
