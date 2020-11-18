@@ -3224,9 +3224,7 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     mode : str
         How to compute source depth. 'dist' computes Euclidean distance
         between vertices and nearest sensors.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
