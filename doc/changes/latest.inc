@@ -35,6 +35,8 @@ Enhancements
 
 - Add ``proj`` argument to :func:`mne.make_fixed_length_epochs` (:gh:`8351` by `Eric Larson`_)
 
+- Add :func:`mne.preprocessing.realign_raw` to realign simultaneous raw recordings in the presence of clock drift (:gh:`8539` by `Eric Larson`_)
+
 - Reduce memory usage of volume source spaces (:gh:`8379` by `Eric Larson`_)
 
 - Speed up heavy use of :meth:`mne.SourceMorph.apply` for volumetric source spaces by use of the method :meth:`mne.SourceMorph.compute_vol_morph_mat` (:gh:`8366` by `Eric Larson`_)
