@@ -14,7 +14,7 @@ import os.path as op
 
 import numpy as np
 from scipy import sparse, linalg
-from scipy.spatial.distance import cdist as scipy_cdist
+from scipy.spatial import distance
 
 from .io.constants import FIFF
 from .io.meas_info import create_info
@@ -3296,6 +3296,6 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
     sensor_pos = np.array(sensor_pos)
 
     # minimum distances per vertex
-    depths = scipy_cdist(sensor_pos, src_pos).min(axis=0)
+    depths = distance.cdist(sensor_pos, src_pos).min(axis=0)
 
     return depths
