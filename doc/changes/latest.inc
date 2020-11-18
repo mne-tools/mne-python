@@ -18,8 +18,15 @@ Current (0.22.dev0)
 
 .. |Tod Flak| replace:: **Tod Flak**
 
+.. |Victoria Peterson| replace:: **Victoria Peterson**
+
+
 Enhancements
 ~~~~~~~~~~~~
+- Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
+
+- Add options to use labels in :func:`mne.minimum_norm.get_point_spread` and :func:`mne.minimum_norm.get_cross_talk` (:gh:`8275` by `Olaf Hauk`_)
+
 - Update ``surfaces`` argument in :func:`mne.viz.plot_alignment` to allow dict for transparency values, and set default for sEEG data to have transparency (:gh:`8445` by `Keith Doelling`_)
 
 - Add ``n_pca_components`` argument to :func:`mne.viz.plot_ica_overlay` (:gh:`8351` by `Eric Larson`_)
@@ -46,9 +53,15 @@ Enhancements
 
 - Add :meth:`mne.channels.DigMontage.get_positions`, which will return a dictionary of channel positions, coordinate frame and fiducial locations (:gh:`8460` by `Adam Li`_)
 
+- Add support for writing digitization points in a coordinate frame other than head in :meth:`mne.channels.DigMontage.save` (:gh:`8532` by `Eric Larson`_)
+
 - Add ``picks`` parameter to :func:`mne.preprocessing.fix_stim_artifact` to specify which channel needs to be fixed (:gh:`8482` by `Alex Gramfort`_)
 
 - Further improved documentation building instructions and execution on Windows (:gh:`8502` by `kalenkovich`_ and `Eric Larson`_)
+
+- Add option to disable TQDM entirely with ``MNE_TQDM='off'`` (:gh:`8515` by `Eric Larson`_)
+
+- `mne.preprocessing.ICA.plot_sources` now displays an `mne.preprocessing.ICA.plot_properties` window when right-clicking on component names on the y-axis (:gh:`8381` by `Daniel McCloy`_)
 
 
 Bugs
@@ -113,12 +126,18 @@ Bugs
 
 - Fix bug where BrainVision channel names, event types, and event descriptions containing commas were incorrectly parsed (:gh:`8492` by `Stefan Appelhoff`_)
 
+- Fix bug in :func:`mne.preprocessing.compute_fine_calibration` where the magnetometer calibration coefficients were computed incorrectly (:gh:`8522` by `Eric Larson`_)
+
 - Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error (:gh:`8384` by `Mikołaj Magnuski`_)
+
+- Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
 
 API changes
 ~~~~~~~~~~~
 
-- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates, (:gh:`8452` by `Olaf Hauk`_)
+- Added argument ``colors`` to `mne.grow_labels` (:gh:`8519` by `Olaf Hauk`_)
+
+- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates (:gh:`8452` by `Olaf Hauk`_)
 
 - Minimum required versions were increased for core dependencies NumPy (1.15.4), SciPy (1.1.0), and Matplotlib (3.0) and for the optional dependencies scikit-learn (0.20.2) and pandas (0.23.4) (:gh:`8374` by `Eric Larson`_)
 
@@ -133,3 +152,7 @@ API changes
 - New `mne.viz.Brain.set_time` method to set the displayed time in seconds (:gh:`8415` by `Daniel McCloy`_)
 
 - Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` (:gh:`8395` by `Guillaume Favelier`_)
+
+- Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
+
+- Parameter ``event_colors`` in `mne.viz.plot_epochs` and `mne.Epochs.plot` is deprecated, replaced by ``event_color`` which is consistent with `mne.viz.plot_raw` and provides greater flexibility (:gh:`8381` by `Daniel McCloy`_)

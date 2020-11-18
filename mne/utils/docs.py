@@ -95,6 +95,29 @@ standardize_names : bool
     channel names in the file will be used when possible.
 """
 
+docdict['event_color'] = """
+event_color : color object | dict | None
+    Color(s) to use for events. To show all events in the same color, pass any
+    matplotlib-compatible color. To color events differently, pass a `dict`
+    that maps event names or integer event numbers to colors (must include
+    entries for *all* events, or include a "fallback" entry with key ``-1``).
+    If ``None``, colors are chosen from the current Matplotlib color cycle.
+"""
+
+docdict['browse_group_by'] = """
+group_by : str
+    How to group channels. ``'type'`` groups by channel type,
+    ``'original'`` plots in the order of ch_names, ``'selection'`` uses
+    Elekta's channel groupings (only works for Neuromag data),
+    ``'position'`` groups the channels by the positions of the sensors.
+    ``'selection'`` and ``'position'`` modes allow custom selections by
+    using a lasso selector on the topomap. In butterfly mode, ``'type'``
+    and ``'original'`` group the channels by type, whereas ``'selection'``
+    and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
+    modes are ignored when ``order`` is not ``None``. Defaults to ``'type'``.
+"""
+
+
 # Epochs
 docdict['proj_epochs'] = """
 proj : bool | 'delayed'
@@ -1000,6 +1023,67 @@ docdict['use_cps_restricted'] = docdict['use_cps'] + """
     Only used when the inverse is free orientation (``loose=1.``),
     not in surface orientation, and ``pick_ori='normal'``.
 """
+docdict['pctf_mode'] = """
+mode : None | 'mean' | 'max' | 'svd'
+    Compute summary of PSFs/CTFs across all indices specified in 'idx'.
+    Can be:
+
+    * None : Output individual PSFs/CTFs for each specific vertex
+      (Default).
+    * 'mean' : Mean of PSFs/CTFs across vertices.
+    * 'max' : PSFs/CTFs with maximum norm across vertices. Returns the
+      n_comp largest PSFs/CTFs.
+    * 'svd' : SVD components across PSFs/CTFs across vertices. Returns the
+      n_comp first SVD components.
+"""
+docdict['pctf_idx'] = """
+idx : list of int | list of Label
+    Source for indices for which to compute PSFs or CTFs. If mode is None,
+    PSFs/CTFs will be returned for all indices. If mode is not None, the
+    corresponding summary measure will be computed across all PSFs/CTFs
+    available from idx.
+    Can be:
+
+    * list of integers : Compute PSFs/CTFs for all indices to source space
+      vertices specified in idx.
+    * list of Label : Compute PSFs/CTFs for source space vertices in
+      specified labels.
+"""
+docdict['pctf_n_comp'] = """
+n_comp : int
+    Number of PSF/CTF components to return for mode='max' or mode='svd'.
+    Default n_comp=1.
+"""
+docdict['pctf_norm'] = """
+norm : None | 'max' | 'norm'
+    Whether and how to normalise the PSFs and CTFs. This will be applied
+    before computing summaries as specified in 'mode'.
+    Can be:
+
+    * None : Use un-normalized PSFs/CTFs (Default).
+    * 'max' : Normalize to maximum absolute value across all PSFs/CTFs.
+    * 'norm' : Normalize to maximum norm across all PSFs/CTFs.
+"""
+docdict['pctf_return_pca_vars'] = """
+return_pca_vars : bool
+    Whether or not to return the explained variances across the specified
+    vertices for individual SVD components. This is only valid if
+    mode='svd'.
+    Default return_pca_vars=False.
+"""
+docdict['pctf_pca_vars'] = """
+pca_vars : array, shape (n_comp,) | list of array
+    The explained variances of the first n_comp SVD components across the
+    PSFs/CTFs for the specified vertices. Arrays for multiple labels are
+    returned as list. Only returned if mode='svd' and return_pca_vars=True.
+"""
+docdict['pctf_stcs'] = """
+stcs : instance of SourceEstimate | list of instances of SourceEstimate
+    PSFs or CTFs as STC objects.
+    All PSFs/CTFs will be returned as successive samples in STC objects,
+    in the order they are specified in idx. STCs for different labels will
+    be returned as a list.
+"""
 
 # Forward
 docdict['on_missing_fwd'] = """
@@ -1847,6 +1931,12 @@ reject : dict | str | None
 {reject_common}
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
+"""
+
+# Other
+docdict['accept'] = """
+accept : bool
+    If True (default False), accept the license terms of this dataset.
 """
 
 # Finalize

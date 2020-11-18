@@ -56,9 +56,11 @@ _BUILT_IN_MONTAGES = [
 
 
 def _check_get_coord_frame(dig):
-    _MSG = 'Only single coordinate frame in dig is supported'
-    dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) <= 1, _MSG
+    dig_coord_frames = sorted(set(d['coord_frame'] for d in dig))
+    if len(dig_coord_frames) != 1:
+        raise RuntimeError(
+            'Only a single coordinate frame in dig is supported, got '
+            f'{dig_coord_frames}')
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
@@ -218,10 +220,8 @@ class DigMontage(object):
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
         """
-        if _check_get_coord_frame(self.dig) != 'head':
-            raise RuntimeError('Can only write out digitization points in '
-                               'head coordinates.')
-        write_dig(fname, self.dig)
+        coord_frame = _check_get_coord_frame(self.dig)
+        write_dig(fname, self.dig, coord_frame)
 
     def __iadd__(self, other):
         """Add two DigMontages in place.

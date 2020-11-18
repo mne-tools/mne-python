@@ -1026,6 +1026,7 @@ Decoding
    SlidingEstimator
    GeneralizingEstimator
    SPoC
+   SSD
 
 Functions that assist with decoding and model fitting:
 

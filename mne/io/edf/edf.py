@@ -719,18 +719,20 @@ def _read_gdf_header(fname, exclude):
             channels = list(range(nchan))
             ch_names = [fid.read(16).decode('latin-1').strip(' \x00')
                         for ch in channels]
+            exclude = _find_exclude_idx(ch_names, exclude)
+            sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
             fid.seek(80 * len(channels), 1)  # transducer
             units = [fid.read(8).decode('latin-1').strip(' \x00')
                      for ch in channels]
-            exclude = _find_exclude_idx(ch_names, exclude)
-            sel = list()
+            edf_info['units'] = list()
             for i, unit in enumerate(units):
+                if i in exclude:
+                    continue
                 if unit[:2] == 'uV':
-                    units[i] = 1e-6
+                    edf_info['units'].append(1e-6)
                 else:
-                    units[i] = 1
-                sel.append(i)
-            units = np.array(units, float)
+                    edf_info['units'].append(1)
+            edf_info['units'] = np.array(edf_info['units'], float)
 
             ch_names = [ch_names[idx] for idx in sel]
             physical_min = np.fromfile(fid, np.float64, len(channels))
@@ -762,8 +764,7 @@ def _read_gdf_header(fname, exclude):
                 meas_date=meas_date,
                 meas_id=meas_id, n_records=n_records, n_samps=n_samps,
                 nchan=nchan, subject_info=patient, physical_max=physical_max,
-                physical_min=physical_min, record_length=record_length,
-                units=units)
+                physical_min=physical_min, record_length=record_length)
 
             fid.seek(32 * edf_info['nchan'], 1)  # reserved
             assert fid.tell() == header_nbytes
@@ -902,6 +903,7 @@ def _read_gdf_header(fname, exclude):
             ch_names = [fid.read(16).decode().strip(' \x00')
                         for ch in channels]
             exclude = _find_exclude_idx(ch_names, exclude)
+            sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
 
             fid.seek(80 * len(channels), 1)  # reserved space
             fid.seek(6 * len(channels), 1)  # phys_dim, obsolete
@@ -914,23 +916,24 @@ def _read_gdf_header(fname, exclude):
             """  # noqa
             units = np.fromfile(fid, np.uint16, len(channels)).tolist()
             unitcodes = np.array(units[:])
-            sel = list()
+            edf_info['units'] = list()
             for i, unit in enumerate(units):
+                if i in exclude:
+                    continue
                 if unit == 4275:  # microvolts
-                    units[i] = 1e-6
+                    edf_info['units'].append(1e-6)
                 elif unit == 4274:  # millivolts
-                    units[i] = 1e-3
+                    edf_info['units'].append(1e-3)
                 elif unit == 512:  # dimensionless
-                    units[i] = 1
+                    edf_info['units'].append(1)
                 elif unit == 0:
-                    units[i] = 1  # unrecognized
+                    edf_info['units'].append(1)  # unrecognized
                 else:
                     warn('Unsupported physical dimension for channel %d '
                          '(assuming dimensionless). Please contact the '
                          'MNE-Python developers for support.' % i)
-                    units[i] = 1
-                sel.append(i)
-            units = np.array(units, float)
+                    edf_info['units'].append(1)
+            edf_info['units'] = np.array(edf_info['units'], float)
 
             ch_names = [ch_names[idx] for idx in sel]
             physical_min = np.fromfile(fid, np.float64, len(channels))
@@ -989,7 +992,7 @@ def _read_gdf_header(fname, exclude):
                 meas_id=meas_id, n_records=n_records, n_samps=n_samps,
                 nchan=nchan, notch=notch, subject_info=patient,
                 physical_max=physical_max, physical_min=physical_min,
-                record_length=record_length, ref=ref, units=units)
+                record_length=record_length, ref=ref)
 
             # EVENT TABLE
             # -----------------------------------------------------------------

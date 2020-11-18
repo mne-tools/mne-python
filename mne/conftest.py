@@ -62,6 +62,7 @@ def pytest_configure(config):
     #   doc/conf.py.
     warning_lines = r"""
     error::
+    ignore:.*deprecated and ignored since IPython.*:DeprecationWarning
     ignore::ImportWarning
     ignore:the matrix subclass:PendingDeprecationWarning
     ignore:numpy.dtype size changed:RuntimeWarning

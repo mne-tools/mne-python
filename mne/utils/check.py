@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
 from distutils.version import LooseVersion
 import operator
@@ -733,3 +734,14 @@ def _on_missing(on_missing, msg, name='on_missing'):
         warn(msg)
     else:  # Ignore
         assert on_missing == 'ignore'
+
+
+def _safe_input(msg, *, alt=None, use=None):
+    try:
+        return input(msg)
+    except EOFError:  # MATLAB or other non-stdin
+        if use is not None:
+            return use
+        raise RuntimeError(
+            f'Could not use input() to get a response to:\n{msg}\n'
+            f'You can {alt} to avoid this error.')

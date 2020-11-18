@@ -474,17 +474,31 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
     from ..bem import fit_sphere_to_headshape
     from ..io.constants import FIFF
+    from ..io.meas_info import Info
+    from ..channels.montage import DigMontage
     # test dig positions
-    dig_py = sorted(info_py['dig'], key=_dig_sort_key)
-    dig_bin = sorted(info_bin['dig'], key=_dig_sort_key)
+    dig_py, dig_bin = info_py, info_bin
+    if isinstance(dig_py, Info):
+        assert isinstance(dig_bin, Info)
+        dig_py, dig_bin = dig_py['dig'], dig_bin['dig']
+    else:
+        assert isinstance(dig_bin, DigMontage)
+        assert isinstance(dig_py, DigMontage)
+        dig_py, dig_bin = dig_py.dig, dig_bin.dig
+        info_py = info_bin = None
+    assert isinstance(dig_py, list)
+    assert isinstance(dig_bin, list)
+    dig_py = sorted(dig_py, key=_dig_sort_key)
+    dig_bin = sorted(dig_bin, key=_dig_sort_key)
     assert len(dig_py) == len(dig_bin)
     for ii, (d_py, d_bin) in enumerate(zip(dig_py[:limit], dig_bin[:limit])):
         for key in ('ident', 'kind', 'coord_frame'):
-            assert d_py[key] == d_bin[key]
+            assert d_py[key] == d_bin[key], key
         assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
                         err_msg='Failure on %s:\n%s\n%s'
                         % (ii, d_py['r'], d_bin['r']))
-    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
+    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and \
+            info_py is not None:
         r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(
             info_bin, units='m', verbose='error')
         r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(
@@ -519,3 +533,23 @@ def modified_env(**d):
                 os.environ[key] = val
             elif key in os.environ:
                 del os.environ[key]
+
+
+def _click_ch_name(fig, ch_index=0, button=1):
+    """Click on a channel name in a raw/epochs/ICA browse-style plot."""
+    from ..viz.utils import _fake_click
+    fig.canvas.draw()
+    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
+    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
+    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
+                xform='data', button=button)
+
+
+def _close_event(fig):
+    """Force calling of the MPL figure close event."""
+    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
+    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+    try:
+        fig.canvas.close_event()
+    except ValueError:  # old mpl with Qt
+        pass  # pragma: no cover
