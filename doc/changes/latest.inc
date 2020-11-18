@@ -155,7 +155,6 @@ API changes
 
 - Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
 
-<<<<<<< HEAD
 - Add ``proj='reconstruct'`` to :meth:`mne.Evoked.plot` and related functions to apply projectors and then undo the signal bias using field mapping by `Eric Larson`_
 
 - When picking a subset of channels, or when dropping channels from `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked`, projectors that can only be applied to the removed channels will now be dropped automatically by `Richard Höchenberger`_
@@ -357,6 +356,5 @@ API
 - The ``threshold`` argument in :meth:`mne.preprocessing.ICA.find_bads_ecg` defaults to ``None`` in version 0.21 but will change to ``'auto'`` in 0.22 by `Yu-Han Luo`_
 
 - The default argument ``meg=True`` in :func:`mne.pick_types` will change to ``meg=False`` in version 0.22 by `Clemens Brunner`_
-=======
+
 - Parameter ``event_colors`` in `mne.viz.plot_epochs` and `mne.Epochs.plot` is deprecated, replaced by ``event_color`` which is consistent with `mne.viz.plot_raw` and provides greater flexibility (:gh:`8381` by `Daniel McCloy`_)
->>>>>>> master

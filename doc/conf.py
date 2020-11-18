@@ -677,12 +677,8 @@ numpydoc_xref_ignore = {
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-<<<<<<< HEAD
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
-=======
-    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF',
     'RawPersyst', 'RawNihon',
->>>>>>> master
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable

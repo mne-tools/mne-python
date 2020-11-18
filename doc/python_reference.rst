@@ -72,12 +72,9 @@ Reading raw data
    read_raw_fif
    read_raw_eximia
    read_raw_fieldtrip
-<<<<<<< HEAD
    read_raw_boxy
-=======
    read_raw_persyst
    read_raw_nihon
->>>>>>> master
 
 Base class:
 
