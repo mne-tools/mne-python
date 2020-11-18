@@ -1995,7 +1995,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
                          '(%s != %s) for ch_types=%s'
                          % (len(ch_types), nchan, ch_types))
     info = _empty_info(sfreq)
-    ch_types_dict = get_channel_type_constants()
+    ch_types_dict = get_channel_type_constants(include_defaults=True)
     for ci, (ch_name, ch_type) in enumerate(zip(ch_names, ch_types)):
         _validate_type(ch_name, 'str', "each entry in ch_names")
         _validate_type(ch_type, 'str', "each entry in ch_types")
