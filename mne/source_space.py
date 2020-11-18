@@ -3243,6 +3243,7 @@ def vertex_depths(inst, info=None, picks=None, trans=None, mode='dist',
             raise ValueError('You need to specify an Info object with '
                              'information about the channels.')
     src = inst
+    _valididate_type(info, (Info,), 'info')
 
     # Load the head<->MRI transform if necessary
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
