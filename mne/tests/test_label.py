@@ -23,7 +23,7 @@ from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
                        select_sources)
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, check_version)
-from mne.label import _n_colors
+from mne.label import _n_colors, _read_annot, _read_annot_cands
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 
@@ -444,13 +444,17 @@ def test_labels_to_stc():
 
 
 @testing.requires_testing_data
-def test_read_labels_from_annot():
+def test_read_labels_from_annot(tmpdir):
     """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
     pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
     pytest.raises(ValueError, read_labels_from_annot, 'sample',
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
+    with pytest.raises(IOError, match='does not exist'):
+        _read_annot_cands('foo')
+    with pytest.raises(IOError, match='no candidate'):
+        _read_annot(str(tmpdir))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot('sample', hemi='lh',
