@@ -10,14 +10,15 @@ on:
 jobs:
   check-skip:
     runs-on: ubuntu-20.04
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - uses: GuillaumeFavelier/ci-skip@enh/separator
-      with:
-        fail-fast: true
-        commit-filter: '[skip ci];[ci skip];[skip github]'
-        separator: ';'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: GuillaumeFavelier/ci-skip@enh/separator
+        with:
+          fail-fast: true
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          separator: ';'
 
   style:
     needs: check-skip
