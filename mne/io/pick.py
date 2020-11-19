@@ -75,9 +75,11 @@ def get_channel_type_constants(include_defaults=False):
                     coil_type=FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE),
                 fnirs_fd_ac_amplitude=dict(
                     kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_V,
                     coil_type=FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE),
                 fnirs_fd_phase=dict(
                     kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_RAD,
                     coil_type=FIFF.FIFFV_COIL_FNIRS_FD_PHASE),
                 fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH,
                               coil_type=FIFF.FIFFV_COIL_FNIRS_OD),

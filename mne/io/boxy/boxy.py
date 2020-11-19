@@ -141,6 +141,7 @@ class RawBOXY(BaseRaw):
         # 'source_num' rows correspond to the second detector, and so on.
         ch_names = list()
         ch_types = list()
+        cals = list()
         for det_num in range(raw_extras['detect_num']):
             for src_num in range(raw_extras['source_num']):
                 for i_type, ch_type in [
@@ -150,9 +151,12 @@ class RawBOXY(BaseRaw):
                     ch_names.append(
                         f'S{src_num + 1}_D{det_num + 1} {i_type}')
                     ch_types.append(ch_type)
+                    cals.append(np.pi / 180. if i_type == 'Ph' else 1.)
 
         # Create info structure.
         info = create_info(ch_names, sfreq, ch_types)
+        for ch, cal in zip(info['chs'], cals):
+            ch['cal'] = cal
 
         # Determine how long our data is.
         delta = end_line - start_line

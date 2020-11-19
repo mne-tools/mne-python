@@ -6,7 +6,8 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import (assert_allclose, assert_array_equal,
+                           assert_array_less)
 import scipy.io as spio
 
 from mne import pick_types
@@ -33,7 +34,6 @@ p_pod_0_84 = op.join(
 
 
 def _assert_ppod(raw, p_pod_file):
-    __tracebackhide__ = True
     have_types = raw.get_channel_types(unique=True)
     assert 'fnirs_fd_phase' in raw, have_types
     assert 'fnirs_cw_amplitude' in raw, have_types
@@ -49,6 +49,10 @@ def _assert_ppod(raw, p_pod_file):
         assert 1e-1 < m < 1e5, key  # our atol is meaningful
         atol = m * 1e-10
         py = raw.get_data(value)
+        if key == 'ph':  # radians
+            assert_array_less(-np.pi, py)
+            assert_array_less(py, 3 * np.pi)
+            py = np.rad2deg(py)
         assert_allclose(py, ppod, atol=atol, err_msg=key)
 
 
