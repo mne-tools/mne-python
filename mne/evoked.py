@@ -394,9 +394,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg',
             'hbo', 'hbr', 'fnirs_cw_amplitude',
             'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od'.
-            If None, first available channel type from ('mag', 'grad', 'eeg',
-            'hbo', 'hbr', 'fnirs_cw_amplitude',
-            'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od') is used.
+            If None, first available channel type from the above list is used.
             Defaults to None.
         times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
@@ -523,7 +521,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        ch_type : 'mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', hbr', 'misc', None
+        ch_type : str | None
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
@@ -560,9 +558,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.16
         """  # noqa: E501
-        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
-                     'hbr', 'None', 'fnirs_cw_amplitude',
-                     'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
+        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc',
+                     'None') + _FNIRS_CH_TYPES_SPLIT
         types_used = self.get_channel_types(unique=True, only_data_chs=True)
 
         _check_option('ch_type', str(ch_type), supported)
