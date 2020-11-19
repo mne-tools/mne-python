@@ -2111,8 +2111,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     make_label = len(ax_list) == len(fig.axes)
 
     # Plot Frequency [Hz] xlabel on the last axis
-    xlabels_list = [False] * len(picks_list)
-    xlabels_list[-1] = True
+    xlabels_list = [False] * (len(picks_list) - 1) + [True]
 
     return (fig, picks_list, titles_list, units_list, scalings_list,
             ax_list, make_label, xlabels_list)
@@ -2243,12 +2242,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                            inst.info['sfreq'], types)
         info['chs'] = [inst.info['chs'][p] for p in picks]
         info['dev_head_t'] = inst.info['dev_head_t']
-        valid_channel_types = [
-            'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
-            'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-            'hbr', 'misc', 'fnirs_cw_amplitude', 'fnirs_od']
         ch_types_used = list()
-        for this_type in valid_channel_types:
+        for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:
                 ch_types_used.append(this_type)
         assert len(ch_types_used) == len(ax_list)
@@ -2280,8 +2275,9 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                 ax.set_xlabel('Frequency (Hz)')
 
     if make_label:
-        fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
+        fig.subplots_adjust(left=0.125, bottom=0.1, right=0.95, top=0.9,
                             hspace=0.5)
+        fig.align_ylabels(axs=ax_list)
     return fig
 
 
