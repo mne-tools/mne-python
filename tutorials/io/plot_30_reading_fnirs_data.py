@@ -48,7 +48,7 @@ systems that store data in a single .txt file containing
 DC `fnirs_cw_amplitude` (all light collected by the detector),
 AC `fnirs_fd_ac_amplitude` (modulated light intensity), and 
 Phase `fnirs_fd_phase` information for each source and detector 
-combination. DC data is stored as the type 'fnirs_cw_amplitude to since 
+combination. DC data is stored as the type 'fnirs_cw_amplitude since 
 it collects both the modulated and any unmodulated light, and to conform
 to SNIRF standard types. These raw data files can be saved as parsed or unparsed
 .txt files, which affects how the data in the file is organised.
