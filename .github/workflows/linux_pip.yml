@@ -8,8 +8,25 @@ on:
       - '*'
 
 jobs:
+  check_skip:
+    runs-on: ubuntu-20.04
+    outputs:
+      skip: ${{ steps.result_step.outputs.result }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: GuillaumeFavelier/ci-skip@enh/separator
+        with:
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          separator: ';'
+      - run: echo "::set-output name=result::${CI_SKIP}"
+        id: result_step
+
   # PIP + non-default stim channel + log level info
   job:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
     name: 'py3.9'
     runs-on: ubuntu-20.04
     defaults:
@@ -24,46 +41,32 @@ jobs:
       PYTHON_VERSION: '3.9'
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: GuillaumeFavelier/ci-skip@enh/separator
-        with:
-          commit-filter: '[skip ci];[ci skip];[skip github]'
-          separator: ';'
       - run: ./tools/setup_xvfb.sh
-        if: ${{ env.CI_SKIP == 'false' }}
         name: 'Setup xvfb'
       - uses: actions/setup-python@v2
-        if: ${{ env.CI_SKIP == 'false' }}
         with:
           python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup python'
       - shell: bash -el {0}
-        if: ${{ env.CI_SKIP == 'false' }}
         run: |
           ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
         name: 'Install dependencies'
       - shell: bash -el {0}
-        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_install.sh
         name: 'Install MNE'
       - shell: bash -el {0}
-        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_infos.sh
         name: 'Show infos'
       - shell: bash -el {0}
-        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
-        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_locale.sh
         name: 'Print locale'
       - shell: bash -el {0}
-        if: ${{ env.CI_SKIP == 'false' }}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
-        if: ${{ success() && env.CI_SKIP == 'false' }}
+        if: success()
         name: 'Upload coverage to CodeCov'
